@@ -392,7 +392,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
             change += "chat messages;";
         }
         if (change.length() > 0) {
-            log.info("cleared sensitive data from {} of dispute for trade {}", change, Utilities.getShortId(getTradeId()));
+            log.info("Cleared sensitive data from {} of dispute for trade {}", change, Utilities.getShortId(getTradeId()));
         }
     }
 

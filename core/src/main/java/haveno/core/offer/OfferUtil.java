@@ -56,12 +56,13 @@ import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.user.AutoConfirmSettings;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
-import static haveno.core.xmr.wallet.Restrictions.getMaxSecurityDepositAsPercent;
-import static haveno.core.xmr.wallet.Restrictions.getMinSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getMaxSecurityDepositPct;
+import static haveno.core.xmr.wallet.Restrictions.getMinSecurityDepositPct;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -120,13 +121,13 @@ public class OfferUtil {
         return direction == OfferDirection.BUY;
     }
 
-    public long getMaxTradeLimit(PaymentAccount paymentAccount,
+    public BigInteger getMaxTradeLimit(PaymentAccount paymentAccount,
                                  String currencyCode,
                                  OfferDirection direction,
                                  boolean buyerAsTakerWithoutDeposit) {
-        return paymentAccount != null
+        return BigInteger.valueOf(paymentAccount != null
                 ? accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit)
-                : 0;
+                : 0);
     }
 
     /**
@@ -239,12 +240,12 @@ public class OfferUtil {
                                   PaymentAccount paymentAccount,
                                   String currencyCode) {
         checkNotNull(p2PService.getAddress(), "Address must not be null");
-        checkArgument(securityDeposit <= getMaxSecurityDepositAsPercent(),
+        checkArgument(securityDeposit <= getMaxSecurityDepositPct(),
                 "securityDeposit must not exceed " +
-                        getMaxSecurityDepositAsPercent());
-        checkArgument(securityDeposit >= getMinSecurityDepositAsPercent(),
+                        getMaxSecurityDepositPct());
+        checkArgument(securityDeposit >= getMinSecurityDepositPct(),
                 "securityDeposit must not be less than " +
-                        getMinSecurityDepositAsPercent() + " but was " + securityDeposit);
+                        getMinSecurityDepositPct() + " but was " + securityDeposit);
         checkArgument(!filterManager.isCurrencyBanned(currencyCode),
                 Res.get("offerbook.warning.currencyBanned"));
         checkArgument(!filterManager.isPaymentMethodBanned(paymentAccount.getPaymentMethod()),
@@ -263,10 +264,27 @@ public class OfferUtil {
     }
 
     public static boolean isTraditionalOffer(Offer offer) {
-        return offer.getBaseCurrencyCode().equals("XMR");
+        return CurrencyUtil.isTraditionalCurrency(offer.getCounterCurrencyCode());
     }
 
     public static boolean isCryptoOffer(Offer offer) {
-        return offer.getCounterCurrencyCode().equals("XMR");
+        return CurrencyUtil.isCryptoCurrency(offer.getCounterCurrencyCode());
+    }
+
+    public BigInteger getMaxTradeLimitForRelease(PaymentAccount paymentAccount,
+                                                  String currencyCode,
+                                                  OfferDirection direction,
+                                                  boolean buyerAsTakerWithoutDeposit) {
+        
+        // disallow offers which no buyer can take due to trade limits on release
+        if (HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS)) {
+            return BigInteger.valueOf(accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, OfferDirection.BUY, buyerAsTakerWithoutDeposit));
+        }
+
+        if (paymentAccount != null) {
+            return BigInteger.valueOf(accountAgeWitnessService.getMyTradeLimit(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit));
+        } else {
+            return BigInteger.ZERO;
+        }
     }
 }

@@ -207,7 +207,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter xmrFormatter,
                                  OfferUtil offerUtil) {
         super(dataModel);
-
         this.fiatVolumeValidator = fiatVolumeValidator;
         this.amountValidator4Decimals = amountValidator4Decimals;
         this.amountValidator8Decimals = amountValidator8Decimals;
@@ -262,15 +261,11 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     private void addBindings() {
         if (dataModel.getDirection() == OfferDirection.BUY) {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get(CurrencyUtil.isTraditionalCurrency(dataModel.getTradeCurrencyCode().get()) ?
-                            "createOffer.amountPriceBox.buy.volumeDescription" :
-                            "createOffer.amountPriceBox.buy.volumeDescriptionCrypto", dataModel.getTradeCurrencyCode().get()),
+                    () -> Res.get("createOffer.amountPriceBox.buy.volumeDescription", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         } else {
             volumeDescriptionLabel.bind(createStringBinding(
-                    () -> Res.get(CurrencyUtil.isTraditionalCurrency(dataModel.getTradeCurrencyCode().get()) ?
-                            "createOffer.amountPriceBox.sell.volumeDescription" :
-                            "createOffer.amountPriceBox.sell.volumeDescriptionCrypto", dataModel.getTradeCurrencyCode().get()),
+                    () -> Res.get("createOffer.amountPriceBox.sell.volumeDescription", dataModel.getTradeCurrencyCode().get()),
                     dataModel.getTradeCurrencyCode()));
         }
         volumePromptLabel.bind(createStringBinding(
@@ -320,7 +315,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         };
         priceStringListener = (ov, oldValue, newValue) -> {
             updateMarketPriceAvailable();
-            final String currencyCode = dataModel.getTradeCurrencyCode().get();
             if (!ignorePriceStringListener) {
                 if (isPriceInputValid(newValue).isValid) {
                     setPriceToModel();
@@ -333,9 +327,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                             try {
                                 double priceAsDouble = ParsingUtils.parseNumberStringToDouble(price.get());
                                 double relation = priceAsDouble / marketPriceAsDouble;
-                                final OfferDirection compareDirection = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                                        OfferDirection.SELL :
-                                        OfferDirection.BUY;
+                                final OfferDirection compareDirection = OfferDirection.BUY;
                                 double percentage = dataModel.getDirection() == compareDirection ? 1 - relation : relation - 1;
                                 percentage = MathUtils.roundDouble(percentage, 4);
                                 dataModel.setMarketPriceMarginPct(percentage);
@@ -368,9 +360,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                             if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
                                 percentage = MathUtils.roundDouble(percentage, 4);
                                 double marketPriceAsDouble = marketPrice.getPrice();
-                                final OfferDirection compareDirection = CurrencyUtil.isCryptoCurrency(currencyCode) ?
-                                        OfferDirection.SELL :
-                                        OfferDirection.BUY;
+                                final OfferDirection compareDirection = OfferDirection.BUY;
                                 double factor = dataModel.getDirection() == compareDirection ?
                                         1 - percentage :
                                         1 + percentage;
@@ -492,7 +482,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         buyerAsTakerWithoutDepositListener = (ov, oldValue, newValue) -> {
             if (dataModel.paymentAccount != null) xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
-            xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
+            xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
+            xmrValidator.setMinValue(dataModel.getMinTradeLimit());
             if (amount.get() != null) amountValidationResult.set(isXmrInputValid(amount.get()));
             updateSecurityDeposit();
             setSecurityDepositToModel();
@@ -610,20 +601,13 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
         if (dataModel.paymentAccount != null)
             xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
-        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
-        xmrValidator.setMinValue(Restrictions.getMinTradeAmount());
+        xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
+        xmrValidator.setMinValue(dataModel.getMinTradeLimit());
 
         final boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
 
-        boolean isTraditionalCurrency = CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode());
-
-        if (isTraditionalCurrency) {
-            amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
-                    isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
-        } else {
-            amountDescription = Res.get(isBuy ? "createOffer.amountPriceBox.sell.amountDescriptionCrypto" :
-                    "createOffer.amountPriceBox.buy.amountDescriptionCrypto");
-        }
+        amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
+                isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
 
         securityDepositValidator.setPaymentAccount(dataModel.paymentAccount);
         validateAndSetSecurityDepositToModel();
@@ -700,7 +684,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             amountValidationResult.set(isXmrInputValid(amount.get()));
 
         xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
-        xmrValidator.setMaxTradeLimit(BigInteger.valueOf(dataModel.getMaxTradeLimit()));
+        xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
 
         securityDepositValidator.setPaymentAccount(paymentAccount);
     }
@@ -758,7 +742,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 if (minAmount.get() != null)
                     minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
             } else if (amount.get() != null && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
-                if (ParsingUtils.parseNumberStringToDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount())) {
+                if (ParsingUtils.parseNumberStringToDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(dataModel.getMinTradeLimit())) {
                     amountValidationResult.set(result);
                 } else {
                     amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
@@ -997,7 +981,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             InputValidator.ValidationResult result = securityDepositValidator.validate(securityDeposit.get());
             securityDepositValidationResult.set(result);
             if (result.isValid) {
-                double defaultSecurityDeposit = Restrictions.getDefaultSecurityDepositAsPercent();
+                double defaultSecurityDeposit = Restrictions.getDefaultSecurityDepositPct();
                 String key = "buyerSecurityDepositIsLowerAsDefault";
                 double depositAsDouble = ParsingUtils.parsePercentStringToDouble(securityDeposit.get());
                 if (preferences.showAgain(key) && depositAsDouble < defaultSecurityDeposit) {
@@ -1165,29 +1149,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     String getTriggerPriceDescriptionLabel() {
-        String details;
-        if (dataModel.isBuyOffer()) {
-            details = dataModel.isCryptoCurrency() ?
-                    Res.get("account.notifications.marketAlert.message.msg.below") :
-                    Res.get("account.notifications.marketAlert.message.msg.above");
-        } else {
-            details = dataModel.isCryptoCurrency() ?
-                    Res.get("account.notifications.marketAlert.message.msg.above") :
-                    Res.get("account.notifications.marketAlert.message.msg.below");
-        }
+        String details = dataModel.isBuyOffer() ?
+                Res.get("account.notifications.marketAlert.message.msg.above") :
+                Res.get("account.notifications.marketAlert.message.msg.below");
         return Res.get("createOffer.triggerPrice.label", details);
     }
 
     String getPercentagePriceDescription() {
-        if (dataModel.isBuyOffer()) {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.aboveInPercent") :
-                    Res.get("shared.belowInPercent");
-        } else {
-            return dataModel.isCryptoCurrency() ?
-                    Res.get("shared.belowInPercent") :
-                    Res.get("shared.aboveInPercent");
-        }
+        return dataModel.isBuyOffer() ? Res.get("shared.belowInPercent") : Res.get("shared.aboveInPercent");
     }
 
 
@@ -1199,10 +1168,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         if (amount.get() != null && !amount.get().isEmpty()) {
             BigInteger amount = HavenoUtils.coinToAtomicUnits(DisplayUtils.parseToCoinWith4Decimals(this.amount.get(), xmrFormatter));
 
-            long maxTradeLimit = dataModel.getMaxTradeLimit();
             Price price = dataModel.getPrice().get();
             if (price != null && price.isPositive()) {
-                amount = CoinUtil.getRoundedAmount(amount, price, maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
+                amount = CoinUtil.getRoundedAmount(amount, price, dataModel.getMinTradeLimit(), dataModel.getMaxTradeLimit(), tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
             }
             dataModel.setAmount(amount);
             if (syncMinAmountWithAmount ||
@@ -1221,9 +1189,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             BigInteger minAmount = HavenoUtils.coinToAtomicUnits(DisplayUtils.parseToCoinWith4Decimals(this.minAmount.get(), xmrFormatter));
 
             Price price = dataModel.getPrice().get();
-            long maxTradeLimit = dataModel.getMaxTradeLimit();
             if (price != null && price.isPositive()) {
-                minAmount = CoinUtil.getRoundedAmount(minAmount, price, maxTradeLimit, tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
+                minAmount = CoinUtil.getRoundedAmount(minAmount, price, dataModel.getMinTradeLimit(), dataModel.getMaxTradeLimit(), tradeCurrencyCode.get(), dataModel.getPaymentAccount().getPaymentMethod().getId());
             }
 
             dataModel.setMinAmount(minAmount);
@@ -1260,7 +1227,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         if (securityDeposit.get() != null && !securityDeposit.get().isEmpty() && !isMinSecurityDeposit.get()) {
             dataModel.setSecurityDepositPct(ParsingUtils.parsePercentStringToDouble(securityDeposit.get()));
         } else {
-            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
+            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositPct());
         }
     }
 
@@ -1276,7 +1243,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         // If the security deposit in the model is not valid percent
         String value = FormattingUtils.formatToPercent(dataModel.getSecurityDepositPct().get());
         if (!securityDepositValidator.validate(value).isValid) {
-            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositAsPercent());
+            dataModel.setSecurityDepositPct(Restrictions.getDefaultSecurityDepositPct());
         }
     }
 
@@ -1332,7 +1299,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         } else {
             boolean hasBuyerAsTakerWithoutDeposit = dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer();
             securityDeposit.set(FormattingUtils.formatToPercent(hasBuyerAsTakerWithoutDeposit ?
-                    Restrictions.getDefaultSecurityDepositAsPercent() : // use default percent if no deposit from buyer
+                    Restrictions.getDefaultSecurityDepositPct() : // use default percent if no deposit from buyer
                     dataModel.getSecurityDepositPct().get()));
         }
     }
@@ -1366,8 +1333,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     private ValidationResult getExtraInfoValidationResult() {
-        if (extraInfo.get() != null && !extraInfo.get().isEmpty() && extraInfo.get().length() > Restrictions.MAX_EXTRA_INFO_LENGTH) {
-            return new InputValidator.ValidationResult(false, Res.get("createOffer.extraInfo.invalid.tooLong", Restrictions.MAX_EXTRA_INFO_LENGTH));
+        if (extraInfo.get() != null && !extraInfo.get().isEmpty() && extraInfo.get().length() > Restrictions.getMaxExtraInfoLength()) {
+            return new InputValidator.ValidationResult(false, Res.get("createOffer.extraInfo.invalid.tooLong", Restrictions.getMaxExtraInfoLength()));
         } else {
             return new InputValidator.ValidationResult(true);
         }

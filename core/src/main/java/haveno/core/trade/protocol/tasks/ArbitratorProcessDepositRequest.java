@@ -120,9 +120,8 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
         // verify deposit tx
         boolean isFromBuyerAsTakerWithoutDeposit = isFromBuyer && isFromTaker && trade.hasBuyerAsTakerWithoutDeposit();
         if (!isFromBuyerAsTakerWithoutDeposit) {
-            MoneroTx verifiedTx;
             try {
-                verifiedTx = trade.getXmrWalletService().verifyDepositTx(
+                MoneroTx verifiedTx = trade.getXmrWalletService().verifyDepositTx(
                         offer.getId(),
                         tradeFee,
                         trade.getProcessModel().getTradeFeeAddress(),
@@ -133,15 +132,22 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                         request.getDepositTxHex(),
                         request.getDepositTxKey(),
                         null);
+
+                // TODO: it seems a deposit tx had 0 fee once?
+                if (BigInteger.ZERO.equals(verifiedTx.getFee())) {
+                    String errorMessage = "Deposit transaction from " + (isFromTaker ? "taker" : "maker") + " has 0 fee for trade " + trade.getId() + ". This should never happen.";
+                    log.warn(errorMessage + "\n" + verifiedTx);
+                    throw new RuntimeException(errorMessage);
+                }
+
+                // update trade state
+                sender.setSecurityDeposit(sender.getSecurityDeposit().subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
+                sender.setDepositTxFee(verifiedTx.getFee());
+                sender.setDepositTxHex(request.getDepositTxHex());
+                sender.setDepositTxKey(request.getDepositTxKey());
             } catch (Exception e) {
                 throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + sender.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
             }
-    
-            // update trade state
-            sender.setSecurityDeposit(sender.getSecurityDeposit().subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
-            sender.setDepositTxFee(verifiedTx.getFee());
-            sender.setDepositTxHex(request.getDepositTxHex());
-            sender.setDepositTxKey(request.getDepositTxKey());
         }
 
         // update trade state
@@ -149,7 +155,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
         processModel.getTradeManager().requestPersistence();
 
         // relay deposit txs when both requests received
-        MoneroDaemon daemon = trade.getXmrWalletService().getDaemon();
+        MoneroDaemon monerod = trade.getXmrWalletService().getMonerod();
         if (hasBothContractSignatures()) {
 
             // check timeout and extend just before relaying
@@ -162,19 +168,19 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             try {
 
                 // submit maker tx to pool but do not relay
-                MoneroSubmitTxResult makerResult = daemon.submitTxHex(processModel.getMaker().getDepositTxHex(), true);
+                MoneroSubmitTxResult makerResult = monerod.submitTxHex(processModel.getMaker().getDepositTxHex(), true);
                 if (!makerResult.isGood()) throw new RuntimeException("Error submitting maker deposit tx: " + JsonUtils.serialize(makerResult));
                 txHashes.add(processModel.getMaker().getDepositTxHash());
 
                 // submit taker tx to pool but do not relay
                 if (!trade.hasBuyerAsTakerWithoutDeposit()) {
-                    MoneroSubmitTxResult takerResult = daemon.submitTxHex(processModel.getTaker().getDepositTxHex(), true);
+                    MoneroSubmitTxResult takerResult = monerod.submitTxHex(processModel.getTaker().getDepositTxHex(), true);
                     if (!takerResult.isGood()) throw new RuntimeException("Error submitting taker deposit tx: " + JsonUtils.serialize(takerResult));
                     txHashes.add(processModel.getTaker().getDepositTxHash());
                 }
 
                 // relay txs
-                daemon.relayTxsByHash(txHashes);
+                monerod.relayTxsByHash(txHashes);
                 depositTxsRelayed = true;
 
                 // update trade state
@@ -186,7 +192,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
 
                     // flush txs from pool
                     try {
-                        daemon.flushTxPool(txHashes);
+                        monerod.flushTxPool(txHashes);
                     } catch (Exception e2) {
                         log.warn("Error flushing deposit txs from pool for trade {}: {}\n", trade.getId(), e2.getMessage(), e2);
                     }

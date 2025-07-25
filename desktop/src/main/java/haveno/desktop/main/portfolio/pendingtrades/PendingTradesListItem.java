@@ -63,7 +63,7 @@ public class PendingTradesListItem implements FilterableListItem {
     }
 
     public String getMarketDescription() {
-        return getCurrencyPair(trade.getOffer().getCurrencyCode());
+        return getCurrencyPair(trade.getOffer().getCounterCurrencyCode());
     }
 
     @Override

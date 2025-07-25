@@ -22,7 +22,6 @@ import com.google.inject.Singleton;
 import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRingProvider;
 import haveno.common.util.Utilities;
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.payment.PaymentAccount;
@@ -35,6 +34,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -92,7 +92,6 @@ public class CreateOfferService {
                 Version.VERSION.replace(".", "");
     }
 
-    // TODO: add trigger price?
     public Offer createAndGetOffer(String offerId,
                                    OfferDirection direction,
                                    String currencyCode,
@@ -151,15 +150,16 @@ public class CreateOfferService {
         // verify price
         boolean useMarketBasedPriceValue = fixedPrice == null &&
                 useMarketBasedPrice &&
-                isMarketPriceAvailable(currencyCode) &&
+                isExternalPriceAvailable(currencyCode) &&
                 !PaymentMethod.isFixedPriceOnly(paymentAccount.getPaymentMethod().getId());
         if (fixedPrice == null && !useMarketBasedPriceValue) {
             throw new IllegalArgumentException("Must provide fixed price");
         }
 
         // adjust amount and min amount
-        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
-        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, null, currencyCode, paymentAccount.getPaymentMethod().getId());
+        BigInteger maxTradeLimit = offerUtil.getMaxTradeLimitForRelease(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit);
+        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, Restrictions.getMinTradeAmount(), maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
+        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, Restrictions.getMinTradeAmount(), maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
 
         // generate one-time challenge for private offer
         String challenge = null;
@@ -175,16 +175,15 @@ public class CreateOfferService {
         double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
         long amountAsLong = amount != null ? amount.longValueExact() : 0L;
         long minAmountAsLong = minAmount != null ? minAmount.longValueExact() : 0L;
-        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(currencyCode);
-        String baseCurrencyCode = isCryptoCurrency ? currencyCode : Res.getBaseCurrencyCode();
-        String counterCurrencyCode = isCryptoCurrency ? Res.getBaseCurrencyCode() : currencyCode;
+        String baseCurrencyCode = Res.getBaseCurrencyCode();
+        String counterCurrencyCode = currencyCode;
         String countryCode = PaymentAccountUtil.getCountryCode(paymentAccount);
         List<String> acceptedCountryCodes = PaymentAccountUtil.getAcceptedCountryCodes(paymentAccount);
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
         boolean hasBuyerAsTakerWithoutDeposit = !isBuyerMaker && isPrivateOffer && buyerAsTakerWithoutDeposit;
-        long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, hasBuyerAsTakerWithoutDeposit);
+        long maxTradeLimitAsLong = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, hasBuyerAsTakerWithoutDeposit).longValueExact();
         boolean useAutoClose = false;
         boolean useReOpenAfterAutoClose = false;
         long lowerClosePrice = 0;
@@ -206,8 +205,8 @@ public class CreateOfferService {
                 useMarketBasedPriceValue,
                 amountAsLong,
                 minAmountAsLong,
-                hasBuyerAsTakerWithoutDeposit ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT,
-                hasBuyerAsTakerWithoutDeposit ? 0d : HavenoUtils.TAKER_FEE_PCT,
+                HavenoUtils.getMakerFeePct(currencyCode, hasBuyerAsTakerWithoutDeposit),
+                HavenoUtils.getTakerFeePct(currencyCode, hasBuyerAsTakerWithoutDeposit),
                 HavenoUtils.PENALTY_FEE_PCT,
                 hasBuyerAsTakerWithoutDeposit ? 0d : securityDepositPct, // buyer as taker security deposit is optional for private offers
                 securityDepositPct,
@@ -221,7 +220,7 @@ public class CreateOfferService {
                 acceptedBanks,
                 Version.VERSION,
                 xmrWalletService.getHeight(),
-                maxTradeLimit,
+                maxTradeLimitAsLong,
                 maxTradePeriod,
                 useAutoClose,
                 useReOpenAfterAutoClose,
@@ -241,7 +240,6 @@ public class CreateOfferService {
         return offer;
     }
 
-    // TODO: add trigger price?
     public Offer createClonedOffer(Offer sourceOffer,
                             String currencyCode,
                             Price fixedPrice,
@@ -338,7 +336,7 @@ public class CreateOfferService {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private boolean isMarketPriceAvailable(String currencyCode) {
+    private boolean isExternalPriceAvailable(String currencyCode) {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
         return marketPrice != null && marketPrice.isExternallyProvidedPrice();
     }

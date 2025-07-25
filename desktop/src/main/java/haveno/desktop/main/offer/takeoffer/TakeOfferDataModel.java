@@ -41,6 +41,7 @@ import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.VolumeUtil;
+import haveno.core.util.coin.CoinUtil;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -59,6 +60,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -91,7 +93,10 @@ class TakeOfferDataModel extends OfferDataModel {
     private XmrBalanceListener balanceListener;
     private PaymentAccount paymentAccount;
     private boolean isTabSelected;
+    protected boolean allowAmountUpdate = true;
     Price tradePrice;
+    private final Predicate<Price> isNonZeroPrice = (p) -> p != null && !p.isZero();
+    private final Predicate<ObjectProperty<Volume>> isNonZeroVolume = (v) -> v.get() != null && !v.get().isZero();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -141,7 +146,7 @@ class TakeOfferDataModel extends OfferDataModel {
         //     feeFromFundingTxProperty.set(FeePolicy.getMinRequiredFeeForFundingTx());
 
         if (isTabSelected)
-            priceFeedService.setCurrencyCode(offer.getCurrencyCode());
+            priceFeedService.setCurrencyCode(offer.getCounterCurrencyCode());
 
         if (canTakeOffer()) {
             tradeManager.checkOfferAvailability(offer,
@@ -183,7 +188,7 @@ class TakeOfferDataModel extends OfferDataModel {
         checkArgument(!possiblePaymentAccounts.isEmpty(), "possiblePaymentAccounts.isEmpty()");
         paymentAccount = getLastSelectedPaymentAccount();
 
-        this.amount.set(BigInteger.valueOf(getMaxTradeLimit()));
+        this.amount.set(getMaxTradeLimit());
 
         updateSecurityDeposit();
 
@@ -199,7 +204,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         offer.resetState();
 
-        priceFeedService.setCurrencyCode(offer.getCurrencyCode());
+        priceFeedService.setCurrencyCode(offer.getCounterCurrencyCode());
     }
 
     // We don't want that the fee gets updated anymore after we show the funding screen.
@@ -210,7 +215,7 @@ class TakeOfferDataModel extends OfferDataModel {
     void onTabSelected(boolean isSelected) {
         this.isTabSelected = isSelected;
         if (isTabSelected)
-            priceFeedService.setCurrencyCode(offer.getCurrencyCode());
+            priceFeedService.setCurrencyCode(offer.getCounterCurrencyCode());
     }
 
     public void onClose(boolean removeOffer) {
@@ -254,7 +259,7 @@ class TakeOfferDataModel extends OfferDataModel {
             fundsNeededForTrade = fundsNeededForTrade.add(amount.get());
 
         String errorMsg = null;
-        if (filterManager.isCurrencyBanned(offer.getCurrencyCode())) {
+        if (filterManager.isCurrencyBanned(offer.getCounterCurrencyCode())) {
             errorMsg = Res.get("offerbook.warning.currencyBanned");
         } else if (filterManager.isPaymentMethodBanned(offer.getPaymentMethod())) {
             errorMsg = Res.get("offerbook.warning.paymentMethodBanned");
@@ -293,7 +298,7 @@ class TakeOfferDataModel extends OfferDataModel {
         if (paymentAccount != null) {
             this.paymentAccount = paymentAccount;
 
-            this.amount.set(BigInteger.valueOf(getMaxTradeLimit()));
+            this.amount.set(getMaxTradeLimit());
 
             preferences.setTakeOfferSelectedPaymentAccountId(paymentAccount.getId());
         }
@@ -317,6 +322,10 @@ class TakeOfferDataModel extends OfferDataModel {
         return offer;
     }
 
+    ReadOnlyObjectProperty<Volume> getVolume() {
+        return volume;
+    }
+
     ObservableList<PaymentAccount> getPossiblePaymentAccounts() {
         Set<PaymentAccount> paymentAccounts = user.getPaymentAccounts();
         checkNotNull(paymentAccounts, "paymentAccounts must not be null");
@@ -338,17 +347,17 @@ class TakeOfferDataModel extends OfferDataModel {
                 .orElse(firstItem);
     }
 
-    long getMyMaxTradeLimit() {
+    BigInteger getMyMaxTradeLimit() {
         if (paymentAccount != null) {
-            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, getCurrencyCode(),
-                    offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit());
+            return BigInteger.valueOf(accountAgeWitnessService.getMyTradeLimit(paymentAccount, getCurrencyCode(),
+                    offer.getMirroredDirection(), offer.hasBuyerAsTakerWithoutDeposit()));
         } else {
-            return 0;
+            return BigInteger.ZERO;
         }
     }
 
-    long getMaxTradeLimit() {
-        return Math.min(offer.getAmount().longValueExact(), getMyMaxTradeLimit());
+    BigInteger getMaxTradeLimit() {
+        return offer.getAmount().min(getMyMaxTradeLimit());
     }
 
     boolean canTakeOffer() {
@@ -387,8 +396,34 @@ class TakeOfferDataModel extends OfferDataModel {
         }
     }
 
+    void calculateAmount() {
+        if (isNonZeroPrice.test(tradePrice) && isNonZeroVolume.test(volume) && allowAmountUpdate) {
+            try {
+                Volume volumeBefore = volume.get();
+                calculateVolume();
+
+                // if the volume != amount * price, we need to adjust the amount
+                if (amount.get() == null || !volumeBefore.equals(tradePrice.getVolumeByAmount(amount.get()))) {
+                    BigInteger value = tradePrice.getAmountByVolume(volumeBefore);
+                    value = value.min(offer.getAmount()); // adjust if above maximum
+                    value = value.max(offer.getMinAmount()); // adjust if below minimum
+                    value = CoinUtil.getRoundedAmount(value, tradePrice, offer.getMinAmount(), getMaxTradeLimit(), offer.getCounterCurrencyCode(), paymentAccount.getPaymentMethod().getId());
+                    amount.set(value);
+                }
+
+                calculateTotalToPay();
+            } catch (Throwable t) {
+                log.error(t.toString());
+            }
+        }
+    }
+
+    protected void setVolume(Volume volume) {
+        this.volume.set(volume);
+    }
+
     void maybeApplyAmount(BigInteger amount) {
-        if (amount.compareTo(offer.getMinAmount()) >= 0 && amount.compareTo(BigInteger.valueOf(getMaxTradeLimit())) <= 0) {
+        if (amount.compareTo(offer.getMinAmount()) >= 0 && amount.compareTo(getMaxTradeLimit()) <= 0) {
             this.amount.set(amount);
         }
         calculateTotalToPay();
@@ -466,11 +501,11 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     public String getCurrencyCode() {
-        return offer.getCurrencyCode();
+        return offer.getCounterCurrencyCode();
     }
 
     public String getCurrencyNameAndCode() {
-        return CurrencyUtil.getNameByCode(offer.getCurrencyCode());
+        return CurrencyUtil.getNameByCode(offer.getCounterCurrencyCode());
     }
 
     @NotNull

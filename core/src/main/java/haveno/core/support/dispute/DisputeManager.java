@@ -403,6 +403,15 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             chatMessage.setSystemMessage(true);
             dispute.addAndPersistChatMessage(chatMessage);
 
+            // export multisig hex if needed
+            if (trade.getSelf().getUpdatedMultisigHex() == null) {
+                try {
+                    trade.exportMultisigHex();
+                } catch (Exception e) {
+                    log.error("Failed to export multisig hex", e);
+                }
+            }
+
             // create dispute opened message
             NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
             DisputeOpenedMessage disputeOpenedMessage = new DisputeOpenedMessage(dispute,

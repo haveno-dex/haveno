@@ -34,12 +34,14 @@ import haveno.core.api.CoreNotificationService;
 import haveno.core.api.CorePaymentAccountsService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.JsonUtil;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -93,15 +95,18 @@ public class HavenoUtils {
 
     // configure fees
     public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
-    public static final double PENALTY_FEE_PCT = 0.02; // 2%
-    public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
-    public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
-    public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee when no deposit or fee from taker
+    public static final double PENALTY_FEE_PCT = 0.25; // charge 25% of security deposit for penalty
+    private static final double MAKER_FEE_PCT_CRYPTO = 0.0015;
+    private static final double TAKER_FEE_PCT_CRYPTO = 0.0075;
+    private static final double MAKER_FEE_PCT_TRADITIONAL = 0.0015;
+    private static final double TAKER_FEE_PCT_TRADITIONAL = 0.0075;
+    private static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_CRYPTO = MAKER_FEE_PCT_CRYPTO + TAKER_FEE_PCT_CRYPTO; // can customize maker's fee when no deposit from taker
+    private static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_TRADITIONAL = MAKER_FEE_PCT_TRADITIONAL + TAKER_FEE_PCT_TRADITIONAL;
     public static final double MINER_FEE_TOLERANCE_FACTOR = 5.0; // miner fees must be within 5x of each other
 
     // other configuration
     public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
-    public static final long LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS = 1000 * 30; // log warnings when daemon not synced once every 30s
+    public static final long LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS = 1000 * 30; // log warnings when daemon not synced once every 30s
     public static final int PRIVATE_OFFER_PASSPHRASE_NUM_WORDS = 8; // number of words in a private offer passphrase
 
     // synchronize requests to the daemon
@@ -134,6 +139,7 @@ public class HavenoUtils {
     public static OpenOfferManager openOfferManager;
     public static CoreNotificationService notificationService;
     public static CorePaymentAccountsService corePaymentAccountService;
+    public static TradeStatisticsManager tradeStatisticsManager;
     public static Preferences preferences;
 
     public static boolean isSeedNode() {
@@ -148,11 +154,17 @@ public class HavenoUtils {
     @SuppressWarnings("unused")
     public static Date getReleaseDate() {
         if (RELEASE_DATE == null) return null;
-        try {
-            return DATE_FORMAT.parse(RELEASE_DATE);
-        } catch (Exception e) {
-            log.error("Failed to parse release date: " + RELEASE_DATE, e);
-            throw new IllegalArgumentException(e);
+        return parseDate(RELEASE_DATE);
+    }
+
+    private static Date parseDate(String date) {
+        synchronized (DATE_FORMAT) {
+            try {
+                return DATE_FORMAT.parse(date);
+            } catch (Exception e) {
+                log.error("Failed to parse date: " + date, e);
+                throw new IllegalArgumentException(e);
+            }
         }
     }
 
@@ -168,6 +180,26 @@ public class HavenoUtils {
 
     public static void waitFor(long waitMs) {
         GenUtils.waitFor(waitMs);
+    }
+
+    public static double getMakerFeePct(String currencyCode, boolean hasBuyerAsTakerWithoutDeposit) {
+        if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_CRYPTO : MAKER_FEE_PCT_CRYPTO;
+        } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_TRADITIONAL : MAKER_FEE_PCT_TRADITIONAL;
+        } else {
+            throw new IllegalArgumentException("Unsupported currency code: " + currencyCode);
+        }
+    }
+
+    public static double getTakerFeePct(String currencyCode, boolean hasBuyerAsTakerWithoutDeposit) {
+        if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? 0d : TAKER_FEE_PCT_CRYPTO;
+        } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? 0d : TAKER_FEE_PCT_TRADITIONAL;
+        } else {
+            throw new IllegalArgumentException("Unsupported currency code: " + currencyCode);
+        }
     }
 
     // ----------------------- CONVERSION UTILS -------------------------------

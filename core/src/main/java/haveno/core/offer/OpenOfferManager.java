@@ -78,6 +78,7 @@ import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.JsonUtil;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
@@ -519,6 +520,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                            ErrorMessageHandler errorMessageHandler) {
         ThreadUtils.execute(() -> {
 
+            // cannot set trigger price for fixed price offers
+            if (triggerPrice != 0 && offer.getOfferPayload().getPrice() != 0) {
+                errorMessageHandler.handleErrorMessage("Cannot set trigger price for fixed price offers.");
+                return;
+            }
+
             // check source offer and clone limit
             OpenOffer sourceOffer = null;
             if (sourceOfferId != null) {
@@ -526,15 +533,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // get source offer
                 Optional<OpenOffer> sourceOfferOptional = getOpenOffer(sourceOfferId);
                 if (!sourceOfferOptional.isPresent()) {
-                    errorMessageHandler.handleErrorMessage("Source offer not found to clone, offerId=" + sourceOfferId);
+                    errorMessageHandler.handleErrorMessage("Source offer not found to clone, offerId=" + sourceOfferId + ".");
                     return;
                 }
                 sourceOffer = sourceOfferOptional.get();
 
                 // check clone limit
                 int numClones = getOpenOfferGroup(sourceOffer.getGroupId()).size();
-                if (numClones >= Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS) {
-                    errorMessageHandler.handleErrorMessage("Cannot create offer because maximum number of " + Restrictions.MAX_OFFERS_WITH_SHARED_FUNDS + " cloned offers with shared funds reached.");
+                if (numClones >= Restrictions.getMaxOffersWithSharedFunds()) {
+                    errorMessageHandler.handleErrorMessage("Cannot create offer because maximum number of " + Restrictions.getMaxOffersWithSharedFunds() + " cloned offers with shared funds reached.");
                     return;
                 }
             }
@@ -632,7 +639,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void applyTriggerState(OpenOffer openOffer) {
         if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
-        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCurrencyCode()), openOffer)) {
+        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCounterCurrencyCode()), openOffer)) {
             openOffer.deactivate(true);
         }
     }
@@ -1087,6 +1094,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 try {
                     ValidateOffer.validateOffer(openOffer.getOffer(), accountAgeWitnessService, user);
                 } catch (Exception e) {
+                    openOffer.getOffer().setState(Offer.State.INVALID);
                     errorMessageHandler.handleErrorMessage("Failed to validate offer: " + e.getMessage());
                     return;
                 }
@@ -1557,8 +1565,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify max length of extra info
-            if (offer.getOfferPayload().getExtraInfo() != null && offer.getOfferPayload().getExtraInfo().length() > Restrictions.MAX_EXTRA_INFO_LENGTH) {
-                errorMessage = "Extra info is too long for offer " + request.offerId + ". Max length is " + Restrictions.MAX_EXTRA_INFO_LENGTH + " but got " + offer.getOfferPayload().getExtraInfo().length();
+            if (offer.getOfferPayload().getExtraInfo() != null && offer.getOfferPayload().getExtraInfo().length() > Restrictions.getMaxExtraInfoLength()) {
+                errorMessage = "Extra info is too long for offer " + request.offerId + ". Max length is " + Restrictions.getMaxExtraInfoLength() + " but got " + offer.getOfferPayload().getExtraInfo().length();
                 log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
@@ -1587,8 +1595,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             if (hasBuyerAsTakerWithoutDeposit) {
 
                 // verify maker's trade fee
-                if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT) {
-                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT + " but got " + offer.getMakerFeePct();
+                double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getMakerFeePct() != makerFeePct) {
+                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + makerFeePct + " but got " + offer.getMakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1603,8 +1612,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
 
                 // verify maker security deposit
-                if (offer.getSellerSecurityDepositPct() != Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Wrong seller security deposit for offer " + request.offerId + ". Expected " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getSellerSecurityDepositPct();
+                if (offer.getSellerSecurityDepositPct() != Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Wrong seller security deposit for offer " + request.offerId + ". Expected " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getSellerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1628,32 +1637,34 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
 
                 // verify maker's trade fee
-                if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {
-                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + HavenoUtils.MAKER_FEE_PCT + " but got " + offer.getMakerFeePct();
+                double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getMakerFeePct() != makerFeePct) {
+                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + makerFeePct + " but got " + offer.getMakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
 
                 // verify taker's trade fee
-                if (offer.getTakerFeePct() != HavenoUtils.TAKER_FEE_PCT) {
-                    errorMessage = "Wrong taker fee for offer " + request.offerId + ". Expected " + HavenoUtils.TAKER_FEE_PCT + " but got " + offer.getTakerFeePct();
+                double takerFeePct = HavenoUtils.getTakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getTakerFeePct() != takerFeePct) {
+                    errorMessage = "Wrong taker fee for offer " + request.offerId + ". Expected " + takerFeePct + " but got " + offer.getTakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
 
                 // verify seller's security deposit
-                if (offer.getSellerSecurityDepositPct() < Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Insufficient seller security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getSellerSecurityDepositPct();
+                if (offer.getSellerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Insufficient seller security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getSellerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
 
                 // verify buyer's security deposit
-                if (offer.getBuyerSecurityDepositPct() < Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Insufficient buyer security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getBuyerSecurityDepositPct();
+                if (offer.getBuyerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Insufficient buyer security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getBuyerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1670,17 +1681,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // verify penalty fee
             if (offer.getPenaltyFeePct() != HavenoUtils.PENALTY_FEE_PCT) {
-                errorMessage = "Wrong penalty fee for offer " + request.offerId;
+                errorMessage = "Wrong penalty fee percent for offer " + request.offerId + ". Expected " + HavenoUtils.PENALTY_FEE_PCT + " but got " + offer.getPenaltyFeePct();
                 log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
 
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
-            BigInteger penaltyFee = HavenoUtils.multiply(offer.getAmount(), HavenoUtils.PENALTY_FEE_PCT);
-            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), hasBuyerAsTakerWithoutDeposit ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT);
+            double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), makerFeePct);
             BigInteger sendTradeAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
+            BigInteger penaltyFee = HavenoUtils.multiply(securityDeposit, HavenoUtils.PENALTY_FEE_PCT);
             MoneroTx verifiedTx = xmrWalletService.verifyReserveTx(
                     offer.getId(),
                     penaltyFee,
@@ -1704,7 +1716,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     signedOfferPayload.getPubKeyRing().hashCode(), // trader id
                     signedOfferPayload.getId(),
                     offer.getAmount().longValueExact(),
-                    maxTradeFee.longValueExact(),
+                    penaltyFee.longValueExact(),
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKeyImages(),
@@ -2008,23 +2020,24 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     log.info("Updated the owner nodeaddress of offer id={}", originalOffer.getId());
                 }
 
+                long normalizedPrice = originalOffer.isInverted() ? PriceUtil.invertLongPrice(originalOfferPayload.getPrice(), originalOffer.getCounterCurrencyCode()) : originalOfferPayload.getPrice();
                 OfferPayload updatedPayload = new OfferPayload(originalOfferPayload.getId(),
                         originalOfferPayload.getDate(),
                         ownerNodeAddress,
                         originalOfferPayload.getPubKeyRing(),
                         originalOfferPayload.getDirection(),
-                        originalOfferPayload.getPrice(),
+                        normalizedPrice,
                         originalOfferPayload.getMarketPriceMarginPct(),
                         originalOfferPayload.isUseMarketBasedPrice(),
                         originalOfferPayload.getAmount(),
                         originalOfferPayload.getMinAmount(),
                         originalOfferPayload.getMakerFeePct(),
                         originalOfferPayload.getTakerFeePct(),
-                        originalOfferPayload.getPenaltyFeePct(),
+                        HavenoUtils.PENALTY_FEE_PCT,
                         originalOfferPayload.getBuyerSecurityDepositPct(),
                         originalOfferPayload.getSellerSecurityDepositPct(),
-                        originalOfferPayload.getBaseCurrencyCode(),
-                        originalOfferPayload.getCounterCurrencyCode(),
+                        originalOffer.getBaseCurrencyCode(),
+                        originalOffer.getCounterCurrencyCode(),
                         originalOfferPayload.getPaymentMethodId(),
                         originalOfferPayload.getMakerPaymentAccountId(),
                         originalOfferPayload.getCountryCode(),
@@ -2056,7 +2069,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 Offer updatedOffer = new Offer(updatedPayload);
                 updatedOffer.setPriceFeedService(priceFeedService);
 
-                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, originalOpenOffer.getTriggerPrice());
+                long normalizedTriggerPrice = originalOffer.isInverted() ? PriceUtil.invertLongPrice(originalOpenOffer.getTriggerPrice(), originalOffer.getCounterCurrencyCode()) : originalOpenOffer.getTriggerPrice();
+                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, normalizedTriggerPrice);
                 updatedOpenOffer.setChallenge(originalOpenOffer.getChallenge());
                 addOpenOffer(updatedOpenOffer);
                 requestPersistence();

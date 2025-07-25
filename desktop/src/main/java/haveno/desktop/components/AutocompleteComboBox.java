@@ -46,6 +46,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private List<T> matchingList;
     private JFXComboBoxListViewSkin<T> comboBoxListViewSkin;
     private boolean selectAllShortcut = false;
+    private T lastCommittedValue;
 
     public AutocompleteComboBox() {
         this(FXCollections.observableArrayList());
@@ -59,6 +60,30 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         fixSpaceKey();
         setAutocompleteItems(items);
         reactToQueryChanges();
+
+        // Store last committed value so we can restore it if nothing selected
+        valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null)
+                lastCommittedValue = newVal;
+        });
+
+        // Restore last committed value when editor loses focus if no matches
+        getEditor().focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+            if (!isNowFocused) {
+                String input = getEditor().getText();
+                T matched = getConverter().fromString(input);
+
+                boolean matchFound = getItems().stream()
+                    .anyMatch(item -> item.equals(matched));
+
+                if (!matchFound) {
+                    UserThread.execute(() -> {
+                        getSelectionModel().select(lastCommittedValue);
+                        getEditor().setText(asString(lastCommittedValue));
+                    });
+                }
+            }
+        });
     }
 
     /**
@@ -100,10 +125,16 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
                 return;
             }
 
-            // Case 2: fire if the text is empty to support special "show all" case
+            // Case 2: fire if the text is empty
             if (inputText.isEmpty()) {
                 eh.handle(e);
                 getParent().requestFocus();
+
+                // Restore the last committed value
+                UserThread.execute(() -> {
+                    getSelectionModel().select(lastCommittedValue);
+                    getEditor().setText(asString(lastCommittedValue));
+                });
             }
         });
     }

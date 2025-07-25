@@ -743,7 +743,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     protected String getCurrencyCode(Trade trade) {
-        return checkNotNull(trade.getOffer()).getCurrencyCode();
+        return checkNotNull(trade.getOffer()).getCounterCurrencyCode();
     }
 
     protected boolean isXmrTrade() {

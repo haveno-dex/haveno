@@ -771,7 +771,7 @@ tree-table-view:focused {
 /* Main navigation */
 .top-navigation {
     -fx-background-color: -bs-rd-nav-background;
-    -fx-border-width: 0 0 1 0;
+    -fx-border-width: 0 0 0 0;
     -fx-border-color: -bs-rd-nav-primary-border;
     -fx-background-radius: 999;
     -fx-border-radius: 999;

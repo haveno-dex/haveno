@@ -338,13 +338,10 @@ task packageInstallers {
                     "\"${binariesFolderPath}/${appNameAndVendor}\""
             )
 
-            // Which version of AppImageTool to use
-            String AppImageToolVersion = "13";
-
             // Download AppImageTool
             Map AppImageToolBinaries = [
-                    'linux'                 : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-x86_64.AppImage",
-                    'linux-aarch64'         : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-aarch64.AppImage",
+                    'linux'                 : "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage",
+                    'linux-aarch64'         : "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage",
             ]
 
             String osKey = getJavaBinariesDownloadURLs.property('osKey')

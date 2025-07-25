@@ -59,7 +59,7 @@ public class TradeEvents {
     }
 
     private void setTradePhaseListener(Trade trade) {
-        if (isInitialized) log.info("We got a new trade. id={}", trade.getId());
+        if (isInitialized) log.info("We got a new trade, tradeId={}", trade.getId(), "hasBuyerAsTakerWithoutDeposit=" + trade.getOffer().hasBuyerAsTakerWithoutDeposit());
         if (!trade.isPayoutPublished()) {
             trade.statePhaseProperty().addListener((observable, oldValue, newValue) -> {
                 String msg = null;

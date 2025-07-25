@@ -100,7 +100,7 @@ public class OfferViewUtil {
     }
 
     public static boolean isShownAsSellOffer(Offer offer) {
-        return isShownAsSellOffer(offer.getCurrencyCode(), offer.getDirection());
+        return isShownAsSellOffer(offer.getCounterCurrencyCode(), offer.getDirection());
     }
 
     public static boolean isShownAsSellOffer(TradeCurrency tradeCurrency, OfferDirection direction) {
@@ -140,7 +140,7 @@ public class OfferViewUtil {
     public static void submitTransactionHex(XmrWalletService xmrWalletService,
                                              TableView tableView,
                                              String reserveTxHex) {
-        MoneroSubmitTxResult result = xmrWalletService.getDaemon().submitTxHex(reserveTxHex);
+        MoneroSubmitTxResult result = xmrWalletService.getMonerod().submitTxHex(reserveTxHex);
         log.info("submitTransactionHex: reserveTxHex={} result={}", result);
         tableView.refresh();
 

@@ -168,7 +168,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         reserveExactAmount = preferences.getSplitOfferOutput();
 
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
-        securityDepositPct.set(Restrictions.getMinSecurityDepositAsPercent());
+        securityDepositPct.set(Restrictions.getMinSecurityDepositPct());
 
         paymentAccountsChangeListener = change -> fillPaymentAccounts();
     }
@@ -333,12 +333,12 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             setSuggestedSecurityDeposit(getPaymentAccount());
 
             if (amount.get() != null && this.allowAmountUpdate)
-                this.amount.set(amount.get().min(BigInteger.valueOf(getMaxTradeLimit())));
+                this.amount.set(amount.get().min(getMaxTradeLimit()));
         }
     }
 
     private void setSuggestedSecurityDeposit(PaymentAccount paymentAccount) {
-        var minSecurityDeposit = Restrictions.getMinSecurityDepositAsPercent();
+        var minSecurityDeposit = Restrictions.getMinSecurityDepositPct();
         try {
             if (getTradeCurrency() == null) {
                 setSecurityDepositPct(minSecurityDeposit);
@@ -369,7 +369,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             }
             // Suggested deposit is double the trade range over the previous lock time period, bounded by min/max deposit
             var suggestedSecurityDeposit =
-                    Math.min(2 * (max - min) / max, Restrictions.getMaxSecurityDepositAsPercent());
+                    Math.min(2 * (max - min) / max, Restrictions.getMaxSecurityDepositPct());
             securityDepositPct.set(Math.max(suggestedSecurityDeposit, minSecurityDeposit));
         } catch (Throwable t) {
             log.error(t.toString());
@@ -472,18 +472,12 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return marketPriceMarginPct;
     }
 
-    long getMaxTradeLimit() {
+    BigInteger getMinTradeLimit() {
+        return Restrictions.getMinTradeAmount();
+    }
 
-        // disallow offers which no buyer can take due to trade limits on release
-        if (HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS)) {
-            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), OfferDirection.BUY, buyerAsTakerWithoutDeposit.get());
-        }
-
-        if (paymentAccount != null) {
-            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), direction, buyerAsTakerWithoutDeposit.get());
-        } else {
-            return 0;
-        }
+    BigInteger getMaxTradeLimit() {
+        return offerUtil.getMaxTradeLimitForRelease(paymentAccount, tradeCurrencyCode.get(), direction, buyerAsTakerWithoutDeposit.get());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -543,9 +537,11 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 // if the volume != amount * price, we need to adjust the amount
                 if (amount.get() == null || !volumeBefore.equals(price.get().getVolumeByAmount(amount.get()))) {
                     BigInteger value = price.get().getAmountByVolume(volumeBefore);
-                    value = value.min(BigInteger.valueOf(getMaxTradeLimit())); // adjust if above maximum
-                    value = value.max(Restrictions.getMinTradeAmount()); // adjust if below minimum
-                    value = CoinUtil.getRoundedAmount(value, price.get(), getMaxTradeLimit(), tradeCurrencyCode.get(), paymentAccount.getPaymentMethod().getId());
+                    BigInteger minAmount = getMinTradeLimit();
+                    BigInteger maxAmount = getMaxTradeLimit();
+                    value = value.max(minAmount); // adjust if below minimum
+                    value = value.min(maxAmount); // adjust if above maximum
+                    value = CoinUtil.getRoundedAmount(value, price.get(), minAmount, maxAmount, tradeCurrencyCode.get(), paymentAccount.getPaymentMethod().getId());
                     amount.set(value);
                 }
 
@@ -693,7 +689,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         double offerSellerSecurityDepositAsPercent = CoinUtil.getAsPercentPerXmr(offerSellerSecurityDeposit,
                 offer.getAmount());
         return Math.min(offerSellerSecurityDepositAsPercent,
-                Restrictions.getMaxSecurityDepositAsPercent());
+                Restrictions.getMaxSecurityDepositPct());
     }
 
     ReadOnlyObjectProperty<BigInteger> totalToPayAsProperty() {
@@ -701,7 +697,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     }
 
     public BigInteger getMaxMakerFee() {
-        return HavenoUtils.multiply(amount.get(), buyerAsTakerWithoutDeposit.get() ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT);
+        return HavenoUtils.multiply(amount.get(), HavenoUtils.getMakerFeePct(tradeCurrencyCode.get(), buyerAsTakerWithoutDeposit.get()));
     }
 
     boolean canPlaceOffer() {

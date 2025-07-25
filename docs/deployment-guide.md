@@ -142,21 +142,21 @@ Rebuild all seed nodes any time the list of registered seed nodes changes.
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
 2. Generate public/private keypairs for developers: `./gradlew generateKeypairs`
-3. Add the developer public keys in the constructor of FilterManager.java.
+3. Add the public key to `getPubKeyList()` in [FilterManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/filter/FilterManager.java#L135).
 4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
 ### Register keypair(s) with alert privileges
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
 2. Generate public/private keypairs for alerts: `./gradlew generateKeypairs`
-2. Add the public keys in the constructor of AlertManager.java.
+3. Add the public key to `getPubKeyList()` in [AlertManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/alert/AlertManager.java#L112).
 4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
 ### Register keypair(s) with private notification privileges
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
 2. Generate public/private keypairs for private notifications: `./gradlew generateKeypairs`
-2. Add the public keys in the constructor of PrivateNotificationManager.java.
+3. Add the public key to `getPubKeyList()` in [PrivateNotificationManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L111).
 4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
 ## Add arbitrators
@@ -165,7 +165,7 @@ For each arbitrator:
 
 1. [Build the Haveno repository](#fork-and-build-haveno).
 2. Generate a public/private keypair for the arbitrator: `./gradlew generateKeypairs`
-3. Add the public key to `getPubKeyList()` in [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L62).
+3. Add the public key to `getPubKeyList()` in [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81).
 4. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 5. [Start a local Monero node](#start-a-local-monero-node).
 6. Start the Haveno desktop application using the application launcher or e.g. `make arbitrator-desktop-mainnet`

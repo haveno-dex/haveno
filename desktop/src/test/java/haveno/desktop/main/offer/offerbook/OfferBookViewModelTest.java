@@ -310,9 +310,9 @@ public class OfferBookViewModelTest {
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
-        assertEquals(5, model.maxPlacesForVolume.intValue());
-        offerBookListItems.addAll(make(xmrBuyItem.but(with(amount, 20000000000000L))));
         assertEquals(7, model.maxPlacesForVolume.intValue());
+        offerBookListItems.addAll(make(xmrBuyItem.but(with(amount, 20000000000000L))));
+        assertEquals(9, model.maxPlacesForVolume.intValue());
     }
 
     @Test
@@ -360,7 +360,7 @@ public class OfferBookViewModelTest {
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
-        assertEquals(7, model.maxPlacesForPrice.intValue());
+        assertEquals(9, model.maxPlacesForPrice.intValue());
         offerBookListItems.addAll(make(xmrBuyItem.but(with(price, 1495582400000L)))); //149558240
         assertEquals(10, model.maxPlacesForPrice.intValue());
         offerBookListItems.addAll(make(xmrBuyItem.but(with(price, 149558240000L)))); //149558240
@@ -453,7 +453,7 @@ public class OfferBookViewModelTest {
 
         assertEquals("12557.2046", model.getPrice(lowItem));
         assertEquals("(1.00%)", model.getPriceAsPercentage(lowItem));
-        assertEquals("10.0000", model.getPrice(fixedItem));
+        assertEquals("1000.0000", model.getPrice(fixedItem));
         offerBookListItems.addAll(item);
         assertEquals("14206.1304", model.getPrice(item));
         assertEquals("(-12.00%)", model.getPriceAsPercentage(item));

@@ -108,13 +108,13 @@ class EditOfferDataModel extends MutableOfferDataModel {
 
         Offer offer = openOffer.getOffer();
         direction = offer.getDirection();
-        CurrencyUtil.getTradeCurrency(offer.getCurrencyCode())
+        CurrencyUtil.getTradeCurrency(offer.getCounterCurrencyCode())
                 .ifPresent(c -> this.tradeCurrency = c);
-        tradeCurrencyCode.set(offer.getCurrencyCode());
+        tradeCurrencyCode.set(offer.getCounterCurrencyCode());
 
         this.initialState = openOffer.getState();
         PaymentAccount tmpPaymentAccount = user.getPaymentAccount(openOffer.getOffer().getMakerPaymentAccountId());
-        Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCurrencyCode());
+        Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCounterCurrencyCode());
         if (optionalTradeCurrency.isPresent() && tmpPaymentAccount != null) {
             TradeCurrency selectedTradeCurrency = optionalTradeCurrency.get();
             this.paymentAccount = PaymentAccount.fromProto(tmpPaymentAccount.toProtoMessage(), corePersistenceProtoResolver);
@@ -130,9 +130,9 @@ class EditOfferDataModel extends MutableOfferDataModel {
         // by percentage than the restriction. We can't determine the percentage originally entered at offer
         // creation, so just use the default value as it doesn't matter anyway.
         double securityDepositPercent = CoinUtil.getAsPercentPerXmr(offer.getMaxSellerSecurityDeposit(), offer.getAmount());
-        if (securityDepositPercent > Restrictions.getMaxSecurityDepositAsPercent()
+        if (securityDepositPercent > Restrictions.getMaxSecurityDepositPct()
                 && offer.getMaxSellerSecurityDeposit().equals(Restrictions.getMinSecurityDeposit()))
-            securityDepositPct.set(Restrictions.getDefaultSecurityDepositAsPercent());
+            securityDepositPct.set(Restrictions.getDefaultSecurityDepositPct());
         else
             securityDepositPct.set(securityDepositPercent);
 
