@@ -113,7 +113,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                                     depositTx = trade.getXmrWalletService().createDepositTx(trade, reserveExactAmount, subaddressIndex);
                                 } catch (Exception e) {
                                     log.warn("Error creating deposit tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                                    trade.getXmrWalletService().handleWalletError(e, sourceConnection);
+                                    trade.getXmrWalletService().handleWalletError(e, sourceConnection, i + 1);
                                     if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
                                     if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                                     HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying

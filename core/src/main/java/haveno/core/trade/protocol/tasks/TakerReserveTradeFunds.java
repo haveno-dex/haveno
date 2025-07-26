@@ -75,7 +75,7 @@ public class TakerReserveTradeFunds extends TradeTask {
                                     throw e;
                                 } catch (Exception e) {
                                     log.warn("Error creating reserve tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                                    trade.getXmrWalletService().handleWalletError(e, sourceConnection);
+                                    trade.getXmrWalletService().handleWalletError(e, sourceConnection, i + 1);
                                     if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating reserve tx, tradeId=" + trade.getShortId());
                                     if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                                     HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
