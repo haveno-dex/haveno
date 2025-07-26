@@ -2206,6 +2206,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (periodicRefreshOffersTimer == null)
             periodicRefreshOffersTimer = UserThread.runPeriodically(() -> {
                         if (!stopped) {
+                            log.info("Refreshing my open offers");
                             synchronized (openOffers.getList()) {
                                 int size = openOffers.size();
                                 //we clone our list as openOffers might change during our delayed call

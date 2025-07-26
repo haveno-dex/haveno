@@ -720,7 +720,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (newValue == Trade.PayoutState.PAYOUT_UNLOCKED) {
                     if (!isInitialized) return;
                     log.info("Payout unlocked for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
-                    if (isCompleted()) clearAndShutDown();
+                    if (isInitialized && isFinished()) clearAndShutDown();
                     else deleteWallet();
                 }
             });
@@ -838,7 +838,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public void setCompleted(boolean completed) {
         this.isCompleted = completed;
-        if (isPayoutUnlocked()) clearAndShutDown();
+        if (isInitialized && isFinished()) clearAndShutDown();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1456,11 +1456,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // verify fee is within tolerance by recreating payout tx
                 // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
-                log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getId());
+                log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getShortId());
                 saveWallet(); // save wallet before creating fee estimate tx
                 MoneroTxWallet feeEstimateTx = createPayoutTx();
                 HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), payoutTx.getFee());
-                log.info("Payout tx fee {} is within tolerance");
+                log.info("Payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), getShortId());
             }
 
             // set signed payout tx hex
@@ -1558,6 +1558,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void clearAndShutDown() {
+
+        // unregister p2p message listener immediately
+        removeDecryptedDirectMessageListener();
+        
+        // clear process data and shut down trade
         ThreadUtils.execute(() -> {
             clearProcessData();
             onShutDownStarted();
@@ -1574,16 +1579,23 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // TODO: clear other process data
-        setPayoutTxHex(null);
+        if (processModel.isPaymentReceivedMessagesReceived()) setPayoutTxHex(null);
         for (TradePeer peer : getAllPeers()) {
-            peer.setUnsignedPayoutTxHex(null);
             peer.setUpdatedMultisigHex(null);
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
             peer.setDepositTxHex(null);
             peer.setDepositTxKey(null);
-            if (peer.isPaymentReceivedMessageReceived()) peer.setPaymentReceivedMessage(null);
+            if (peer.isPaymentReceivedMessageReceived()) {
+                peer.setUnsignedPayoutTxHex(null);
+                peer.setPaymentReceivedMessage(null);
+            }
         }
+    }
+
+    private void removeDecryptedDirectMessageListener() {
+        if (getProcessModel() == null || getProcessModel().getProvider() == null || getProcessModel().getP2PService() == null) return;
+        getProcessModel().getP2PService().removeDecryptedDirectMessageListener(getProtocol());
     }
 
     public void maybeClearSensitiveData() {
@@ -1619,6 +1631,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (isShutDown) return; // ignore if already shut down
         isShutDownStarted = true;
         if (!isPayoutUnlocked()) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
+
+        // unregister p2p message listener
+        removeDecryptedDirectMessageListener();
 
         // create task to shut down trade
         Runnable shutDownTask = () -> {
