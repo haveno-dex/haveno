@@ -1152,7 +1152,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                             throw e;
                         } catch (Exception e) {
                             log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                            handleWalletError(e, sourceConnection);
+                            handleWalletError(e, sourceConnection, i + 1);
                             doPollWallet();
                             if (isPayoutPublished()) break;
                             if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
@@ -1237,9 +1237,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         log.info("Done importing multisig hexes for {} {} in {} ms, count={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size());
     }
 
-    private void handleWalletError(Exception e, MoneroRpcConnection sourceConnection) {
+    private void handleWalletError(Exception e, MoneroRpcConnection sourceConnection, int numAttempts) {
         if (HavenoUtils.isUnresponsive(e)) forceCloseWallet(); // wallet can be stuck a while
-        if (!HavenoUtils.isIllegal(e) && xmrConnectionService.isConnected()) requestSwitchToNextBestConnection(sourceConnection);
+        if (numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0 && !HavenoUtils.isIllegal(e) && xmrConnectionService.isConnected()) requestSwitchToNextBestConnection(sourceConnection); // request connection switch every n attempts
         getWallet(); // re-open wallet
     }
 
@@ -1275,7 +1275,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        handleWalletError(e, sourceConnection);
+                        handleWalletError(e, sourceConnection, i + 1);
                         doPollWallet();
                         if (isPayoutPublished()) break;
                         log.warn("Failed to create payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
@@ -1337,7 +1337,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         throw e;
                     } catch (Exception e) {
                         if (e.getMessage().contains("not possible")) throw new IllegalArgumentException("Loser payout is too small to cover the mining fee");
-                        handleWalletError(e, sourceConnection);
+                        handleWalletError(e, sourceConnection, i + 1);
                         doPollWallet();
                         if (isPayoutPublished()) break;
                         log.warn("Failed to create dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
@@ -1368,7 +1368,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
-                        handleWalletError(e, sourceConnection);
+                        handleWalletError(e, sourceConnection, i + 1);
                         doPollWallet();
                         if (isPayoutPublished()) break;
                         log.warn("Failed to process payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage(), e);
