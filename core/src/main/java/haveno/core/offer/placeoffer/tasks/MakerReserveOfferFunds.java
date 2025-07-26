@@ -100,7 +100,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                                 throw e;
                             } catch (Exception e) {
                                 log.warn("Error creating reserve tx, offerId={}, attempt={}/{}, error={}", openOffer.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                                model.getXmrWalletService().handleWalletError(e, sourceConnection);
+                                model.getXmrWalletService().handleWalletError(e, sourceConnection, i + 1);
                                 verifyPending();
                                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                                 model.getProtocol().startTimeoutTimer(); // reset protocol timeout

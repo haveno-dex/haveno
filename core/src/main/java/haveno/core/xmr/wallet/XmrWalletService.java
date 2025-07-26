@@ -37,6 +37,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.xmr.listeners.XmrBalanceListener;
@@ -1944,9 +1945,9 @@ public class XmrWalletService extends XmrWalletBase {
         doMaybeInitMainWallet(true, MAX_SYNC_ATTEMPTS);
     }
 
-    public void handleWalletError(Exception e, MoneroRpcConnection sourceConnection) {
+    public void handleWalletError(Exception e, MoneroRpcConnection sourceConnection, int numAttempts) {
         if (HavenoUtils.isUnresponsive(e)) forceCloseMainWallet(); // wallet can be stuck a while
-        requestSwitchToNextBestConnection(sourceConnection);
+        if (numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0) requestSwitchToNextBestConnection(sourceConnection); // request connection switch every n attempts
         if (wallet == null) doMaybeInitMainWallet(true, MAX_SYNC_ATTEMPTS);
     }
 
