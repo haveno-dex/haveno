@@ -482,13 +482,14 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
             MoneroTxWallet feeEstimateTx = null;
             try {
+                log.info("Creating dispute fee estimate tx for {} {}", getClass().getSimpleName(), trade.getShortId());
                 feeEstimateTx = createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
             } catch (Exception e) {
                 log.warn("Could not recreate dispute payout tx to verify fee: {}\n", e.getMessage(), e);
             }
             if (feeEstimateTx != null) {
                 HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), arbitratorSignedPayoutTx.getFee());
-                log.info("Dispute payout tx fee {} is within tolerance");
+                log.info("Dispute payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), trade.getShortId());
             }
         } else {
             disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());

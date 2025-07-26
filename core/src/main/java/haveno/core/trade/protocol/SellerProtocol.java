@@ -68,11 +68,11 @@ public class SellerProtocol extends DisputeProtocol {
     protected void onInitialized() {
         super.onInitialized();
 
-        // re-send payment received message if payout not published
+        // re-send payment received message if not acked
         ThreadUtils.execute(() -> {
-            if (!needsToResendPaymentReceivedMessages()) return;
+            if (!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
             synchronized (trade.getLock()) {
-                if (!needsToResendPaymentReceivedMessages()) return;
+                if (!!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
                 latchTrade();
                 given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
                     .with(SellerEvent.STARTUP))
@@ -93,13 +93,6 @@ public class SellerProtocol extends DisputeProtocol {
         }, trade.getId());
     }
 
-    public boolean needsToResendPaymentReceivedMessages() {
-        return !trade.isShutDownStarted() && trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !trade.getProcessModel().isPaymentReceivedMessagesReceived() && resendPaymentReceivedMessagesEnabled();
-    }
-
-    private boolean resendPaymentReceivedMessagesEnabled() {
-        return trade.getOffer().getOfferPayload().getProtocolVersion() >= 2;
-    }
 
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
