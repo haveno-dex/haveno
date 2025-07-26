@@ -17,6 +17,7 @@
   ~ along with Haveno. If not, see <http://www.gnu.org/licenses/>.
   -->
 
+<?import haveno.desktop.components.list.FilterBox?>
 <?import haveno.desktop.components.AutoTooltipButton?>
 <?import haveno.desktop.components.AutoTooltipLabel?>
 <?import haveno.desktop.components.InputTextField?>
@@ -33,11 +34,8 @@
     <padding>
         <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
     </padding>
-    <HBox fx:id="searchBox">
-        <AutoTooltipLabel fx:id="filterLabel"/>
-        <InputTextField fx:id="filterTextField" minWidth="500"/>
-        <Pane fx:id="searchBoxSpacer"/>
-    </HBox>
+
+    <FilterBox fx:id="filterBox" />
     <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="tradeIdColumn" minWidth="120" maxWidth="120"/>

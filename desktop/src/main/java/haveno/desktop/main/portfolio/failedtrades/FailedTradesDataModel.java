@@ -68,7 +68,11 @@ class FailedTradesDataModel extends ActivatableDataModel {
     private void applyList() {
         list.clear();
 
-        list.addAll(failedTradesManager.getObservableList().stream().map(FailedTradesListItem::new).collect(Collectors.toList()));
+        list.addAll(
+                failedTradesManager.getObservableList().stream()
+                        .map(trade -> new FailedTradesListItem(trade, failedTradesManager))
+                        .collect(Collectors.toList())
+        );
 
         // we sort by date, earliest first
         list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));

@@ -19,15 +19,10 @@ package haveno.desktop.main.portfolio.failedtrades;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.Res;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.util.FormattingUtils;
-import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
-import haveno.desktop.util.DisplayUtils;
 import javafx.collections.ObservableList;
 
 class FailedTradesViewModel extends ActivatableWithDataModel<FailedTradesDataModel> implements ViewModel {
@@ -43,46 +38,5 @@ class FailedTradesViewModel extends ActivatableWithDataModel<FailedTradesDataMod
 
     public ObservableList<FailedTradesListItem> getList() {
         return dataModel.getList();
-    }
-
-    String getTradeId(FailedTradesListItem item) {
-        return item.getTrade().getShortId();
-    }
-
-    String getAmount(FailedTradesListItem item) {
-        if (item != null && item.getTrade() != null)
-            return HavenoUtils.formatXmr(item.getTrade().getAmount());
-        else
-            return "";
-    }
-
-    String getPrice(FailedTradesListItem item) {
-        return (item != null) ? FormattingUtils.formatPrice(item.getTrade().getPrice()) : "";
-    }
-
-    String getVolume(FailedTradesListItem item) {
-        if (item != null && item.getTrade() != null)
-            return VolumeUtil.formatVolumeWithCode(item.getTrade().getVolume());
-        else
-            return "";
-    }
-
-    String getDirectionLabel(FailedTradesListItem item) {
-        return (item != null) ? DisplayUtils.getDirectionWithCode(dataModel.getDirection(item.getTrade().getOffer()), item.getTrade().getOffer().getCounterCurrencyCode(), item.getTrade().getOffer().isPrivateOffer()) : "";
-    }
-
-    String getMarketLabel(FailedTradesListItem item) {
-        if ((item == null))
-            return "";
-
-        return CurrencyUtil.getCurrencyPair(item.getTrade().getOffer().getCounterCurrencyCode());
-    }
-
-    String getDate(FailedTradesListItem item) {
-        return DisplayUtils.formatDateTime(item.getTrade().getDate());
-    }
-
-    String getState(FailedTradesListItem item) {
-        return item != null ? Res.get("portfolio.failed.Failed") : "";
     }
 }
