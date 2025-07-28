@@ -307,7 +307,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public boolean isProxyApplied(boolean wasWalletSynced) {
-        return preferences.isProxyApplied(wasWalletSynced) && xmrConnectionService.isProxyApplied();
+        return xmrConnectionService.isProxyApplied() || preferences.isProxyApplied(wasWalletSynced);
     }
 
     public String getWalletPassword() {
