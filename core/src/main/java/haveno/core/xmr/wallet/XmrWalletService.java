@@ -1871,8 +1871,8 @@ public class XmrWalletService extends XmrWalletBase {
 
             // switch if wallet disconnected
             if (Boolean.TRUE.equals(connection.isConnected() && !wallet.isConnectedToDaemon())) {
-                log.warn("Switching to next best connection because main wallet is disconnected");
-                if (requestSwitchToNextBestConnection()) return; // calls back to this method
+                log.warn("Main wallet is disconnected from monerod, requesting switch to next best connection");
+                if (requestSwitchToNextBestConnection(connection)) return; // calls back to this method
             }
 
             // update poll period
