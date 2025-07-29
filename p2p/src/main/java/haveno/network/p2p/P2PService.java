@@ -249,7 +249,9 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
         requestDataManager.requestPreliminaryData();
         keepAliveManager.start();
-        p2pServiceListeners.forEach(SetupListener::onTorNodeReady);
+        synchronized (p2pServiceListeners) {
+            p2pServiceListeners.forEach(SetupListener::onTorNodeReady);
+        }
     }
 
     @Override
@@ -258,17 +260,23 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
         hiddenServicePublished.set(true);
 
-        p2pServiceListeners.forEach(SetupListener::onHiddenServicePublished);
+        synchronized (p2pServiceListeners) {
+            p2pServiceListeners.forEach(SetupListener::onHiddenServicePublished);
+        }
     }
 
     @Override
     public void onSetupFailed(Throwable throwable) {
-        p2pServiceListeners.forEach(e -> e.onSetupFailed(throwable));
+        synchronized (p2pServiceListeners) {
+            p2pServiceListeners.forEach(e -> e.onSetupFailed(throwable));
+        }
     }
 
     @Override
     public void onRequestCustomBridges() {
-        p2pServiceListeners.forEach(SetupListener::onRequestCustomBridges);
+        synchronized (p2pServiceListeners) {
+            p2pServiceListeners.forEach(SetupListener::onRequestCustomBridges);
+        }
     }
 
     // Called from networkReadyBinding
@@ -304,7 +312,9 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Override
     public void onUpdatedDataReceived() {
-        p2pServiceListeners.forEach(P2PServiceListener::onUpdatedDataReceived);
+        synchronized (p2pServiceListeners) {
+            p2pServiceListeners.forEach(P2PServiceListener::onUpdatedDataReceived);
+        }
     }
 
     @Override
@@ -314,7 +324,9 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Override
     public void onNoPeersAvailable() {
-        p2pServiceListeners.forEach(P2PServiceListener::onNoPeersAvailable);
+        synchronized (p2pServiceListeners) {
+            p2pServiceListeners.forEach(P2PServiceListener::onNoPeersAvailable);
+        }
     }
 
     @Override
@@ -334,7 +346,9 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
             mailboxMessageService.onBootstrapped();
 
             // Once we have applied the state in the P2P domain we notify our listeners
-            p2pServiceListeners.forEach(listenerHandler);
+            synchronized (p2pServiceListeners) {
+                p2pServiceListeners.forEach(listenerHandler);
+            }
 
             mailboxMessageService.initAfterBootstrapped();
         }
@@ -369,12 +383,14 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
             try {
                 DecryptedMessageWithPubKey decryptedMsg = encryptionService.decryptAndVerify(sealedMsg.getSealedAndSigned());
                 connection.maybeHandleSupportedCapabilitiesMessage(decryptedMsg.getNetworkEnvelope());
-                connection.getPeersNodeAddressOptional().ifPresentOrElse(nodeAddress ->
-                        decryptedDirectMessageListeners.forEach(e -> e.onDirectMessage(decryptedMsg, nodeAddress)),
-                        () -> {
-                            log.error("peersNodeAddress is expected to be available at onMessage for " +
-                                    "processing PrefixedSealedAndSignedMessage.");
-                        });
+                connection.getPeersNodeAddressOptional().ifPresentOrElse(nodeAddress -> {
+                        synchronized (decryptedDirectMessageListeners) {
+                            decryptedDirectMessageListeners.forEach(e -> e.onDirectMessage(decryptedMsg, nodeAddress));
+                        }
+                    }, () -> {
+                        log.error("peersNodeAddress is expected to be available at onMessage for " +
+                                "processing PrefixedSealedAndSignedMessage.");
+                    });
             } catch (CryptoException e) {
                 log.warn("Decryption of a direct message failed. This is not expected as the " +
                         "direct message was sent to our node.");
@@ -503,19 +519,27 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void addDecryptedDirectMessageListener(DecryptedDirectMessageListener listener) {
-        decryptedDirectMessageListeners.add(listener);
+        synchronized (decryptedDirectMessageListeners) {
+            decryptedDirectMessageListeners.add(listener);
+        }
     }
 
     public void removeDecryptedDirectMessageListener(DecryptedDirectMessageListener listener) {
-        decryptedDirectMessageListeners.remove(listener);
+        synchronized (decryptedDirectMessageListeners) {
+            decryptedDirectMessageListeners.remove(listener);
+        }
     }
 
     public void addP2PServiceListener(P2PServiceListener listener) {
-        p2pServiceListeners.add(listener);
+        synchronized (p2pServiceListeners) {
+            p2pServiceListeners.add(listener);
+        }
     }
 
     public void removeP2PServiceListener(P2PServiceListener listener) {
-        p2pServiceListeners.remove(listener);
+        synchronized (p2pServiceListeners) {
+            p2pServiceListeners.remove(listener);
+        }
     }
 
     public void addHashSetChangedListener(HashMapChangedListener hashMapChangedListener) {

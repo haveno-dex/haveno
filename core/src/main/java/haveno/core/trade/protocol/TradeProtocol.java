@@ -860,6 +860,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 log.warn("Received AckMessage from unexpected peer for {}, sender={}, trade={} {}, messageUid={}, success={}, errorMsg={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.isSuccess(), ackMessage.getErrorMessage());
                 return;
             }
+
+            // clear and shut down trade if completely finished after ack
+            if (trade.isFinished()) {
+                log.info("Trade {} {} is finished after PaymentReceivedMessage ACK, shutting it down", trade.getClass().getSimpleName(), trade.getId());
+                trade.clearAndShutDown();
+            }
         }
 
         // generic handling
