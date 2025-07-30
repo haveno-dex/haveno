@@ -281,6 +281,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
         tableView.setPrefHeight(100);
+        tableView.setMinHeight(getMinTableViewHeight());
         tableView.setMaxHeight(200);
 
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
@@ -293,6 +294,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         if (scene != null) {
             scene.addEventHandler(KeyEvent.KEY_RELEASED, keyEventEventHandler);
         }
+
+        sortedList.addListener((ListChangeListener<PendingTradesListItem>) change -> {
+            tableView.setMinHeight(getMinTableViewHeight());
+        });
 
         selectedItemSubscription = EasyBind.subscribe(model.dataModel.selectedItemProperty, selectedItem -> {
             if (selectedItem != null) {
@@ -340,6 +345,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         list.addListener(tradesListChangeListener);
         updateNewChatMessagesByTradeMap();
         model.getMempoolStatus().addListener(getMempoolStatusListener);
+    }
+
+    private int getMinTableViewHeight() {
+        return sortedList.size() <= 1 ? 100 : 130;
     }
 
     @Override
