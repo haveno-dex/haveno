@@ -83,8 +83,8 @@ public class XmrNodes {
                 return Arrays.asList(
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "127.0.0.1", 18081, 1, "@local"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "xmr-node.cakewallet.com", 18081, 2, "@cakewallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodes.hashvault.pro", 18080, 2, "@HashVault"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "p2pmd.xmrvsbeast.com", 18080, 2, "@xmrvsbeast"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodes.hashvault.pro", 18081, 2, "@HashVault"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "p2pmd.xmrvsbeast.com", 18081, 2, "@xmrvsbeast"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.monerodevs.org", 18089, 2, "@monerodevs.org"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node2.monerodevs.org", 18089, 2, "@monerodevs.org"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodex.monerujo.io", 18081, 2, "@monerujo.io"),
