@@ -52,7 +52,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     @FXML
     Tab openOffersTab, pendingTradesTab, closedTradesTab;
     private Tab editOpenOfferTab, duplicateOfferTab, cloneOpenOfferTab;
-    private final Tab failedTradesTab = new Tab(Res.get("portfolio.tab.failed").toUpperCase());
+    private final Tab failedTradesTab = new Tab(Res.get("portfolio.tab.failed"));
     private Tab currentTab;
     private Navigation.Listener navigationListener;
     private ChangeListener<Tab> tabChangeListener;
