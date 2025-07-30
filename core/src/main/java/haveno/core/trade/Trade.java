@@ -2727,39 +2727,45 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     }
                 }
                 setDepositTxs(txs);
-                if (!isPublished(getMaker().getDepositTx()) || (!hasBuyerAsTakerWithoutDeposit() && !isPublished(getTaker().getDepositTx()))) return; // skip if deposit txs not published successfully
-                setStateDepositsSeen();
 
-                // set actual security deposits
-                if (getBuyer().getDepositTx() != null) {
+                // set actual buyer security deposit
+                if (isSeen(getBuyer().getDepositTx())) {
                     BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
-                    if (!getBuyer().getSecurityDeposit().equals(BigInteger.ZERO) && !getBuyer().getSecurityDeposit().equals(buyerSecurityDeposit)) {
+                    if (!getBuyer().getSecurityDeposit().equals(BigInteger.ZERO) && !buyerSecurityDeposit.equals(getBuyer().getSecurityDeposit())) {
                         log.warn("Overwriting buyer security deposit for {} {}, old={}, new={}", getClass().getSimpleName(), getShortId(), getBuyer().getSecurityDeposit(), buyerSecurityDeposit);
                     }
                     getBuyer().setSecurityDeposit(buyerSecurityDeposit);
                 }
-                if (getSeller().getDepositTx() != null) {
+
+                // set actual seller security deposit
+                if (isSeen(getSeller().getDepositTx())) {
                     BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
-                    if (!getSeller().getSecurityDeposit().equals(BigInteger.ZERO) && !getSeller().getSecurityDeposit().equals(sellerSecurityDeposit)) {
+                    if (!getSeller().getSecurityDeposit().equals(BigInteger.ZERO) && !sellerSecurityDeposit.equals(getSeller().getSecurityDeposit())) {
                         log.warn("Overwriting seller security deposit for {} {}, old={}, new={}", getClass().getSimpleName(), getShortId(), getSeller().getSecurityDeposit(), sellerSecurityDeposit);
                     }
                     getSeller().setSecurityDeposit(sellerSecurityDeposit);
                 }
 
-                // check for deposit txs confirmation
-                if (getMaker().getDepositTx().isConfirmed() && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().isConfirmed())) setStateDepositsConfirmed();
+                // handle both deposits seen
+                if (isSeen(getMaker().getDepositTx()) && (hasBuyerAsTakerWithoutDeposit() || isSeen(getTaker().getDepositTx()))) {
+                    setStateDepositsSeen();
 
-                // check for deposit txs unlocked
-                if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) {
-                    setStateDepositsUnlocked();
+                    // check for deposit txs confirmed
+                    if (getMaker().getDepositTx().isConfirmed() && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().isConfirmed())) setStateDepositsConfirmed();
+
+                    // check for deposit txs unlocked
+                    if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) {
+                        setStateDepositsUnlocked();
+                    }
                 }
             }
 
             // check for payout tx
-            if (isDepositsUnlocked()) {
+            boolean hasUnlockedDeposit = isUnlocked(getMaker().getDepositTx()) || isUnlocked(getTaker().getDepositTx());
+            if (isDepositsUnlocked() || hasUnlockedDeposit) { // arbitrator idles so these may not be the same
 
                 // determine if payout tx expected
-                boolean isPayoutExpected = isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
+                boolean isPayoutExpected = isDepositsUnlocked() && isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
 
                 // sync wallet if payout expected or payout is published
                 if (isPayoutExpected || isPayoutPublished()) syncWalletIfBehind();
@@ -2837,10 +2843,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private static boolean isPublished(MoneroTx tx) {
+    private static boolean isSeen(MoneroTx tx) {
         if (tx == null) return false;
         if (Boolean.TRUE.equals(tx.isFailed())) return false;
         if (!Boolean.TRUE.equals(tx.inTxPool()) && !Boolean.TRUE.equals(tx.isConfirmed())) return false;
+        return true;
+    }
+
+    private static boolean isUnlocked(MoneroTx tx) {
+        if (tx == null) return false;
+        if (tx.getNumConfirmations() == null || tx.getNumConfirmations() < XmrWalletService.NUM_BLOCKS_UNLOCK) return false;
         return true;
     }
 
