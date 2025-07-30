@@ -45,6 +45,7 @@ import haveno.core.account.sign.SignedWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.network.MessageState;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
@@ -236,6 +237,9 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     }
 
     protected boolean stopSending() {
-        return isMessageReceived() || !trade.isPaymentReceived(); // stop if received or trade state reset // TODO: also stop after some number of blocks?
+        if (isMessageReceived()) return true; // stop if message received
+        if (!trade.isPaymentReceived()) return true; // stop if trade state reset
+        if (trade.isPayoutPublished() && !((SellerTrade) trade).resendPaymentReceivedMessagesWithinDuration()) return true; // stop if payout is published and we are not in the resend period
+        return false;
     }
 }

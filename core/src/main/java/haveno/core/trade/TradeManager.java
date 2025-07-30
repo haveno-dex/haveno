@@ -988,29 +988,26 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         if (trade.isCompleted()) throw new RuntimeException("Trade " + trade.getId() + " was already completed");
         closedTradableManager.add(trade);
         trade.setCompleted(true);
-        removeTrade(trade, true);
+        removeTrade(trade);
         xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
     }
 
     public void unregisterTrade(Trade trade) {
         log.warn("Unregistering {} {}", trade.getClass().getSimpleName(), trade.getId());
-        removeTrade(trade, true);
+        removeTrade(trade);
         removeFailedTrade(trade);
         if (!trade.isMaker()) xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
     }
 
-    public void removeTrade(Trade trade, boolean removeDirectMessageListener) {
+    public void removeTrade(Trade trade) {
         log.info("TradeManager.removeTrade() " + trade.getId());
         
         // remove trade
         synchronized (tradableList.getList()) {
             if (!tradableList.remove(trade)) return;
         }
-
-        // unregister message listener and persist
-        if (removeDirectMessageListener) p2PService.removeDecryptedDirectMessageListener(getTradeProtocol(trade));
         requestPersistence();
     }
 
@@ -1077,7 +1074,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // we move the trade to FailedTradesManager
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
         failedTradesManager.add(trade);
-        removeTrade(trade, false);
+        removeTrade(trade);
     }
 
     public void onMoveFailedTradeToPendingTrades(Trade trade) {
