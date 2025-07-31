@@ -220,37 +220,43 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             disputeResult.setSummaryNotes(peersDisputeResult.summaryNotesProperty().get());
             disputeResult.setSubtractFeeFrom(peersDisputeResult.getSubtractFeeFrom());
 
-            buyerGetsTradeAmountRadioButton.setDisable(true);
-            buyerGetsAllRadioButton.setDisable(true);
-            sellerGetsTradeAmountRadioButton.setDisable(true);
-            sellerGetsAllRadioButton.setDisable(true);
-            customRadioButton.setDisable(true);
-
-            buyerPayoutAmountInputTextField.setDisable(true);
-            sellerPayoutAmountInputTextField.setDisable(true);
-            buyerPayoutAmountInputTextField.setEditable(false);
-            sellerPayoutAmountInputTextField.setEditable(false);
-
-            reasonWasBugRadioButton.setDisable(true);
-            reasonWasUsabilityIssueRadioButton.setDisable(true);
-            reasonProtocolViolationRadioButton.setDisable(true);
-            reasonNoReplyRadioButton.setDisable(true);
-            reasonWasScamRadioButton.setDisable(true);
-            reasonWasOtherRadioButton.setDisable(true);
-            reasonWasBankRadioButton.setDisable(true);
-            reasonWasOptionTradeRadioButton.setDisable(true);
-            reasonWasSellerNotRespondingRadioButton.setDisable(true);
-            reasonWasWrongSenderAccountRadioButton.setDisable(true);
-            reasonWasPeerWasLateRadioButton.setDisable(true);
-            reasonWasTradeAlreadySettledRadioButton.setDisable(true);
-
+            disableTradeAmountPayoutControls();
             applyTradeAmountRadioButtonStates();
+        } else if (trade.isPayoutPublished()) {
+            log.warn("Payout is already published for {} {}, disabling payout controls", trade.getClass().getSimpleName(), trade.getId());
+            disableTradeAmountPayoutControls();
         }
 
         setReasonRadioButtonState();
 
         addSummaryNotes();
         addButtons(contract);
+    }
+
+    private void disableTradeAmountPayoutControls() {
+        buyerGetsTradeAmountRadioButton.setDisable(true);
+        buyerGetsAllRadioButton.setDisable(true);
+        sellerGetsTradeAmountRadioButton.setDisable(true);
+        sellerGetsAllRadioButton.setDisable(true);
+        customRadioButton.setDisable(true);
+
+        buyerPayoutAmountInputTextField.setDisable(true);
+        sellerPayoutAmountInputTextField.setDisable(true);
+        buyerPayoutAmountInputTextField.setEditable(false);
+        sellerPayoutAmountInputTextField.setEditable(false);
+
+        reasonWasBugRadioButton.setDisable(true);
+        reasonWasUsabilityIssueRadioButton.setDisable(true);
+        reasonProtocolViolationRadioButton.setDisable(true);
+        reasonNoReplyRadioButton.setDisable(true);
+        reasonWasScamRadioButton.setDisable(true);
+        reasonWasOtherRadioButton.setDisable(true);
+        reasonWasBankRadioButton.setDisable(true);
+        reasonWasOptionTradeRadioButton.setDisable(true);
+        reasonWasSellerNotRespondingRadioButton.setDisable(true);
+        reasonWasWrongSenderAccountRadioButton.setDisable(true);
+        reasonWasPeerWasLateRadioButton.setDisable(true);
+        reasonWasTradeAlreadySettledRadioButton.setDisable(true);
     }
 
     private void addInfoPane() {
@@ -581,16 +587,27 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     !trade.isPayoutPublished()) {
 
                 // create payout tx
-                MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
+                try {
+                    MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
 
-                // show confirmation
-                showPayoutTxConfirmation(contract,
-                        payoutTx,
-                        () -> doClose(closeTicketButton, cancelButton),
-                        () -> {
-                            closeTicketButton.setDisable(false);
-                            cancelButton.setDisable(false);
-                        });
+                    // show confirmation
+                    showPayoutTxConfirmation(contract,
+                            payoutTx,
+                            () -> doClose(closeTicketButton, cancelButton),
+                            () -> {
+                                closeTicketButton.setDisable(false);
+                                cancelButton.setDisable(false);
+                            });
+                } catch (Exception ex) {
+                    if (trade.isPayoutPublished()) {
+                        doClose(closeTicketButton, cancelButton);
+                    } else {
+                        log.error("Error creating dispute payout tx for dispute: " + ex.getMessage(), ex);
+                        new Popup().error(ex.getMessage()).show();
+                        closeTicketButton.setDisable(false);
+                        cancelButton.setDisable(false);
+                    }
+                }
             } else {
                 doClose(closeTicketButton, cancelButton);
             }

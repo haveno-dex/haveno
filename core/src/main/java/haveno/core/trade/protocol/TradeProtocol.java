@@ -101,6 +101,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public static final int TRADE_STEP_TIMEOUT_SECONDS = Config.baseCurrencyNetwork().isTestnet() ? 60 : 180;
     private static final String TIMEOUT_REACHED = "Timeout reached.";
     public static final int MAX_ATTEMPTS = 5; // max attempts to create txs and other wallet functions
+    public static final int REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS = 2; // request connection switch on even attempts
     public static final long REPROCESS_DELAY_MS = 5000;
     public static final String LOG_HIGHLIGHT = ""; // TODO: how to highlight some logs with cyan? ("\u001B[36m")? coloring works in the terminal but prints character literals to .log files
 
@@ -859,6 +860,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             } else {
                 log.warn("Received AckMessage from unexpected peer for {}, sender={}, trade={} {}, messageUid={}, success={}, errorMsg={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.isSuccess(), ackMessage.getErrorMessage());
                 return;
+            }
+
+            // clear and shut down trade if completely finished after ack
+            if (trade.isFinished()) {
+                log.info("Trade {} {} is finished after PaymentReceivedMessage ACK, shutting it down", trade.getClass().getSimpleName(), trade.getId());
+                trade.clearAndShutDown();
             }
         }
 

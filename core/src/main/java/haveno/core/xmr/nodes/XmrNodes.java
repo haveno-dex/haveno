@@ -86,9 +86,13 @@ public class XmrNodes {
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodes.hashvault.pro", 18080, 2, "@HashVault"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "p2pmd.xmrvsbeast.com", 18080, 2, "@xmrvsbeast"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.monerodevs.org", 18089, 2, "@monerodevs.org"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node2.monerodevs.org", 18089, 2, "@monerodevs.org"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodex.monerujo.io", 18081, 2, "@monerujo.io"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "rucknium.me", 18081, 2, "@Rucknium"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 2, "@sethforprivacy")
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 2, "@sethforprivacy"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "monero.stackwallet.com", 18081, 2, "@stackwallet")
+                    // new XmrNode(MoneroNodesOption.PUBLIC, null, "plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion", null, 18089, 3, "@plowsof"), // onions tend to have poorer performance
+                    // new XmrNode(MoneroNodesOption.PUBLIC, null, "cakexmrl7bonq7ovjka5kuwuyd3f7qnkz6z6s6dmsy3uckwra7bvggyd.onion", null, 18081, 3, "@cakewallet")
                 );
             default:
                 throw new IllegalStateException("Unexpected base currency network: " + Config.baseCurrencyNetwork());

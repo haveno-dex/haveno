@@ -26,6 +26,7 @@ import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Label;
+import javafx.scene.layout.GridPane;
 
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
@@ -72,6 +73,7 @@ public class BuyerStep3View extends TradeStepView {
     protected void addInfoBlock() {
         addTitledGroupBg(gridPane, ++gridRow, 2, getInfoBlockTitle(), Layout.GROUP_DISTANCE);
         infoLabel = addMultilineLabel(gridPane, gridRow, "", Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        GridPane.setColumnSpan(infoLabel, 2);
         textFieldWithIcon = addTopLabelTextFieldWithIcon(gridPane, ++gridRow,
                 Res.get("portfolio.pending.step3_buyer.wait.msgStateInfo.label"), 0).second;
     }

@@ -42,10 +42,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class DisputeValidation {
 
     public static void validatePaymentAccountPayloads(Dispute dispute) throws ValidationException {
-        if (dispute.getSellerPaymentAccountPayload() == null) throw new ValidationException(dispute, "Seller's payment account payload is null in dispute opened for trade " + dispute.getTradeId());
-        if (!Arrays.equals(dispute.getSellerPaymentAccountPayload().getHash(), dispute.getContract().getSellerPaymentAccountPayloadHash())) throw new ValidationException(dispute, "Hash of seller's payment account payload does not match contract");
+        if (dispute.getSellerPaymentAccountPayload() != null) {
+            if (!Arrays.equals(dispute.getSellerPaymentAccountPayload().getHash(), dispute.getContract().getSellerPaymentAccountPayloadHash())) {
+                throw new ValidationException(dispute, "Hash of seller's payment account payload does not match contract");
+            }
+        }
         if (dispute.getBuyerPaymentAccountPayload() != null) {
-            if (!Arrays.equals(dispute.getBuyerPaymentAccountPayload().getHash(), dispute.getContract().getBuyerPaymentAccountPayloadHash())) throw new ValidationException(dispute, "Hash of buyer's payment account payload does not match contract");
+            if (!Arrays.equals(dispute.getBuyerPaymentAccountPayload().getHash(), dispute.getContract().getBuyerPaymentAccountPayloadHash())) {
+                throw new ValidationException(dispute, "Hash of buyer's payment account payload does not match contract");
+            }
         }
     }
 
