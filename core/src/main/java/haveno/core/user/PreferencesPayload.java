@@ -58,7 +58,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean autoSelectArbitrators = true;
     private Map<String, Boolean> dontShowAgainMap = new HashMap<>();
     private boolean tacAccepted;
-    private boolean splitOfferOutput = false;
+    private boolean splitOfferOutput = true;
     private boolean showOwnOffersInOfferBook = true;
     @Nullable
     private TradeCurrency preferredTradeCurrency;
