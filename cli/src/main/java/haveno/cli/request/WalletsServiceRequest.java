@@ -35,7 +35,8 @@ import haveno.proto.grpc.SetWalletPasswordRequest;
 import haveno.proto.grpc.UnlockWalletRequest;
 import haveno.proto.grpc.XmrTx;
 import haveno.proto.grpc.CreateXmrTxRequest;
-import haveno.proto.grpc.RelayXmrTxRequest;
+import haveno.proto.grpc.RelayXmrTxsRequest;
+import haveno.proto.grpc.CreateXmrSweepTxsRequest;
 import haveno.proto.grpc.XmrDestination;
 
 import java.util.List;
@@ -120,11 +121,18 @@ public class WalletsServiceRequest {
         return grpcStubs.walletsService.createXmrTx(request).getTx();
     }
 
-    public String relayXmrTx(String metadata) {
-        var request = RelayXmrTxRequest.newBuilder()
-                .setMetadata(metadata)
+    public List<String> relayXmrTxs(List<String> metadatas) {
+        var request = RelayXmrTxsRequest.newBuilder()
+                .addAllMetadatas(metadatas)
                 .build();
-        return grpcStubs.walletsService.relayXmrTx(request).getHash();
+        return grpcStubs.walletsService.relayXmrTxs(request).getHashesList();
+    }
+
+    public List<XmrTx> createXmrSweepTxs(String address) {
+        var request = CreateXmrSweepTxsRequest.newBuilder()
+                .setAddress(address)
+                .build();
+        return grpcStubs.walletsService.createXmrSweepTxs(request).getTxsList();
     }
 
     public void lockWallet() {
