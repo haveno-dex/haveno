@@ -49,8 +49,9 @@ jobs:
         run: |
           ./gradlew build --stacktrace --scan -x desktop:test
           echo "::warning title=Desktop Tests Skipped::Desktop tests (desktop:test) were \
-          intentionally skipped for linux/aarch64 builds as JavaFX 21.x.x doesn't currently support \
-          the linux/aarch64 architecture. This should be revisited when JavaFX is next updated."
+          intentionally skipped for linux/aarch64 builds as JavaFX 21.x.x ships with x86_64 \
+          shared objects, causing tests to fail. \
+          This should be revisited when JavaFX is next updated."
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -87,8 +88,9 @@ jobs:
         run: |
           ./gradlew clean build --refresh-keys --refresh-dependencies -x desktop:test
           echo "::warning title=Desktop Tests Skipped::Desktop tests (desktop:test) were \
-          intentionally skipped for linux/aarch64 builds as JavaFX 21.x.x doesn't currently support \
-          the linux/aarch64 architecture. This should be revisited when JavaFX is next updated."
+          intentionally skipped for linux/aarch64 builds as JavaFX 21.x.x ships with x86_64 \
+          shared objects, causing tests to fail. \
+          This should be revisited when JavaFX is next updated."
         working-directory: .
       - name: Package Haveno Installer
         run: ./gradlew packageInstallers
