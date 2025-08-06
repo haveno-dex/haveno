@@ -113,8 +113,12 @@ public final class GrpcClient {
         return walletsServiceRequest.createXmrTx(destinations);
     }
 
-    public String relayXmrTx(String metadata) {
-        return walletsServiceRequest.relayXmrTx(metadata);
+    public List<String> relayXmrTxs(List<String> metadatas) {
+        return walletsServiceRequest.relayXmrTxs(metadatas);
+    }
+
+    public List<XmrTx> createXmrSweepTxs(String address) {
+        return walletsServiceRequest.createXmrSweepTxs(address);
     }
 
     public OfferInfo createFixedPricedOffer(String direction,
