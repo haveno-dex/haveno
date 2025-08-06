@@ -33,7 +33,7 @@ import haveno.cli.opts.GetTradesOptionParser;
 import haveno.cli.opts.OfferIdOptionParser;
 import haveno.cli.opts.OptLabel;
 import haveno.cli.opts.RegisterDisputeAgentOptionParser;
-import haveno.cli.opts.RelayXmrTxOptionParser;
+import haveno.cli.opts.RelayXmrTxsOptionParser;
 import haveno.cli.opts.RemoveWalletPasswordOptionParser;
 import haveno.cli.opts.SetWalletPasswordOptionParser;
 import haveno.cli.opts.SimpleMethodOptionParser;
@@ -71,7 +71,7 @@ import static haveno.cli.Method.getxmrprimaryaddress;
 import static haveno.cli.Method.getxmrnewsubaddress;
 import static haveno.cli.Method.getxmrtxs;
 import static haveno.cli.Method.createxmrtx;
-import static haveno.cli.Method.relayxmrtx;
+import static haveno.cli.Method.relayxmrtxs;
 import static haveno.cli.Method.createoffer;
 import static haveno.cli.Method.canceloffer;
 import static haveno.cli.Method.getoffer;
@@ -317,17 +317,17 @@ public class CliMain {
                     out.println(tx);
                     return;
                 }
-                case relayxmrtx: {
-                    RelayXmrTxOptionParser optionParser = new RelayXmrTxOptionParser(args);
-                    OptionSet optionSet = optionParser.parse(args);
-                    RelayXmrTxOptionParser.RelayXmrTxOptions opts = new RelayXmrTxOptionParser.RelayXmrTxOptions(optionSet);
+                case relayxmrtxs: {
+                    RelayXmrTxsOptionParser optionParser = new RelayXmrTxsOptionParser(args);
+                    optionParser.parse();
+                    RelayXmrTxsOptionParser.RelayXmrTxsOptions opts = optionParser.getRelayXmrTxsOptions();
                     if (opts.isForHelp()) {
                         out.println(client.getMethodHelp(method));
                         return;
                     }
-                    String metadata = opts.getMetadata();
-                    String hash = client.relayXmrTx(metadata);
-                    out.println(hash);
+                    List<String> metadatas = opts.getMetadatas();
+                    List<String> hashes = client.relayXmrTxs(metadatas);
+                    hashes.forEach(hash -> out.println(hash));
                     return;
                 }
                 case createoffer: {
@@ -759,7 +759,7 @@ public class CliMain {
             stream.println();
             stream.format(rowFormat, createxmrtx.name(), "--destinations=<destinations>", "Create XMR transaction");
             stream.println();
-            stream.format(rowFormat, relayxmrtx.name(), "--metadata=<metadata>", "Relay XMR transaction");
+            stream.format(rowFormat, relayxmrtxs.name(), "--metadatas=<metadatas>", "Relay XMR transactions");
             stream.println();
             stream.format(rowFormat, createoffer.name(), "--payment-account=<payment-account-id> \\", "Create and place an offer");
             stream.format(rowFormat, "", "--direction=<buy|sell> \\", "");
