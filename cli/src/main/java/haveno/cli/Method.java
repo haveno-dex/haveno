@@ -65,5 +65,5 @@ public enum Method {
     getxmrnewsubaddress,
     getxmrtxs,
     createxmrtx,
-    relayxmrtx
+    relayxmrtxs
 }
