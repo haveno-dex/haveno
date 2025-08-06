@@ -79,7 +79,9 @@ configure(subprojects) {
         slf4jVersion = '1.7.30'
         sparkVersion = '2.5.2'
 
-        os = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
+        def osName = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
+        def osArch = System.getProperty("os.arch").toLowerCase()
+        os = (osName == 'mac' && (osArch.contains('aarch64') || osArch.contains('arm'))) ? 'mac-aarch64' : osName
     }
 
     repositories {
