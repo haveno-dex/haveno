@@ -348,7 +348,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         if (paymentAccountPayload != null) {
             String payloadJson = paymentAccountPayload.toJson();
             Map<String, Object> payloadMap = gson.fromJson(payloadJson, new TypeToken<Map<String, Object>>() {}.getType());
-    
+
             for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
                 Object value = entry.getValue();
                 if (value instanceof List) {
@@ -360,7 +360,7 @@ public abstract class PaymentAccount implements PersistablePayload {
 
             jsonMap.putAll(payloadMap);
         }
-    
+
         jsonMap.put("accountName", getAccountName());
         jsonMap.put("accountId", getId());
         if (paymentAccountPayload != null) jsonMap.put("salt", getSaltAsHex());
@@ -619,7 +619,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             break;
         case ACCOUNT_NR:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel("payment.accountNr");
+            field.setLabel(Res.get("payment.accountNr"));
             break;
         case ACCOUNT_OWNER:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
