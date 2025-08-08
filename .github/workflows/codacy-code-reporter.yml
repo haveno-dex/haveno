@@ -19,6 +19,11 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
 
+      - name: Create local share directory
+        # ubuntu-24.04 Github runners do not have `~/.local/share` directory by default.
+        # This causes issues when testing `FileTransferSend`
+        run: mkdir -p ~/.local/share
+
       - name: Build with Gradle
         run: ./gradlew clean build -x checkstyleMain -x checkstyleTest -x shadowJar
 
