@@ -3,12 +3,12 @@ package haveno.cli.table.column;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Strings.padEnd;
-import static haveno.cli.CurrencyFormat.formatBtc;
+import static haveno.cli.CurrencyFormat.formatXmr;
 import static java.util.Comparator.comparingInt;
 
-public class BtcColumn extends SatoshiColumn {
+public class XmrColumn extends PiconeroColumn {
 
-    public BtcColumn(String name) {
+    public XmrColumn(String name) {
         super(name);
     }
 
@@ -16,7 +16,7 @@ public class BtcColumn extends SatoshiColumn {
     public void addRow(Long value) {
         rows.add(value);
 
-        String s = formatBtc(value);
+        String s = formatXmr(value);
         stringColumn.addRow(s);
 
         if (isNewMaxWidth.test(s))
@@ -25,22 +25,22 @@ public class BtcColumn extends SatoshiColumn {
 
     @Override
     public String getRowAsFormattedString(int rowIndex) {
-        return formatBtc(getRow(rowIndex));
+        return formatXmr(getRow(rowIndex));
     }
 
     @Override
     public StringColumn asStringColumn() {
-        // We cached the formatted satoshi strings, but we did
+        // We cached the formatted piconero strings, but we did
         // not know how much zero padding each string needed until now.
         int maxColumnValueWidth = stringColumn.getRows().stream()
                 .max(comparingInt(String::length))
                 .get()
                 .length();
         IntStream.range(0, stringColumn.getRows().size()).forEach(rowIndex -> {
-            String btcString = stringColumn.getRow(rowIndex);
-            if (btcString.length() < maxColumnValueWidth) {
-                String paddedBtcString = padEnd(btcString, maxColumnValueWidth, '0');
-                stringColumn.updateRow(rowIndex, paddedBtcString);
+            String xmrString = stringColumn.getRow(rowIndex);
+            if (xmrString.length() < maxColumnValueWidth) {
+                String paddedXmrString = padEnd(xmrString, maxColumnValueWidth, '0');
+                stringColumn.updateRow(rowIndex, paddedXmrString);
             }
         });
         return stringColumn.justify();
