@@ -7,6 +7,7 @@ haveno.asset.coins.BitcoinCash
 haveno.asset.coins.Ether
 haveno.asset.coins.Litecoin
 haveno.asset.coins.Monero
+haveno.asset.coins.Ripple
 haveno.asset.tokens.TetherUSDERC20
 haveno.asset.tokens.TetherUSDTRC20
 haveno.asset.tokens.USDCoinERC20
