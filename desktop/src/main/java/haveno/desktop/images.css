@@ -353,6 +353,10 @@
     -fx-image: url("../../images/xmr_logo.png");
 }
 
+#image-xrp-logo {
+    -fx-image: url("../../images/xrp_logo.png");
+}
+
 #image-dark-mode-toggle {
     -fx-image: url("../../images/dark_mode_toggle.png");   
 }

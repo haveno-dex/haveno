@@ -200,6 +200,7 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("BCH", "Bitcoin Cash"));
         result.add(new CryptoCurrency("ETH", "Ether"));
         result.add(new CryptoCurrency("LTC", "Litecoin"));
+        result.add(new CryptoCurrency("XRP", "Ripple"));
         result.add(new CryptoCurrency("DAI-ERC20", "Dai Stablecoin"));
         result.add(new CryptoCurrency("USDT-ERC20", "Tether USD"));
         result.add(new CryptoCurrency("USDT-TRC20", "Tether USD"));
