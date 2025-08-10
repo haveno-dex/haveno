@@ -361,6 +361,10 @@
     -fx-image: url("../../images/ada_logo.png");
 }
 
+#image-sol-logo {
+    -fx-image: url("../../images/sol_logo.png");
+}
+
 #image-dark-mode-toggle {
     -fx-image: url("../../images/dark_mode_toggle.png");   
 }
