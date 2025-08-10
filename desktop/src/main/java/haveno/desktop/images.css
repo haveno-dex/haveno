@@ -365,6 +365,10 @@
     -fx-image: url("../../images/sol_logo.png");
 }
 
+#image-trx-logo {
+    -fx-image: url("../../images/trx_logo.png");
+}
+
 #image-dark-mode-toggle {
     -fx-image: url("../../images/dark_mode_toggle.png");   
 }
