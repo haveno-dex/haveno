@@ -202,6 +202,7 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("LTC", "Litecoin"));
         result.add(new CryptoCurrency("XRP", "Ripple"));
         result.add(new CryptoCurrency("ADA", "Cardano"));
+        result.add(new CryptoCurrency("SOL", "Solana"));
         result.add(new CryptoCurrency("DAI-ERC20", "Dai Stablecoin"));
         result.add(new CryptoCurrency("USDT-ERC20", "Tether USD"));
         result.add(new CryptoCurrency("USDT-TRC20", "Tether USD"));
