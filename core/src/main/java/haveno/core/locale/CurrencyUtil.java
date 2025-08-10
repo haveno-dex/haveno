@@ -198,6 +198,7 @@ public class CurrencyUtil {
         final List<CryptoCurrency> result = new ArrayList<>();
         result.add(new CryptoCurrency("BTC", "Bitcoin"));
         result.add(new CryptoCurrency("BCH", "Bitcoin Cash"));
+        result.add(new CryptoCurrency("DOGE", "Dogecoin"));
         result.add(new CryptoCurrency("ETH", "Ether"));
         result.add(new CryptoCurrency("LTC", "Litecoin"));
         result.add(new CryptoCurrency("XRP", "Ripple"));

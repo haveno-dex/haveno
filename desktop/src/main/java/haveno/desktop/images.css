@@ -369,6 +369,10 @@
     -fx-image: url("../../images/trx_logo.png");
 }
 
+#image-doge-logo {
+    -fx-image: url("../../images/doge_logo.png");
+}
+
 #image-dark-mode-toggle {
     -fx-image: url("../../images/dark_mode_toggle.png");   
 }

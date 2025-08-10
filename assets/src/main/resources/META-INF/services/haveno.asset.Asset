@@ -5,6 +5,7 @@
 haveno.asset.coins.Bitcoin$Mainnet
 haveno.asset.coins.BitcoinCash
 haveno.asset.coins.Cardano
+haveno.asset.coins.Dogecoin
 haveno.asset.coins.Ether
 haveno.asset.coins.Litecoin
 haveno.asset.coins.Monero
