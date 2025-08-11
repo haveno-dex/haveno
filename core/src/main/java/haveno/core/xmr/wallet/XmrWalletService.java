@@ -575,6 +575,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // freeze outputs
             for (String keyImage : unfrozenKeyImages) wallet.freezeOutput(keyImage);
+            cacheNonPoolTxs();
             cacheWalletInfo();
             requestSaveWallet();
         }
@@ -597,8 +598,28 @@ public class XmrWalletService extends XmrWalletBase {
 
             // thaw outputs
             for (String keyImage : frozenKeyImages) wallet.thawOutput(keyImage);
+            cacheNonPoolTxs();
             cacheWalletInfo();
             requestSaveWallet();
+        }
+    }
+
+    private void cacheNonPoolTxs() {
+
+        // get non-pool txs
+        List<MoneroTxWallet> nonPoolTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true).setInTxPool(false));
+
+        // replace non-pool txs in cache
+        for (MoneroTxWallet nonPoolTx : nonPoolTxs) {
+            boolean replaced = false;
+            for (int i = 0; i < cachedTxs.size(); i++) {
+                if (cachedTxs.get(i).getHash().equals(nonPoolTx.getHash())) {
+                    cachedTxs.set(i, nonPoolTx);
+                    replaced = true;
+                    break;
+                }
+            }
+            if (!replaced) cachedTxs.add(nonPoolTx);
         }
     }
 

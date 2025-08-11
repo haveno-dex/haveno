@@ -1260,7 +1260,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private List<MoneroTxWallet> getSplitOutputFundingTxs(BigInteger reserveAmount, Integer preferredSubaddressIndex) {
-        List<MoneroTxWallet> splitOutputTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsIncoming(true).setIsFailed(false));
+        List<MoneroTxWallet> splitOutputTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsFailed(false)); // TODO: not using setIsIncoming(true) because split output txs sent to self have false; fix in monero-java?
         Set<MoneroTxWallet> removeTxs = new HashSet<MoneroTxWallet>();
         for (MoneroTxWallet tx : splitOutputTxs) {
             if (tx.getOutputs() != null) { // outputs not available until first confirmation
@@ -1283,6 +1283,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         boolean hasExactTransfer = (tx.getTransfers(new MoneroTransferQuery()
                 .setAccountIndex(0)
                 .setSubaddressIndex(preferredSubaddressIndex)
+                .setIsIncoming(true)
                 .setAmount(amount)).size() > 0);
         return hasExactTransfer;
     }
@@ -1972,8 +1973,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void maybeUpdatePersistedOffers() {
-        List<OpenOffer> openOffersClone = getOpenOffers();
-        openOffersClone.forEach(originalOpenOffer -> {
+
+        // update open offers
+        List<OpenOffer> updatedOpenOffers = new ArrayList<>();
+        getOpenOffers().forEach(originalOpenOffer -> {
             Offer originalOffer = originalOpenOffer.getOffer();
 
             OfferPayload originalOfferPayload = originalOffer.getOfferPayload();
@@ -2068,15 +2071,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // create new offer
                 Offer updatedOffer = new Offer(updatedPayload);
                 updatedOffer.setPriceFeedService(priceFeedService);
-
                 long normalizedTriggerPrice = originalOffer.isInverted() ? PriceUtil.invertLongPrice(originalOpenOffer.getTriggerPrice(), originalOffer.getCounterCurrencyCode()) : originalOpenOffer.getTriggerPrice();
-                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, normalizedTriggerPrice);
+                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, normalizedTriggerPrice, originalOpenOffer.isReserveExactAmount(), originalOpenOffer.getGroupId());
                 updatedOpenOffer.setChallenge(originalOpenOffer.getChallenge());
-                addOpenOffer(updatedOpenOffer);
-                requestPersistence();
-
-                log.info("Updating offer completed. id={}", originalOffer.getId());
+                updatedOpenOffers.add(updatedOpenOffer);
             }
+        });
+
+        // add updated open offers
+        updatedOpenOffers.forEach(updatedOpenOffer -> {
+            addOpenOffer(updatedOpenOffer);
+            requestPersistence();
+            log.info("Updating offer completed. id={}", updatedOpenOffer.getId());
         });
     }
 
