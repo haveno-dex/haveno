@@ -140,7 +140,7 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
             Button urlButton = new AutoTooltipButton(Res.get("torNetworkSettingWindow.openTorWebPage"));
             urlButton.setOnAction(event -> {
                 try {
-                    Utilities.openURI(URI.create("https://bridges.torproject.org/bridges"));
+                    Utilities.openURI(URI.create("https://bridges.torproject.org"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
