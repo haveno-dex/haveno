@@ -633,6 +633,10 @@ public class HavenoUtils {
         return e != null && e.getMessage().contains("Not enough signers");
     }
 
+    public static boolean isFailedToParse(Throwable e) {
+        return e != null && e.getMessage().contains("Failed to parse");
+    }
+
     public static boolean isTransactionRejected(Throwable e) {
         return e != null && e.getMessage().contains("was rejected");
     }

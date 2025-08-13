@@ -1224,8 +1224,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 updatedMultisigHex);
 
         // send ack message
-        log.info("Send AckMessage for {} to peer {}. tradeId={}, sourceUid={}",
-                ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
+        if (errorMessage != null) {
+            log.warn("Sending NACK for {} to peer {}. tradeId={}, sourceUid={}, errorMessage={}, updatedMultisigHex={}",
+                    ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid, errorMessage, updatedMultisigHex == null ? "null" : updatedMultisigHex.length() + " characters");
+        } else {
+            log.info("Sending AckMessage for {} to peer {}. tradeId={}, sourceUid={}",
+                    ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
+        }
         p2PService.getMailboxMessageService().sendEncryptedMailboxMessage(
                 peer,
                 peersPubKeyRing,

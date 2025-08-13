@@ -675,7 +675,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                             maybeReprocessPaymentReceivedMessage(reprocessOnError);
                                         }, trade.getReprocessDelayInSeconds(reprocessPaymentReceivedMessageCount));
                                     } else {
-                                        handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // otherwise send nack
+                                        trade.exportMultisigHex(); // export fresh multisig info for nack
+                                        handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
                                     }
                                     unlatchTrade();
                                 })))
