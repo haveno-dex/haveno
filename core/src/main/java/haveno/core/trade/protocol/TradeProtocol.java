@@ -118,6 +118,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private int reprocessPaymentSentMessageCount;
     private int reprocessPaymentReceivedMessageCount;
     private boolean makerInitTradeRequestHasBeenNacked = false;
+    private boolean autoMarkPaymentReceivedOnNack = true;
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -743,6 +745,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // ACK msg
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    // TODO: this has grown in complexity over time and could use refactoring
     private void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
 
         // ignore if trade is completely finished
@@ -819,6 +822,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // ack message from buyer
             if (peer == trade.getBuyer()) {
                 trade.getBuyer().setPaymentReceivedAckMessage(ackMessage);
+                processModel.getTradeManager().requestPersistence();
 
                 // handle successful ack
                 if (ackMessage.isSuccess()) {
@@ -828,24 +832,21 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 // handle nack
                 else {
                     log.warn("We received a NACK for our PaymentReceivedMessage to the buyer for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                    
+
                     // nack includes updated multisig hex since v1.1.1
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
-
-                        // reset state if not processed
-                        if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
-                            log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                            trade.resetToPaymentSentState();
-                        }
+                        processModel.getTradeManager().requestPersistence();
+                        boolean autoResent = onPaymentReceivedNack(ackMessage);
+                        if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
-                processModel.getTradeManager().requestPersistence();
             }
             
             // ack message from arbitrator
             else if (peer == trade.getArbitrator()) {
                 trade.getArbitrator().setPaymentReceivedAckMessage(ackMessage);
+                processModel.getTradeManager().requestPersistence();
 
                 // handle nack
                 if (!ackMessage.isSuccess()) {
@@ -854,15 +855,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     // nack includes updated multisig hex since v1.1.1
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
-
-                        // reset state if not processed
-                        if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
-                            log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                            trade.resetToPaymentSentState();
-                        }
+                        processModel.getTradeManager().requestPersistence();
+                        boolean autoResent = onPaymentReceivedNack(ackMessage);
+                        if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
-                processModel.getTradeManager().requestPersistence();
             } else {
                 log.warn("Received AckMessage from unexpected peer for {}, sender={}, trade={} {}, messageUid={}, success={}, errorMsg={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.isSuccess(), ackMessage.getErrorMessage());
                 return;
@@ -885,6 +882,26 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // notify trade listeners
         trade.onAckMessage(ackMessage, sender);
+    }
+
+    private boolean onPaymentReceivedNack(AckMessage ackMessage) {
+        synchronized (trade.getLock()) {
+            if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
+                log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                trade.resetToPaymentSentState();
+
+                // automatically mark payment received again once on nack
+                if (autoMarkPaymentReceivedOnNack) {
+                    autoMarkPaymentReceivedOnNack = false;
+                    log.warn("Automatically marking payment received on NACK for {} {} after error={}", trade.getClass().getSimpleName(), trade.getId(), ackMessage.getErrorMessage());
+                    UserThread.execute(() -> {
+                        ((SellerProtocol) this).onPaymentReceived(null, null);
+                    });
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private void handleFirstMakerInitTradeRequestNack(AckMessage ackMessage) {
