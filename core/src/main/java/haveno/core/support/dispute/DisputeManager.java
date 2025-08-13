@@ -64,6 +64,7 @@ import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.TradePeer;
@@ -403,14 +404,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             chatMessage.setSystemMessage(true);
             dispute.addAndPersistChatMessage(chatMessage);
 
-            // export multisig hex if needed
-            if (trade.getSelf().getUpdatedMultisigHex() == null) {
-                try {
-                    trade.exportMultisigHex();
-                } catch (Exception e) {
-                    log.error("Failed to export multisig hex", e);
-                }
-            }
+            // import and export latest multisig info
+            trade.importMultisigHex();
+            trade.exportMultisigHex();
+            if (trade instanceof SellerTrade) trade.getProcessModel().setPaymentSentPayoutTxStale(true); // exporting multisig hex will invalidate previously unsigned payout txs
 
             // create dispute opened message
             NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
