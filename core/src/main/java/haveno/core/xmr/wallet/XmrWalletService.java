@@ -1465,7 +1465,7 @@ public class XmrWalletService extends XmrWalletBase {
                     long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
                     user.setWalletCreationDate(date);
                 }
-                walletHeight.set(wallet.getHeight());
+                if (wallet != null) walletHeight.set(wallet.getHeight());
                 isClosingWallet = false;
             }
 
