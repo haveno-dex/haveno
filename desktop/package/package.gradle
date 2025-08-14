@@ -321,6 +321,7 @@ task packageInstallers {
 
             // Package deb
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
+                    " --resource-dir \"${project(':desktop').projectDir}/package/linux/jpackage.deb\"" +
                     " --linux-deb-maintainer noreply@haveno.exchange" +
                     " --type deb")
 
