@@ -153,7 +153,7 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 <p style="text-align: center;">Example:</p>
 
 ```shell
-% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/1.1.2/haveno-v1.1.2-linux-x86_64-installer.deb" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
+% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/1.2.0/haveno-v1.2.0-linux-x86_64-installer.deb" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
 ```
 
 #### *TemplateVM Using Precompiled Package From `git` Repository (CLI)*
@@ -195,9 +195,9 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 
 ```shell
 # export https_proxy=http://127.0.0.1:8082
-# curl -sSLo /tmp/haveno.deb https://github.com/havenoexample/haveno-example/releases/download/1.1.2/haveno-v1.1.2-linux-x86_64-installer.deb
-# curl -sSLo /tmp/haveno.deb.sig https://github.com/havenoexample/haveno-example/releases/download/1.1.2/haveno-v1.1.2-linux-x86_64-installer.deb.sig
-# curl -sSLo /tmp/haveno-jar.SHA-256 https://github.com/havenoexample/haveno-example/releases/download/1.1.2/haveno-v1.1.2-linux-x86_64-SNAPSHOT-all.jar.SHA-256
+# curl -sSLo /tmp/haveno.deb https://github.com/havenoexample/haveno-example/releases/download/1.2.0/haveno-v1.2.0-linux-x86_64-installer.deb
+# curl -sSLo /tmp/haveno.deb.sig https://github.com/havenoexample/haveno-example/releases/download/1.2.0/haveno-v1.2.0-linux-x86_64-installer.deb.sig
+# curl -sSLo /tmp/haveno-jar.SHA-256 https://github.com/havenoexample/haveno-example/releases/download/1.2.0/haveno-v1.2.0-linux-x86_64-SNAPSHOT-all.jar.SHA-256
 ```
 
 <p style="text-align: center;">Note:</p>
@@ -206,9 +206,9 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 <p style="text-align: center;">For Whonix On Anything Other Than Qubes OS:</p>
 
 ```shell
-# curl -sSLo /tmp/haveno.deb https://github.com/havenoexample/haveno-example/releases/download/1.1.2/haveno-v1.1.2-linux-x86_64-installer.deb
-# curl -sSLo /tmp/haveno.deb.sig https://github.com/havenoexample/haveno-example/releases/download/1.1.2/haveno-v1.1.2-linux-x86_64-installer.deb.sig
-# curl -sSLo /tmp/haveno-jar.SHA-256 https://github.com/havenoexample/haveno-example/releases/download/1.1.2/haveno-v1.1.2-linux-x86_64-SNAPSHOT-all.jar.SHA-256
+# curl -sSLo /tmp/haveno.deb https://github.com/havenoexample/haveno-example/releases/download/1.2.0/haveno-v1.2.0-linux-x86_64-installer.deb
+# curl -sSLo /tmp/haveno.deb.sig https://github.com/havenoexample/haveno-example/releases/download/1.2.0/haveno-v1.2.0-linux-x86_64-installer.deb.sig
+# curl -sSLo /tmp/haveno-jar.SHA-256 https://github.com/havenoexample/haveno-example/releases/download/1.2.0/haveno-v1.2.0-linux-x86_64-SNAPSHOT-all.jar.SHA-256
 ```
 
 <p style="text-align: center;">Note:</p>
