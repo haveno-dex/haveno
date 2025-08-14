@@ -207,7 +207,6 @@ public class CurrencyUtil {
         result.add(new CryptoCurrency("TRX", "Tron"));
         result.add(new CryptoCurrency("DAI-ERC20", "Dai Stablecoin"));
         result.add(new CryptoCurrency("USDT-ERC20", "Tether USD"));
-        result.add(new CryptoCurrency("USDT-TRC20", "Tether USD"));
         result.add(new CryptoCurrency("USDC-ERC20", "USD Coin"));
         result.sort(TradeCurrency::compareTo);
         return result;
