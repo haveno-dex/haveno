@@ -1106,6 +1106,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public void exportMultisigHex() {
         synchronized (walletLock) {
+            log.info("Exporting multisig info for {} {}", getClass().getSimpleName(), getShortId());
             getSelf().setUpdatedMultisigHex(wallet.exportMultisigHex());
             requestPersistence();
         }
@@ -1484,7 +1485,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 setPayoutStatePublished();
             } catch (Exception e) {
                 if (!isPayoutPublished()) {
-                    if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isNotEnoughSigners(e)) throw new IllegalArgumentException(e);
+                    if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isNotEnoughSigners(e) || HavenoUtils.isFailedToParse(e)) throw new IllegalArgumentException(e);
                     throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId() + ", error=" + e.getMessage(), e);
                 }
             }

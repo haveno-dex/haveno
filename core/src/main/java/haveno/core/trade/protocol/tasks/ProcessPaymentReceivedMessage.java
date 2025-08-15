@@ -122,7 +122,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             complete();
         } catch (Throwable t) {
 
-            // do not reprocess illegal argument
+            // handle illegal exception
             if (HavenoUtils.isIllegal(t)) {
                 trade.getSeller().setPaymentReceivedMessage(null); // do not reprocess
                 trade.requestPersistence();
