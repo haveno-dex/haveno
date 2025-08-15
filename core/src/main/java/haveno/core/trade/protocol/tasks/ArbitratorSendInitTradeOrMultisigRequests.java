@@ -96,7 +96,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                             }
                             @Override
                             public void onFault(String errorMessage) {
-                                appendToErrorMessage(TradeProtocol.SEND_INIT_TRADE_REQUEST_FAILED + ": message=" + takerRequest + "\nerrorMessage=" + errorMessage);
+                                appendToErrorMessage(TradeProtocol.SEND_INIT_TRADE_REQUEST_FAILED + ": errorMessage=" + errorMessage);
                                 failed();
                             }
                         }
