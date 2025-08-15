@@ -104,6 +104,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public static final int REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS = 2; // request connection switch on even attempts
     public static final long REPROCESS_DELAY_MS = 5000;
     public static final String LOG_HIGHLIGHT = ""; // TODO: how to highlight some logs with cyan? ("\u001B[36m")? coloring works in the terminal but prints character literals to .log files
+    public static final String SEND_INIT_TRADE_REQUEST_FAILED = "Sending InitTradeRequest failed";
 
     protected final ProcessModel processModel;
     protected final Trade trade;
@@ -116,7 +117,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private boolean depositsConfirmedTasksCalled;
     private int reprocessPaymentSentMessageCount;
     private int reprocessPaymentReceivedMessageCount;
-    private boolean makerInitTradeRequestNacked = false;
+    private boolean makerInitTradeRequestHasBeenNacked = false;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -767,13 +768,17 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // TODO: arbitrator may nack maker's InitTradeRequest if reserve tx has become invalid (e.g. check_tx_key shows 0 funds received). recreate reserve tx in this case
         if (!ackMessage.isSuccess() && trade.isMaker() && peer == trade.getArbitrator() && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
-            if (makerInitTradeRequestNacked) {
-                handleSecondMakerInitTradeRequestNack(ackMessage);
-                // use default postprocessing
+            if (ackMessage.getErrorMessage() != null && ackMessage.getErrorMessage().contains(SEND_INIT_TRADE_REQUEST_FAILED)) {
+                // use default postprocessing to cancel maker's trade if arbitrator cannot send message to taker
             } else {
-                makerInitTradeRequestNacked = true;
-                handleFirstMakerInitTradeRequestNack(ackMessage);
-                return;
+                if (makerInitTradeRequestHasBeenNacked) {
+                    handleSecondMakerInitTradeRequestNack(ackMessage);
+                    // use default postprocessing to cancel maker's trade
+                } else {
+                    makerInitTradeRequestHasBeenNacked = true;
+                    handleFirstMakerInitTradeRequestNack(ackMessage);
+                    return;
+                }
             }
         }
 

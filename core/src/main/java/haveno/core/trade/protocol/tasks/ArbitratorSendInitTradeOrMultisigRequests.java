@@ -25,6 +25,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitMultisigRequest;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.protocol.TradePeer;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
@@ -95,8 +96,7 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                             }
                             @Override
                             public void onFault(String errorMessage) {
-                                log.error("Sending {} failed: uid={}; peer={}; error={}", takerRequest.getClass().getSimpleName(), takerRequest.getUid(), trade.getTaker().getNodeAddress(), errorMessage);
-                                appendToErrorMessage("Sending message failed: message=" + takerRequest + "\nerrorMessage=" + errorMessage);
+                                appendToErrorMessage(TradeProtocol.SEND_INIT_TRADE_REQUEST_FAILED + ": message=" + takerRequest + "\nerrorMessage=" + errorMessage);
                                 failed();
                             }
                         }
