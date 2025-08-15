@@ -505,6 +505,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         gridPane.setVgap(5);
         gridPane.setPadding(new Insets(64, 64, 64, 64));
         gridPane.setPrefWidth(width);
+        gridPane.setMaxHeight(Layout.MAX_POPUP_HEIGHT);
 
         ColumnConstraints columnConstraints1 = new ColumnConstraints();
         columnConstraints1.setHalignment(HPos.RIGHT);
