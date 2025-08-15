@@ -20,7 +20,7 @@ package haveno.cli.table.builder;
 import haveno.cli.table.Table;
 import haveno.cli.table.column.Column;
 import haveno.cli.table.column.Iso8601DateTimeColumn;
-import haveno.cli.table.column.SatoshiColumn;
+import haveno.cli.table.column.PiconeroColumn;
 import haveno.cli.table.column.StringColumn;
 import haveno.cli.table.column.ZippedStringColumns;
 import haveno.proto.grpc.OfferInfo;
@@ -59,8 +59,8 @@ class OfferTableBuilder extends AbstractTableBuilder {
     // Columns common to both traditional and cryptocurrency offers.
     private final Column<String> colOfferId = new StringColumn(COL_HEADER_UUID, LEFT);
     private final Column<String> colDirection = new StringColumn(COL_HEADER_DIRECTION, LEFT);
-    private final Column<Long> colAmount = new SatoshiColumn("Temp Amount", NONE);
-    private final Column<Long> colMinAmount = new SatoshiColumn("Temp Min Amount", NONE);
+    private final Column<Long> colAmount = new PiconeroColumn("Temp Amount", NONE);
+    private final Column<Long> colMinAmount = new PiconeroColumn("Temp Min Amount", NONE);
     private final Column<String> colPaymentMethod = new StringColumn(COL_HEADER_PAYMENT_METHOD, LEFT);
     private final Column<Long> colCreateDate = new Iso8601DateTimeColumn(COL_HEADER_CREATION_DATE);
 
@@ -142,7 +142,7 @@ class OfferTableBuilder extends AbstractTableBuilder {
     public Table buildCryptoCurrencyOfferTable(List<OfferInfo> offers) {
         @Nullable
         Column<String> colEnabled = enabledColumn.get(); // Not boolean: YES, NO, or PENDING
-        Column<String> colBtcPrice = new StringColumn(format(COL_HEADER_DETAILED_PRICE_OF_CRYPTO, cryptoTradeCurrency.get()), RIGHT);
+        Column<String> colXmrPrice = new StringColumn(format(COL_HEADER_DETAILED_PRICE_OF_CRYPTO, cryptoTradeCurrency.get()), RIGHT);
         Column<String> colVolume = new StringColumn(format("Temp Volume (%s)", cryptoTradeCurrency.get()), NONE);
         Column<String> colMinVolume = new StringColumn(format("Temp Min Volume (%s)", cryptoTradeCurrency.get()), NONE);
         @Nullable
@@ -155,7 +155,7 @@ class OfferTableBuilder extends AbstractTableBuilder {
                 colEnabled.addRow(toEnabled.apply(o));
 
             colDirection.addRow(directionFormat.apply(o));
-            colBtcPrice.addRow(o.getPrice());
+            colXmrPrice.addRow(o.getPrice());
             colAmount.addRow(o.getAmount());
             colMinAmount.addRow(o.getMinAmount());
             colVolume.addRow(o.getVolume());
@@ -183,7 +183,7 @@ class OfferTableBuilder extends AbstractTableBuilder {
             if (isShowingBsqOffers.get()) {
                 return new Table(colEnabled.asStringColumn(),
                         colDirection,
-                        colBtcPrice.justify(),
+                        colXmrPrice.justify(),
                         amountRange.asStringColumn(EXCLUDE_DUPLICATES),
                         volumeRange.asStringColumn(EXCLUDE_DUPLICATES),
                         colPaymentMethod,
@@ -192,7 +192,7 @@ class OfferTableBuilder extends AbstractTableBuilder {
             } else {
                 return new Table(colEnabled.asStringColumn(),
                         colDirection,
-                        colBtcPrice.justify(),
+                        colXmrPrice.justify(),
                         amountRange.asStringColumn(EXCLUDE_DUPLICATES),
                         volumeRange.asStringColumn(EXCLUDE_DUPLICATES),
                         colTriggerPrice.justify(),
@@ -202,7 +202,7 @@ class OfferTableBuilder extends AbstractTableBuilder {
             }
         } else {
             return new Table(colDirection,
-                    colBtcPrice.justify(),
+                    colXmrPrice.justify(),
                     amountRange.asStringColumn(EXCLUDE_DUPLICATES),
                     volumeRange.asStringColumn(EXCLUDE_DUPLICATES),
                     colPaymentMethod,

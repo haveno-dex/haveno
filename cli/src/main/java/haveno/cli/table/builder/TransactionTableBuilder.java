@@ -21,7 +21,7 @@ import haveno.cli.table.Table;
 import haveno.cli.table.column.BooleanColumn;
 import haveno.cli.table.column.Column;
 import haveno.cli.table.column.LongColumn;
-import haveno.cli.table.column.SatoshiColumn;
+import haveno.cli.table.column.PiconeroColumn;
 import haveno.cli.table.column.StringColumn;
 
 import javax.annotation.Nullable;
@@ -52,9 +52,9 @@ class TransactionTableBuilder extends AbstractTableBuilder {
         super(TRANSACTION_TBL, protos);
         this.colTxId = new StringColumn(COL_HEADER_TX_ID);
         this.colIsConfirmed = new BooleanColumn(COL_HEADER_TX_IS_CONFIRMED);
-        this.colInputSum = new SatoshiColumn(COL_HEADER_TX_INPUT_SUM);
-        this.colOutputSum = new SatoshiColumn(COL_HEADER_TX_OUTPUT_SUM);
-        this.colTxFee = new SatoshiColumn(COL_HEADER_TX_FEE);
+        this.colInputSum = new PiconeroColumn(COL_HEADER_TX_INPUT_SUM);
+        this.colOutputSum = new PiconeroColumn(COL_HEADER_TX_OUTPUT_SUM);
+        this.colTxFee = new PiconeroColumn(COL_HEADER_TX_FEE);
         this.colTxSize = new LongColumn(COL_HEADER_TX_SIZE);
     }
 
