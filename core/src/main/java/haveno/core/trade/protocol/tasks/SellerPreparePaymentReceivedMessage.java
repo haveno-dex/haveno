@@ -53,7 +53,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                         }
 
                         // verify, sign, and publish payout tx if given
-                        if (trade.getBuyer().getPaymentSentMessage().getPayoutTxHex() != null) {
+                        if (trade.getBuyer().getPaymentSentMessage().getPayoutTxHex() != null && !trade.getProcessModel().isPaymentSentPayoutTxStale()) {
                             try {
                                 if (trade.getPayoutTxHex() == null) {
                                     log.info("Seller verifying, signing, and publishing payout tx for trade {}", trade.getId());
