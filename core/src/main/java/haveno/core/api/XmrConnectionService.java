@@ -24,6 +24,7 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
+import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.model.EncryptedConnectionList;
@@ -915,8 +916,15 @@ public final class XmrConnectionService {
                 // skip if shut down
                 if (isShutDownStarted) return;
 
+                // format error message
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.contains(": ")) {
+                    errorMsg = errorMsg.substring(errorMsg.indexOf(": ") + 2); // strip exception class
+                }
+                errorMsg = Res.get("popup.warning.moneroConnection", errorMsg);
+
                 // set error message
-                getConnectionServiceErrorMsg().set(e.getMessage());
+                getConnectionServiceErrorMsg().set(errorMsg);
             } finally {
                 pollInProgress = false;
             }
