@@ -788,7 +788,9 @@ public final class XmrConnectionService {
                 if (monerod == null && !fallbackRequiredBeforeConnectionSwitch()) switchToBestConnection();
                 try {
                     if (monerod == null) throw new RuntimeException("No connection to Monero daemon");
-                    lastInfo = monerod.getInfo();
+                    synchronized (HavenoUtils.getDaemonLock()) {
+                        lastInfo = monerod.getInfo();
+                    }
                     numConsecutiveErrors = 0;
                 } catch (Exception e) {
 
@@ -833,7 +835,9 @@ public final class XmrConnectionService {
                     // switch to best connection
                     switchToBestConnection();
                     if (monerod == null) throw new RuntimeException("No connection to Monero daemon after error handling");
-                    lastInfo = monerod.getInfo(); // caught internally if still fails
+                    synchronized (HavenoUtils.getDaemonLock()) {
+                        lastInfo = monerod.getInfo(); // caught internally if still fails
+                    }
                 }
 
                 // connected to monerod
