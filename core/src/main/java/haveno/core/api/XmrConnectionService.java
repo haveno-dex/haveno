@@ -74,6 +74,8 @@ public final class XmrConnectionService {
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
+    private static final int MAX_CONSECUTIVE_ERRORS = 4; // max errors before switching connections
+    private static int numConsecutiveErrors = 0;
 
     public enum XmrConnectionFallbackType {
         LOCAL,
@@ -786,10 +788,19 @@ public final class XmrConnectionService {
                 try {
                     if (monerod == null) throw new RuntimeException("No connection to Monero daemon");
                     lastInfo = monerod.getInfo();
+                    numConsecutiveErrors = 0;
                 } catch (Exception e) {
 
                     // skip handling if shutting down
                     if (isShutDownStarted) return;
+
+                    // skip error handling up to max attempts
+                    numConsecutiveErrors++;
+                    if (numConsecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
+                        return;
+                    } else {
+                        numConsecutiveErrors = 0; // reset error count
+                    }
 
                     // invoke fallback handling on startup error
                     boolean canFallback = isFixedConnection() || isProvidedConnections() || isCustomConnections() || usedSyncingLocalNodeBeforeStartup;
@@ -811,8 +822,9 @@ public final class XmrConnectionService {
                     }
 
                     // log error message periodically
-                    if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
-                        log.warn("Failed to fetch monerod info, trying to switch to best connection, error={}", e.getMessage());
+                    if (lastWarningOutsidePeriod()) {
+                        MoneroRpcConnection connection = getConnection();
+                        log.warn("Error fetching daemon info after max attempts. Trying to switch to best connection. monerod={}, error={}", connection == null ? "null" : connection.getUri(), e.getMessage());
                         if (DevEnv.isDevMode()) log.error(ExceptionUtils.getStackTrace(e));
                         lastLogPollErrorTimestamp = System.currentTimeMillis();
                     }
@@ -909,6 +921,10 @@ public final class XmrConnectionService {
                 pollInProgress = false;
             }
         }
+    }
+
+    private boolean lastWarningOutsidePeriod() {
+        return lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS;
     }
 
     private boolean isFixedConnection() {
