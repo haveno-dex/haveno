@@ -26,15 +26,15 @@ import static haveno.cli.opts.OptLabel.OPT_MEMO;
 import static haveno.cli.opts.OptLabel.OPT_TX_FEE_RATE;
 import static joptsimple.internal.Strings.EMPTY;
 
-public class SendBtcOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class SendXmrOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 
-    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "destination btc address")
+    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "destination xmr address")
             .withRequiredArg();
 
-    final OptionSpec<String> amountOpt = parser.accepts(OPT_AMOUNT, "amount of btc to send")
+    final OptionSpec<String> amountOpt = parser.accepts(OPT_AMOUNT, "amount of xmr to send")
             .withRequiredArg();
 
-    final OptionSpec<String> feeRateOpt = parser.accepts(OPT_TX_FEE_RATE, "optional tx fee rate (sats/byte)")
+    final OptionSpec<String> feeRateOpt = parser.accepts(OPT_TX_FEE_RATE, "optional tx fee rate (piconero/byte)")
             .withOptionalArg()
             .defaultsTo(EMPTY);
 
@@ -42,11 +42,11 @@ public class SendBtcOptionParser extends AbstractMethodOptionParser implements M
             .withOptionalArg()
             .defaultsTo(EMPTY);
 
-    public SendBtcOptionParser(String[] args) {
+    public SendXmrOptionParser(String[] args) {
         super(args);
     }
 
-    public SendBtcOptionParser parse() {
+    public SendXmrOptionParser parse() {
         super.parse();
 
         // Short circuit opt validation if user just wants help.
