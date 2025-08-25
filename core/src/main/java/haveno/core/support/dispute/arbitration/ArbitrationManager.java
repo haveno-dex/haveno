@@ -329,7 +329,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                         } else {
                             try {
                                 log.info("Signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                                signAndPublishDisputePayoutTx(trade);
+                                processDisputePayoutTx(trade);
                             } catch (Exception e) {
 
                                 // check if payout published again
@@ -402,7 +402,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         }, trade.getId());
     }
 
-    private MoneroTxSet signAndPublishDisputePayoutTx(Trade trade) {
+    private MoneroTxSet processDisputePayoutTx(Trade trade) {
+
+        // recover if missing wallet data
+        trade.recoverIfMissingWalletData();
 
         // gather trade info
         MoneroWallet multisigWallet = trade.getWallet();
