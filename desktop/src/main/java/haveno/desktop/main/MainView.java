@@ -553,8 +553,15 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         xmrSplashInfo = new AutoTooltipLabel();
         xmrSplashInfo.textProperty().bind(model.getXmrInfo());
         walletServiceErrorMsgListener = (ov, oldValue, newValue) -> {
-            xmrSplashInfo.setId("splash-error-state-msg");
-            xmrSplashInfo.getStyleClass().add("error-text");
+            UserThread.execute(() -> {
+                if (newValue != null && !newValue.isEmpty()) {
+                    xmrSplashInfo.setId("splash-error-state-msg");
+                    if (!xmrSplashInfo.getStyleClass().contains("error-text")) xmrSplashInfo.getStyleClass().add("error-text");
+                } else {
+                    xmrSplashInfo.setId("");
+                    xmrSplashInfo.getStyleClass().remove("error-text");
+                }
+            });
         };
         model.getConnectionServiceErrorMsg().addListener(walletServiceErrorMsgListener);
 
@@ -710,17 +717,19 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         //blockchainSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
         model.getConnectionServiceErrorMsg().addListener((ov, oldValue, newValue) -> {
-            if (newValue != null) {
-                xmrInfoLabel.setId("splash-error-state-msg");
-                xmrInfoLabel.getStyleClass().add("error-text");
-                xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
-                xmrNetworkWarnMsgPopup.show();
-            } else {
-                xmrInfoLabel.setId("footer-pane");
-                xmrInfoLabel.getStyleClass().remove("error-text");
-                if (xmrNetworkWarnMsgPopup != null)
-                    xmrNetworkWarnMsgPopup.hide();
-            }
+            UserThread.execute(() -> {
+                if (newValue != null && !newValue.isEmpty()) {
+                    xmrInfoLabel.setId("splash-error-state-msg");
+                    if (!xmrInfoLabel.getStyleClass().contains("error-text")) xmrInfoLabel.getStyleClass().add("error-text");
+                    xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
+                    xmrNetworkWarnMsgPopup.show();
+                } else {
+                    xmrInfoLabel.setId("footer-pane");
+                    xmrInfoLabel.getStyleClass().remove("error-text");
+                    if (xmrNetworkWarnMsgPopup != null)
+                        xmrNetworkWarnMsgPopup.hide();
+                }
+            });
         });
 
         model.getTopErrorMsg().addListener((ov, oldValue, newValue) -> {
