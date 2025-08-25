@@ -1522,12 +1522,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     @Nullable
-    public MoneroTx getTakerDepositTx() {
+    public MoneroTxWallet getTakerDepositTx() {
         return getTaker().getDepositTx();
     }
 
     @Nullable
-    public MoneroTx getMakerDepositTx() {
+    public MoneroTxWallet getMakerDepositTx() {
         return getMaker().getDepositTx();
     }
 
@@ -2888,7 +2888,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     // TODO: wallet is sometimes missing balance or deposits, due to specific daemon connections, not saving?
-    private void recoverIfMissingWalletData() {
+    public void recoverIfMissingWalletData() {
         synchronized (walletLock) {
             if (isWalletMissingData()) {
                 log.warn("Wallet is missing data for {} {}, attempting to recover", getClass().getSimpleName(), getShortId());

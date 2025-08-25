@@ -934,6 +934,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // sync and poll
         trade.syncAndPollWallet();
 
+        // recover if missing wallet data
+        trade.recoverIfMissingWalletData();
+
         // check if payout tx already published
         String alreadyPublishedMsg = "Cannot create dispute payout tx because payout tx is already published for trade " + trade.getId();
         if (trade.isPayoutPublished()) throw new RuntimeException(alreadyPublishedMsg);
