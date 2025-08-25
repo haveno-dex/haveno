@@ -433,12 +433,14 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     private void maybeStartTimerForPersistence() {
         // We write to disk with a delay to avoid frequent write operations. Depending on the priority those delays
         // can be rather long.
-        if (timer == null) {
-            timer = UserThread.runAfter(() -> {
-                persistNow(null);
-                UserThread.execute(() -> timer = null);
-            }, source.delay, TimeUnit.MILLISECONDS);
-        }
+        UserThread.execute(() -> {
+            if (timer == null) {
+                timer = UserThread.runAfter(() -> {
+                    persistNow(null);
+                    UserThread.execute(() -> timer = null);
+                }, source.delay, TimeUnit.MILLISECONDS);
+            }
+        });
     }
 
     public void forcePersistNow() {
