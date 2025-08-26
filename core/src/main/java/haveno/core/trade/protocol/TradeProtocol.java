@@ -890,6 +890,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
                 log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 trade.resetToPaymentSentState();
+                trade.getProcessModel().setPaymentSentPayoutTxStale(true);
+                trade.getSelf().setUnsignedPayoutTxHex(null);
 
                 // automatically mark payment received again once on nack
                 if (autoMarkPaymentReceivedOnNack) {

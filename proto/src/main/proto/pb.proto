@@ -1585,6 +1585,7 @@ message ProcessModel {
     int64 trade_protocol_error_height = 18;
     string trade_fee_address = 19;
     bool import_multisig_hex_scheduled = 20;
+    bool payment_sent_payout_tx_stale = 21;
 }
 
 message TradePeer {
