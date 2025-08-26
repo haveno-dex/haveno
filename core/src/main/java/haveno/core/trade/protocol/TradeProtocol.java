@@ -900,7 +900,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     autoMarkPaymentReceivedOnNack = false;
                     log.warn("Automatically marking payment received on NACK for {} {} after error={}", trade.getClass().getSimpleName(), trade.getId(), ackMessage.getErrorMessage());
                     UserThread.execute(() -> {
-                        ((SellerProtocol) this).onPaymentReceived(null, null);
+                        ((SellerProtocol) this).onPaymentReceived(() -> {
+                            log.info("Finished auto marking payment received on NACK for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                        }, (errorMessage) -> {
+                            log.warn("Error auto marking payment received on NACK for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), errorMessage);
+                        });
                     });
                     return true;
                 }
