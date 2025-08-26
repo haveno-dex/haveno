@@ -892,7 +892,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private boolean processPaymentReceivedNack(AckMessage ackMessage) {
         synchronized (trade.getLock()) {
-            if (trade.isPaymentReceived() && !trade.isPayoutPublished() && !isPaymentReceivedMessageAckedByEither()) {
+            if (trade.isPaymentReceived() && !trade.isPayoutPublished()) {
                 log.warn("Resetting state to payment sent for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 trade.resetToPaymentSentState();
                 trade.getProcessModel().setPaymentSentPayoutTxStale(true);
@@ -956,12 +956,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             HavenoUtils.setTopError(warningMessage);
         }
         log.warn(warningMessage);
-    }
-
-    private boolean isPaymentReceivedMessageAckedByEither() {
-        if (trade.getBuyer().getPaymentReceivedMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return true;
-        if (trade.getArbitrator().getPaymentReceivedMessageStateProperty().get() == MessageState.ACKNOWLEDGED) return true;
-        return false;
     }
 
     protected void sendAckMessage(NodeAddress peer, TradeMessage message, boolean result, @Nullable String errorMessage) {
