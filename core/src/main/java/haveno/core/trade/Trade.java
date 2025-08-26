@@ -2476,7 +2476,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // publish after random delay within 24 hours
             UserThread.runAfterRandomDelay(() -> {
                 if (!isShutDownStarted) doPublishTradeStatistics();
-            }, 0, 24, TimeUnit.HOURS);
+            }, 0, 24 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         }
     }
 
