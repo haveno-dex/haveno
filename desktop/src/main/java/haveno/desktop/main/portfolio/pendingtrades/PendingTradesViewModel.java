@@ -349,7 +349,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onTradeStateChanged(Trade.State tradeState) {
-        log.info("UI tradeState={}, id={}",
+        log.debug("UI tradeState={}, id={}",
                 tradeState,
                 trade != null ? trade.getShortId() : "trade is null");
 
@@ -443,7 +443,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     private void onPayoutStateChanged(Trade.PayoutState payoutState) {
-        log.info("UI payoutState={}, id={}",
+        log.debug("UI payoutState={}, id={}",
                 payoutState,
                 trade != null ? trade.getShortId() : "trade is null");
 
