@@ -75,12 +75,14 @@ import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.TorNetworkNode;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -154,6 +156,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private Subscription protocolErrorStateSubscription;
     private Subscription protocolErrorHeightSubscription;
     public static final String PROTOCOL_VERSION = "protocolVersion"; // key for extraDataMap in trade statistics
+    private BooleanProperty wasWalletPolled = new SimpleBooleanProperty(false);
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -640,22 +643,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             ThreadUtils.execute(() -> onConnectionChanged(connection), getId());
         });
 
-        // reset states if no ack receive
-        if (!isPayoutPublished()) {
-
-            // reset buyer's payment sent state if no ack receive
-            if (this instanceof BuyerTrade && getState().ordinal() >= Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal() && getState().ordinal() < Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG.ordinal()) {
-                log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
-                setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
-            }
-    
-            // reset seller's payment received state if no ack receive
-            if (this instanceof SellerTrade && getState().ordinal() >= Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal() && getState().ordinal() < Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG.ordinal()) {
-                log.warn("Resetting state of {} {} from {} to {} because no ack was received", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-                resetToPaymentSentState();
-            }
-        }
-
         // handle trade state events
         tradeStateSubscription = EasyBind.subscribe(stateProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
@@ -802,11 +789,35 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         setPayoutTxHex(null);
     }
 
-    public void reprocessApplicableMessages() {
+    public void initializeAfterMailboxMessages() {
         if (!isDepositRequested() || isPayoutUnlocked() || isCompleted()) return;
         getProtocol().maybeReprocessPaymentSentMessage(false);
         getProtocol().maybeReprocessPaymentReceivedMessage(false);
         HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
+
+        // reset state after first poll if necessary
+        if (wasWalletPolled.get()) maybeResetTradeState();
+        else {
+            wasWalletPolled.addListener((observable, oldValue, newValue) -> {
+                if (newValue) maybeResetTradeState();
+            });
+        }
+    }
+
+    private void maybeResetTradeState() {
+        if (isPayoutPublished()) return;
+
+        // reset buyer's payment sent state if no ack received
+        if (this instanceof BuyerTrade && getState().ordinal() >= Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal() && getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal() && getState() != Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG) {
+            log.warn("Resetting state of {} {} from {} to {} because payout is not published", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+            setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+        }
+
+        // reset seller's payment received state unless stored in mailbox
+        if (this instanceof SellerTrade && getState().ordinal() >= Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal() && getState().ordinal() != Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG.ordinal()) {
+            log.warn("Resetting state of {} {} from {} to {} because payout is not published", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+            resetToPaymentSentState();
+        }
     }
 
     public void awaitInitialized() {
@@ -2843,6 +2854,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     pollInProgress = false;
                 }
             }
+            wasWalletPolled.set(true);
             saveWalletWithDelay();
         }
     }

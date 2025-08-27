@@ -260,7 +260,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
 
             // reprocess applicable messages
-            trade.reprocessApplicableMessages();
+            trade.initializeAfterMailboxMessages();
         }
 
         // send deposits confirmed message if applicable
