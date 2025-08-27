@@ -1035,7 +1035,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         // check for balance
                         if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
                             log.warn("Rescanning spent outputs for {} {}", getClass().getSimpleName(), getId());
-                            wallet.rescanSpent();
+                            rescanSpent(false);
                             if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
                                 throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because it has a balance of " + wallet.getBalance());
                             }
@@ -2778,7 +2778,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
                     MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
-                        wallet.rescanSpent();
+                        rescanSpent(true);
                     } catch (Exception e) {
                         log.warn("Failed to rescan spent outputs for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
                         ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId()); // do not block polling thread
@@ -2887,7 +2887,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         depositTxsUpdateCounter.set(depositTxsUpdateCounter.get() + 1);
     }
 
-    // TODO: wallet is sometimes missing balance or deposits, due to specific daemon connections, not saving?
+    // TODO: wallet is sometimes missing balance or deposits, due to reorgs, specific daemon connections, not saving?
     public void recoverIfMissingWalletData() {
         synchronized (walletLock) {
             if (isWalletMissingData()) {
@@ -2899,32 +2899,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // skip if payout published in the meantime
                 if (isPayoutPublished()) return;
 
-                // rescan blockchain with global daemon lock
-                synchronized (HavenoUtils.getDaemonLock()) {
-                    Long timeout = null;
-                    try {
-
-                        // extend rpc timeout for rescan
-                        if (wallet instanceof MoneroWalletRpc) {
-                            timeout = ((MoneroWalletRpc) wallet).getRpcConnection().getTimeout();
-                            ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT);
-                        }
-
-                        // rescan blockchain
-                        log.warn("Rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
-                        wallet.rescanBlockchain();
-                    } catch (Exception e) {
-                        log.warn("Error rescanning blockchain for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
-                        if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
-                        throw e;
-                    } finally {
-
-                        // restore rpc timeout
-                        if (wallet instanceof MoneroWalletRpc) {
-                            ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(timeout);
-                        }
-                    }
-                }
+                // rescan blockchain
+                rescanBlockchain();
 
                 // import multisig hex
                 log.warn("Importing multisig hex to recover wallet data for {} {}", getClass().getSimpleName(), getShortId());
@@ -2935,6 +2911,70 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // check again if missing data
                 if (isWalletMissingData()) throw new IllegalStateException("Wallet is still missing data after attempting recovery for " + getClass().getSimpleName() + " " + getShortId());
+            }
+        }
+    }
+
+    public void rescanBlockchain() {
+        synchronized (walletLock) {
+            synchronized (HavenoUtils.getDaemonLock()) {
+                if (getWallet() == null) throw new IllegalStateException("Cannot rescan blockchain because trade wallet doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+                if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot rescan blockchain because trade wallet is not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
+                Long timeout = null;
+                try {
+
+                    // extend rpc timeout for rescan
+                    if (wallet instanceof MoneroWalletRpc) {
+                        timeout = ((MoneroWalletRpc) wallet).getRpcConnection().getTimeout();
+                        ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT);
+                    }
+
+                    // rescan blockchain
+                    log.warn("Rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
+                    wallet.rescanBlockchain();
+                } catch (Exception e) {
+                    log.warn("Error rescanning blockchain for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
+                    if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
+                    throw e;
+                } finally {
+
+                    // restore rpc timeout
+                    if (wallet instanceof MoneroWalletRpc) {
+                        ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(timeout);
+                    }
+                }
+            }
+        }
+    }
+
+    public void rescanSpent(boolean skipLog) {
+        synchronized (walletLock) {
+            if (getWallet() == null) throw new IllegalStateException("Cannot rescan spent outputs because trade wallet doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+            if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot rescan spent outputs because trade wallet is not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
+            Long timeout = null;
+            try {
+
+                // extend rpc timeout for rescan
+                if (wallet instanceof MoneroWalletRpc) {
+                    timeout = ((MoneroWalletRpc) wallet).getRpcConnection().getTimeout();
+                    ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT);
+                }
+
+                // rescan spent outputs
+                if (!skipLog) log.info("Rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
+                wallet.rescanSpent();
+                if (!skipLog) log.info("Done rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
+                saveWallet();
+            } catch (Exception e) {
+                log.warn("Error rescanning spent outputs for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
+                if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
+                throw e;
+            } finally {
+
+                // restore rpc timeout
+                if (wallet instanceof MoneroWalletRpc) {
+                    ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(timeout);
+                }
             }
         }
     }
