@@ -2816,15 +2816,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 boolean hasSpentOutput = false;
                 boolean hasFailedTx = false;
                 for (MoneroTxWallet tx : txs) {
-                    if (tx.isFailed()) hasFailedTx = true;
-                    for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-                        if (Boolean.TRUE.equals(output.isSpent())) hasSpentOutput = true;
+                    if (tx.isFailed()) {
+                        hasFailedTx = true;
+                    } else {
+                        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+                            if (Boolean.TRUE.equals(output.isSpent())) hasSpentOutput = true;
+                        }
                     }
                 }
                 if (hasSpentOutput) setPayoutStatePublished();
                 else if (hasFailedTx && isPayoutPublished()) {
                     log.warn("{} {} is in payout published state but has failed tx and no spent outputs, resetting payout state to unpublished", getClass().getSimpleName(), getShortId());
-                    setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
+                    ThreadUtils.execute(() -> {
+                        setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
+                        onPayoutError(false, isSeller());
+                    }, getId());
                 }
 
                 // check for outgoing txs (appears after wallet submits payout tx or on payout confirmed)
