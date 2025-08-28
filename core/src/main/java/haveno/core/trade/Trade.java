@@ -62,6 +62,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.ProcessModelServiceProvider;
+import haveno.core.trade.protocol.SellerProtocol;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
@@ -2857,6 +2858,35 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             wasWalletPolled.set(true);
             saveWalletWithDelay();
         }
+    }
+
+    public boolean onPayoutError(boolean syncAndPoll, boolean autoMarkPaymentReceived) {
+        log.warn("Handling payout error for {} {}", getClass().getSimpleName(), getId());
+        if (isPayoutPublished()) return false;
+        if (syncAndPoll) syncAndPollWallet();
+        if (isPayoutPublished()) return false;
+        if (isPaymentReceived()) {
+
+            // reset trade state
+            log.warn("Resetting state to payment sent for {} {}", getClass().getSimpleName(), getId());
+            resetToPaymentSentState();
+            getProcessModel().setPaymentSentPayoutTxStale(true);
+            getSelf().setUnsignedPayoutTxHex(null);
+            requestPersistence();
+
+            // automatically mark payment received
+            if (autoMarkPaymentReceived) {
+                if (!isSeller()) throw new IllegalArgumentException("Must be the seller to auto mark payment received for " + getClass().getSimpleName() + " " + getId());
+                log.warn("Auto confirming payment received for {} {} after failure", getClass().getSimpleName(), getId());
+                ((SellerProtocol) getProtocol()).onPaymentReceived(() -> {
+                    log.info("Finished auto marking payment received on NACK for {} {}", getClass().getSimpleName(), getId());
+                }, (errorMessage) -> {
+                    log.warn("Error auto marking payment received on NACK for {} {}: {}", getClass().getSimpleName(), getId(), errorMessage);
+                });
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isSeen(MoneroTx tx) {
