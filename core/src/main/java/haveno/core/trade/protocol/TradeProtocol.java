@@ -817,6 +817,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // handle ack message for PaymentSentMessage, which automatically re-sends if not ACKed in a certain time
         if (ackMessage.getSourceMsgClassName().equals(PaymentSentMessage.class.getSimpleName())) {
+            if (!trade.isPaymentMarkedSent()) {
+                log.warn("Received AckMessage for PaymentSentMessage but trade is in unexpected state, ignoring. Sender={}, trade={} {}, state={}, success={}, error={}, messageUid={}", sender, trade.getClass().getSimpleName(), trade.getId(), trade.getState(), ackMessage.isSuccess(), ackMessage.getErrorMessage(), ackMessage.getSourceUid());
+                return;
+            }
             if (peer == trade.getSeller()) {
                 trade.getSeller().setPaymentSentAckMessage(ackMessage);
                 if (ackMessage.isSuccess()) trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
@@ -826,7 +830,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 trade.getArbitrator().setPaymentSentAckMessage(ackMessage);
                 processModel.getTradeManager().requestPersistence();
             } else {
-                log.warn("Received AckMessage from unexpected peer for {}, sender={}, trade={} {}, messageUid={}, success={}, errorMsg={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.isSuccess(), ackMessage.getErrorMessage());
+                log.warn("Received AckMessage from unexpected peer. Sender={}, trade={} {}, state={}, success={}, error={}, messageUid={}", sender, trade.getClass().getSimpleName(), trade.getId(), trade.getState(), ackMessage.isSuccess(), ackMessage.getErrorMessage(), ackMessage.getSourceUid());
                 return;
             }
         }
@@ -835,7 +839,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // TODO: trade state can be reset twice if both peers nack before published payout is detected
         // TODO: do not reset state if payment received message is acknowledged because payout is likely broadcast?
         if (ackMessage.getSourceMsgClassName().equals(PaymentReceivedMessage.class.getSimpleName())) {
-        
+
             // ack message from buyer
             if (peer == trade.getBuyer()) {
                 trade.getBuyer().setPaymentReceivedAckMessage(ackMessage);
@@ -843,6 +847,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
                 // handle successful ack
                 if (ackMessage.isSuccess()) {
+
+                    // validate state
+                    if (!trade.isPaymentMarkedReceived()) {
+                        log.warn("Received AckMessage for PaymentReceivedMessage but trade is in unexpected state, ignoring. Sender={}, trade={} {}, state={}, success={}, error={}, messageUid={}", sender, trade.getClass().getSimpleName(), trade.getId(), trade.getState(), ackMessage.isSuccess(), ackMessage.getErrorMessage(), ackMessage.getSourceUid());
+                        return;
+                    }
+
                     trade.setStateIfValidTransitionTo(Trade.State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG);
                     processModel.getTradeManager().persistNow(null);
                 }
@@ -881,7 +892,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     }
                 }
             } else {
-                log.warn("Received AckMessage from unexpected peer for {}, sender={}, trade={} {}, messageUid={}, success={}, errorMsg={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.isSuccess(), ackMessage.getErrorMessage());
+                log.warn("Received AckMessage from unexpected peer. Sender={}, trade={} {}, state={}, success={}, error={}, messageUid={}", sender, trade.getClass().getSimpleName(), trade.getId(), trade.getState(), ackMessage.isSuccess(), ackMessage.getErrorMessage(), ackMessage.getSourceUid());
                 return;
             }
 
