@@ -595,3 +595,19 @@ user3-desktop-mainnet:
 		--apiPort=1204 \
 		--useNativeXmrWallet=false \
 		--ignoreLocalXmrNode=false \
+
+buyer-wallet-mainnet:
+	./.localnet/monero-wallet-rpc \
+		--daemon-address http://localhost:18081 \
+		--rpc-bind-port 18084 \
+		--rpc-login rpc_user:abc123 \
+		--rpc-access-control-origins http://localhost:8080 \
+		--wallet-dir ./.localnet \
+
+seller-wallet-mainnet:
+	./.localnet/monero-wallet-rpc \
+		--daemon-address http://localhost:18081 \
+		--rpc-bind-port 18085 \
+		--rpc-login rpc_user:abc123 \
+		--rpc-access-control-origins http://localhost:8080 \
+		--wallet-dir ./.localnet \
