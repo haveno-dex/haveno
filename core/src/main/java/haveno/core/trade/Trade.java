@@ -1287,7 +1287,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
                         MoneroTxWallet unsignedPayoutTx = doCreatePayoutTx();
-                        log.info("Created unsigned payout tx for {} {}");
+                        log.info("Done creating unsigned payout tx for {} {}", getClass().getSimpleName(), getShortId());
                         return unsignedPayoutTx;
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
@@ -2876,6 +2876,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    public boolean onPayoutError(boolean syncAndPoll) {
+        return onPayoutError(syncAndPoll, false);
+    }
+
     /**
      * Handle a payout error due to NACK or the transaction failing (e.g. due to reorg).
      * 
@@ -2886,15 +2890,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public boolean onPayoutError(boolean syncAndPoll, boolean autoMarkPaymentReceived) {
         log.warn("Handling payout error for {} {}", getClass().getSimpleName(), getId());
         if (isPayoutPublished()) return false;
-        if (syncAndPoll) syncAndPollWallet();
+        if (syncAndPoll) {
+            try {
+                syncAndPollWallet();
+            } catch (Exception e) {
+                log.warn("Error syncing and polling wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+            }
+        }
         if (isPayoutPublished() || !isPaymentReceived()) return false;
 
         // reset trade state
-        log.warn("Resetting state to payment sent for {} {}", getClass().getSimpleName(), getId());
+        log.warn("Resetting state to PAYMENT_SENT for {} {}", getClass().getSimpleName(), getId());
         resetToPaymentSentState();
         getProcessModel().setPaymentSentPayoutTxStale(true);
         getSelf().setUnsignedPayoutTxHex(null);
-        requestPersistence();
+        persistNow(null);
 
         // automatically mark payment received
         if (autoMarkPaymentReceived) {

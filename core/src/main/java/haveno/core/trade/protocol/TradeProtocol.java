@@ -42,7 +42,6 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.taskrunner.Task;
-import haveno.core.network.MessageState;
 import haveno.core.offer.OpenOffer;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.ArbitratorTrade;
@@ -683,7 +682,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                             }, trade.getReprocessDelayInSeconds(reprocessPaymentReceivedMessageCount));
                                         }
                                     } else {
-                                        trade.exportMultisigHex(); // export fresh multisig info for nack
+
+                                        // export fresh multisig info for nack
+                                        trade.exportMultisigHex();
+
+                                        // handle payout error
+                                        trade.onPayoutError(false, false);
                                         handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
                                     }
                                     unlatchTrade();
