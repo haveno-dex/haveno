@@ -335,7 +335,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                 // check if payout published again
                                 trade.syncAndPollWallet();
                                 if (trade.isPayoutPublished()) {
-                                    log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                                    log.warn("Payout tx already published for {} {}, skipping dispute processing", trade.getClass().getSimpleName(), trade.getId());
                                 } else {
                                     if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) throw e;
                                     else throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator for " + trade.getClass().getSimpleName() + " " + tradeId + ": " + e.getMessage(), e);
@@ -363,6 +363,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                     // nack bad message and do not reprocess
                     if (HavenoUtils.isIllegal(e)) {
+                        trade.setPayoutTxHex(null); // clear signed payout tx hex
                         trade.getArbitrator().setDisputeClosedMessage(null); // message is processed
                         trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                         String warningMsg = "Error processing dispute closed message: " +  e.getMessage() + "\n\nOpen another dispute to try again (ctrl+o).";
@@ -402,6 +403,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         }, trade.getId());
     }
 
+    // TODO: make this handling more consistent with trade.processPayoutTx(), move there?
     private MoneroTxSet processDisputePayoutTx(Trade trade) {
 
         // recover if missing wallet data
@@ -471,6 +473,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // sign arbitrator-signed payout tx
         if (trade.getPayoutTxHex() == null) {
             try {
+                log.info("Signing dispute payout tx for {} {}", getClass().getSimpleName(), trade.getShortId());
                 MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(unsignedPayoutTxHex);
                 if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing arbitrator-signed payout tx");
                 String signedMultisigTxHex = result.getSignedMultisigTxHex();
@@ -495,6 +498,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 log.info("Dispute payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), trade.getShortId());
             }
         } else {
+            log.warn("Payout tx already signed for {} {}, skipping signing", getClass().getSimpleName(), trade.getShortId());
             disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());
         }
 
@@ -506,8 +510,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 disputeTxSet.getTxs().get(0).setHash(txHashes.get(0)); // manually update hash which is known after signed
                 break;
             } catch (Exception e) {
-                if (trade.isPayoutPublished()) throw new IllegalStateException("Payout tx already published for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
-                if (HavenoUtils.isNotEnoughSigners(e)) throw new IllegalArgumentException(e);
+                if (trade.isPayoutPublished()) return null;
+                if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isNotEnoughSigners(e) || HavenoUtils.isFailedToParse(e)) throw new IllegalArgumentException(e);
                 log.warn("Failed to submit dispute payout tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                 if (trade.getXmrConnectionService().isConnected()) trade.requestSwitchToNextBestConnection(sourceConnection);
