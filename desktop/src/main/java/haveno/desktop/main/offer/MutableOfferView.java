@@ -533,7 +533,15 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void onCurrencyComboBoxSelected() {
-        model.onCurrencySelected(currencyComboBox.getSelectionModel().getSelectedItem());
+        TradeCurrency currency = currencyComboBox.getSelectionModel().getSelectedItem();
+        model.onCurrencySelected(currency);
+
+        // update the place offer button text
+        if (OfferViewUtil.isShownAsBuyOffer(model.getDataModel().getDirection(), currency)) {
+            placeOfferButton.updateText( Res.get("createOffer.placeOfferButton.buy", currency.getCode()));
+        } else {
+            placeOfferButton.updateText(Res.get("createOffer.placeOfferButton.sell", currency.getCode()));
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
