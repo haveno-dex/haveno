@@ -20,6 +20,8 @@ package haveno.core.trade.statistics;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+
+import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
 import haveno.core.locale.CurrencyTuple;
@@ -55,6 +57,7 @@ public class TradeStatisticsManager {
     private final boolean dumpStatistics;
     private final ObservableSet<TradeStatistics3> observableTradeStatisticsSet = FXCollections.observableSet();
     private JsonFileManager jsonFileManager;
+    public static final int PUBLISH_STATS_RANDOM_DELAY_HOURS = 24;
 
     @Inject
     public TradeStatisticsManager(P2PService p2PService,
@@ -299,8 +302,12 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            log.info("Publishing trade statistics for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
-            p2PService.addPersistableNetworkPayload(tradeStatistics3V2, true);
+            // publish after random delay within 24 hours
+            log.info("Scheduling to publish trade statistics at random time for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+            TradeStatistics3 tradeStatistics3V2Final = tradeStatistics3V2;
+            UserThread.runAfterRandomDelay(() -> {
+                p2PService.addPersistableNetworkPayload(tradeStatistics3V2Final, true);
+            }, 0, PUBLISH_STATS_RANDOM_DELAY_HOURS * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         });
         log.info("maybeRepublishTradeStatistics took {} ms. Number of tradeStatistics: {}. Number of own trades: {}",
                 System.currentTimeMillis() - ts, hashes.size(), trades.size());

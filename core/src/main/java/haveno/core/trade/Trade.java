@@ -65,6 +65,7 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
@@ -2476,7 +2477,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // publish after random delay within 24 hours
             UserThread.runAfterRandomDelay(() -> {
                 if (!isShutDownStarted) doPublishTradeStatistics();
-            }, 0, 24 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
+            }, 0, TradeStatisticsManager.PUBLISH_STATS_RANDOM_DELAY_HOURS * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         }
     }
 
