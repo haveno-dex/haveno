@@ -110,7 +110,7 @@ public class CloneOfferView extends MutableOfferView<CloneOfferViewModel> {
         volumeCurrencyLabel.setDisable(true);
 
         // Workaround to fix margin on top of amount group
-        gridPane.setPadding(new Insets(-20, 25, -1, 25));
+        gridPane.setPadding(new Insets(-20, 25, 25, 25));
 
         updatePriceToggle();
         updateElementsWithDirection();
