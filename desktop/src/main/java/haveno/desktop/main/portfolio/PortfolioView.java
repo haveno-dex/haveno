@@ -67,6 +67,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     private boolean editOpenOfferViewOpen, cloneOpenOfferViewOpen;
     private OpenOffer openOffer;
     private OpenOffersView openOffersView;
+    private boolean tabListChangeListenerAdded = false;
 
     @Inject
     public PortfolioView(CachingViewLoader viewLoader, Navigation navigation, FailedTradesManager failedTradesManager) {
@@ -168,7 +169,10 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
             root.getTabs().add(failedTradesTab);
 
         root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
-        root.getTabs().addListener(tabListChangeListener);
+        if (!tabListChangeListenerAdded) {
+            root.getTabs().addListener(tabListChangeListener);
+            tabListChangeListenerAdded = true; // add listener only once
+        }
         navigation.addListener(navigationListener);
 
         if (root.getSelectionModel().getSelectedItem() == openOffersTab)
@@ -194,7 +198,6 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     @Override
     protected void deactivate() {
         root.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
-        root.getTabs().removeListener(tabListChangeListener);
         navigation.removeListener(navigationListener);
         currentTab = null;
     }
