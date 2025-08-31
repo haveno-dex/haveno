@@ -812,12 +812,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         while (!isFullyInitialized) HavenoUtils.waitFor(100); // TODO: use proper notification and refactor isInitialized, fullyInitialized, and arbitrator idling
     }
 
+    // TODO: throw if trade manager is null
     public void requestPersistence() {
         if (processModel.getTradeManager() != null) processModel.getTradeManager().requestPersistence();
     }
 
+    // TODO: throw if trade manager is null
     public void persistNow(@Nullable Runnable completeHandler) {
-        processModel.getTradeManager().persistNow(completeHandler);
+        if (processModel.getTradeManager() != null) processModel.getTradeManager().persistNow(completeHandler);
     }
 
     public TradeProtocol getProtocol() {
@@ -1098,7 +1100,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 MoneroTxWallet tx = wallet.createTx(txConfig);
                 exportMultisigHex();
-                saveWallet();
                 return tx;
             }
         }
@@ -1107,7 +1108,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void exportMultisigHex() {
         synchronized (walletLock) {
             getSelf().setUpdatedMultisigHex(wallet.exportMultisigHex());
-            requestPersistence();
+            saveWallet();
         }
     }
 
@@ -1888,7 +1889,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         this.state = state;
-        requestPersistence();
+        persistNow(null);
         UserThread.execute(() -> {
             stateProperty.set(state);
             phaseProperty.set(state.getPhase());
@@ -1920,7 +1921,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         this.payoutState = payoutState;
-        requestPersistence();
+        persistNow(null);
         UserThread.execute(() -> payoutStateProperty.set(payoutState));
     }
 
@@ -1936,6 +1937,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         this.disputeState = disputeState;
+        persistNow(null);
         UserThread.execute(() -> {
             disputeStateProperty.set(disputeState);
         });
