@@ -266,6 +266,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
             triggerPriceInputTextField.setText(model.triggerPrice.get());
             extraInfoTextArea.setText(model.dataModel.extraInfo.get());
+
+            // show or hide elements based on current screen
+            if (model.showPayFundsScreenDisplayed.get()) {
+                onShowPayFundsScreen();
+            }
         }
     }
 
