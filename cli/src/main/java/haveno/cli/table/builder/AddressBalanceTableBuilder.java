@@ -21,7 +21,7 @@ import haveno.cli.table.Table;
 import haveno.cli.table.column.BooleanColumn;
 import haveno.cli.table.column.Column;
 import haveno.cli.table.column.LongColumn;
-import haveno.cli.table.column.SatoshiColumn;
+import haveno.cli.table.column.PiconeroColumn;
 import haveno.cli.table.column.StringColumn;
 import haveno.proto.grpc.AddressBalanceInfo;
 
@@ -49,8 +49,8 @@ class AddressBalanceTableBuilder extends AbstractTableBuilder {
 
     AddressBalanceTableBuilder(List<?> protos) {
         super(ADDRESS_BALANCE_TBL, protos);
-        colAddress = new StringColumn(format(COL_HEADER_ADDRESS, "BTC"));
-        this.colAvailableBalance = new SatoshiColumn(COL_HEADER_AVAILABLE_BALANCE);
+        colAddress = new StringColumn(format(COL_HEADER_ADDRESS, "XMR"));
+        this.colAvailableBalance = new PiconeroColumn(COL_HEADER_AVAILABLE_BALANCE);
         this.colConfirmations = new LongColumn(COL_HEADER_CONFIRMATIONS);
         this.colIsUsed = new BooleanColumn(COL_HEADER_IS_USED_ADDRESS);
     }

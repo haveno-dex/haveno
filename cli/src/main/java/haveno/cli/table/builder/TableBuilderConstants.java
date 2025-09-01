@@ -23,8 +23,8 @@ package haveno.cli.table.builder;
 class TableBuilderConstants {
     static final String COL_HEADER_ADDRESS = "%-3s Address";
     static final String COL_HEADER_AMOUNT = "Amount";
-    static final String COL_HEADER_AMOUNT_IN_BTC = "Amount in BTC";
-    static final String COL_HEADER_AMOUNT_RANGE = "BTC(min - max)";
+    static final String COL_HEADER_AMOUNT_IN_XMR = "Amount in XMR";
+    static final String COL_HEADER_AMOUNT_RANGE = "XMR(min - max)";
     static final String COL_HEADER_AVAILABLE_BALANCE = "Available Balance";
     static final String COL_HEADER_AVAILABLE_CONFIRMED_BALANCE = "Available Confirmed Balance";
     static final String COL_HEADER_UNCONFIRMED_CHANGE_BALANCE = "Unconfirmed Change Balance";
@@ -36,8 +36,8 @@ class TableBuilderConstants {
     static final String COL_HEADER_UNLOCKING_BONDS_BALANCE = "Unlocking Bonds Balance";
     static final String COL_HEADER_UNVERIFIED_BALANCE = "Unverified Balance";
     static final String COL_HEADER_BSQ_SWAP_TRADE_ROLE = "My BSQ Swap Role";
-    static final String COL_HEADER_BUYER_DEPOSIT = "Buyer Deposit (BTC)";
-    static final String COL_HEADER_SELLER_DEPOSIT = "Seller Deposit (BTC)";
+    static final String COL_HEADER_BUYER_DEPOSIT = "Buyer Deposit (XMR)";
+    static final String COL_HEADER_SELLER_DEPOSIT = "Seller Deposit (XMR)";
     static final String COL_HEADER_CONFIRMATIONS = "Confirmations";
     static final String COL_HEADER_DEVIATION = "Deviation";
     static final String COL_HEADER_IS_USED_ADDRESS = "Is Used";
@@ -45,8 +45,8 @@ class TableBuilderConstants {
     static final String COL_HEADER_CURRENCY = "Currency";
     static final String COL_HEADER_DATE_TIME = "Date/Time (UTC)";
     static final String COL_HEADER_DETAILED_AMOUNT = "Amount(%-3s)";
-    static final String COL_HEADER_DETAILED_PRICE = "Price in %-3s for 1 BTC";
-    static final String COL_HEADER_DETAILED_PRICE_OF_CRYPTO = "Price in BTC for 1 %-3s";
+    static final String COL_HEADER_DETAILED_PRICE = "Price in %-3s for 1 XMR";
+    static final String COL_HEADER_DETAILED_PRICE_OF_CRYPTO = "Price in XMR for 1 %-3s";
     static final String COL_HEADER_DIRECTION = "Buy/Sell";
     static final String COL_HEADER_ENABLED = "Enabled";
     static final String COL_HEADER_MARKET = "Market";
@@ -71,9 +71,9 @@ class TableBuilderConstants {
     static final String COL_HEADER_TRADE_FEE = "Trade Fee";
     static final String COL_HEADER_TRIGGER_PRICE = "Trigger Price(%-3s)";
     static final String COL_HEADER_TX_ID = "Tx ID";
-    static final String COL_HEADER_TX_INPUT_SUM = "Tx Inputs (BTC)";
-    static final String COL_HEADER_TX_OUTPUT_SUM = "Tx Outputs (BTC)";
-    static final String COL_HEADER_TX_FEE = "Tx Fee (BTC)";
+    static final String COL_HEADER_TX_INPUT_SUM = "Tx Inputs (XMR)";
+    static final String COL_HEADER_TX_OUTPUT_SUM = "Tx Outputs (XMR)";
+    static final String COL_HEADER_TX_FEE = "Tx Fee (XMR)";
     static final String COL_HEADER_TX_SIZE = "Tx Size (Bytes)";
     static final String COL_HEADER_TX_IS_CONFIRMED = "Is Confirmed";
     static final String COL_HEADER_TX_MEMO = "Memo";
