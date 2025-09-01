@@ -40,9 +40,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static haveno.apitest.config.ApiTestConfig.BTC;
+
 import static haveno.apitest.config.ApiTestRateMeterInterceptorConfig.getTestRateMeterInterceptorConfig;
-import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
+import static haveno.cli.table.builder.TableType.XMR_BALANCE_TBL;
 import static haveno.core.xmr.wallet.Restrictions.getDefaultSecurityDepositPct;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -169,8 +169,8 @@ public class MethodTest extends ApiTestCase {
     };
 
     public static String formatBalancesTbls(BalancesInfo allBalances) {
-        StringBuilder balances = new StringBuilder(BTC).append("\n");
-        balances.append(new TableBuilder(BTC_BALANCE_TBL, allBalances.getBtc()).build());
+        StringBuilder balances = new StringBuilder("XMR").append("\n");
+        balances.append(new TableBuilder(XMR_BALANCE_TBL, allBalances.getXmr()).build());
         balances.append("\n");
         return balances.toString();
     }

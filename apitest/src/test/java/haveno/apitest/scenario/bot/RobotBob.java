@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import static haveno.apitest.scenario.bot.protocol.ProtocolStep.DONE;
 import static haveno.apitest.scenario.bot.shutdown.ManualShutdown.isShutdownCalled;
-import static haveno.cli.table.builder.TableType.BTC_BALANCE_TBL;
+import static haveno.cli.table.builder.TableType.XMR_BALANCE_TBL;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Slf4j
@@ -73,8 +73,8 @@ class RobotBob extends Bot {
             }
 
             StringBuilder balancesBuilder = new StringBuilder();
-            balancesBuilder.append("BTC").append("\n");
-            balancesBuilder.append(new TableBuilder(BTC_BALANCE_TBL, botClient.getBalance().getBtc()).build().toString()).append("\n");
+            balancesBuilder.append("XMR").append("\n");
+            balancesBuilder.append(new TableBuilder(XMR_BALANCE_TBL, botClient.getBalance().getXmr()).build().toString()).append("\n");
 
             log.info("Completed {} successful trade{}.  Current Balance:\n{}",
                     ++numTrades,
