@@ -17,44 +17,32 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_NEW_WALLET_PASSWORD;
 import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
-import static joptsimple.internal.Strings.EMPTY;
+import static haveno.cli.opts.OptLabel.OPT_NEW_WALLET_PASSWORD;
 
-public class SetWalletPasswordOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class SetWalletPasswordOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> passwordOpt = parser.accepts(OPT_WALLET_PASSWORD, "haveno wallet password")
+    @Getter
+    private final OptionSpec<String> walletPasswordOpt = parser.accepts(OPT_WALLET_PASSWORD, "Wallet Password")
+            .withRequiredArg()
+            .required();
+
+    @Getter
+    private final OptionSpec<String> newWalletPasswordOpt = parser.accepts(OPT_NEW_WALLET_PASSWORD, "New Wallet Password")
             .withRequiredArg();
-
-    final OptionSpec<String> newPasswordOpt = parser.accepts(OPT_NEW_WALLET_PASSWORD, "new haveno wallet password")
-            .withOptionalArg()
-            .defaultsTo(EMPTY);
 
     public SetWalletPasswordOptionParser(String[] args) {
         super(args);
     }
 
-    public SetWalletPasswordOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(passwordOpt) || options.valueOf(passwordOpt).isEmpty())
-            throw new IllegalArgumentException("no password specified");
-
-        return this;
-    }
-
     public String getPassword() {
-        return options.valueOf(passwordOpt);
+        return options.valueOf(walletPasswordOpt);
     }
 
     public String getNewPassword() {
-        return options.has(newPasswordOpt) ? options.valueOf(newPasswordOpt) : "";
+        return options.has(newWalletPasswordOpt) ? options.valueOf(newWalletPasswordOpt) : "";
     }
 }

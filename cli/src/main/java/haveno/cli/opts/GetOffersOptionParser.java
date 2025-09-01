@@ -17,38 +17,26 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
 import static haveno.cli.opts.OptLabel.OPT_DIRECTION;
+import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
 
-public class GetOffersOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetOffersOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> directionOpt = parser.accepts(OPT_DIRECTION, "offer direction (buy|sell)")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> directionOpt = parser.accepts(OPT_DIRECTION, "Direction (buy|sell)")
+            .withRequiredArg()
+            .required();
 
-    final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "currency code (xmr|eur|usd|...)")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "Currency Code")
+            .withRequiredArg()
+            .required();
 
     public GetOffersOptionParser(String[] args) {
         super(args);
-    }
-
-    public GetOffersOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(directionOpt) || options.valueOf(directionOpt).isEmpty())
-            throw new IllegalArgumentException("no direction (buy|sell) specified");
-
-        if (!options.has(currencyCodeOpt) || options.valueOf(currencyCodeOpt).isEmpty())
-            throw new IllegalArgumentException("no currency code specified");
-
-        return this;
     }
 
     public String getDirection() {

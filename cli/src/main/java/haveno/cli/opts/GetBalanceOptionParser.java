@@ -17,27 +17,23 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
-import static joptsimple.internal.Strings.EMPTY;
 
-public class GetBalanceOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetBalanceOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "wallet currency code (btc)")
-            .withOptionalArg()
-            .defaultsTo(EMPTY);
+    @Getter
+    private final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "Currency Code")
+            .withRequiredArg()
+            .defaultsTo("");
 
     public GetBalanceOptionParser(String[] args) {
         super(args);
     }
 
-    public GetBalanceOptionParser parse() {
-        return (GetBalanceOptionParser) super.parse();
-    }
-
     public String getCurrencyCode() {
-        return options.has(currencyCodeOpt) ? options.valueOf(currencyCodeOpt) : "";
+        return options.valueOf(currencyCodeOpt);
     }
 }

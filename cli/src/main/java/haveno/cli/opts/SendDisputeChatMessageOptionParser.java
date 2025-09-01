@@ -20,20 +20,30 @@ package haveno.cli.opts;
 import joptsimple.OptionSpec;
 import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
+import static haveno.cli.opts.OptLabel.OPT_DISPUTE_ID;
+import static haveno.cli.opts.OptLabel.OPT_MESSAGE;
 
-public class RemoveWalletPasswordOptionParser extends AbstractMethodOptionParser {
+public class SendDisputeChatMessageOptionParser extends AbstractMethodOptionParser {
 
     @Getter
-    private final OptionSpec<String> walletPasswordOpt = parser.accepts(OPT_WALLET_PASSWORD, "Wallet Password")
+    private final OptionSpec<String> disputeIdOpt = parser.accepts(OPT_DISPUTE_ID, "Dispute ID")
             .withRequiredArg()
             .required();
 
-    public RemoveWalletPasswordOptionParser(String[] args) {
+    @Getter
+    private final OptionSpec<String> messageOpt = parser.accepts(OPT_MESSAGE, "Message")
+            .withRequiredArg()
+            .required();
+
+    public SendDisputeChatMessageOptionParser(String[] args) {
         super(args);
     }
 
-    public String getPassword() {
-        return options.valueOf(walletPasswordOpt);
+    public String getDisputeId() {
+        return options.valueOf(disputeIdOpt);
+    }
+
+    public String getMessage() {
+        return options.valueOf(messageOpt);
     }
 }

@@ -17,19 +17,20 @@
 
 package haveno.cli.opts;
 
+import joptsimple.OptionSpec;
+import lombok.Getter;
 
-public class CancelOfferOptionParser extends OfferIdOptionParser implements MethodOpts {
+import static haveno.cli.opts.OptLabel.OPT_OFFER_ID;
+
+public class CancelOfferOptionParser extends AbstractMethodOptionParser {
+
+    @Getter
+    private final OptionSpec<String> offerIdOpt = parser.accepts(OPT_OFFER_ID, "Offer ID")
+            .withRequiredArg()
+            .required();
 
     public CancelOfferOptionParser(String[] args) {
         super(args);
-    }
-
-    public CancelOfferOptionParser parse() {
-        super.parse();
-
-        // Super class will short-circuit parsing if help option is present.
-
-        return this;
     }
 
     public String getOfferId() {

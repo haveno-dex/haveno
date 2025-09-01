@@ -17,34 +17,23 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_TRANSACTION_ID;
 
-public class GetTransactionOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetTransactionOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> txIdOpt = parser.accepts(OPT_TRANSACTION_ID, "id of transaction")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> transactionIdOpt = parser.accepts(OPT_TRANSACTION_ID, "Transaction ID")
+            .withRequiredArg()
+            .required();
 
     public GetTransactionOptionParser(String[] args) {
         super(args);
     }
 
-    public GetTransactionOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(txIdOpt) || options.valueOf(txIdOpt).isEmpty())
-            throw new IllegalArgumentException("no tx id specified");
-
-        return this;
-    }
-
-    public String getTxId() {
-        return options.valueOf(txIdOpt);
+    public String getTransactionId() {
+        return options.valueOf(transactionIdOpt);
     }
 }

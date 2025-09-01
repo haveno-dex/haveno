@@ -17,32 +17,20 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_PAYMENT_METHOD_ID;
 
-public class GetPaymentAcctFormOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetPaymentAcctFormOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> paymentMethodIdOpt = parser.accepts(OPT_PAYMENT_METHOD_ID,
-                    "id of payment method type used by a payment account")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> paymentMethodIdOpt = parser.accepts(OPT_PAYMENT_METHOD_ID, "Payment Method ID")
+            .withRequiredArg()
+            .required();
 
     public GetPaymentAcctFormOptionParser(String[] args) {
         super(args);
-    }
-
-    public GetPaymentAcctFormOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(paymentMethodIdOpt) || options.valueOf(paymentMethodIdOpt).isEmpty())
-            throw new IllegalArgumentException("no payment method id specified");
-
-        return this;
     }
 
     public String getPaymentMethodId() {

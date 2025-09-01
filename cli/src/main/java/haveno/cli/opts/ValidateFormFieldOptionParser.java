@@ -20,31 +20,40 @@ package haveno.cli.opts;
 import joptsimple.OptionSpec;
 import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_TRADE_ID;
-import static haveno.cli.opts.OptLabel.OPT_SHOW_CONTRACT;
+import static haveno.cli.opts.OptLabel.OPT_FORM;
+import static haveno.cli.opts.OptLabel.OPT_FIELD_ID;
+import static haveno.cli.opts.OptLabel.OPT_VALUE;
 
-public class GetTradeOptionParser extends AbstractMethodOptionParser {
+public class ValidateFormFieldOptionParser extends AbstractMethodOptionParser {
 
     @Getter
-    private final OptionSpec<String> tradeIdOpt = parser.accepts(OPT_TRADE_ID, "Trade ID")
+    private final OptionSpec<String> formOpt = parser.accepts(OPT_FORM, "Form")
             .withRequiredArg()
             .required();
 
     @Getter
-    private final OptionSpec<Boolean> showContractOpt = parser.accepts(OPT_SHOW_CONTRACT, "Show Contract")
+    private final OptionSpec<String> fieldIdOpt = parser.accepts(OPT_FIELD_ID, "Field ID")
             .withRequiredArg()
-            .ofType(Boolean.class)
-            .defaultsTo(false);
+            .required();
 
-    public GetTradeOptionParser(String[] args) {
+    @Getter
+    private final OptionSpec<String> valueOpt = parser.accepts(OPT_VALUE, "Value")
+            .withRequiredArg()
+            .required();
+
+    public ValidateFormFieldOptionParser(String[] args) {
         super(args);
     }
 
-    public String getTradeId() {
-        return options.valueOf(tradeIdOpt);
+    public String getForm() {
+        return options.valueOf(formOpt);
     }
 
-    public boolean getShowContract() {
-        return options.valueOf(showContractOpt);
+    public String getFieldId() {
+        return options.valueOf(fieldIdOpt);
+    }
+
+    public String getValue() {
+        return options.valueOf(valueOpt);
     }
 }

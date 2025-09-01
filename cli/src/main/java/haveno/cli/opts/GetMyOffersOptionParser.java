@@ -20,20 +20,33 @@ package haveno.cli.opts;
 import joptsimple.OptionSpec;
 import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
+import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
+import static haveno.cli.opts.OptLabel.OPT_DIRECTION;
 
-public class RemoveWalletPasswordOptionParser extends AbstractMethodOptionParser {
+public class GetMyOffersOptionParser extends AbstractMethodOptionParser {
 
     @Getter
-    private final OptionSpec<String> walletPasswordOpt = parser.accepts(OPT_WALLET_PASSWORD, "Wallet Password")
+    private final OptionSpec<String> directionOpt = parser.accepts(OPT_DIRECTION, "Direction (buy|sell)")
             .withRequiredArg()
             .required();
 
-    public RemoveWalletPasswordOptionParser(String[] args) {
+    @Getter
+    private final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "Currency code")
+            .withRequiredArg()
+            .required();
+
+    public GetMyOffersOptionParser(String[] args) {
         super(args);
     }
 
-    public String getPassword() {
-        return options.valueOf(walletPasswordOpt);
+    public String getDirection() {
+        return options.valueOf(directionOpt);
+    }
+
+    public String getCurrencyCode() {
+        return options.valueOf(currencyCodeOpt);
     }
 }
+
+
+

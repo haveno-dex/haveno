@@ -17,29 +17,30 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
+import static haveno.cli.opts.OptLabel.OPT_OFFER_ID;
 import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_ID;
 
-public class TakeOfferOptionParser extends OfferIdOptionParser implements MethodOpts {
+public class TakeOfferOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> paymentAccountIdOpt = parser.accepts(OPT_PAYMENT_ACCOUNT_ID, "id of payment account used for trade")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> offerIdOpt = parser.accepts(OPT_OFFER_ID, "Offer ID")
+            .withRequiredArg()
+            .required();
+
+    @Getter
+    private final OptionSpec<String> paymentAccountIdOpt = parser.accepts(OPT_PAYMENT_ACCOUNT_ID, "Payment Account ID")
+            .withRequiredArg()
+            .required();
 
     public TakeOfferOptionParser(String[] args) {
-        super(args, true);
+        super(args);
     }
 
-    public TakeOfferOptionParser parse() {
-        super.parse();
-
-        // Super class will short-circuit parsing if help option is present.
-
-        if (!options.has(paymentAccountIdOpt) || options.valueOf(paymentAccountIdOpt).isEmpty())
-            throw new IllegalArgumentException("no payment account id specified");
-
-        return this;
+    public String getOfferId() {
+        return options.valueOf(offerIdOpt);
     }
 
     public String getPaymentAccountId() {

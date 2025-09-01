@@ -17,67 +17,23 @@
 
 package haveno.cli.opts;
 
-
-import haveno.proto.grpc.GetTradesRequest;
 import joptsimple.OptionSpec;
-
-import java.util.function.Predicate;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_CATEGORY;
-import static haveno.proto.grpc.GetTradesRequest.Category.CLOSED;
-import static haveno.proto.grpc.GetTradesRequest.Category.FAILED;
-import static haveno.proto.grpc.GetTradesRequest.Category.OPEN;
-import static java.util.Arrays.stream;
 
-public class GetTradesOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetTradesOptionParser extends AbstractMethodOptionParser {
 
-    // Map valid CLI option values to gRPC request parameters.
-    private enum CATEGORY {
-        // Lower case enum fits CLI method and parameter style.
-        open(OPEN),
-        closed(CLOSED),
-        failed(FAILED);
-
-        private final GetTradesRequest.Category grpcRequestCategory;
-
-        CATEGORY(GetTradesRequest.Category grpcRequestCategory) {
-            this.grpcRequestCategory = grpcRequestCategory;
-        }
-    }
-
-    final OptionSpec<String> categoryOpt = parser.accepts(OPT_CATEGORY,
-                    "category of trades (open|closed|failed)")
+    @Getter
+    private final OptionSpec<String> categoryOpt = parser.accepts(OPT_CATEGORY, "Category (open|closed|failed)")
             .withRequiredArg()
-            .defaultsTo(CATEGORY.open.name());
-
-    private final Predicate<String> isValidCategory = (c) ->
-            stream(CATEGORY.values()).anyMatch(v -> v.name().equalsIgnoreCase(c));
+            .defaultsTo("open");
 
     public GetTradesOptionParser(String[] args) {
         super(args);
     }
 
-    public GetTradesOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (options.has(categoryOpt)) {
-            String category = options.valueOf(categoryOpt);
-            if (category.isEmpty())
-                throw new IllegalArgumentException("no category (open|closed|failed) specified");
-
-            if (!isValidCategory.test(category))
-                throw new IllegalArgumentException("category must be open|closed|failed");
-        }
-
-        return this;
-    }
-
-    public GetTradesRequest.Category getCategory() {
-        String categoryOpt = options.valueOf(this.categoryOpt).toLowerCase();
-        return CATEGORY.valueOf(categoryOpt).grpcRequestCategory;
+    public String getCategory() {
+        return options.valueOf(categoryOpt);
     }
 }

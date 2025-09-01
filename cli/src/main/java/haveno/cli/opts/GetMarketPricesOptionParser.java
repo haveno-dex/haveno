@@ -17,23 +17,12 @@
 
 package haveno.cli.opts;
 
-import joptsimple.OptionSpec;
-import lombok.Getter;
+public class GetMarketPricesOptionParser extends AbstractMethodOptionParser {
 
-import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
-
-public class RemoveWalletPasswordOptionParser extends AbstractMethodOptionParser {
-
-    @Getter
-    private final OptionSpec<String> walletPasswordOpt = parser.accepts(OPT_WALLET_PASSWORD, "Wallet Password")
-            .withRequiredArg()
-            .required();
-
-    public RemoveWalletPasswordOptionParser(String[] args) {
+    public GetMarketPricesOptionParser(String[] args) {
         super(args);
     }
-
-    public String getPassword() {
-        return options.valueOf(walletPasswordOpt);
-    }
 }
+
+
+

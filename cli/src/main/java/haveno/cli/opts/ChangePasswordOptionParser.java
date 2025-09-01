@@ -20,20 +20,30 @@ package haveno.cli.opts;
 import joptsimple.OptionSpec;
 import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
+import static haveno.cli.opts.OptLabel.OPT_PASSWORD;
+import static haveno.cli.opts.OptLabel.OPT_NEW_PASSWORD;
 
-public class RemoveWalletPasswordOptionParser extends AbstractMethodOptionParser {
+public class ChangePasswordOptionParser extends AbstractMethodOptionParser {
 
     @Getter
-    private final OptionSpec<String> walletPasswordOpt = parser.accepts(OPT_WALLET_PASSWORD, "Wallet Password")
+    private final OptionSpec<String> oldPasswordOpt = parser.accepts(OPT_PASSWORD, "Current password")
             .withRequiredArg()
             .required();
 
-    public RemoveWalletPasswordOptionParser(String[] args) {
+    @Getter
+    private final OptionSpec<String> newPasswordOpt = parser.accepts(OPT_NEW_PASSWORD, "New password")
+            .withRequiredArg()
+            .required();
+
+    public ChangePasswordOptionParser(String[] args) {
         super(args);
     }
 
-    public String getPassword() {
-        return options.valueOf(walletPasswordOpt);
+    public String getOldPassword() {
+        return options.valueOf(oldPasswordOpt);
+    }
+
+    public String getNewPassword() {
+        return options.valueOf(newPasswordOpt);
     }
 }

@@ -20,20 +20,21 @@ package haveno.cli.opts;
 import joptsimple.OptionSpec;
 import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
+import static haveno.cli.opts.OptLabel.OPT_AUTO_SWITCH;
 
-public class RemoveWalletPasswordOptionParser extends AbstractMethodOptionParser {
+public class SetAutoSwitchOptionParser extends AbstractMethodOptionParser {
 
     @Getter
-    private final OptionSpec<String> walletPasswordOpt = parser.accepts(OPT_WALLET_PASSWORD, "Wallet Password")
+    private final OptionSpec<Boolean> autoSwitchOpt = parser.accepts(OPT_AUTO_SWITCH, "Auto-switch setting")
             .withRequiredArg()
+            .ofType(Boolean.class)
             .required();
 
-    public RemoveWalletPasswordOptionParser(String[] args) {
+    public SetAutoSwitchOptionParser(String[] args) {
         super(args);
     }
 
-    public String getPassword() {
-        return options.valueOf(walletPasswordOpt);
+    public boolean getAutoSwitch() {
+        return options.valueOf(autoSwitchOpt);
     }
 }
