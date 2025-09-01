@@ -17,31 +17,20 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_OFFER_ID;
 
-public class GetOfferOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetOfferOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> offerIdOpt = parser.accepts(OPT_OFFER_ID, "id of offer to get")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> offerIdOpt = parser.accepts(OPT_OFFER_ID, "Offer ID")
+            .withRequiredArg()
+            .required();
 
     public GetOfferOptionParser(String[] args) {
         super(args);
-    }
-
-    public GetOfferOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(offerIdOpt) || options.valueOf(offerIdOpt).isEmpty())
-            throw new IllegalArgumentException("no offer id specified");
-
-        return this;
     }
 
     public String getOfferId() {

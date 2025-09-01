@@ -42,7 +42,7 @@ public class WalletProtectionTest extends MethodTest {
     @Test
     @Order(2)
     public void testGetBalanceOnEncryptedWalletShouldThrowException() {
-        Throwable exception = assertThrows(StatusRuntimeException.class, () -> aliceClient.getBtcBalances());
+        Throwable exception = assertThrows(StatusRuntimeException.class, () -> aliceClient.getXmrBalances());
         assertEquals("FAILED_PRECONDITION: wallet is locked", exception.getMessage());
     }
 
@@ -50,9 +50,9 @@ public class WalletProtectionTest extends MethodTest {
     @Order(3)
     public void testUnlockWalletFor4Seconds() {
         aliceClient.unlockWallet("first-password", 4);
-        aliceClient.getBtcBalances(); // should not throw 'wallet locked' exception
+        aliceClient.getXmrBalances(); // should not throw 'wallet locked' exception
         sleep(4500); // let unlock timeout expire
-        Throwable exception = assertThrows(StatusRuntimeException.class, () -> aliceClient.getBtcBalances());
+        Throwable exception = assertThrows(StatusRuntimeException.class, () -> aliceClient.getXmrBalances());
         assertEquals("FAILED_PRECONDITION: wallet is locked", exception.getMessage());
     }
 
@@ -61,7 +61,7 @@ public class WalletProtectionTest extends MethodTest {
     public void testGetBalanceAfterUnlockTimeExpiryShouldThrowException() {
         aliceClient.unlockWallet("first-password", 3);
         sleep(4000); // let unlock timeout expire
-        Throwable exception = assertThrows(StatusRuntimeException.class, () -> aliceClient.getBtcBalances());
+        Throwable exception = assertThrows(StatusRuntimeException.class, () -> aliceClient.getXmrBalances());
         assertEquals("FAILED_PRECONDITION: wallet is locked", exception.getMessage());
     }
 
@@ -70,7 +70,7 @@ public class WalletProtectionTest extends MethodTest {
     public void testLockWalletBeforeUnlockTimeoutExpiry() {
         aliceClient.unlockWallet("first-password", 60);
         aliceClient.lockWallet();
-        Throwable exception = assertThrows(StatusRuntimeException.class, () -> aliceClient.getBtcBalances());
+        Throwable exception = assertThrows(StatusRuntimeException.class, () -> aliceClient.getXmrBalances());
         assertEquals("FAILED_PRECONDITION: wallet is locked", exception.getMessage());
     }
 
@@ -88,7 +88,7 @@ public class WalletProtectionTest extends MethodTest {
         sleep(500); // override unlock timeout after 0.5s
         aliceClient.unlockWallet("first-password", 6);
         sleep(5000);
-        aliceClient.getBtcBalances(); // getbalance 5s after overriding timeout to 6s
+        aliceClient.getXmrBalances(); // getbalance 5s after overriding timeout to 6s
     }
 
     @Test
@@ -97,7 +97,7 @@ public class WalletProtectionTest extends MethodTest {
         aliceClient.setWalletPassword("first-password", "second-password");
         sleep(2500); // allow time for wallet save
         aliceClient.unlockWallet("second-password", 2);
-        aliceClient.getBtcBalances();
+        aliceClient.getXmrBalances();
     }
 
     @Test
@@ -112,7 +112,7 @@ public class WalletProtectionTest extends MethodTest {
     @Order(10)
     public void testRemoveNewWalletPassword() {
         aliceClient.removeWalletPassword("second-password");
-        aliceClient.getBtcBalances();  // should not throw 'wallet locked' exception
+        aliceClient.getXmrBalances(); // should not throw 'wallet locked' exception
     }
 
     @AfterAll

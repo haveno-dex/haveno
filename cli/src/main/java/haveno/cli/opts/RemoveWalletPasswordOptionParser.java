@@ -17,34 +17,23 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
 
-public class RemoveWalletPasswordOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class RemoveWalletPasswordOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> passwordOpt = parser.accepts(OPT_WALLET_PASSWORD, "haveno wallet password")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> walletPasswordOpt = parser.accepts(OPT_WALLET_PASSWORD, "Wallet Password")
+            .withRequiredArg()
+            .required();
 
     public RemoveWalletPasswordOptionParser(String[] args) {
         super(args);
     }
 
-    public RemoveWalletPasswordOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(passwordOpt) || options.valueOf(passwordOpt).isEmpty())
-            throw new IllegalArgumentException("no password specified");
-
-        return this;
-    }
-
     public String getPassword() {
-        return options.valueOf(passwordOpt);
+        return options.valueOf(walletPasswordOpt);
     }
 }

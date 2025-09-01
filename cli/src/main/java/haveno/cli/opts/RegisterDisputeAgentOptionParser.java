@@ -17,38 +17,26 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_DISPUTE_AGENT_TYPE;
 import static haveno.cli.opts.OptLabel.OPT_REGISTRATION_KEY;
 
-public class RegisterDisputeAgentOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class RegisterDisputeAgentOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> disputeAgentTypeOpt = parser.accepts(OPT_DISPUTE_AGENT_TYPE, "dispute agent type")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> disputeAgentTypeOpt = parser.accepts(OPT_DISPUTE_AGENT_TYPE, "Dispute Agent Type")
+            .withRequiredArg()
+            .required();
 
-    final OptionSpec<String> registrationKeyOpt = parser.accepts(OPT_REGISTRATION_KEY, "registration key")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> registrationKeyOpt = parser.accepts(OPT_REGISTRATION_KEY, "Registration Key")
+            .withRequiredArg()
+            .required();
 
     public RegisterDisputeAgentOptionParser(String[] args) {
         super(args);
-    }
-
-    public RegisterDisputeAgentOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(disputeAgentTypeOpt) || options.valueOf(disputeAgentTypeOpt).isEmpty())
-            throw new IllegalArgumentException("no dispute agent type specified");
-
-        if (!options.has(registrationKeyOpt) || options.valueOf(registrationKeyOpt).isEmpty())
-            throw new IllegalArgumentException("no registration key specified");
-
-        return this;
     }
 
     public String getDisputeAgentType() {

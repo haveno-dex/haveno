@@ -23,14 +23,21 @@ import haveno.proto.grpc.GetMyOfferRequest;
 import haveno.proto.grpc.GetMyOffersRequest;
 import haveno.proto.grpc.GetOfferRequest;
 import haveno.proto.grpc.GetOffersRequest;
+import haveno.proto.grpc.GetOffersReply;
+import haveno.proto.grpc.GetMyOffersReply;
+import haveno.proto.grpc.GetMyOfferReply;
+import haveno.proto.grpc.GetOfferReply;
 import haveno.proto.grpc.OfferInfo;
 import haveno.proto.grpc.PostOfferRequest;
+import haveno.proto.grpc.PostOfferReply;
+
+
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Comparator;
+import java.util.stream.Collectors;
 
-import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.toList;
 import static protobuf.OfferDirection.BUY;
 import static protobuf.OfferDirection.SELL;
 
@@ -60,7 +67,12 @@ public class OffersServiceRequest {
                 0.00,
                 securityDepositPct,
                 paymentAcctId,
-                "0" /* no trigger price */);
+                "0", /* no trigger price */
+                false, /* reserveExactAmount */
+                false, /* isPrivateOffer */
+                false, /* buyerAsTakerWithoutDeposit */
+                "", /* extraInfo */
+                "" /* sourceOfferId */);
     }
 
     public OfferInfo createOffer(String direction,
@@ -72,50 +84,63 @@ public class OffersServiceRequest {
                                  double marketPriceMarginPct,
                                  double securityDepositPct,
                                  String paymentAcctId,
-                                 String triggerPrice) {
-        var request = PostOfferRequest.newBuilder()
-                .setDirection(direction)
+                                 String triggerPrice,
+                                 boolean reserveExactAmount,
+                                 boolean isPrivateOffer,
+                                 boolean buyerAsTakerWithoutDeposit,
+                                 String extraInfo,
+                                 String sourceOfferId) {
+        PostOfferRequest request = PostOfferRequest.newBuilder()
                 .setCurrencyCode(currencyCode)
+                .setDirection(direction)
+                .setPrice(fixedPrice)
+                .setUseMarketBasedPrice(useMarketBasedPrice)
+                .setMarketPriceMarginPct(marketPriceMarginPct)
                 .setAmount(amount)
                 .setMinAmount(minAmount)
-                .setUseMarketBasedPrice(useMarketBasedPrice)
-                .setPrice(fixedPrice)
-                .setMarketPriceMarginPct(marketPriceMarginPct)
                 .setSecurityDepositPct(securityDepositPct)
-                .setPaymentAccountId(paymentAcctId)
                 .setTriggerPrice(triggerPrice)
+                .setReserveExactAmount(reserveExactAmount)
+                .setPaymentAccountId(paymentAcctId)
+                .setIsPrivateOffer(isPrivateOffer)
+                .setBuyerAsTakerWithoutDeposit(buyerAsTakerWithoutDeposit)
+                .setExtraInfo(extraInfo)
+                .setSourceOfferId(sourceOfferId)
                 .build();
-        return grpcStubs.offersService.postOffer(request).getOffer();
+        PostOfferReply reply = grpcStubs.offersService.postOffer(request);
+        return reply.getOffer();
     }
 
     public void cancelOffer(String offerId) {
-        var request = CancelOfferRequest.newBuilder()
+        CancelOfferRequest request = CancelOfferRequest.newBuilder()
                 .setId(offerId)
                 .build();
-        //noinspection ResultOfMethodCallIgnored
         grpcStubs.offersService.cancelOffer(request);
     }
 
     public OfferInfo getOffer(String offerId) {
-        var request = GetOfferRequest.newBuilder()
+        GetOfferRequest request = GetOfferRequest.newBuilder()
                 .setId(offerId)
                 .build();
-        return grpcStubs.offersService.getOffer(request).getOffer();
+        GetOfferReply reply = grpcStubs.offersService.getOffer(request);
+        return reply.getOffer();
     }
 
     public OfferInfo getMyOffer(String offerId) {
-        var request = GetMyOfferRequest.newBuilder()
+        GetMyOfferRequest request = GetMyOfferRequest.newBuilder()
                 .setId(offerId)
                 .build();
-        return grpcStubs.offersService.getMyOffer(request).getOffer();
+        GetMyOfferReply reply = grpcStubs.offersService.getMyOffer(request);
+        return reply.getOffer();
     }
 
     public List<OfferInfo> getOffers(String direction, String currencyCode) {
-        var request = GetOffersRequest.newBuilder()
+        GetOffersRequest request = GetOffersRequest.newBuilder()
                 .setDirection(direction)
                 .setCurrencyCode(currencyCode)
                 .build();
-        return grpcStubs.offersService.getOffers(request).getOffersList();
+        GetOffersReply reply = grpcStubs.offersService.getOffers(request);
+        return reply.getOffersList();
     }
 
     public List<OfferInfo> getOffersSortedByDate(String currencyCode) {
@@ -126,16 +151,17 @@ public class OffersServiceRequest {
     }
 
     public List<OfferInfo> getOffersSortedByDate(String direction, String currencyCode) {
-        var offers = getOffers(direction, currencyCode);
+        List<OfferInfo> offers = getOffers(direction, currencyCode);
         return offers.isEmpty() ? offers : sortOffersByDate(offers);
     }
 
     public List<OfferInfo> getMyOffers(String direction, String currencyCode) {
-        var request = GetMyOffersRequest.newBuilder()
+        GetMyOffersRequest request = GetMyOffersRequest.newBuilder()
                 .setDirection(direction)
                 .setCurrencyCode(currencyCode)
                 .build();
-        return grpcStubs.offersService.getMyOffers(request).getOffersList();
+        GetMyOffersReply reply = grpcStubs.offersService.getMyOffers(request);
+        return reply.getOffersList();
     }
 
     public List<OfferInfo> getMyOffersSortedByDate(String currencyCode) {
@@ -146,7 +172,7 @@ public class OffersServiceRequest {
     }
 
     public List<OfferInfo> getMyOffersSortedByDate(String direction, String currencyCode) {
-        var offers = getMyOffers(direction, currencyCode);
+        List<OfferInfo> offers = getMyOffers(direction, currencyCode);
         return offers.isEmpty() ? offers : sortOffersByDate(offers);
     }
 
@@ -157,7 +183,7 @@ public class OffersServiceRequest {
 
     public List<OfferInfo> sortOffersByDate(List<OfferInfo> offerInfoList) {
         return offerInfoList.stream()
-                .sorted(comparing(OfferInfo::getDate))
-                .collect(toList());
+                .sorted(Comparator.comparing(OfferInfo::getDate))
+                .collect(Collectors.toList());
     }
 }

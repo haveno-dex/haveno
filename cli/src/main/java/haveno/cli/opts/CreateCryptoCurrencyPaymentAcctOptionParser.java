@@ -17,59 +17,39 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
-import static haveno.cli.CryptoCurrencyUtil.apiDoesSupportCryptoCurrency;
 import static haveno.cli.opts.OptLabel.OPT_ACCOUNT_NAME;
-import static haveno.cli.opts.OptLabel.OPT_ADDRESS;
 import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
+import static haveno.cli.opts.OptLabel.OPT_ADDRESS;
 import static haveno.cli.opts.OptLabel.OPT_TRADE_INSTANT;
-import static java.lang.String.format;
 
-public class CreateCryptoCurrencyPaymentAcctOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class CreateCryptoCurrencyPaymentAcctOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> accountNameOpt = parser.accepts(OPT_ACCOUNT_NAME, "crypto currency account name")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> accountNameOpt = parser.accepts(OPT_ACCOUNT_NAME, "Account Name")
+            .withRequiredArg()
+            .required();
 
-    final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "crypto currency code (xmr)")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "Currency Code")
+            .withRequiredArg()
+            .required();
 
-    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "crypto address")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "Address")
+            .withRequiredArg()
+            .required();
 
-    final OptionSpec<Boolean> tradeInstantOpt = parser.accepts(OPT_TRADE_INSTANT, "create trade instant account")
-            .withOptionalArg()
-            .ofType(boolean.class)
-            .defaultsTo(Boolean.FALSE);
+    @Getter
+    private final OptionSpec<Boolean> tradeInstantOpt = parser.accepts(OPT_TRADE_INSTANT, "Trade Instant")
+            .withRequiredArg()
+            .ofType(Boolean.class)
+            .defaultsTo(false);
 
     public CreateCryptoCurrencyPaymentAcctOptionParser(String[] args) {
         super(args);
-    }
-
-    public CreateCryptoCurrencyPaymentAcctOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(accountNameOpt) || options.valueOf(accountNameOpt).isEmpty())
-            throw new IllegalArgumentException("no payment account name specified");
-
-        if (!options.has(currencyCodeOpt) || options.valueOf(currencyCodeOpt).isEmpty())
-            throw new IllegalArgumentException("no currency code specified");
-
-        String cryptoCurrencyCode = options.valueOf(currencyCodeOpt);
-        if (!apiDoesSupportCryptoCurrency(cryptoCurrencyCode))
-            throw new IllegalArgumentException(format("api does not support %s payment accounts",
-                    cryptoCurrencyCode.toLowerCase()));
-
-        if (!options.has(addressOpt) || options.valueOf(addressOpt).isEmpty())
-            throw new IllegalArgumentException(format("no %s address specified",
-                    cryptoCurrencyCode.toLowerCase()));
-
-        return this;
     }
 
     public String getAccountName() {

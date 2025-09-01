@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 
 import static haveno.apitest.method.offer.AbstractOfferTest.defaultSecurityDepositPct;
 import static haveno.cli.CurrencyFormat.formatInternalFiatPrice;
-import static haveno.cli.CurrencyFormat.formatSatoshis;
+import static haveno.cli.CurrencyFormat.formatPiconeros;
 import static haveno.common.util.MathUtils.scaleDownByPowerOf10;
 import static haveno.core.payment.payload.PaymentMethod.F2F_ID;
 import static java.lang.String.format;
@@ -133,9 +133,9 @@ public class RandomOffer {
             this.id = offer.getId();
             return this;
         } catch (Exception ex) {
-            String error = format("Could not create valid %s offer for %s BTC:  %s",
+            String error = format("Could not create valid %s offer for %s XMR:  %s",
                     currencyCode,
-                    formatSatoshis(amount),
+                    formatPiconeros(amount),
                     ex.getMessage());
             throw new InvalidRandomOfferException(error, ex);
         }
@@ -149,12 +149,12 @@ public class RandomOffer {
                 ? currentMarketPrice - differenceFromMarketPrice
                 : currentMarketPrice + differenceFromMarketPrice;
         this.fixedOfferPrice = FIXED_PRICE_FMT.format(fixedOfferPriceAsDouble);
-        String description = format("Creating new %s %s / %s offer for amount = %s BTC, min-amount = %s BTC.",
+        String description = format("Creating new %s %s / %s offer for amount = %s XMR, min-amount = %s XMR.",
                 useMarketBasedPrice ? "mkt-based-price" : "fixed-priced",
                 direction,
                 currencyCode,
-                formatSatoshis(amount),
-                formatSatoshis(minAmount));
+                formatPiconeros(amount),
+                formatPiconeros(minAmount));
         log.info(description);
         if (useMarketBasedPrice) {
             log.info("Offer Price Margin = {}%", priceMargin);

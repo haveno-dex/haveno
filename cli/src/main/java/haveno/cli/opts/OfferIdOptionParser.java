@@ -17,41 +17,20 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_OFFER_ID;
 
-/**
- * Superclass for option parsers requiring an offer-id.  Avoids a small amount of
- * duplicated boilerplate.
- */
-public class OfferIdOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class OfferIdOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> offerIdOpt = parser.accepts(OPT_OFFER_ID, "id of offer")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> offerIdOpt = parser.accepts(OPT_OFFER_ID, "Offer ID")
+            .withRequiredArg()
+            .required();
 
     public OfferIdOptionParser(String[] args) {
-        this(args, false);
-    }
-
-    public OfferIdOptionParser(String[] args, boolean allowsUnrecognizedOptions) {
         super(args);
-        if (allowsUnrecognizedOptions)
-            this.parser.allowsUnrecognizedOptions();
-    }
-
-    public OfferIdOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(offerIdOpt) || options.valueOf(offerIdOpt).isEmpty())
-            throw new IllegalArgumentException("no offer id specified");
-
-        return this;
     }
 
     public String getOfferId() {
