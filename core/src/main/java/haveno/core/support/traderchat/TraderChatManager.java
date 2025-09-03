@@ -148,7 +148,7 @@ public class TraderChatManager extends SupportManager {
             log.info("Received {} with tradeId {} and uid {}",
                     message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
             if (message instanceof ChatMessage) {
-                handleChatMessage((ChatMessage) message);
+                handle((ChatMessage) message);
             } else {
                 log.warn("Unsupported message at dispatchMessage. message={}", message);
             }
