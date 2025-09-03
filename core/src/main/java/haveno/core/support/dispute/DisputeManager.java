@@ -223,7 +223,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // We get this message at both peers. The dispute object is in context of the trader
-    public abstract void handleDisputeClosedMessage(DisputeClosedMessage disputeClosedMessage);
+    public abstract void handle(DisputeClosedMessage disputeClosedMessage);
 
     public abstract NodeAddress getAgentNodeAddress(Dispute dispute);
 
@@ -500,7 +500,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     // arbitrator receives dispute opened message from opener, opener's peer receives from arbitrator
-    protected void handleDisputeOpenedMessage(DisputeOpenedMessage message) {
+    protected void handle(DisputeOpenedMessage message) {
         Dispute msgDispute = message.getDispute();
         log.info("Processing {} with trade {}, dispute {}", message.getClass().getSimpleName(), msgDispute.getTradeId(), msgDispute.getId());
 
@@ -519,7 +519,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         Optional<Dispute> storedDisputeOptional = findDispute(msgDispute);
 
         // determine if re-opening dispute
-        boolean reOpen = storedDisputeOptional.isPresent() && storedDisputeOptional.get().isClosed();
+        boolean reOpen = storedDisputeOptional.isPresent();
 
         // use existing dispute or create new
         Dispute dispute = reOpen ? storedDisputeOptional.get() : msgDispute;

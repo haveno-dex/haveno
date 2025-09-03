@@ -148,11 +148,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
             ThreadUtils.execute(() -> {
                 if (message instanceof DisputeOpenedMessage) {
-                    handleDisputeOpenedMessage((DisputeOpenedMessage) message);
+                    handle((DisputeOpenedMessage) message);
                 } else if (message instanceof ChatMessage) {
-                    handleChatMessage((ChatMessage) message);
+                    handle((ChatMessage) message);
                 } else if (message instanceof DisputeClosedMessage) {
-                    handleDisputeClosedMessage((DisputeClosedMessage) message);
+                    handle((DisputeClosedMessage) message);
                 } else {
                     log.warn("Unsupported message at dispatchMessage. message={}", message);
                 }
@@ -226,11 +226,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
     // received by both peers when arbitrator closes disputes
     @Override
-    public void handleDisputeClosedMessage(DisputeClosedMessage disputeClosedMessage) {
-        handleDisputeClosedMessage(disputeClosedMessage, true);
+    public void handle(DisputeClosedMessage disputeClosedMessage) {
+        handle(disputeClosedMessage, true);
     }
 
-    private void handleDisputeClosedMessage(DisputeClosedMessage disputeClosedMessage, boolean reprocessOnError) {
+    private void handle(DisputeClosedMessage disputeClosedMessage, boolean reprocessOnError) {
 
         // get dispute's trade
         final Trade trade = tradeManager.getTrade(disputeClosedMessage.getTradeId());
@@ -261,7 +261,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                 "We try again after 2 sec. to apply the DisputeClosedMessage. TradeId = " + tradeId);
                         if (!delayMsgMap.containsKey(uid)) {
                             // We delay 2 sec. to be sure the comm. msg gets added first
-                            Timer timer = UserThread.runAfter(() -> handleDisputeClosedMessage(disputeClosedMessage), 2);
+                            Timer timer = UserThread.runAfter(() -> handle(disputeClosedMessage), 2);
                             delayMsgMap.put(uid, timer);
                         } else {
                             log.warn("We got a dispute closed msg after we already repeated to apply the message after a delay. " +
@@ -398,7 +398,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }
 
                 log.warn("Reprocessing dispute closed message for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                handleDisputeClosedMessage(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError);
+                handle(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError);
             }
         }, trade.getId());
     }

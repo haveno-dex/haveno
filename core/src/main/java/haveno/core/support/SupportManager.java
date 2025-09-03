@@ -154,7 +154,7 @@ public abstract class SupportManager {
     // Message handler
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected void handleChatMessage(ChatMessage chatMessage) {
+    protected void handle(ChatMessage chatMessage) {
         final String tradeId = chatMessage.getTradeId();
         final String uid = chatMessage.getUid();
         log.info("Received {} from peer {}. tradeId={}, uid={}", chatMessage.getClass().getSimpleName(), chatMessage.getSenderNodeAddress(), tradeId, uid);
@@ -162,7 +162,7 @@ public abstract class SupportManager {
         if (!channelOpen) {
             log.debug("We got a chatMessage but we don't have a matching chat. TradeId = " + tradeId);
             if (!delayMsgMap.containsKey(uid)) {
-                Timer timer = UserThread.runAfter(() -> handleChatMessage(chatMessage), 1);
+                Timer timer = UserThread.runAfter(() -> handle(chatMessage), 1);
                 delayMsgMap.put(uid, timer);
             } else {
                 String msg = "We got a chatMessage after we already repeated to apply the message after a delay. That should never happen. TradeId = " + tradeId;
