@@ -242,7 +242,7 @@ public class CoreDisputesService {
             disputeResult.setBuyerPayoutAmountBeforeCost(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser? (see post v1.1.7)
             disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.ZERO);
             if (disputeResult.getBuyerPayoutAmountBeforeCost().compareTo(trade.getWallet().getBalance()) > 0) { // in case peer's deposit transaction is not confirmed
-                log.warn("Payout amount for buyer is more than wallet's balance. Decreasing payout amount from {} to {}",
+                log.warn("Payout amount for buyer is more than wallet's balance. This can happen if a deposit tx is dropped. Decreasing payout amount from {} to {}",
                         HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost()),
                         HavenoUtils.formatXmr(trade.getWallet().getBalance()));
                 disputeResult.setBuyerPayoutAmountBeforeCost(trade.getWallet().getBalance());
@@ -254,7 +254,7 @@ public class CoreDisputesService {
             disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.ZERO);
             disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit).add(buyerSecurityDeposit));
             if (disputeResult.getSellerPayoutAmountBeforeCost().compareTo(trade.getWallet().getBalance()) > 0) { // in case peer's deposit transaction is not confirmed
-                log.warn("Payout amount for seller is more than wallet's balance. Decreasing payout amount from {} to {}",
+                log.warn("Payout amount for seller is more than wallet's balance. This can happen if a deposit tx is dropped. Decreasing payout amount from {} to {}",
                         HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost()),
                         HavenoUtils.formatXmr(trade.getWallet().getBalance()));
                 disputeResult.setSellerPayoutAmountBeforeCost(trade.getWallet().getBalance());

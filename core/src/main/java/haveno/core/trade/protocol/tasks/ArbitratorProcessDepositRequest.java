@@ -183,7 +183,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 try {
                     monerod.relayTxsByHash(txHashes); // call will error if txs are already confirmed, but they're still relayed
                 } catch (Exception e) {
-                    log.warn("Error relaying deposit txs: " + e.getMessage());
+                    log.warn("Error relaying deposit txs for trade {}. They could already be confirmed. Error={}", trade.getId(), e.getMessage());
                 }
                 depositTxsRelayed = true;
 

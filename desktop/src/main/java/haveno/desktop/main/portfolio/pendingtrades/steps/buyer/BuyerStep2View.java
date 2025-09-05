@@ -111,6 +111,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.text.Font;
+
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
@@ -129,6 +131,7 @@ public class BuyerStep2View extends TradeStepView {
     private BusyAnimation busyAnimation;
     private Subscription tradeStatePropertySubscription;
     private Timer timeoutTimer;
+    private GridPane paymentDetailsMask;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, Initialisation
@@ -225,7 +228,6 @@ public class BuyerStep2View extends TradeStepView {
 
         addTradeInfoBlock();
 
-
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
         String paymentMethodId = paymentAccountPayload != null ? paymentAccountPayload.getPaymentMethodId() : "<pending>";
         TitledGroupBg accountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 4,
@@ -236,6 +238,7 @@ public class BuyerStep2View extends TradeStepView {
                 model.getFiatVolume(),
                 Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE).second;
         field.setCopyWithoutCurrencyPostFix(true);
+        int paymentDetailsRow = gridRow;
 
         //preland: this fixes a textarea layout glitch
         TextArea uiHack = new TextArea();
@@ -449,13 +452,54 @@ public class BuyerStep2View extends TradeStepView {
         Tuple4<Button, BusyAnimation, Label, HBox> tuple3 = addButtonBusyAnimationLabel(gridPane, ++gridRow, 0,
                 Res.get("portfolio.pending.step2_buyer.paymentSent"), 10);
 
-        HBox hBox = tuple3.fourth;
-        GridPane.setColumnSpan(hBox, 2);
+        HBox confirmButtonHBox = tuple3.fourth;
+        GridPane.setColumnSpan(confirmButtonHBox, 2);
         confirmButton = tuple3.first;
         confirmButton.setDisable(!confirmPaymentSentPermitted());
         confirmButton.setOnAction(e -> onPaymentSent());
         busyAnimation = tuple3.second;
         statusLabel = tuple3.third;
+
+        // listen for deposits finalized to remove payment details mask
+        EasyBind.subscribe(trade.statePhaseProperty(), newValue -> {
+            if (newValue == Trade.Phase.DEPOSITS_FINALIZED) {
+                if (paymentDetailsMask != null) paymentDetailsMask.setVisible(false);
+            }
+        });
+
+        // add mask to cover payment details
+        // TODO: this overlay is a bit hacky, but it works..
+        if (!trade.isDepositsFinalized() && !model.showPaymentDetailsEarly) {
+
+            // move confirm button up a row to avoid excess height
+            GridPane.setRowIndex(confirmButtonHBox, gridRow - 1);
+
+            // add mask overlay
+            paymentDetailsMask = new GridPane();
+            paymentDetailsMask.setStyle("-fx-background-color: -bs-content-background-gray;");
+            paymentDetailsMask.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            gridPane.add(paymentDetailsMask, 0, paymentDetailsRow, 2, gridRow - paymentDetailsRow);
+
+            // add title
+            addTitledGroupBg(paymentDetailsMask, 0, 1,  Res.get("portfolio.pending.step1.waitForConf"), Layout.COMPACT_GROUP_DISTANCE);
+
+            // add text
+            Label label = new Label(Res.get("portfolio.pending.step2_buyer.additionalConf", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
+            label.setFont(new Font(18));
+            GridPane.setMargin(label, new Insets(20, 0, 0, 0));
+            paymentDetailsMask.add(label, 0, 1);
+
+            // add button to show payment details
+            Button showPaymentDetailsButton = new Button("Show payment details early");
+            showPaymentDetailsButton.getStyleClass().add("action-button");
+            GridPane.setMargin(showPaymentDetailsButton, new Insets(20, 0, 0, 0));
+            showPaymentDetailsButton.setOnAction(e -> {
+                model.showPaymentDetailsEarly = true;
+                gridPane.getChildren().remove(paymentDetailsMask);
+                GridPane.setRowIndex(confirmButtonHBox, gridRow); // return confirm button to original row
+            });
+            paymentDetailsMask.add(showPaymentDetailsButton, 0, 2);
+        }
     }
 
     private boolean confirmPaymentSentPermitted() {

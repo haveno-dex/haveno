@@ -107,6 +107,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     private Subscription messageStateSubscription;
     @Getter
     protected final IntegerProperty mempoolStatus = new SimpleIntegerProperty();
+    public boolean showPaymentDetailsEarly = false;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -391,8 +392,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // buyer and seller step 2
-            // deposits unlocked
+            // deposits unlocked or finalized
             case DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN:
+            case DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN:
                 buyerState.set(BuyerState.STEP2);
                 sellerState.set(SellerState.STEP2);
                 break;
@@ -453,6 +455,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             case PAYOUT_PUBLISHED:
             case PAYOUT_CONFIRMED:
             case PAYOUT_UNLOCKED:
+            case PAYOUT_FINALIZED:
                 sellerState.set(SellerState.STEP4);
                 buyerState.set(BuyerState.STEP4);
                 break;

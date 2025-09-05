@@ -80,7 +80,7 @@ public abstract class TradeStepView extends AnchorPane {
     protected final Preferences preferences;
     protected final GridPane gridPane;
 
-    private Subscription tradePeriodStateSubscription, disputeStateSubscription, mediationResultStateSubscription;
+    private Subscription tradePeriodStateSubscription, tradeStateSubscription, disputeStateSubscription, mediationResultStateSubscription;
     protected int gridRow = 0;
     private TextField timeLeftTextField;
     private ProgressBar timeLeftProgressBar;
@@ -192,7 +192,7 @@ public abstract class TradeStepView extends AnchorPane {
         trade.errorMessageProperty().addListener(errorMessageListener);
 
         tradeStepInfo.setOnAction(e -> {
-            if (!isArbitrationOpenedState() && this.isTradePeriodOver()) {
+            if (!isArbitrationOpenedState() && (this.isTradePeriodOver() || trade.isDepositTxMissing())) {
                 openSupportTicket();
             } else {
                 openChat();
@@ -258,15 +258,28 @@ public abstract class TradeStepView extends AnchorPane {
             }
         });
 
+        if (trade.wasWalletPolled.get()) addTradeStateSubscription();
+        else trade.wasWalletPolled.addListener((observable, oldValue, newValue) -> {
+            if (newValue) addTradeStateSubscription();
+        });
+
         UserThread.execute(() -> model.p2PService.removeP2PServiceListener(bootstrapListener));
     }
 
+    private void addTradeStateSubscription() {
+        tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
+            if (newValue != null) {
+                UserThread.execute(() -> updateTradeState(newValue));
+            }
+        });
+    }
+
     private void openSupportTicket() {
-        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
-            new Popup().warning(Res.get("portfolio.pending.error.depositTxNotConfirmed")).show();
-        } else {
+        if (trade.isDepositTxMissing() || trade.getPhase().ordinal() >= Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
             applyOnDisputeOpened();
             model.dataModel.onOpenDispute();
+        } else {
+            new Popup().warning(Res.get("portfolio.pending.error.depositTxNotConfirmed")).show();
         }
     }
 
@@ -299,6 +312,8 @@ public abstract class TradeStepView extends AnchorPane {
 
       if (tradePeriodStateSubscription != null)
           tradePeriodStateSubscription.unsubscribe();
+      if (tradeStateSubscription != null)
+          tradeStateSubscription.unsubscribe();
 
       if (clockListener != null)
           model.clockWatcher.removeListener(clockListener);
@@ -447,6 +462,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         tradeStepInfo.setFirstHalfOverWarnTextSupplier(this::getFirstHalfOverWarnText);
         tradeStepInfo.setPeriodOverWarnTextSupplier(this::getPeriodOverWarnText);
+        tradeStepInfo.setDepositTxMissingWarnTextSupplier(this::getDepositTxMissingWarnText);
     }
 
     protected void hideTradeStepInfo() {
@@ -464,6 +480,10 @@ public abstract class TradeStepView extends AnchorPane {
 
     protected String getPeriodOverWarnText() {
         return "";
+    }
+
+    protected String getDepositTxMissingWarnText() {
+        return Res.get("portfolio.pending.support.depositTxMissing");
     }
 
     protected void applyOnDisputeOpened() {
@@ -779,6 +799,12 @@ public abstract class TradeStepView extends AnchorPane {
                     }
                     break;
             }
+        }
+    }
+
+    private void updateTradeState(Trade.State tradeState) {
+        if (!trade.getDisputeState().isOpen() && trade.isDepositTxMissing()) {
+            tradeStepInfo.setState(TradeStepInfo.State.DEPOSIT_MISSING);
         }
     }
 

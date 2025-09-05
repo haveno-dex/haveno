@@ -160,7 +160,7 @@ public abstract class SupportManager {
         log.info("Received {} from peer {}. tradeId={}, uid={}", chatMessage.getClass().getSimpleName(), chatMessage.getSenderNodeAddress(), tradeId, uid);
         boolean channelOpen = channelOpen(chatMessage);
         if (!channelOpen) {
-            log.debug("We got a chatMessage but we don't have a matching chat. TradeId = " + tradeId);
+            log.warn("We got a chatMessage but we don't have a matching chat. TradeId = " + tradeId);
             if (!delayMsgMap.containsKey(uid)) {
                 Timer timer = UserThread.runAfter(() -> handle(chatMessage), 1);
                 delayMsgMap.put(uid, timer);
