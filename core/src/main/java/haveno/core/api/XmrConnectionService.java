@@ -24,6 +24,7 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
+import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.model.EncryptedConnectionList;
@@ -74,6 +75,8 @@ public final class XmrConnectionService {
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
+    private static final int MAX_CONSECUTIVE_ERRORS = 4; // max errors before switching connections
+    private static int numConsecutiveErrors = 0;
 
     public enum XmrConnectionFallbackType {
         LOCAL,
@@ -785,11 +788,22 @@ public final class XmrConnectionService {
                 if (monerod == null && !fallbackRequiredBeforeConnectionSwitch()) switchToBestConnection();
                 try {
                     if (monerod == null) throw new RuntimeException("No connection to Monero daemon");
-                    lastInfo = monerod.getInfo();
+                    synchronized (HavenoUtils.getDaemonLock()) {
+                        lastInfo = monerod.getInfo();
+                    }
+                    numConsecutiveErrors = 0;
                 } catch (Exception e) {
 
                     // skip handling if shutting down
                     if (isShutDownStarted) return;
+
+                    // skip error handling up to max attempts
+                    numConsecutiveErrors++;
+                    if (numConsecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
+                        return;
+                    } else {
+                        numConsecutiveErrors = 0; // reset error count
+                    }
 
                     // invoke fallback handling on startup error
                     boolean canFallback = isFixedConnection() || isProvidedConnections() || isCustomConnections() || usedSyncingLocalNodeBeforeStartup;
@@ -811,8 +825,9 @@ public final class XmrConnectionService {
                     }
 
                     // log error message periodically
-                    if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
-                        log.warn("Failed to fetch monerod info, trying to switch to best connection, error={}", e.getMessage());
+                    if (lastWarningOutsidePeriod()) {
+                        MoneroRpcConnection connection = getConnection();
+                        log.warn("Error fetching daemon info after max attempts. Trying to switch to best connection. monerod={}, error={}", connection == null ? "null" : connection.getUri(), e.getMessage());
                         if (DevEnv.isDevMode()) log.error(ExceptionUtils.getStackTrace(e));
                         lastLogPollErrorTimestamp = System.currentTimeMillis();
                     }
@@ -820,7 +835,9 @@ public final class XmrConnectionService {
                     // switch to best connection
                     switchToBestConnection();
                     if (monerod == null) throw new RuntimeException("No connection to Monero daemon after error handling");
-                    lastInfo = monerod.getInfo(); // caught internally if still fails
+                    synchronized (HavenoUtils.getDaemonLock()) {
+                        lastInfo = monerod.getInfo(); // caught internally if still fails
+                    }
                 }
 
                 // connected to monerod
@@ -903,12 +920,23 @@ public final class XmrConnectionService {
                 // skip if shut down
                 if (isShutDownStarted) return;
 
+                // format error message
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.contains(": ")) {
+                    errorMsg = errorMsg.substring(errorMsg.indexOf(": ") + 2); // strip exception class
+                }
+                errorMsg = Res.get("popup.warning.moneroConnection", errorMsg);
+
                 // set error message
-                getConnectionServiceErrorMsg().set(e.getMessage());
+                getConnectionServiceErrorMsg().set(errorMsg);
             } finally {
                 pollInProgress = false;
             }
         }
+    }
+
+    private boolean lastWarningOutsidePeriod() {
+        return lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS;
     }
 
     private boolean isFixedConnection() {

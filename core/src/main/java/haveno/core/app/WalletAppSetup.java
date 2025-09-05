@@ -188,6 +188,8 @@ public class WalletAppSetup {
                             } else {
                                 xmrConnectionService.getConnectionServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
                             }
+                        } else {
+                            xmrConnectionService.getConnectionServiceErrorMsg().set(errorMsg);
                         }
                     }
                     return result;
