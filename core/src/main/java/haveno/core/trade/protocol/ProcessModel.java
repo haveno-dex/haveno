@@ -166,6 +166,9 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     private boolean importMultisigHexScheduled;
+    @Getter
+    @Setter
+    private boolean paymentSentPayoutTxStale;
     private ObjectProperty<Boolean> paymentAccountDecryptedProperty = new SimpleObjectProperty<>(false);
     @Deprecated
     private ObjectProperty<MessageState> paymentSentMessageStatePropertySeller = new SimpleObjectProperty<>(MessageState.UNDEFINED);
@@ -237,7 +240,8 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setBuyerPayoutAmountFromMediation(buyerPayoutAmountFromMediation)
                 .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
                 .setTradeProtocolErrorHeight(tradeProtocolErrorHeight)
-                .setImportMultisigHexScheduled(importMultisigHexScheduled);
+                .setImportMultisigHexScheduled(importMultisigHexScheduled)
+                .setPaymentSentPayoutTxStale(paymentSentPayoutTxStale);
         Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
         Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
         Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
@@ -262,6 +266,7 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setSellerPayoutAmountFromMediation(proto.getSellerPayoutAmountFromMediation());
         processModel.setTradeProtocolErrorHeight(proto.getTradeProtocolErrorHeight());
         processModel.setImportMultisigHexScheduled(proto.getImportMultisigHexScheduled());
+        processModel.setPaymentSentPayoutTxStale(proto.getPaymentSentPayoutTxStale());
 
         // nullable
         processModel.setPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getPayoutTxSignature()));

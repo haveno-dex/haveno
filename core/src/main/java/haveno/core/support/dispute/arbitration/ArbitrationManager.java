@@ -148,11 +148,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
             ThreadUtils.execute(() -> {
                 if (message instanceof DisputeOpenedMessage) {
-                    handleDisputeOpenedMessage((DisputeOpenedMessage) message);
+                    handle((DisputeOpenedMessage) message);
                 } else if (message instanceof ChatMessage) {
-                    handleChatMessage((ChatMessage) message);
+                    handle((ChatMessage) message);
                 } else if (message instanceof DisputeClosedMessage) {
-                    handleDisputeClosedMessage((DisputeClosedMessage) message);
+                    handle((DisputeClosedMessage) message);
                 } else {
                     log.warn("Unsupported message at dispatchMessage. message={}", message);
                 }
@@ -226,11 +226,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
     // received by both peers when arbitrator closes disputes
     @Override
-    public void handleDisputeClosedMessage(DisputeClosedMessage disputeClosedMessage) {
-        handleDisputeClosedMessage(disputeClosedMessage, true);
+    public void handle(DisputeClosedMessage disputeClosedMessage) {
+        handle(disputeClosedMessage, true);
     }
 
-    private void handleDisputeClosedMessage(DisputeClosedMessage disputeClosedMessage, boolean reprocessOnError) {
+    private void handle(DisputeClosedMessage disputeClosedMessage, boolean reprocessOnError) {
 
         // get dispute's trade
         final Trade trade = tradeManager.getTrade(disputeClosedMessage.getTradeId());
@@ -261,7 +261,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                 "We try again after 2 sec. to apply the DisputeClosedMessage. TradeId = " + tradeId);
                         if (!delayMsgMap.containsKey(uid)) {
                             // We delay 2 sec. to be sure the comm. msg gets added first
-                            Timer timer = UserThread.runAfter(() -> handleDisputeClosedMessage(disputeClosedMessage), 2);
+                            Timer timer = UserThread.runAfter(() -> handle(disputeClosedMessage), 2);
                             delayMsgMap.put(uid, timer);
                         } else {
                             log.warn("We got a dispute closed msg after we already repeated to apply the message after a delay. " +
@@ -329,13 +329,13 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                         } else {
                             try {
                                 log.info("Signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                                signAndPublishDisputePayoutTx(trade);
+                                processDisputePayoutTx(trade);
                             } catch (Exception e) {
 
                                 // check if payout published again
                                 trade.syncAndPollWallet();
                                 if (trade.isPayoutPublished()) {
-                                    log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                                    log.warn("Payout tx already published for {} {}, skipping dispute processing", trade.getClass().getSimpleName(), trade.getId());
                                 } else {
                                     if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) throw e;
                                     else throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator for " + trade.getClass().getSimpleName() + " " + tradeId + ": " + e.getMessage(), e);
@@ -363,6 +363,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
                     // nack bad message and do not reprocess
                     if (HavenoUtils.isIllegal(e)) {
+                        trade.setPayoutTxHex(null); // clear signed payout tx hex
                         trade.getArbitrator().setDisputeClosedMessage(null); // message is processed
                         trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                         String warningMsg = "Error processing dispute closed message: " +  e.getMessage() + "\n\nOpen another dispute to try again (ctrl+o).";
@@ -397,12 +398,16 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }
 
                 log.warn("Reprocessing dispute closed message for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                handleDisputeClosedMessage(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError);
+                handle(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError);
             }
         }, trade.getId());
     }
 
-    private MoneroTxSet signAndPublishDisputePayoutTx(Trade trade) {
+    // TODO: make this handling more consistent with trade.processPayoutTx(), move there?
+    private MoneroTxSet processDisputePayoutTx(Trade trade) {
+
+        // recover if missing wallet data
+        trade.recoverIfMissingWalletData();
 
         // gather trade info
         MoneroWallet multisigWallet = trade.getWallet();
@@ -468,6 +473,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // sign arbitrator-signed payout tx
         if (trade.getPayoutTxHex() == null) {
             try {
+                log.info("Signing dispute payout tx for {} {}", getClass().getSimpleName(), trade.getShortId());
                 MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(unsignedPayoutTxHex);
                 if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing arbitrator-signed payout tx");
                 String signedMultisigTxHex = result.getSignedMultisigTxHex();
@@ -492,6 +498,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 log.info("Dispute payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), trade.getShortId());
             }
         } else {
+            log.warn("Payout tx already signed for {} {}, skipping signing", getClass().getSimpleName(), trade.getShortId());
             disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());
         }
 
@@ -503,8 +510,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 disputeTxSet.getTxs().get(0).setHash(txHashes.get(0)); // manually update hash which is known after signed
                 break;
             } catch (Exception e) {
-                if (trade.isPayoutPublished()) throw new IllegalStateException("Payout tx already published for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
-                if (HavenoUtils.isNotEnoughSigners(e)) throw new IllegalArgumentException(e);
+                if (trade.isPayoutPublished()) return null;
+                if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isNotEnoughSigners(e) || HavenoUtils.isFailedToParse(e)) throw new IllegalArgumentException(e);
                 log.warn("Failed to submit dispute payout tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                 if (trade.getXmrConnectionService().isConnected()) trade.requestSwitchToNextBestConnection(sourceConnection);

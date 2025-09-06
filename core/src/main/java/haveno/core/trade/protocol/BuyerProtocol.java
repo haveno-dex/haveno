@@ -126,7 +126,7 @@ public class BuyerProtocol extends DisputeProtocol {
                 this.errorMessageHandler = errorMessageHandler;
                 BuyerEvent event = BuyerEvent.PAYMENT_SENT;
                 try {
-                    expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.PAYMENT_SENT)
+                    expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.DEPOSITS_FINALIZED, Trade.Phase.PAYMENT_SENT)
                             .with(event)
                             .preCondition(trade.confirmPermitted()))
                             .setup(tasks(ApplyFilter.class,
