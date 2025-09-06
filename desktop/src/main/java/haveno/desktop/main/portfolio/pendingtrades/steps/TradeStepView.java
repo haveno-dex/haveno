@@ -50,8 +50,6 @@ import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Optional;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
