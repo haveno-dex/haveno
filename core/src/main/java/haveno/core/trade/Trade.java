@@ -1198,8 +1198,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private void doImportMultisigHex() {
 
-        // ensure wallet sees deposits confirmed
-        if (!isDepositsConfirmed()) syncAndPollWallet();
+        // sync and poll wallet if deposits not confirmed (unless only one deposit unlocked)
+        if (!isDepositsConfirmed() && !hasUnlockedTx()) syncAndPollWallet();
 
         // collect multisig hex from peers
         List<String> multisigHexes = new ArrayList<String>();
@@ -2857,11 +2857,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
 
             // check for payout tx
-            boolean hasUnlockedDeposit = isUnlocked(getMaker().getDepositTx()) || isUnlocked(getTaker().getDepositTx());
+            boolean hasUnlockedDeposit = hasUnlockedTx();
             if (isDepositsUnlocked() || hasUnlockedDeposit) { // arbitrator idles so these may not be the same
 
                 // determine if payout tx expected
-                boolean isPayoutExpected = isDepositsUnlocked() && (isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal());
+                boolean isPayoutExpected = isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
 
                 // sync wallet if payout expected or payout is published
                 if (isPayoutExpected || isPayoutPublished()) syncWalletIfBehind();
@@ -3002,6 +3002,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (tx == null) return false;
         if (tx.getNumConfirmations() == null || tx.getNumConfirmations() < XmrWalletService.NUM_BLOCKS_UNLOCK) return false;
         return true;
+    }
+
+    private boolean hasUnlockedTx() {
+        return isUnlocked(getMaker().getDepositTx()) || isUnlocked(getTaker().getDepositTx());
     }
 
     private void syncWalletIfBehind() {
