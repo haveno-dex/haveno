@@ -131,7 +131,8 @@ public class BuyerStep2View extends TradeStepView {
     private BusyAnimation busyAnimation;
     private Subscription tradeStatePropertySubscription;
     private Timer timeoutTimer;
-    private GridPane paymentDetailsMask;
+    private int paymentAccountGridRow = -1;
+    private GridPane moreConfirmationsGridPane;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, Initialisation
@@ -238,7 +239,6 @@ public class BuyerStep2View extends TradeStepView {
                 model.getFiatVolume(),
                 Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE).second;
         field.setCopyWithoutCurrencyPostFix(true);
-        int paymentDetailsRow = gridRow;
 
         //preland: this fixes a textarea layout glitch
         TextArea uiHack = new TextArea();
@@ -248,181 +248,184 @@ public class BuyerStep2View extends TradeStepView {
         uiHack.setVisible(false);
         gridPane.getChildren().add(uiHack);
 
+
+        GridPane paymentAccountGridPane = new GridPane();
+
         switch (paymentMethodId) {
             case PaymentMethod.UPHOLD_ID:
-                gridRow = UpholdForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = UpholdForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.MONEY_BEAM_ID:
-                gridRow = MoneyBeamForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = MoneyBeamForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.POPMONEY_ID:
-                gridRow = PopmoneyForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PopmoneyForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.REVOLUT_ID:
-                gridRow = RevolutForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = RevolutForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.PERFECT_MONEY_ID:
-                gridRow = PerfectMoneyForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PerfectMoneyForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.SEPA_ID:
-                gridRow = SepaForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = SepaForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.SEPA_INSTANT_ID:
-                gridRow = SepaInstantForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = SepaInstantForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.FASTER_PAYMENTS_ID:
-                gridRow = FasterPaymentsForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = FasterPaymentsForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.NATIONAL_BANK_ID:
-                gridRow = NationalBankForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = NationalBankForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.AUSTRALIA_PAYID_ID:
-                gridRow = AustraliaPayidForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = AustraliaPayidForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.SAME_BANK_ID:
-                gridRow = SameBankForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = SameBankForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.SPECIFIC_BANKS_ID:
-                gridRow = SpecificBankForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = SpecificBankForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.SWISH_ID:
-                gridRow = SwishForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = SwishForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.ALI_PAY_ID:
-                gridRow = AliPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = AliPayForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.WECHAT_PAY_ID:
-                gridRow = WeChatPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = WeChatPayForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.ZELLE_ID:
-                gridRow = ZelleForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = ZelleForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.CHASE_QUICK_PAY_ID:
-                gridRow = ChaseQuickPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = ChaseQuickPayForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.INTERAC_E_TRANSFER_ID:
-                gridRow = InteracETransferForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = InteracETransferForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.JAPAN_BANK_ID:
-                gridRow = JapanBankTransferForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = JapanBankTransferForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.US_POSTAL_MONEY_ORDER_ID:
-                gridRow = USPostalMoneyOrderForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = USPostalMoneyOrderForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.CASH_DEPOSIT_ID:
-                gridRow = CashDepositForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = CashDepositForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.PAY_BY_MAIL_ID:
-                gridRow = PayByMailForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PayByMailForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.CASH_AT_ATM_ID:
-                gridRow = CashAtAtmForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = CashAtAtmForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.MONEY_GRAM_ID:
-                gridRow = MoneyGramForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = MoneyGramForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.WESTERN_UNION_ID:
-                gridRow = WesternUnionForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = WesternUnionForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.HAL_CASH_ID:
-                gridRow = HalCashForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = HalCashForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.F2F_ID:
                 checkNotNull(model.dataModel.getTrade(), "model.dataModel.getTrade() must not be null");
                 checkNotNull(model.dataModel.getTrade().getOffer(), "model.dataModel.getTrade().getOffer() must not be null");
-                gridRow = F2FForm.addStep2Form(gridPane, gridRow, paymentAccountPayload, model.dataModel.getTrade().getOffer(), 0, true);
+                paymentAccountGridRow = F2FForm.addStep2Form(paymentAccountGridPane, 0, paymentAccountPayload, model.dataModel.getTrade().getOffer(), 0, true);
                 break;
             case PaymentMethod.BLOCK_CHAINS_ID:
             case PaymentMethod.BLOCK_CHAINS_INSTANT_ID:
                 String labelTitle = Res.get("portfolio.pending.step2_buyer.sellersAddress", getCurrencyName(trade));
-                gridRow = AssetsForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload, labelTitle);
+                paymentAccountGridRow = AssetsForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload, labelTitle);
                 break;
             case PaymentMethod.PROMPT_PAY_ID:
-                gridRow = PromptPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PromptPayForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.ADVANCED_CASH_ID:
-                gridRow = AdvancedCashForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = AdvancedCashForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.TRANSFERWISE_ID:
-                gridRow = TransferwiseForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = TransferwiseForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.TRANSFERWISE_USD_ID:
-                gridRow = TransferwiseUsdForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = TransferwiseUsdForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.PAYSERA_ID:
-                gridRow = PayseraForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PayseraForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.PAXUM_ID:
-                gridRow = PaxumForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PaxumForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.NEFT_ID:
-                gridRow = NeftForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = NeftForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.RTGS_ID:
-                gridRow = RtgsForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = RtgsForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.IMPS_ID:
-                gridRow = ImpsForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = ImpsForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.UPI_ID:
-                gridRow = UpiForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = UpiForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.PAYTM_ID:
-                gridRow = PaytmForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PaytmForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.NEQUI_ID:
-                gridRow = NequiForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = NequiForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.BIZUM_ID:
-                gridRow = BizumForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = BizumForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.PIX_ID:
-                gridRow = PixForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PixForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.AMAZON_GIFT_CARD_ID:
-                gridRow = AmazonGiftCardForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = AmazonGiftCardForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.CAPITUAL_ID:
-                gridRow = CapitualForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = CapitualForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.CELPAY_ID:
-                gridRow = CelPayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = CelPayForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.MONESE_ID:
-                gridRow = MoneseForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = MoneseForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.SATISPAY_ID:
-                gridRow = SatispayForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = SatispayForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.TIKKIE_ID:
-                gridRow = TikkieForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = TikkieForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.VERSE_ID:
-                gridRow = VerseForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = VerseForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.STRIKE_ID:
-                gridRow = StrikeForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = StrikeForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.SWIFT_ID:
-                gridRow = SwiftForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload, trade);
+                paymentAccountGridRow = SwiftForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload, trade);
                 break;
             case PaymentMethod.ACH_TRANSFER_ID:
-                gridRow = AchTransferForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = AchTransferForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.DOMESTIC_WIRE_TRANSFER_ID:
-                gridRow = DomesticWireTransferForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = DomesticWireTransferForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.CASH_APP_ID:
-                gridRow = CashAppForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = CashAppForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.PAYPAL_ID:
-                gridRow = PayPalForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PayPalForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.VENMO_ID:
-                gridRow = VenmoForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = VenmoForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             case PaymentMethod.PAYSAFE_ID:
-                gridRow = PaysafeForm.addFormForBuyer(gridPane, gridRow, paymentAccountPayload);
+                paymentAccountGridRow = PaysafeForm.addFormForBuyer(paymentAccountGridPane, 0, paymentAccountPayload);
                 break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);
@@ -441,7 +444,7 @@ public class BuyerStep2View extends TradeStepView {
                         .findFirst()
                         .ifPresent(paymentAccount -> {
                             String accountName = paymentAccount.getAccountName();
-                            addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, 0,
+                            addCompactTopLabelTextFieldWithCopyIcon(paymentAccountGridPane, ++paymentAccountGridRow, 0,
                                     Res.get("portfolio.pending.step2_buyer.buyerAccount"), accountName);
                         });
             }
@@ -449,7 +452,7 @@ public class BuyerStep2View extends TradeStepView {
 
         GridPane.setRowSpan(accountTitledGroupBg, gridRow - 1);
 
-        Tuple4<Button, BusyAnimation, Label, HBox> tuple3 = addButtonBusyAnimationLabel(gridPane, ++gridRow, 0,
+        Tuple4<Button, BusyAnimation, Label, HBox> tuple3 = addButtonBusyAnimationLabel(paymentAccountGridPane, ++paymentAccountGridRow, 0,
                 Res.get("portfolio.pending.step2_buyer.paymentSent"), 10);
 
         HBox confirmButtonHBox = tuple3.fourth;
@@ -463,31 +466,28 @@ public class BuyerStep2View extends TradeStepView {
         // listen for deposits finalized to remove payment details mask
         EasyBind.subscribe(trade.statePhaseProperty(), newValue -> {
             if (newValue == Trade.Phase.DEPOSITS_FINALIZED) {
-                if (paymentDetailsMask != null) paymentDetailsMask.setVisible(false);
+                if (moreConfirmationsGridPane != null) moreConfirmationsGridPane.setVisible(false);
             }
         });
 
-        // add mask to cover payment details
-        // TODO: this overlay is a bit hacky, but it works..
-        if (!trade.isDepositsFinalized() && !model.showPaymentDetailsEarly) {
+        if (trade.isDepositsFinalized() || model.showPaymentDetailsEarly) {
+            gridPane.getChildren().add(paymentAccountGridPane);
+            GridPane.setRowIndex(paymentAccountGridPane, gridRow + 1);
+        } else {
 
-            // move confirm button up a row to avoid excess height
-            GridPane.setRowIndex(confirmButtonHBox, gridRow - 1);
-
-            // add mask overlay
-            paymentDetailsMask = new GridPane();
-            paymentDetailsMask.setStyle("-fx-background-color: -bs-content-background-gray;");
-            paymentDetailsMask.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-            gridPane.add(paymentDetailsMask, 0, paymentDetailsRow, 2, gridRow - paymentDetailsRow);
+            // create grid pane to show recommendation
+            moreConfirmationsGridPane = new GridPane();
+            moreConfirmationsGridPane.setStyle("-fx-background-color: -bs-content-background-gray;");
+            moreConfirmationsGridPane.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
             // add title
-            addTitledGroupBg(paymentDetailsMask, 0, 1,  Res.get("portfolio.pending.step1.waitForConf"), Layout.COMPACT_GROUP_DISTANCE);
+            addTitledGroupBg(moreConfirmationsGridPane, 0, 1,  Res.get("portfolio.pending.step1.waitForConf"), Layout.COMPACT_GROUP_DISTANCE);
 
             // add text
             Label label = new Label(Res.get("portfolio.pending.step2_buyer.additionalConf", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
             label.setFont(new Font(18));
             GridPane.setMargin(label, new Insets(20, 0, 0, 0));
-            paymentDetailsMask.add(label, 0, 1);
+            moreConfirmationsGridPane.add(label, 0, 1);
 
             // add button to show payment details
             Button showPaymentDetailsButton = new Button("Show payment details early");
@@ -495,10 +495,14 @@ public class BuyerStep2View extends TradeStepView {
             GridPane.setMargin(showPaymentDetailsButton, new Insets(20, 0, 0, 0));
             showPaymentDetailsButton.setOnAction(e -> {
                 model.showPaymentDetailsEarly = true;
-                gridPane.getChildren().remove(paymentDetailsMask);
-                GridPane.setRowIndex(confirmButtonHBox, gridRow); // return confirm button to original row
+                gridPane.getChildren().remove(moreConfirmationsGridPane);
+                gridPane.getChildren().add(paymentAccountGridPane);
+                GridPane.setRowIndex(paymentAccountGridPane, gridRow + 1);
             });
-            paymentDetailsMask.add(showPaymentDetailsButton, 0, 2);
+            moreConfirmationsGridPane.add(showPaymentDetailsButton, 0, 2);
+
+            gridPane.getChildren().add(moreConfirmationsGridPane);
+            GridPane.setRowIndex(moreConfirmationsGridPane, gridRow);
         }
     }
 

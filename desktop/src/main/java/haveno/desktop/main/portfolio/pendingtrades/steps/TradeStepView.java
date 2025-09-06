@@ -34,7 +34,6 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
-import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.desktop.components.InfoTextField;
 import haveno.desktop.components.TitledGroupBg;
