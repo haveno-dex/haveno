@@ -44,6 +44,7 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.taskrunner.Model;
 import haveno.common.util.Utilities;
+import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.network.MessageState;
@@ -122,6 +123,8 @@ import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 import java.math.BigInteger;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -813,11 +816,25 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
 
         // reset state after first poll if necessary
-        if (wasWalletPolled.get()) maybeResetTradeState();
+        if (wasWalletPolled.get()) onWalletFirstPolled();
         else {
             wasWalletPolled.addListener((observable, oldValue, newValue) -> {
-                if (newValue) maybeResetTradeState();
+                if (newValue) onWalletFirstPolled();
             });
+        }
+    }
+
+    private void onWalletFirstPolled() {
+        maybeResetTradeState();
+        checkForUnconfirmedTimeout();
+    }
+
+    private void checkForUnconfirmedTimeout() {
+        if (isDepositsConfirmed()) return;
+        long unconfirmedHours = Duration.between(getDate().toInstant(), Instant.now()).toHours();
+        if (unconfirmedHours >= 3 && !hasFailed()) {
+            String errorMessage = Res.get("portfolio.pending.unconfirmedTooLong", getShortId(), unconfirmedHours);
+            prependErrorMessage(errorMessage);
         }
     }
 

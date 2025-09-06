@@ -1075,11 +1075,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
         failedTradesManager.add(trade);
         removeTrade(trade);
+        xmrWalletService.fixReservedOutputs();
     }
 
     public void onMoveFailedTradeToPendingTrades(Trade trade) {
         addTradeToPendingTrades(trade);
         failedTradesManager.removeTrade(trade);
+        xmrWalletService.fixReservedOutputs();
     }
 
     public void onMoveClosedTradeToPendingTrades(Trade trade) {

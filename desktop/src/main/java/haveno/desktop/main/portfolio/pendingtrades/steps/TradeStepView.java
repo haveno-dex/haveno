@@ -808,33 +808,33 @@ public abstract class TradeStepView extends AnchorPane {
         }
     }
 
-//    private void checkIfLockTimeIsOver() {
-//        if (trade.getDisputeState() == Trade.DisputeState.MEDIATION_CLOSED) {
-//            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
-//            if (delayedPayoutTx != null) {
-//                long lockTime = delayedPayoutTx.getLockTime();
-//                int bestChainHeight = model.dataModel.btcWalletService.getBestChainHeight();
-//                long remaining = lockTime - bestChainHeight;
-//                if (remaining <= 0) {
-//                    openMediationResultPopup(Res.get("portfolio.pending.mediationResult.popup.headline", trade.getShortId()));
-//                }
-//            }
-//        }
-//    }
+    // private void checkIfLockTimeIsOver() {
+    //     if (trade.getDisputeState() == Trade.DisputeState.MEDIATION_CLOSED) {
+    //         Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
+    //         if (delayedPayoutTx != null) {
+    //             long lockTime = delayedPayoutTx.getLockTime();
+    //             int bestChainHeight = model.dataModel.btcWalletService.getBestChainHeight();
+    //             long remaining = lockTime - bestChainHeight;
+    //             if (remaining <= 0) {
+    //                 openMediationResultPopup(Res.get("portfolio.pending.mediationResult.popup.headline", trade.getShortId()));
+    //             }
+    //         }
+    //     }
+    // }
 
-    protected void checkForUnconfirmedTimeout() {
-        if (trade.isDepositsConfirmed()) return;
-        long unconfirmedHours = Duration.between(trade.getDate().toInstant(), Instant.now()).toHours();
-        if (unconfirmedHours >= 3 && !trade.hasFailed()) {
-            String key = "tradeUnconfirmedTooLong_" + trade.getShortId();
-            if (DontShowAgainLookup.showAgain(key)) {
-                new Popup().warning(Res.get("portfolio.pending.unconfirmedTooLong", trade.getShortId(), unconfirmedHours))
-                        .dontShowAgainId(key)
-                        .closeButtonText(Res.get("shared.ok"))
-                        .show();
-            }
-        }
-    }
+    // protected void checkForUnconfirmedTimeout() {
+    //     if (trade.isDepositsConfirmed()) return;
+    //     long unconfirmedHours = Duration.between(trade.getDate().toInstant(), Instant.now()).toHours();
+    //     if (unconfirmedHours >= 3 && !trade.hasFailed()) {
+    //         String key = "tradeUnconfirmedTooLong_" + trade.getShortId();
+    //         if (DontShowAgainLookup.showAgain(key)) {
+    //             new Popup().warning(Res.get("portfolio.pending.unconfirmedTooLong", trade.getShortId(), unconfirmedHours))
+    //                     .dontShowAgainId(key)
+    //                     .closeButtonText(Res.get("shared.ok"))
+    //                     .show();
+    //         }
+    //     }
+    // }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // TradeDurationLimitInfo
