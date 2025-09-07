@@ -1077,7 +1077,7 @@ public class XmrWalletService extends XmrWalletBase {
         // swap trade payout to available if applicable
         if (tradeManager == null) return;
         Trade trade = tradeManager.getTrade(offerId);
-        if (trade == null || trade.isPayoutUnlocked()) swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
+        if (trade == null || trade.isPayoutFinalized()) swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
     }
 
     public synchronized void swapPayoutAddressEntryToAvailable(String offerId) {
@@ -1221,7 +1221,7 @@ public class XmrWalletService extends XmrWalletBase {
         Stream<XmrAddressEntry> available = getFundedAvailableAddressEntries().stream();
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !tradeManager.getOpenOfferManager().getOpenOffer(entry.getOfferId()).isPresent()));
-        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> tradeManager.getTrade(entry.getOfferId()) == null || tradeManager.getTrade(entry.getOfferId()).isPayoutUnlocked()));
+        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> tradeManager.getTrade(entry.getOfferId()) == null || tradeManager.getTrade(entry.getOfferId()).isPayoutFinalized()));
         return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.ZERO) > 0);
     }
 

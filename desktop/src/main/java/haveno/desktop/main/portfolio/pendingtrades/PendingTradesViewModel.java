@@ -48,6 +48,8 @@ import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -107,6 +109,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     private Subscription messageStateSubscription;
     @Getter
     protected final IntegerProperty mempoolStatus = new SimpleIntegerProperty();
+    private transient Map<String, Boolean> showPaymentDetailsEarly = new HashMap<String, Boolean>();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -266,7 +269,13 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         return getMaxTradePeriodDate() != null && new Date().after(getMaxTradePeriodDate());
     }
 
-    //
+    public boolean getShowPaymentDetailsEarly() {
+        return showPaymentDetailsEarly.getOrDefault(dataModel.getTrade().getId(), false);
+    }
+
+    public void setShowPaymentDetailsEarly(boolean show) {
+        showPaymentDetailsEarly.put(dataModel.getTrade().getId(), show);
+    }
 
     String getMyRole(PendingTradesListItem item) {
         return tradeUtil.getRole(item.getTrade());
@@ -391,8 +400,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // buyer and seller step 2
-            // deposits unlocked
+            // deposits unlocked or finalized
             case DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN:
+            case DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN:
                 buyerState.set(BuyerState.STEP2);
                 sellerState.set(SellerState.STEP2);
                 break;
@@ -453,6 +463,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             case PAYOUT_PUBLISHED:
             case PAYOUT_CONFIRMED:
             case PAYOUT_UNLOCKED:
+            case PAYOUT_FINALIZED:
                 sellerState.set(SellerState.STEP4);
                 buyerState.set(BuyerState.STEP4);
                 break;

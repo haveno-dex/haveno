@@ -598,6 +598,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     TradePeer opener = sender == trade.getArbitrator() ? trade.getTradePeer() : sender;
                     if (message.getOpenerUpdatedMultisigHex() != null) opener.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex());
 
+                    // arbitrator syncs and polls wallet
+                    if (trade.isArbitrator()) {
+                        trade.syncAndPollWallet();
+                        trade.recoverIfMissingWalletData();
+                    }
+
                     // add chat message with price info
                     if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
 

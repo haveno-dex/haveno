@@ -492,7 +492,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                 // handle uninitialized trades
                 for (Trade trade : uninitializedTrades) {
-                    trade.onProtocolError();
+                    trade.onProtocolInitializationError();
                 }
 
                 // freeze or thaw outputs
@@ -630,7 +630,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // process with protocol
             ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
                 log.warn("Maker error during trade initialization: " + errorMessage);
-                trade.onProtocolError();
+                trade.onProtocolInitializationError();
             });
         }
 
@@ -724,7 +724,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // process with protocol
             ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
                 log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
-                trade.onProtocolError();
+                trade.onProtocolInitializationError();
             });
 
             requestPersistence();
@@ -936,7 +936,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 requestPersistence();
             }, errorMessage -> {
                 log.warn("Taker error during trade initialization: " + errorMessage);
-                trade.onProtocolError();
+                trade.onProtocolInitializationError();
                 xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move this into protocol error handling
                 errorMessageHandler.handleErrorMessage(errorMessage);
             });
@@ -1075,11 +1075,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
         failedTradesManager.add(trade);
         removeTrade(trade);
+        xmrWalletService.fixReservedOutputs();
     }
 
     public void onMoveFailedTradeToPendingTrades(Trade trade) {
         addTradeToPendingTrades(trade);
         failedTradesManager.removeTrade(trade);
+        xmrWalletService.fixReservedOutputs();
     }
 
     public void onMoveClosedTradeToPendingTrades(Trade trade) {
