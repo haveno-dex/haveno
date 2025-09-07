@@ -3199,7 +3199,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private boolean isWalletMissingData() {
         synchronized (walletLock) {
-            if (!isDepositsFinalized() || isPayoutPublished()) return false;
+            if (!isDepositsUnlocked() || isPayoutPublished()) return false;
             if (getMakerDepositTx() == null) {
                 log.warn("Missing maker deposit tx for {} {}", getClass().getSimpleName(), getId());
                 return true;
