@@ -87,6 +87,8 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.messaging.DecryptedMailboxListener;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 
@@ -118,7 +120,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private int reprocessPaymentSentMessageCount;
     private int reprocessPaymentReceivedMessageCount;
     private boolean makerInitTradeRequestHasBeenNacked = false;
-    private boolean autoMarkPaymentReceivedOnNack = true;
+    @Getter
+    @Setter
+    private boolean autoMarkPaymentReceived = true;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -870,8 +874,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = trade.onPayoutError(true, autoMarkPaymentReceivedOnNack);
-                        autoMarkPaymentReceivedOnNack = false;
+                        boolean autoResent = trade.onPayoutError(true, autoMarkPaymentReceived);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
@@ -890,8 +893,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = trade.onPayoutError(true, autoMarkPaymentReceivedOnNack);
-                        autoMarkPaymentReceivedOnNack = false;
+                        boolean autoResent = trade.onPayoutError(true, autoMarkPaymentReceived);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }

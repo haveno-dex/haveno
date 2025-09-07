@@ -1039,7 +1039,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             @Override
             public void onMinuteTick() {
-                updateTradePeriodState();
+                ThreadUtils.submitToPool(() -> updateTradePeriodState()); // update trade period off main thread
             }
         });
     }
