@@ -2736,8 +2736,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     
             if (pollWallet) doPollWallet();
         } catch (Exception e) {
-            if (!(e instanceof IllegalStateException) && !isShutDownStarted) {
-                ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
+            if (!isShutDownStarted) {
+                if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
+                if (!(e instanceof IllegalStateException)) {
+                    ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection));
+                }
             }
             throw e;
         }
@@ -2907,7 +2910,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         rescanSpent(true);
                     } catch (Exception e) {
                         log.warn("Failed to rescan spent outputs for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
-                        ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId()); // do not block polling thread
+                        ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection)); // do not block polling thread
                     }
                 }
 
@@ -2955,8 +2958,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (HavenoUtils.isUnresponsive(e)) {
                 if (isShutDownStarted) forceCloseWallet();
                 else forceRestartTradeWallet();
-            }
-            else {
+            } else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
                     log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
