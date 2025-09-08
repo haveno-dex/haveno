@@ -1948,7 +1948,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void setState(State state) {
         if (isInitialized) {
             // We don't want to log at startup the setState calls from all persisted trades
-            log.info("Set new state for {} {}: {}", this.getClass().getSimpleName(), getShortId(), state);
+            log.info("Set new state for trade {} {}: {}", getShortId(), this.getClass().getSimpleName(), state);
         }
         if (state.getPhase().ordinal() < this.state.getPhase().ordinal()) {
             String message = "We got a state change to a previous phase (id=" + getShortId() + ").\n" +
@@ -1990,7 +1990,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void setPayoutState(PayoutState payoutState) {
         if (isInitialized) {
             // We don't want to log at startup the setState calls from all persisted trades
-            log.info("Set new payout state for {} {}: {}", this.getClass().getSimpleName(), getId(), payoutState);
+            log.info("Set new payout state for trade {} {}: {}", getId(), this.getClass().getSimpleName(), payoutState);
         }
         if (payoutState.ordinal() < this.payoutState.ordinal()) {
             String message = "We got a payout state change to a previous phase (id=" + getShortId() + ").\n" +
@@ -2006,7 +2006,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void setDisputeState(DisputeState disputeState) {
         if (isInitialized) {
             // We don't want to log at startup the setState calls from all persisted trades
-            log.info("Set new dispute state for {} {}: {}", this.getClass().getSimpleName(), getShortId(), disputeState);
+            log.info("Set new dispute state for trade {} {}: {}", getShortId(), this.getClass().getSimpleName(), disputeState);
         }
         if (disputeState.ordinal() < this.disputeState.ordinal()) {
             String message = "We got a dispute state change to a previous state (id=" + getShortId() + ").\n" +
