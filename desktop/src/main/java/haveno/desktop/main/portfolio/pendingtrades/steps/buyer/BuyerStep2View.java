@@ -133,6 +133,7 @@ public class BuyerStep2View extends TradeStepView {
     private Subscription tradeStatePropertySubscription;
     private Timer timeoutTimer;
     private int paymentAccountGridRow = 0;
+    private GridPane paymentAccountGridPane;
     private GridPane moreConfirmationsGridPane;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -229,11 +230,24 @@ public class BuyerStep2View extends TradeStepView {
         gridPane.getColumnConstraints().get(1).setHgrow(Priority.ALWAYS);
 
         addTradeInfoBlock();
+        createPaymentDetailsGridPane();
+        createRecommendationGridPane();
 
+        // attach grid pane based on current state
+        EasyBind.subscribe(trade.statePhaseProperty(), newValue -> {
+            if (trade.isDepositsFinalized()) {
+                attachPaymentDetailsGrid();
+            } else {
+                attachRecommendationGrid();
+            }
+        });
+    }
+
+    private void createPaymentDetailsGridPane() {
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
         String paymentMethodId = paymentAccountPayload != null ? paymentAccountPayload.getPaymentMethodId() : "<pending>";
         
-        GridPane paymentAccountGridPane = createGridPane();
+        paymentAccountGridPane = createGridPane();
         TitledGroupBg accountTitledGroupBg = addTitledGroupBg(paymentAccountGridPane, paymentAccountGridRow, 4,
                 Res.get("portfolio.pending.step2_buyer.startPaymentUsing", Res.get(paymentMethodId)),
                 Layout.COMPACT_GROUP_DISTANCE);
@@ -462,44 +476,36 @@ public class BuyerStep2View extends TradeStepView {
         confirmButton.setOnAction(e -> onPaymentSent());
         busyAnimation = tuple3.second;
         statusLabel = tuple3.third;
-        
-        if (trade.isDepositsFinalized() || model.getShowPaymentDetailsEarly()) {
+    }
+
+    private void createRecommendationGridPane() {
+
+        // create grid pane to show recommendation for more blocks
+        moreConfirmationsGridPane = new GridPane();
+        moreConfirmationsGridPane.setStyle("-fx-background-color: -bs-content-background-gray;");
+        moreConfirmationsGridPane.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+
+        // add title
+        addTitledGroupBg(moreConfirmationsGridPane, 0, 1,  Res.get("portfolio.pending.step1.waitForConf"), Layout.COMPACT_GROUP_DISTANCE);
+
+        // add text
+        Label label = new Label(Res.get("portfolio.pending.step2_buyer.additionalConf", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
+        label.setFont(new Font(16));
+        GridPane.setMargin(label, new Insets(20, 0, 0, 0));
+        moreConfirmationsGridPane.add(label, 0, 1, 2, 1);
+
+        // add button to show payment details
+        Button showPaymentDetailsButton = new Button("Show payment details early");
+        showPaymentDetailsButton.getStyleClass().add("action-button");
+        GridPane.setMargin(showPaymentDetailsButton, new Insets(20, 0, 0, 0));
+        showPaymentDetailsButton.setOnAction(e -> {
+            model.setShowPaymentDetailsEarly(true);
+            gridPane.getChildren().remove(moreConfirmationsGridPane);
             gridPane.getChildren().add(paymentAccountGridPane);
             GridPane.setRowIndex(paymentAccountGridPane, gridRow + 1);
             GridPane.setColumnSpan(paymentAccountGridPane, 2);
-        } else {
-
-            // create grid pane to show recommendation for more blocks
-            moreConfirmationsGridPane = new GridPane();
-            moreConfirmationsGridPane.setStyle("-fx-background-color: -bs-content-background-gray;");
-            moreConfirmationsGridPane.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-
-            // add title
-            addTitledGroupBg(moreConfirmationsGridPane, 0, 1,  Res.get("portfolio.pending.step1.waitForConf"), Layout.COMPACT_GROUP_DISTANCE);
-
-            // add text
-            Label label = new Label(Res.get("portfolio.pending.step2_buyer.additionalConf", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
-            label.setFont(new Font(16));
-            GridPane.setMargin(label, new Insets(20, 0, 0, 0));
-            moreConfirmationsGridPane.add(label, 0, 1, 2, 1);
-
-            // add button to show payment details
-            Button showPaymentDetailsButton = new Button("Show payment details early");
-            showPaymentDetailsButton.getStyleClass().add("action-button");
-            GridPane.setMargin(showPaymentDetailsButton, new Insets(20, 0, 0, 0));
-            showPaymentDetailsButton.setOnAction(e -> {
-                model.setShowPaymentDetailsEarly(true);
-                gridPane.getChildren().remove(moreConfirmationsGridPane);
-                gridPane.getChildren().add(paymentAccountGridPane);
-                GridPane.setRowIndex(paymentAccountGridPane, gridRow + 1);
-                GridPane.setColumnSpan(paymentAccountGridPane, 2);
-            });
-            moreConfirmationsGridPane.add(showPaymentDetailsButton, 0, 2);
-
-            gridPane.getChildren().add(moreConfirmationsGridPane);
-            GridPane.setRowIndex(moreConfirmationsGridPane, gridRow + 1);
-            GridPane.setColumnSpan(moreConfirmationsGridPane, 2);
-        }
+        });
+        moreConfirmationsGridPane.add(showPaymentDetailsButton, 0, 2);
     }
 
     private GridPane createGridPane() {
@@ -512,6 +518,22 @@ public class BuyerStep2View extends TradeStepView {
         columnConstraints2.setHgrow(Priority.ALWAYS);
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
         return gridPane;
+    }
+
+    private void attachRecommendationGrid() {
+        if (gridPane.getChildren().contains(moreConfirmationsGridPane)) return;
+        if (gridPane.getChildren().contains(paymentAccountGridPane)) gridPane.getChildren().remove(paymentAccountGridPane);
+        gridPane.getChildren().add(moreConfirmationsGridPane);
+        GridPane.setRowIndex(moreConfirmationsGridPane, gridRow + 1);
+        GridPane.setColumnSpan(moreConfirmationsGridPane, 2);
+    }
+
+    private void attachPaymentDetailsGrid() {
+        if (gridPane.getChildren().contains(paymentAccountGridPane)) return;
+        if (gridPane.getChildren().contains(moreConfirmationsGridPane)) gridPane.getChildren().remove(moreConfirmationsGridPane);
+        gridPane.getChildren().add(paymentAccountGridPane);
+        GridPane.setRowIndex(paymentAccountGridPane, gridRow + 1);
+        GridPane.setColumnSpan(paymentAccountGridPane, 2);
     }
 
     private boolean confirmPaymentSentPermitted() {

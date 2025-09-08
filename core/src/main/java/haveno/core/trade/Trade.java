@@ -2386,7 +2386,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isDepositsFinalized() {
-        return isDepositsUnlocked() && (getState().getPhase() == Phase.DEPOSITS_FINALIZED || getMinDepositTxConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED);
+        return getState().getPhase().ordinal() >= Phase.DEPOSITS_FINALIZED.ordinal() && getMinDepositTxConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED;
     }
 
     public boolean isPaymentSent() {
@@ -2736,11 +2736,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     
             if (pollWallet) doPollWallet();
         } catch (Exception e) {
-            if (!isShutDownStarted) {
-                if (!(e instanceof IllegalStateException)) {
-                    ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
-                }
-                if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
+            if (!(e instanceof IllegalStateException) && !isShutDownStarted) {
+                ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
+            }
+            if (HavenoUtils.isUnresponsive(e)) { // wallet can be stuck a while
+                if (isShutDownStarted) forceCloseWallet();
+                else forceRestartTradeWallet();
             }
             throw e;
         }
