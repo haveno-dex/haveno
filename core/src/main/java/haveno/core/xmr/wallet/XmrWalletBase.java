@@ -72,6 +72,7 @@ public abstract class XmrWalletBase {
         synchronized (walletLock) {
 
             // set initial state
+            if (isSyncingWithProgress) log.warn("Syncing with progress while already syncing with progress. That should never happen");
             isSyncingWithProgress = true;
             syncProgressError = null;
             long targetHeightAtStart = xmrConnectionService.getTargetHeight();
@@ -115,6 +116,8 @@ public abstract class XmrWalletBase {
                     }
 
                     // stop polling and release latch
+                    syncProgressLooper.stop();
+                    syncProgressTimeout.stop();
                     syncProgressError = e;
                     syncProgressLatch.countDown();
                     return;
@@ -135,7 +138,11 @@ public abstract class XmrWalletBase {
             // stop polling
             syncProgressLooper.stop();
             syncProgressTimeout.stop();
-            if (wallet != null) wallet.stopSyncing(); // can become null if interrupted by force close
+            if (wallet != null) { // can become null if interrupted by force close
+                if (syncProgressError == null || !HavenoUtils.isUnresponsive(syncProgressError)) { // TODO: skipping stop sync if unresponsive because wallet will hang. if unresponsive, wallet is assumed to be force restarted by caller, but that should be done internally here instead of externally?
+                    wallet.stopSyncing();
+                }
+            }
             isSyncingWithProgress = false;
             if (syncProgressError != null) throw new RuntimeException(syncProgressError);
         }
