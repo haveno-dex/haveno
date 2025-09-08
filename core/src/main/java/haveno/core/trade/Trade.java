@@ -2814,6 +2814,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // poll wallet
+        MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
         try {
 
             // skip if shut down started
@@ -2906,7 +2907,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // rescan spent outputs to detect unconfirmed payout tx
                 if (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
-                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
                         rescanSpent(true);
                     } catch (Exception e) {
@@ -2956,7 +2956,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             }
         } catch (Exception e) {
-            if (HavenoUtils.isUnresponsive(e)) {
+            if (!(e instanceof IllegalStateException) && !isShutDownStarted && !wasWalletPolled.get()) { // request connection switch if failure on first poll
+                ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
+            }
+            if (HavenoUtils.isUnresponsive(e)) { // wallet can be stuck a while
                 if (isShutDownStarted) forceCloseWallet();
                 else forceRestartTradeWallet();
             } else {

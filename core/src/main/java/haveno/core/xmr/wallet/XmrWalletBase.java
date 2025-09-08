@@ -113,7 +113,6 @@ public abstract class XmrWalletBase {
                 } catch (Exception e) {
                     if (wallet != null && !isShutDownStarted) {
                         log.warn("Error getting wallet height while syncing with progress: " + e.getMessage());
-                        log.warn(ExceptionUtils.getStackTrace(e));
                     }
                     return;
                 }
@@ -133,12 +132,12 @@ public abstract class XmrWalletBase {
             // stop polling
             syncProgressLooper.stop();
             syncProgressTimeout.stop();
+            isSyncingWithProgress = false;
             if (wallet != null) { // can become null if interrupted by force close
                 if (syncProgressError == null || !HavenoUtils.isUnresponsive(syncProgressError)) { // TODO: skipping stop sync if unresponsive because wallet will hang. if unresponsive, wallet is assumed to be force restarted by caller, but that should be done internally here instead of externally?
                     wallet.stopSyncing();
                 }
             }
-            isSyncingWithProgress = false;
             if (syncProgressError != null) throw new RuntimeException(syncProgressError);
         }
     }
@@ -164,7 +163,7 @@ public abstract class XmrWalletBase {
     // --------------------------------- ABSTRACT -----------------------------
 
     public static boolean isSyncWithProgressTimeout(Throwable e) {
-        return e.getMessage().equals(SYNC_PROGRESS_TIMEOUT_MSG);
+        return e.getMessage().contains(SYNC_PROGRESS_TIMEOUT_MSG);
     }
 
     public abstract void saveWallet();
