@@ -2737,10 +2737,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (pollWallet) doPollWallet();
         } catch (Exception e) {
             if (!isShutDownStarted) {
-                if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
                 if (!(e instanceof IllegalStateException)) {
-                    ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection));
+                    ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
                 }
+                if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
             }
             throw e;
         }
