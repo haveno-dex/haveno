@@ -2073,6 +2073,7 @@ public class XmrWalletService extends XmrWalletBase {
                 synchronized (walletLock) { // avoid long fetch from blocking other operations
                     synchronized (HavenoUtils.getDaemonLock()) {
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
+                        if (lastPollTxsTimestamp == 0) lastPollTxsTimestamp = System.currentTimeMillis(); // set initial timestamp
                         try {
                             cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
                             lastPollTxsTimestamp = System.currentTimeMillis();
