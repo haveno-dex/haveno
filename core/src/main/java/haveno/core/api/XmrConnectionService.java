@@ -75,7 +75,7 @@ public final class XmrConnectionService {
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
-    private static final int MAX_CONSECUTIVE_ERRORS = 4; // max errors before switching connections
+    private static final int MAX_CONSECUTIVE_ERRORS = 3; // max errors before switching connections
     private static int numConsecutiveErrors = 0;
 
     public enum XmrConnectionFallbackType {
