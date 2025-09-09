@@ -2922,7 +2922,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     try {
                         rescanSpent(true);
                     } catch (Exception e) {
-                        log.warn("Failed to rescan spent outputs for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
                         ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection)); // do not block polling thread
                     }
                 }
