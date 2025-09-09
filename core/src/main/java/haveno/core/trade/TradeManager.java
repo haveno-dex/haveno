@@ -1044,11 +1044,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         });
     }
 
+    // TODO: could use monerod.getBlocksByHeight() to more efficiently update trade period state
     private void updateTradePeriodState() {
         if (isShutDownStarted) return;
-        synchronized (tradableList.getList()) {
-            for (Trade trade : tradableList.getList()) {
-                if (!trade.isInitialized() || trade.isPayoutPublished()) continue;
+        for (Trade trade : getOpenTrades()) {
+            if (!trade.isInitialized() || trade.isPayoutPublished()) continue;
+            try {
+                trade.maybeUpdateTradePeriod();
                 Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
                 Date halfTradePeriodDate = trade.getHalfTradePeriodDate();
                 if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
@@ -1061,6 +1063,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         requestPersistence();
                     }
                 }
+            } catch (Exception e) {
+                log.warn("Error updating trade period state for {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), e.getMessage(), e);
+                continue;
             }
         }
     }

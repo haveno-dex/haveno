@@ -2273,6 +2273,38 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    public void maybeUpdateTradePeriod() {
+        if (startTime > 0) return; // already set
+        if (getTakeOfferDate() == null) return; // trade not started yet
+        if (!isDepositsFinalized()) return; // deposits not finalized yet
+
+        long now = System.currentTimeMillis();
+        long tradeTime = getTakeOfferDate().getTime();
+        MoneroDaemon monerod = xmrWalletService.getMonerod();
+        if (monerod == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
+
+        // get finalize time of last deposit tx
+        long finalizeHeight = getDepositsFinalizedHeight();
+        long finalizeTime = monerod.getBlockByHeight(finalizeHeight).getTimestamp() * 1000;
+
+        // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
+        // If block date is earlier than our trade date we use our trade date.
+        if (finalizeTime > now)
+            startTime = now;
+        else
+            startTime = Math.max(finalizeTime, tradeTime);
+
+        log.debug("We set the start for the trade period to {}. Trade started at: {}. Block got mined at: {}",
+                new Date(startTime), new Date(tradeTime), new Date(finalizeTime));
+    }
+
+    private long getDepositsFinalizedHeight() {
+        MoneroTxWallet makerDepositTx = getMakerDepositTx();
+        MoneroTxWallet takerDepositTx = getTakerDepositTx();
+        if (makerDepositTx == null || (takerDepositTx == null && !hasBuyerAsTakerWithoutDeposit())) throw new RuntimeException("Cannot get finalized height for trade " + getId() + " because its deposit tx is null. Is client connected to a daemon?");
+        return Math.max(makerDepositTx.getHeight() + NUM_BLOCKS_DEPOSITS_FINALIZED - 1, hasBuyerAsTakerWithoutDeposit() ? 0l : takerDepositTx.getHeight() + NUM_BLOCKS_DEPOSITS_FINALIZED - 1);
+    }
+
     public long getMaxTradePeriod() {
         return getOffer().getPaymentMethod().getMaxTradePeriod();
     }
@@ -2294,38 +2326,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
      * Returns the current time until the deposits are finalized.
      */
     private long getEffectiveStartTime() {
-        if (startTime > 0) return startTime;
-        if (getTakeOfferDate() == null) return System.currentTimeMillis(); // trade not started yet
-        if (isDepositsFinalized()) {
-            setStartTimeFromFinalizedTxs(); // save to model
-            return startTime;
-        } else {
-            return System.currentTimeMillis();
-        }
-    }
-
-    private void setStartTimeFromFinalizedTxs() {
-        long now = System.currentTimeMillis();
-        final long tradeTime = getTakeOfferDate().getTime();
-        MoneroDaemon monerod = xmrWalletService.getMonerod();
-        MoneroTxWallet makerDepositTx = getMakerDepositTx();
-        MoneroTxWallet takerDepositTx = getTakerDepositTx();
-        if (monerod == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
-        if (makerDepositTx == null || (takerDepositTx == null && !hasBuyerAsTakerWithoutDeposit())) throw new RuntimeException("Cannot set start time for trade " + getId() + " because its finalized deposit tx is null. Is client connected to a daemon?");
-
-        // get finalize time of last deposit tx
-        long finalizeHeight = Math.max(makerDepositTx.getHeight() + NUM_BLOCKS_DEPOSITS_FINALIZED - 1, hasBuyerAsTakerWithoutDeposit() ? 0l : takerDepositTx.getHeight() + NUM_BLOCKS_DEPOSITS_FINALIZED - 1);
-        long finalizeTime = monerod.getBlockByHeight(finalizeHeight).getTimestamp() * 1000;
-
-        // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
-        // If block date is earlier than our trade date we use our trade date.
-        if (finalizeTime > now)
-            startTime = now;
-        else
-            startTime = Math.max(finalizeTime, tradeTime);
-
-        log.debug("We set the start for the trade period to {}. Trade started at: {}. Block got mined at: {}",
-                new Date(startTime), new Date(tradeTime), new Date(finalizeTime));
+        return startTime > 0 ? startTime : System.currentTimeMillis();
     }
 
     public boolean hasFailed() {
@@ -3250,7 +3251,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void setStateDepositsFinalized() {
         if (!isDepositsFinalized()) {
             setStateIfValidTransitionTo(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
-            setStartTimeFromFinalizedTxs();
+            ThreadUtils.submitToPool(() -> maybeUpdateTradePeriod());
         }
     }
 
