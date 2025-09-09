@@ -1224,17 +1224,21 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             MoneroTxWallet splitOutputTx = xmrWalletService.getTx(openOffer.getSplitOutputTxHash());
 
             // check if split output tx is available for offer
-            if (splitOutputTx.isLocked()) return splitOutputTx;
-            else {
-                boolean isAvailable = true;
-                for (MoneroOutputWallet output : splitOutputTx.getOutputsWallet()) {
-                    if (output.isSpent() || output.isFrozen()) {
-                        isAvailable = false;
-                        break;
+            if (splitOutputTx != null) {
+                if (splitOutputTx.isLocked()) return splitOutputTx;
+                else {
+                    boolean isAvailable = true;
+                    for (MoneroOutputWallet output : splitOutputTx.getOutputsWallet()) {
+                        if (output.isSpent() || output.isFrozen()) {
+                            isAvailable = false;
+                            break;
+                        }
                     }
+                    if (isAvailable || isReservedByOffer(openOffer, splitOutputTx)) return splitOutputTx;
+                    else log.warn("Split output tx {} is no longer available for offer {}", openOffer.getSplitOutputTxHash(), openOffer.getId());
                 }
-                if (isAvailable || isReservedByOffer(openOffer, splitOutputTx)) return splitOutputTx;
-                else log.warn("Split output tx is no longer available for offer {}", openOffer.getId());
+            } else {
+                log.warn("Split output tx {} no longer exists for offer {}", openOffer.getSplitOutputTxHash(), openOffer.getId());
             }
         }
 
