@@ -235,7 +235,7 @@ public class BuyerStep2View extends TradeStepView {
 
         // attach grid pane based on current state
         EasyBind.subscribe(trade.statePhaseProperty(), newValue -> {
-            if (trade.isDepositsFinalized()) {
+            if (trade.isDepositsFinalized() || trade.isPaymentSent() || model.getShowPaymentDetailsEarly()) {
                 attachPaymentDetailsGrid();
             } else {
                 attachRecommendationGrid();
