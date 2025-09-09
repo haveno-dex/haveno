@@ -77,6 +77,7 @@ public class SellerProtocol extends DisputeProtocol {
                 given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
                     .with(SellerEvent.STARTUP))
                     .setup(tasks(
+                        SellerPreparePaymentReceivedMessage.class,
                             SellerSendPaymentReceivedMessageToBuyer.class,
                             SellerSendPaymentReceivedMessageToArbitrator.class)
                     .using(new TradeTaskRunner(trade,

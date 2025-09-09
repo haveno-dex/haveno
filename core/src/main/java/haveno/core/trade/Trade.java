@@ -850,15 +850,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void maybeResetTradeState() {
         if (isPayoutPublished()) return;
 
-        // reset buyer's payment sent state if no ack received
-        if (this instanceof BuyerTrade && getState().ordinal() >= Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal() && getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal() && getState() != Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG) {
-            log.warn("Resetting state of {} {} from {} to {} because payout is not published", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+        // reset buyer's payment sent state if applicable
+        if (this instanceof BuyerTrade && (getState().ordinal() == Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal() || getState() == State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)) {
+            log.warn("Resetting state of {} {} from {} to {} because sending PaymentSentMessage failed", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
             setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
         }
 
-        // reset seller's payment received state unless stored in mailbox
-        if (this instanceof SellerTrade && getState().ordinal() >= Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal() && getState().ordinal() != Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG.ordinal()) {
-            log.warn("Resetting state of {} {} from {} to {} because payout is not published", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+        // reset seller's payment received state if applicable
+        if (this instanceof SellerTrade && (getState().ordinal() == Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal() || getState() == State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG)) {
+            log.warn("Resetting state of {} {} from {} to {} because sending PaymentReceivedMessage failed", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             resetToPaymentSentState();
         }
     }
@@ -2405,6 +2405,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal() && getState() != State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG;
     }
 
+    public boolean hasPaymentSentMessage() {
+        return (isBuyer() ? getSeller() : getBuyer()).getPaymentSentMessage() != null; // buyer stores message to seller and arbitrator, peers store message from buyer
+    }
+
     public boolean hasPaymentReceivedMessage() {
         return (isSeller() ? getBuyer() : getSeller()).getPaymentReceivedMessage() != null; // seller stores message to buyer and arbitrator, peers store message from seller
     }
@@ -3050,13 +3054,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 log.warn("Error syncing and polling wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
             }
         }
-        if (isPayoutPublished() || !isPaymentSent()) return false;
+        if (isPayoutPublished()) return false;
 
         // reset trade state
-        log.warn("Resetting state to PAYMENT_SENT and clearing previously signed txs for {} {}", getClass().getSimpleName(), getId());
-        resetToPaymentSentState();
+        log.warn("Resetting trade state after payout error for {} {}", getClass().getSimpleName(), getId());
         getProcessModel().setPaymentSentPayoutTxStale(true);
         getSelf().setUnsignedPayoutTxHex(null);
+        setPayoutTxHex(null);
+        for (TradePeer peer : getAllPeers()) {
+            peer.setPaymentReceivedMessage(null);
+            peer.setPaymentReceivedMessageState(MessageState.UNDEFINED);
+        }
+
         persistNow(null);
 
         // automatically mark payment received
