@@ -2975,13 +2975,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
             }
             if (HavenoUtils.isUnresponsive(e)) { // wallet can be stuck a while
+                if (wallet != null && !isShutDownStarted) {
+                    log.warn("Error polling unresponsive trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
+                }
                 if (isShutDownStarted) forceCloseWallet();
                 else forceRestartTradeWallet();
             } else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
                     log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
-                    //e.printStackTrace();
                 }
             }
         } finally {
