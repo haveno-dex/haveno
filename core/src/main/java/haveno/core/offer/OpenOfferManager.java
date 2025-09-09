@@ -1761,6 +1761,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             errorMessage = "Exception at handleSignOfferRequest " + e.getMessage();
             log.error(errorMessage + "\n", e);
         } finally {
+            if (result == false && errorMessage == null) {
+                log.warn("Arbitrator is NACKing SignOfferRequest for unknown reason with offerId={}. That should never happen", request.getOfferId());
+                log.warn("Printing stacktrace:");
+                Thread.dumpStack();
+            }
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }
     }
@@ -1950,8 +1955,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 result,
                 errorMessage);
 
-        log.info("Send AckMessage for {} to peer {} with offerId {} and sourceUid {}",
-                reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid());
+        if (ackMessage.isSuccess()) {
+            log.info("Send AckMessage for {} to peer {} with offerId {} and sourceUid {}",
+                    reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid());
+        } else {
+            log.warn("Sending NACK for {} to peer {} with offerId {} and sourceUid {}, errorMessage={}",
+                    reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid(), errorMessage);
+        }
+
         p2PService.sendEncryptedDirectMessage(
                 sender,
                 senderPubKeyRing,
