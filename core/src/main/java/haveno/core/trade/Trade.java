@@ -1588,7 +1588,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return getMaker().getDepositTx();
     }
 
-    public long getMinDepositTxConfirmations() {
+    private long getMinDepositTxConfirmations() {
         MoneroTxWallet makerDepositTx = getMakerDepositTx();
         if (makerDepositTx == null) return 0;
         if (hasBuyerAsTakerWithoutDeposit()) return makerDepositTx.getNumConfirmations();
@@ -2387,7 +2387,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isDepositsFinalized() {
-        return getState().getPhase().ordinal() >= Phase.DEPOSITS_FINALIZED.ordinal() && getMinDepositTxConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED;
+        if (getState().getPhase().ordinal() < Phase.DEPOSITS_FINALIZED.ordinal()) return false;
+        else if (getState().getPhase() == Phase.DEPOSITS_FINALIZED) return true;
+        else {
+            long minDepositTxConfirmations = getMinDepositTxConfirmations();
+
+            // TODO: cannot determine min confirmations before wallet is polled; save deposit confirmation height, or more ideally, use separate enum for deposit state: PENDING, PUBLISHED, CONFIRMED, UNLOCKED, FINALIZED
+            if (minDepositTxConfirmations == 0) {
+                log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in phase {} but cannot determine if deposits are finalized because deposit tx confirmations is 0", getClass().getSimpleName(), getShortId(), getState().getPhase());
+                return true;
+            }
+            return minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
+        }
     }
 
     public boolean isPaymentSent() {
