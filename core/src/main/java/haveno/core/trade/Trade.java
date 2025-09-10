@@ -3060,7 +3060,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // reset trade state
         log.warn("Resetting trade state after payout error for {} {}", getClass().getSimpleName(), getId());
-        getProcessModel().setPaymentSentPayoutTxStale(true);
+        if (isSeller() && isPaymentMarkedReceived()) setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
         getSelf().setUnsignedPayoutTxHex(null);
         setPayoutTxHex(null);
         for (TradePeer peer : getAllPeers()) {
