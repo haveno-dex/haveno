@@ -661,6 +661,22 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             ThreadUtils.execute(() -> onConnectionChanged(connection), getId());
         });
 
+        // reset states if not awaiting processing
+        if (!isPayoutPublished()) {
+
+            // reset buyer's payment sent state
+            if (this instanceof BuyerTrade && (getState().ordinal() == Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal() || getState() == State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)) {
+                log.warn("Resetting state of {} {} from {} to {} because sending PaymentSentMessage failed", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+                setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+            }
+
+            // reset seller's payment received state
+            if (this instanceof SellerTrade && (getState().ordinal() == Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal() || getState() == State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG)) {
+                log.warn("Resetting state of {} {} from {} to {} because sending PaymentReceivedMessage failed", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+                resetToPaymentSentState();
+            }
+        }
+
         // handle trade state events
         tradeStateSubscription = EasyBind.subscribe(stateProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
@@ -834,7 +850,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void onWalletFirstPolled() {
-        maybeResetTradeState();
         checkForUnconfirmedTimeout();
     }
 
@@ -844,22 +859,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (unconfirmedHours >= 3 && !hasFailed()) {
             String errorMessage = Res.get("portfolio.pending.unconfirmedTooLong", getShortId(), unconfirmedHours);
             prependErrorMessage(errorMessage);
-        }
-    }
-
-    private void maybeResetTradeState() {
-        if (isPayoutPublished()) return;
-
-        // reset buyer's payment sent state if applicable
-        if (this instanceof BuyerTrade && (getState().ordinal() == Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal() || getState() == State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)) {
-            log.warn("Resetting state of {} {} from {} to {} because sending PaymentSentMessage failed", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
-            setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
-        }
-
-        // reset seller's payment received state if applicable
-        if (this instanceof SellerTrade && (getState().ordinal() == Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT.ordinal() || getState() == State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG)) {
-            log.warn("Resetting state of {} {} from {} to {} because sending PaymentReceivedMessage failed", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-            resetToPaymentSentState();
         }
     }
 
