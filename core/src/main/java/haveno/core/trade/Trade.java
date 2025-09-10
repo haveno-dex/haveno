@@ -2838,8 +2838,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // skip if payout finalized
             if (isPayoutFinalized()) return;
 
-            // skip if deposit txs unknown or not requested
-            if (!isDepositRequested() || processModel.getMaker().getDepositTxHash() == null || (processModel.getTaker().getDepositTxHash() == null && !hasBuyerAsTakerWithoutDeposit())) return;
+            // skip if deposit txs unknown or not expected
+            if (!isDepositRequested() || isDepositRequestFailed() || processModel.getMaker().getDepositTxHash() == null || (processModel.getTaker().getDepositTxHash() == null && !hasBuyerAsTakerWithoutDeposit())) return;
 
             // skip if daemon not synced
             if (xmrConnectionService.getTargetHeight() == null || !xmrConnectionService.isSyncedWithinTolerance()) return;

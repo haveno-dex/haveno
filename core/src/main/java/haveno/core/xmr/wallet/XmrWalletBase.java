@@ -114,6 +114,10 @@ public abstract class XmrWalletBase {
                         if (wallet != null && !isShutDownStarted) {
                             log.warn("Error getting wallet height while syncing with progress: " + e.getMessage());
                         }
+                        if (wallet == null) {
+                            syncProgressError = new RuntimeException("Wallet has become null while syncing with progress");
+                            syncProgressLatch.countDown();
+                        }
                         return;
                     }
                     long appliedTargetHeight = repeatSyncToLatestHeight ? xmrConnectionService.getTargetHeight() : targetHeightAtStart;
