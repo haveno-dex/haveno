@@ -69,7 +69,7 @@ public abstract class XmrWalletBase {
 
     public void syncWithProgress(boolean repeatSyncToLatestHeight) {
         synchronized (walletLock) {
-                try {
+            try {
 
                 // set initial state
                 if (isSyncingWithProgress) log.warn("Syncing with progress while already syncing with progress. That should never happen");
