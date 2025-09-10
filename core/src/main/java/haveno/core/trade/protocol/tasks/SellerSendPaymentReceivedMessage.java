@@ -60,6 +60,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
+
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
@@ -69,6 +71,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     private static final int MAX_RESEND_ATTEMPTS = 20;
     private int delayInMin = 10;
     private int resendCounter = 0;
+    private String unsignedPayoutTxHex = null;
+    private String signedPayoutTxHex = null;
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -124,12 +128,14 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             // other data stays the same when we re-send the message at any time later.
             String deterministicId = HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, getReceiverNodeAddress());
             boolean deferPublishPayout = trade.isPayoutPublished() || trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(); // informs receiver to expect payout so delay processing
+            unsignedPayoutTxHex = getUnsignedPayoutTxHex();
+            signedPayoutTxHex = getSignedPayoutTxHex();
             PaymentReceivedMessage message = new PaymentReceivedMessage(
                     tradeId,
                     processModel.getMyNodeAddress(),
                     deterministicId,
-                    trade.getPayoutTxHex() == null ? trade.getSelf().getUnsignedPayoutTxHex() : null, // unsigned // TODO: phase in after next update to clear old style trades
-                    trade.getPayoutTxHex() == null ? null : trade.getPayoutTxHex(), // signed
+                    unsignedPayoutTxHex, // unsigned // TODO: phase in after next update to clear old style trades
+                    signedPayoutTxHex, // signed
                     trade.getSelf().getUpdatedMultisigHex(),
                     deferPublishPayout,
                     trade.getTradePeer().getAccountAgeWitness(),
@@ -150,6 +156,14 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             }
         }
         return getReceiver().getPaymentReceivedMessage();
+    }
+
+    private String getUnsignedPayoutTxHex() {
+        return trade.getPayoutTxHex() == null ? trade.getSelf().getUnsignedPayoutTxHex() : null;
+    }
+
+    private String getSignedPayoutTxHex() {
+        return trade.getPayoutTxHex() == null ? null : trade.getPayoutTxHex();
     }
 
     @Override
@@ -240,6 +254,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         if (isMessageReceived()) return true; // stop if message received
         if (!trade.isPaymentReceived()) return true; // stop if trade state reset
         if (trade.isPayoutPublished() && !((SellerTrade) trade).resendPaymentReceivedMessagesWithinDuration()) return true; // stop if payout is published and we are not in the resend period
+        if (!StringUtils.equals(unsignedPayoutTxHex, getUnsignedPayoutTxHex())) return true;
+        if (!StringUtils.equals(signedPayoutTxHex, getSignedPayoutTxHex())) return true;
         return false;
     }
 }
