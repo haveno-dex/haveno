@@ -685,6 +685,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                                 maybeReprocessPaymentReceivedMessage(reprocessOnError);
                                             }, trade.getReprocessDelayInSeconds(reprocessPaymentReceivedMessageCount));
                                         }
+                                        unlatchTrade();
                                     } else {
 
                                         // export fresh multisig info for nack
@@ -694,7 +695,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                         trade.onPayoutError(false, false);
                                         handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
                                     }
-                                    unlatchTrade();
                                 })))
                         .executeTasks(true);
                     awaitTradeLatch();
