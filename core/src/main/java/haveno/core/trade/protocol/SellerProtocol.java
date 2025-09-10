@@ -72,7 +72,7 @@ public class SellerProtocol extends DisputeProtocol {
         ThreadUtils.execute(() -> {
             if (!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
             synchronized (trade.getLock()) {
-                if (!!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
+                if (!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
                 latchTrade();
                 given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
                     .with(SellerEvent.STARTUP))
