@@ -127,14 +127,8 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // handle illegal exception
             if (HavenoUtils.isIllegal(t)) {
-                log.warn("Waiting {} seconds to detect payout after illegal exception processing PaymentReceivedMessage for {} {} (e.g. after a reorg), error={}", WAIT_FOR_PAYOUT_SECONDS, trade.getClass().getSimpleName(), trade.getId(), t.getMessage());
-                HavenoUtils.waitFor(WAIT_FOR_PAYOUT_SECONDS * 1000);
-                trade.syncAndPollWallet();
-                if (!trade.isPayoutPublished()) {
-                    log.error("Payout still not detected after waiting {} seconds for {} {}, throwing illegal exception", WAIT_FOR_PAYOUT_SECONDS, trade.getClass().getSimpleName(), trade.getId());
-                    trade.getSeller().setPaymentReceivedMessage(null); // do not reprocess
-                    trade.requestPersistence();
-                }
+                trade.getSeller().setPaymentReceivedMessage(null); // stops reprocessing
+                trade.requestPersistence();
             }
 
             failed(t);
