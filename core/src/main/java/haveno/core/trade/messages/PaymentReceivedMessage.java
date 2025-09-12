@@ -51,6 +51,9 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
     @Setter
     @Nullable
     private byte[] sellerSignature;
+    @Setter
+    @Nullable
+    private String payoutTxId;
 
     public PaymentReceivedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
@@ -61,7 +64,8 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                                     boolean deferPublishPayout,
                                     AccountAgeWitness buyerAccountAgeWitness,
                                     @Nullable SignedWitness buyerSignedWitness,
-                                    @Nullable PaymentSentMessage paymentSentMessage) {
+                                    @Nullable PaymentSentMessage paymentSentMessage,
+                                    @Nullable String payoutTxId) {
         this(tradeId,
                 senderNodeAddress,
                 uid,
@@ -72,7 +76,8 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                 deferPublishPayout,
                 buyerAccountAgeWitness,
                 buyerSignedWitness,
-                paymentSentMessage);
+                paymentSentMessage,
+                payoutTxId);
     }
 
 
@@ -90,7 +95,8 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                                      boolean deferPublishPayout,
                                      AccountAgeWitness buyerAccountAgeWitness,
                                      @Nullable SignedWitness buyerSignedWitness,
-                                     PaymentSentMessage paymentSentMessage) {
+                                     PaymentSentMessage paymentSentMessage,
+                                     @Nullable String payoutTxId) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
         this.unsignedPayoutTxHex = unsignedPayoutTxHex;
@@ -100,6 +106,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
         this.paymentSentMessage = paymentSentMessage;
         this.buyerAccountAgeWitness = buyerAccountAgeWitness;
         this.buyerSignedWitness = buyerSignedWitness;
+        this.payoutTxId = payoutTxId;
     }
 
     @Override
@@ -116,6 +123,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
         Optional.ofNullable(buyerSignedWitness).ifPresent(buyerSignedWitness -> builder.setBuyerSignedWitness(buyerSignedWitness.toProtoSignedWitness()));
         Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
         Optional.ofNullable(sellerSignature).ifPresent(e -> builder.setSellerSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(payoutTxId).ifPresent(builder::setPayoutTxId);
         return getNetworkEnvelopeBuilder().setPaymentReceivedMessage(builder).build();
     }
 
@@ -138,7 +146,8 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                 proto.getDeferPublishPayout(),
                 buyerAccountAgeWitness,
                 buyerSignedWitness,
-                proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion) : null);
+                proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion) : null,
+                ProtoUtil.stringOrNullFromProto(proto.getPayoutTxId()));
         message.setSellerSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getSellerSignature()));
         return message;
     }
@@ -154,6 +163,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                 ",\n     deferPublishPayout=" + deferPublishPayout +
                 ",\n     paymentSentMessage=" + paymentSentMessage +
                 ",\n     sellerSignature=" + sellerSignature +
+                ",\n     payoutTxId=" + payoutTxId +
                 "\n} " + super.toString();
     }
 }

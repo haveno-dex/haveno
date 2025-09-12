@@ -459,6 +459,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             return;
                         }
 
+                        // add random delay up to 10s to avoid syncing at exactly the same time
+                        if (trades.size() > 1 && trade.walletExists()) {
+                            int delay = (int) (Math.random() * 10000);
+                            HavenoUtils.waitFor(delay);
+                        }
+
                         // initialize trade
                         initPersistedTrade(trade);
 
@@ -1231,7 +1237,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 updatedMultisigHex);
 
         // send ack message
-        if (errorMessage != null) {
+        if (!result) {
+            if (errorMessage == null) {
+                log.warn("Sending NACK for {} to peer {} without error message. That should never happen. tradeId={}, sourceUid={}",
+                    ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
+            }
             log.warn("Sending NACK for {} to peer {}. tradeId={}, sourceUid={}, errorMessage={}, updatedMultisigHex={}",
                     ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid, errorMessage, updatedMultisigHex == null ? "null" : updatedMultisigHex.length() + " characters");
         } else {

@@ -40,11 +40,20 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             // check connection
             trade.verifyDaemonConnection();
 
-            // process payout tx if unpublished
-            if (!trade.isPayoutPublished()) {
+            // import and export multisig hex if payout already published
+            if (trade.isPayoutPublished()) {
+                synchronized (trade.getWalletLock()) {
+                    if (trade.walletExists()) {
+                        synchronized (HavenoUtils.getWalletFunctionLock()) {
+                            trade.importMultisigHex();
+                            trade.exportMultisigHex();
+                        }
+                    }
+                }
+            } else {
 
-                // handle first time preparation
-                if (trade.getArbitrator().getPaymentReceivedMessage() == null) {
+                // process or create payout tx
+                if (trade.getPayoutTxHex() == null) {
 
                     // synchronize on lock for wallet operations
                     synchronized (trade.getWalletLock()) {
@@ -60,7 +69,6 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                                 try {
                                     if (trade.getPayoutTxHex() == null) {
                                         log.info("Seller verifying, signing, and publishing payout tx for trade {}", trade.getId());
-                                        if (true) throw new IllegalArgumentException("Actually lets create the transaction anew");
                                         trade.processPayoutTx(trade.getBuyer().getPaymentSentMessage().getPayoutTxHex(), true, true);
                                     } else {
                                         log.warn("Seller publishing previously signed payout tx for trade {}", trade.getId());
@@ -81,11 +89,11 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                             }
                         }
                     }
-                } else if (trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex() != null) {
+                } else {
 
                     // republish payout tx from previous message
                     log.info("Seller re-verifying and publishing signed payout tx for trade {}", trade.getId());
-                    trade.processPayoutTx(trade.getArbitrator().getPaymentReceivedMessage().getSignedPayoutTxHex(), false, true);
+                    trade.processPayoutTx(trade.getPayoutTxHex(), false, true);
                 }
             }
 
@@ -104,6 +112,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
 
     private void createUnsignedPayoutTx() {
         log.info("Seller creating unsigned payout tx for trade {}", trade.getId());
+        trade.getProcessModel().setPaymentSentPayoutTxStale(true);
         MoneroTxWallet payoutTx = trade.createPayoutTx();
         trade.updatePayout(payoutTx);
         trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());

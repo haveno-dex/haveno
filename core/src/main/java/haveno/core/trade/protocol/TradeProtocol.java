@@ -87,8 +87,6 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.messaging.DecryptedMailboxListener;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 
@@ -120,10 +118,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private int reprocessPaymentSentMessageCount;
     private int reprocessPaymentReceivedMessageCount;
     private boolean makerInitTradeRequestHasBeenNacked = false;
-    @Getter
-    @Setter
-    private boolean autoMarkPaymentReceived = true;
-
+    private PaymentReceivedMessage lastAckedPaymentReceivedMessage = null;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -573,6 +568,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         removeMailboxMessageAfterProcessing(message);
                         return;
                     }
+                    if (message != trade.getBuyer().getPaymentSentMessage()) {
+                        log.warn("Ignoring PaymentSentMessage which was replaced by a newer message", trade.getClass().getSimpleName(), trade.getId());
+                        return;
+                    }
                     latchTrade();
                     expect(anyPhase()
                             .with(message)
@@ -631,6 +630,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // save message for reprocessing
         trade.getSeller().setPaymentReceivedMessage(message);
+
+        // persist trade before processing on trade thread
         trade.persistNow(() -> {
 
             // process message on trade thread
@@ -642,8 +643,16 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         return;
                     }
                     if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
-                        log.warn("Received another PaymentReceivedMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
+                        log.warn("Received another PaymentReceivedMessage after payout is published {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                         handleTaskRunnerSuccess(peer, message);
+                        return;
+                    }
+                    if (message != trade.getSeller().getPaymentReceivedMessage()) {
+                        log.warn("Ignoring PaymentReceivedMessage which was replaced by a newer message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                        return;
+                    }
+                    if (lastAckedPaymentReceivedMessage != null && lastAckedPaymentReceivedMessage.equals(trade.getSeller().getPaymentReceivedMessage())) {
+                        log.warn("Ignoring PaymentReceivedMessage which was already processed and responded to for {} {}", trade.getClass().getSimpleName(), trade.getId());
                         return;
                     }
                     latchTrade();
@@ -671,6 +680,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             ProcessPaymentReceivedMessage.class)
                             .using(new TradeTaskRunner(trade,
                                 () -> {
+                                    lastAckedPaymentReceivedMessage = message;
                                     handleTaskRunnerSuccess(peer, message);
                                 },
                                 errorMessage -> {
@@ -692,7 +702,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                         trade.exportMultisigHex();
 
                                         // handle payout error
-                                        trade.onPayoutError(false, false);
+                                        lastAckedPaymentReceivedMessage = message;
+                                        trade.onPayoutError(false, null);
                                         handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
                                     }
                                 })))
@@ -874,7 +885,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = trade.onPayoutError(true, autoMarkPaymentReceived);
+                        boolean autoResent = trade.onPayoutError(true, peer);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
@@ -893,7 +904,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = trade.onPayoutError(true, autoMarkPaymentReceived);
+                        boolean autoResent = trade.onPayoutError(true, peer);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }

@@ -141,6 +141,7 @@ public abstract class XmrWalletBase {
                         wallet.stopSyncing();
                     }
                 }
+                saveWallet();
                 if (syncProgressError != null) throw new RuntimeException(syncProgressError);
             } catch (Exception e) {
                 throw e;

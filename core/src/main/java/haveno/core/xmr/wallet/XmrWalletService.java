@@ -2020,7 +2020,7 @@ public class XmrWalletService extends XmrWalletBase {
         doPollWallet(true);
     }
 
-    private void doPollWallet(boolean updateTxs) {
+    public void doPollWallet(boolean updateTxs) {
 
         // skip if shut down started
         if (isShutDownStarted) return;

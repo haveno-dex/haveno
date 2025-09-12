@@ -337,6 +337,7 @@ message PaymentReceivedMessage {
     SignedWitness buyer_signed_witness = 9;
     PaymentSentMessage payment_sent_message = 10;
     bytes seller_signature = 11;
+    string payout_tx_id = 12;
 }
 
 message MediatedPayoutTxPublishedMessage {

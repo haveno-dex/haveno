@@ -52,8 +52,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class ProcessPaymentReceivedMessage extends TradeTask {
 
-    private static final int WAIT_FOR_PAYOUT_SECONDS = 90;
-
     public ProcessPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
@@ -158,8 +156,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // verify and publish payout tx
             if (!trade.isPayoutPublished()) {
                 try {
-                    boolean isSigned = message.getSignedPayoutTxHex() != null;
-                    if (isSigned) {
+                    if (message.getPayoutTxId() != null && trade.isBuyer()) {
+                        trade.processBuyerPayout(message.getPayoutTxId()); // buyer can validate payout tx by id with main wallet (in case of multisig issues)
+                    } else if (message.getSignedPayoutTxHex() != null) {
                         log.info("{} {} publishing signed payout tx from seller", trade.getClass().getSimpleName(), trade.getId());
                         trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
                     } else {

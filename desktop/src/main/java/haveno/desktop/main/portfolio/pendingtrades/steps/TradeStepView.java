@@ -141,8 +141,10 @@ public abstract class TradeStepView extends AnchorPane {
         addContent();
 
         errorMessageListener = (observable, oldValue, newValue) -> {
-            if (newValue != null)
+            if (newValue != null) {
+                log.warn("Showing popup for trade error {} {}", trade.getClass().getSimpleName(), trade.getId(), new RuntimeException(newValue));
                 new Popup().error(newValue).show();
+            }
         };
 
         clockListener = new ClockWatcher.Listener() {
