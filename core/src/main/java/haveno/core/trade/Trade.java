@@ -2788,10 +2788,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (getWallet() == null) throw new IllegalStateException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
                 if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
                 if (isWalletBehind()) {
-                    log.info("Syncing wallet for {} {}", getClass().getSimpleName(), getShortId());
+                    log.info("Syncing wallet for {} {}", getShortId(), getClass().getSimpleName());
                     long startTime = System.currentTimeMillis();
                     syncWalletIfBehind();
-                    log.info("Done syncing wallet for {} {} in {} ms", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime);
+                    log.info("Done syncing wallet for {} {} in {} ms", getShortId(), getClass().getSimpleName(), System.currentTimeMillis() - startTime);
                 }
             }
     
