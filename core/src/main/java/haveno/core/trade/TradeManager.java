@@ -490,7 +490,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // sync idle trades once in background after active trades
             for (Trade trade : trades) {
-                if (trade.isIdling()) ThreadUtils.submitToPool(() -> trade.syncAndPollWallet());
+                if (trade.isIdling()) ThreadUtils.submitToPool(() -> {
+                    
+                    // add random delay up to 10s to avoid syncing at exactly the same time
+                    if (trades.size() > 1 && trade.walletExists()) {
+                        int delay = (int) (Math.random() * 10000);
+                        HavenoUtils.waitFor(delay);
+                    }
+                    
+                    trade.syncAndPollWallet();
+                });
             }
 
             // process after all wallets initialized

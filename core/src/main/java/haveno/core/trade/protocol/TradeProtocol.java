@@ -120,6 +120,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private boolean makerInitTradeRequestHasBeenNacked = false;
     private PaymentReceivedMessage lastAckedPaymentReceivedMessage = null;
 
+    private static int MAX_PAYMENT_RECEIVED_NACKS = 5;
+    private int numPaymentReceivedNacks = 0;
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -807,11 +810,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // TODO: arbitrator may nack maker's InitTradeRequest if reserve tx has become invalid (e.g. check_tx_key shows 0 funds received). recreate reserve tx in this case
         if (!ackMessage.isSuccess() && trade.isMaker() && peer == trade.getArbitrator() && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
             if (ackMessage.getErrorMessage() != null && ackMessage.getErrorMessage().contains(SEND_INIT_TRADE_REQUEST_FAILED)) {
-                // use default postprocessing to cancel maker's trade if arbitrator cannot send message to taker
-            } else {
+                // use default postprocessing
                 if (makerInitTradeRequestHasBeenNacked) {
                     handleSecondMakerInitTradeRequestNack(ackMessage);
-                    // use default postprocessing to cancel maker's trade
+                    // use default postprocessing
                 } else {
                     makerInitTradeRequestHasBeenNacked = true;
                     handleFirstMakerInitTradeRequestNack(ackMessage);
@@ -885,7 +887,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = trade.onPayoutError(true, peer);
+                        boolean autoResent = onPayoutError(true, peer);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
@@ -904,7 +906,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = trade.onPayoutError(true, peer);
+                        boolean autoResent = onPayoutError(true, peer);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
@@ -930,6 +932,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // notify trade listeners
         trade.onAckMessage(ackMessage, sender);
+    }
+
+    private boolean onPayoutError(boolean syncAndPoll, TradePeer peer) {
+
+        // prevent infinite nack loop with max attempts
+        numPaymentReceivedNacks++;
+        if (numPaymentReceivedNacks > MAX_PAYMENT_RECEIVED_NACKS) {
+            log.warn("Maximum number of PaymentReceivedMessage NACKs reached for {} {}, not retrying", trade.getClass().getSimpleName(), trade.getId());
+            return false;
+        }
+
+        // handle payout error
+        return trade.onPayoutError(syncAndPoll, peer);
     }
 
     private void handleFirstMakerInitTradeRequestNack(AckMessage ackMessage) {

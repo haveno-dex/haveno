@@ -687,7 +687,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
-                if (newValue == Trade.Phase.DEPOSIT_REQUESTED) startPolling();
+                if (newValue == Trade.Phase.DEPOSIT_REQUESTED) onDepositRequested();
                 if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) onDepositsPublished();
                 if (newValue == Trade.Phase.DEPOSITS_CONFIRMED) onDepositsConfirmed();
                 if (newValue == Trade.Phase.DEPOSITS_UNLOCKED) onDepositsUnlocked();
@@ -2027,7 +2027,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void setPayoutState(PayoutState payoutState) {
         if (isInitialized) {
             // We don't want to log at startup the setState calls from all persisted trades
-            log.info("Set new payout state for trade {} {}: {}", getId(), this.getClass().getSimpleName(), payoutState);
+            log.info("Set new payout state for trade {} {}: {}", getShortId(), this.getClass().getSimpleName(), payoutState);
         }
         if (payoutState.ordinal() < this.payoutState.ordinal()) {
             String message = "We got a payout state change to a previous phase (id=" + getShortId() + ").\n" +
@@ -3404,10 +3404,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    private void onDepositRequested() {
+        if (!isArbitrator()) startPolling(); // peers start polling after deposits requested
+    }
+
     private void onDepositsPublished() {
 
-        // skip if arbitrator
-        if (this instanceof ArbitratorTrade) return;
+        // arbitrator starts polling after deposits published
+        if (isArbitrator()) {
+            startPolling();
+            return;
+        }
 
         // close open offer or reset address entries
         if (this instanceof MakerTrade) {
