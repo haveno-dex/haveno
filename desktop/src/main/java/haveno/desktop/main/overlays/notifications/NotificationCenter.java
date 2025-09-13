@@ -205,8 +205,12 @@ public class NotificationCenter {
                 message = Res.get("notification.trade.accepted", role);
             }
 
-            if (trade instanceof BuyerTrade && phase.ordinal() == Trade.Phase.DEPOSITS_UNLOCKED.ordinal())
-                message = Res.get("notification.trade.unlocked");
+            if (trade instanceof BuyerTrade) {
+                if (phase.ordinal() == Trade.Phase.DEPOSITS_UNLOCKED.ordinal())
+                    message = Res.get("notification.trade.unlocked");
+                else if (phase.ordinal() == Trade.Phase.DEPOSITS_FINALIZED.ordinal())
+                    message = Res.get("notification.trade.finalized", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED);
+            }
             else if (trade instanceof SellerTrade && phase.ordinal() == Trade.Phase.PAYMENT_SENT.ordinal())
                 message = Res.get("notification.trade.paymentSent");
         }

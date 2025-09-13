@@ -80,7 +80,9 @@ public abstract class DisputeProtocol extends TradeProtocol {
     // Trader has not yet received the peer's signature but has clicked the accept button.
     public void onAcceptMediationResult(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         DisputeEvent event = DisputeEvent.MEDIATION_RESULT_ACCEPTED;
-        expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED,
+        expect(anyPhase(
+                Trade.Phase.DEPOSITS_UNLOCKED,
+                Trade.Phase.DEPOSITS_FINALIZED,
                 Trade.Phase.PAYMENT_SENT,
                 Trade.Phase.PAYMENT_RECEIVED)
                 .with(event)
@@ -107,7 +109,9 @@ public abstract class DisputeProtocol extends TradeProtocol {
     // Trader has already received the peer's signature and has clicked the accept button as well.
     public void onFinalizeMediationResultPayout(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         DisputeEvent event = DisputeEvent.MEDIATION_RESULT_ACCEPTED;
-        expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED,
+        expect(anyPhase(
+                Trade.Phase.DEPOSITS_UNLOCKED,
+                Trade.Phase.DEPOSITS_FINALIZED,
                 Trade.Phase.PAYMENT_SENT,
                 Trade.Phase.PAYMENT_RECEIVED)
                 .with(event)
@@ -135,7 +139,9 @@ public abstract class DisputeProtocol extends TradeProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void handle(MediatedPayoutTxSignatureMessage message, NodeAddress peer) {
-        expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED,
+        expect(anyPhase(
+                Trade.Phase.DEPOSITS_UNLOCKED,
+                Trade.Phase.DEPOSITS_FINALIZED,
                 Trade.Phase.PAYMENT_SENT,
                 Trade.Phase.PAYMENT_RECEIVED)
                 .with(message)
@@ -145,7 +151,9 @@ public abstract class DisputeProtocol extends TradeProtocol {
     }
 
     protected void handle(MediatedPayoutTxPublishedMessage message, NodeAddress peer) {
-        expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED,
+        expect(anyPhase(
+                Trade.Phase.DEPOSITS_UNLOCKED,
+                Trade.Phase.DEPOSITS_FINALIZED,
                 Trade.Phase.PAYMENT_SENT,
                 Trade.Phase.PAYMENT_RECEIVED)
                 .with(message)

@@ -440,6 +440,7 @@ monerod:
 	./.localnet/monerod \
 		--bootstrap-daemon-address auto \
 		--rpc-access-control-origins http://localhost:8080 \
+		--rpc-max-connections-per-private-ip 100 \
 
 seednode:
 	./haveno-seednode$(APP_EXT) \

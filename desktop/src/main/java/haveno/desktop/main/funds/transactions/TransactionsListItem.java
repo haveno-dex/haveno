@@ -170,10 +170,6 @@ public class TransactionsListItem {
                     }
                 }
             }
-        } else {
-            if (amount.compareTo(BigInteger.ZERO) == 0) {
-                details = Res.get("funds.tx.noFundsFromDispute");
-            }
         }
 
         // get tx date/time

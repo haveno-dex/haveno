@@ -18,6 +18,8 @@
 package haveno.desktop.main;
 
 import com.google.inject.Inject;
+
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -219,47 +221,49 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 (a, b) -> a && b);
         tradesAndUIReady.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
-                tradeManager.applyTradePeriodState();
+                ThreadUtils.submitToPool(() -> {
+                    tradeManager.applyTradePeriodState();
 
-                tradeManager.getOpenTrades().forEach(trade -> {
+                    tradeManager.getOpenTrades().forEach(trade -> {
 
-                    // check initialization error
-                    if (trade.getInitError() != null) {
-                        new Popup().warning("Error initializing trade" + " " + trade.getShortId() + "\n\n" +
-                                trade.getInitError().getMessage())
-                                .show();
-                        return;
-                    }
+                        // check initialization error
+                        if (trade.getInitError() != null) {
+                            new Popup().warning("Error initializing trade" + " " + trade.getShortId() + "\n\n" +
+                                    trade.getInitError().getMessage())
+                                    .show();
+                            return;
+                        }
 
-                    // check trade period
-                    Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
-                    String key;
-                    switch (trade.getPeriodState()) {
-                        case FIRST_HALF:
-                            break;
-                        case SECOND_HALF:
-                            key = "displayHalfTradePeriodOver" + trade.getId();
-                            if (DontShowAgainLookup.showAgain(key)) {
-                                DontShowAgainLookup.dontShowAgain(key, true);
-                                if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
-                                new Popup().warning(Res.get("popup.warning.tradePeriod.halfReached",
-                                        trade.getShortId(),
-                                        DisplayUtils.formatDateTime(maxTradePeriodDate)))
-                                        .show();
-                            }
-                            break;
-                        case TRADE_PERIOD_OVER:
-                            key = "displayTradePeriodOver" + trade.getId();
-                            if (DontShowAgainLookup.showAgain(key)) {
-                                DontShowAgainLookup.dontShowAgain(key, true);
-                                if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
-                                new Popup().warning(Res.get("popup.warning.tradePeriod.ended",
-                                        trade.getShortId(),
-                                        DisplayUtils.formatDateTime(maxTradePeriodDate)))
-                                        .show();
-                            }
-                            break;
-                    }
+                        // check trade period
+                        Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
+                        String key;
+                        switch (trade.getPeriodState()) {
+                            case FIRST_HALF:
+                                break;
+                            case SECOND_HALF:
+                                key = "displayHalfTradePeriodOver" + trade.getId();
+                                if (DontShowAgainLookup.showAgain(key)) {
+                                    DontShowAgainLookup.dontShowAgain(key, true);
+                                    if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
+                                    new Popup().warning(Res.get("popup.warning.tradePeriod.halfReached",
+                                            trade.getShortId(),
+                                            DisplayUtils.formatDateTime(maxTradePeriodDate)))
+                                            .show();
+                                }
+                                break;
+                            case TRADE_PERIOD_OVER:
+                                key = "displayTradePeriodOver" + trade.getId();
+                                if (DontShowAgainLookup.showAgain(key)) {
+                                    DontShowAgainLookup.dontShowAgain(key, true);
+                                    if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
+                                    new Popup().warning(Res.get("popup.warning.tradePeriod.ended",
+                                            trade.getShortId(),
+                                            DisplayUtils.formatDateTime(maxTradePeriodDate)))
+                                            .show();
+                                }
+                                break;
+                        }
+                    });
                 });
             }
         });

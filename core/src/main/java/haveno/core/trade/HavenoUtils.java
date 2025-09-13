@@ -44,6 +44,7 @@ import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.JsonUtil;
+import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 
@@ -626,11 +627,15 @@ public class HavenoUtils {
     }
 
     public static boolean isUnresponsive(Throwable e) {
-        return isConnectionRefused(e) || isReadTimeout(e);
+        return isConnectionRefused(e) || isReadTimeout(e) || XmrWalletBase.isSyncWithProgressTimeout(e);
     }
 
     public static boolean isNotEnoughSigners(Throwable e) {
         return e != null && e.getMessage().contains("Not enough signers");
+    }
+
+    public static boolean isFailedToParse(Throwable e) {
+        return e != null && e.getMessage().contains("Failed to parse");
     }
 
     public static boolean isTransactionRejected(Throwable e) {

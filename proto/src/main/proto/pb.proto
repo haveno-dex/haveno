@@ -337,6 +337,7 @@ message PaymentReceivedMessage {
     SignedWitness buyer_signed_witness = 9;
     PaymentSentMessage payment_sent_message = 10;
     bytes seller_signature = 11;
+    string payout_tx_id = 12;
 }
 
 message MediatedPayoutTxPublishedMessage {
@@ -1456,6 +1457,7 @@ message Trade {
         DEPOSIT_TXS_SEEN_IN_NETWORK = 13;
         DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN = 14;
         DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN = 15;
+        DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN = 28;
         BUYER_CONFIRMED_PAYMENT_SENT = 16;
         BUYER_SENT_PAYMENT_SENT_MSG = 17;
         BUYER_SEND_FAILED_PAYMENT_SENT_MSG = 18;
@@ -1477,6 +1479,7 @@ message Trade {
         DEPOSITS_PUBLISHED = 3;
         DEPOSITS_CONFIRMED = 4;
         DEPOSITS_UNLOCKED = 5;
+        DEPOSITS_FINALIZED = 8;
         PAYMENT_SENT = 6;
         PAYMENT_RECEIVED = 7;
     }
@@ -1486,6 +1489,7 @@ message Trade {
         PAYOUT_PUBLISHED = 1;
         PAYOUT_CONFIRMED = 2;
         PAYOUT_UNLOCKED = 3;
+        PAYOUT_FINALIZED = 4;
     }
 
     enum DisputeState {
@@ -1585,6 +1589,8 @@ message ProcessModel {
     int64 trade_protocol_error_height = 18;
     string trade_fee_address = 19;
     bool import_multisig_hex_scheduled = 20;
+    bool payment_sent_payout_tx_stale = 21;
+    bool error_on_payment_received_msg = 22 [deprecated = true]; // used during debugging across clients (can be repurposed)
 }
 
 message TradePeer {
