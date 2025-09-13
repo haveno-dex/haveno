@@ -809,6 +809,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
         }
 
+        // poll wallet without network calls
+        doPollWallet(false);
+
         // trade is initialized
         isInitialized = true;
 
@@ -2911,18 +2914,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (!offline) syncWalletIfBehind();
 
                 // get txs from trade wallet
-                MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
                 boolean updatePool = !offline && !isDepositsConfirmed() && (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit()));
-                if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
-                List<MoneroTxWallet> txs;
-                if (!updatePool) txs = wallet.getTxs(query);
-                else {
-                    synchronized (walletLock) {
-                        synchronized (HavenoUtils.getDaemonLock()) {
-                            txs = wallet.getTxs(query);
-                        }
-                    }
-                }
+                List<MoneroTxWallet> txs = getTxs(updatePool);
                 setDepositTxs(txs);
 
                 // set actual buyer security deposit
@@ -2987,18 +2980,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
 
                 // get txs from trade wallet
-                MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
                 boolean updatePool = !offline && isPayoutExpected && !isPayoutConfirmed();
-                if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
-                List<MoneroTxWallet> txs = null;
-                if (!updatePool) txs = wallet.getTxs(query);
-                else {
-                    synchronized (walletLock) {
-                        synchronized (HavenoUtils.getDaemonLock()) {
-                            txs = wallet.getTxs(query);
-                        }
-                    }
-                }
+                List<MoneroTxWallet> txs = getTxs(updatePool);
                 setDepositTxs(txs);
 
                 // update payout state
@@ -3047,6 +3030,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             wasWalletPolled.set(true);
             saveWalletWithDelay();
         }
+    }
+
+    private List<MoneroTxWallet> getTxs(boolean updatePool) {
+        MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
+        if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
+        List<MoneroTxWallet> txs = null;
+        if (!updatePool) txs = wallet.getTxs(query);
+        else {
+            synchronized (walletLock) {
+                synchronized (HavenoUtils.getDaemonLock()) {
+                    txs = wallet.getTxs(query);
+                }
+            }
+        }
+        return txs;
     }
 
     private void onValidPayoutTxPoll() {
