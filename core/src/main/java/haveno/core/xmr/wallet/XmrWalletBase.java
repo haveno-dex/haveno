@@ -107,6 +107,15 @@ public abstract class XmrWalletBase {
                 // start polling wallet for progress
                 syncProgressLatch = new CountDownLatch(1);
                 syncProgressLooper = new TaskLooper(() -> {
+
+                    // stop if shutdown or null wallet
+                    if (isShutDownStarted || wallet == null) {
+                        syncProgressError = new RuntimeException("Shut down or wallet has become null while syncing with progress");
+                        syncProgressLatch.countDown();
+                        return;
+                    }
+
+                    // get height
                     long height;
                     try {
                         height = wallet.getHeight(); // can get read timeout while syncing
@@ -120,6 +129,8 @@ public abstract class XmrWalletBase {
                         }
                         return;
                     }
+
+                    // update sync progress
                     long appliedTargetHeight = repeatSyncToLatestHeight ? xmrConnectionService.getTargetHeight() : targetHeightAtStart;
                     updateSyncProgress(height, appliedTargetHeight);
                     if (height >= appliedTargetHeight) {
