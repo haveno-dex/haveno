@@ -810,7 +810,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // poll wallet without network calls
-        doPollWallet(false);
+        doPollWallet(true);
 
         // trade is initialized
         isInitialized = true;
@@ -2446,12 +2446,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public boolean isDepositsFinalized() {
         if (getState().getPhase().ordinal() < Phase.DEPOSITS_FINALIZED.ordinal()) return false;
         else if (getState().getPhase() == Phase.DEPOSITS_FINALIZED) return true;
+        else if (isPayoutFinalized()) return true;
         else {
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
-            if (minDepositTxConfirmations == null) {
+
+            // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits
+            if (minDepositTxConfirmations == null) {    
                 log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in phase {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState().getPhase());
                 return true;
-            }
+            } 
             return minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
         }
     }
@@ -2908,7 +2911,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (!offline && walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) syncWallet(false);
 
             // update deposit txs
-            if (!isDepositsFinalized()) {
+            boolean depositTxsUninitialized = isDepositRequested() && (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit()));
+            if (depositTxsUninitialized || !isDepositsFinalized()) {
 
                 // sync wallet if behind
                 if (!offline) syncWalletIfBehind();
@@ -2960,7 +2964,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
             }
 
-            // check for payout tx
+            // update payout tx
             boolean hasUnlockedDeposit = hasUnlockedTx();
             if (isDepositsUnlocked() || hasUnlockedDeposit) { // arbitrator idles so these may not be the same
 
