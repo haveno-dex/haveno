@@ -39,7 +39,7 @@ If it's the first time you are building Haveno, run the following commands to do
 ```
 git clone https://github.com/haveno-dex/haveno.git
 cd haveno
-git checkout v1.2.0
+git checkout v1.2.1
 make
 ```
 
@@ -48,7 +48,7 @@ make
 If you are updating from a previous version, run from the root of the repository:
 
 ```
-git checkout v1.2.0
+git checkout v1.2.1
 git pull
 make clean && make
 ```
