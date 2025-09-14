@@ -510,10 +510,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             log.warn("Ignoring DisputeOpenedMessage for trade {} because it does not exist", msgDispute.getTradeId());
             return;
         }
-        if (trade.isPayoutPublished()) {
-            log.warn("Ignoring DisputeOpenedMessage for {} {} because payout is already published", trade.getClass().getSimpleName(), trade.getId());
-            return;
-        }
 
         // find existing dispute
         Optional<Dispute> storedDisputeOptional = findDispute(msgDispute);
@@ -598,10 +594,19 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     TradePeer opener = sender == trade.getArbitrator() ? trade.getTradePeer() : sender;
                     if (message.getOpenerUpdatedMultisigHex() != null) opener.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex());
 
-                    // arbitrator syncs and polls wallet
-                    if (trade.isArbitrator()) {
+                    // TODO: peer needs to import multisig hex at some point
+                    // TODO: DisputeOpenedMessage should include arbitrator's updated multisig hex too
+                    // TODO: arbitrator needs to import multisig info then scan for updated state?
+
+                    // arbitrator syncs and polls wallet unless finalized
+                    if (trade.isArbitrator() && !trade.isPayoutFinalized()) {
                         trade.syncAndPollWallet();
                         trade.recoverIfMissingWalletData();
+                    }
+
+                    // nack if payout published
+                    if (trade.isPayoutPublished()) {
+                        throw new RuntimeException("Ignoring DisputeOpenedMessage because payout is already published for " + trade.getClass().getSimpleName() + " " + trade.getId() + ", payoutTxId=" + trade.getPayoutTxId());
                     }
 
                     // add chat message with price info

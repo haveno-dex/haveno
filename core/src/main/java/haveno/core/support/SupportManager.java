@@ -217,7 +217,11 @@ public abstract class SupportManager {
                         synchronized (dispute.getChatMessages()) {
                             for (ChatMessage chatMessage : dispute.getChatMessages()) {
                                 if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                    if (trade.getDisputeState().isCloseRequested()) {
+                                    if (trade.getDisputeState().isRequested()) {
+                                        log.warn("DisputeOpenedMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
+                                        dispute.setIsClosed();
+                                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                                    } else if (trade.getDisputeState().isCloseRequested()) {
                                         log.warn("DisputeCloseMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
                                         dispute.setIsClosed();
                                         trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
