@@ -153,7 +153,7 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 <p style="text-align: center;">Example:</p>
 
 ```shell
-% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/1.2.0/haveno-v1.2.0-linux-x86_64-installer.deb" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
+% sudo bash QubesIncoming/dispXXXX/1.0-haveno-templatevm.sh "https://github.com/havenoexample/haveno-example/releases/download/1.2.1/haveno-v1.2.1-linux-x86_64-installer.deb" "ABAF11C65A2970B130ABE3C479BE3E4300411886"
 ```
 
 #### *TemplateVM Using Precompiled Package From `git` Repository (CLI)*

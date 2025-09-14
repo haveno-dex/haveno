@@ -14,7 +14,7 @@ After you already have a [Tails USB](https://tails.net/install/linux/index.en.ht
     Replace the installer URL and PGP fingerprint for the network you're using. For example:
     
     ```
-    curl -fsSLO https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/haveno-install.sh && bash haveno-install.sh https://github.com/havenoexample/haveno-example/releases/latest/download/haveno-v1.2.0-linux-x86_64-installer.deb FAA24D878B8D36C90120A897CA02DAC12DAE2D0F
+    curl -fsSLO https://github.com/haveno-dex/haveno/raw/master/scripts/install_tails/haveno-install.sh && bash haveno-install.sh https://github.com/havenoexample/haveno-example/releases/latest/download/haveno-v1.2.1-linux-x86_64-installer.deb FAA24D878B8D36C90120A897CA02DAC12DAE2D0F
     ```
 5. Start Haveno by finding the icon in the launcher under **Applications > Other**.
 
