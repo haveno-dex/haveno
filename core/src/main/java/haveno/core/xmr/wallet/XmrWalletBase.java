@@ -150,9 +150,9 @@ public abstract class XmrWalletBase {
                 if (wallet != null) { // can become null if interrupted by force close
                     if (syncProgressError == null || !HavenoUtils.isUnresponsive(syncProgressError)) { // TODO: skipping stop sync if unresponsive because wallet will hang. if unresponsive, wallet is assumed to be force restarted by caller, but that should be done internally here instead of externally?
                         wallet.stopSyncing();
+                        saveWallet();
                     }
                 }
-                saveWallet();
                 if (syncProgressError != null) throw new RuntimeException(syncProgressError);
             } catch (Exception e) {
                 throw e;
