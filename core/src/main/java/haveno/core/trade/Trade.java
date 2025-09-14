@@ -40,6 +40,7 @@ import com.google.protobuf.Message;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.config.Config;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -154,7 +155,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
     private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 5;
     public static final int NUM_BLOCKS_DEPOSITS_FINALIZED = 30; // ~1 hour before deposits are considered finalized
-    public static final int NUM_BLOCKS_PAYOUT_FINALIZED = 60; // ~2 hours before payout is considered finalized and multisig wallet deleted
+    public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized and multisig wallet deleted
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
     protected static final Object importMultisigLock = new Object();
@@ -957,6 +958,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isIdling() {
+        if (isPayoutUnlocked() && !Config.baseCurrencyNetwork().isTestnet()) return true; // idle after payout unlocked (unless testnet)
         return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists() && pollNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
     }
 
