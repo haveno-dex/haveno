@@ -34,7 +34,7 @@ public class SellerStep1View extends TradeStepView {
     @Override
     protected void onPendingTradesInitialized() {
         super.onPendingTradesInitialized();
-        checkForUnconfirmedTimeout();
+        //checkForUnconfirmedTimeout();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

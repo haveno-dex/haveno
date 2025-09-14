@@ -49,6 +49,7 @@ public class TradeStepInfo {
         IN_REFUND_REQUEST_PEER_REQUESTED,
         WARN_HALF_PERIOD,
         WARN_PERIOD_OVER,
+        DEPOSIT_MISSING,
         TRADE_COMPLETED
     }
 
@@ -63,6 +64,7 @@ public class TradeStepInfo {
     private State state = State.UNDEFINED;
     private Supplier<String> firstHalfOverWarnTextSupplier = () -> "";
     private Supplier<String> periodOverWarnTextSupplier = () -> "";
+    private Supplier<String> depositTxMissingWarnTextSupplier = () -> "";
 
     TradeStepInfo(TitledGroupBg titledGroupBg,
                   SimpleMarkdownLabel label,
@@ -93,6 +95,10 @@ public class TradeStepInfo {
 
     public void setPeriodOverWarnTextSupplier(Supplier<String> periodOverWarnTextSupplier) {
         this.periodOverWarnTextSupplier = periodOverWarnTextSupplier;
+    }
+
+    public void setDepositTxMissingWarnTextSupplier(Supplier<String> depositTxMissingWarnTextSupplier) {
+        this.depositTxMissingWarnTextSupplier = depositTxMissingWarnTextSupplier;
     }
 
     public void setState(State state) {
@@ -192,12 +198,23 @@ public class TradeStepInfo {
                 button.getStyleClass().remove("action-button");
                 button.setDisable(false);
                 break;
+            case DEPOSIT_MISSING:
+                // red button
+                titledGroupBg.setText(Res.get("portfolio.pending.support.headline.depositTxMissing"));
+                label.updateContent(depositTxMissingWarnTextSupplier.get());
+                button.setText(Res.get("portfolio.pending.openSupport").toUpperCase());
+                button.setId("open-dispute-button");
+                button.getStyleClass().remove("action-button");
+                button.setDisable(false);
+                break;
             case TRADE_COMPLETED:
                 // hide group
                 titledGroupBg.setVisible(false);
                 label.setVisible(false);
                 button.setVisible(false);
                 footerLabel.setVisible(false);
+            default:
+                break;
         }
 
         if (trade != null && trade.getPayoutTxId() != null) {

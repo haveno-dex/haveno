@@ -113,9 +113,9 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
         boolean isFromBuyer = sender == trade.getBuyer();
         BigInteger tradeFee = isFromTaker ? trade.getTakerFee() : trade.getMakerFee();
         BigInteger sendTradeAmount =  isFromBuyer ? BigInteger.ZERO : trade.getAmount();
-        BigInteger securityDeposit = isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
+        BigInteger securityDepositBeforeMiningFee = isFromBuyer ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
         String depositAddress = processModel.getMultisigAddress();
-        sender.setSecurityDeposit(securityDeposit);
+        sender.setSecurityDeposit(securityDepositBeforeMiningFee);
 
         // verify deposit tx
         boolean isFromBuyerAsTakerWithoutDeposit = isFromBuyer && isFromTaker && trade.hasBuyerAsTakerWithoutDeposit();
@@ -126,7 +126,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                         tradeFee,
                         trade.getProcessModel().getTradeFeeAddress(),
                         sendTradeAmount,
-                        securityDeposit,
+                        securityDepositBeforeMiningFee,
                         depositAddress,
                         sender.getDepositTxHash(),
                         request.getDepositTxHex(),
@@ -141,7 +141,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 }
 
                 // update trade state
-                sender.setSecurityDeposit(sender.getSecurityDeposit().subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
+                sender.setSecurityDeposit(securityDepositBeforeMiningFee.subtract(verifiedTx.getFee())); // subtract mining fee from security deposit
                 sender.setDepositTxFee(verifiedTx.getFee());
                 sender.setDepositTxHex(request.getDepositTxHex());
                 sender.setDepositTxKey(request.getDepositTxKey());
@@ -183,7 +183,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 try {
                     monerod.relayTxsByHash(txHashes); // call will error if txs are already confirmed, but they're still relayed
                 } catch (Exception e) {
-                    log.warn("Error relaying deposit txs: " + e.getMessage());
+                    log.warn("Error relaying deposit txs for trade {}. They could already be confirmed. Error={}", trade.getId(), e.getMessage());
                 }
                 depositTxsRelayed = true;
 

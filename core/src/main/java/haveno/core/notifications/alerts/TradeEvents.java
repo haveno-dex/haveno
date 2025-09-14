@@ -70,6 +70,7 @@ public class TradeEvents {
                     case DEPOSITS_PUBLISHED:
                         break;
                     case DEPOSITS_UNLOCKED:
+                    case DEPOSITS_FINALIZED: // TODO: use a separate message for deposits finalized?
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.conf", shortId);
                         break;

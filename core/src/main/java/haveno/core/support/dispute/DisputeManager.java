@@ -64,6 +64,7 @@ import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.TradePeer;
@@ -222,7 +223,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     // We get this message at both peers. The dispute object is in context of the trader
-    public abstract void handleDisputeClosedMessage(DisputeClosedMessage disputeClosedMessage);
+    public abstract void handle(DisputeClosedMessage disputeClosedMessage);
 
     public abstract NodeAddress getAgentNodeAddress(Dispute dispute);
 
@@ -403,13 +404,22 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             chatMessage.setSystemMessage(true);
             dispute.addAndPersistChatMessage(chatMessage);
 
-            // export multisig hex if needed
-            if (trade.getSelf().getUpdatedMultisigHex() == null) {
-                try {
-                    trade.exportMultisigHex();
-                } catch (Exception e) {
-                    log.error("Failed to export multisig hex", e);
+            // try to import latest multisig info
+            try {
+                trade.importMultisigHex();
+            } catch (Exception e) {
+                log.error("Failed to import multisig hex", e);
+            }
+
+            // try to export latest multisig info
+            try {
+                trade.exportMultisigHex();
+                if (trade instanceof SellerTrade) {
+                    trade.getProcessModel().setPaymentSentPayoutTxStale(true); // exporting multisig hex will invalidate previously unsigned payout txs
+                    trade.getSelf().setUnsignedPayoutTxHex(null);
                 }
+            } catch (Exception e) {
+                log.error("Failed to export multisig hex", e);
             }
 
             // create dispute opened message
@@ -490,7 +500,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     // arbitrator receives dispute opened message from opener, opener's peer receives from arbitrator
-    protected void handleDisputeOpenedMessage(DisputeOpenedMessage message) {
+    protected void handle(DisputeOpenedMessage message) {
         Dispute msgDispute = message.getDispute();
         log.info("Processing {} with trade {}, dispute {}", message.getClass().getSimpleName(), msgDispute.getTradeId(), msgDispute.getId());
 
@@ -500,16 +510,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             log.warn("Ignoring DisputeOpenedMessage for trade {} because it does not exist", msgDispute.getTradeId());
             return;
         }
-        if (trade.isPayoutPublished()) {
-            log.warn("Ignoring DisputeOpenedMessage for {} {} because payout is already published", trade.getClass().getSimpleName(), trade.getId());
-            return;
-        }
 
         // find existing dispute
         Optional<Dispute> storedDisputeOptional = findDispute(msgDispute);
 
         // determine if re-opening dispute
-        boolean reOpen = storedDisputeOptional.isPresent() && storedDisputeOptional.get().isClosed();
+        boolean reOpen = storedDisputeOptional.isPresent();
 
         // use existing dispute or create new
         Dispute dispute = reOpen ? storedDisputeOptional.get() : msgDispute;
@@ -587,6 +593,21 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     // update opener's multisig hex
                     TradePeer opener = sender == trade.getArbitrator() ? trade.getTradePeer() : sender;
                     if (message.getOpenerUpdatedMultisigHex() != null) opener.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex());
+
+                    // TODO: peer needs to import multisig hex at some point
+                    // TODO: DisputeOpenedMessage should include arbitrator's updated multisig hex too
+                    // TODO: arbitrator needs to import multisig info then scan for updated state?
+
+                    // arbitrator syncs and polls wallet unless finalized
+                    if (trade.isArbitrator() && !trade.isPayoutFinalized()) {
+                        trade.syncAndPollWallet();
+                        trade.recoverIfMissingWalletData();
+                    }
+
+                    // nack if payout published
+                    if (trade.isPayoutPublished()) {
+                        throw new RuntimeException("Ignoring DisputeOpenedMessage because payout is already published for " + trade.getClass().getSimpleName() + " " + trade.getId() + ", payoutTxId=" + trade.getPayoutTxId());
+                    }
 
                     // add chat message with price info
                     if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
@@ -933,6 +954,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         // sync and poll
         trade.syncAndPollWallet();
+
+        // recover if missing wallet data
+        trade.recoverIfMissingWalletData();
 
         // check if payout tx already published
         String alreadyPublishedMsg = "Cannot create dispute payout tx because payout tx is already published for trade " + trade.getId();

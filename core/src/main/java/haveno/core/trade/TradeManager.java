@@ -459,6 +459,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             return;
                         }
 
+                        // add random delay up to 10s to avoid syncing at exactly the same time
+                        if (trades.size() > 1 && trade.walletExists()) {
+                            int delay = (int) (Math.random() * 10000);
+                            HavenoUtils.waitFor(delay);
+                        }
+
                         // initialize trade
                         initPersistedTrade(trade);
 
@@ -484,7 +490,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // sync idle trades once in background after active trades
             for (Trade trade : trades) {
-                if (trade.isIdling()) ThreadUtils.submitToPool(() -> trade.syncAndPollWallet());
+                if (trade.isIdling()) ThreadUtils.submitToPool(() -> {
+                    
+                    // add random delay up to 10s to avoid syncing at exactly the same time
+                    if (trades.size() > 1 && trade.walletExists()) {
+                        int delay = (int) (Math.random() * 10000);
+                        HavenoUtils.waitFor(delay);
+                    }
+                    
+                    trade.syncAndPollWallet();
+                });
             }
 
             // process after all wallets initialized
@@ -492,7 +507,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                 // handle uninitialized trades
                 for (Trade trade : uninitializedTrades) {
-                    trade.onProtocolError();
+                    trade.onProtocolInitializationError();
                 }
 
                 // freeze or thaw outputs
@@ -630,7 +645,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // process with protocol
             ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
                 log.warn("Maker error during trade initialization: " + errorMessage);
-                trade.onProtocolError();
+                trade.onProtocolInitializationError();
             });
         }
 
@@ -724,7 +739,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // process with protocol
             ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
                 log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
-                trade.onProtocolError();
+                trade.onProtocolInitializationError();
             });
 
             requestPersistence();
@@ -936,7 +951,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 requestPersistence();
             }, errorMessage -> {
                 log.warn("Taker error during trade initialization: " + errorMessage);
-                trade.onProtocolError();
+                trade.onProtocolInitializationError();
                 xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move this into protocol error handling
                 errorMessageHandler.handleErrorMessage(errorMessage);
             });
@@ -1039,16 +1054,18 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             @Override
             public void onMinuteTick() {
-                updateTradePeriodState();
+                ThreadUtils.submitToPool(() -> updateTradePeriodState()); // update trade period off main thread
             }
         });
     }
 
+    // TODO: could use monerod.getBlocksByHeight() to more efficiently update trade period state
     private void updateTradePeriodState() {
         if (isShutDownStarted) return;
-        synchronized (tradableList.getList()) {
-            for (Trade trade : tradableList.getList()) {
-                if (!trade.isInitialized() || trade.isPayoutPublished()) continue;
+        for (Trade trade : getOpenTrades()) {
+            if (!trade.isInitialized() || trade.isPayoutPublished()) continue;
+            try {
+                trade.maybeUpdateTradePeriod();
                 Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
                 Date halfTradePeriodDate = trade.getHalfTradePeriodDate();
                 if (maxTradePeriodDate != null && halfTradePeriodDate != null) {
@@ -1061,6 +1078,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         requestPersistence();
                     }
                 }
+            } catch (Exception e) {
+                log.warn("Error updating trade period state for {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), e.getMessage(), e);
+                continue;
             }
         }
     }
@@ -1075,11 +1095,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
         failedTradesManager.add(trade);
         removeTrade(trade);
+        xmrWalletService.fixReservedOutputs();
     }
 
     public void onMoveFailedTradeToPendingTrades(Trade trade) {
         addTradeToPendingTrades(trade);
         failedTradesManager.removeTrade(trade);
+        xmrWalletService.fixReservedOutputs();
     }
 
     public void onMoveClosedTradeToPendingTrades(Trade trade) {
@@ -1224,8 +1246,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 updatedMultisigHex);
 
         // send ack message
-        log.info("Send AckMessage for {} to peer {}. tradeId={}, sourceUid={}",
-                ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
+        if (!result) {
+            if (errorMessage == null) {
+                log.warn("Sending NACK for {} to peer {} without error message. That should never happen. tradeId={}, sourceUid={}",
+                    ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
+            }
+            log.warn("Sending NACK for {} to peer {}. tradeId={}, sourceUid={}, errorMessage={}, updatedMultisigHex={}",
+                    ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid, errorMessage, updatedMultisigHex == null ? "null" : updatedMultisigHex.length() + " characters");
+        } else {
+            log.info("Sending AckMessage for {} to peer {}. tradeId={}, sourceUid={}",
+                    ackMessage.getSourceMsgClassName(), peer, tradeId, sourceUid);
+        }
         p2PService.getMailboxMessageService().sendEncryptedMailboxMessage(
                 peer,
                 peersPubKeyRing,

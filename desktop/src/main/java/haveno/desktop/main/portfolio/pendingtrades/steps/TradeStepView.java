@@ -34,7 +34,6 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
-import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.desktop.components.InfoTextField;
 import haveno.desktop.components.TitledGroupBg;
@@ -50,8 +49,6 @@ import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Optional;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -80,7 +77,7 @@ public abstract class TradeStepView extends AnchorPane {
     protected final Preferences preferences;
     protected final GridPane gridPane;
 
-    private Subscription tradePeriodStateSubscription, disputeStateSubscription, mediationResultStateSubscription;
+    private Subscription tradePeriodStateSubscription, tradeStateSubscription, disputeStateSubscription, mediationResultStateSubscription;
     protected int gridRow = 0;
     private TextField timeLeftTextField;
     private ProgressBar timeLeftProgressBar;
@@ -144,8 +141,10 @@ public abstract class TradeStepView extends AnchorPane {
         addContent();
 
         errorMessageListener = (observable, oldValue, newValue) -> {
-            if (newValue != null)
+            if (newValue != null) {
+                log.warn("Showing popup for trade error {} {}", trade.getClass().getSimpleName(), trade.getId(), new RuntimeException(newValue));
                 new Popup().error(newValue).show();
+            }
         };
 
         clockListener = new ClockWatcher.Listener() {
@@ -192,7 +191,7 @@ public abstract class TradeStepView extends AnchorPane {
         trade.errorMessageProperty().addListener(errorMessageListener);
 
         tradeStepInfo.setOnAction(e -> {
-            if (!isArbitrationOpenedState() && this.isTradePeriodOver()) {
+            if (!isArbitrationOpenedState() && (this.isTradePeriodOver() || trade.isDepositTxMissing())) {
                 openSupportTicket();
             } else {
                 openChat();
@@ -258,15 +257,28 @@ public abstract class TradeStepView extends AnchorPane {
             }
         });
 
+        if (trade.wasWalletPolled.get()) addTradeStateSubscription();
+        else trade.wasWalletPolled.addListener((observable, oldValue, newValue) -> {
+            if (newValue) addTradeStateSubscription();
+        });
+
         UserThread.execute(() -> model.p2PService.removeP2PServiceListener(bootstrapListener));
     }
 
+    private void addTradeStateSubscription() {
+        tradeStateSubscription = EasyBind.subscribe(trade.stateProperty(), newValue -> {
+            if (newValue != null) {
+                UserThread.execute(() -> updateTradeState(newValue));
+            }
+        });
+    }
+
     private void openSupportTicket() {
-        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
-            new Popup().warning(Res.get("portfolio.pending.error.depositTxNotConfirmed")).show();
-        } else {
+        if (trade.isDepositTxMissing() || trade.getPhase().ordinal() >= Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
             applyOnDisputeOpened();
             model.dataModel.onOpenDispute();
+        } else {
+            new Popup().warning(Res.get("portfolio.pending.error.depositTxNotConfirmed")).show();
         }
     }
 
@@ -299,6 +311,8 @@ public abstract class TradeStepView extends AnchorPane {
 
       if (tradePeriodStateSubscription != null)
           tradePeriodStateSubscription.unsubscribe();
+      if (tradeStateSubscription != null)
+          tradeStateSubscription.unsubscribe();
 
       if (clockListener != null)
           model.clockWatcher.removeListener(clockListener);
@@ -447,6 +461,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         tradeStepInfo.setFirstHalfOverWarnTextSupplier(this::getFirstHalfOverWarnText);
         tradeStepInfo.setPeriodOverWarnTextSupplier(this::getPeriodOverWarnText);
+        tradeStepInfo.setDepositTxMissingWarnTextSupplier(this::getDepositTxMissingWarnText);
     }
 
     protected void hideTradeStepInfo() {
@@ -464,6 +479,10 @@ public abstract class TradeStepView extends AnchorPane {
 
     protected String getPeriodOverWarnText() {
         return "";
+    }
+
+    protected String getDepositTxMissingWarnText() {
+        return Res.get("portfolio.pending.support.depositTxMissing");
     }
 
     protected void applyOnDisputeOpened() {
@@ -782,33 +801,39 @@ public abstract class TradeStepView extends AnchorPane {
         }
     }
 
-//    private void checkIfLockTimeIsOver() {
-//        if (trade.getDisputeState() == Trade.DisputeState.MEDIATION_CLOSED) {
-//            Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
-//            if (delayedPayoutTx != null) {
-//                long lockTime = delayedPayoutTx.getLockTime();
-//                int bestChainHeight = model.dataModel.btcWalletService.getBestChainHeight();
-//                long remaining = lockTime - bestChainHeight;
-//                if (remaining <= 0) {
-//                    openMediationResultPopup(Res.get("portfolio.pending.mediationResult.popup.headline", trade.getShortId()));
-//                }
-//            }
-//        }
-//    }
-
-    protected void checkForUnconfirmedTimeout() {
-        if (trade.isDepositsConfirmed()) return;
-        long unconfirmedHours = Duration.between(trade.getDate().toInstant(), Instant.now()).toHours();
-        if (unconfirmedHours >= 3 && !trade.hasFailed()) {
-            String key = "tradeUnconfirmedTooLong_" + trade.getShortId();
-            if (DontShowAgainLookup.showAgain(key)) {
-                new Popup().warning(Res.get("portfolio.pending.unconfirmedTooLong", trade.getShortId(), unconfirmedHours))
-                        .dontShowAgainId(key)
-                        .closeButtonText(Res.get("shared.ok"))
-                        .show();
-            }
+    private void updateTradeState(Trade.State tradeState) {
+        if (!trade.getDisputeState().isOpen() && trade.isDepositTxMissing()) {
+            tradeStepInfo.setState(TradeStepInfo.State.DEPOSIT_MISSING);
         }
     }
+
+    // private void checkIfLockTimeIsOver() {
+    //     if (trade.getDisputeState() == Trade.DisputeState.MEDIATION_CLOSED) {
+    //         Transaction delayedPayoutTx = trade.getDelayedPayoutTx();
+    //         if (delayedPayoutTx != null) {
+    //             long lockTime = delayedPayoutTx.getLockTime();
+    //             int bestChainHeight = model.dataModel.btcWalletService.getBestChainHeight();
+    //             long remaining = lockTime - bestChainHeight;
+    //             if (remaining <= 0) {
+    //                 openMediationResultPopup(Res.get("portfolio.pending.mediationResult.popup.headline", trade.getShortId()));
+    //             }
+    //         }
+    //     }
+    // }
+
+    // protected void checkForUnconfirmedTimeout() {
+    //     if (trade.isDepositsConfirmed()) return;
+    //     long unconfirmedHours = Duration.between(trade.getDate().toInstant(), Instant.now()).toHours();
+    //     if (unconfirmedHours >= 3 && !trade.hasFailed()) {
+    //         String key = "tradeUnconfirmedTooLong_" + trade.getShortId();
+    //         if (DontShowAgainLookup.showAgain(key)) {
+    //             new Popup().warning(Res.get("portfolio.pending.unconfirmedTooLong", trade.getShortId(), unconfirmedHours))
+    //                     .dontShowAgainId(key)
+    //                     .closeButtonText(Res.get("shared.ok"))
+    //                     .show();
+    //         }
+    //     }
+    // }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // TradeDurationLimitInfo

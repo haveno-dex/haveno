@@ -72,11 +72,12 @@ public class SellerProtocol extends DisputeProtocol {
         ThreadUtils.execute(() -> {
             if (!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
             synchronized (trade.getLock()) {
-                if (!!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
+                if (!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
                 latchTrade();
                 given(anyPhase(Trade.Phase.PAYMENT_RECEIVED)
                     .with(SellerEvent.STARTUP))
                     .setup(tasks(
+                        SellerPreparePaymentReceivedMessage.class,
                             SellerSendPaymentReceivedMessageToBuyer.class,
                             SellerSendPaymentReceivedMessageToArbitrator.class)
                     .using(new TradeTaskRunner(trade,
@@ -116,6 +117,16 @@ public class SellerProtocol extends DisputeProtocol {
 
     public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info(TradeProtocol.LOG_HIGHLIGHT + "SellerProtocol.onPaymentReceived() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+
+        // advance trade state
+        if (trade.isPaymentSent() || trade.isPaymentReceived()) {
+            trade.advanceState(Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
+        } else {
+            errorMessageHandler.handleErrorMessage("Cannot confirm payment received for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " in state " + trade.getState());
+            return;
+        }
+
+        // process on trade thread
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 latchTrade();
@@ -137,10 +148,9 @@ public class SellerProtocol extends DisputeProtocol {
                                 resultHandler.handleResult();
                             }, (errorMessage) -> {
                                 log.warn("Error confirming payment received, reverting state to {}, error={}", Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, errorMessage);
-                                trade.resetToPaymentSentState();
+                                if (!trade.isPayoutPublished()) trade.resetToPaymentSentState();
                                 handleTaskRunnerFault(event, errorMessage);
                             })))
-                            .run(() -> trade.advanceState(Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT))
                             .executeTasks(true);
                 } catch (Exception e) {
                     errorMessageHandler.handleErrorMessage("Error confirming payment received: " + e.getMessage());
