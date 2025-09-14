@@ -302,12 +302,12 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            // publish after random delay within 24 hours
+            // publish after random delay within 12 hours
             log.info("Scheduling to publish trade statistics at random time for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
             TradeStatistics3 tradeStatistics3V2Final = tradeStatistics3V2;
             UserThread.runAfterRandomDelay(() -> {
                 p2PService.addPersistableNetworkPayload(tradeStatistics3V2Final, true);
-            }, 0, PUBLISH_STATS_RANDOM_DELAY_HOURS * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
+            }, 0, PUBLISH_STATS_RANDOM_DELAY_HOURS / 2 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         });
         log.info("maybeRepublishTradeStatistics took {} ms. Number of tradeStatistics: {}. Number of own trades: {}",
                 System.currentTimeMillis() - ts, hashes.size(), trades.size());
