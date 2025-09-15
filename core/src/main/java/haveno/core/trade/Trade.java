@@ -3184,13 +3184,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void syncWalletIfBehind() {
         synchronized (walletLock) {
             if (isWalletBehind()) {
-
-                // TODO: local tests have timing failures unless sync called directly
-                if (xmrConnectionService.getTargetHeight() - walletHeight.get() < XmrWalletBase.DIRECT_SYNC_WITHIN_BLOCKS) {
-                    xmrWalletService.syncWallet(wallet); // TODO: always running this causes "Wallet is not connected to daemon" error
-                } else {
-                    syncWithProgress();
-                }
+                syncWithProgress();
                 walletHeight.set(wallet.getHeight());
             }
         }
