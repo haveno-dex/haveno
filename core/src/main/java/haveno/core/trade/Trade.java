@@ -482,6 +482,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private long lockTime;
     @Setter
     private long startTime; // added for haveno
+    private final Object startTimeLock = new Object();
     @Getter
     @Nullable
     private RefundResultState refundResultState = RefundResultState.UNDEFINED_REFUND_RESULT;
@@ -2334,28 +2335,30 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void maybeUpdateTradePeriod() {
-        if (startTime > 0) return; // already set
-        if (getTakeOfferDate() == null) return; // trade not started yet
-        if (!isDepositsFinalized()) return; // deposits not finalized yet
+        synchronized (startTimeLock) {
+            if (startTime > 0) return; // already set
+            if (getTakeOfferDate() == null) return; // trade not started yet
+            if (!isDepositsFinalized()) return; // deposits not finalized yet
 
-        long now = System.currentTimeMillis();
-        long tradeTime = getTakeOfferDate().getTime();
-        MoneroDaemon monerod = xmrWalletService.getMonerod();
-        if (monerod == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
+            long now = System.currentTimeMillis();
+            long tradeTime = getTakeOfferDate().getTime();
+            MoneroDaemon monerod = xmrWalletService.getMonerod();
+            if (monerod == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
 
-        // get finalize time of last deposit tx
-        long finalizeHeight = getDepositsFinalizedHeight();
-        long finalizeTime = monerod.getBlockByHeight(finalizeHeight).getTimestamp() * 1000;
+            // get finalize time of last deposit tx
+            long finalizeHeight = getDepositsFinalizedHeight();
+            long finalizeTime = monerod.getBlockByHeight(finalizeHeight).getTimestamp() * 1000;
 
-        // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
-        // If block date is earlier than our trade date we use our trade date.
-        if (finalizeTime > now)
-            startTime = now;
-        else
-            startTime = Math.max(finalizeTime, tradeTime);
+            // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
+            // If block date is earlier than our trade date we use our trade date.
+            if (finalizeTime > now)
+                startTime = now;
+            else
+                startTime = Math.max(finalizeTime, tradeTime);
 
-        log.debug("We set the start for the trade period to {}. Trade started at: {}. Block got mined at: {}",
-                new Date(startTime), new Date(tradeTime), new Date(finalizeTime));
+            log.debug("We set the start for the trade period to {}. Trade started at: {}. Block got mined at: {}",
+                    new Date(startTime), new Date(tradeTime), new Date(finalizeTime));
+        }
     }
 
     private long getDepositsFinalizedHeight() {
@@ -2386,7 +2389,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
      * Returns the current time until the deposits are finalized.
      */
     private long getEffectiveStartTime() {
-        return startTime > 0 ? startTime : System.currentTimeMillis();
+        synchronized (startTimeLock) {
+            return startTime > 0 ? startTime : System.currentTimeMillis();
+        }
     }
 
     public boolean hasFailed() {
@@ -2453,7 +2458,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else {
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
 
-            // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits
+            // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits, or a single published state + num confirmations
             if (minDepositTxConfirmations == null) {    
                 log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in phase {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState().getPhase());
                 return true;
