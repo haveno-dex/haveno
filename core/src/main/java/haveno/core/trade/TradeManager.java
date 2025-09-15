@@ -1406,6 +1406,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // TODO Remove once tradableList is refactored to a final field
     //  (part of the persistence refactor PR)
     private void onTradesChanged() {
-        this.numPendingTrades.set(getObservableList().size());
+        synchronized (numPendingTrades) {
+            numPendingTrades.set(getObservableList().size());
+        }
     }
 }
