@@ -3325,10 +3325,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (isShutDownStarted || restartInProgress) return;
         log.warn("Force restarting trade wallet for {} {}", getClass().getSimpleName(), getId());
         restartInProgress = true;
+        stopPolling();
         forceCloseWallet();
         if (!isShutDownStarted) wallet = getWallet();
         restartInProgress = false;
-        pollWallet();
         if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitSyncing(), getId());
     }
 
