@@ -139,7 +139,9 @@ import org.slf4j.LoggerFactory;
 
 
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
+
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
+    private static final int INIT_TRADE_RANDOM_DELAY_MS = 10000; // random delay to initialize trades
 
     private boolean isShutDownStarted;
     private boolean isShutDown;
@@ -438,20 +440,15 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // initialize trades in parallel
             int threadPoolSize = 10;
-            Set<Runnable> initTasksP1 = new HashSet<Runnable>();
-            Set<Runnable> initTasksP2 = new HashSet<Runnable>();
+            Set<Runnable> initTradeTasks = new HashSet<Runnable>();
             Set<String> uids = new HashSet<String>();
             Set<Trade> tradesToSkip = new HashSet<Trade>();
             Set<Trade> uninitializedTrades = new HashSet<Trade>();
             for (Trade trade : trades) {
-                Runnable initTradeTask = getInitTradeTask(trade, trades, tradesToSkip, uninitializedTrades, uids);
-                if (trade.isDepositRequested() && !trade.isPayoutUnlocked()) initTasksP1.add(initTradeTask);
-                else initTasksP2.add(initTradeTask);
+                initTradeTasks.add(getInitTradeTask(trade, trades, tradesToSkip, uninitializedTrades, uids));
             };
-            ThreadUtils.awaitTasks(initTasksP1, threadPoolSize);
-            log.info("Done initializing priority trades");
-            ThreadUtils.awaitTasks(initTasksP2, threadPoolSize);
-            log.info("Done initializing all trades");
+            ThreadUtils.awaitTasks(initTradeTasks, threadPoolSize);
+            log.info("Done initializing trades");
             if (isShutDownStarted) return;
 
             // remove skipped trades
@@ -461,9 +458,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             for (Trade trade : trades) {
                 if (trade.isIdling()) ThreadUtils.submitToPool(() -> {
                     
-                    // add random delay up to 10s to avoid syncing at exactly the same time
+                    // add random delay to avoid syncing at exactly the same time
                     if (trades.size() > 1 && trade.walletExists()) {
-                        int delay = (int) (Math.random() * 10000);
+                        int delay = (int) (Math.random() * INIT_TRADE_RANDOM_DELAY_MS);
                         HavenoUtils.waitFor(delay);
                     }
                     
@@ -536,9 +533,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     }
                 }
 
-                // add random delay up to 10s to avoid syncing at exactly the same time
+                // add random delay to avoid syncing at exactly the same time
                 if (trades.size() > 1 && trade.walletExists()) {
-                    int delay = (int) (Math.random() * 10000);
+                    int delay = (int) (Math.random() * INIT_TRADE_RANDOM_DELAY_MS);
                     HavenoUtils.waitFor(delay);
                 }
 
