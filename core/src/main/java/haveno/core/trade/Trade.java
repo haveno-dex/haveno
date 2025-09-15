@@ -814,6 +814,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // poll wallet without network calls
+        walletHeight.set(wallet.getHeight());
         doPollWallet(true);
 
         // trade is initialized
@@ -2464,6 +2465,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits, or a single published state + num confirmations
             if (minDepositTxConfirmations == null) {    
                 log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in phase {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState().getPhase());
+                Thread.dumpStack();
                 return true;
             } 
             return minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
@@ -2804,7 +2806,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (getWallet() == null) throw new IllegalStateException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
                 if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
                 if (isWalletBehind()) {
-                    log.info("Syncing wallet for {} {}", getShortId(), getClass().getSimpleName());
+                    log.info("Syncing wallet for {} {} from height {}", getShortId(), getClass().getSimpleName(), walletHeight.get());
                     long startTime = System.currentTimeMillis();
                     syncWalletIfBehind();
                     log.info("Done syncing wallet for {} {} in {} ms", getShortId(), getClass().getSimpleName(), System.currentTimeMillis() - startTime);

@@ -1462,7 +1462,7 @@ public class XmrWalletService extends XmrWalletBase {
                         }
 
                         // sync main wallet
-                        log.info("Syncing main wallet");
+                        log.info("Syncing main wallet from height " + walletHeight.get());
                         long time = System.currentTimeMillis();
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
