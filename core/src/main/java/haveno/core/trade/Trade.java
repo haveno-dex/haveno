@@ -1812,19 +1812,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             return;
         }
 
-        // unreserve taker's key images
-        if (this instanceof TakerTrade) {
-            ThreadUtils.submitToPool(() -> {
-                xmrWalletService.thawOutputs(getSelf().getReserveTxKeyImages());
-            });
-        }
-
-        // unreserve maker's open offer
-        Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOffer(this.getId());
-        if (this instanceof MakerTrade && openOffer.isPresent()) {
-            processModel.getOpenOfferManager().unreserveOpenOffer(openOffer.get());
-        }
-
         // remove if deposit not requested or is failed
         if (!isDepositRequested() || isDepositRequestFailed()) {
             removeTradeOnError();
@@ -1832,7 +1819,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // done if wallet already deleted
-        if (!walletExists()) return;
+        if (!walletExists()) {
+            removeTradeOnError();
+            return;
+        }
 
         // set error height
         if (processModel.getTradeProtocolErrorHeight() == 0) {
@@ -1926,6 +1916,19 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // force close and re-open wallet in case stuck
             forceCloseWallet();
             if (isDepositRequested()) getWallet();
+
+            // unreserve taker's key images
+            if (this instanceof TakerTrade) {
+                ThreadUtils.submitToPool(() -> {
+                    xmrWalletService.thawOutputs(getSelf().getReserveTxKeyImages());
+                });
+            }
+
+            // unreserve maker's open offer
+            Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOffer(this.getId());
+            if (this instanceof MakerTrade && openOffer.isPresent()) {
+                processModel.getOpenOfferManager().unreserveOpenOffer(openOffer.get());
+            }
 
             // clear and shut down trade
             onShutDownStarted();

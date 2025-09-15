@@ -536,6 +536,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             return;
         }
 
+        // log warning if trade not open
+        if (!processModel.getTradeManager().hasOpenTrade(trade)) {
+            log.warn("We received a PaymentSentMessage for {} {} but it is not an open trade. This can happen if the trade is pending processing as a failed trade.", trade.getClass().getSimpleName(), trade.getId());
+        }
+
         // validate signature
         try {
             HavenoUtils.verifyPaymentSentMessage(trade, message);

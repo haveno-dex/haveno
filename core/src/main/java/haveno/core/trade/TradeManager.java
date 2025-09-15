@@ -445,7 +445,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             Set<Trade> uninitializedTrades = new HashSet<Trade>();
             for (Trade trade : trades) {
                 Runnable initTradeTask = getInitTradeTask(trade, trades, tradesToSkip, uninitializedTrades, uids);
-                if (trade.isDepositsPublished() && !trade.isPayoutUnlocked()) initTasksP1.add(initTradeTask);
+                if (trade.isDepositRequested() && !trade.isPayoutUnlocked()) initTasksP1.add(initTradeTask);
                 else initTasksP2.add(initTradeTask);
             };
             ThreadUtils.awaitTasks(initTasksP1, threadPoolSize);
@@ -920,6 +920,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // ensure trade is not already open
             Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
             if (tradeOptional.isPresent()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + offer.getId() + " is already open");
+
+            // ensure failed trade is not processing
+            tradeOptional = getFailedTrade(offer.getId());
+            if (tradeOptional.isPresent() && tradeOptional.get().walletExists()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + offer.getId() + " has failed but is not processed");
     
             // create trade
             Trade trade;
