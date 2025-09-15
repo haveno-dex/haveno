@@ -2157,6 +2157,7 @@ public class XmrWalletService extends XmrWalletBase {
         BigInteger unlockedBalance = wallet.getUnlockedBalance();
         cachedSubaddresses = wallet.getSubaddresses(0);
         cachedOutputs = wallet.getOutputs();
+        if (cachedTxs == null) cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true).setInTxPool(false));
 
         // cache and notify changes
         if (cachedHeight == null) {
