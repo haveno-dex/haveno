@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -60,8 +61,16 @@ public class MakerSendSignOfferRequest extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
 
-            // create request for arbitrator to sign offer
-            String returnAddress = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString();
+            // get payout address entry
+            String returnAddress;
+            Optional<XmrAddressEntry> addressEntryOpt = model.getXmrWalletService().getAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT);
+            if (addressEntryOpt.isPresent()) returnAddress = addressEntryOpt.get().getAddressString();
+            else {
+                log.warn("Payout address entry found for unsigned offer {} is missing, creating anew", offer.getId());
+                returnAddress = model.getXmrWalletService().getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            }
+
+            // build sign offer request
             SignOfferRequest request = new SignOfferRequest(
                     offer.getId(),
                     P2PService.getMyNodeAddress(),
