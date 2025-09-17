@@ -158,6 +158,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
     private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 30000 : 1680000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
+    private static final long CHECK_POOL_PERIOD_MS = 180000; // throttle fetching from tx pool since invalidation is unlikely
+    private long lastCheckPoolTime = 0;
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
     protected static final Object importMultisigLock = new Object();
@@ -2879,10 +2881,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // sync wallet if behind
                 if (!offlinePoll) syncWalletIfBehind();
 
-                // get txs from trade wallet
-                boolean updatePool = !offlinePoll && !isDepositsConfirmed() && (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit()));
-                List<MoneroTxWallet> txs = getTxs(updatePool);
-                setDepositTxs(txs);
+                // set deposit txs from trade wallet
+                List<MoneroTxWallet> txs = getTxs(false);
+                if (!txs.isEmpty()) setDepositTxs(txs); // set deposits if available without checking pool
+                boolean missingDepositTxs = (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit()));
+                if (missingDepositTxs || (!isDepositsConfirmed() && System.currentTimeMillis() - lastCheckPoolTime > CHECK_POOL_PERIOD_MS)) {
+                    lastCheckPoolTime = System.currentTimeMillis();
+                    txs = getTxs(true);
+                    setDepositTxs(txs);
+                }
             }
 
             // update payout tx
@@ -2905,8 +2912,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
 
                 // get txs from trade wallet
-                boolean updatePool = !offlinePoll && isPayoutExpected && !isPayoutConfirmed();
-                List<MoneroTxWallet> txs = getTxs(updatePool);
+                boolean checkPool = !offlinePoll && isPayoutExpected && !isPayoutConfirmed();
+                List<MoneroTxWallet> txs = getTxs(checkPool);
                 setDepositTxs(txs);
 
                 // update payout state
@@ -2955,11 +2962,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private List<MoneroTxWallet> getTxs(boolean updatePool) {
+    private List<MoneroTxWallet> getTxs(boolean checkPool) {
         MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-        if (!updatePool) query.setInTxPool(false); // avoid updating from pool if possible
+        if (!checkPool) query.setInTxPool(false); // avoid checking pool if possible
         List<MoneroTxWallet> txs = null;
-        if (!updatePool) txs = wallet.getTxs(query);
+        if (!checkPool) txs = wallet.getTxs(query);
         else {
             synchronized (walletLock) {
                 synchronized (HavenoUtils.getDaemonLock()) {
