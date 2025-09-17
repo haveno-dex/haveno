@@ -2994,6 +2994,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             log.warn("Resetting state of {} {} from {} to {} because payout is unpublished", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
             setState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
         }
+        setErrorMessage("The payout transaction is missing for trade " + getShortId() + ". This may be due to a blockchain reorganization.\n\nIf the payout does not confirm automatically, you can open a dispute or mark this trade as failed.");
     }
 
     /**
@@ -3128,6 +3129,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         State depositsState = getDepositsState();
         if (!isPaymentSent() && depositsState.ordinal() < getState().ordinal()) {
             log.warn("Reverting deposits state to {} for {} {}. Possible reorg?", depositsState, getClass().getSimpleName(), getShortId());
+            if (depositsState == State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) setErrorMessage("The deposit transactions are missing for trade " + getShortId() + ". This may be due to a blockchain reorganization.\n\nIf the issue persists, you can mark this trade as failed.");
             setState(depositsState);
         }
 
