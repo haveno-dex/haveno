@@ -2720,8 +2720,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (isShutDownStarted) return;
 
         // set known deposit txs
-        List<MoneroTxWallet> depositTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true).setInTxPool(false));
-        setDepositTxs(depositTxs);
+        doPollWallet(true);
 
         // start polling
         if (isIdling() && isArbitrator()) {
@@ -2986,15 +2985,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
         setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
         if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
+        String errorMsg = "The payout transaction is missing for trade " + getShortId() + ". This may be due to a blockchain reorganization.\n\nIf the payout does not confirm automatically, you can open a dispute or mark this trade as failed.";
         if (isSeller() && getState().ordinal() >= State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG.ordinal()) {
             log.warn("Resetting state of {} {} from {} to {} because payout is unpublished", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             setState(State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
             onPayoutError(false, true, null);
+            setErrorMessage(errorMsg);
         } else if (getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
             log.warn("Resetting state of {} {} from {} to {} because payout is unpublished", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
             setState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
+            setErrorMessage(errorMsg);
         }
-        setErrorMessage("The payout transaction is missing for trade " + getShortId() + ". This may be due to a blockchain reorganization.\n\nIf the payout does not confirm automatically, you can open a dispute or mark this trade as failed.");
     }
 
     /**
@@ -3043,13 +3044,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             return true;
         }
         return false;
-    }
-
-    private static boolean isSeen(MoneroTx tx) {
-        if (tx == null) return false;
-        if (Boolean.TRUE.equals(tx.isFailed())) return false;
-        if (!Boolean.TRUE.equals(tx.inTxPool()) && !Boolean.TRUE.equals(tx.isConfirmed())) return false;
-        return true;
     }
 
     private static boolean isUnlocked(MoneroTx tx) {
@@ -3135,6 +3129,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // announce deposits update
         depositTxsUpdateCounter.set(depositTxsUpdateCounter.get() + 1);
+    }
+
+    private static boolean isSeen(MoneroTx tx) {
+        if (tx == null) return false;
+        if (Boolean.TRUE.equals(tx.isFailed())) return false;
+        if (!Boolean.TRUE.equals(tx.inTxPool()) && !Boolean.TRUE.equals(tx.isConfirmed())) return false;
+        return true;
     }
 
     private State getDepositsState() {
@@ -3329,7 +3330,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void setStateDepositsSeen() {
-        if (!isDepositsPublished()) setState(State.DEPOSIT_TXS_SEEN_IN_NETWORK);
+        if (getState().ordinal() < State.DEPOSIT_TXS_SEEN_IN_NETWORK.ordinal()) setState(State.DEPOSIT_TXS_SEEN_IN_NETWORK);
     }
 
     private void setStateDepositsConfirmed() {
