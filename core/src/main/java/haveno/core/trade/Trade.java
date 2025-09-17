@@ -156,9 +156,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public static final int NUM_BLOCKS_DEPOSITS_FINALIZED = 30; // ~1 hour before deposits are considered finalized
     public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized and multisig wallet deleted
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
-    private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 30000 : 1680000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
+    private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 60000 : 1680000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
-    private static final long CHECK_POOL_PERIOD_MS = 180000; // throttle fetching from tx pool since invalidation is unlikely
+    private static final long CHECK_POOL_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 45000 : 180000; // throttle fetching from tx pool since invalidation is unlikely
     private long lastCheckPoolTime = 0;
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
