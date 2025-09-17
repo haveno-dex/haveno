@@ -2658,7 +2658,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
     
     private boolean tradeAmountTransferred() {
-        return isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER);
+        return isPayoutPublished() && (isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER));
     }
 
     private void doPublishTradeStatistics() {
