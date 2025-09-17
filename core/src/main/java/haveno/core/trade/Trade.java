@@ -2931,8 +2931,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
                 if (payoutTx != null) setPayoutTx(payoutTx);
                 else if (hasPayoutTx) setPayoutStatePublished();
-                else if (isPayoutPublished()) onPayoutInvalidated(); // payout tx seen then lost (e.g. reorg)
-
+                else if (isPayoutPublished()) onPayoutUnseen(); // payout tx seen then lost (e.g. reorg) // TODO: change to isPayoutPublished() once multisig state updates across all peers: https://github.com/monero-project/monero/pull/10083
             }
         } catch (Exception e) {
             if (!(e instanceof IllegalStateException) && !isShutDownStarted && !wasWalletPolled.get()) { // request connection switch if failure on first poll
@@ -2976,8 +2975,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return txs;
     }
 
-    private void onPayoutInvalidated() {
-        log.warn("Payout tx invalidated for {} {} with payout state {}. Possible reorg?", getClass().getSimpleName(), getShortId(), getPayoutState());
+    private void onPayoutUnseen() {
+        log.warn("Payout tx unseen for {} {} with payout state {}. Possible reorg?", getClass().getSimpleName(), getShortId(), getPayoutState());
         for (TradePeer peer : getAllPeers()) {
             peer.setPaymentReceivedMessage(null);
             peer.setPaymentReceivedMessageState(MessageState.UNDEFINED);
@@ -2985,7 +2984,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
         setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
         if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
-        String errorMsg = "The payout transaction is missing for trade " + getShortId() + ". This may be due to a blockchain reorganization.\n\nIf the payout does not confirm automatically, you can open a dispute or mark this trade as failed.";
+        String errorMsg = "The payout transaction is not seen for trade " + getShortId() + ". This may be due to a blockchain reorganization.\n\nIf the payout does not confirm automatically, you can open a dispute or mark this trade as failed.";
         if (isSeller() && getState().ordinal() >= State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG.ordinal()) {
             log.warn("Resetting state of {} {} from {} to {} because payout is unpublished", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             setState(State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
