@@ -114,7 +114,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
         log.info("Seller creating unsigned payout tx for trade {}", trade.getId());
         trade.getProcessModel().setPaymentSentPayoutTxStale(true);
         MoneroTxWallet payoutTx = trade.createPayoutTx();
-        trade.updatePayout(payoutTx);
+        trade.updatePayoutTx(payoutTx);
         trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
     }
 }

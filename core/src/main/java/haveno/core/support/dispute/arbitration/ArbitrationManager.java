@@ -520,7 +520,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         }
 
         // update state
-        trade.updatePayout(disputeTxSet.getTxs().get(0));
+        trade.updatePayoutTx(disputeTxSet.getTxs().get(0));
         trade.setPayoutState(Trade.PayoutState.PAYOUT_PUBLISHED);
         dispute.setDisputePayoutTxId(disputeTxSet.getTxs().get(0).getHash());
         requestPersistence(trade);

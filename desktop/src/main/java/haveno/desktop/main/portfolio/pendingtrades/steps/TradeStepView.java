@@ -225,7 +225,7 @@ public abstract class TradeStepView extends AnchorPane {
             infoLabel.setText(getInfoText());
         }
 
-        BooleanProperty initialized = model.dataModel.tradeManager.getPersistedTradesInitialized();
+        BooleanProperty initialized = model.dataModel.tradeManager.getTradesInitialized();
         if (initialized.get()) {
             onPendingTradesInitialized();
         } else {

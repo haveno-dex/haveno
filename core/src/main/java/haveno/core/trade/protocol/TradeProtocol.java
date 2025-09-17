@@ -711,7 +711,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
                                         // handle payout error
                                         lastAckedPaymentReceivedMessage = message;
-                                        trade.onPayoutError(false, null);
+                                        trade.onPayoutError(false, false, null);
                                         handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
                                     }
                                 })))
@@ -892,7 +892,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = onPayoutError(true, peer);
+                        boolean autoResent = onPaymentReceivedNack(true, peer);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
@@ -911,7 +911,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = onPayoutError(true, peer);
+                        boolean autoResent = onPaymentReceivedNack(true, peer);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
@@ -939,17 +939,19 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         trade.onAckMessage(ackMessage, sender);
     }
 
-    private boolean onPayoutError(boolean syncAndPoll, TradePeer peer) {
+    private boolean onPaymentReceivedNack(boolean syncAndPoll, TradePeer peer) {
 
         // prevent infinite nack loop with max attempts
         numPaymentReceivedNacks++;
         if (numPaymentReceivedNacks > MAX_PAYMENT_RECEIVED_NACKS) {
-            log.warn("Maximum number of PaymentReceivedMessage NACKs reached for {} {}, not retrying", trade.getClass().getSimpleName(), trade.getId());
+            String errorMsg = "The maximum number of attempts to process the payment confirmation has been reached for " + trade.getClass().getSimpleName() + " " + trade.getId() + ". Restart the application to try again.";
+            log.warn(errorMsg);
+            trade.setErrorMessage(errorMsg);
             return false;
         }
 
         // handle payout error
-        return trade.onPayoutError(syncAndPoll, peer);
+        return trade.onPayoutError(syncAndPoll, true, peer);
     }
 
     private void handleFirstMakerInitTradeRequestNack(AckMessage ackMessage) {

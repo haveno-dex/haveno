@@ -172,7 +172,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final PersistenceManager<TradableList<Trade>> persistenceManager;
     private final TradableList<Trade> tradableList = new TradableList<>();
     @Getter
-    private final BooleanProperty persistedTradesInitialized = new SimpleBooleanProperty();
+    private final BooleanProperty tradesInitialized = new SimpleBooleanProperty();
     @Getter
     private final LongProperty numPendingTrades = new SimpleLongProperty();
     private final ReferralIdService referralIdService;
@@ -494,7 +494,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // notify that persisted trades initialized
             if (isShutDownStarted) return;
-            persistedTradesInitialized.set(true);
+            tradesInitialized.set(true);
             getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
             onTradesChanged();
 
@@ -1306,8 +1306,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
-    public BooleanProperty persistedTradesInitializedProperty() {
-        return persistedTradesInitialized;
+    public BooleanProperty tradesInitializedProperty() {
+        return tradesInitialized;
     }
 
     public boolean isMyOffer(Offer offer) {

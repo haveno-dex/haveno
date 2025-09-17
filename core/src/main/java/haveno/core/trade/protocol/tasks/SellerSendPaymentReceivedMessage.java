@@ -255,6 +255,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         if (isMessageReceived()) return true; // stop if message received
         if (!trade.isPaymentReceived()) return true; // stop if trade state reset
         if (trade.isPayoutPublished() && !((SellerTrade) trade).resendPaymentReceivedMessagesWithinDuration()) return true; // stop if payout is published and we are not in the resend period
+
+        // check if message state is outdated
         if (unsignedPayoutTxHex != null && !StringUtils.equals(unsignedPayoutTxHex, trade.getSelf().getUnsignedPayoutTxHex())) return true;
         if (signedPayoutTxHex != null && !StringUtils.equals(signedPayoutTxHex, trade.getPayoutTxHex())) return true;
         if (updatedMultisigHex != null && !StringUtils.equals(updatedMultisigHex, trade.getSelf().getUpdatedMultisigHex())) return true;
