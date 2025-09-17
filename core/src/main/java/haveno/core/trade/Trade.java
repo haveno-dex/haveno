@@ -2721,7 +2721,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         doPollWallet(true);
 
         // start polling
-        if (isIdling() && isArbitrator()) {
+        if (isIdling()) {
             long startSyncingInSec = Math.max(1, ThreadLocalRandom.current().nextLong(0, getPollPeriod()) / 1000l); // random seconds to start polling
             UserThread.runAfter(() -> ThreadUtils.execute(() -> {
                 if (!isShutDownStarted) doTryInitSyncing();
