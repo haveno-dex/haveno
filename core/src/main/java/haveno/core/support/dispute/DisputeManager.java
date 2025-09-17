@@ -1007,7 +1007,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             // update trade state
             if (updateState) {
                 trade.getProcessModel().setUnsignedPayoutTx(payoutTx);
-                trade.updatePayoutTx(payoutTx);
+                trade.setPayoutTx(payoutTx);
                 if (trade.getBuyer().getUpdatedMultisigHex() != null) trade.getBuyer().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
                 if (trade.getSeller().getUpdatedMultisigHex() != null) trade.getSeller().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
             }
