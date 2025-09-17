@@ -2033,7 +2033,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
         if (payoutState.ordinal() < this.payoutState.ordinal()) {
             String message = "We got a payout state change to a previous phase (id=" + getShortId() + ").\n" +
-                    "Old payout state is: " + this.state + ". New payout state is: " + payoutState;
+                    "Old payout state is: " + this.payoutState + ". New payout state is: " + payoutState;
             log.warn(message);
         }
 
