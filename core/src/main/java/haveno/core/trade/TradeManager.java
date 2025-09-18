@@ -454,18 +454,21 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // remove skipped trades
             trades.removeAll(tradesToSkip);
 
-            // sync idle trades once in background after active trades
+            // arbitrator syncs idle trades once in background after active trades
             for (Trade trade : trades) {
-                if (trade.isIdling()) ThreadUtils.submitToPool(() -> {
+                if (!trade.isArbitrator()) continue;
+                if (trade.isIdling()) {
+                    ThreadUtils.submitToPool(() -> {
                     
-                    // add random delay to avoid syncing at exactly the same time
-                    if (trades.size() > 1 && trade.walletExists()) {
-                        int delay = (int) (Math.random() * INIT_TRADE_RANDOM_DELAY_MS);
-                        HavenoUtils.waitFor(delay);
-                    }
-                    
-                    trade.syncAndPollWallet();
-                });
+                        // add random delay to avoid syncing at exactly the same time
+                        if (trades.size() > 1 && trade.walletExists()) {
+                            int delay = (int) (Math.random() * INIT_TRADE_RANDOM_DELAY_MS);
+                            HavenoUtils.waitFor(delay);
+                        }
+                        
+                        trade.syncAndPollWallet();
+                    });
+                }
             }
 
             // process after all wallets initialized
