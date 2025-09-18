@@ -642,6 +642,10 @@ public class HavenoUtils {
         return e != null && e.getMessage().contains("was rejected");
     }
 
+    public static boolean isLRNotFound(Throwable e) {
+        return e != null && e.getMessage().contains("LR not found for enough participants");
+    }
+
     public static boolean isIllegal(Throwable e) {
         return e instanceof IllegalArgumentException || e instanceof IllegalStateException;
     }

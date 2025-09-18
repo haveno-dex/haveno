@@ -83,16 +83,21 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
                 // synchronize on lock for wallet operations
                 synchronized (trade.getWalletLock()) {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
+                        try {
 
-                        // import multisig hex
-                        trade.importMultisigHex();
+                            // import multisig hex
+                            trade.importMultisigHex();
 
-                        // create payout tx
-                        log.info("Buyer creating unsigned payout tx for {} {} ", trade.getClass().getSimpleName(), trade.getShortId());
-                        MoneroTxWallet payoutTx = trade.createPayoutTx();
-                        trade.setPayoutTx(payoutTx);
-                        trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
-                        trade.requestPersistence();
+                            // create payout tx
+                            log.info("Buyer creating unsigned payout tx for {} {} ", trade.getClass().getSimpleName(), trade.getShortId());
+                            MoneroTxWallet payoutTx = trade.createPayoutTx();
+                            trade.setPayoutTx(payoutTx);
+                            trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                            trade.requestPersistence();
+                        } catch (Exception e) {
+                            if (HavenoUtils.isIllegal(e)) log.warn("Failed to create unsigned payout tx for " + trade.getClass().getSimpleName() + " " + trade.getShortId(), e); // continue to send message if illegal state
+                            else throw e;
+                        }
                     }
                 }
             }

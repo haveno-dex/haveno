@@ -1247,22 +1247,20 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     String errorMessage = "Multisig import still needed for " + getClass().getSimpleName() + " " + getShortId() + " after already importing, multisigHexes=" + multisigHexes;
                     log.warn(errorMessage);
 
-                    // ignore multisig hex which is significantly shorter than others
+                    // remove shortest multisig hex if applicable
                     int maxLength = 0;
-                    boolean removed = false;
-                    for (String hex : multisigHexes) maxLength = Math.max(maxLength, hex.length());
-                    for (String hex : new ArrayList<>(multisigHexes)) {
-                        if (hex.length() < maxLength / 2) {
-                            String ignoringMessage = "Ignoring multisig hex from " + getMultisigHexRole(hex) + " for " + getClass().getSimpleName() + " " + getShortId() + " because it is too short, multisigHex=" + hex;
-                            setErrorMessage(ignoringMessage);
-                            log.warn(ignoringMessage);
-                            multisigHexes.remove(hex);
-                            removed = true;
-                        }
+                    String shortestMultisigHex = null;
+                    for (String hex : multisigHexes) {
+                        if (shortestMultisigHex == null || hex.length() < shortestMultisigHex.length()) shortestMultisigHex = hex;
+                        if (hex.length() > maxLength) maxLength = hex.length();
+                    }
+                    if (shortestMultisigHex.length() < maxLength) {
+                        log.warn("Removing multisig hex from " + getMultisigHexRole(shortestMultisigHex) + " for " + getClass().getSimpleName() + " " + getShortId() + " because it's the shortest, multisigHex=" + shortestMultisigHex);
+                        multisigHexes.remove(shortestMultisigHex);
+                        wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
                     }
 
-                    // re-import valid multisig hexes
-                    if (removed) wallet.importMultisigHex(multisigHexes.toArray(new String[0]));
+                    // throw if multisig import still needed
                     if (wallet.isMultisigImportNeeded()) throw new IllegalStateException(errorMessage);
                 }
 
@@ -1372,13 +1370,19 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
         // create payout tx
-        MoneroTxWallet payoutTx = createTx(new MoneroTxConfig()
+        MoneroTxWallet payoutTx;
+        try {
+            payoutTx = createTx(new MoneroTxConfig()
                 .setAccountIndex(0)
                 .addDestination(buyerPayoutAddress, buyerPayoutAmount)
                 .addDestination(sellerPayoutAddress, sellerPayoutAmount)
                 .setSubtractFeeFrom(0, 1) // split tx fee
                 .setRelay(false)
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
+        } catch (Exception e) {
+            if (HavenoUtils.isLRNotFound(e)) throw new IllegalStateException(e);
+            else throw e;
+        }
 
         // update state
         BigInteger payoutTxFeeSplit = payoutTx.getFee().divide(BigInteger.valueOf(2));
