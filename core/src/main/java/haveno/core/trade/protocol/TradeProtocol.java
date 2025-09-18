@@ -711,7 +711,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
                                         // handle payout error
                                         lastAckedPaymentReceivedMessage = message;
-                                        trade.onPayoutError(false, null);
+                                        trade.onPayoutError(false, false, null);
                                         handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
                                     }
                                 })))
@@ -812,10 +812,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             peer.setNodeAddress(sender);
         }
 
-        // TODO: arbitrator may nack maker's InitTradeRequest if reserve tx has become invalid (e.g. check_tx_key shows 0 funds received). recreate reserve tx in this case
+        // handle nack of InitTradeRequest from arbitrator to maker
         if (!ackMessage.isSuccess() && trade.isMaker() && peer == trade.getArbitrator() && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
-            if (ackMessage.getErrorMessage() != null && ackMessage.getErrorMessage().contains(SEND_INIT_TRADE_REQUEST_FAILED)) {
+            if (ignoreInitTradeRequestNackFromArbitrator(ackMessage)) {
+                log.warn("Ignoring InitTradeRequest NACK from arbitrator, offerId={}, errorMessage={}", processModel.getOfferId(), ackMessage.getErrorMessage());
                 // use default postprocessing
+            } else {
                 if (makerInitTradeRequestHasBeenNacked) {
                     handleSecondMakerInitTradeRequestNack(ackMessage);
                     // use default postprocessing
@@ -892,7 +894,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = onPayoutError(true, peer);
+                        boolean autoResent = onPaymentReceivedNack(true, peer);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
@@ -911,7 +913,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = onPayoutError(true, peer);
+                        boolean autoResent = onPaymentReceivedNack(true, peer);
                         if (autoResent) return; // skip remaining processing if auto resent
                     }
                 }
@@ -939,17 +941,23 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         trade.onAckMessage(ackMessage, sender);
     }
 
-    private boolean onPayoutError(boolean syncAndPoll, TradePeer peer) {
+    private static boolean ignoreInitTradeRequestNackFromArbitrator(AckMessage ackMessage) {
+        return ackMessage.getErrorMessage() != null && ackMessage.getErrorMessage().contains(SEND_INIT_TRADE_REQUEST_FAILED); // ignore if arbitrator's request failed to taker
+    }
+
+    private boolean onPaymentReceivedNack(boolean syncAndPoll, TradePeer peer) {
 
         // prevent infinite nack loop with max attempts
         numPaymentReceivedNacks++;
         if (numPaymentReceivedNacks > MAX_PAYMENT_RECEIVED_NACKS) {
-            log.warn("Maximum number of PaymentReceivedMessage NACKs reached for {} {}, not retrying", trade.getClass().getSimpleName(), trade.getId());
+            String errorMsg = "The maximum number of attempts to process the payment confirmation has been reached for " + trade.getClass().getSimpleName() + " " + trade.getId() + ". Restart the application to try again.";
+            log.warn(errorMsg);
+            trade.setErrorMessage(errorMsg);
             return false;
         }
 
         // handle payout error
-        return trade.onPayoutError(syncAndPoll, peer);
+        return trade.onPayoutError(syncAndPoll, true, peer);
     }
 
     private void handleFirstMakerInitTradeRequestNack(AckMessage ackMessage) {

@@ -217,7 +217,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     @Override
     public void onSetupComplete() {
         // We handle the trade period here as we display a global popup if we reached dispute time
-        tradesAndUIReady = EasyBind.combine(isSplashScreenRemoved, tradeManager.persistedTradesInitializedProperty(),
+        tradesAndUIReady = EasyBind.combine(isSplashScreenRemoved, tradeManager.tradesInitializedProperty(),
                 (a, b) -> a && b);
         tradesAndUIReady.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {

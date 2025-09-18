@@ -112,9 +112,14 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
 
     private void createUnsignedPayoutTx() {
         log.info("Seller creating unsigned payout tx for trade {}", trade.getId());
-        trade.getProcessModel().setPaymentSentPayoutTxStale(true);
-        MoneroTxWallet payoutTx = trade.createPayoutTx();
-        trade.updatePayout(payoutTx);
-        trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+        try {
+            trade.getProcessModel().setPaymentSentPayoutTxStale(true);
+            MoneroTxWallet payoutTx = trade.createPayoutTx();
+            trade.setPayoutTx(payoutTx);
+            trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+        } catch (Exception e) {
+            if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
+            else throw e;
+        }
     }
 }

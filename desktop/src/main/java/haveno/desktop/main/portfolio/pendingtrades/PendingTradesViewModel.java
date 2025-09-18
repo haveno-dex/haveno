@@ -27,11 +27,8 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
-import haveno.core.trade.ArbitratorTrade;
-import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.HavenoUtils;
-import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeUtil;
 import haveno.core.user.User;
@@ -363,7 +360,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 trade != null ? trade.getShortId() : "trade is null");
 
         // arbitrator trade view only shows tx status
-        if (trade instanceof ArbitratorTrade) {
+        if (trade.isArbitrator()) {
             buyerState.set(BuyerState.STEP1);
             sellerState.set(SellerState.STEP1);
             return;
@@ -424,18 +421,26 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 buyerState.set(BuyerState.STEP2);
                 break;
 
+            // payment marked as received
+            case SELLER_CONFIRMED_PAYMENT_RECEIPT:
+                if (trade.isBuyer()) {
+                    buyerState.set(BuyerState.STEP3);
+                } else if (trade.isSeller()) {
+                    sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
+                }
+                break;
+
             // payment received
             case SELLER_SENT_PAYMENT_RECEIVED_MSG:
-                if (trade instanceof BuyerTrade) {
+                if (trade.isBuyer()) {
                     buyerState.set(BuyerState.UNDEFINED); // TODO: resetting screen to populate summary information which can be missing before payout message processed
                     buyerState.set(BuyerState.STEP4);
-                } else if (trade instanceof SellerTrade) {
+                } else if (trade.isSeller()) {
                     sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 }
                 break;
 
             // seller step 3 or 4 if published
-            case SELLER_CONFIRMED_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
             case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
@@ -457,7 +462,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 payoutState,
                 trade != null ? trade.getShortId() : "trade is null");
 
-        if (trade instanceof ArbitratorTrade) return;
+        if (trade.isArbitrator()) return;
 
         switch (payoutState) {
             case PAYOUT_PUBLISHED:

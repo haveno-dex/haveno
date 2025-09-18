@@ -598,8 +598,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     // TODO: DisputeOpenedMessage should include arbitrator's updated multisig hex too
                     // TODO: arbitrator needs to import multisig info then scan for updated state?
 
-                    // arbitrator syncs and polls wallet unless finalized
-                    if (trade.isArbitrator() && !trade.isPayoutFinalized()) {
+                    // sync and poll wallet unless finalized
+                    if (!trade.isPayoutFinalized()) {
                         trade.syncAndPollWallet();
                         trade.recoverIfMissingWalletData();
                     }
@@ -1007,7 +1007,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             // update trade state
             if (updateState) {
                 trade.getProcessModel().setUnsignedPayoutTx(payoutTx);
-                trade.updatePayout(payoutTx);
+                trade.setPayoutTx(payoutTx);
                 if (trade.getBuyer().getUpdatedMultisigHex() != null) trade.getBuyer().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
                 if (trade.getSeller().getUpdatedMultisigHex() != null) trade.getSeller().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
             }

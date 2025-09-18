@@ -41,6 +41,7 @@ import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
@@ -81,6 +82,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                 complete();
                 return;
             }
+
+            // set state to confirmed payment receipt before processing
+            trade.advanceState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
 
             // cannot process until wallet sees deposits unlocked
             if (!trade.isDepositsUnlocked()) {
@@ -179,9 +183,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     else throw e;
                 }
             }
-        } else {
-            log.info("Payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            if (message.getSignedPayoutTxHex() != null && !trade.isPayoutConfirmed()) trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
         }
     }
 }

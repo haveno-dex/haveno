@@ -172,7 +172,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final PersistenceManager<TradableList<Trade>> persistenceManager;
     private final TradableList<Trade> tradableList = new TradableList<>();
     @Getter
-    private final BooleanProperty persistedTradesInitialized = new SimpleBooleanProperty();
+    private final BooleanProperty tradesInitialized = new SimpleBooleanProperty();
     @Getter
     private final LongProperty numPendingTrades = new SimpleLongProperty();
     private final ReferralIdService referralIdService;
@@ -454,18 +454,21 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // remove skipped trades
             trades.removeAll(tradesToSkip);
 
-            // sync idle trades once in background after active trades
+            // arbitrator syncs idle trades once in background after active trades
             for (Trade trade : trades) {
-                if (trade.isIdling()) ThreadUtils.submitToPool(() -> {
+                if (!trade.isArbitrator()) continue;
+                if (trade.isIdling()) {
+                    ThreadUtils.submitToPool(() -> {
                     
-                    // add random delay to avoid syncing at exactly the same time
-                    if (trades.size() > 1 && trade.walletExists()) {
-                        int delay = (int) (Math.random() * INIT_TRADE_RANDOM_DELAY_MS);
-                        HavenoUtils.waitFor(delay);
-                    }
-                    
-                    trade.syncAndPollWallet();
-                });
+                        // add random delay to avoid syncing at exactly the same time
+                        if (trades.size() > 1 && trade.walletExists()) {
+                            int delay = (int) (Math.random() * INIT_TRADE_RANDOM_DELAY_MS);
+                            HavenoUtils.waitFor(delay);
+                        }
+                        
+                        trade.syncAndPollWallet();
+                    });
+                }
             }
 
             // process after all wallets initialized
@@ -494,7 +497,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // notify that persisted trades initialized
             if (isShutDownStarted) return;
-            persistedTradesInitialized.set(true);
+            tradesInitialized.set(true);
             getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
             onTradesChanged();
 
@@ -1306,8 +1309,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
-    public BooleanProperty persistedTradesInitializedProperty() {
-        return persistedTradesInitialized;
+    public BooleanProperty tradesInitializedProperty() {
+        return tradesInitialized;
     }
 
     public boolean isMyOffer(Offer offer) {
