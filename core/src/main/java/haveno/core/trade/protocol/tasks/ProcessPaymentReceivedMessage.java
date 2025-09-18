@@ -183,9 +183,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     else throw e;
                 }
             }
-        } else {
-            log.info("Payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            if (message.getSignedPayoutTxHex() != null && !trade.isPayoutConfirmed()) trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
         }
     }
 }
