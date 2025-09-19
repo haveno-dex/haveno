@@ -3387,7 +3387,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void setStateDepositsFinalized() {
         if (!isDepositsFinalized()) {
             setStateIfValidTransitionTo(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
-            ThreadUtils.submitToPool(() -> maybeUpdateTradePeriod());
+            maybeUpdateTradePeriod();
         }
     }
 
