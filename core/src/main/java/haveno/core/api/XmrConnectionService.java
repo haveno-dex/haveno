@@ -419,7 +419,7 @@ public final class XmrConnectionService {
 
     public Long getTargetHeight() {
         if (lastInfo == null) return null;
-        return lastInfo.getTargetHeight() == 0 ? chainHeight.get() : lastInfo.getTargetHeight(); // monerod sync_info's target_height returns 0 when node is fully synced
+        return lastInfo.getTargetHeight() == 0 ? lastInfo.getHeight() : lastInfo.getTargetHeight();
     }
 
     public XmrKeyImagePoller getKeyImagePoller() {
@@ -738,7 +738,7 @@ public final class XmrConnectionService {
         keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
         
         // update polling
-        doPollMonerod();
+        pollMonerod();
         if (currentConnection != getConnection()) return; // polling can change connection
         UserThread.runAfter(() -> updatePolling(), getInternalRefreshPeriodMs() / 1000);
 
@@ -759,7 +759,15 @@ public final class XmrConnectionService {
     private void startPolling() {
         synchronized (lock) {
             if (monerodPollLooper != null) monerodPollLooper.stop();
-            monerodPollLooper = new TaskLooper(() -> pollMonerod());
+            monerodPollLooper = new TaskLooper(() -> {
+                if (!pollInProgress) {
+                    try {
+                        pollMonerod();
+                    } catch (Exception e) {
+                        // error already handled
+                    }
+                }
+            });
             monerodPollLooper.start(getInternalRefreshPeriodMs());
         }
     }
@@ -773,12 +781,7 @@ public final class XmrConnectionService {
         }
     }
 
-    private void pollMonerod() {
-        if (pollInProgress) return;
-        doPollMonerod();
-    }
-
-    private void doPollMonerod() {
+    public void pollMonerod() {
         synchronized (pollLock) {
             pollInProgress = true;
             if (isShutDownStarted) return;
@@ -925,6 +928,7 @@ public final class XmrConnectionService {
 
                 // set error message
                 getConnectionServiceErrorMsg().set(errorMsg);
+                throw e;
             } finally {
                 pollInProgress = false;
             }
