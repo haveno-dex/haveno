@@ -319,7 +319,7 @@ service XmrConnections {
     }
     rpc StopCheckingConnection(StopCheckingConnectionRequest) returns (StopCheckingConnectionReply) {
     }
-    rpc GetBestAvailableConnection(GetBestAvailableConnectionRequest) returns (GetBestAvailableConnectionReply) {
+    rpc GetBestConnection(GetBestConnectionRequest) returns (GetBestConnectionReply) {
     }
     rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
     }
@@ -400,9 +400,9 @@ message StopCheckingConnectionRequest {}
 
 message StopCheckingConnectionReply {}
 
-message GetBestAvailableConnectionRequest {}
+message GetBestConnectionRequest {}
 
-message GetBestAvailableConnectionReply {
+message GetBestConnectionReply {
     UrlConnection connection = 1;
 }
 
@@ -527,6 +527,8 @@ message PostOfferRequest {
     string payment_account_id = 11;
     bool is_private_offer = 12;
     bool buyer_as_taker_without_deposit = 13;
+    string extra_info = 14;
+    string source_offer_id = 15;
 }
 
 message PostOfferReply {
@@ -574,6 +576,7 @@ message OfferInfo {
     uint64 split_output_tx_fee = 31 [jstype = JS_STRING];
     bool is_private_offer = 32;
     string challenge = 33;
+    string extra_info = 34;
 }
 
 message AvailabilityResultWithDescription {
@@ -893,11 +896,13 @@ message TradeInfo {
     bool is_deposits_published = 25;
     bool is_deposits_confirmed = 26;
     bool is_deposits_unlocked = 27;
+    bool is_deposits_finalized = 43;
     bool is_payment_sent = 28;
     bool is_payment_received = 29;
     bool is_payout_published = 30;
     bool is_payout_confirmed = 31;
     bool is_payout_unlocked = 32;
+    bool is_payout_finalized = 44;
     bool is_completed = 33;
     string contract_as_json = 34;
     ContractInfo contract = 35;
@@ -905,6 +910,9 @@ message TradeInfo {
     string maker_deposit_tx_id = 37;
     string taker_deposit_tx_id = 38;
     string payout_tx_id = 39;
+    uint64 start_time = 40;
+    uint64 max_duration_ms = 41;
+    uint64 deadline_time = 42;
 }
 
 message ContractInfo {
@@ -941,7 +949,9 @@ service Wallets {
     }
     rpc CreateXmrTx (CreateXmrTxRequest) returns (CreateXmrTxReply) {
     }
-    rpc relayXmrTx (RelayXmrTxRequest) returns (RelayXmrTxReply) {
+    rpc CreateXmrSweepTxs (CreateXmrSweepTxsRequest) returns (CreateXmrSweepTxsReply) {
+    }
+    rpc RelayXmrTxs (RelayXmrTxsRequest) returns (RelayXmrTxsReply) {
     }
     rpc GetAddressBalance (GetAddressBalanceRequest) returns (GetAddressBalanceReply) {
     }
@@ -1033,12 +1043,20 @@ message CreateXmrTxReply {
     XmrTx tx = 1;
 }
 
-message RelayXmrTxRequest {
-    string metadata = 1;
+message CreateXmrSweepTxsRequest {
+    string address = 1;
 }
 
-message RelayXmrTxReply {
-    string hash = 1;
+message CreateXmrSweepTxsReply {
+    repeated XmrTx txs = 1;
+}
+
+message RelayXmrTxsRequest {
+    repeated string metadatas = 1;
+}
+
+message RelayXmrTxsReply {
+    repeated string hashes = 2;
 }
 
 message GetAddressBalanceRequest {

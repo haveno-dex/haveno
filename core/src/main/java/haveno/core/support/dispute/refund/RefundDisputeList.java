@@ -58,9 +58,10 @@ public final class RefundDisputeList extends DisputeList<Dispute> {
     @Override
     public Message toProtoMessage() {
         forEach(dispute -> checkArgument(dispute.getSupportType().equals(SupportType.REFUND), "Support type has to be REFUND"));
-
-        return protobuf.PersistableEnvelope.newBuilder().setRefundDisputeList(protobuf.RefundDisputeList.newBuilder()
-                .addAllDispute(ProtoUtil.collectionToProto(getList(), protobuf.Dispute.class))).build();
+        synchronized (getList()) {
+            return protobuf.PersistableEnvelope.newBuilder().setRefundDisputeList(protobuf.RefundDisputeList.newBuilder()
+                    .addAllDispute(ProtoUtil.collectionToProto(getList(), protobuf.Dispute.class))).build();
+        }
     }
 
     public static RefundDisputeList fromProto(protobuf.RefundDisputeList proto,

@@ -19,9 +19,9 @@ On Windows, first install MSYS2:
   4. Update pacman: `pacman -Syy`
   5. Install dependencies. During installation, use default=all by leaving the input blank and pressing enter.
 
-      64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git`
+      64-bit: `pacman -S mingw-w64-x86_64-toolchain make mingw-w64-x86_64-cmake git zip unzip`
 
-      32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
+      32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git zip unzip`
 
 On all platforms, install Java JDK 21:
 
@@ -30,6 +30,8 @@ curl -s "https://get.sdkman.io" | bash
 sdk install java 21.0.2.fx-librca
 ```
 
+Restart the terminal for the changes to take effect.
+
 ## Build Haveno
 
 If it's the first time you are building Haveno, run the following commands to download the repository, the needed dependencies, and build the latest release. If using a third party network, replace the repository URL with theirs:
@@ -37,7 +39,7 @@ If it's the first time you are building Haveno, run the following commands to do
 ```
 git clone https://github.com/haveno-dex/haveno.git
 cd haveno
-git checkout master
+git checkout v1.2.1
 make
 ```
 
@@ -46,7 +48,7 @@ make
 If you are updating from a previous version, run from the root of the repository:
 
 ```
-git checkout master
+git checkout v1.2.1
 git pull
 make clean && make
 ```
@@ -75,7 +77,7 @@ Steps:
 
 1. Run `make user1-desktop-stagenet` to start the application.
 2. Click on the "Funds" tab in the top menu and copy the generated XMR address.
-3. Go to the [stagenet faucet](https://community.rino.io/faucet/stagenet/) and paste the address above in the "Get XMR" field. Submit and see the stagenet coins being sent to your Haveno instance.
+3. Go to the [stagenet faucet](https://stagenet-faucet.xmr-tw.org) and paste the address above in the "Get XMR" field. Submit and see the stagenet coins being sent to your Haveno instance.
 4. While you wait the 10 confirmations (20 minutes) needed for your funds to be spendable, create a fiat account by clicking on "Account" in the top menu, select the "National currency accounts" tab, then add a new account. For simplicity, we suggest to test using a Revolut account with a random ID.
 5. Now pick up an existing offer or open a new one. Fund your trade and wait 10 blocks for your deposit to be unlocked.
 6. Now if you are taking a trade you'll be asked to confirm you have sent the payment outside Haveno. Confirm in the app and wait for the confirmation of received payment from the other trader.

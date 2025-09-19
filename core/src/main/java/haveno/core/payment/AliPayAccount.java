@@ -31,7 +31,41 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class AliPayAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("CNY"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
+            new TraditionalCurrency("AED"),
+            new TraditionalCurrency("AUD"),
+            new TraditionalCurrency("CAD"),
+            new TraditionalCurrency("CHF"),
+            new TraditionalCurrency("CNY"),
+            new TraditionalCurrency("CZK"),
+            new TraditionalCurrency("DKK"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP"),
+            new TraditionalCurrency("HKD"),
+            new TraditionalCurrency("IDR"),
+            new TraditionalCurrency("ILS"),
+            new TraditionalCurrency("JPY"),
+            new TraditionalCurrency("KRW"),
+            new TraditionalCurrency("LKR"),
+            new TraditionalCurrency("MUR"),
+            new TraditionalCurrency("MYR"),
+            new TraditionalCurrency("NOK"),
+            new TraditionalCurrency("NZD"),
+            new TraditionalCurrency("PHP"),
+            new TraditionalCurrency("RUB"),
+            new TraditionalCurrency("SEK"),
+            new TraditionalCurrency("SGD"),
+            new TraditionalCurrency("THB"),
+            new TraditionalCurrency("USD"),
+            new TraditionalCurrency("ZAR")
+    );
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public AliPayAccount() {
         super(PaymentMethod.ALI_PAY);
@@ -50,7 +84,7 @@ public final class AliPayAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountNr(String accountNr) {

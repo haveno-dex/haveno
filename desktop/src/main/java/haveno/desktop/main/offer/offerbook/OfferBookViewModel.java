@@ -173,6 +173,13 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
         tradeCurrencyListChangeListener = c -> fillCurrencies();
 
+        // refresh filter on changes
+        // TODO: This is removed because it's expensive to re-filter offers for every change (high cpu for many offers).
+        // This was used to ensure offer list is fully refreshed, but is unnecessary after refactoring OfferBookService to clone offers?
+        // offerBook.getOfferBookListItems().addListener((ListChangeListener<OfferBookListItem>) c -> {
+        //     filterOffers();
+        // });
+
         filterItemsListener = c -> {
             final Optional<OfferBookListItem> highestAmountOffer = filteredItems.stream()
                     .max(Comparator.comparingLong(o -> o.getOffer().getAmount().longValueExact()));
@@ -260,7 +267,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             showAllTradeCurrenciesProperty.set(showAllEntry);
             if (isEditEntry(code))
                 navigation.navigateTo(MainView.class, SettingsView.class, PreferencesView.class);
-            else if (!showAllEntry) {
+            else if (showAllEntry) {
+                this.selectedTradeCurrency = getDefaultTradeCurrency();
+                tradeCurrencyCode.set(selectedTradeCurrency.getCode());
+            } else {
                 this.selectedTradeCurrency = tradeCurrency;
                 tradeCurrencyCode.set(code);
             }
@@ -287,7 +297,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         if (!showAllPaymentMethods) {
             this.selectedPaymentMethod = paymentMethod;
 
-            // If we select TransferWise we switch to show all currencies as TransferWise supports
+            // If we select Wise we switch to show all currencies as Wise supports
             // sending to most currencies.
             if (paymentMethod.getId().equals(PaymentMethod.TRANSFERWISE_ID)) {
                 onSetTradeCurrency(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
@@ -426,11 +436,19 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return formatVolume(item.getOffer(), true);
     }
 
+    String getVolumeAmount(OfferBookListItem item) {
+        return formatVolume(item.getOffer(), true, false);
+    }
+
     private String formatVolume(Offer offer, boolean decimalAligned) {
+        return formatVolume(offer, decimalAligned, showAllTradeCurrenciesProperty.get());
+    }
+
+    private String formatVolume(Offer offer, boolean decimalAligned, boolean appendCurrencyCode) {
         Volume offerVolume = offer.getVolume();
         Volume minOfferVolume = offer.getMinVolume();
         if (offerVolume != null && minOfferVolume != null) {
-            String postFix = showAllTradeCurrenciesProperty.get() ? " " + offer.getCurrencyCode() : "";
+            String postFix = appendCurrencyCode ? " " + offer.getCounterCurrencyCode() : "";
             decimalAligned = decimalAligned && !showAllTradeCurrenciesProperty.get();
             return VolumeUtil.formatVolume(offer, decimalAligned, maxPlacesForVolume.get()) + postFix;
         } else {
@@ -439,7 +457,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     int getNumberOfDecimalsForVolume(OfferBookListItem item) {
-        return CurrencyUtil.isVolumeRoundedToNearestUnit(item.getOffer().getCurrencyCode()) ? GUIUtil.NUM_DECIMALS_UNIT : GUIUtil.NUM_DECIMALS_PRECISE;
+        return CurrencyUtil.isVolumeRoundedToNearestUnit(item.getOffer().getCounterCurrencyCode()) ? GUIUtil.NUM_DECIMALS_UNIT : GUIUtil.NUM_DECIMALS_PRECISE;
     }
 
     String getPaymentMethod(OfferBookListItem item) {
@@ -466,22 +484,13 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         if (item != null) {
             Offer offer = item.getOffer();
             result = Res.getWithCol("shared.paymentMethod") + " " + Res.get(offer.getPaymentMethod().getId());
-            result += "\n" + Res.getWithCol("shared.currency") + " " + CurrencyUtil.getNameAndCode(offer.getCurrencyCode());
-
-            if (offer.isXmr()) {
-                String isAutoConf = offer.isXmrAutoConf() ?
-                        Res.get("shared.yes") :
-                        Res.get("shared.no");
-                result += "\n" + Res.getWithCol("offerbook.xmrAutoConf") + " " + isAutoConf;
-            }
+            result += "\n" + Res.getWithCol("shared.currency") + " " + CurrencyUtil.getNameAndCode(offer.getCounterCurrencyCode());
 
             String countryCode = offer.getCountryCode();
             if (isF2F(offer)) {
                 if (countryCode != null) {
                     result += "\n" + Res.get("payment.f2f.offerbook.tooltip.countryAndCity",
                             CountryUtil.getNameByCode(countryCode), offer.getF2FCity());
-
-                    result += "\n" + Res.get("payment.f2f.offerbook.tooltip.extra", offer.getExtraInfo());
                 }
             } else {
                 if (countryCode != null) {
@@ -511,6 +520,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                         result += "\n" + Res.getWithCol("shared.acceptedBanks") + " " + Joiner.on(", ").join(acceptedBanks);
                 }
             }
+            if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
+                result += "\n" + Res.get("payment.shared.extraInfo.tooltip", offer.getCombinedExtraInfo());
         }
         return result;
     }
@@ -520,7 +531,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     String getDirectionLabelTooltip(Offer offer) {
-        return getDirectionWithCodeDetailed(offer.getMirroredDirection(), offer.getCurrencyCode());
+        return getDirectionWithCodeDetailed(offer.getMirroredDirection(), offer.getCounterCurrencyCode());
     }
 
     Optional<PaymentAccount> getMostMaturePaymentAccountForOffer(Offer offer) {
@@ -579,7 +590,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency).and(getOffersMatchingMyAccountsPredicate()) :
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
 
-        predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
+        // filter private offers
+        if (direction == OfferDirection.BUY) {
+            predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
+        }
 
         if (!filterText.isEmpty()) {
 
@@ -591,9 +605,28 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             nextPredicate = nextPredicate.or(offerBookListItem ->
                     offerBookListItem.getOffer().getId().toLowerCase().contains(filterText.toLowerCase()));
 
-            // filter payment method
+            // filter full payment method
             nextPredicate = nextPredicate.or(offerBookListItem ->
                     Res.get(offerBookListItem.getOffer().getPaymentMethod().getId()).toLowerCase().contains(filterText.toLowerCase()));
+
+            // filter short payment method
+            nextPredicate = nextPredicate.or(offerBookListItem -> {
+                return getPaymentMethod(offerBookListItem).toLowerCase().contains(filterText.toLowerCase());
+            });
+
+            // filter currencies
+            nextPredicate = nextPredicate.or(offerBookListItem -> {
+                return offerBookListItem.getOffer().getCounterCurrencyCode().toLowerCase().contains(filterText.toLowerCase()) ||
+                        offerBookListItem.getOffer().getBaseCurrencyCode().toLowerCase().contains(filterText.toLowerCase()) ||
+                        CurrencyUtil.getNameAndCode(offerBookListItem.getOffer().getCounterCurrencyCode()).toLowerCase().contains(filterText.toLowerCase()) ||
+                        CurrencyUtil.getNameAndCode(offerBookListItem.getOffer().getBaseCurrencyCode()).toLowerCase().contains(filterText.toLowerCase());
+            });
+
+            // filter extra info
+            nextPredicate = nextPredicate.or(offerBookListItem -> {
+                return offerBookListItem.getOffer().getCombinedExtraInfo() != null &&
+                        offerBookListItem.getOffer().getCombinedExtraInfo().toLowerCase().contains(filterText.toLowerCase());
+            });
 
             filteredItems.setPredicate(predicate.and(nextPredicate));
         } else {
@@ -637,9 +670,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     public boolean hasSelectionAccountSigning() {
         if (showAllTradeCurrenciesProperty.get()) {
-            if (!isShowAllEntry(selectedPaymentMethod.getId())) {
+            if (isShowAllEntry(selectedPaymentMethod.getId()))
+                return !(this instanceof CryptoOfferBookViewModel);
+            else
                 return PaymentMethod.hasChargebackRisk(selectedPaymentMethod);
-            }
         } else {
             if (isShowAllEntry(selectedPaymentMethod.getId()))
                 return CurrencyUtil.getMatureMarketCurrencies().stream()
@@ -647,14 +681,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             else
                 return PaymentMethod.hasChargebackRisk(selectedPaymentMethod, tradeCurrencyCode.get());
         }
-        return true;
     }
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
-        if (CurrencyUtil.isTraditionalCurrency(currencyCode))
-            return (direction == OfferDirection.BUY) ? Res.get("shared.buyingXMRWith", currencyCode) : Res.get("shared.sellingXMRFor", currencyCode);
-        else
-            return (direction == OfferDirection.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);
+        return (direction == OfferDirection.BUY) ? Res.get("shared.buyingXMRWith", currencyCode) : Res.get("shared.sellingXMRFor", currencyCode);
     }
 
     public String formatDepositString(BigInteger deposit, long amount) {
@@ -705,6 +735,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     abstract String getCurrencyCodeFromPreferences(OfferDirection direction);
 
     public OpenOffer getOpenOffer(Offer offer) {
-        return openOfferManager.getOpenOfferById(offer.getId()).orElse(null);
+        return openOfferManager.getOpenOffer(offer.getId()).orElse(null);
     }
 }

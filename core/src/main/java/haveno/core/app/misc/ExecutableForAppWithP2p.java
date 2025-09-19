@@ -105,21 +105,21 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
     public void gracefulShutDown(ResultHandler resultHandler) {
         log.info("Starting graceful shut down of {}", getClass().getSimpleName());
 
-        // ignore if shut down in progress
-        if (isShutdownInProgress) {
-            log.info("Ignoring call to gracefulShutDown, already in progress");
+        // ignore if shut down started
+        if (isShutDownStarted) {
+            log.info("Ignoring call to gracefulShutDown, already started");
             return;
         }
-        isShutdownInProgress = true;
+        isShutDownStarted = true;
 
         try {
             if (injector != null) {
 
                 // notify trade protocols and wallets to prepare for shut down
                 Set<Runnable> tasks = new HashSet<Runnable>();
+                tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
                 tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
                 tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
-                tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
                 try {
                     ThreadUtils.awaitTasks(tasks, tasks.size(), 120000l); // run in parallel with timeout
                 } catch (Exception e) {
@@ -127,25 +127,21 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 }
 
                 JsonFileManager.shutDownAllInstances();
-                injector.getInstance(TradeManager.class).shutDown();
                 injector.getInstance(PriceFeedService.class).shutDown();
                 injector.getInstance(ArbitratorManager.class).shutDown();
                 injector.getInstance(TradeStatisticsManager.class).shutDown();
                 injector.getInstance(AvoidStandbyModeService.class).shutDown();
 
                 // shut down open offer manager
-                log.info("Shutting down OpenOfferManager, OfferBookService, and P2PService");
+                log.info("Shutting down OpenOfferManager");
                 injector.getInstance(OpenOfferManager.class).shutDown(() -> {
 
-                    // shut down offer book service
-                    injector.getInstance(OfferBookService.class).shutDown();
+                    // listen for shut down of wallets setup
+                    injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
 
-                    // shut down p2p service
-                    injector.getInstance(P2PService.class).shutDown(() -> {
-
-                        // shut down monero wallets and connections
-                        log.info("Shutting down wallet and connection services");
-                        injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
+                        // shut down p2p service
+                        log.info("Shutting down P2P service");
+                        injector.getInstance(P2PService.class).shutDown(() -> {
                             module.close(injector);
                             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
 
@@ -155,18 +151,23 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                                 UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                             });
                         });
-                        injector.getInstance(BtcWalletService.class).shutDown();
-                        injector.getInstance(XmrWalletService.class).shutDown();
-                        injector.getInstance(XmrConnectionService.class).shutDown();
-                        injector.getInstance(WalletsSetup.class).shutDown();
                     });
+
+                    // shut down trade and wallet services
+                    log.info("Shutting down trade and wallet services");
+                    injector.getInstance(OfferBookService.class).shutDown();
+                    injector.getInstance(TradeManager.class).shutDown();
+                    injector.getInstance(BtcWalletService.class).shutDown();
+                    injector.getInstance(XmrWalletService.class).shutDown();
+                    injector.getInstance(XmrConnectionService.class).shutDown();
+                    injector.getInstance(WalletsSetup.class).shutDown();
                 });
 
                 // we wait max 5 sec.
                 UserThread.runAfter(() -> {
                     PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                         resultHandler.handleResult();
-                        log.info("Graceful shutdown caused a timeout. Exiting now.");
+                        log.warn("Graceful shutdown caused a timeout. Exiting now.");
                         UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
                     });
                 }, 5);

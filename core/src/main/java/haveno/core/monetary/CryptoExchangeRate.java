@@ -32,7 +32,7 @@ public class CryptoExchangeRate {
      */
 
     public final Coin coin;
-    public final CryptoMoney crypto;
+    public final CryptoMoney cryptoMoney;
 
     /**
      * Construct exchange rate. This amount of coin is worth that amount of crypto.
@@ -43,7 +43,7 @@ public class CryptoExchangeRate {
         checkArgument(crypto.isPositive());
         checkArgument(crypto.currencyCode != null, "currency code required");
         this.coin = coin;
-        this.crypto = crypto;
+        this.cryptoMoney = crypto;
     }
 
     /**
@@ -59,13 +59,13 @@ public class CryptoExchangeRate {
      * @throws ArithmeticException if the converted crypto amount is too high or too low.
      */
     public CryptoMoney coinToCrypto(Coin convertCoin) {
-        BigInteger converted = BigInteger.valueOf(coin.value)
-                .multiply(BigInteger.valueOf(convertCoin.value))
-                .divide(BigInteger.valueOf(crypto.value));
+        final BigInteger converted = BigInteger.valueOf(convertCoin.value)
+                .multiply(BigInteger.valueOf(cryptoMoney.value))
+                .divide(BigInteger.valueOf(coin.value));
         if (converted.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0
                 || converted.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) < 0)
             throw new ArithmeticException("Overflow");
-        return CryptoMoney.valueOf(crypto.currencyCode, converted.longValue());
+        return CryptoMoney.valueOf(cryptoMoney.currencyCode, converted.longValue());
     }
 
     /**
@@ -74,12 +74,11 @@ public class CryptoExchangeRate {
      * @throws ArithmeticException if the converted coin amount is too high or too low.
      */
     public Coin cryptoToCoin(CryptoMoney convertCrypto) {
-        checkArgument(convertCrypto.currencyCode.equals(crypto.currencyCode), "Currency mismatch: %s vs %s",
-                convertCrypto.currencyCode, crypto.currencyCode);
+        checkArgument(convertCrypto.currencyCode.equals(cryptoMoney.currencyCode), "Currency mismatch: %s vs %s",
+                convertCrypto.currencyCode, cryptoMoney.currencyCode);
         // Use BigInteger because it's much easier to maintain full precision without overflowing.
-        BigInteger converted = BigInteger.valueOf(crypto.value)
-                .multiply(BigInteger.valueOf(convertCrypto.value))
-                .divide(BigInteger.valueOf(coin.value));
+        final BigInteger converted = BigInteger.valueOf(convertCrypto.value).multiply(BigInteger.valueOf(coin.value))
+                .divide(BigInteger.valueOf(cryptoMoney.value));
         if (converted.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0
                 || converted.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) < 0)
             throw new ArithmeticException("Overflow");

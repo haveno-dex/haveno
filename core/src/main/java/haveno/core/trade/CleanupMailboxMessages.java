@@ -55,21 +55,23 @@ public class CleanupMailboxMessages {
     }
 
     public void handleTrades(List<Trade> trades) {
-        // We wrap in a try catch as in failed trades we cannot be sure if expected data is set, so we could get
-        // a NullPointer and do not want that this escalate to the user.
-        try {
-            if (p2PService.isBootstrapped()) {
-                cleanupMailboxMessages(trades);
-            } else {
-                p2PService.addP2PServiceListener(new BootstrapListener() {
-                    @Override
-                    public void onDataReceived() {
-                        cleanupMailboxMessages(trades);
-                    }
-                });
+        synchronized (trades) {
+            // We wrap in a try catch as in failed trades we cannot be sure if expected data is set, so we could get
+            // a NullPointer and do not want that this escalate to the user.
+            try {
+                if (p2PService.isBootstrapped()) {
+                    cleanupMailboxMessages(trades);
+                } else {
+                    p2PService.addP2PServiceListener(new BootstrapListener() {
+                        @Override
+                        public void onDataReceived() {
+                            cleanupMailboxMessages(trades);
+                        }
+                    });
+                }
+            } catch (Throwable t) {
+                log.error("Cleanup mailbox messages failed. {}", t.toString());
             }
-        } catch (Throwable t) {
-            log.error("Cleanup mailbox messages failed. {}", t.toString());
         }
     }
 

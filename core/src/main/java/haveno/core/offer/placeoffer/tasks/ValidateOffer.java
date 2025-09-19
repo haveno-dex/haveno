@@ -23,6 +23,7 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
+import haveno.core.payment.PaymentAccount;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.user.User;
@@ -96,7 +97,10 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         /*checkArgument(offer.getMinAmount().compareTo(ProposalConsensus.getMinTradeAmount()) >= 0,
             "MinAmount is less than " + ProposalConsensus.getMinTradeAmount().toFriendlyString());*/
 
-        long maxAmount = accountAgeWitnessService.getMyTradeLimit(user.getPaymentAccount(offer.getMakerPaymentAccountId()), offer.getCurrencyCode(), offer.getDirection(), offer.hasBuyerAsTakerWithoutDeposit());
+        PaymentAccount paymentAccount = user.getPaymentAccount(offer.getMakerPaymentAccountId());
+        checkArgument(paymentAccount != null, "Payment account is null. makerPaymentAccountId=" + offer.getMakerPaymentAccountId());
+
+        long maxAmount = accountAgeWitnessService.getMyTradeLimit(user.getPaymentAccount(offer.getMakerPaymentAccountId()), offer.getCounterCurrencyCode(), offer.getDirection(), offer.hasBuyerAsTakerWithoutDeposit());
         checkArgument(offer.getAmount().longValueExact() <= maxAmount,
                 "Amount is larger than " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " XMR");
         checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "MinAmount is larger than Amount");
@@ -108,7 +112,7 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         checkArgument(offer.getDate().getTime() > 0,
                 "Date must not be 0. date=" + offer.getDate().toString());
 
-        checkNotNull(offer.getCurrencyCode(), "Currency is null");
+        checkNotNull(offer.getCounterCurrencyCode(), "Currency is null");
         checkNotNull(offer.getDirection(), "Direction is null");
         checkNotNull(offer.getId(), "Id is null");
         checkNotNull(offer.getPubKeyRing(), "pubKeyRing is null");

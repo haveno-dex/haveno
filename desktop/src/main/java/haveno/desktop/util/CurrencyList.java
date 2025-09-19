@@ -18,6 +18,8 @@
 package haveno.desktop.util;
 
 import com.google.common.collect.Lists;
+
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.user.Preferences;
 import javafx.collections.FXCollections;
@@ -63,6 +65,7 @@ public class CurrencyList {
 
     private List<CurrencyListItem> getPartitionedSortedItems(List<TradeCurrency> currencies) {
         Map<TradeCurrency, Integer> tradesPerCurrency = countTrades(currencies);
+        List<CurrencyListItem> fiatCurrencies = new ArrayList<>();
         List<CurrencyListItem> traditionalCurrencies = new ArrayList<>();
         List<CurrencyListItem> cryptoCurrencies = new ArrayList<>();
 
@@ -71,7 +74,9 @@ public class CurrencyList {
             Integer count = entry.getValue();
             CurrencyListItem item = new CurrencyListItem(currency, count);
 
-            if (predicates.isTraditionalCurrency(currency)) {
+            if (predicates.isFiatCurrency(currency)) {
+                fiatCurrencies.add(item);
+            } else if (predicates.isTraditionalCurrency(currency)) {
                 traditionalCurrencies.add(item);
             }
 
@@ -81,10 +86,12 @@ public class CurrencyList {
         }
 
         Comparator<CurrencyListItem> comparator = getComparator();
+        fiatCurrencies.sort(comparator);
         traditionalCurrencies.sort(comparator);
         cryptoCurrencies.sort(comparator);
 
         List<CurrencyListItem> result = new ArrayList<>();
+        result.addAll(fiatCurrencies);
         result.addAll(traditionalCurrencies);
         result.addAll(cryptoCurrencies);
 
@@ -92,14 +99,13 @@ public class CurrencyList {
     }
 
     private Comparator<CurrencyListItem> getComparator() {
-        Comparator<CurrencyListItem> result;
         if (preferences.isSortMarketCurrenciesNumerically()) {
-            Comparator<CurrencyListItem> byCount = Comparator.comparingInt(left -> left.numTrades);
-            result = byCount.reversed();
+            return Comparator
+                .comparingInt((CurrencyListItem item) -> item.numTrades).reversed()
+                .thenComparing(item -> CurrencyUtil.isCryptoCurrency(item.tradeCurrency.getCode()) ? item.tradeCurrency.getName() : item.tradeCurrency.getCode());
         } else {
-            result = Comparator.comparing(item -> item.tradeCurrency);
+            return Comparator.comparing(item -> CurrencyUtil.isCryptoCurrency(item.tradeCurrency.getCode()) ? item.tradeCurrency.getName() : item.tradeCurrency.getCode());
         }
-        return result;
     }
 
     private Map<TradeCurrency, Integer> countTrades(List<TradeCurrency> currencies) {

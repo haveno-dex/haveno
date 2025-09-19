@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @EqualsAndHashCode
 public final class OpenOffer implements Tradable {
@@ -110,19 +111,27 @@ public final class OpenOffer implements Tradable {
     @Getter
     @Setter
     transient int numProcessingAttempts = 0;
+    @Getter
+    @Setter
+    private boolean deactivatedByTrigger;
+    @Getter
+    @Setter
+    private String groupId;
+
     public OpenOffer(Offer offer) {
         this(offer, 0, false);
     }
 
-    public OpenOffer(Offer offer, long triggerPrice) {
-        this(offer, triggerPrice, false);
+    public OpenOffer(Offer offer, long triggerPrice, boolean reserveExactAmount) {
+        this(offer, triggerPrice, reserveExactAmount, null);
     }
 
-    public OpenOffer(Offer offer, long triggerPrice, boolean reserveExactAmount) {
+    public OpenOffer(Offer offer, long triggerPrice, boolean reserveExactAmount, String groupId) {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
         this.challenge = offer.getChallenge();
+        this.groupId = groupId == null ? UUID.randomUUID().toString() : groupId;
         state = State.PENDING;
     }
 
@@ -141,6 +150,8 @@ public final class OpenOffer implements Tradable {
         this.reserveTxHex = openOffer.reserveTxHex;
         this.reserveTxKey = openOffer.reserveTxKey;
         this.challenge = openOffer.challenge;
+        this.deactivatedByTrigger = openOffer.deactivatedByTrigger;
+        this.groupId = openOffer.groupId;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -158,7 +169,9 @@ public final class OpenOffer implements Tradable {
                       @Nullable String reserveTxHash,
                       @Nullable String reserveTxHex,
                       @Nullable String reserveTxKey,
-                      @Nullable String challenge) {
+                      @Nullable String challenge,
+                      boolean deactivatedByTrigger,
+                      @Nullable String groupId) {
         this.offer = offer;
         this.state = state;
         this.triggerPrice = triggerPrice;
@@ -170,6 +183,9 @@ public final class OpenOffer implements Tradable {
         this.reserveTxHex = reserveTxHex;
         this.reserveTxKey = reserveTxKey;
         this.challenge = challenge;
+        this.deactivatedByTrigger = deactivatedByTrigger;
+        if (groupId == null) groupId = UUID.randomUUID().toString(); // initialize groupId if not set (added in v1.0.19)
+        this.groupId = groupId;
 
         // reset reserved state to available
         if (this.state == State.RESERVED) setState(State.AVAILABLE);
@@ -182,7 +198,8 @@ public final class OpenOffer implements Tradable {
                 .setTriggerPrice(triggerPrice)
                 .setState(protobuf.OpenOffer.State.valueOf(state.name()))
                 .setSplitOutputTxFee(splitOutputTxFee)
-                .setReserveExactAmount(reserveExactAmount);
+                .setReserveExactAmount(reserveExactAmount)
+                .setDeactivatedByTrigger(deactivatedByTrigger);
 
         Optional.ofNullable(scheduledAmount).ifPresent(e -> builder.setScheduledAmount(scheduledAmount));
         Optional.ofNullable(scheduledTxHashes).ifPresent(e -> builder.addAllScheduledTxHashes(scheduledTxHashes));
@@ -191,6 +208,7 @@ public final class OpenOffer implements Tradable {
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
         Optional.ofNullable(reserveTxKey).ifPresent(e -> builder.setReserveTxKey(reserveTxKey));
         Optional.ofNullable(challenge).ifPresent(e -> builder.setChallenge(challenge));
+        Optional.ofNullable(groupId).ifPresent(e -> builder.setGroupId(groupId));
 
         return protobuf.Tradable.newBuilder().setOpenOffer(builder).build();
     }
@@ -207,7 +225,9 @@ public final class OpenOffer implements Tradable {
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxKey()),
-                ProtoUtil.stringOrNullFromProto(proto.getChallenge()));
+                ProtoUtil.stringOrNullFromProto(proto.getChallenge()),
+                proto.getDeactivatedByTrigger(),
+                ProtoUtil.stringOrNullFromProto(proto.getGroupId()));
         return openOffer;
     }
 
@@ -234,6 +254,14 @@ public final class OpenOffer implements Tradable {
     public void setState(State state) {
         this.state = state;
         stateProperty.set(state);
+        if (state == State.AVAILABLE) {
+            deactivatedByTrigger = false;
+        }
+    }
+
+    public void deactivate(boolean deactivatedByTrigger) {
+        this.deactivatedByTrigger = deactivatedByTrigger;
+        setState(State.DEACTIVATED);
     }
 
     public ReadOnlyObjectProperty<State> stateProperty() {
@@ -246,6 +274,10 @@ public final class OpenOffer implements Tradable {
 
     public boolean isAvailable() {
         return state == State.AVAILABLE;
+    }
+
+    public boolean isReserved() {
+        return state == State.RESERVED;
     }
 
     public boolean isDeactivated() {
@@ -265,6 +297,7 @@ public final class OpenOffer implements Tradable {
                 ",\n     reserveExactAmount=" + reserveExactAmount +
                 ",\n     scheduledAmount=" + scheduledAmount +
                 ",\n     splitOutputTxFee=" + splitOutputTxFee +
+                ",\n     groupId=" + groupId +
                 "\n}";
     }
 }

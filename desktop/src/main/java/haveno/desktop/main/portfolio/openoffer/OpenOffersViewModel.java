@@ -84,6 +84,10 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
         return item.getOffer().getShortId();
     }
 
+    String getGroupId(OpenOfferListItem item) {
+        return item.getGroupId();
+    }
+
     String getAmount(OpenOfferListItem item) {
         return (item != null) ? DisplayUtils.formatAmount(item.getOffer(), btcFormatter) : "";
     }
@@ -114,21 +118,21 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
     }
 
     String getVolume(OpenOfferListItem item) {
-        return (item != null) ? VolumeUtil.formatVolume(item.getOffer(), false, 0) + " " + item.getOffer().getCurrencyCode() : "";
+        return (item != null) ? VolumeUtil.formatVolume(item.getOffer(), false, 0) + " " + item.getOffer().getCounterCurrencyCode() : "";
     }
 
     String getDirectionLabel(OpenOfferListItem item) {
         if ((item == null))
             return "";
 
-        return DisplayUtils.getDirectionWithCode(dataModel.getDirection(item.getOffer()), item.getOffer().getCurrencyCode(), item.getOffer().isPrivateOffer());
+        return DisplayUtils.getDirectionWithCode(dataModel.getDirection(item.getOffer()), item.getOffer().getCounterCurrencyCode(), item.getOffer().isPrivateOffer());
     }
 
     String getMarketLabel(OpenOfferListItem item) {
         if ((item == null))
             return "";
 
-        return CurrencyUtil.getCurrencyPair(item.getOffer().getCurrencyCode());
+        return CurrencyUtil.getCurrencyPair(item.getOffer().getCounterCurrencyCode());
     }
 
     String getPaymentMethod(OpenOfferListItem item) {
@@ -164,7 +168,7 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
         if (!offer.isUseMarketBasedPrice() || triggerPrice <= 0) {
             return Res.get("shared.na");
         } else {
-            return PriceUtil.formatMarketPrice(triggerPrice, offer.getCurrencyCode());
+            return PriceUtil.formatMarketPrice(triggerPrice, offer.getCounterCurrencyCode());
         }
     }
 }

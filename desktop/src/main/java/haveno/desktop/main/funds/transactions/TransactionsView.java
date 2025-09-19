@@ -20,7 +20,6 @@ package haveno.desktop.main.funds.transactions;
 import com.google.inject.Inject;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.fontawesome.AwesomeIcon;
-import haveno.common.util.Utilities;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
@@ -47,13 +46,11 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -70,7 +67,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @FXML
     TableView<TransactionsListItem> tableView;
     @FXML
-    TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, txFeeColumn, memoColumn, confidenceColumn, revertTxColumn;
+    TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, txFeeColumn, confidenceColumn, memoColumn;
     @FXML
     Label numItems;
     @FXML
@@ -127,18 +124,20 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     @Override
     public void initialize() {
+        GUIUtil.applyTableStyle(tableView);
+
         dateColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.dateTime")));
         detailsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.details")));
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
         transactionColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.txId", Res.getBaseCurrencyCode())));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
         txFeeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.txFee", Res.getBaseCurrencyCode())));
-        memoColumn.setGraphic(new AutoTooltipLabel(Res.get("funds.tx.memo")));
         confidenceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.confirmations", Res.getBaseCurrencyCode())));
-        revertTxColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.revert", Res.getBaseCurrencyCode())));
+        memoColumn.setGraphic(new AutoTooltipLabel(Res.get("funds.tx.memo")));
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.tx.noTxAvailable")));
+        tableView.getStyleClass().add("non-interactive-table");
 
         setDateColumnCellFactory();
         setDetailsColumnCellFactory();
@@ -146,9 +145,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         setTransactionColumnCellFactory();
         setAmountColumnCellFactory();
         setTxFeeColumnCellFactory();
-        setMemoColumnCellFactory();
         setConfidenceColumnCellFactory();
-        setRevertTxColumnCellFactory();
+        setMemoColumnCellFactory();
 
         dateColumn.setComparator(Comparator.comparing(TransactionsListItem::getDate));
         detailsColumn.setComparator((o1, o2) -> {
@@ -167,15 +165,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         tableView.getSortOrder().add(dateColumn);
 
         keyEventEventHandler = event -> {
-            // Not intended to be public to users as the feature is not well tested
-            if (Utilities.isAltOrCtrlPressed(KeyCode.R, event)) {
-                if (revertTxColumn.isVisible()) {
-                    confidenceColumn.getStyleClass().remove("last-column");
-                } else {
-                    confidenceColumn.getStyleClass().add("last-column");
-                }
-                revertTxColumn.setVisible(!revertTxColumn.isVisible());
-            }
+            // unused
         };
 
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -205,8 +195,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedDisplayedTransactions.size()));
         exportButton.setOnAction(event -> {
-            final ObservableList<TableColumn<TransactionsListItem, ?>> tableColumns = tableView.getColumns();
-            final int reportColumns = tableColumns.size() - 1;    // CSV report excludes the last column (an icon)
+            final ObservableList<TableColumn<TransactionsListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
+            final int reportColumns = tableColumns.size();
             CSVEntryConverter<TransactionsListItem> headerConverter = item -> {
                 String[] columns = new String[reportColumns];
                 for (int i = 0; i < columns.length; i++)
@@ -221,8 +211,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                 columns[3] = item.getTxId();
                 columns[4] = item.getAmountStr();
                 columns[5] = item.getTxFeeStr();
-                columns[6] = item.getMemo() == null ? "" : item.getMemo();
-                columns[7] = String.valueOf(item.getNumConfirmations());
+                columns[6] = String.valueOf(item.getNumConfirmations());
+                columns[7] = item.getMemo() == null ? "" : item.getMemo();
                 return columns;
             };
 
@@ -265,7 +255,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setDateColumnCellFactory() {
-        dateColumn.getStyleClass().add("first-column");
         dateColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         dateColumn.setMaxWidth(200);
@@ -400,6 +389,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setAmountColumnCellFactory() {
         amountColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        amountColumn.getStyleClass().add("highlight-text");
         amountColumn.setCellFactory(
                 new Callback<>() {
 
@@ -427,6 +417,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setTxFeeColumnCellFactory() {
         txFeeColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        txFeeColumn.getStyleClass().add("highlight-text");
         txFeeColumn.setCellFactory(
                 new Callback<>() {
 
@@ -453,6 +444,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private void setMemoColumnCellFactory() {
         memoColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
+        memoColumn.getStyleClass().add("highlight-text");
         memoColumn.setCellFactory(
                 new Callback<>() {
 
@@ -477,7 +469,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void setConfidenceColumnCellFactory() {
-        confidenceColumn.getStyleClass().add("last-column");
         confidenceColumn.setCellValueFactory((addressListItem) ->
                 new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         confidenceColumn.setCellFactory(
@@ -496,33 +487,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                     setGraphic(item.getTxConfidenceIndicator());
                                 } else {
                                     setGraphic(null);
-                                }
-                            }
-                        };
-                    }
-                });
-    }
-
-    private void setRevertTxColumnCellFactory() {
-        revertTxColumn.getStyleClass().add("last-column");
-        revertTxColumn.setCellValueFactory((addressListItem) ->
-                new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
-        revertTxColumn.setCellFactory(
-                new Callback<>() {
-
-                    @Override
-                    public TableCell<TransactionsListItem, TransactionsListItem> call(TableColumn<TransactionsListItem,
-                            TransactionsListItem> column) {
-                        return new TableCell<>() {
-                            Button button;
-
-                            @Override
-                            public void updateItem(final TransactionsListItem item, boolean empty) {
-                                super.updateItem(item, empty);
-                                setGraphic(null);
-                                if (button != null) {
-                                    button.setOnAction(null);
-                                    button = null;
                                 }
                             }
                         };

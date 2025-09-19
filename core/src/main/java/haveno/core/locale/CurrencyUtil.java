@@ -66,7 +66,7 @@ import static java.lang.String.format;
 @Slf4j
 public class CurrencyUtil {
     public static void setup() {
-        setBaseCurrencyCode("XMR");
+        setBaseCurrencyCode(baseCurrencyCode);
     }
 
     private static final AssetRegistry assetRegistry = new AssetRegistry();
@@ -93,7 +93,7 @@ public class CurrencyUtil {
     public static Collection<TraditionalCurrency> getAllSortedFiatCurrencies(Comparator comparator) {
         return getAllSortedTraditionalCurrencies(comparator).stream()
                 .filter(currency -> CurrencyUtil.isFiatCurrency(currency.getCode()))
-                .collect(Collectors.toList());  // sorted by currency name
+                .collect(Collectors.toList()); // sorted by currency name
     }
 
     public static List<TradeCurrency> getAllFiatCurrencies() {
@@ -105,11 +105,11 @@ public class CurrencyUtil {
     public static List<TradeCurrency> getAllSortedFiatCurrencies() {
         return getAllSortedTraditionalCurrencies().stream()
                 .filter(currency -> CurrencyUtil.isFiatCurrency(currency.getCode()))
-                .collect(Collectors.toList());  // sorted by currency name
+                .collect(Collectors.toList()); // sorted by currency name
     }
 
     public static Collection<TraditionalCurrency> getAllSortedTraditionalCurrencies() {
-        return traditionalCurrencyMapSupplier.get().values();  // sorted by currency name
+        return traditionalCurrencyMapSupplier.get().values(); // sorted by currency name
     }
 
     public static List<TradeCurrency> getAllTraditionalCurrencies() {
@@ -198,10 +198,16 @@ public class CurrencyUtil {
         final List<CryptoCurrency> result = new ArrayList<>();
         result.add(new CryptoCurrency("BTC", "Bitcoin"));
         result.add(new CryptoCurrency("BCH", "Bitcoin Cash"));
+        result.add(new CryptoCurrency("DOGE", "Dogecoin"));
         result.add(new CryptoCurrency("ETH", "Ether"));
         result.add(new CryptoCurrency("LTC", "Litecoin"));
-        result.add(new CryptoCurrency("USDT-ERC20", "Tether USD (ERC20)"));
-        result.add(new CryptoCurrency("USDC-ERC20", "USD Coin (ERC20)"));
+        result.add(new CryptoCurrency("XRP", "Ripple"));
+        result.add(new CryptoCurrency("ADA", "Cardano"));
+        result.add(new CryptoCurrency("SOL", "Solana"));
+        result.add(new CryptoCurrency("TRX", "Tron"));
+        result.add(new CryptoCurrency("DAI-ERC20", "Dai Stablecoin"));
+        result.add(new CryptoCurrency("USDT-ERC20", "Tether USD"));
+        result.add(new CryptoCurrency("USDC-ERC20", "USD Coin"));
         result.add(new CryptoCurrency("WOW", "Wownero"));
         result.sort(TradeCurrency::compareTo);
         return result;
@@ -283,7 +289,7 @@ public class CurrencyUtil {
     }
 
     /**
-     * We return true if it is BTC or any of our currencies available in the assetRegistry.
+     * We return true if it is XMR or any of our currencies available in the assetRegistry.
      * For removed assets it would fail as they are not found but we don't want to conclude that they are traditional then.
      * As the caller might not deal with the case that a currency can be neither a cryptoCurrency nor Traditional if not found
      * we return true as well in case we have no traditional currency for the code.
@@ -298,7 +304,7 @@ public class CurrencyUtil {
         if (currencyCode != null && isCryptoCurrencyMap.containsKey(currencyCode.toUpperCase())) {
             return isCryptoCurrencyMap.get(currencyCode.toUpperCase());
         }
-        if (isCryptoCurrencyBase(currencyCode)) {
+        if (isCryptoCurrencyCodeBase(currencyCode)) {
             return true;
         }
 
@@ -327,10 +333,10 @@ public class CurrencyUtil {
         return isCryptoCurrency;
     }
 
-    private static boolean isCryptoCurrencyBase(String currencyCode) {
+    private static boolean isCryptoCurrencyCodeBase(String currencyCode) {
         if (currencyCode == null) return false;
         currencyCode = currencyCode.toUpperCase();
-        return currencyCode.equals("USDT") || currencyCode.equals("USDC");
+        return currencyCode.equals("USDT") || currencyCode.equals("USDC") || currencyCode.equals("DAI");
     }
 
     public static String getCurrencyCodeBase(String currencyCode) {
@@ -338,6 +344,7 @@ public class CurrencyUtil {
         currencyCode = currencyCode.toUpperCase();
         if (currencyCode.contains("USDT")) return "USDT";
         if (currencyCode.contains("USDC")) return "USDC";
+        if (currencyCode.contains("DAI")) return "DAI";
         return currencyCode;
     }
 
@@ -403,6 +410,13 @@ public class CurrencyUtil {
             String xmrOrRemovedAsset = "XMR".equals(currencyCode) ? "Monero" :
                 removedCryptoCurrency.isPresent() ? removedCryptoCurrency.get().getName() : Res.get("shared.na");
             return getCryptoCurrency(currencyCode).map(TradeCurrency::getName).orElse(xmrOrRemovedAsset);
+        }
+        if (isTraditionalNonFiatCurrency(currencyCode)) {
+            return getTraditionalNonFiatCurrencies().stream()
+                    .filter(currency -> currency.getCode().equals(currencyCode))
+                    .findAny()
+                    .map(TradeCurrency::getName)
+                    .orElse(currencyCode);
         }
         try {
             return Currency.getInstance(currencyCode).getDisplayName();
@@ -505,17 +519,11 @@ public class CurrencyUtil {
     }
 
     public static String getCurrencyPair(String currencyCode) {
-        if (isTraditionalCurrency(currencyCode))
-            return Res.getBaseCurrencyCode() + "/" + currencyCode;
-        else
-            return currencyCode + "/" + Res.getBaseCurrencyCode();
+        return Res.getBaseCurrencyCode() + "/" + currencyCode;
     }
 
     public static String getCounterCurrency(String currencyCode) {
-        if (isTraditionalCurrency(currencyCode))
-            return currencyCode;
-        else
-            return Res.getBaseCurrencyCode();
+        return currencyCode;
     }
 
     public static String getPriceWithCurrencyCode(String currencyCode) {
@@ -523,10 +531,7 @@ public class CurrencyUtil {
     }
 
     public static String getPriceWithCurrencyCode(String currencyCode, String translationKey) {
-        if (isCryptoCurrency(currencyCode))
-            return Res.get(translationKey, Res.getBaseCurrencyCode(), currencyCode);
-        else
-            return Res.get(translationKey, currencyCode, Res.getBaseCurrencyCode());
+        return Res.get(translationKey, currencyCode, Res.getBaseCurrencyCode());
     }
 
     public static String getOfferVolumeCode(String currencyCode) {

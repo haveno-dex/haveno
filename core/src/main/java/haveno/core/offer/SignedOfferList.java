@@ -47,10 +47,12 @@ public final class SignedOfferList extends PersistableListAsObservable<SignedOff
 
     @Override
     public Message toProtoMessage() {
-        return protobuf.PersistableEnvelope.newBuilder()
-                .setSignedOfferList(protobuf.SignedOfferList.newBuilder()
-                        .addAllSignedOffer(ProtoUtil.collectionToProto(getList(), protobuf.SignedOffer.class)))
-                .build();
+        synchronized (getList()) {
+            return protobuf.PersistableEnvelope.newBuilder()
+                    .setSignedOfferList(protobuf.SignedOfferList.newBuilder()
+                            .addAllSignedOffer(ProtoUtil.collectionToProto(getList(), protobuf.SignedOffer.class)))
+                    .build();
+        }
     }
 
     public static SignedOfferList fromProto(protobuf.SignedOfferList proto) {

@@ -20,13 +20,14 @@ package haveno.core.offer.placeoffer.tasks;
 import haveno.common.taskrunner.Task;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OpenOffer;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class AddToOfferBook extends Task<PlaceOfferModel> {
+public class MaybeAddToOfferBook extends Task<PlaceOfferModel> {
 
-    public AddToOfferBook(TaskRunner<PlaceOfferModel> taskHandler, PlaceOfferModel model) {
+    public MaybeAddToOfferBook(TaskRunner<PlaceOfferModel> taskHandler, PlaceOfferModel model) {
         super(taskHandler, model);
     }
 
@@ -35,17 +36,32 @@ public class AddToOfferBook extends Task<PlaceOfferModel> {
         try {
             runInterceptHook();
             checkNotNull(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature(), "Offer's arbitrator signature is null: " + model.getOpenOffer().getOffer().getId());
-            model.getOfferBookService().addOffer(new Offer(model.getSignOfferResponse().getSignedOfferPayload()),
-                    () -> {
-                        model.setOfferAddedToOfferBook(true);
-                        complete();
-                    },
-                    errorMessage -> {
-                        model.getOpenOffer().getOffer().setErrorMessage("Could not add offer to offerbook.\n" +
-                                "Please check your network connection and try again.");
 
-                        failed(errorMessage);
-                    });
+            // deactivate if conflicting offer exists
+            if (model.getOpenOfferManager().hasConflictingClone(model.getOpenOffer())) {
+                model.getOpenOffer().setState(OpenOffer.State.DEACTIVATED);
+                model.setOfferAddedToOfferBook(false);
+                complete();
+                return;
+            }
+
+            // add to offer book and activate if pending or available
+            if (model.getOpenOffer().isPending() || model.getOpenOffer().isAvailable()) {
+                model.getOfferBookService().addOffer(new Offer(model.getSignOfferResponse().getSignedOfferPayload()),
+                        () -> {
+                            model.getOpenOffer().setState(OpenOffer.State.AVAILABLE);
+                            model.setOfferAddedToOfferBook(true);
+                            complete();
+                        },
+                        errorMessage -> {
+                            model.getOpenOffer().getOffer().setErrorMessage("Could not add offer to offerbook.\n" +
+                                    "Please check your network connection and try again.");
+                            failed(errorMessage);
+                        });
+            } else {
+                complete();
+                return;
+            }
         } catch (Throwable t) {
             model.getOpenOffer().getOffer().setErrorMessage("An error occurred.\n" +
                     "Error message:\n"

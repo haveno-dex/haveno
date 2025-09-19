@@ -47,7 +47,6 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.traderchat.TradeChatSession;
 import haveno.core.support.traderchat.TraderChatManager;
 import haveno.core.trade.ClosedTradableManager;
-import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.TradeUtil;
@@ -55,9 +54,6 @@ import haveno.core.trade.protocol.BuyerProtocol;
 import haveno.core.trade.protocol.SellerProtocol;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.util.validation.BtcAddressValidator;
-import haveno.core.xmr.model.AddressEntry;
-import static haveno.core.xmr.model.AddressEntry.Context.TRADE_PAYOUT;
 import haveno.core.xmr.wallet.BtcWalletService;
 import static java.lang.String.format;
 import java.math.BigInteger;
@@ -68,7 +64,6 @@ import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bitcoinj.core.Coin;
 
 @Singleton
 @Slf4j
@@ -84,7 +79,6 @@ class CoreTradesService {
     private final TakeOfferModel takeOfferModel;
     private final TradeManager tradeManager;
     private final TraderChatManager traderChatManager;
-    private final TradeUtil tradeUtil;
     private final OfferUtil offerUtil;
     private final User user;
 
@@ -106,7 +100,6 @@ class CoreTradesService {
         this.takeOfferModel = takeOfferModel;
         this.tradeManager = tradeManager;
         this.traderChatManager = traderChatManager;
-        this.tradeUtil = tradeUtil;
         this.offerUtil = offerUtil;
         this.user = user;
     }
@@ -130,17 +123,14 @@ class CoreTradesService {
             BigInteger amount = amountAsLong == 0 ? offer.getAmount() : BigInteger.valueOf(amountAsLong);
 
             // adjust amount for fixed-price offer (based on TakeOfferViewModel)
-            String currencyCode = offer.getCurrencyCode();
+            String currencyCode = offer.getCounterCurrencyCode();
             OfferDirection direction = offer.getOfferPayload().getDirection();
-            long maxTradeLimit = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
+            BigInteger maxAmount = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
             if (offer.getPrice() != null) {
                 if (PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId())) {
-                    amount = CoinUtil.getRoundedAtmCashAmount(amount, offer.getPrice(), maxTradeLimit);
-                } else if (offer.isTraditionalOffer()
-                        && !amount.equals(offer.getMinAmount()) && !amount.equals(amount)) {
-                    // We only apply the rounding if the amount is variable (minAmount is lower as amount).
-                    // Otherwise we could get an amount lower then the minAmount set by rounding
-                    amount = CoinUtil.getRoundedAmount(amount, offer.getPrice(), maxTradeLimit, offer.getCurrencyCode(), offer.getPaymentMethodId());
+                    amount = CoinUtil.getRoundedAtmCashAmount(amount, offer.getPrice(), offer.getMinAmount(), maxAmount);
+                } else if (offer.isTraditionalOffer() && offer.isRange()) {
+                    amount = CoinUtil.getRoundedAmount(amount, offer.getPrice(), offer.getMinAmount(), maxAmount, offer.getCounterCurrencyCode(), offer.getPaymentMethodId());
                 }
             }
 
@@ -199,14 +189,13 @@ class CoreTradesService {
         verifyTradeIsNotClosed(tradeId);
         var trade = getOpenTrade(tradeId).orElseThrow(() ->
                 new IllegalArgumentException(format("trade with id '%s' not found", tradeId)));
-        log.info("Keeping funds received from trade {}", tradeId);
         tradeManager.onTradeCompleted(trade);
     }
 
     String getTradeRole(String tradeId) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
-        return tradeUtil.getRole(getTrade(tradeId));
+        return TradeUtil.getRole(getTrade(tradeId));
     }
 
     Trade getTrade(String tradeId) {
@@ -223,8 +212,7 @@ class CoreTradesService {
     }
 
     private Optional<Trade> getClosedTrade(String tradeId) {
-        Optional<Tradable> tradable = closedTradableManager.getTradeById(tradeId);
-        return tradable.filter((t) -> t instanceof Trade).map(value -> (Trade) value);
+        return closedTradableManager.getTradeById(tradeId);
     }
 
     List<Trade> getTrades() {
@@ -267,40 +255,9 @@ class CoreTradesService {
         return tradeManager.getTradeProtocol(trade) instanceof BuyerProtocol;
     }
 
-    private Coin getEstimatedTxFee(String fromAddress, String toAddress, Coin amount) {
-        // TODO This and identical logic should be refactored into TradeUtil.
-        try {
-            return btcWalletService.getFeeEstimationTransaction(fromAddress,
-                    toAddress,
-                    amount,
-                    TRADE_PAYOUT).getFee();
-        } catch (Exception ex) {
-            log.error("", ex);
-            throw new IllegalStateException(format("could not estimate tx fee: %s", ex.getMessage()));
-        }
-    }
-
     // Throws a RuntimeException trade is already closed.
     private void verifyTradeIsNotClosed(String tradeId) {
         if (getClosedTrade(tradeId).isPresent())
             throw new IllegalArgumentException(format("trade '%s' is already closed", tradeId));
-    }
-
-    // Throws a RuntimeException if address is not valid.
-    private void verifyIsValidBTCAddress(String address) {
-        try {
-            new BtcAddressValidator().validate(address);
-        } catch (Throwable t) {
-            log.error("", t);
-            throw new IllegalArgumentException(format("'%s' is not a valid btc address", address));
-        }
-    }
-
-    // Throws a RuntimeException if address has a zero balance.
-    private void verifyFundsNotWithdrawn(AddressEntry fromAddressEntry) {
-        Coin fromAddressBalance = btcWalletService.getBalanceForAddress(fromAddressEntry.getAddress());
-        if (fromAddressBalance.isZero())
-            throw new IllegalStateException(format("funds already withdrawn from address '%s'",
-                    fromAddressEntry.getAddressString()));
     }
 }

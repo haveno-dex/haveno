@@ -252,7 +252,7 @@ task packageInstallers {
         }
 
         //String appDescription = 'A decentralized monero exchange network.'
-        String appCopyright = '© 2024 Haveno'
+        String appCopyright = '© 2025 Haveno'
         String appNameAndVendor = 'Haveno'
 
         String commonOpts = new String(
@@ -321,6 +321,7 @@ task packageInstallers {
 
             // Package deb
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
+                    " --resource-dir \"${project(':desktop').projectDir}/package/linux/jpackage.deb\"" +
                     " --linux-deb-maintainer noreply@haveno.exchange" +
                     " --type deb")
 
@@ -338,13 +339,10 @@ task packageInstallers {
                     "\"${binariesFolderPath}/${appNameAndVendor}\""
             )
 
-            // Which version of AppImageTool to use
-            String AppImageToolVersion = "13";
-
             // Download AppImageTool
             Map AppImageToolBinaries = [
-                    'linux'                 : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-x86_64.AppImage",
-                    'linux-aarch64'         : "https://github.com/AppImage/AppImageKit/releases/download/${AppImageToolVersion}/appimagetool-aarch64.AppImage",
+                    'linux'                 : "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage",
+                    'linux-aarch64'         : "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage",
             ]
 
             String osKey = getJavaBinariesDownloadURLs.property('osKey')

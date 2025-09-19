@@ -117,6 +117,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
     private static final String THREAD_ID = Connection.class.getSimpleName();
+    public static final int POSSIBLE_DOS_THRESHOLD = 5;
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -178,6 +179,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static int numThrottledInvalidRequestReports = 0;
     private static long lastLoggedWarningTs = 0;
     private static int numThrottledWarnings = 0;
+    private static long lastLoggedInfoTs = 0;
+    private static int numThrottledInfos = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -654,7 +657,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     private static synchronized void resetReportedInvalidRequestsThrottle(boolean logReport) {
         if (logReport) {
-            if (numThrottledInvalidRequestReports > 0) log.warn("We received {} other reports of invalid requests since the last log entry", numThrottledInvalidRequestReports);
+            if (numThrottledInvalidRequestReports > 0) log.warn("We received {} throttled reports of invalid requests since the last log entry" + (numThrottledInvalidRequestReports >= POSSIBLE_DOS_THRESHOLD ? ". Possible DoS attack detected" : ""), numThrottledInvalidRequestReports);
             numThrottledInvalidRequestReports = 0;
             lastLoggedInvalidRequestReportTs = System.currentTimeMillis();
         }
@@ -676,7 +679,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             throttleWarn("SocketException (expected if connection lost). closeConnectionReason=" + closeConnectionReason + "; connection=" + this);
         } else if (e instanceof SocketTimeoutException || e instanceof TimeoutException) {
             closeConnectionReason = CloseConnectionReason.SOCKET_TIMEOUT;
-            throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
+            throttleInfo("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
         } else if (e instanceof EOFException) {
             closeConnectionReason = CloseConnectionReason.TERMINATED;
             throttleWarn("Shut down caused by exception " + e.getMessage() + " on connection=" + this);
@@ -870,7 +873,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             log.info("We got a {} from a peer with yet unknown address on connection with uid={}", networkEnvelope.getClass().getSimpleName(), uid);
                         }
 
-                        ThreadUtils.execute(() -> onMessage(networkEnvelope, this), THREAD_ID);
+                        onMessage(networkEnvelope, this);
                         ThreadUtils.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size), THREAD_ID);
                     }
                 } catch (InvalidClassException e) {
@@ -937,14 +940,26 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     }
 
     private synchronized void throttleWarn(String msg) {
-        boolean logWarning = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
-        if (logWarning) {
+        boolean doLog = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
+        if (doLog) {
             log.warn(msg);
-            if (numThrottledWarnings > 0) log.warn("{} warnings were throttled since the last log entry", numThrottledWarnings);
+            if (numThrottledWarnings > 0) log.warn("We received {} throttled warnings since the last log entry" + (numThrottledWarnings >= POSSIBLE_DOS_THRESHOLD ? ". Possible DoS attack detected" : ""), numThrottledWarnings);
             numThrottledWarnings = 0;
             lastLoggedWarningTs = System.currentTimeMillis();
         } else {
             numThrottledWarnings++;
+        }
+    }
+
+    private synchronized void throttleInfo(String msg) {
+        boolean doLog = System.currentTimeMillis() - lastLoggedInfoTs > LOG_THROTTLE_INTERVAL_MS;
+        if (doLog) {
+            log.info(msg);
+            if (numThrottledInfos > 0) log.warn("We received {} throttled info logs since the last log entry" + (numThrottledInfos >= POSSIBLE_DOS_THRESHOLD ? ". Possible DoS attack detected" : ""), numThrottledInfos);
+            numThrottledInfos = 0;
+            lastLoggedInfoTs = System.currentTimeMillis();
+        } else {
+            numThrottledInfos++;
         }
     }
 }

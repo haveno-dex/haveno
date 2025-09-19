@@ -243,6 +243,11 @@ public class KeyStorage {
             //noinspection ResultOfMethodCallIgnored
             storageDir.mkdirs();
 
+        // password must be ascii
+        if (password != null && !password.matches("\\p{ASCII}*")) {
+            throw new IllegalArgumentException("Password must be ASCII.");
+        }
+
         var oldPasswordChars = oldPassword == null ? new char[0] : oldPassword.toCharArray();
         var passwordChars = password == null ? new char[0] : password.toCharArray();
         try {

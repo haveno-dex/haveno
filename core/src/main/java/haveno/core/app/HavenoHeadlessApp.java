@@ -75,7 +75,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
             log.info("onDisplayTacHandler: We accept the tacs automatically in headless mode");
             acceptedHandler.run();
         });
-        havenoSetup.setDisplayMoneroConnectionFallbackHandler(show -> log.info("onDisplayMoneroConnectionFallbackHandler: show={}", show));
+        havenoSetup.setDisplayMoneroConnectionFallbackHandler(show -> log.warn("onDisplayMoneroConnectionFallbackHandler: show={}", show));
         havenoSetup.setDisplayTorNetworkSettingsHandler(show -> log.info("onDisplayTorNetworkSettingsHandler: show={}", show));
         havenoSetup.setChainFileLockedExceptionHandler(msg -> log.error("onChainFileLockedExceptionHandler: msg={}", msg));
         tradeManager.setLockedUpFundsHandler(msg -> log.info("onLockedUpFundsHandler: msg={}", msg));
@@ -86,7 +86,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
         havenoSetup.setDisplaySecurityRecommendationHandler(key -> log.info("onDisplaySecurityRecommendationHandler"));
         havenoSetup.setWrongOSArchitectureHandler(msg -> log.error("onWrongOSArchitectureHandler. msg={}", msg));
         havenoSetup.setRejectedTxErrorMessageHandler(errorMessage -> log.warn("setRejectedTxErrorMessageHandler. errorMessage={}", errorMessage));
-        havenoSetup.setShowPopupIfInvalidBtcConfigHandler(() -> log.error("onShowPopupIfInvalidBtcConfigHandler"));
+        havenoSetup.setShowPopupIfInvalidXmrConfigHandler(() -> log.error("onShowPopupIfInvalidXmrConfigHandler"));
         havenoSetup.setRevolutAccountsUpdateHandler(revolutAccountList -> log.info("setRevolutAccountsUpdateHandler: revolutAccountList={}", revolutAccountList));
         havenoSetup.setOsxKeyLoggerWarningHandler(() -> log.info("setOsxKeyLoggerWarningHandler"));
         havenoSetup.setQubesOSInfoHandler(() -> log.info("setQubesOSInfoHandler"));

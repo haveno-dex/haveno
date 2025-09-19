@@ -88,10 +88,10 @@ public class MarketView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
-        offerBookTab.setText(Res.get("market.tabs.offerBook").toUpperCase());
-        spreadTab.setText(Res.get("market.tabs.spreadCurrency").toUpperCase());
-        spreadTabPaymentMethod.setText(Res.get("market.tabs.spreadPayment").toUpperCase());
-        tradesTab.setText(Res.get("market.tabs.trades").toUpperCase());
+        offerBookTab.setText(Res.get("market.tabs.offerBook"));
+        spreadTab.setText(Res.get("market.tabs.spreadCurrency"));
+        spreadTabPaymentMethod.setText(Res.get("market.tabs.spreadPayment"));
+        tradesTab.setText(Res.get("market.tabs.trades"));
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(MarketView.class) == 1)
@@ -209,7 +209,7 @@ public class MarketView extends ActivatableView<TabPane, Void> {
                         StringBuilder sb = new StringBuilder();
                         sb.append("Offer ID: ").append(offer.getId()).append("\n")
                                 .append("Type: ").append(offer.getDirection().name()).append("\n")
-                                .append("Market: ").append(CurrencyUtil.getCurrencyPair(offer.getCurrencyCode())).append("\n")
+                                .append("Market: ").append(CurrencyUtil.getCurrencyPair(offer.getCounterCurrencyCode())).append("\n")
                                 .append("Price: ").append(FormattingUtils.formatPrice(offer.getPrice())).append("\n")
                                 .append("Amount: ").append(DisplayUtils.formatAmount(offer, formatter)).append(" BTC\n")
                                 .append("Payment method: ").append(Res.get(offer.getPaymentMethod().getId())).append("\n")

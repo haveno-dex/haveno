@@ -26,6 +26,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.PriceFeedService;
@@ -34,13 +35,10 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
-import haveno.core.util.coin.CoinUtil;
-import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
-import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -79,27 +77,25 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
     public void populateData(Offer offer) {
         if (offer == null)
             return;
-        paymentAccount = user.getPaymentAccount(offer.getMakerPaymentAccountId());
+
+        PaymentAccount account = user.getPaymentAccount(offer.getMakerPaymentAccountId());
+        if (account != null) {
+            this.paymentAccount = account;
+        }
         setMinAmount(offer.getMinAmount());
         setAmount(offer.getAmount());
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
-        setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
-
-        setSecurityDepositPct(getSecurityAsPercent(offer));
-
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
-    }
+        setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
+        setSecurityDepositPct(getSecurityAsPercent(offer));
+        setExtraInfo(offer.getOfferExtraInfo());
 
-    private double getSecurityAsPercent(Offer offer) {
-        BigInteger offerSellerSecurityDeposit = getBoundedSecurityDeposit(offer.getMaxSellerSecurityDeposit());
-        double offerSellerSecurityDepositAsPercent = CoinUtil.getAsPercentPerXmr(offerSellerSecurityDeposit,
-                offer.getAmount());
-        return Math.min(offerSellerSecurityDepositAsPercent,
-                Restrictions.getMaxSecurityDepositAsPercent());
+        OpenOffer openOffer = openOfferManager.getOpenOffer(offer.getId()).orElse(null);
+        if (openOffer != null) setTriggerPrice(openOffer.getTriggerPrice());
     }
 
     @Override

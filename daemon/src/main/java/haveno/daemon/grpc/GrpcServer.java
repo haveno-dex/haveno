@@ -22,11 +22,15 @@ import com.google.inject.Singleton;
 import haveno.common.config.Config;
 import haveno.core.api.CoreContext;
 import haveno.daemon.grpc.interceptor.PasswordAuthInterceptor;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
 import static io.grpc.ServerInterceptors.interceptForward;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 @Singleton
@@ -55,24 +59,39 @@ public class GrpcServer {
                       GrpcXmrConnectionService moneroConnectionsService,
                       GrpcXmrNodeService moneroNodeService) {
         this.server = ServerBuilder.forPort(config.apiPort)
-                .addService(interceptForward(accountService, accountService.interceptors()))
-                .addService(interceptForward(disputeAgentsService, disputeAgentsService.interceptors()))
-                .addService(interceptForward(disputesService, disputesService.interceptors()))
-                .addService(interceptForward(helpService, helpService.interceptors()))
-                .addService(interceptForward(offersService, offersService.interceptors()))
-                .addService(interceptForward(paymentAccountsService, paymentAccountsService.interceptors()))
-                .addService(interceptForward(priceService, priceService.interceptors()))
                 .addService(shutdownService)
-                .addService(interceptForward(tradeStatisticsService, tradeStatisticsService.interceptors()))
-                .addService(interceptForward(tradesService, tradesService.interceptors()))
-                .addService(interceptForward(versionService, versionService.interceptors()))
-                .addService(interceptForward(walletsService, walletsService.interceptors()))
-                .addService(interceptForward(notificationsService, notificationsService.interceptors()))
-                .addService(interceptForward(moneroConnectionsService, moneroConnectionsService.interceptors()))
-                .addService(interceptForward(moneroNodeService, moneroNodeService.interceptors()))
                 .intercept(passwordAuthInterceptor)
+                .addService(interceptForward(accountService, config.disableRateLimits ? interceptors() : accountService.interceptors()))
+                .addService(interceptForward(disputeAgentsService, config.disableRateLimits ? interceptors() : disputeAgentsService.interceptors()))
+                .addService(interceptForward(disputesService, config.disableRateLimits ? interceptors() : disputesService.interceptors()))
+                .addService(interceptForward(helpService, config.disableRateLimits ? interceptors() : helpService.interceptors()))
+                .addService(interceptForward(offersService, config.disableRateLimits ? interceptors() : offersService.interceptors()))
+                .addService(interceptForward(paymentAccountsService, config.disableRateLimits ? interceptors() : paymentAccountsService.interceptors()))
+                .addService(interceptForward(priceService, config.disableRateLimits ? interceptors() : priceService.interceptors()))
+                .addService(interceptForward(tradeStatisticsService, config.disableRateLimits ? interceptors() : tradeStatisticsService.interceptors()))
+                .addService(interceptForward(tradesService, config.disableRateLimits ? interceptors() : tradesService.interceptors()))
+                .addService(interceptForward(versionService, config.disableRateLimits ? interceptors() :  versionService.interceptors()))
+                .addService(interceptForward(walletsService, config.disableRateLimits ? interceptors() : walletsService.interceptors()))
+                .addService(interceptForward(notificationsService, config.disableRateLimits ? interceptors() : notificationsService.interceptors()))
+                .addService(interceptForward(moneroConnectionsService, config.disableRateLimits ? interceptors() : moneroConnectionsService.interceptors()))
+                .addService(interceptForward(moneroNodeService, config.disableRateLimits ? interceptors() :  moneroNodeService.interceptors()))
                 .build();
+
         coreContext.setApiUser(true);
+    }
+
+    private ServerInterceptor[] interceptors() {
+        return new ServerInterceptor[]{callLoggingInterceptor()};
+    }
+
+    private ServerInterceptor callLoggingInterceptor() {
+        return new ServerInterceptor() {
+            @Override
+            public <RequestT, ResponseT> ServerCall.Listener<RequestT> interceptCall(ServerCall<RequestT, ResponseT> call, Metadata headers, ServerCallHandler<RequestT, ResponseT> next) {
+                log.debug("GRPC endpoint called: " + call.getMethodDescriptor().getFullMethodName());
+                return next.startCall(call, headers);
+            }
+        };
     }
 
     public void start() {

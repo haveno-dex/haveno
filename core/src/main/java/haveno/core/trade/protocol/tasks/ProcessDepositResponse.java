@@ -38,13 +38,21 @@ public class ProcessDepositResponse extends TradeTask {
         try {
           runInterceptHook();
 
-          // throw if error
+          // handle error
           DepositResponse message = (DepositResponse) processModel.getTradeMessage();
           if (message.getErrorMessage() != null) {
-            log.warn("Unregistering trade {} {} because deposit response has error message={}", trade.getClass().getSimpleName(), trade.getShortId(), message.getErrorMessage());
+            log.warn("Deposit response has error message for {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), message.getErrorMessage());
             trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
-            processModel.getTradeManager().unregisterTrade(trade);
-            throw new RuntimeException(message.getErrorMessage());
+            trade.setInitError(new RuntimeException(message.getErrorMessage()));
+            complete();
+            return;
+          }
+
+          // publish deposit transaction for redundancy
+          try {
+            model.getXmrWalletService().getMonerod().submitTxHex(trade.getSelf().getDepositTxHex());
+          } catch (Exception e) {
+            log.warn("Failed to redundantly publish deposit transaction for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
           }
 
           // record security deposits

@@ -57,7 +57,7 @@ public class TradeInfo implements Payload {
 
     private static final Function<Trade, String> toPreciseTradePrice = (trade) ->
             reformatMarketPrice(requireNonNull(trade.getPrice()).toPlainString(),
-                    trade.getOffer().getCurrencyCode());
+                    trade.getOffer().getCounterCurrencyCode());
 
     // Haveno v1 trade protocol fields (some are in common with the BSQ Swap protocol).
     private final OfferInfo offer;
@@ -91,14 +91,19 @@ public class TradeInfo implements Payload {
     private final boolean isDepositsPublished;
     private final boolean isDepositsConfirmed;
     private final boolean isDepositsUnlocked;
+    private final boolean isDepositsFinalized;
     private final boolean isPaymentSent;
     private final boolean isPaymentReceived;
     private final boolean isPayoutPublished;
     private final boolean isPayoutConfirmed;
     private final boolean isPayoutUnlocked;
+    private final boolean isPayoutFinalized;
     private final boolean isCompleted;
     private final String contractAsJson;
     private final ContractInfo contract;
+    private final long startTime;
+    private final long maxDurationMs;
+    private final long deadlineTime;
 
     public TradeInfo(TradeInfoV1Builder builder) {
         this.offer = builder.getOffer();
@@ -132,14 +137,19 @@ public class TradeInfo implements Payload {
         this.isDepositsPublished = builder.isDepositsPublished();
         this.isDepositsConfirmed = builder.isDepositsConfirmed();
         this.isDepositsUnlocked = builder.isDepositsUnlocked();
+        this.isDepositsFinalized = builder.isDepositsFinalized();
         this.isPaymentSent = builder.isPaymentSent();
         this.isPaymentReceived = builder.isPaymentReceived();
         this.isPayoutPublished = builder.isPayoutPublished();
         this.isPayoutConfirmed = builder.isPayoutConfirmed();
         this.isPayoutUnlocked = builder.isPayoutUnlocked();
+        this.isPayoutFinalized = builder.isPayoutFinalized();
         this.isCompleted = builder.isCompleted();
         this.contractAsJson = builder.getContractAsJson();
         this.contract = builder.getContract();
+        this.startTime = builder.getStartTime();
+        this.maxDurationMs = builder.getMaxDurationMs();
+        this.deadlineTime = builder.getDeadlineTime();
     }
 
     public static TradeInfo toTradeInfo(Trade trade) {
@@ -193,15 +203,20 @@ public class TradeInfo implements Payload {
                 .withIsDepositsPublished(trade.isDepositsPublished())
                 .withIsDepositsConfirmed(trade.isDepositsConfirmed())
                 .withIsDepositsUnlocked(trade.isDepositsUnlocked())
+                .withIsDepositsFinalized(trade.isDepositsFinalized())
                 .withIsPaymentSent(trade.isPaymentSent())
                 .withIsPaymentReceived(trade.isPaymentReceived())
                 .withIsPayoutPublished(trade.isPayoutPublished())
                 .withIsPayoutConfirmed(trade.isPayoutConfirmed())
                 .withIsPayoutUnlocked(trade.isPayoutUnlocked())
+                .withIsPayoutFinalized(trade.isPayoutFinalized())
                 .withIsCompleted(trade.isCompleted())
                 .withContractAsJson(trade.getContractAsJson())
                 .withContract(contractInfo)
                 .withOffer(toOfferInfo(trade.getOffer()))
+                .withStartTime(trade.getStartDate().getTime())
+                .withMaxDurationMs(trade.getMaxTradePeriod())
+                .withDeadlineTime(trade.getMaxTradePeriodDate().getTime())
                 .build();
     }
 
@@ -243,14 +258,19 @@ public class TradeInfo implements Payload {
                 .setIsDepositsPublished(isDepositsPublished)
                 .setIsDepositsConfirmed(isDepositsConfirmed)
                 .setIsDepositsUnlocked(isDepositsUnlocked)
+                .setIsDepositsFinalized(isDepositsFinalized)
                 .setIsPaymentSent(isPaymentSent)
                 .setIsPaymentReceived(isPaymentReceived)
                 .setIsCompleted(isCompleted)
                 .setIsPayoutPublished(isPayoutPublished)
                 .setIsPayoutConfirmed(isPayoutConfirmed)
                 .setIsPayoutUnlocked(isPayoutUnlocked)
+                .setIsPayoutFinalized(isPayoutFinalized)
                 .setContractAsJson(contractAsJson == null ? "" : contractAsJson)
                 .setContract(contract.toProtoMessage())
+                .setStartTime(startTime)
+                .setMaxDurationMs(maxDurationMs)
+                .setDeadlineTime(deadlineTime)
                 .build();
     }
 
@@ -287,14 +307,19 @@ public class TradeInfo implements Payload {
                 .withIsDepositsPublished(proto.getIsDepositsPublished())
                 .withIsDepositsConfirmed(proto.getIsDepositsConfirmed())
                 .withIsDepositsUnlocked(proto.getIsDepositsUnlocked())
+                .withIsDepositsFinalized(proto.getIsDepositsFinalized())
                 .withIsPaymentSent(proto.getIsPaymentSent())
                 .withIsPaymentReceived(proto.getIsPaymentReceived())
                 .withIsCompleted(proto.getIsCompleted())
                 .withIsPayoutPublished(proto.getIsPayoutPublished())
                 .withIsPayoutConfirmed(proto.getIsPayoutConfirmed())
                 .withIsPayoutUnlocked(proto.getIsPayoutUnlocked())
+                .withIsPayoutFinalized(proto.getIsPayoutFinalized())
                 .withContractAsJson(proto.getContractAsJson())
                 .withContract((ContractInfo.fromProto(proto.getContract())))
+                .withStartTime(proto.getStartTime())
+                .withMaxDurationMs(proto.getMaxDurationMs())
+                .withDeadlineTime(proto.getDeadlineTime())
                 .build();
     }
 
@@ -330,15 +355,20 @@ public class TradeInfo implements Payload {
                 ", isDepositsPublished=" + isDepositsPublished + "\n" +
                 ", isDepositsConfirmed=" + isDepositsConfirmed + "\n" +
                 ", isDepositsUnlocked=" + isDepositsUnlocked + "\n" +
+                ", isDepositsFinalized=" + isDepositsFinalized + "\n" +
                 ", isPaymentSent=" + isPaymentSent + "\n" +
                 ", isPaymentReceived=" + isPaymentReceived + "\n" +
                 ", isPayoutPublished=" + isPayoutPublished + "\n" +
                 ", isPayoutConfirmed=" + isPayoutConfirmed + "\n" +
                 ", isPayoutUnlocked=" + isPayoutUnlocked + "\n" +
+                ", isPayoutFinalized=" + isPayoutFinalized + "\n" +
                 ", isCompleted=" + isCompleted + "\n" +
                 ", offer=" + offer + "\n" +
                 ", contractAsJson=" + contractAsJson + "\n" +
                 ", contract=" + contract + "\n" +
+                ", startTime=" + startTime + "\n" +
+                ", maxDurationMs=" + maxDurationMs + "\n" +
+                ", deadlineTime=" + deadlineTime + "\n" +
                 '}';
     }
 }

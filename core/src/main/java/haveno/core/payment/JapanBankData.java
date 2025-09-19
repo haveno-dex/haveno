@@ -18,8 +18,7 @@
 package haveno.core.payment;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.inject.Inject;
-import haveno.core.user.Preferences;
+import haveno.core.trade.HavenoUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,13 +45,6 @@ import java.util.Map;
 */
 
 public class JapanBankData {
-
-    private static String userLanguage;
-
-    @Inject
-    JapanBankData(Preferences preferences) {
-        userLanguage = preferences.getUserLanguage();
-    }
 
     /*
        Returns the main list of ~500 banks in Japan with bank codes,
@@ -793,7 +785,7 @@ public class JapanBankData {
     // don't localize these strings into all languages,
     // all we want is either Japanese or English here.
     public static String getString(String id) {
-        boolean ja = userLanguage.equals("ja");
+        boolean ja = HavenoUtils.preferences.getUserLanguage().equals("ja");
 
         switch (id) {
             case "bank":

@@ -29,7 +29,10 @@ import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
+import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -51,7 +54,7 @@ public class TxIdTextField extends AnchorPane {
     private final TextField textField;
     private final Tooltip progressIndicatorTooltip;
     private final TxConfidenceIndicator txConfidenceIndicator;
-    private final Label copyIcon, blockExplorerIcon, missingTxWarningIcon;
+    private final Label copyLabel, blockExplorerIcon, missingTxWarningIcon;
 
     private MoneroWalletListener walletListener;
     private ChangeListener<Number> tradeListener;
@@ -70,16 +73,17 @@ public class TxIdTextField extends AnchorPane {
         txConfidenceIndicator.setProgress(0);
         txConfidenceIndicator.setVisible(false);
         AnchorPane.setRightAnchor(txConfidenceIndicator, 0.0);
-        AnchorPane.setTopAnchor(txConfidenceIndicator, 3.0);
+        AnchorPane.setTopAnchor(txConfidenceIndicator, Layout.FLOATING_ICON_Y);
         progressIndicatorTooltip = new Tooltip("-");
         txConfidenceIndicator.setTooltip(progressIndicatorTooltip);
 
-        copyIcon = new Label();
-        copyIcon.setLayoutY(3);
-        copyIcon.getStyleClass().addAll("icon", "highlight");
-        copyIcon.setTooltip(new Tooltip(Res.get("txIdTextField.copyIcon.tooltip")));
-        AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
-        AnchorPane.setRightAnchor(copyIcon, 30.0);
+        copyLabel = new Label();
+        copyLabel.setLayoutY(Layout.FLOATING_ICON_Y);
+        copyLabel.getStyleClass().addAll("icon", "highlight");
+        copyLabel.setTooltip(new Tooltip(Res.get("txIdTextField.copyIcon.tooltip")));
+        copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        copyLabel.setCursor(Cursor.HAND);
+        AnchorPane.setRightAnchor(copyLabel, 30.0);
 
         Tooltip tooltip = new Tooltip(Res.get("txIdTextField.blockExplorerIcon.tooltip"));
 
@@ -89,7 +93,7 @@ public class TxIdTextField extends AnchorPane {
         AwesomeDude.setIcon(blockExplorerIcon, AwesomeIcon.EXTERNAL_LINK);
         blockExplorerIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(blockExplorerIcon, 52.0);
-        AnchorPane.setTopAnchor(blockExplorerIcon, 4.0);
+        AnchorPane.setTopAnchor(blockExplorerIcon, Layout.FLOATING_ICON_Y);
 
         missingTxWarningIcon = new Label();
         missingTxWarningIcon.getStyleClass().addAll("icon", "error-icon");
@@ -97,7 +101,7 @@ public class TxIdTextField extends AnchorPane {
         missingTxWarningIcon.setTooltip(new Tooltip(Res.get("txIdTextField.missingTx.warning.tooltip")));
         missingTxWarningIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(missingTxWarningIcon, 52.0);
-        AnchorPane.setTopAnchor(missingTxWarningIcon, 4.0);
+        AnchorPane.setTopAnchor(missingTxWarningIcon, Layout.FLOATING_ICON_Y);
         missingTxWarningIcon.setVisible(false);
         missingTxWarningIcon.setManaged(false);
 
@@ -108,7 +112,7 @@ public class TxIdTextField extends AnchorPane {
         AnchorPane.setRightAnchor(textField, 80.0);
         AnchorPane.setLeftAnchor(textField, 0.0);
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
-        getChildren().addAll(textField, missingTxWarningIcon, blockExplorerIcon, copyIcon, txConfidenceIndicator);
+        getChildren().addAll(textField, missingTxWarningIcon, blockExplorerIcon, copyLabel, txConfidenceIndicator);
     }
 
     public void setup(@Nullable String txId) {
@@ -131,8 +135,8 @@ public class TxIdTextField extends AnchorPane {
             textField.setId("address-text-field-error");
             blockExplorerIcon.setVisible(false);
             blockExplorerIcon.setManaged(false);
-            copyIcon.setVisible(false);
-            copyIcon.setManaged(false);
+            copyLabel.setVisible(false);
+            copyLabel.setManaged(false);
             txConfidenceIndicator.setVisible(false);
             missingTxWarningIcon.setVisible(true);
             missingTxWarningIcon.setManaged(true);
@@ -158,7 +162,13 @@ public class TxIdTextField extends AnchorPane {
         textField.setText(txId);
         textField.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
         blockExplorerIcon.setOnMouseClicked(mouseEvent -> openBlockExplorer(txId));
-        copyIcon.setOnMouseClicked(e -> Utilities.copyToClipboard(txId));
+        copyLabel.setOnMouseClicked(e -> {
+            Utilities.copyToClipboard(txId);
+            Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+            Node node = (Node) e.getSource();
+            UserThread.runAfter(() -> tp.hide(), 1);
+            tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
+        });
         txConfidenceIndicator.setVisible(true);
 
         // update off main thread
@@ -177,7 +187,7 @@ public class TxIdTextField extends AnchorPane {
         trade = null;
         textField.setOnMouseClicked(null);
         blockExplorerIcon.setOnMouseClicked(null);
-        copyIcon.setOnMouseClicked(null);
+        copyLabel.setOnMouseClicked(null);
         textField.setText("");
     }
 

@@ -47,11 +47,10 @@ public class CreateOfferView extends MutableOfferView<CreateOfferViewModel> {
         super(model, navigation, preferences, offerDetailsWindow, btcFormatter);
     }
 
-    @Override
     public void initWithData(OfferDirection direction,
                              TradeCurrency tradeCurrency,
                              OfferView.OfferActionHandler offerActionHandler) {
-        super.initWithData(direction, tradeCurrency, offerActionHandler);
+        super.initWithData(direction, tradeCurrency, true, offerActionHandler);
     }
 
     @Override

@@ -18,7 +18,6 @@
 package haveno.core.trade.protocol.tasks;
 
 
-import haveno.common.ThreadUtils;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
@@ -56,24 +55,14 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
 
             // decrypt seller payment account payload if key given
             if (request.getSellerPaymentAccountKey() != null && trade.getTradePeer().getPaymentAccountPayload() == null) {
-                log.info(trade.getClass().getSimpleName() + " decrypting using seller payment account key");
+                log.info("Decrypting seller payment account payload for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
                 trade.decryptPeerPaymentAccountPayload(request.getSellerPaymentAccountKey());
             }
 
             // update multisig hex
             if (sender.getUpdatedMultisigHex() == null) {
                 sender.setUpdatedMultisigHex(request.getUpdatedMultisigHex());
-
-                // try to import multisig hex (retry later)
-                if (!trade.isPayoutPublished()) {
-                    ThreadUtils.submitToPool(() -> {
-                        try {
-                            trade.importMultisigHex();
-                        } catch (Exception e) {
-                            log.warn("Error importing multisig hex on deposits confirmed for trade " + trade.getId() + ": " + e.getMessage() + "\n", e);
-                        }
-                    });
-                }
+                trade.scheduleImportMultisigHex();
             }
 
             // persist

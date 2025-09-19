@@ -64,15 +64,20 @@ public final class TradeInfoV1Builder {
     private boolean isDepositsPublished;
     private boolean isDepositsConfirmed;
     private boolean isDepositsUnlocked;
+    private boolean isDepositsFinalized;
     private boolean isPaymentSent;
     private boolean isPaymentReceived;
     private boolean isPayoutPublished;
     private boolean isPayoutConfirmed;
     private boolean isPayoutUnlocked;
+    private boolean isPayoutFinalized;
     private boolean isCompleted;
     private String contractAsJson;
     private ContractInfo contract;
     private String closingStatus;
+    private long startTime;
+    private long maxDurationMs;
+    private long deadlineTime;
 
     public TradeInfoV1Builder withOffer(OfferInfo offer) {
         this.offer = offer;
@@ -239,6 +244,11 @@ public final class TradeInfoV1Builder {
         return this;
     }
 
+    public TradeInfoV1Builder withIsDepositsFinalized(boolean isDepositsFinalized) {
+        this.isDepositsFinalized = isDepositsFinalized;
+        return this;
+    }
+
     public TradeInfoV1Builder withIsPaymentSent(boolean isPaymentSent) {
         this.isPaymentSent = isPaymentSent;
         return this;
@@ -264,6 +274,11 @@ public final class TradeInfoV1Builder {
         return this;
     }
 
+    public TradeInfoV1Builder withIsPayoutFinalized(boolean isPayoutFinalized) {
+        this.isPayoutFinalized = isPayoutFinalized;
+        return this;
+    }
+
     public TradeInfoV1Builder withIsCompleted(boolean isCompleted) {
         this.isCompleted = isCompleted;
         return this;
@@ -281,6 +296,21 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withClosingStatus(String closingStatus) {
         this.closingStatus = closingStatus;
+        return this;
+    }
+
+    public TradeInfoV1Builder withStartTime(long startTime) {
+        this.startTime = startTime;
+        return this;
+    }
+
+    public TradeInfoV1Builder withMaxDurationMs(long maxDurationMs) {
+        this.maxDurationMs = maxDurationMs;
+        return this;
+    }
+
+    public TradeInfoV1Builder withDeadlineTime(long deadlineTime) {
+        this.deadlineTime = deadlineTime;
         return this;
     }
 

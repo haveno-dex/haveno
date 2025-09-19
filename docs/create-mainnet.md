@@ -39,10 +39,10 @@ For demonstration, we can use the first generated public/private keypair for all
 
 Hardcode the public key(s) in these files:
 
-- [AlertManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/alert/AlertManager.java#L111)
-- [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81)
-- [FilterManager.java](https://github.com/haveno-dex/haveno/blob/1bf83ecb8baa06b6bfcc30720f165f20b8f77025/core/src/main/java/haveno/core/filter/FilterManager.java#L117)
-- [PrivateNotificationManager.java](https://github.com/haveno-dex/haveno/blob/mainnet_placeholders/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L110)
+- [AlertManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/alert/AlertManager.java#L112)
+- [ArbitratorManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/support/dispute/arbitration/arbitrator/ArbitratorManager.java#L81)
+- [FilterManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/filter/FilterManager.java#L135)
+- [PrivateNotificationManager.java](https://github.com/haveno-dex/haveno/blob/2ff149b1ebcfd1a4c40d77d05d4ee9981353a8a6/core/src/main/java/haveno/core/alert/PrivateNotificationManager.java#L111)
 
 ## Change the default folder name for Haveno application data
 
@@ -117,6 +117,10 @@ Otherwise set `ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS` to `false` and set the XMR 
 The price node is separated from Haveno and is run as a standalone service. To deploy a pricenode on both TOR and clearnet, see the instructions on the repository: https://github.com/haveno-dex/haveno-pricenode.
 
 After the price node is built and deployed, add the price node to `DEFAULT_NODES` in [ProvidersRepository.java](https://github.com/haveno-dex/haveno/blob/3cdd88b56915c7f8afd4f1a39e6c1197c2665d63/core/src/main/java/haveno/core/provider/ProvidersRepository.java#L50).
+
+### Update the download URL
+
+Change every instance of `https://haveno.exchange/downloads` to your download URL. For example, `https://havenoexample.com/downloads`.
 
 ## Review all local changes
 

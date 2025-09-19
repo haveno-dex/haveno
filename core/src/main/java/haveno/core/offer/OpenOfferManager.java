@@ -35,6 +35,8 @@
 package haveno.core.offer;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
@@ -55,7 +57,7 @@ import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.filter.FilterManager;
-import haveno.core.offer.OfferBookService.OfferBookChangedListener;
+import haveno.core.locale.Res;
 import haveno.core.offer.messages.OfferAvailabilityRequest;
 import haveno.core.offer.messages.OfferAvailabilityResponse;
 import haveno.core.offer.messages.SignOfferRequest;
@@ -76,6 +78,7 @@ import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.JsonUtil;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
@@ -115,7 +118,6 @@ import lombok.Getter;
 import monero.common.MoneroRpcConnection;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTransferQuery;
@@ -135,7 +137,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private static final long REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC = 30;
     private static final long REPUBLISH_INTERVAL_MS = TimeUnit.MINUTES.toMillis(30);
     private static final long REFRESH_INTERVAL_MS = OfferPayload.TTL / 2;
-    private static final int NUM_ATTEMPTS_THRESHOLD = 5; // process pending offer only on republish cycle after this many attempts
+    private static final int NUM_ATTEMPTS_THRESHOLD = 5; // process offer only on republish cycle after this many attempts
+    private static final long SHUTDOWN_TIMEOUT_MS = 60000;
+    private static final String OPEN_OFFER_GROUP_KEY_IMAGE_ID = OpenOffer.class.getSimpleName();
+    private static final String SIGNED_OFFER_KEY_IMAGE_GROUP_ID = SignedOffer.class.getSimpleName();
 
     private final CoreContext coreContext;
     private final KeyRing keyRing;
@@ -168,12 +173,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final ObservableList<Tuple2<OpenOffer, String>> invalidOffers = FXCollections.observableArrayList();
     @Getter
     private final AccountAgeWitnessService accountAgeWitnessService;
-
-    // poll key images of signed offers
-    private XmrKeyImagePoller signedOfferKeyImagePoller;
-    private static final long SHUTDOWN_TIMEOUT_MS = 60000;
-    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
-    private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
 
     private Object processOffersLock = new Object(); // lock for processing offers
 
@@ -227,27 +226,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         this.persistenceManager.initialize(openOffers, "OpenOffers", PersistenceManager.Source.PRIVATE);
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
-
-        // listen for connection changes to monerod
-        xmrConnectionService.addConnectionListener((connection) -> maybeInitializeKeyImagePoller());
-
-        // close open offer if reserved funds spent
-        offerBookService.addOfferBookChangedListener(new OfferBookChangedListener() {
-            @Override
-            public void onAdded(Offer offer) {
-
-                // cancel offer if reserved funds spent
-                Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
-                if (openOfferOptional.isPresent() && openOfferOptional.get().getState() != OpenOffer.State.RESERVED && offer.isReservedFundsSpent()) {
-                    log.warn("Canceling open offer because reserved funds have been spent, offerId={}, state={}", offer.getId(), openOfferOptional.get().getState());
-                    cancelOpenOffer(openOfferOptional.get(), null, null);
-                }
-            }
-            @Override
-            public void onRemoved(Offer offer) {
-                // nothing to do
-            }
-        });
     }
 
     @Override
@@ -268,34 +246,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         completeHandler);
     }
 
-    private synchronized void maybeInitializeKeyImagePoller() {
-        if (signedOfferKeyImagePoller != null) return;
-        signedOfferKeyImagePoller = new XmrKeyImagePoller(xmrConnectionService.getDaemon(), getKeyImageRefreshPeriodMs());
-
-        // handle when key images confirmed spent
-        signedOfferKeyImagePoller.addListener(new XmrKeyImageListener() {
-            @Override
-            public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
-                for (Entry<String, MoneroKeyImageSpentStatus> entry : spentStatuses.entrySet()) {
-                    if (entry.getValue() == MoneroKeyImageSpentStatus.CONFIRMED) {
-                        removeSignedOffers(entry.getKey());
-                    }
-                }
-            }
-        });
-
-        // first poll in 5s
-        // TODO: remove?
-        new Thread(() -> {
-            HavenoUtils.waitFor(5000);
-            signedOfferKeyImagePoller.poll();
-        }).start();
-    }
-
-    private long getKeyImageRefreshPeriodMs() {
-        return xmrConnectionService.isConnectionLocalHost() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
-    }
-
     public void onAllServicesInitialized() {
         p2PService.addDecryptedDirectMessageListener(this);
 
@@ -314,7 +264,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void cleanUpAddressEntries() {
-        Set<String> openOffersIdSet = openOffers.getList().stream().map(OpenOffer::getId).collect(Collectors.toSet());
+        Set<String> openOffersIdSet;
+        synchronized (openOffers.getList()) {
+            openOffersIdSet = openOffers.getList().stream().map(OpenOffer::getId).collect(Collectors.toSet());
+        }
         xmrWalletService.getAddressEntriesForOpenOffer().stream()
                 .filter(e -> !openOffersIdSet.contains(e.getOfferId()))
                 .forEach(e -> {
@@ -330,7 +283,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         stopped = true;
         p2PService.getPeerManager().removeListener(this);
         p2PService.removeDecryptedDirectMessageListener(this);
-        if (signedOfferKeyImagePoller != null) signedOfferKeyImagePoller.clearKeyImages();
+        xmrConnectionService.getKeyImagePoller().removeKeyImages(OPEN_OFFER_GROUP_KEY_IMAGE_ID);
+        xmrConnectionService.getKeyImagePoller().removeKeyImages(SIGNED_OFFER_KEY_IMAGE_GROUP_ID);
 
         stopPeriodicRefreshOffersTimer();
         stopPeriodicRepublishOffersTimer();
@@ -344,7 +298,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             ThreadUtils.execute(() -> {
 
                 // remove offers from offer book
-                synchronized (openOffers) {
+                synchronized (openOffers.getList()) {
                     openOffers.forEach(openOffer -> {
                         if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
                             offerBookService.removeOfferAtShutDown(openOffer.getOffer().getOfferPayload());
@@ -385,20 +339,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         removeOpenOffers(getObservableList(), completeHandler);
     }
 
-    public void removeOpenOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
-        removeOpenOffers(List.of(openOffer), completeHandler);
-    }
-
-    public void removeOpenOffers(List<OpenOffer> openOffers, @Nullable Runnable completeHandler) {
-        int size = openOffers.size();
-        // Copy list as we remove in the loop
-        List<OpenOffer> openOffersList = new ArrayList<>(openOffers);
-        openOffersList.forEach(openOffer -> cancelOpenOffer(openOffer, () -> {
-        }, errorMessage -> {
-            log.warn("Error removing open offer: " + errorMessage);
-        }));
-        if (completeHandler != null)
-            UserThread.runAfter(completeHandler, size * 200 + 500, TimeUnit.MILLISECONDS);
+    private void removeOpenOffers(List<OpenOffer> openOffers, @Nullable Runnable completeHandler) {
+        synchronized (openOffers) {
+            int size = openOffers.size();
+            // Copy list as we remove in the loop
+            List<OpenOffer> openOffersList = new ArrayList<>(openOffers);
+            openOffersList.forEach(openOffer -> cancelOpenOffer(openOffer, () -> {
+            }, errorMessage -> {
+                log.warn("Error removing open offer: " + errorMessage);
+            }));
+            if (completeHandler != null)
+                UserThread.runAfter(completeHandler, size * 200 + 500, TimeUnit.MILLISECONDS);
+        }
     }
 
 
@@ -442,6 +394,19 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         maybeUpdatePersistedOffers();
 
+        // listen for spent key images to close open and signed offers
+        xmrConnectionService.getKeyImagePoller().addListener(new XmrKeyImageListener() {
+            @Override
+            public void onSpentStatusChanged(Map<String, MoneroKeyImageSpentStatus> spentStatuses) {
+                for (Entry<String, MoneroKeyImageSpentStatus> entry : spentStatuses.entrySet()) {
+                    if (XmrKeyImagePoller.isSpent(entry.getValue())) {
+                        cancelOpenOffersOnSpent(entry.getKey());
+                        removeSignedOffers(entry.getKey());
+                    }
+                }
+            }
+        });
+
         // run off user thread so app is not blocked from starting
         ThreadUtils.submitToPool(() -> {
 
@@ -475,29 +440,35 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         //                .forEach(openOffer -> OfferUtil.getInvalidMakerFeeTxErrorMessage(openOffer.getOffer(), btcWalletService)
         //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
-                // process pending offers
-                processPendingOffers(false, (transaction) -> {}, (errorMessage) -> {
-                    log.warn("Error processing pending offers on bootstrap: " + errorMessage);
+                // processs offers
+                processOffers(false, (transaction) -> {}, (errorMessage) -> {
+                    log.warn("Error processing offers on bootstrap: " + errorMessage);
                 });
 
-                // register to process pending offers on new block
+                // register to process offers on new block
                 xmrWalletService.addWalletListener(new MoneroWalletListener() {
                     @Override
                     public void onNewBlock(long height) {
 
-                        // process each pending offer on new block a few times, then rely on period republish
-                        processPendingOffers(true, (transaction) -> {}, (errorMessage) -> {
-                            log.warn("Error processing pending offers on new block {}: {}", height, errorMessage);
+                        // process each offer on new block a few times, then rely on period republish
+                        processOffers(true, (transaction) -> {}, (errorMessage) -> {
+                            log.warn("Error processing offers on new block {}: {}", height, errorMessage);
                         });
                     }
                 });
 
-                // initialize key image poller for signed offers
-                maybeInitializeKeyImagePoller();
+                // poll spent status of open offer key images
+                synchronized (openOffers.getList()) {
+                    for (OpenOffer openOffer : openOffers.getList()) {
+                        xmrConnectionService.getKeyImagePoller().addKeyImages(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages(), OPEN_OFFER_GROUP_KEY_IMAGE_ID);
+                    }
+                }
 
-                // poll spent status of key images
-                for (SignedOffer signedOffer : signedOffers.getList()) {
-                    signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
+                // poll spent status of signed offer key images
+                synchronized (signedOffers.getList()) {
+                    for (SignedOffer signedOffer : signedOffers.getList()) {
+                        xmrConnectionService.getKeyImagePoller().addKeyImages(signedOffer.getReserveTxKeyImages(), SIGNED_OFFER_KEY_IMAGE_GROUP_ID);
+                    }
                 }
             }, THREAD_ID);
         });
@@ -544,24 +515,72 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                            long triggerPrice,
                            boolean reserveExactAmount,
                            boolean resetAddressEntriesOnError,
+                           String sourceOfferId,
                            TransactionResultHandler resultHandler,
                            ErrorMessageHandler errorMessageHandler) {
-
-        // create open offer
-        OpenOffer openOffer = new OpenOffer(offer, triggerPrice, reserveExactAmount);
-
-        // schedule or post offer
         ThreadUtils.execute(() -> {
+
+            // cannot set trigger price for fixed price offers
+            if (triggerPrice != 0 && offer.getOfferPayload().getPrice() != 0) {
+                errorMessageHandler.handleErrorMessage("Cannot set trigger price for fixed price offers.");
+                return;
+            }
+
+            // check source offer and clone limit
+            OpenOffer sourceOffer = null;
+            if (sourceOfferId != null) {
+
+                // get source offer
+                Optional<OpenOffer> sourceOfferOptional = getOpenOffer(sourceOfferId);
+                if (!sourceOfferOptional.isPresent()) {
+                    errorMessageHandler.handleErrorMessage("Source offer not found to clone, offerId=" + sourceOfferId + ".");
+                    return;
+                }
+                sourceOffer = sourceOfferOptional.get();
+
+                // check clone limit
+                int numClones = getOpenOfferGroup(sourceOffer.getGroupId()).size();
+                if (numClones >= Restrictions.getMaxOffersWithSharedFunds()) {
+                    errorMessageHandler.handleErrorMessage("Cannot create offer because maximum number of " + Restrictions.getMaxOffersWithSharedFunds() + " cloned offers with shared funds reached.");
+                    return;
+                }
+            }
+
+            // create open offer
+            OpenOffer openOffer = new OpenOffer(offer, triggerPrice, sourceOffer == null ? reserveExactAmount : sourceOffer.isReserveExactAmount());
+
+            // set state from source offer
+            if (sourceOffer != null) {
+                openOffer.setReserveTxHash(sourceOffer.getReserveTxHash());
+                openOffer.setReserveTxHex(sourceOffer.getReserveTxHex());
+                openOffer.setReserveTxKey(sourceOffer.getReserveTxKey());
+                openOffer.setGroupId(sourceOffer.getGroupId());
+                openOffer.getOffer().getOfferPayload().setReserveTxKeyImages(sourceOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+                xmrWalletService.cloneAddressEntries(sourceOffer.getOffer().getId(), openOffer.getOffer().getId());
+                if (hasConflictingClone(openOffer)) openOffer.setState(OpenOffer.State.DEACTIVATED);
+            }
+
+            // add the open offer
+            synchronized (processOffersLock) {
+                addOpenOffer(openOffer);
+            }
+
+            // done if source offer is pending
+            if (sourceOffer != null && sourceOffer.isPending()) {
+                resultHandler.handleResult(null);
+                return;
+            }
+
+            // schedule or post offer
             synchronized (processOffersLock) {
                 CountDownLatch latch = new CountDownLatch(1);
-                addOpenOffer(openOffer);
-                processPendingOffer(getOpenOffers(), openOffer, (transaction) -> {
+                processOffer(getOpenOffers(), openOffer, (transaction) -> {
                     requestPersistence();
                     latch.countDown();
                     resultHandler.handleResult(transaction);
                 }, (errorMessage) -> {
                     if (!openOffer.isCanceled()) {
-                        log.warn("Error processing pending offer {}: {}", openOffer.getId(), errorMessage);
+                        log.warn("Error processing offer {}: {}", openOffer.getId(), errorMessage);
                         doCancelOffer(openOffer, resetAddressEntriesOnError);
                     }
                     latch.countDown();
@@ -574,12 +593,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     // Remove from offerbook
     public void removeOffer(Offer offer, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        Optional<OpenOffer> openOfferOptional = getOpenOfferById(offer.getId());
+        Optional<OpenOffer> openOfferOptional = getOpenOffer(offer.getId());
         if (openOfferOptional.isPresent()) {
             cancelOpenOffer(openOfferOptional.get(), resultHandler, errorMessageHandler);
         } else {
-            log.warn("Offer was not found in our list of open offers. We still try to remove it from the offerbook.");
-            errorMessageHandler.handleErrorMessage("Offer was not found in our list of open offers. " + "We still try to remove it from the offerbook.");
+            String errorMsg = "Offer was not found in our list of open offers. We still try to remove it from the offerbook.";
+            log.warn(errorMsg);
+            errorMessageHandler.handleErrorMessage(errorMsg);
             offerBookService.removeOffer(offer.getOfferPayload(), () -> offer.setState(Offer.State.REMOVED), null);
         }
     }
@@ -590,28 +610,49 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (openOffer.isPending()) {
             resultHandler.handleResult(); // ignore if pending
         } else if (offersToBeEdited.containsKey(openOffer.getId())) {
-            errorMessageHandler.handleErrorMessage("You can't activate an offer that is currently edited.");
+            errorMessageHandler.handleErrorMessage(Res.get("offerbook.cannotActivateEditedOffer.warning"));
+        } else if (hasConflictingClone(openOffer)) {
+            errorMessageHandler.handleErrorMessage(Res.get("offerbook.hasConflictingClone.warning"));
         } else {
-            Offer offer = openOffer.getOffer();
-            offerBookService.activateOffer(offer,
-                    () -> {
-                        openOffer.setState(OpenOffer.State.AVAILABLE);
-                        requestPersistence();
-                        log.debug("activateOpenOffer, offerId={}", offer.getId());
-                        resultHandler.handleResult();
-                    },
-                    errorMessageHandler);
+            try {
+
+                // validate arbitrator signature
+                validateSignedState(openOffer);
+
+                // activate offer on offer book
+                Offer offer = openOffer.getOffer();
+                offerBookService.activateOffer(offer,
+                        () -> {
+                            openOffer.setState(OpenOffer.State.AVAILABLE);
+                            applyTriggerState(openOffer);
+                            requestPersistence();
+                            log.debug("activateOpenOffer, offerId={}", offer.getId());
+                            resultHandler.handleResult();
+                        },
+                        errorMessageHandler);
+            } catch (Exception e) {
+                errorMessageHandler.handleErrorMessage(e.getMessage());
+                return;
+            }
+        }
+    }
+
+    private void applyTriggerState(OpenOffer openOffer) {
+        if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
+        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCounterCurrencyCode()), openOffer)) {
+            openOffer.deactivate(true);
         }
     }
 
     public void deactivateOpenOffer(OpenOffer openOffer,
+                                    boolean deactivatedByTrigger,
                                     ResultHandler resultHandler,
                                     ErrorMessageHandler errorMessageHandler) {
         Offer offer = openOffer.getOffer();
         if (openOffer.isAvailable()) {
             offerBookService.deactivateOffer(offer.getOfferPayload(),
                     () -> {
-                        openOffer.setState(OpenOffer.State.DEACTIVATED);
+                        openOffer.deactivate(deactivatedByTrigger);
                         requestPersistence();
                         log.debug("deactivateOpenOffer, offerId={}", offer.getId());
                         resultHandler.handleResult();
@@ -627,7 +668,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 ErrorMessageHandler errorMessageHandler) {
         log.info("Canceling open offer: {}", openOffer.getId());
         if (!offersToBeEdited.containsKey(openOffer.getId())) {
-            if (openOffer.isAvailable()) {
+            if (isOnOfferBook(openOffer)) {
                 openOffer.setState(OpenOffer.State.CANCELED);
                 offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                         () -> {
@@ -645,8 +686,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 });
             }
         } else {
-            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("You can't remove an offer that is currently edited.");
+            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("You can't cancel an offer that is currently edited.");
         }
+    }
+
+    private boolean isOnOfferBook(OpenOffer openOffer) {
+        return openOffer.isAvailable() || openOffer.isReserved();
     }
 
     public void editOpenOfferStart(OpenOffer openOffer,
@@ -662,6 +707,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         if (openOffer.isAvailable()) {
             deactivateOpenOffer(openOffer,
+                    false,
                     resultHandler,
                     errorMessage -> {
                         offersToBeEdited.remove(openOffer.getId());
@@ -677,7 +723,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                      OpenOffer.State originalState,
                                      ResultHandler resultHandler,
                                      ErrorMessageHandler errorMessageHandler) {
-        Optional<OpenOffer> openOfferOptional = getOpenOfferById(editedOffer.getId());
+        Optional<OpenOffer> openOfferOptional = getOpenOffer(editedOffer.getId());
 
         if (openOfferOptional.isPresent()) {
             OpenOffer openOffer = openOfferOptional.get();
@@ -687,16 +733,45 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             removeOpenOffer(openOffer);
 
             OpenOffer editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
-            editedOpenOffer.setState(originalState);
+            if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
+                if (hasConflictingClone(editedOpenOffer)) {
+                    editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                } else {
+                    editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
+                }
+                applyTriggerState(editedOpenOffer);
+            } else {
+                if (originalState == OpenOffer.State.AVAILABLE && hasConflictingClone(editedOpenOffer)) {
+                    editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                } else {
+                    editedOpenOffer.setState(originalState);
+                }
+            }
 
             addOpenOffer(editedOpenOffer);
 
-            if (editedOpenOffer.isAvailable())
-                maybeRepublishOffer(editedOpenOffer);
+            // check for valid arbitrator signature after editing
+            Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(editedOpenOffer.getOffer().getOfferPayload().getArbitratorSigner());
+            if (arbitrator == null || !HavenoUtils.isArbitratorSignatureValid(editedOpenOffer.getOffer().getOfferPayload(), arbitrator)) {
 
-            offersToBeEdited.remove(openOffer.getId());
-            requestPersistence();
-            resultHandler.handleResult();
+                // reset arbitrator signature
+                editedOpenOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
+                editedOpenOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
+
+                // process offer to sign and publish
+                processOffer(getOpenOffers(), editedOpenOffer, (transaction) -> {
+                    offersToBeEdited.remove(openOffer.getId());
+                    requestPersistence();
+                    resultHandler.handleResult();
+                }, (errorMsg) -> {
+                    errorMessageHandler.handleErrorMessage(errorMsg);
+                });
+            } else {
+                maybeRepublishOffer(editedOpenOffer, null);
+                offersToBeEdited.remove(openOffer.getId());
+                requestPersistence();
+                resultHandler.handleResult();
+            }
         } else {
             errorMessageHandler.handleErrorMessage("There is no offer with this id existing to be published.");
         }
@@ -713,6 +788,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             } else {
                 resultHandler.handleResult();
             }
+            requestPersistence();
         } else {
             errorMessageHandler.handleErrorMessage("Editing of offer can't be canceled as it is not edited.");
         }
@@ -722,29 +798,36 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         doCancelOffer(openOffer, true);
     }
 
-    // remove open offer which thaws its key images
+    // cancel open offer which thaws its key images
     private void doCancelOffer(@NotNull OpenOffer openOffer, boolean resetAddressEntries) {
         Offer offer = openOffer.getOffer();
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
+        boolean hasClonedOffer = hasClonedOffer(offer.getId()); // record before removing open offer
         removeOpenOffer(openOffer); 
-        closedTradableManager.add(openOffer); // TODO: don't add these to closed tradables?
+        if (!hasClonedOffer) closedTradableManager.add(openOffer); // do not add clones to closed trades TODO: don't add canceled offers to closed tradables?
         if (resetAddressEntries) xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
         requestPersistence();
-        xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
+        if (!hasClonedOffer) xmrWalletService.thawOutputs(offer.getOfferPayload().getReserveTxKeyImages());
     }
 
-    // close open offer after key images spent
-    public void closeOpenOffer(Offer offer) {
-        getOpenOfferById(offer.getId()).ifPresent(openOffer -> {
-            removeOpenOffer(openOffer);
-            openOffer.setState(OpenOffer.State.CLOSED);
-            xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
-            offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
-                    () -> log.info("Successfully removed offer {}", offer.getId()),
-                    log::error);
-            requestPersistence();
+    // close open offer group after key images spent
+    public void closeSpentOffer(Offer offer) {
+        getOpenOffer(offer.getId()).ifPresent(openOffer -> {
+            for (OpenOffer groupOffer: getOpenOfferGroup(openOffer.getGroupId())) {
+                doCloseOpenOffer(groupOffer);
+            }
         });
+    }
+
+    private void doCloseOpenOffer(OpenOffer openOffer) {
+        removeOpenOffer(openOffer);
+        openOffer.setState(OpenOffer.State.CLOSED);
+        xmrWalletService.resetAddressEntriesForOpenOffer(openOffer.getId());
+        offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
+                () -> log.info("Successfully removed offer {}", openOffer.getId()),
+                log::error);
+        requestPersistence();
     }
 
     public void reserveOpenOffer(OpenOffer openOffer) {
@@ -757,6 +840,37 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         requestPersistence();
     }
 
+    public boolean hasConflictingClone(OpenOffer openOffer) {
+        for (OpenOffer clonedOffer : getOpenOfferGroup(openOffer.getGroupId())) {
+            if (clonedOffer.getId().equals(openOffer.getId())) continue;
+            if (clonedOffer.isDeactivated()) continue; // deactivated offers do not conflict
+
+            // pending offers later in the order do not conflict
+            List<OpenOffer> openOffers = getOpenOffers();
+            if (clonedOffer.isPending() && openOffers.indexOf(clonedOffer) > openOffers.indexOf(openOffer)) {
+                continue;
+            }
+
+            // conflicts if same payment method and currency
+            if (samePaymentMethodAndCurrency(clonedOffer.getOffer(), openOffer.getOffer())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasConflictingClone(Offer offer, OpenOffer sourceOffer) {
+        return getOpenOfferGroup(sourceOffer.getGroupId()).stream()
+                .filter(openOffer -> !openOffer.isDeactivated()) // we only check with activated offers
+                .anyMatch(openOffer -> samePaymentMethodAndCurrency(openOffer.getOffer(), offer));
+    }
+
+    private boolean samePaymentMethodAndCurrency(Offer offer1, Offer offer2) {
+        return offer1.getPaymentMethodId().equalsIgnoreCase(offer2.getPaymentMethodId()) &&
+                offer1.getCounterCurrencyCode().equalsIgnoreCase(offer2.getCounterCurrencyCode()) &&
+                offer1.getBaseCurrencyCode().equalsIgnoreCase(offer2.getBaseCurrencyCode());
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -765,32 +879,51 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return offer.isMyOffer(keyRing);
     }
 
-    public boolean hasOpenOffers() {
-        synchronized (openOffers) {
-            for (OpenOffer openOffer : getOpenOffers()) {
-                if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
-                    return true;
-                }
+    public boolean hasAvailableOpenOffers() {
+        for (OpenOffer openOffer : getOpenOffers()) {
+            if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
+                return true;
             }
-            return false;
         }
+        return false;
     }
 
     public List<OpenOffer> getOpenOffers() {
-        synchronized (openOffers) {
-            return new ArrayList<>(getObservableList());
+        synchronized (openOffers.getList()) {
+            return ImmutableList.copyOf(getObservableList());
         }
+    }
+
+    public List<OpenOffer> getOpenOfferGroup(String groupId) {
+        if (groupId == null) throw new IllegalArgumentException("groupId cannot be null");
+        return getOpenOffers().stream()
+                .filter(openOffer -> groupId.equals(openOffer.getGroupId()))
+                .collect(Collectors.toList());
+    }
+
+    public boolean hasClonedOffer(String offerId) {
+        OpenOffer openOffer = getOpenOffer(offerId).orElse(null);
+        if (openOffer == null) return false;
+        return getOpenOfferGroup(openOffer.getGroupId()).size() > 1;
+    }
+
+    public boolean hasClonedOffers() {
+        for (OpenOffer openOffer : getOpenOffers()) {
+            if (getOpenOfferGroup(openOffer.getGroupId()).size() > 1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<SignedOffer> getSignedOffers() {
-        synchronized (signedOffers) {
-            return new ArrayList<>(signedOffers.getObservableList());
+        synchronized (signedOffers.getList()) {
+            return ImmutableList.copyOf(signedOffers.getObservableList());
         }
     }
 
-
     public ObservableList<SignedOffer> getObservableSignedOffersList() {
-        synchronized (signedOffers) {
+        synchronized (signedOffers.getList()) {
             return signedOffers.getObservableList();
         }
     }
@@ -799,43 +932,62 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return openOffers.getObservableList();
     }
 
-    public Optional<OpenOffer> getOpenOfferById(String offerId) {
-        synchronized (openOffers) {
-            return openOffers.stream().filter(e -> e.getId().equals(offerId)).findFirst();
-        }
+    public Optional<OpenOffer> getOpenOffer(String offerId) {
+        return getOpenOffers().stream().filter(e -> e.getId().equals(offerId)).findFirst();
     }
 
     public boolean hasOpenOffer(String offerId) {
-        return getOpenOfferById(offerId).isPresent();
+        return getOpenOffer(offerId).isPresent();
     }
 
     public Optional<SignedOffer> getSignedOfferById(String offerId) {
-        synchronized (signedOffers) {
-            return signedOffers.stream().filter(e -> e.getOfferId().equals(offerId)).findFirst();
-        }
+        return getSignedOffers().stream().filter(e -> e.getOfferId().equals(offerId)).findFirst();
     }
 
     private void addOpenOffer(OpenOffer openOffer) {
         log.info("Adding open offer {}", openOffer.getId());
-        synchronized (openOffers) {
+        synchronized (openOffers.getList()) {
             openOffers.add(openOffer);
+            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null) {
+                xmrConnectionService.getKeyImagePoller().addKeyImages(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages(), OPEN_OFFER_GROUP_KEY_IMAGE_ID);
+            }
         }
     }
 
     private void removeOpenOffer(OpenOffer openOffer) {
         log.info("Removing open offer {}", openOffer.getId());
-        synchronized (openOffers) {
+        synchronized (openOffers.getList()) {
             openOffers.remove(openOffer);
+            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null) {
+                xmrConnectionService.getKeyImagePoller().removeKeyImages(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages(), OPEN_OFFER_GROUP_KEY_IMAGE_ID);
+            }
         }
-        synchronized (placeOfferProtocols) {
-            PlaceOfferProtocol protocol = placeOfferProtocols.remove(openOffer.getId());
-            if (protocol != null) protocol.cancelOffer();
+
+        // cancel place offer protocol
+        ThreadUtils.execute(() -> {
+            synchronized (processOffersLock) {
+                synchronized (placeOfferProtocols) {
+                    PlaceOfferProtocol protocol = placeOfferProtocols.remove(openOffer.getId());
+                    if (protocol != null) protocol.cancelOffer();
+                }
+            }
+        }, THREAD_ID);
+    }
+
+    private void cancelOpenOffersOnSpent(String keyImage) {
+        synchronized (openOffers.getList()) {
+            for (OpenOffer openOffer : openOffers.getList()) {
+                if (openOffer.getState() != OpenOffer.State.RESERVED && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
+                    log.warn("Canceling open offer because reserved funds have been spent unexpectedly, offerId={}, state={}", openOffer.getId(), openOffer.getState());
+                    cancelOpenOffer(openOffer, null, null);
+                }
+            }
         }
     }
 
     private void addSignedOffer(SignedOffer signedOffer) {
         log.info("Adding SignedOffer for offer {}", signedOffer.getOfferId());
-        synchronized (signedOffers) {
+        synchronized (signedOffers.getList()) {
 
             // remove signed offers with common key images
             for (String keyImage : signedOffer.getReserveTxKeyImages()) {
@@ -844,22 +996,24 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // add new signed offer
             signedOffers.add(signedOffer);
-            signedOfferKeyImagePoller.addKeyImages(signedOffer.getReserveTxKeyImages());
+            xmrConnectionService.getKeyImagePoller().addKeyImages(signedOffer.getReserveTxKeyImages(), SIGNED_OFFER_KEY_IMAGE_GROUP_ID);
         }
     }
 
     private void removeSignedOffer(SignedOffer signedOffer) {
         log.info("Removing SignedOffer for offer {}", signedOffer.getOfferId());
-        synchronized (signedOffers) {
+        synchronized (signedOffers.getList()) {
             signedOffers.remove(signedOffer);
-            signedOfferKeyImagePoller.removeKeyImages(signedOffer.getReserveTxKeyImages());
         }
+        xmrConnectionService.getKeyImagePoller().removeKeyImages(signedOffer.getReserveTxKeyImages(), SIGNED_OFFER_KEY_IMAGE_GROUP_ID);
     }
 
     private void removeSignedOffers(String keyImage) {
-        for (SignedOffer signedOffer : new ArrayList<SignedOffer>(signedOffers.getList())) {
-            if (signedOffer.getReserveTxKeyImages().contains(keyImage)) {
-                removeSignedOffer(signedOffer);
+        synchronized (signedOffers.getList()) {
+            for (SignedOffer signedOffer : getSignedOffers()) {
+                if (signedOffer.getReserveTxKeyImages().contains(keyImage)) {
+                    removeSignedOffer(signedOffer);
+                }
             }
         }
     }
@@ -867,30 +1021,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Place offer helpers
     ///////////////////////////////////////////////////////////////////////////////////////////
-    private void processPendingOffers(boolean skipOffersWithTooManyAttempts,
+    private void processOffers(boolean skipOffersWithTooManyAttempts,
                                        TransactionResultHandler resultHandler, // TODO (woodser): transaction not needed with result handler
                                        ErrorMessageHandler errorMessageHandler) {
         ThreadUtils.execute(() -> {
             List<String> errorMessages = new ArrayList<String>();
             synchronized (processOffersLock) {
                 List<OpenOffer> openOffers = getOpenOffers();
-                for (OpenOffer pendingOffer : openOffers) {
-                    if (pendingOffer.getState() != OpenOffer.State.PENDING) continue;
-                    if (skipOffersWithTooManyAttempts && pendingOffer.getNumProcessingAttempts() > NUM_ATTEMPTS_THRESHOLD) continue; // skip offers with too many attempts
+                for (OpenOffer offer : openOffers) {
+                    if (skipOffersWithTooManyAttempts && offer.getNumProcessingAttempts() > NUM_ATTEMPTS_THRESHOLD) continue; // skip offers with too many attempts
                     CountDownLatch latch = new CountDownLatch(1);
-                    processPendingOffer(openOffers, pendingOffer, (transaction) -> {
+                    processOffer(openOffers, offer, (transaction) -> {
                         latch.countDown();
                     }, errorMessage -> {
-                        if (!pendingOffer.isCanceled()) {
-                            String warnMessage = "Error processing pending offer, offerId=" + pendingOffer.getId() + ", attempt=" + pendingOffer.getNumProcessingAttempts() + ": " + errorMessage;
-                            errorMessages.add(warnMessage);
-                            
-                            // cancel offer if invalid
-                            if (pendingOffer.getOffer().getState() == Offer.State.INVALID) {
-                                log.warn("Canceling offer because it's invalid: {}", pendingOffer.getId());
-                                doCancelOffer(pendingOffer);
-                            }
-                        }
+                        errorMessages.add(errorMessage);
                         latch.countDown();
                     });
                     HavenoUtils.awaitLatch(latch);
@@ -905,7 +1049,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }, THREAD_ID);
     }
 
-    private void processPendingOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+    private void processOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         
         // skip if already processing
         if (openOffer.isProcessing()) {
@@ -915,23 +1059,33 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // process offer
         openOffer.setProcessing(true);
-        doProcessPendingOffer(openOffers, openOffer, (transaction) -> {
+        doProcessOffer(openOffers, openOffer, (transaction) -> {
             openOffer.setProcessing(false);
             resultHandler.handleResult(transaction);
         }, (errorMsg) -> {
             openOffer.setProcessing(false);
             openOffer.setNumProcessingAttempts(openOffer.getNumProcessingAttempts() + 1);
             openOffer.getOffer().setErrorMessage(errorMsg);
+            if (!openOffer.isCanceled()) {
+                errorMsg = "Error processing offer, offerId=" + openOffer.getId() + ", attempt=" + openOffer.getNumProcessingAttempts() + ": " + errorMsg;
+                openOffer.getOffer().setErrorMessage(errorMsg);
+                
+                // cancel offer if invalid
+                if (openOffer.getOffer().getState() == Offer.State.INVALID) {
+                    log.warn("Canceling offer because it's invalid: {}", openOffer.getId());
+                    doCancelOffer(openOffer);
+                }
+            }
             errorMessageHandler.handleErrorMessage(errorMsg);
         });
     }
 
-    private void doProcessPendingOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+    private void doProcessOffer(List<OpenOffer> openOffers, OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         new Thread(() -> {
             try {
 
-                // done processing if wallet not initialized
-                if (xmrWalletService.getWallet() == null) {
+                // done processing if canceled or wallet not initialized
+                if (openOffer.isCanceled() || xmrWalletService.getWallet() == null) {
                     resultHandler.handleResult(null);
                     return;
                 }
@@ -940,7 +1094,45 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 try {
                     ValidateOffer.validateOffer(openOffer.getOffer(), accountAgeWitnessService, user);
                 } catch (Exception e) {
+                    openOffer.getOffer().setState(Offer.State.INVALID);
                     errorMessageHandler.handleErrorMessage("Failed to validate offer: " + e.getMessage());
+                    return;
+                }
+
+                // handle pending offer
+                if (openOffer.isPending()) {
+
+                    // only process the first offer of a pending clone group
+                    if (openOffer.getGroupId() != null) {
+                        List<OpenOffer> openOfferClones = getOpenOfferGroup(openOffer.getGroupId());
+                        if (openOfferClones.size() > 1 && !openOfferClones.get(0).getId().equals(openOffer.getId()) && openOfferClones.get(0).isPending()) {
+                            resultHandler.handleResult(null);
+                            return;
+                        }
+                    }
+                } else {
+
+                    // validate non-pending state
+                    boolean skipValidation = openOffer.isDeactivated() && hasConflictingClone(openOffer) && openOffer.getOffer().getOfferPayload().getArbitratorSignature() == null; // clone with conflicting offer is deactivated and unsigned at first
+                    if (!skipValidation) {
+                        try {
+                            validateSignedState(openOffer);
+                            resultHandler.handleResult(null); // done processing if non-pending state is valid
+                            return;
+                        } catch (Exception e) {
+                            log.warn(e.getMessage());
+
+                            // reset arbitrator signature
+                            openOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
+                            openOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
+                            if (openOffer.isAvailable()) openOffer.setState(OpenOffer.State.PENDING);
+                        }
+                    }
+                }
+
+                // sign and post offer if already funded
+                if (openOffer.getReserveTxHash() != null) {
+                    signAndPostOffer(openOffer, false, resultHandler, errorMessageHandler);
                     return;
                 }
 
@@ -948,7 +1140,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 if (openOffer.getScheduledTxHashes() != null) {
                     boolean scheduledTxsAvailable = true;
                     for (MoneroTxWallet tx : xmrWalletService.getTxs(openOffer.getScheduledTxHashes())) {
-                        if (!tx.isLocked() && !isOutputsAvailable(tx)) {
+                        if (!tx.isLocked() && !hasSpendableAmount(tx)) {
                             scheduledTxsAvailable = false;
                             break;
                         }
@@ -973,46 +1165,49 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         setSplitOutputTx(openOffer, splitOutputTx);
                     }
 
-                    // if not found, create tx to split exact output
-                    if (splitOutputTx == null) {
-                        if (openOffer.getSplitOutputTxHash() != null) {
-                            log.warn("Split output tx unexpectedly unavailable for offer, offerId={}, split output tx={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
-                            setSplitOutputTx(openOffer, null);
-                        }
-                        try {
-                            splitOrSchedule(openOffers, openOffer, amountNeeded);
-                        } catch (Exception e) {
-                            log.warn("Unable to split or schedule funds for offer {}: {}", openOffer.getId(), e.getMessage());
-                            openOffer.getOffer().setState(Offer.State.INVALID);
-                            errorMessageHandler.handleErrorMessage(e.getMessage());
-                            return;
-                        }
-                    } else if (!splitOutputTx.isLocked()) {
-
-                        // otherwise sign and post offer if split output available
-                        signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
+                    // if wallet has exact available balance, try to sign and post directly
+                    if (xmrWalletService.getAvailableBalance().equals(amountNeeded)) {
+                        signAndPostOffer(openOffer, true, resultHandler, (errorMessage) -> {
+                            splitOrSchedule(splitOutputTx, openOffers, openOffer, amountNeeded, resultHandler, errorMessageHandler);
+                        });
                         return;
+                    } else {
+                        splitOrSchedule(splitOutputTx, openOffers, openOffer, amountNeeded, resultHandler, errorMessageHandler);
                     }
                 } else {
 
                     // sign and post offer if enough funds
-                    boolean hasFundsReserved = openOffer.getReserveTxHash() != null;
                     boolean hasSufficientBalance = xmrWalletService.getAvailableBalance().compareTo(amountNeeded) >= 0;
-                    if (hasFundsReserved || hasSufficientBalance) {
+                    if (hasSufficientBalance) {
                         signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
                         return;
                     } else if (openOffer.getScheduledTxHashes() == null) {
                         scheduleWithEarliestTxs(openOffers, openOffer);
                     }
-                }
 
-                // handle result
-                resultHandler.handleResult(null);
+                    resultHandler.handleResult(null);
+                    return;
+                }
             } catch (Exception e) {
-                if (!openOffer.isCanceled()) log.error("Error processing pending offer: {}\n", e.getMessage(), e);
+                if (!openOffer.isCanceled()) log.error("Error processing offer: {}\n", e.getMessage(), e);
                 errorMessageHandler.handleErrorMessage(e.getMessage());
             }
         }).start();
+    }
+
+    private void validateSignedState(OpenOffer openOffer) {
+        Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(openOffer.getOffer().getOfferPayload().getArbitratorSigner());
+        if (openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null) {
+            throw new IllegalArgumentException("Offer " + openOffer.getId() + " has no arbitrator signer");
+        } else if (openOffer.getOffer().getOfferPayload().getArbitratorSignature() == null) {
+            throw new IllegalArgumentException("Offer " + openOffer.getId() + " has no arbitrator signature");
+        } else if (arbitrator == null) {
+            throw new IllegalArgumentException("Offer " + openOffer.getId() + " signed by unregistered arbitrator");
+        } else if (!HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
+            throw new IllegalArgumentException("Offer " + openOffer.getId() + " has invalid arbitrator signature");
+        } else if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null || openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().isEmpty() || openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty()) {
+            throw new IllegalArgumentException("Offer " + openOffer.getId() + " is missing reserve tx hash or key images");
+        }
     }
 
     private MoneroTxWallet getSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer) {
@@ -1029,17 +1224,21 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             MoneroTxWallet splitOutputTx = xmrWalletService.getTx(openOffer.getSplitOutputTxHash());
 
             // check if split output tx is available for offer
-            if (splitOutputTx.isLocked()) return splitOutputTx;
-            else {
-                boolean isAvailable = true;
-                for (MoneroOutputWallet output : splitOutputTx.getOutputsWallet()) {
-                    if (output.isSpent() || output.isFrozen()) {
-                        isAvailable = false;
-                        break;
+            if (splitOutputTx != null) {
+                if (splitOutputTx.isLocked()) return splitOutputTx;
+                else {
+                    boolean isAvailable = true;
+                    for (MoneroOutputWallet output : splitOutputTx.getOutputsWallet()) {
+                        if (output.isSpent() || output.isFrozen()) {
+                            isAvailable = false;
+                            break;
+                        }
                     }
+                    if (isAvailable || isReservedByOffer(openOffer, splitOutputTx)) return splitOutputTx;
+                    else log.warn("Split output tx {} is no longer available for offer {}", openOffer.getSplitOutputTxHash(), openOffer.getId());
                 }
-                if (isAvailable || isReservedByOffer(openOffer, splitOutputTx)) return splitOutputTx;
-                else log.warn("Split output tx is no longer available for offer {}", openOffer.getId());
+            } else {
+                log.warn("Split output tx {} no longer exists for offer {}", openOffer.getSplitOutputTxHash(), openOffer.getId());
             }
         }
 
@@ -1065,7 +1264,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private List<MoneroTxWallet> getSplitOutputFundingTxs(BigInteger reserveAmount, Integer preferredSubaddressIndex) {
-        List<MoneroTxWallet> splitOutputTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsIncoming(true).setIsFailed(false));
+        List<MoneroTxWallet> splitOutputTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsFailed(false)); // TODO: not using setIsIncoming(true) because split output txs sent to self have false; fix in monero-java?
         Set<MoneroTxWallet> removeTxs = new HashSet<MoneroTxWallet>();
         for (MoneroTxWallet tx : splitOutputTxs) {
             if (tx.getOutputs() != null) { // outputs not available until first confirmation
@@ -1073,13 +1272,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     if (output.isSpent() || output.isFrozen()) removeTxs.add(tx);
                 }
             }
-            if (!hasExactAmount(tx, reserveAmount, preferredSubaddressIndex)) removeTxs.add(tx);
+            if (!hasExactOutput(tx, reserveAmount, preferredSubaddressIndex)) removeTxs.add(tx);
         }
         splitOutputTxs.removeAll(removeTxs);
         return splitOutputTxs;
     }
 
-    private boolean hasExactAmount(MoneroTxWallet tx, BigInteger amount, Integer preferredSubaddressIndex) {
+    private boolean hasExactOutput(MoneroTxWallet tx, BigInteger amount, Integer preferredSubaddressIndex) {
         boolean hasExactOutput = (tx.getOutputsWallet(new MoneroOutputQuery()
                 .setAccountIndex(0)
                 .setSubaddressIndex(preferredSubaddressIndex)
@@ -1088,6 +1287,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         boolean hasExactTransfer = (tx.getTransfers(new MoneroTransferQuery()
                 .setAccountIndex(0)
                 .setSubaddressIndex(preferredSubaddressIndex)
+                .setIsIncoming(true)
                 .setAmount(amount)).size() > 0);
         return hasExactTransfer;
     }
@@ -1101,7 +1301,35 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return earliestUnscheduledTx;
     }
 
-    private void splitOrSchedule(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
+    // if split tx not found and cannot reserve exact amount directly, create tx to split or reserve exact output
+    private void splitOrSchedule(MoneroTxWallet splitOutputTx, List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger amountNeeded, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        if (splitOutputTx == null) {
+            if (openOffer.getSplitOutputTxHash() != null) {
+                log.warn("Split output tx unexpectedly unavailable for offer, offerId={}, split output tx={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
+                setSplitOutputTx(openOffer, null);
+            }
+            try {
+                splitOrScheduleAux(openOffers, openOffer, amountNeeded);
+                resultHandler.handleResult(null);
+                return;
+            } catch (Exception e) {
+                log.warn("Unable to split or schedule funds for offer {}: {}", openOffer.getId(), e.getMessage());
+                openOffer.getOffer().setState(Offer.State.INVALID);
+                errorMessageHandler.handleErrorMessage(e.getMessage());
+                return;
+            }
+        } else if (!splitOutputTx.isLocked()) {
+
+            // otherwise sign and post offer if split output available
+            signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
+            return;
+        } else {
+            resultHandler.handleResult(null);
+            return;
+        }
+    }
+
+    private void splitOrScheduleAux(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
 
         // handle sufficient available balance to split output
         boolean sufficientAvailableBalance = xmrWalletService.getAvailableBalance().compareTo(offerReserveAmount) >= 0;
@@ -1135,7 +1363,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     } catch (Exception e) {
                         if (e.getMessage().contains("not enough")) throw e; // do not retry if not enough funds
                         log.warn("Error creating split output tx to fund offer, offerId={}, subaddress={}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                        xmrWalletService.handleWalletError(e, sourceConnection);
+                        xmrWalletService.handleWalletError(e, sourceConnection, i + 1);
                         if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
@@ -1159,42 +1387,26 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void scheduleWithEarliestTxs(List<OpenOffer> openOffers, OpenOffer openOffer) {
 
-        // check for sufficient balance - scheduled offers amount
+        // get earliest available or pending txs with sufficient spendable amount
         BigInteger offerReserveAmount = openOffer.getOffer().getAmountNeeded();
-        if (xmrWalletService.getBalance().subtract(getScheduledAmount(openOffers)).compareTo(offerReserveAmount) < 0) {
-            throw new RuntimeException("Not enough money in Haveno wallet");
-        }
-
-        // get earliest available or pending txs with sufficient incoming amount
         BigInteger scheduledAmount = BigInteger.ZERO;
         Set<MoneroTxWallet> scheduledTxs = new HashSet<MoneroTxWallet>();
         for (MoneroTxWallet tx : xmrWalletService.getTxs()) {
 
-            // skip if no funds available
-            BigInteger sentToSelfAmount = xmrWalletService.getAmountSentToSelf(tx); // amount sent to self always shows 0, so compute from destinations manually
-            if (sentToSelfAmount.equals(BigInteger.ZERO) && (tx.getIncomingTransfers() == null || tx.getIncomingTransfers().isEmpty())) continue;
-            if (!isOutputsAvailable(tx)) continue;
-            if (isTxScheduledByOtherOffer(openOffers, openOffer, tx.getHash())) continue;
+            // get unscheduled spendable amount
+            BigInteger spendableAmount = getUnscheduledSpendableAmount(tx, openOffers);
 
-            // schedule transaction if funds sent to self, because they are not included in incoming transfers // TODO: fix in libraries?
-            if (sentToSelfAmount.compareTo(BigInteger.ZERO) > 0) {
-                scheduledAmount = scheduledAmount.add(sentToSelfAmount);
-                scheduledTxs.add(tx);
-            } else if (tx.getIncomingTransfers() != null) {
+            // skip if no spendable amount
+            if (spendableAmount.equals(BigInteger.ZERO)) continue;
 
-                // schedule transaction if incoming tranfers to account 0
-                for (MoneroIncomingTransfer transfer : tx.getIncomingTransfers()) {
-                    if (transfer.getAccountIndex() == 0) {
-                        scheduledAmount = scheduledAmount.add(transfer.getAmount());
-                        scheduledTxs.add(tx);
-                    }
-                }
-            }
+            // schedule tx
+            scheduledAmount = scheduledAmount.add(spendableAmount);
+            scheduledTxs.add(tx);
 
             // break if sufficient funds
             if (scheduledAmount.compareTo(offerReserveAmount) >= 0) break;
         }
-        if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to schedule offer");
+        if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to create offer");
 
         // schedule txs
         openOffer.setScheduledTxHashes(scheduledTxs.stream().map(tx -> tx.getHash()).collect(Collectors.toList()));
@@ -1202,21 +1414,56 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         openOffer.setState(OpenOffer.State.PENDING);
     }
 
-    private BigInteger getScheduledAmount(List<OpenOffer> openOffers) {
-        BigInteger scheduledAmount = BigInteger.ZERO;
+    private BigInteger getUnscheduledSpendableAmount(MoneroTxWallet tx, List<OpenOffer> openOffers) {
+        if (isScheduledWithUnknownAmount(tx, openOffers)) return BigInteger.ZERO;
+        return getSpendableAmount(tx).subtract(getSplitAmount(tx, openOffers)).max(BigInteger.ZERO);
+    }
+
+    private boolean isScheduledWithUnknownAmount(MoneroTxWallet tx, List<OpenOffer> openOffers) {
         for (OpenOffer openOffer : openOffers) {
-            if (openOffer.getState() != OpenOffer.State.PENDING) continue;
             if (openOffer.getScheduledTxHashes() == null) continue;
-            List<MoneroTxWallet> fundingTxs = xmrWalletService.getTxs(openOffer.getScheduledTxHashes());
-            for (MoneroTxWallet fundingTx : fundingTxs) {
-                if (fundingTx.getIncomingTransfers() != null) {
-                    for (MoneroIncomingTransfer transfer : fundingTx.getIncomingTransfers()) {
-                        if (transfer.getAccountIndex() == 0) scheduledAmount = scheduledAmount.add(transfer.getAmount());
+            if (openOffer.getScheduledTxHashes().contains(tx.getHash()) && !tx.getHash().equals(openOffer.getSplitOutputTxHash())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private BigInteger getSplitAmount(MoneroTxWallet tx, List<OpenOffer> openOffers) {
+        for (OpenOffer openOffer : openOffers) {
+            if (openOffer.getSplitOutputTxHash() == null) continue;
+            if (!openOffer.getSplitOutputTxHash().equals(tx.getHash())) continue;
+            return openOffer.getOffer().getAmountNeeded();
+        }
+        return BigInteger.ZERO;
+    }
+
+    private BigInteger getSpendableAmount(MoneroTxWallet tx) {
+
+        // compute spendable amount from outputs if confirmed
+        if (tx.isConfirmed()) {
+            BigInteger spendableAmount = BigInteger.ZERO;
+            if (tx.getOutputsWallet() != null) {
+                for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+                    if (!output.isSpent() && !output.isFrozen() && output.getAccountIndex() == 0) {
+                        spendableAmount = spendableAmount.add(output.getAmount());
                     }
                 }
             }
+            return spendableAmount;
         }
-        return scheduledAmount;
+
+        // funds sent to self always show 0 incoming amount, so compute from destinations manually
+        // TODO: this excludes change output, so change is missing from spendable amount until confirmed
+        BigInteger sentToSelfAmount = xmrWalletService.getAmountSentToSelf(tx);
+        if (sentToSelfAmount.compareTo(BigInteger.ZERO) > 0) return sentToSelfAmount;
+
+        // if not confirmed and not sent to self, return incoming amount
+        return tx.getIncomingAmount() == null ? BigInteger.ZERO : tx.getIncomingAmount();
+    }
+
+    private boolean hasSpendableAmount(MoneroTxWallet tx) {
+        return getSpendableAmount(tx).compareTo(BigInteger.ZERO) > 0;
     }
 
     private boolean isTxScheduledByOtherOffer(List<OpenOffer> openOffers, OpenOffer openOffer, String txHash) {
@@ -1233,17 +1480,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return false;
     }
 
-    private boolean isOutputsAvailable(MoneroTxWallet tx) {
-        if (tx.getOutputsWallet() == null) return false;
-        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-            if (output.isSpent() || output.isFrozen()) return false;
-        }
-        return true;
-    }
-
     private void signAndPostOffer(OpenOffer openOffer,
                                   boolean useSavingsWallet, // TODO: remove this?
-                                  TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+                                  TransactionResultHandler resultHandler,
+                                  ErrorMessageHandler errorMessageHandler) {
         log.info("Signing and posting offer " + openOffer.getId());
 
         // create model
@@ -1269,18 +1509,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 transaction -> {
 
                     // set offer state
-                    openOffer.setState(OpenOffer.State.AVAILABLE);
                     openOffer.setScheduledTxHashes(null);
                     openOffer.setScheduledAmount(null);
                     requestPersistence();
 
-                    resultHandler.handleResult(transaction);
                     if (!stopped) {
                         startPeriodicRepublishOffersTimer();
                         startPeriodicRefreshOffersTimer();
                     } else {
                         log.debug("We have stopped already. We ignore that placeOfferProtocol.placeOffer.onResult call.");
                     }
+                    resultHandler.handleResult(transaction);
                 },
                 errorMessageHandler);
 
@@ -1330,13 +1569,40 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
+            // verify max length of extra info
+            if (offer.getOfferPayload().getExtraInfo() != null && offer.getOfferPayload().getExtraInfo().length() > Restrictions.getMaxExtraInfoLength()) {
+                errorMessage = "Extra info is too long for offer " + request.offerId + ". Max length is " + Restrictions.getMaxExtraInfoLength() + " but got " + offer.getOfferPayload().getExtraInfo().length();
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
+            // verify the trade protocol version
+            if (request.getOfferPayload().getProtocolVersion() != Version.TRADE_PROTOCOL_VERSION) {
+                errorMessage = "Unsupported protocol version: " + request.getOfferPayload().getProtocolVersion();
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
+            // verify the min version number
+            if (filterManager.getDisableTradeBelowVersion() != null) {
+                if (Version.compare(request.getOfferPayload().getVersionNr(), filterManager.getDisableTradeBelowVersion()) < 0) {
+                    errorMessage = "Offer version number is too low: " + request.getOfferPayload().getVersionNr() + " < " + filterManager.getDisableTradeBelowVersion();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+            }
+
             // verify maker and taker fees
             boolean hasBuyerAsTakerWithoutDeposit = offer.getDirection() == OfferDirection.SELL && offer.isPrivateOffer() && offer.getChallengeHash() != null && offer.getChallengeHash().length() > 0 && offer.getTakerFeePct() == 0;
             if (hasBuyerAsTakerWithoutDeposit) {
 
                 // verify maker's trade fee
-                if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT) {
-                    errorMessage = "Wrong maker fee for offer " + request.offerId;
+                double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getMakerFeePct() != makerFeePct) {
+                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + makerFeePct + " but got " + offer.getMakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1351,8 +1617,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
 
                 // verify maker security deposit
-                if (offer.getSellerSecurityDepositPct() != Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Wrong seller security deposit for offer " + request.offerId + ". Expected " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getSellerSecurityDepositPct();
+                if (offer.getSellerSecurityDepositPct() != Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Wrong seller security deposit for offer " + request.offerId + ". Expected " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getSellerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1367,33 +1633,43 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
             } else {
 
+                // verify public offer (remove to generally allow private offers)
+                if (offer.isPrivateOffer() || offer.getChallengeHash() != null) {
+                    errorMessage = "Private offer " + request.offerId + " is not valid. It must have direction SELL, taker fee of 0, and a challenge hash.";
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+
                 // verify maker's trade fee
-                if (offer.getMakerFeePct() != HavenoUtils.MAKER_FEE_PCT) {
-                    errorMessage = "Wrong maker fee for offer " + request.offerId;
+                double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getMakerFeePct() != makerFeePct) {
+                    errorMessage = "Wrong maker fee for offer " + request.offerId + ". Expected " + makerFeePct + " but got " + offer.getMakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
 
                 // verify taker's trade fee
-                if (offer.getTakerFeePct() != HavenoUtils.TAKER_FEE_PCT) {
-                    errorMessage = "Wrong taker fee for offer " + request.offerId + ". Expected " + HavenoUtils.TAKER_FEE_PCT + " but got " + offer.getTakerFeePct();
+                double takerFeePct = HavenoUtils.getTakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+                if (offer.getTakerFeePct() != takerFeePct) {
+                    errorMessage = "Wrong taker fee for offer " + request.offerId + ". Expected " + takerFeePct + " but got " + offer.getTakerFeePct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
 
                 // verify seller's security deposit
-                if (offer.getSellerSecurityDepositPct() < Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Insufficient seller security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getSellerSecurityDepositPct();
+                if (offer.getSellerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Insufficient seller security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getSellerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
 
                 // verify buyer's security deposit
-                if (offer.getBuyerSecurityDepositPct() < Restrictions.MIN_SECURITY_DEPOSIT_PCT) {
-                    errorMessage = "Insufficient buyer security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.MIN_SECURITY_DEPOSIT_PCT + " but got " + offer.getBuyerSecurityDepositPct();
+                if (offer.getBuyerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct()) {
+                    errorMessage = "Insufficient buyer security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getBuyerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
@@ -1410,17 +1686,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // verify penalty fee
             if (offer.getPenaltyFeePct() != HavenoUtils.PENALTY_FEE_PCT) {
-                errorMessage = "Wrong penalty fee for offer " + request.offerId;
+                errorMessage = "Wrong penalty fee percent for offer " + request.offerId + ". Expected " + HavenoUtils.PENALTY_FEE_PCT + " but got " + offer.getPenaltyFeePct();
                 log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;
             }
 
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
-            BigInteger penaltyFee = HavenoUtils.multiply(offer.getAmount(), HavenoUtils.PENALTY_FEE_PCT);
-            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), hasBuyerAsTakerWithoutDeposit ? HavenoUtils.MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT : HavenoUtils.MAKER_FEE_PCT);
+            double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
+            BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), makerFeePct);
             BigInteger sendTradeAmount =  offer.getDirection() == OfferDirection.BUY ? BigInteger.ZERO : offer.getAmount();
             BigInteger securityDeposit = offer.getDirection() == OfferDirection.BUY ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
+            BigInteger penaltyFee = HavenoUtils.multiply(securityDeposit, HavenoUtils.PENALTY_FEE_PCT);
             MoneroTx verifiedTx = xmrWalletService.verifyReserveTx(
                     offer.getId(),
                     penaltyFee,
@@ -1444,7 +1721,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     signedOfferPayload.getPubKeyRing().hashCode(), // trader id
                     signedOfferPayload.getId(),
                     offer.getAmount().longValueExact(),
-                    maxTradeFee.longValueExact(),
+                    penaltyFee.longValueExact(),
                     request.getReserveTxHash(),
                     request.getReserveTxHex(),
                     request.getReserveTxKeyImages(),
@@ -1484,6 +1761,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             errorMessage = "Exception at handleSignOfferRequest " + e.getMessage();
             log.error(errorMessage + "\n", e);
         } finally {
+            if (result == false && errorMessage == null) {
+                log.warn("Arbitrator is NACKing SignOfferRequest for unknown reason with offerId={}. That should never happen", request.getOfferId());
+                log.warn("Printing stacktrace:");
+                Thread.dumpStack();
+            }
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }
     }
@@ -1532,6 +1814,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             return;
         }
 
+        // Don't allow trade start if not connected to Monero node
+        if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
+            errorMessage = "We got a handleOfferAvailabilityRequest but we are not connected to a Monero node.";
+            log.info(errorMessage);
+            sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+            return;
+        }
+
         if (stopped) {
             errorMessage = "We have stopped already. We ignore that handleOfferAvailabilityRequest call.";
             log.debug(errorMessage);
@@ -1550,7 +1840,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
 
         try {
-            Optional<OpenOffer> openOfferOptional = getOpenOfferById(request.offerId);
+            Optional<OpenOffer> openOfferOptional = getOpenOffer(request.offerId);
             AvailabilityResult availabilityResult;
             byte[] makerSignature = null;
             if (openOfferOptional.isPresent()) {
@@ -1665,8 +1955,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 result,
                 errorMessage);
 
-        log.info("Send AckMessage for {} to peer {} with offerId {} and sourceUid {}",
-                reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid());
+        if (ackMessage.isSuccess()) {
+            log.info("Send AckMessage for {} to peer {} with offerId {} and sourceUid {}",
+                    reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid());
+        } else {
+            log.warn("Sending NACK for {} to peer {} with offerId {} and sourceUid {}, errorMessage={}",
+                    reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid(), errorMessage);
+        }
+
         p2PService.sendEncryptedDirectMessage(
                 sender,
                 senderPubKeyRing,
@@ -1692,9 +1988,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void maybeUpdatePersistedOffers() {
-        // We need to clone to avoid ConcurrentModificationException
-        List<OpenOffer> openOffersClone = getOpenOffers();
-        openOffersClone.forEach(originalOpenOffer -> {
+
+        // update open offers
+        List<OpenOffer> updatedOpenOffers = new ArrayList<>();
+        getOpenOffers().forEach(originalOpenOffer -> {
             Offer originalOffer = originalOpenOffer.getOffer();
 
             OfferPayload originalOfferPayload = originalOffer.getOfferPayload();
@@ -1741,30 +2038,31 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     log.info("Updated the owner nodeaddress of offer id={}", originalOffer.getId());
                 }
 
+                long normalizedPrice = originalOffer.isInverted() ? PriceUtil.invertLongPrice(originalOfferPayload.getPrice(), originalOffer.getCounterCurrencyCode()) : originalOfferPayload.getPrice();
                 OfferPayload updatedPayload = new OfferPayload(originalOfferPayload.getId(),
                         originalOfferPayload.getDate(),
                         ownerNodeAddress,
                         originalOfferPayload.getPubKeyRing(),
                         originalOfferPayload.getDirection(),
-                        originalOfferPayload.getPrice(),
+                        normalizedPrice,
                         originalOfferPayload.getMarketPriceMarginPct(),
                         originalOfferPayload.isUseMarketBasedPrice(),
                         originalOfferPayload.getAmount(),
                         originalOfferPayload.getMinAmount(),
                         originalOfferPayload.getMakerFeePct(),
                         originalOfferPayload.getTakerFeePct(),
-                        originalOfferPayload.getPenaltyFeePct(),
+                        HavenoUtils.PENALTY_FEE_PCT,
                         originalOfferPayload.getBuyerSecurityDepositPct(),
                         originalOfferPayload.getSellerSecurityDepositPct(),
-                        originalOfferPayload.getBaseCurrencyCode(),
-                        originalOfferPayload.getCounterCurrencyCode(),
+                        originalOffer.getBaseCurrencyCode(),
+                        originalOffer.getCounterCurrencyCode(),
                         originalOfferPayload.getPaymentMethodId(),
                         originalOfferPayload.getMakerPaymentAccountId(),
                         originalOfferPayload.getCountryCode(),
                         originalOfferPayload.getAcceptedCountryCodes(),
                         originalOfferPayload.getBankId(),
                         originalOfferPayload.getAcceptedBankIds(),
-                        originalOfferPayload.getVersionNr(),
+                        Version.VERSION,
                         originalOfferPayload.getBlockHeightAtOfferCreation(),
                         originalOfferPayload.getMaxTradeLimit(),
                         originalOfferPayload.getMaxTradePeriod(),
@@ -1776,31 +2074,30 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getChallengeHash(),
                         updatedExtraDataMap,
                         protocolVersion,
-                        originalOfferPayload.getArbitratorSigner(),
-                        originalOfferPayload.getArbitratorSignature(),
-                        originalOfferPayload.getReserveTxKeyImages());
+                        null,
+                        null,
+                        null,
+                        originalOfferPayload.getExtraInfo());
 
-                // Save states from original data to use for the updated
-                Offer.State originalOfferState = originalOffer.getState();
-                OpenOffer.State originalOpenOfferState = originalOpenOffer.getState();
+                // cancel old offer
+                log.info("Canceling outdated offer id={}", originalOffer.getId());
+                doCancelOffer(originalOpenOffer, false);
 
-                // remove old offer
-                originalOffer.setState(Offer.State.REMOVED);
-                originalOpenOffer.setState(OpenOffer.State.CANCELED);
-                removeOpenOffer(originalOpenOffer);
-
-                // Create new Offer
+                // create new offer
                 Offer updatedOffer = new Offer(updatedPayload);
                 updatedOffer.setPriceFeedService(priceFeedService);
-                updatedOffer.setState(originalOfferState);
-
-                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, originalOpenOffer.getTriggerPrice());
-                updatedOpenOffer.setState(originalOpenOfferState);
-                addOpenOffer(updatedOpenOffer);
-                requestPersistence();
-
-                log.info("Updating offer completed. id={}", originalOffer.getId());
+                long normalizedTriggerPrice = originalOffer.isInverted() ? PriceUtil.invertLongPrice(originalOpenOffer.getTriggerPrice(), originalOffer.getCounterCurrencyCode()) : originalOpenOffer.getTriggerPrice();
+                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, normalizedTriggerPrice, originalOpenOffer.isReserveExactAmount(), originalOpenOffer.getGroupId());
+                updatedOpenOffer.setChallenge(originalOpenOffer.getChallenge());
+                updatedOpenOffers.add(updatedOpenOffer);
             }
+        });
+
+        // add updated open offers
+        updatedOpenOffers.forEach(updatedOpenOffer -> {
+            addOpenOffer(updatedOpenOffer);
+            requestPersistence();
+            log.info("Updating offer completed. id={}", updatedOpenOffer.getId());
         });
     }
 
@@ -1817,10 +2114,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         stopPeriodicRefreshOffersTimer();
 
         ThreadUtils.execute(() -> {
-            processListForRepublishOffers(getOpenOffers());
+            processListForRepublishOffers(new ArrayList<>(getOpenOffers())); // list will be modified
         }, THREAD_ID);
     }
 
+    // modifies the given list
     private void processListForRepublishOffers(List<OpenOffer> list) {
         if (list.isEmpty()) {
             return;
@@ -1828,7 +2126,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         OpenOffer openOffer = list.remove(0);
         boolean contained = false;
-        synchronized (openOffers) {
+        synchronized (openOffers.getList()) {
             contained = openOffers.contains(openOffer);
         }
         if (contained) {
@@ -1847,10 +2145,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
-    private void maybeRepublishOffer(OpenOffer openOffer) {
-        maybeRepublishOffer(openOffer, null);
-    }
-
     private void maybeRepublishOffer(OpenOffer openOffer, @Nullable Runnable completeHandler) {
         ThreadUtils.execute(() -> {
 
@@ -1860,82 +2154,58 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
-            // determine if offer is valid
-            boolean isValid = true;
-            Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(openOffer.getOffer().getOfferPayload().getArbitratorSigner());
-            if (arbitrator == null) {
-                log.warn("Offer {} signed by unavailable arbitrator, reposting", openOffer.getId());
-                isValid = false;
-            } else if (!HavenoUtils.isArbitratorSignatureValid(openOffer.getOffer().getOfferPayload(), arbitrator)) {
-                log.warn("Offer {} has invalid arbitrator signature, reposting", openOffer.getId());
-                isValid = false;
-            }
-            if ((openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null || openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().isEmpty()) && (openOffer.getReserveTxHash() == null || openOffer.getReserveTxHash().isEmpty())) {
-                log.warn("Offer {} is missing reserve tx hash but has reserved key images, reposting", openOffer.getId());
-                isValid = false;
-            }
+            // reprocess offer then publish
+            synchronized (processOffersLock) {
+                CountDownLatch latch = new CountDownLatch(1);
+                processOffer(getOpenOffers(), openOffer, (transaction) -> {
+                    requestPersistence();
+                    latch.countDown();
 
-            // if valid, re-add offer to book
-            if (isValid) {
-                offerBookService.addOffer(openOffer.getOffer(),
-                    () -> {
-                        if (!stopped) {
-
-                            // refresh means we send only the data needed to refresh the TTL (hash, signature and sequence no.)
-                            if (periodicRefreshOffersTimer == null) {
-                                startPeriodicRefreshOffersTimer();
-                            }
-                            if (completeHandler != null) {
-                                completeHandler.run();
-                            }
-                        }
-                    },
-                    errorMessage -> {
-                        if (!stopped) {
-                            log.error("Adding offer to P2P network failed. " + errorMessage);
-                            stopRetryRepublishOffersTimer();
-                            retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
-                                    RETRY_REPUBLISH_DELAY_SEC);
-                            if (completeHandler != null) completeHandler.run();
-                        }
-                    });
-            } else {
-
-                // reset offer state to pending
-                openOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
-                openOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
-                openOffer.getOffer().setState(Offer.State.UNKNOWN);
-                openOffer.setState(OpenOffer.State.PENDING);
-
-                // republish offer
-                synchronized (processOffersLock) {
-                    CountDownLatch latch = new CountDownLatch(1);
-                    processPendingOffer(getOpenOffers(), openOffer, (transaction) -> {
-                        requestPersistence();
-                        latch.countDown();
+                    // skip if prevented from publishing
+                    if (preventedFromPublishing(openOffer)) {
                         if (completeHandler != null) completeHandler.run();
-                    }, (errorMessage) -> {
-                        if (!openOffer.isCanceled()) {
-                            log.warn("Error republishing offer {}: {}", openOffer.getId(), errorMessage);
-                            openOffer.getOffer().setErrorMessage(errorMessage);
+                        return;
+                    }
+                    
+                    // publish offer to books
+                    offerBookService.addOffer(openOffer.getOffer(),
+                            () -> {
+                                if (!stopped) {
 
-                            // cancel offer if invalid
-                            if (openOffer.getOffer().getState() == Offer.State.INVALID) {
-                                log.warn("Canceling offer because it's invalid: {}", openOffer.getId());
-                                doCancelOffer(openOffer);
-                            }
-                        }
-                        latch.countDown();
-                        if (completeHandler != null) completeHandler.run();
-                    });
-                    HavenoUtils.awaitLatch(latch);
-                }
+                                    // refresh means we send only the data needed to refresh the TTL (hash, signature and sequence no.)
+                                    if (periodicRefreshOffersTimer == null) {
+                                        startPeriodicRefreshOffersTimer();
+                                    }
+                                    if (completeHandler != null) {
+                                        completeHandler.run();
+                                    }
+                                }
+                            },
+                            errorMessage -> {
+                                if (!stopped) {
+                                    log.error("Adding offer to P2P network failed. " + errorMessage);
+                                    stopRetryRepublishOffersTimer();
+                                    retryRepublishOffersTimer = UserThread.runAfter(OpenOfferManager.this::republishOffers,
+                                            RETRY_REPUBLISH_DELAY_SEC);
+                                    if (completeHandler != null) completeHandler.run();
+                                }
+                            });
+                }, (errorMessage) -> {
+                    log.warn("Error republishing offer {}: {}", openOffer.getId(), errorMessage);
+                    latch.countDown();
+                    if (completeHandler != null) completeHandler.run();
+                });
+                HavenoUtils.awaitLatch(latch);
             }
         }, THREAD_ID);
     }
 
     private boolean preventedFromPublishing(OpenOffer openOffer) {
-        return openOffer.isDeactivated() || openOffer.isCanceled() || openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null;
+        if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) return true;
+        return openOffer.isDeactivated() ||
+                openOffer.isCanceled() ||
+                openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null ||
+                hasConflictingClone(openOffer);
     }
 
     private void startPeriodicRepublishOffersTimer() {
@@ -1957,25 +2227,28 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (periodicRefreshOffersTimer == null)
             periodicRefreshOffersTimer = UserThread.runPeriodically(() -> {
                         if (!stopped) {
-                            int size = openOffers.size();
-                            //we clone our list as openOffers might change during our delayed call
-                            final ArrayList<OpenOffer> openOffersList = new ArrayList<>(openOffers.getList());
-                            for (int i = 0; i < size; i++) {
-                                // we delay to avoid reaching throttle limits
-                                // roughly 4 offers per second
-
-                                long delay = 300;
-                                final long minDelay = (i + 1) * delay;
-                                final long maxDelay = (i + 2) * delay;
-                                final OpenOffer openOffer = openOffersList.get(i);
-                                UserThread.runAfterRandomDelay(() -> {
-                                    // we need to check if in the meantime the offer has been removed
-                                    boolean contained = false;
-                                    synchronized (openOffers) {
-                                        contained = openOffers.contains(openOffer);
-                                    }
-                                    if (contained) maybeRefreshOffer(openOffer, 0, 1);
-                                }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
+                            log.info("Refreshing my open offers");
+                            synchronized (openOffers.getList()) {
+                                int size = openOffers.size();
+                                //we clone our list as openOffers might change during our delayed call
+                                final ArrayList<OpenOffer> openOffersList = new ArrayList<>(openOffers.getList());
+                                for (int i = 0; i < size; i++) {
+                                    // we delay to avoid reaching throttle limits
+                                    // roughly 4 offers per second
+    
+                                    long delay = 300;
+                                    final long minDelay = (i + 1) * delay;
+                                    final long maxDelay = (i + 2) * delay;
+                                    final OpenOffer openOffer = openOffersList.get(i);
+                                    UserThread.runAfterRandomDelay(() -> {
+                                        // we need to check if in the meantime the offer has been removed
+                                        boolean contained = false;
+                                        synchronized (openOffers.getList()) {
+                                            contained = openOffers.contains(openOffer);
+                                        }
+                                        if (contained) maybeRefreshOffer(openOffer, 0, 1);
+                                    }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
+                                }
                             }
                         } else {
                             log.debug("We have stopped already. We ignore that periodicRefreshOffersTimer.run call.");

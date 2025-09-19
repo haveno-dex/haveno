@@ -205,8 +205,12 @@ public class NotificationCenter {
                 message = Res.get("notification.trade.accepted", role);
             }
 
-            if (trade instanceof BuyerTrade && phase.ordinal() == Trade.Phase.DEPOSITS_UNLOCKED.ordinal())
-                message = Res.get("notification.trade.unlocked");
+            if (trade instanceof BuyerTrade) {
+                if (phase.ordinal() == Trade.Phase.DEPOSITS_UNLOCKED.ordinal())
+                    message = Res.get("notification.trade.unlocked");
+                else if (phase.ordinal() == Trade.Phase.DEPOSITS_FINALIZED.ordinal())
+                    message = Res.get("notification.trade.finalized", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED);
+            }
             else if (trade instanceof SellerTrade && phase.ordinal() == Trade.Phase.PAYMENT_SENT.ordinal())
                 message = Res.get("notification.trade.paymentSent");
         }
@@ -216,7 +220,7 @@ public class NotificationCenter {
             if (DontShowAgainLookup.showAgain(key)) {
                 Notification notification = new Notification().tradeHeadLine(trade.getShortId()).message(message);
                 if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(PendingTradesView.class)) {
-                    notification.actionButtonTextWithGoTo("navigation.portfolio.pending")
+                    notification.actionButtonTextWithGoTo("portfolio.tab.pendingTrades")
                             .onAction(() -> {
                                 DontShowAgainLookup.dontShowAgain(key, true);
                                 navigation.navigateTo(MainView.class, PortfolioView.class, PendingTradesView.class);
@@ -318,7 +322,7 @@ public class NotificationCenter {
     private void goToSupport(Trade trade, String message, Class<? extends DisputeView> viewClass) {
         Notification notification = new Notification().disputeHeadLine(trade.getShortId()).message(message);
         if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(viewClass)) {
-            notification.actionButtonTextWithGoTo("navigation.support")
+            notification.actionButtonTextWithGoTo("mainView.menu.support")
                     .onAction(() -> navigation.navigateTo(MainView.class, SupportView.class, viewClass))
                     .show();
         } else {

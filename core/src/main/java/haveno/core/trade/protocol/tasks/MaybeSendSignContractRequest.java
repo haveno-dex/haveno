@@ -19,6 +19,7 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.app.Version;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.offer.OpenOffer;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
@@ -35,6 +36,7 @@ import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 // TODO (woodser): separate classes for deposit tx creation and contract request, or combine into ProcessInitMultisigRequest
@@ -87,8 +89,13 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 Integer subaddressIndex = null;
                 boolean reserveExactAmount = false;
                 if (trade instanceof MakerTrade) {
-                    reserveExactAmount = processModel.getOpenOfferManager().getOpenOfferById(trade.getId()).get().isReserveExactAmount();
-                    if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
+                    Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOffer(trade.getId());
+                    if (openOffer.isPresent()) {
+                        reserveExactAmount = openOffer.get().isReserveExactAmount();
+                        if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
+                    } else {
+                        throw new RuntimeException("Cannot request contract signature because open offer has been removed for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+                    }
                 }
 
                 // thaw reserved outputs
@@ -106,7 +113,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                                     depositTx = trade.getXmrWalletService().createDepositTx(trade, reserveExactAmount, subaddressIndex);
                                 } catch (Exception e) {
                                     log.warn("Error creating deposit tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                                    trade.getXmrWalletService().handleWalletError(e, sourceConnection);
+                                    trade.getXmrWalletService().handleWalletError(e, sourceConnection, i + 1);
                                     if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating deposit tx, tradeId=" + trade.getShortId());
                                     if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                                     HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
@@ -149,6 +156,8 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     trade.getSelf().setDepositTx(depositTx);
                     trade.getSelf().setDepositTxHash(depositTx.getHash());
                     trade.getSelf().setDepositTxFee(depositTx.getFee());
+                    trade.getSelf().setDepositTxHex(depositTx.getFullHex());
+                    trade.getSelf().setDepositTxKey(depositTx.getKey());
                     trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
                 }
             }

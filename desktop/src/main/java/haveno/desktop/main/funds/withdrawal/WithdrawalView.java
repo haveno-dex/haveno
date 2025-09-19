@@ -40,7 +40,6 @@ import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.TradeProtocol;
-import haveno.core.user.DontShowAgainLookup;
 import haveno.core.util.validation.BtcAddressValidator;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.setup.WalletsSetup;
@@ -144,7 +143,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
         amountLabel = feeTuple3.first;
         amountTextField = feeTuple3.second;
-        amountTextField.setMinWidth(180);
+        amountTextField.setMinWidth(225);
         HyperlinkWithIcon sendMaxLink = feeTuple3.third;
 
         withdrawMemoTextField = addTopLabelInputTextField(gridPane, ++rowIndex,
@@ -302,10 +301,9 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
         BigInteger fee = tx.getFee();
         String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                HavenoUtils.formatXmr(receiverAmount.add(fee), true),
+                HavenoUtils.formatXmr(receiverAmount, true),
                 withdrawToAddress,
-                HavenoUtils.formatXmr(fee, true),
-                HavenoUtils.formatXmr(receiverAmount, true));
+                HavenoUtils.formatXmr(fee, true));
 
         // popup confirmation message
         Popup popup = new Popup();
@@ -331,12 +329,8 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
         try {
             xmrWalletService.getWallet().relayTx(tx);
             xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
-            String key = "showTransactionSent";
-            if (DontShowAgainLookup.showAgain(key)) {
-                new TxWithdrawWindow(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
-                        .dontShowAgainId(key)
-                        .show();
-            }
+            new TxWithdrawWindow(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
+                    .show();
             log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
         } catch (Exception e) {
             e.printStackTrace();

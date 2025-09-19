@@ -122,6 +122,7 @@ public class LockedView extends ActivatableView<VBox, Void> {
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
         balanceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.balanceWithCur", Res.getBaseCurrencyCode())));
 
+        GUIUtil.applyTableStyle(tableView);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.locked.noFunds")));
 
@@ -164,7 +165,7 @@ public class LockedView extends ActivatableView<VBox, Void> {
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
-            ObservableList<TableColumn<LockedListItem, ?>> tableColumns = tableView.getColumns();
+            ObservableList<TableColumn<LockedListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             int reportColumns = tableColumns.size();
             CSVEntryConverter<LockedListItem> headerConverter = item -> {
                 String[] columns = new String[reportColumns];
@@ -225,8 +226,8 @@ public class LockedView extends ActivatableView<VBox, Void> {
         Optional<Trade> tradeOptional = tradeManager.getOpenTrade(offerId);
         if (tradeOptional.isPresent()) {
             return Optional.of(tradeOptional.get());
-        } else if (openOfferManager.getOpenOfferById(offerId).isPresent()) {
-            return Optional.of(openOfferManager.getOpenOfferById(offerId).get());
+        } else if (openOfferManager.getOpenOffer(offerId).isPresent()) {
+            return Optional.of(openOfferManager.getOpenOffer(offerId).get());
         } else {
             return Optional.empty();
         }
@@ -250,7 +251,6 @@ public class LockedView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setDateColumnCellFactory() {
-        dateColumn.getStyleClass().add("first-column");
         dateColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         dateColumn.setCellFactory(new Callback<>() {
 
@@ -342,7 +342,6 @@ public class LockedView extends ActivatableView<VBox, Void> {
     }
 
     private void setBalanceColumnCellFactory() {
-        balanceColumn.getStyleClass().add("last-column");
         balanceColumn.setCellValueFactory((addressListItem) -> new ReadOnlyObjectWrapper<>(addressListItem.getValue()));
         balanceColumn.setCellFactory(
                 new Callback<>() {

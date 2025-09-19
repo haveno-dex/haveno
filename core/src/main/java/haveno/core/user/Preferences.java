@@ -35,6 +35,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption;
@@ -108,8 +109,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     ));
 
     public static final boolean USE_SYMMETRIC_SECURITY_DEPOSIT = true;
-    public static final int CLEAR_DATA_AFTER_DAYS_INITIAL = 99999; // feature effectively disabled until user agrees to settings notification
-    public static final int CLEAR_DATA_AFTER_DAYS_DEFAULT = 60; // used when user has agreed to settings notification
+    public static final int CLEAR_DATA_AFTER_DAYS_DEFAULT = 60; // used with new instance or when existing user has agreed to settings notification
+    public static final int CLEAR_DATA_AFTER_DAYS_DISABLED = 99999; // feature effectively disabled until existing user agrees to settings notification
 
 
     // payload is initialized so the default values are available for Property initialization.
@@ -289,7 +290,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
             setUseTorForXmr(config.useTorForXmr);
 
         // switch to public nodes if no provided nodes available
-        if (getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PROVIDED.ordinal() && xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(this)).isEmpty()) {
+        boolean isFixedConnection = !"".equals(config.xmrNode) && (!HavenoUtils.isLocalHost(config.xmrNode) || !config.ignoreLocalXmrNode);
+        if (!isFixedConnection && getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PROVIDED.ordinal() && xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(this)).isEmpty()) {
             log.warn("No provided nodes available, switching to public nodes");
             setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PUBLIC.ordinal());
         }
@@ -305,6 +307,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         if (prefPayload.getIgnoreDustThreshold() < Restrictions.getMinNonDustOutput().value) {
             setIgnoreDustThreshold(600);
+        }
+
+        if (prefPayload.getClearDataAfterDays() < 1) {
+            setClearDataAfterDays(Preferences.CLEAR_DATA_AFTER_DAYS_DISABLED);
         }
 
         // For users from old versions the 4 flags a false but we want to have it true by default
@@ -617,8 +623,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     }
 
     public void setSecurityDepositAsPercent(double securityDepositAsPercent, PaymentAccount paymentAccount) {
-        double max = Restrictions.getMaxSecurityDepositAsPercent();
-        double min = Restrictions.getMinSecurityDepositAsPercent();
+        double max = Restrictions.getMaxSecurityDepositPct();
+        double min = Restrictions.getMinSecurityDepositPct();
 
         if (PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount))
             prefPayload.setSecurityDepositAsPercentForCrypto(Math.min(max, Math.max(min, securityDepositAsPercent)));
@@ -847,12 +853,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         double value = PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount) ?
                 prefPayload.getSecurityDepositAsPercentForCrypto() : prefPayload.getSecurityDepositAsPercent();
 
-        if (value < Restrictions.getMinSecurityDepositAsPercent()) {
-            value = Restrictions.getMinSecurityDepositAsPercent();
+        if (value < Restrictions.getMinSecurityDepositPct()) {
+            value = Restrictions.getMinSecurityDepositPct();
             setSecurityDepositAsPercent(value, paymentAccount);
         }
 
-        return value == 0 ? Restrictions.getDefaultSecurityDepositAsPercent() : value;
+        return value == 0 ? Restrictions.getDefaultSecurityDepositPct() : value;
     }
 
     @Override

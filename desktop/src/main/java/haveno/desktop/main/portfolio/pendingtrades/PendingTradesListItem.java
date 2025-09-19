@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.monetary.Price;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -26,8 +27,6 @@ import haveno.desktop.util.filtering.FilterableListItem;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static haveno.core.locale.CurrencyUtil.getCurrencyPair;
 
 /**
  * We could remove that wrapper if it is not needed for additional UI only fields.
@@ -63,7 +62,7 @@ public class PendingTradesListItem implements FilterableListItem {
     }
 
     public String getMarketDescription() {
-        return getCurrencyPair(trade.getOffer().getCurrencyCode());
+        return CurrencyUtil.getCurrencyPair(trade.getOffer().getCounterCurrencyCode());
     }
 
     @Override
@@ -81,6 +80,15 @@ public class PendingTradesListItem implements FilterableListItem {
             return true;
         }
         if (StringUtils.containsIgnoreCase(getMarketDescription(), filterString)) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getTrade().getOffer().getCombinedExtraInfo(), filterString)) {
+            return true;
+        }
+        if (getTrade().getBuyer().getPaymentAccountPayload() != null && StringUtils.containsIgnoreCase(getTrade().getBuyer().getPaymentAccountPayload().getPaymentDetails(), filterString)) {
+            return true;
+        }
+        if (getTrade().getSeller().getPaymentAccountPayload() != null && StringUtils.containsIgnoreCase(getTrade().getSeller().getPaymentAccountPayload().getPaymentDetails(), filterString)) {
             return true;
         }
         return StringUtils.containsIgnoreCase(getPriceAsString(), filterString);

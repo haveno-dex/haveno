@@ -22,7 +22,7 @@ import haveno.common.taskrunner.Task;
 import haveno.common.util.Tuple2;
 import haveno.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
 import haveno.core.offer.availability.tasks.SendOfferAvailabilityRequest;
-import haveno.core.offer.placeoffer.tasks.AddToOfferBook;
+import haveno.core.offer.placeoffer.tasks.MaybeAddToOfferBook;
 import haveno.core.offer.placeoffer.tasks.MakerReserveOfferFunds;
 import haveno.core.offer.placeoffer.tasks.ValidateOffer;
 import haveno.core.trade.protocol.tasks.ApplyFilter;
@@ -72,7 +72,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                 FXCollections.observableArrayList(Arrays.asList(
                         ValidateOffer.class,
                         MakerReserveOfferFunds.class,
-                        AddToOfferBook.class)
+                        MaybeAddToOfferBook.class)
                 ));
 
 

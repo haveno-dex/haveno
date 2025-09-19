@@ -59,7 +59,7 @@ public class TradeEvents {
     }
 
     private void setTradePhaseListener(Trade trade) {
-        if (isInitialized) log.info("We got a new trade. id={}", trade.getId());
+        if (isInitialized) log.info("We got a new trade, tradeId={}", trade.getId(), "hasBuyerAsTakerWithoutDeposit=" + trade.getOffer().hasBuyerAsTakerWithoutDeposit());
         if (!trade.isPayoutPublished()) {
             trade.statePhaseProperty().addListener((observable, oldValue, newValue) -> {
                 String msg = null;
@@ -70,6 +70,7 @@ public class TradeEvents {
                     case DEPOSITS_PUBLISHED:
                         break;
                     case DEPOSITS_UNLOCKED:
+                    case DEPOSITS_FINALIZED: // TODO: use a separate message for deposits finalized?
                         if (trade.getContract() != null && pubKeyRingProvider.get().equals(trade.getContract().getBuyerPubKeyRing()))
                             msg = Res.get("account.notifications.trade.message.msg.conf", shortId);
                         break;

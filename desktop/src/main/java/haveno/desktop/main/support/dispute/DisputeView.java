@@ -223,18 +223,14 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
     @Override
     public void initialize() {
-        Label label = new AutoTooltipLabel(Res.get("support.filter"));
-        HBox.setMargin(label, new Insets(5, 0, 0, 0));
-        HBox.setHgrow(label, Priority.NEVER);
-
         filterTextField = new InputTextField();
-        filterTextField.setPromptText(Res.get("support.filter.prompt"));
+        filterTextField.setPromptText(Res.get("shared.filter"));
         Tooltip tooltip = new Tooltip();
         tooltip.setShowDelay(Duration.millis(100));
         tooltip.setShowDuration(Duration.seconds(10));
         filterTextField.setTooltip(tooltip);
         filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
-        HBox.setHgrow(filterTextField, Priority.NEVER);
+        HBox.setHgrow(filterTextField, Priority.ALWAYS);
 
         alertIconLabel = new Label();
         Text icon = getIconForLabel(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE, "2em", alertIconLabel);
@@ -298,8 +294,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
         HBox filterBox = new HBox();
         filterBox.setSpacing(5);
-        filterBox.getChildren().addAll(label,
-                filterTextField,
+        filterBox.getChildren().addAll(filterTextField,
                 alertIconLabel,
                 spacer,
                 reOpenButton,
@@ -311,6 +306,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         VBox.setVgrow(filterBox, Priority.NEVER);
 
         tableView = new TableView<>();
+        GUIUtil.applyTableStyle(tableView);
         VBox.setVgrow(tableView, Priority.SOMETIMES);
         tableView.setMinHeight(150);
 
@@ -739,11 +735,13 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                         .append(winner)
                         .append(")\n");
 
-                String buyerPaymentAccountPayload = Utilities.toTruncatedString(
-                        firstDispute.getBuyerPaymentAccountPayload().getPaymentDetails().
+                String buyerPaymentAccountPayload = firstDispute.getBuyerPaymentAccountPayload() == null ? null :
+                        Utilities.toTruncatedString(
+                                firstDispute.getBuyerPaymentAccountPayload().getPaymentDetails().
                                 replace("\n", " ").replace(";", "."), 100);
-                String sellerPaymentAccountPayload = Utilities.toTruncatedString(
-                        firstDispute.getSellerPaymentAccountPayload().getPaymentDetails()
+                String sellerPaymentAccountPayload = firstDispute.getSellerPaymentAccountPayload() == null ? null :
+                        Utilities.toTruncatedString(
+                                firstDispute.getSellerPaymentAccountPayload().getPaymentDetails()
                                 .replace("\n", " ").replace(";", "."), 100);
                 String buyerNodeAddress = contract.getBuyerNodeAddress().getFullAddress();
                 String sellerNodeAddress = contract.getSellerNodeAddress().getFullAddress();
@@ -955,7 +953,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
             {
                 setMaxWidth(80);
                 setMinWidth(65);
-                getStyleClass().addAll("first-column", "avatar-column");
                 setSortable(false);
             }
         };
@@ -1352,7 +1349,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 setMinWidth(50);
             }
         };
-        column.getStyleClass().add("last-column");
         column.setCellValueFactory((dispute) -> new ReadOnlyObjectWrapper<>(dispute.getValue()));
         column.setCellFactory(
                 new Callback<>() {

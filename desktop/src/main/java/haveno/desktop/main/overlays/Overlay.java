@@ -19,6 +19,8 @@ package haveno.desktop.main.overlays;
 
 import com.google.common.reflect.TypeToken;
 import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -42,8 +44,6 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -52,6 +52,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
@@ -122,7 +123,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         Notification(AnimationType.SlideFromRightTop, ChangeBackgroundType.BlurLight),
 
         BackgroundInfo(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.BlurUltraLight),
-        Feedback(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.Darken),
+        Feedback(AnimationType.SlideDownFromCenterTop, ChangeBackgroundType.BlurLight),
 
         Information(AnimationType.FadeInAtCenter, ChangeBackgroundType.BlurLight),
         Instruction(AnimationType.ScaleFromCenter, ChangeBackgroundType.BlurLight),
@@ -140,6 +141,9 @@ public abstract class Overlay<T extends Overlay<T>> {
             this.changeBackgroundType = changeBackgroundType;
         }
     }
+
+    private static int numCenterOverlays = 0;
+    private static int numBlurEffects = 0;
 
     protected final static double DEFAULT_WIDTH = 668;
     protected Stage stage;
@@ -168,7 +172,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected boolean showScrollPane = false;
 
     protected TextArea messageTextArea;
-    protected Label headlineIcon, copyIcon, headLineLabel;
+    protected Label headlineIcon, copyLabel, headLineLabel;
     protected String headLine, message, closeButtonText, actionButtonText,
             secondaryActionButtonText, dontShowAgainId, dontShowAgainText,
             truncatedMessage;
@@ -249,6 +253,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected void animateHide() {
         animateHide(() -> {
+            if (isCentered()) numCenterOverlays--;
             removeEffectFromBackground();
 
             if (stage != null)
@@ -394,7 +399,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T useReportBugButton() {
         this.closeButtonText = Res.get("shared.reportBug");
-        this.closeHandlerOptional = Optional.of(() -> GUIUtil.openWebPage("https://haveno.exchange/source/haveno/issues"));
+        this.closeHandlerOptional = Optional.of(() -> GUIUtil.openWebPage("https://github.com/haveno-dex/haveno/issues"));
         return cast();
     }
 
@@ -500,6 +505,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         gridPane.setVgap(5);
         gridPane.setPadding(new Insets(64, 64, 64, 64));
         gridPane.setPrefWidth(width);
+        gridPane.setMaxHeight(Layout.MAX_POPUP_HEIGHT);
 
         ColumnConstraints columnConstraints1 = new ColumnConstraints();
         columnConstraints1.setHalignment(HPos.RIGHT);
@@ -540,6 +546,14 @@ public abstract class Overlay<T extends Overlay<T>> {
                     stage.show();
 
                     layout();
+
+                    // add dropshadow if light mode or multiple centered overlays
+                    if (isCentered()) {
+                        numCenterOverlays++;
+                    }
+                    if (!CssTheme.isDarkTheme() || numCenterOverlays > 1) {
+                        getRootContainer().getStyleClass().add("popup-dropshadow");
+                    }
 
                     addEffectToBackground();
 
@@ -739,6 +753,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void addEffectToBackground() {
+        numBlurEffects++;
+        if (numBlurEffects > 1) return;
         if (type.changeBackgroundType == ChangeBackgroundType.BlurUltraLight)
             MainView.blurUltraLight();
         else if (type.changeBackgroundType == ChangeBackgroundType.BlurLight)
@@ -758,16 +774,16 @@ public abstract class Overlay<T extends Overlay<T>> {
 
 
         if (headLineLabel != null) {
-            if (copyIcon != null) {
-                copyIcon.getStyleClass().add("popup-icon-information");
-                copyIcon.setManaged(true);
-                copyIcon.setVisible(true);
-                FormBuilder.getIconForLabel(AwesomeIcon.COPY, copyIcon, "1.1em");
-                copyIcon.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
+            if (copyLabel != null) {
+                copyLabel.getStyleClass().add("popup-icon-information");
+                copyLabel.setManaged(true);
+                copyLabel.setVisible(true);
+                MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.2em");
+                copyLabel.setGraphic(copyIcon);
+                copyLabel.setCursor(Cursor.HAND);
+                copyLabel.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
                     if (message != null) {
-                        String forClipboard = headLineLabel.getText() + System.lineSeparator() + message
-                            + System.lineSeparator() + (messageHyperlinks == null ? "" : messageHyperlinks.toString());
-                        Utilities.copyToClipboard(forClipboard);
+                        Utilities.copyToClipboard(getClipboardText());
                         Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
                         Node node = (Node) mouseEvent.getSource();
                         UserThread.runAfter(() -> tp.hide(), 1);
@@ -810,6 +826,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void removeEffectFromBackground() {
+        numBlurEffects--;
+        if (numBlurEffects > 0) return;
         MainView.removeEffect();
     }
 
@@ -830,15 +848,15 @@ public abstract class Overlay<T extends Overlay<T>> {
                 headLineLabel.setStyle(headlineStyle);
 
             if (message != null) {
-                copyIcon = new Label();
-                copyIcon.setManaged(false);
-                copyIcon.setVisible(false);
-                copyIcon.setPadding(new Insets(3));
-                copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+                copyLabel = new Label();
+                copyLabel.setManaged(false);
+                copyLabel.setVisible(false);
+                copyLabel.setPadding(new Insets(3));
+                copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
                 final Pane spacer = new Pane();
                 HBox.setHgrow(spacer, Priority.ALWAYS);
                 spacer.setMinSize(Layout.PADDING, 1);
-                hBox.getChildren().addAll(headlineIcon, headLineLabel, spacer, copyIcon);
+                hBox.getChildren().addAll(headlineIcon, headLineLabel, spacer, copyLabel);
             } else {
                 hBox.getChildren().addAll(headlineIcon, headLineLabel);
             }
@@ -854,23 +872,8 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (message != null) {
             messageTextArea = new TextArea(truncatedMessage);
             messageTextArea.setEditable(false);
-            messageTextArea.getStyleClass().add("text-area-no-border");
-            messageTextArea.sceneProperty().addListener((o, oldScene, newScene) -> {
-                if (newScene != null) {
-                    // avoid javafx css warning
-                    CssTheme.loadSceneStyles(newScene, CssTheme.CSS_THEME_LIGHT, false);
-                    messageTextArea.applyCss();
-                    var text = messageTextArea.lookup(".text");
-
-                    messageTextArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
-                        return messageTextArea.getFont().getSize() + text.getBoundsInLocal().getHeight();
-                    }, text.boundsInLocalProperty()));
-
-                    text.boundsInLocalProperty().addListener((observableBoundsAfter, boundsBefore, boundsAfter) -> {
-                        Platform.runLater(() -> messageTextArea.requestLayout());
-                    });
-                }
-            });
+            messageTextArea.getStyleClass().add("text-area-popup");
+            GUIUtil.adjustHeightAutomatically(messageTextArea);
             messageTextArea.setWrapText(true);
 
             Region messageRegion;
@@ -939,7 +942,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         gitHubButton.setOnAction(event -> {
             if (message != null)
                 Utilities.copyToClipboard(message);
-            GUIUtil.openWebPage("https://haveno.exchange/source/haveno/issues");
+            GUIUtil.openWebPage("https://github.com/haveno-dex/haveno/issues");
             hide();
         });
     }
@@ -1083,11 +1086,22 @@ public abstract class Overlay<T extends Overlay<T>> {
         return isDisplayed;
     }
 
+    public String getClipboardText() {
+        return headLineLabel.getText() + System.lineSeparator() + message
+                + System.lineSeparator() + (messageHyperlinks == null ? "" : messageHyperlinks.toString());
+    }
+
     @Override
     public String toString() {
         return "Popup{" +
                 "headLine='" + headLine + '\'' +
                 ", message='" + message + '\'' +
                 '}';
+    }
+
+    private boolean isCentered() {
+        if (type.animationType == AnimationType.SlideDownFromCenterTop) return false;
+        if (type.animationType == AnimationType.SlideFromRightTop) return false;
+        return true;
     }
 }

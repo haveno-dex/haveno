@@ -39,7 +39,7 @@ import java.util.Map;
 public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAccountPayload {
     private String email = "";
     private String holderName = "";
-    private String beneficiaryAddress = "";
+    private String holderAddress = "";
 
     public TransferwiseUsdAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -51,7 +51,7 @@ public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAcco
                                  List<String> acceptedCountryCodes,
                                  String email,
                                  String holderName,
-                                 String beneficiaryAddress,
+                                 String holderAddress,
                                  long maxTradePeriod,
                                  Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -63,7 +63,7 @@ public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAcco
 
         this.email = email;
         this.holderName = holderName;
-        this.beneficiaryAddress = beneficiaryAddress;
+        this.holderAddress = holderAddress;
     }
 
     @Override
@@ -71,7 +71,7 @@ public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAcco
         protobuf.TransferwiseUsdAccountPayload.Builder builder = protobuf.TransferwiseUsdAccountPayload.newBuilder()
                 .setEmail(email)
                 .setHolderName(holderName)
-                .setBeneficiaryAddress(beneficiaryAddress);
+                .setHolderAddress(holderAddress);
         final protobuf.CountryBasedPaymentAccountPayload.Builder countryBasedPaymentAccountPayload = getPaymentAccountPayloadBuilder()
                 .getCountryBasedPaymentAccountPayloadBuilder()
                 .setTransferwiseUsdAccountPayload(builder);
@@ -89,7 +89,7 @@ public final class TransferwiseUsdAccountPayload extends CountryBasedPaymentAcco
                 new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 accountPayloadPB.getEmail(),
                 accountPayloadPB.getHolderName(),
-                accountPayloadPB.getBeneficiaryAddress(),
+                accountPayloadPB.getHolderAddress(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }

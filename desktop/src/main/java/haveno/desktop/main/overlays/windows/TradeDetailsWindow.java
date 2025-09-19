@@ -39,18 +39,20 @@ import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
+
 import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
 import static haveno.desktop.util.FormBuilder.add2ButtonsWithBox;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
 import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
+import static haveno.desktop.util.FormBuilder.addSeparator;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
-import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
@@ -104,7 +106,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         this.trade = trade;
 
         rowIndex = -1;
-        width = 918;
+        width = Layout.DETAILS_WINDOW_WIDTH;
         createGridPane();
         addContent();
         display();
@@ -124,7 +126,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     @Override
     protected void createGridPane() {
         super.createGridPane();
-        gridPane.setPadding(new Insets(35, 40, 30, 40));
         gridPane.getStyleClass().add("grid-pane");
     }
 
@@ -132,7 +133,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         Offer offer = trade.getOffer();
         Contract contract = trade.getContract();
 
-        int rows = 5;
+        int rows = 9;
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("tradeDetailsWindow.headline"));
 
         boolean myOffer = tradeManager.isMyOffer(offer);
@@ -143,31 +144,38 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         String offerType = Res.get("shared.offerType");
         if (tradeManager.isBuyer(offer)) {
             addConfirmationLabelTextField(gridPane, rowIndex, offerType,
-                    DisplayUtils.getDirectionForBuyer(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
+                    DisplayUtils.getDirectionForBuyer(myOffer, offer.getCounterCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
             counterCurrencyDirectionInfo = toSpend;
             xmrDirectionInfo = toReceive;
         } else {
             addConfirmationLabelTextField(gridPane, rowIndex, offerType,
-                    DisplayUtils.getDirectionForSeller(myOffer, offer.getCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
+                    DisplayUtils.getDirectionForSeller(myOffer, offer.getCounterCurrencyCode()), Layout.TWICE_FIRST_ROW_DISTANCE);
             counterCurrencyDirectionInfo = toReceive;
             xmrDirectionInfo = toSpend;
         }
 
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.xmrAmount") + xmrDirectionInfo,
                 HavenoUtils.formatXmr(trade.getAmount(), true));
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex,
-                VolumeUtil.formatVolumeLabel(offer.getCurrencyCode()) + counterCurrencyDirectionInfo,
+                VolumeUtil.formatVolumeLabel(offer.getCounterCurrencyCode()) + counterCurrencyDirectionInfo,
                 VolumeUtil.formatVolumeWithCode(trade.getVolume()));
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
                 FormattingUtils.formatPrice(trade.getPrice()));
         String paymentMethodText = Res.get(offer.getPaymentMethod().getId());
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), paymentMethodText);
 
         // second group
-        rows = 7;
+        rows = 5;
+
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
+            rows++;
+
         PaymentAccountPayload buyerPaymentAccountPayload = null;
         PaymentAccountPayload sellerPaymentAccountPayload = null;
-
         if (contract != null) {
             rows++;
 
@@ -194,30 +202,44 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         if (trade.getTradePeerNodeAddress() != null)
             rows++;
 
-        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.GROUP_DISTANCE);
+        addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.COMPACT_GROUP_DISTANCE);
         addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.tradeId"),
-                trade.getId(), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE);
+                trade.getId(), Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeDate"),
                 DisplayUtils.formatDateTime(trade.getDate()));
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
-                HavenoUtils.formatXmr(offer.getMaxBuyerSecurityDeposit(), true) +
+                HavenoUtils.formatXmr(trade.getBuyerSecurityDepositBeforeMiningFee(), true) +
                 " / " +
                 Res.getWithColAndCap("shared.seller") +
                 " " +
-                HavenoUtils.formatXmr(offer.getMaxSellerSecurityDeposit(), true);
+                HavenoUtils.formatXmr(trade.getSellerSecurityDepositBeforeMiningFee(), true);
+        addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), securityDeposit);
 
         NodeAddress arbitratorNodeAddress = trade.getArbitratorNodeAddress();
         if (arbitratorNodeAddress != null) {
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelTextField(gridPane, ++rowIndex,
                     Res.get("tradeDetailsWindow.agentAddresses"),
                     arbitratorNodeAddress.getFullAddress());
         }
 
-        if (trade.getTradePeerNodeAddress() != null)
+        if (trade.getTradePeerNodeAddress() != null) {
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePeersOnion"),
                     trade.getTradePeerNodeAddress().getFullAddress());
+        }
+
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
+            addSeparator(gridPane, ++rowIndex);
+            TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("payment.shared.extraInfo.offer"), "", 0).second;
+            textArea.setText(offer.getCombinedExtraInfo().trim());
+            textArea.setMaxHeight(Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
+            textArea.setEditable(false);
+            GUIUtil.adjustHeightAutomatically(textArea, Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
+        }
 
         if (contract != null) {
             buyersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), buyerPaymentAccountPayload, contract.getBuyerPubKeyRing());
@@ -225,6 +247,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             if (buyerPaymentAccountPayload != null) {
                 String paymentDetails = buyerPaymentAccountPayload.getPaymentDetails();
                 String postFix = " / " + buyersAccountAge;
+                addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelTextField(gridPane, ++rowIndex,
                         Res.get("shared.paymentDetails", Res.get("shared.buyer")),
                         paymentDetails + postFix).second.setTooltip(new Tooltip(paymentDetails + postFix));
@@ -232,21 +255,27 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             if (sellerPaymentAccountPayload != null) {
                 String paymentDetails = sellerPaymentAccountPayload.getPaymentDetails();
                 String postFix = " / " + sellersAccountAge;
+                addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelTextField(gridPane, ++rowIndex,
                         Res.get("shared.paymentDetails", Res.get("shared.seller")),
                         paymentDetails + postFix).second.setTooltip(new Tooltip(paymentDetails + postFix));
             }
-            if (buyerPaymentAccountPayload == null && sellerPaymentAccountPayload == null)
+            if (buyerPaymentAccountPayload == null && sellerPaymentAccountPayload == null) {
+                addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.paymentMethod"),
                         Res.get(contract.getPaymentMethodId()));
+            }
         }
 
-        if (trade.getMaker().getDepositTxHash() != null)
+        if (trade.getMaker().getDepositTxHash() != null) {
+            addSeparator(gridPane, ++rowIndex);
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.makerDepositTransactionId"),
                     trade.getMaker().getDepositTxHash());
-        if (trade.getTaker().getDepositTxHash() != null)
+        }
+        if (trade.getTaker().getDepositTxHash() != null) {
             addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("shared.takerDepositTransactionId"),
                     trade.getTaker().getDepositTxHash());
+        }
 
 
         if (showDisputedTx) {
@@ -258,6 +287,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         }
 
         if (trade.hasFailed()) {
+            addSeparator(gridPane, ++rowIndex);
             textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("shared.errorMessage"), "", 0).second;
             textArea.setText(trade.getErrorMessage());
             textArea.setEditable(false);
@@ -273,6 +303,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             textArea.scrollTopProperty().addListener(changeListener);
             textArea.setScrollTop(30);
 
+            addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePhase"), trade.getPhase().name());
         }
 

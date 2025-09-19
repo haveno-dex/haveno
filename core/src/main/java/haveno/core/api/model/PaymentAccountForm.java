@@ -77,7 +77,16 @@ public final class PaymentAccountForm implements PersistablePayload {
         AUSTRALIA_PAYID,
         CASH_APP,
         PAYPAL,
-        VENMO;
+        VENMO,
+        PAYSAFE,
+        WECHAT_PAY,
+        ALI_PAY,
+        SWISH,
+        TRANSFERWISE_USD,
+        AMAZON_GIFT_CARD,
+        ACH_TRANSFER,
+        INTERAC_E_TRANSFER,
+        US_POSTAL_MONEY_ORDER;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());

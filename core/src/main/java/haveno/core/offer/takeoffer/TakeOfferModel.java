@@ -106,7 +106,7 @@ public class TakeOfferModel implements Model {
         calculateTotalToPay();
         offer.resetState();
 
-        priceFeedService.setCurrencyCode(offer.getCurrencyCode());
+        priceFeedService.setCurrencyCode(offer.getCounterCurrencyCode());
     }
 
     @Override
@@ -147,7 +147,7 @@ public class TakeOfferModel implements Model {
 
     private long getMaxTradeLimit() {
         return accountAgeWitnessService.getMyTradeLimit(paymentAccount,
-                offer.getCurrencyCode(),
+                offer.getCounterCurrencyCode(),
                 offer.getMirroredDirection(),
                 offer.hasBuyerAsTakerWithoutDeposit());
     }

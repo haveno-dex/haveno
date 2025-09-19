@@ -49,7 +49,7 @@ configure(subprojects) {
         gsonVersion = '2.8.5'
         guavaVersion = '32.1.1-jre'
         guiceVersion = '7.0.0'
-        moneroJavaVersion = '0.8.33'
+        moneroJavaVersion = '0.8.38'
         httpclient5Version = '5.0'
         hamcrestVersion = '2.2'
         httpclientVersion = '4.5.12'
@@ -71,7 +71,7 @@ configure(subprojects) {
         loggingVersion = '1.2'
         lombokVersion = '1.18.30'
         mockitoVersion = '5.10.0'
-        netlayerVersion = 'e2ce2a142c' // Tor browser version 13.0.15 and tor binary version: 0.4.8.11
+        netlayerVersion = 'd9c60be46d' // Tor browser version 14.0.7 and tor binary version: 0.4.8.14
         protobufVersion = '3.19.1'
         protocVersion = protobufVersion
         pushyVersion = '0.13.2'
@@ -79,7 +79,9 @@ configure(subprojects) {
         slf4jVersion = '1.7.30'
         sparkVersion = '2.5.2'
 
-        os = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
+        def osName = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
+        def osArch = System.getProperty("os.arch").toLowerCase()
+        os = (osName == 'mac' && (osArch.contains('aarch64') || osArch.contains('arm'))) ? 'mac-aarch64' : osName
     }
 
     repositories {
@@ -457,14 +459,14 @@ configure(project(':core')) {
         doLast {
             // get monero binaries download url
             Map moneroBinaries = [
-                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release4/monero-bins-haveno-linux-x86_64.tar.gz',
-                'linux-x86_64-sha256'  : '0810808292fd5ad595a46a7fcc8ecb28d251d80f8d75c0e7a7d51afbeb413b68',
-                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release4/monero-bins-haveno-linux-aarch64.tar.gz',
-                'linux-aarch64-sha256' : '61222ee8e2021aaf59ab8813543afc5548f484190ee9360bc9cfa8fdf21cc1de',
-                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release4/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'           : '5debb8d8d8dd63809e8351368a11aa85c47987f1a8a8f2dcca343e60bcff3287',
-                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release4/monero-bins-haveno-windows.zip',
-                'windows-sha256'       : 'd7c14f029db37ae2a8bc6b74c35f572283257df5fbcc8cc97b704d1a97be9888'
+                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-linux-x86_64.tar.gz',
+                'linux-x86_64-sha256'  : '713d64ff6423add0d065d9dfbf8a120dfbf3995d4b2093f8235b4da263d8a89c',
+                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-linux-aarch64.tar.gz',
+                'linux-aarch64-sha256' : '332dcc6a5d7eec754c010a1f893f81656be1331b847b06e9be69293b456f67cc',
+                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-mac.tar.gz',
+                'mac-sha256'           : '1c5bcd23373132528634352e604c1d732a73c634f3c77314fae503c6d23e10b0',
+                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-windows.zip',
+                'windows-sha256'       : '3d57b980e0208a950fd795f442d9e087b5298a914b0bd96fec431188b5ab0dad'
             ]
 
             String osKey
@@ -506,16 +508,16 @@ configure(project(':core')) {
                 } else {
                     ext.extractArchiveTarGz(moneroArchiveFile, localnetDir)
                 }
+            }
 
-                // add the current platform's monero dependencies into the resources folder for installation
-                copy {
-                    from "${monerodFile}"
-                    into "${project(':core').projectDir}/src/main/resources/bin"
-                }
-                copy {
-                    from "${moneroRpcFile}"
-                    into "${project(':core').projectDir}/src/main/resources/bin"
-                }
+            // add the current platform's monero dependencies into the resources folder for installation
+            copy {
+                from "${monerodFile}"
+                into "${project(':core').projectDir}/src/main/resources/bin"
+            }
+            copy {
+                from "${moneroRpcFile}"
+                into "${project(':core').projectDir}/src/main/resources/bin"
             }
         }
 
@@ -610,7 +612,7 @@ configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.0.14-SNAPSHOT'
+    version = '1.2.1-SNAPSHOT'
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,

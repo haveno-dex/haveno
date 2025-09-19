@@ -55,6 +55,7 @@ import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
+import haveno.core.api.XmrConnectionService.XmrConnectionFallbackType;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
@@ -158,7 +159,7 @@ public class HavenoSetup {
             rejectedTxErrorMessageHandler;
     @Setter
     @Nullable
-    private Consumer<Boolean> displayMoneroConnectionFallbackHandler;        
+    private Consumer<XmrConnectionFallbackType> displayMoneroConnectionFallbackHandler;        
     @Setter
     @Nullable
     private Consumer<Boolean> displayTorNetworkSettingsHandler;
@@ -176,7 +177,7 @@ public class HavenoSetup {
     private Consumer<PrivateNotificationPayload> displayPrivateNotificationHandler;
     @Setter
     @Nullable
-    private Runnable showPopupIfInvalidBtcConfigHandler;
+    private Runnable showPopupIfInvalidXmrConfigHandler;
     @Setter
     @Nullable
     private Consumer<List<RevolutAccount>> revolutAccountsUpdateHandler;
@@ -369,7 +370,7 @@ public class HavenoSetup {
             // install monerod
             File monerodFile = new File(XmrLocalNode.MONEROD_PATH);
             String monerodResourcePath = "bin/" + XmrLocalNode.MONEROD_NAME;
-            if (!monerodFile.exists() || !FileUtil.resourceEqualToFile(monerodResourcePath, monerodFile)) {
+            if (!monerodFile.exists() || (config.updateXmrBinaries && !FileUtil.resourceEqualToFile(monerodResourcePath, monerodFile))) {
                 log.info("Installing monerod");
                 monerodFile.getParentFile().mkdirs();
                 FileUtil.resourceToFile("bin/" + XmrLocalNode.MONEROD_NAME, monerodFile);
@@ -379,7 +380,7 @@ public class HavenoSetup {
             // install monero-wallet-rpc
             File moneroWalletRpcFile = new File(XmrWalletService.MONERO_WALLET_RPC_PATH);
             String moneroWalletRpcResourcePath = "bin/" + XmrWalletService.MONERO_WALLET_RPC_NAME;
-            if (!moneroWalletRpcFile.exists() || !FileUtil.resourceEqualToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile)) {
+            if (!moneroWalletRpcFile.exists() || (config.updateXmrBinaries && !FileUtil.resourceEqualToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile))) {
                 log.info("Installing monero-wallet-rpc");
                 moneroWalletRpcFile.getParentFile().mkdirs();
                 FileUtil.resourceToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile);
@@ -430,7 +431,7 @@ public class HavenoSetup {
         getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> resetStartupTimeout());
 
         // listen for fallback handling
-        getConnectionServiceFallbackHandlerActive().addListener((observable, oldValue, newValue) -> {
+        getConnectionServiceFallbackType().addListener((observable, oldValue, newValue) -> {
             if (displayMoneroConnectionFallbackHandler == null) return;
             displayMoneroConnectionFallbackHandler.accept(newValue);
         });
@@ -461,7 +462,7 @@ public class HavenoSetup {
         havenoSetupListeners.forEach(HavenoSetupListener::onInitWallet);
         walletAppSetup.init(chainFileLockedExceptionHandler,
                 showFirstPopupIfResyncSPVRequestedHandler,
-                showPopupIfInvalidBtcConfigHandler,
+                showPopupIfInvalidXmrConfigHandler,
                 () -> {},
                 () -> {});
     }
@@ -734,8 +735,8 @@ public class HavenoSetup {
         return xmrConnectionService.getConnectionServiceErrorMsg();
     }
 
-    public BooleanProperty getConnectionServiceFallbackHandlerActive() {
-        return xmrConnectionService.getConnectionServiceFallbackHandlerActive();
+    public ObjectProperty<XmrConnectionFallbackType> getConnectionServiceFallbackType() {
+        return xmrConnectionService.getConnectionServiceFallbackType();
     }
 
     public StringProperty getTopErrorMsg() {

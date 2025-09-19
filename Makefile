@@ -73,6 +73,9 @@ monerod1-local:
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
+		--rpc-max-connections 1000 \
+		--max-connections-per-ip 10 \
+		--rpc-max-connections-per-private-ip 1000 \
 
 monerod2-local:
 	./.localnet/monerod \
@@ -91,6 +94,9 @@ monerod2-local:
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
+		--rpc-max-connections 1000 \
+		--max-connections-per-ip 10 \
+		--rpc-max-connections-per-private-ip 1000 \
 
 monerod3-local:
 	./.localnet/monerod \
@@ -109,6 +115,9 @@ monerod3-local:
 		--rpc-access-control-origins http://localhost:8080 \
 		--fixed-difficulty 500 \
 		--disable-rpc-ban \
+		--rpc-max-connections 1000 \
+		--max-connections-per-ip 10 \
+		--rpc-max-connections-per-private-ip 1000 \
 
 #--proxy 127.0.0.1:49775 \
 
@@ -417,12 +426,26 @@ haveno-desktop-stagenet:
 		--apiPort=3204 \
 		--useNativeXmrWallet=false \
 
+haveno-daemon-stagenet:
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_STAGENET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=9999 \
+		--appName=Haveno \
+		--apiPassword=apitest \
+		--apiPort=3204 \
+		--useNativeXmrWallet=false \
+
 # Mainnet network
 
 monerod:
 	./.localnet/monerod \
 		--bootstrap-daemon-address auto \
 		--rpc-access-control-origins http://localhost:8080 \
+		--rpc-max-connections 1000 \
+		--max-connections-per-ip 10 \
+		--rpc-max-connections-per-private-ip 1000 \
 
 seednode:
 	./haveno-seednode$(APP_EXT) \
@@ -465,6 +488,31 @@ arbitrator-desktop-mainnet:
 		--appName=haveno-XMR_MAINNET_arbitrator \
 		--apiPassword=apitest \
 		--apiPort=1200 \
+		--xmrNode=http://127.0.0.1:18081 \
+		--useNativeXmrWallet=false \
+
+arbitrator2-daemon-mainnet:
+	./haveno-daemon$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=9999 \
+		--appName=haveno-XMR_MAINNET_arbitrator2 \
+		--apiPassword=apitest \
+		--apiPort=1205 \
+		--passwordRequired=false \
+		--xmrNode=http://127.0.0.1:18081 \
+		--useNativeXmrWallet=false \
+
+arbitrator2-desktop-mainnet:
+	./haveno-desktop$(APP_EXT) \
+		--baseCurrencyNetwork=XMR_MAINNET \
+		--useLocalhostForP2P=false \
+		--useDevPrivilegeKeys=false \
+		--nodePort=9999 \
+		--appName=haveno-XMR_MAINNET_arbitrator2 \
+		--apiPassword=apitest \
+		--apiPort=1205 \
 		--xmrNode=http://127.0.0.1:18081 \
 		--useNativeXmrWallet=false \
 
@@ -553,3 +601,19 @@ user3-desktop-mainnet:
 		--apiPort=1204 \
 		--useNativeXmrWallet=false \
 		--ignoreLocalXmrNode=false \
+
+buyer-wallet-mainnet:
+	./.localnet/monero-wallet-rpc \
+		--daemon-address http://localhost:18081 \
+		--rpc-bind-port 18084 \
+		--rpc-login rpc_user:abc123 \
+		--rpc-access-control-origins http://localhost:8080 \
+		--wallet-dir ./.localnet \
+
+seller-wallet-mainnet:
+	./.localnet/monero-wallet-rpc \
+		--daemon-address http://localhost:18081 \
+		--rpc-bind-port 18085 \
+		--rpc-login rpc_user:abc123 \
+		--rpc-access-control-origins http://localhost:8080 \
+		--wallet-dir ./.localnet \

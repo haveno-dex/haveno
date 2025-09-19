@@ -26,6 +26,7 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOfferManager;
@@ -58,6 +59,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.chart.XYChart;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -128,7 +130,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                 list.addAll(c.getAddedSubList());
                 if (list.stream()
                         .map(OfferBookListItem::getOffer)
-                        .anyMatch(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())))
+                        .anyMatch(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())))
                     updateChartData();
             }
 
@@ -154,7 +156,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         synchronized (offerBookListItems) {
             List<TradeCurrency> tradeCurrencyList = offerBookListItems.stream()
                     .map(e -> {
-                        String currencyCode = e.getOffer().getCurrencyCode();
+                        String currencyCode = e.getOffer().getCounterCurrencyCode();
                         Optional<TradeCurrency> tradeCurrencyOptional = CurrencyUtil.getTradeCurrency(currencyCode);
                         return tradeCurrencyOptional.orElse(null);
                     })
@@ -212,10 +214,42 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public boolean isSellOffer(OfferDirection direction) {
-        // for cryptocurrency, buy direction is to buy XMR, so we need sell offers
-        // for traditional currency, buy direction is to sell XMR, so we need buy offers
-        boolean isCryptoCurrency = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
-        return isCryptoCurrency ? direction == OfferDirection.BUY : direction == OfferDirection.SELL;
+        return direction == OfferDirection.SELL;
+    }
+
+    public double getTotalAmount(OfferDirection direction) {
+        synchronized (offerBookListItems) {
+            List<Offer> offerList = offerBookListItems.stream()
+                    .map(OfferBookListItem::getOffer)
+                    .filter(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                            && e.getDirection().equals(direction))
+                    .collect(Collectors.toList());
+            BigInteger sum = BigInteger.ZERO;
+            for (Offer offer : offerList) sum = sum.add(offer.getAmount());
+            return HavenoUtils.atomicUnitsToXmr(sum);
+        }
+    }
+
+    public Volume getTotalVolume(OfferDirection direction) {
+        synchronized (offerBookListItems) {
+             List<Volume> volumes = offerBookListItems.stream()
+                    .map(OfferBookListItem::getOffer)
+                    .filter(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                            && e.getDirection().equals(direction))
+                    .map(Offer::getVolume)
+                    .collect(Collectors.toList());
+            try {
+                return VolumeUtil.sum(volumes);
+            } catch (Exception e) {
+                // log.error("Cannot compute total volume because prices are unavailable, currency={}, direction={}",
+                //         selectedTradeCurrencyProperty.get().getCode(), direction);
+                return null; // expected before prices are available
+            }
+        }
+    }
+
+    public boolean isCrypto() {
+        return CurrencyUtil.isCryptoCurrency(getCurrencyCode());
     }
 
     public boolean isMyOffer(Offer offer) {
@@ -266,13 +300,13 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public int getMaxNumberOfPriceZeroDecimalsToColorize(Offer offer) {
-        return CurrencyUtil.isVolumeRoundedToNearestUnit(offer.getCurrencyCode())
+        return CurrencyUtil.isVolumeRoundedToNearestUnit(offer.getCounterCurrencyCode())
                 ? GUIUtil.NUM_DECIMALS_UNIT
                 : GUIUtil.NUM_DECIMALS_PRECISE;
     }
 
     public int getZeroDecimalsForPrice(Offer offer) {
-        return CurrencyUtil.isPricePrecise(offer.getCurrencyCode())
+        return CurrencyUtil.isPricePrecise(offer.getCounterCurrencyCode())
                 ? GUIUtil.NUM_DECIMALS_PRECISE
                 : GUIUtil.NUM_DECIMALS_PRICE_LESS_PRECISE;
     }
@@ -316,13 +350,6 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));
 
-        // Trading xmr-traditional is considered as buying/selling XMR, but trading xmr-crypto is
-        // considered as buying/selling Crypto. Because of this, when viewing a xmr-crypto pair,
-        // the buy column is actually the sell column and vice versa. To maintain the expected
-        // ordering, we have to reverse the price comparator.
-        boolean isCrypto = CurrencyUtil.isCryptoCurrency(getCurrencyCode());
-//        if (isCrypto) offerPriceComparator = offerPriceComparator.reversed();
-
         // Offer amounts are used for the secondary sort. They are sorted from high to low.
         Comparator<Offer> offerAmountComparator = Comparator.comparing(Offer::getAmount).reversed();
 
@@ -333,11 +360,11 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                 offerPriceComparator
                         .thenComparing(offerAmountComparator);
 
-        OfferDirection buyOfferDirection = isCrypto ? OfferDirection.SELL : OfferDirection.BUY;
+        OfferDirection buyOfferDirection = OfferDirection.BUY;
 
         List<Offer> allBuyOffers = offerBookListItems.stream()
                 .map(OfferBookListItem::getOffer)
-                .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                .filter(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
                         && e.getDirection().equals(buyOfferDirection))
                 .sorted(buyOfferSortComparator)
                 .collect(Collectors.toList());
@@ -364,11 +391,11 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
         buildChartAndTableEntries(allBuyOffers, OfferDirection.BUY, buyData, topBuyOfferList);
 
-        OfferDirection sellOfferDirection = isCrypto ? OfferDirection.BUY : OfferDirection.SELL;
+        OfferDirection sellOfferDirection = OfferDirection.SELL;
 
         List<Offer> allSellOffers = offerBookListItems.stream()
                 .map(OfferBookListItem::getOffer)
-                .filter(e -> e.getCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
+                .filter(e -> e.getCounterCurrencyCode().equals(selectedTradeCurrencyProperty.get().getCode())
                         && e.getDirection().equals(sellOfferDirection))
                 .sorted(sellOfferSortComparator)
                 .collect(Collectors.toList());

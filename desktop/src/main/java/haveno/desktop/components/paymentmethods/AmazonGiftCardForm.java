@@ -120,7 +120,7 @@ public class AmazonGiftCardForm extends PaymentMethodForm {
 
     @Override
     protected void autoFillNameTextField() {
-        setAccountNameWithString(amazonGiftCardAccount.getEmailOrMobileNr());
+        setAccountNameWithString(amazonGiftCardAccount.getEmailOrMobileNr() == null ? "" : amazonGiftCardAccount.getEmailOrMobileNr());
     }
 
     @Override

@@ -26,6 +26,7 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.validation.AliPayValidator;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
+import javafx.collections.FXCollections;
 import javafx.scene.layout.GridPane;
 
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
@@ -42,6 +43,12 @@ public class AliPayForm extends GeneralAccountNumberForm {
     public AliPayForm(PaymentAccount paymentAccount, AccountAgeWitnessService accountAgeWitnessService, AliPayValidator aliPayValidator, InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
         this.aliPayAccount = (AliPayAccount) paymentAccount;
+    }
+
+    @Override
+    public void addTradeCurrency() {
+        addTradeCurrencyComboBox();
+        currencyComboBox.setItems(FXCollections.observableArrayList(aliPayAccount.getSupportedCurrencies()));
     }
 
     @Override

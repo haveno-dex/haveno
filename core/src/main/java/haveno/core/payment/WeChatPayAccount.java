@@ -31,11 +31,22 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class WeChatPayAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("CNY"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
+            new TraditionalCurrency("CNY"),
+            new TraditionalCurrency("USD"),
+            new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("GBP")
+    );
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public WeChatPayAccount() {
         super(PaymentMethod.WECHAT_PAY);
-        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
     }
 
     @Override
@@ -50,7 +61,7 @@ public final class WeChatPayAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountNr(String accountNr) {

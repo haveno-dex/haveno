@@ -60,30 +60,30 @@ public class BuyerAsMakerProtocol extends BuyerProtocol implements MakerProtocol
     public void handleInitTradeRequest(InitTradeRequest message,
                                        NodeAddress peer,
                                        ErrorMessageHandler errorMessageHandler) {
-        System.out.println(getClass().getCanonicalName() + ".handleInitTradeRequest()");
-        ThreadUtils.execute(() -> {
-            synchronized (trade.getLock()) {
-                latchTrade();
-                this.errorMessageHandler = errorMessageHandler;
-                expect(phase(Trade.Phase.INIT)
-                        .with(message)
-                        .from(peer))
-                        .setup(tasks(
-                                ApplyFilter.class,
-                                ProcessInitTradeRequest.class,
-                                MakerSendInitTradeRequestToArbitrator.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    startTimeout();
-                                    handleTaskRunnerSuccess(peer, message);
-                                },
-                                errorMessage -> {
-                                    handleTaskRunnerFault(peer, message, errorMessage);
-                                }))
-                        .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
-                        .executeTasks(true);
-                awaitTradeLatch();
-            }
-        }, trade.getId());
+            log.info(TradeProtocol.LOG_HIGHLIGHT + "handleInitTradeRequest() for {} {} from {}", trade.getClass().getSimpleName(), trade.getShortId(), peer);
+            ThreadUtils.execute(() -> {
+                synchronized (trade.getLock()) {
+                    latchTrade();
+                    this.errorMessageHandler = errorMessageHandler;
+                    expect(phase(Trade.Phase.INIT)
+                            .with(message)
+                            .from(peer))
+                            .setup(tasks(
+                                    ApplyFilter.class,
+                                    ProcessInitTradeRequest.class,
+                                    MakerSendInitTradeRequestToArbitrator.class)
+                            .using(new TradeTaskRunner(trade,
+                                    () -> {
+                                        startTimeout();
+                                        handleTaskRunnerSuccess(peer, message);
+                                    },
+                                    errorMessage -> {
+                                        handleTaskRunnerFault(peer, message, errorMessage);
+                                    }))
+                            .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
+                            .executeTasks(true);
+                    awaitTradeLatch();
+                }
+            }, trade.getId());
     }
 }

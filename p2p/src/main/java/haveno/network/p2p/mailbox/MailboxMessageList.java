@@ -48,12 +48,14 @@ public class MailboxMessageList extends PersistableList<MailboxItem> {
 
     @Override
     public Message toProtoMessage() {
-        return protobuf.PersistableEnvelope.newBuilder()
-                .setMailboxMessageList(protobuf.MailboxMessageList.newBuilder()
-                        .addAllMailboxItem(getList().stream()
-                                .map(MailboxItem::toProtoMessage)
-                                .collect(Collectors.toList())))
-                .build();
+        synchronized (getList()) {
+            return protobuf.PersistableEnvelope.newBuilder()
+                    .setMailboxMessageList(protobuf.MailboxMessageList.newBuilder()
+                            .addAllMailboxItem(getList().stream()
+                                    .map(MailboxItem::toProtoMessage)
+                                    .collect(Collectors.toList())))
+                    .build();
+        }
     }
 
     public static MailboxMessageList fromProto(protobuf.MailboxMessageList proto,

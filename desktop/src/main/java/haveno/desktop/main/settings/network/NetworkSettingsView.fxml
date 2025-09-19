@@ -53,7 +53,7 @@
                         <PropertyValueFactory property="address"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="moneroConnectionConnectedColumn" minWidth="80" maxWidth="90">
+                <TableColumn fx:id="moneroConnectionConnectedColumn" minWidth="80" maxWidth="110">
                     <cellValueFactory>
                         <PropertyValueFactory property="connected"/>
                     </cellValueFactory>
@@ -91,7 +91,7 @@
         <AutoTooltipButton fx:id="rescanOutputsButton"/>
     </VBox>
 
-    <TitledGroupBg fx:id="p2pHeader" GridPane.rowIndex="5" GridPane.rowSpan="5">
+    <TitledGroupBg fx:id="p2pHeader" GridPane.rowIndex="5" GridPane.rowSpan="6">
         <padding>
             <Insets top="50.0"/>
         </padding>
@@ -108,6 +108,9 @@
     </HavenoTextField>
 
     <VBox GridPane.rowIndex="6" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
+        <GridPane.margin>
+            <Insets top="0" right="0" bottom="10" left="0"/>
+        </GridPane.margin>
         <AutoTooltipLabel fx:id="p2PPeersLabel" styleClass="small-text"/>
         <TableView fx:id="p2pPeersTableView">
             <columns>

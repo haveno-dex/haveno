@@ -208,7 +208,6 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
     protected void setupTable() {
         super.setupTable();
 
-        stateColumn.getStyleClass().remove("last-column");
         tableView.getColumns().add(getAlertColumn());
     }
 
@@ -243,7 +242,6 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                 setMinWidth(50);
             }
         };
-        column.getStyleClass().add("last-column");
         column.setCellValueFactory((dispute) -> new ReadOnlyObjectWrapper<>(dispute.getValue()));
         column.setCellFactory(
                 c -> new TableCell<>() {

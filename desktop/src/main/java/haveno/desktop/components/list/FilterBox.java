@@ -17,13 +17,11 @@
 
 package haveno.desktop.components.list;
 
-import haveno.core.locale.Res;
-import haveno.desktop.components.AutoTooltipLabel;
+import haveno.common.UserThread;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.filtering.FilterableListItem;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.transformation.FilteredList;
-import javafx.geometry.Insets;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
 
@@ -37,21 +35,20 @@ public class FilterBox extends HBox {
         super();
         setSpacing(5.0);
 
-        AutoTooltipLabel label = new AutoTooltipLabel(Res.get("shared.filter"));
-        HBox.setMargin(label, new Insets(5.0, 0, 0, 10.0));
-
         textField = new InputTextField();
         textField.setMinWidth(500);
 
-        getChildren().addAll(label, textField);
+        getChildren().addAll(textField);
     }
 
     public void initialize(FilteredList<? extends FilterableListItem> filteredList,
                            TableView<? extends FilterableListItem> tableView) {
         this.filteredList = filteredList;
         listener = (observable, oldValue, newValue) -> {
-            tableView.getSelectionModel().clearSelection();
-            applyFilteredListPredicate(textField.getText());
+            UserThread.execute(() -> {
+                tableView.getSelectionModel().clearSelection();
+                applyFilteredListPredicate(textField.getText());
+            });
         };
     }
 
@@ -66,5 +63,9 @@ public class FilterBox extends HBox {
 
     private void applyFilteredListPredicate(String filterString) {
         filteredList.setPredicate(item -> item.match(filterString));
+    }
+
+    public void setPromptText(String promptText) {
+        textField.setPromptText(promptText);
     }
 }

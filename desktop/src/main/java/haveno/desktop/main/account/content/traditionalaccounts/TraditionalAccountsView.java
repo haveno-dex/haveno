@@ -38,6 +38,7 @@ import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
+import haveno.core.payment.PaysafeAccount;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
 import haveno.core.payment.VenmoAccount;
@@ -103,6 +104,7 @@ import haveno.desktop.components.paymentmethods.PaxumForm;
 import haveno.desktop.components.paymentmethods.PayByMailForm;
 import haveno.desktop.components.paymentmethods.PayPalForm;
 import haveno.desktop.components.paymentmethods.PaymentMethodForm;
+import haveno.desktop.components.paymentmethods.PaysafeForm;
 import haveno.desktop.components.paymentmethods.PayseraForm;
 import haveno.desktop.components.paymentmethods.PaytmForm;
 import haveno.desktop.components.paymentmethods.PerfectMoneyForm;
@@ -400,6 +402,13 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                                     .actionButtonText(Res.get("shared.iUnderstand"))
                                     .onAction(() -> doSaveNewAccount(paymentAccount))
                                     .show();
+                        } else if (paymentAccount instanceof PaysafeAccount) {
+                            new Popup().warning(Res.get("payment.paysafe.info"))
+                                    .width(700)
+                                    .closeButtonText(Res.get("shared.cancel"))
+                                    .actionButtonText(Res.get("shared.iUnderstand"))
+                                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                                    .show();
                         } else {
                             doSaveNewAccount(paymentAccount);
                         }
@@ -446,13 +455,13 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
 
         Tuple3<Label, ListView<PaymentAccount>, VBox> tuple = addTopLabelListView(root, gridRow, Res.get("account.traditional.yourTraditionalAccounts"), Layout.FIRST_ROW_DISTANCE);
         paymentAccountsListView = tuple.second;
-        int prefNumRows = Math.min(4, Math.max(2, model.dataModel.getNumPaymentAccounts()));
-        paymentAccountsListView.setMinHeight(prefNumRows * Layout.LIST_ROW_HEIGHT + 28);
+        setPaymentAccountsListHeight();
         setPaymentAccountsCellFactory();
 
         Tuple3<Button, Button, Button> tuple3 = add3ButtonsAfterGroup(root, ++gridRow, Res.get("shared.addNewAccount"),
                 Res.get("shared.ExportAccounts"), Res.get("shared.importAccounts"));
         addAccountButton = tuple3.first;
+        addAccountButton.setId("buy-button-big");
         exportButton = tuple3.second;
         importButton = tuple3.third;
     }
@@ -463,10 +472,10 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         paymentAccountsListView.getSelectionModel().clearSelection();
         removeAccountRows();
         addAccountButton.setDisable(true);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.GROUP_DISTANCE);
-        addLabel(root, gridRow, Res.get("shared.createNewAccountDescription"), Layout.COMPACT_FIRST_ROW_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.createNewAccount"), Layout.COMPACT_GROUP_DISTANCE);
+        addLabel(root, gridRow, Res.get("shared.createNewAccountDescription"));
         paymentMethodComboBox = FormBuilder.addAutocompleteComboBox(
-            root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.TWICE_FIRST_ROW_AND_GROUP_DISTANCE + Layout.PADDING
+            root, gridRow, Res.get("shared.selectPaymentMethod"), Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE + Layout.PADDING
         );
         paymentMethodComboBox.setVisibleRowCount(Math.min(paymentMethodComboBox.getItems().size(), 10));
         paymentMethodComboBox.setPrefWidth(250);
@@ -492,6 +501,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
             }
         });
         paymentMethodComboBox.setOnChangeConfirmed(e -> {
+            if (paymentMethodComboBox.getEditor().getText().isEmpty())
+                return;
             if (paymentMethodForm != null) {
                 FormBuilder.removeRowsFromGridPane(root, 3, paymentMethodForm.getGridRow() + 1);
                 GridPane.setRowSpan(accountTitledGroupBg, paymentMethodForm.getRowSpan() + 1);
@@ -526,7 +537,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         }
         removeAccountRows();
         addAccountButton.setDisable(false);
-        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, Res.get("shared.selectedAccount"), Layout.GROUP_DISTANCE);
+        accountTitledGroupBg = addTitledGroupBg(root, ++gridRow, 2, "", Layout.COMPACT_GROUP_DISTANCE);
         paymentMethodForm = getPaymentMethodForm(current);
         if (paymentMethodForm != null) {
             paymentMethodForm.addFormForEditAccount();
@@ -677,6 +688,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new VenmoForm(paymentAccount, accountAgeWitnessService, venmoValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.CASH_APP_ID:
                 return new CashAppForm(paymentAccount, accountAgeWitnessService, cashAppValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.PAYSAFE_ID:
+                return new PaysafeForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

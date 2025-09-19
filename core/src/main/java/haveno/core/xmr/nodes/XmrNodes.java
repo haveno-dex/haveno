@@ -75,8 +75,6 @@ public class XmrNodes {
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "127.0.0.1", 38081, 1, "@local"),
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "127.0.0.1", 39081, 1, "@local"),
                     new XmrNode(MoneroNodesOption.PROVIDED, null, null, "45.63.8.26", 38081, 2, "@haveno"),
-                    new XmrNode(MoneroNodesOption.PROVIDED, null, null, "stagenet.community.rino.io", 38081, 3, "@RINOwallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "stagenet.melo.tools", 38081, 3, null),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 38089, 3, null),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node2.sethforprivacy.com", 38089, 3, null),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, "plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion", null, 38089, 3, null)
@@ -85,13 +83,21 @@ public class XmrNodes {
                 return Arrays.asList(
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "127.0.0.1", 18081, 1, "@local"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "xmr-node.cakewallet.com", 18081, 2, "@cakewallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.community.rino.io", 18081, 2, "@RINOwallet"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodes.hashvault.pro", 18080, 2, "@HashVault"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "p2pmd.xmrvsbeast.com", 18080, 2, "@xmrvsbeast"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "p2pmd.xmrvsbeast.com", 18081, 2, "@xmrvsbeast"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.monerodevs.org", 18089, 2, "@monerodevs.org"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node2.monerodevs.org", 18089, 2, "@monerodevs.org"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node3.monerodevs.org", 18089, 2, "@monerodevs.org"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "nodex.monerujo.io", 18081, 2, "@monerujo.io"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "rucknium.me", 18081, 2, "@Rucknium"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 2, "@sethforprivacy")
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.sethforprivacy.com", 18089, 2, "@sethforprivacy"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "selsta1.featherwallet.net", 18081, 2, "@selsta"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "selsta2.featherwallet.net", 18081, 2, "@selsta"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.xmr.ru", 18081, 2, "@xmr.ru"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "xmr.stormycloud.org", 18089, 2, "@stormycloud"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "ravfx.its-a-node.org", 18081, 2, "@ravfx"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "ravfx2.its-a-node.org", 18089, 2, "@ravfx")
+                    // new XmrNode(MoneroNodesOption.PUBLIC, null, "plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion", null, 18089, 3, "@plowsof"), // onions tend to have poorer performance
+                    // new XmrNode(MoneroNodesOption.PUBLIC, null, "cakexmrl7bonq7ovjka5kuwuyd3f7qnkz6z6s6dmsy3uckwra7bvggyd.onion", null, 18081, 3, "@cakewallet")
                 );
             default:
                 throw new IllegalStateException("Unexpected base currency network: " + Config.baseCurrencyNetwork());
@@ -187,10 +193,6 @@ public class XmrNodes {
             this.operator = operator;
         }
 
-        public boolean hasOnionAddress() {
-            return onionAddress != null;
-        }
-
         public String getHostNameOrAddress() {
             if (hostName != null)
                 return hostName;
@@ -198,8 +200,17 @@ public class XmrNodes {
                 return address;
         }
 
+        public boolean hasOnionAddress() {
+            return onionAddress != null;
+        }
+
         public boolean hasClearNetAddress() {
             return hostName != null || address != null;
+        }
+
+        public String getClearNetUri() {
+            if (!hasClearNetAddress()) throw new IllegalStateException("XmrNode does not have clearnet address");
+            return "http://" + getHostNameOrAddress() + ":" + port;
         }
 
         @Override

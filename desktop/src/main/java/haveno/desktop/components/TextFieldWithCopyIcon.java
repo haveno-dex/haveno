@@ -18,12 +18,15 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+
+import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -45,12 +48,13 @@ public class TextFieldWithCopyIcon extends AnchorPane {
     }
 
     public TextFieldWithCopyIcon(String customStyleClass) {
-        Label copyIcon = new Label();
-        copyIcon.setLayoutY(3);
-        copyIcon.getStyleClass().addAll("icon", "highlight");
-        copyIcon.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
-        AwesomeDude.setIcon(copyIcon, AwesomeIcon.COPY);
-        copyIcon.setOnMouseClicked(e -> {
+        Label copyLabel = new Label();
+        copyLabel.setLayoutY(Layout.FLOATING_ICON_Y);
+        copyLabel.getStyleClass().addAll("icon", "highlight");
+        if (customStyleClass != null) copyLabel.getStyleClass().add(customStyleClass + "-icon");
+        copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+        copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        copyLabel.setOnMouseClicked(e -> {
             String text = getText();
             if (text != null && text.length() > 0) {
                 String copyText;
@@ -70,17 +74,25 @@ public class TextFieldWithCopyIcon extends AnchorPane {
                     copyText = text;
                 }
                 Utilities.copyToClipboard(copyText);
+                Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+                Node node = (Node) e.getSource();
+                UserThread.runAfter(() -> tp.hide(), 1);
+                tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
             }
         });
         textField = new JFXTextField();
         textField.setEditable(false);
         if (customStyleClass != null) textField.getStyleClass().add(customStyleClass);
         textField.textProperty().bindBidirectional(text);
-        AnchorPane.setRightAnchor(copyIcon, 5.0);
+        AnchorPane.setRightAnchor(copyLabel, 5.0);
         AnchorPane.setRightAnchor(textField, 30.0);
         AnchorPane.setLeftAnchor(textField, 0.0);
+        AnchorPane.setTopAnchor(copyLabel, 0.0);
+        AnchorPane.setBottomAnchor(copyLabel, 0.0);
+        AnchorPane.setTopAnchor(textField, 0.0);
+        AnchorPane.setBottomAnchor(textField, 0.0);
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
-        getChildren().addAll(textField, copyIcon);
+        getChildren().addAll(textField, copyLabel);
     }
 
     public void setPromptText(String value) {

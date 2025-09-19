@@ -91,6 +91,7 @@ public class ComponentsDemo extends Application {
 
         InputTextField inputTextField = FormBuilder.addInputTextField(gridPane, rowIndex++, "Enter something title");
         inputTextField.setLabelFloat(true);
+        inputTextField.getStyleClass().add("label-float");
         inputTextField.setText("Hello");
         inputTextField.setPromptText("Enter something");
 

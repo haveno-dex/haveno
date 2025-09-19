@@ -117,7 +117,7 @@ public class CreateOfferViewModelTest {
             coinFormatter,
             tradeStats,
             null);
-        dataModel.initWithData(OfferDirection.BUY, new CryptoCurrency("XMR", "monero"));
+        dataModel.initWithData(OfferDirection.BUY, new CryptoCurrency("XMR", "monero"), true);
         dataModel.activate();
 
         model = new CreateOfferViewModel(dataModel,
@@ -217,7 +217,7 @@ public class CreateOfferViewModelTest {
         model.amount.set("0.01");
         model.onFocusOutPriceAsPercentageTextField(true, false); //leave focus without changing
         assertEquals("0.00", model.marketPriceMargin.get());
-        assertEquals("0.00000078", model.volume.get());
+        assertEquals("126.84045000", model.volume.get());
         assertEquals("12684.04500000", model.price.get());
     }
 }

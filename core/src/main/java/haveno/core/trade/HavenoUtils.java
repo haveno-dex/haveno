@@ -31,16 +31,20 @@ import haveno.common.file.FileUtil;
 import haveno.common.util.Base64;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.api.CorePaymentAccountsService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoSetup;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.JsonUtil;
+import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 
@@ -71,6 +75,7 @@ import javax.sound.sampled.SourceDataLine;
 
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
+import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroOutput;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroTxWallet;
@@ -91,14 +96,18 @@ public class HavenoUtils {
 
     // configure fees
     public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
-    public static final double PENALTY_FEE_PCT = 0.02; // 2%
-    public static final double MAKER_FEE_PCT = 0.0015; // 0.15%
-    public static final double TAKER_FEE_PCT = 0.0075; // 0.75%
-    public static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT = MAKER_FEE_PCT + TAKER_FEE_PCT; // customize maker's fee when no deposit or fee from taker
+    public static final double PENALTY_FEE_PCT = 0.25; // charge 25% of security deposit for penalty
+    private static final double MAKER_FEE_PCT_CRYPTO = 0.0015;
+    private static final double TAKER_FEE_PCT_CRYPTO = 0.0075;
+    private static final double MAKER_FEE_PCT_TRADITIONAL = 0.0015;
+    private static final double TAKER_FEE_PCT_TRADITIONAL = 0.0075;
+    private static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_CRYPTO = MAKER_FEE_PCT_CRYPTO + TAKER_FEE_PCT_CRYPTO; // can customize maker's fee when no deposit from taker
+    private static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_TRADITIONAL = MAKER_FEE_PCT_TRADITIONAL + TAKER_FEE_PCT_TRADITIONAL;
+    public static final double MINER_FEE_TOLERANCE_FACTOR = 5.0; // miner fees must be within 5x of each other
 
     // other configuration
     public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
-    public static final long LOG_DAEMON_NOT_SYNCED_WARN_PERIOD_MS = 1000 * 30; // log warnings when daemon not synced once every 30s
+    public static final long LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS = 1000 * 30; // log warnings when daemon not synced once every 30s
     public static final int PRIVATE_OFFER_PASSPHRASE_NUM_WORDS = 8; // number of words in a private offer passphrase
 
     // synchronize requests to the daemon
@@ -121,6 +130,7 @@ public class HavenoUtils {
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+    private static List<String> bip39Words = new ArrayList<String>();
 
     // shared references TODO: better way to share references?
     public static HavenoSetup havenoSetup;
@@ -129,6 +139,8 @@ public class HavenoUtils {
     public static XmrConnectionService xmrConnectionService;
     public static OpenOfferManager openOfferManager;
     public static CoreNotificationService notificationService;
+    public static CorePaymentAccountsService corePaymentAccountService;
+    public static TradeStatisticsManager tradeStatisticsManager;
     public static Preferences preferences;
 
     public static boolean isSeedNode() {
@@ -143,11 +155,17 @@ public class HavenoUtils {
     @SuppressWarnings("unused")
     public static Date getReleaseDate() {
         if (RELEASE_DATE == null) return null;
-        try {
-            return DATE_FORMAT.parse(RELEASE_DATE);
-        } catch (Exception e) {
-            log.error("Failed to parse release date: " + RELEASE_DATE, e);
-            throw new IllegalArgumentException(e);
+        return parseDate(RELEASE_DATE);
+    }
+
+    private static Date parseDate(String date) {
+        synchronized (DATE_FORMAT) {
+            try {
+                return DATE_FORMAT.parse(date);
+            } catch (Exception e) {
+                log.error("Failed to parse date: " + date, e);
+                throw new IllegalArgumentException(e);
+            }
         }
     }
 
@@ -163,6 +181,26 @@ public class HavenoUtils {
 
     public static void waitFor(long waitMs) {
         GenUtils.waitFor(waitMs);
+    }
+
+    public static double getMakerFeePct(String currencyCode, boolean hasBuyerAsTakerWithoutDeposit) {
+        if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_CRYPTO : MAKER_FEE_PCT_CRYPTO;
+        } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_TRADITIONAL : MAKER_FEE_PCT_TRADITIONAL;
+        } else {
+            throw new IllegalArgumentException("Unsupported currency code: " + currencyCode);
+        }
+    }
+
+    public static double getTakerFeePct(String currencyCode, boolean hasBuyerAsTakerWithoutDeposit) {
+        if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? 0d : TAKER_FEE_PCT_CRYPTO;
+        } else if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            return hasBuyerAsTakerWithoutDeposit ? 0d : TAKER_FEE_PCT_TRADITIONAL;
+        } else {
+            throw new IllegalArgumentException("Unsupported currency code: " + currencyCode);
+        }
     }
 
     // ----------------------- CONVERSION UTILS -------------------------------
@@ -204,11 +242,11 @@ public class HavenoUtils {
     }
 
     public static double atomicUnitsToXmr(BigInteger atomicUnits) {
-        return new BigDecimal(atomicUnits).divide(new BigDecimal(XMR_AU_MULTIPLIER)).doubleValue();
+        return MoneroUtils.atomicUnitsToXmr(atomicUnits);
     }
 
     public static BigInteger xmrToAtomicUnits(double xmr) {
-        return new BigDecimal(xmr).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
+        return MoneroUtils.xmrToAtomicUnits(xmr);
     }
 
     public static long xmrToCentineros(double xmr) {
@@ -220,11 +258,11 @@ public class HavenoUtils {
     }
 
     public static double divide(BigInteger auDividend, BigInteger auDivisor) {
-        return atomicUnitsToXmr(auDividend) / atomicUnitsToXmr(auDivisor);
+        return MoneroUtils.divide(auDividend, auDivisor);
     }
 
     public static BigInteger multiply(BigInteger amount1, double amount2) {
-        return amount1 == null ? null : new BigDecimal(amount1).multiply(BigDecimal.valueOf(amount2)).toBigInteger();
+        return MoneroUtils.multiply(amount1, amount2);
     }
 
     // ------------------------- FORMAT UTILS ---------------------------------
@@ -296,10 +334,7 @@ public class HavenoUtils {
         try {
 
             // load bip39 words
-            String fileName = "bip39_english.txt";
-            File bip39File = new File(havenoSetup.getConfig().appDataDir, fileName);
-            if (!bip39File.exists()) FileUtil.resourceToFile(fileName, bip39File);
-            List<String> bip39Words = Files.readAllLines(bip39File.toPath(), StandardCharsets.UTF_8);
+            loadBip39Words();
 
             // select words randomly
             List<String> passphraseWords = new ArrayList<String>();
@@ -313,13 +348,26 @@ public class HavenoUtils {
         }
     }
 
+    private static synchronized void loadBip39Words() {
+        if (bip39Words.isEmpty()) {
+            try {
+                String fileName = "bip39_english.txt";
+                File bip39File = new File(havenoSetup.getConfig().appDataDir, fileName);
+                if (!bip39File.exists()) FileUtil.resourceToFile(fileName, bip39File);
+                bip39Words = Files.readAllLines(bip39File.toPath(), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to load BIP39 words", e);
+            }
+        }
+    }
+
     public static String getChallengeHash(String challenge) {
         if (challenge == null) return null;
 
         // tokenize passphrase
         String[] words = challenge.toLowerCase().split(" ");
 
-        // collect first 4 letters of each word, which are unique in bip39
+        // collect up to first 4 letters of each word, which are unique in bip39
         List<String> prefixes = new ArrayList<String>();
         for (String word : words) prefixes.add(word.substring(0, Math.min(word.length(), 4)));
 
@@ -579,15 +627,23 @@ public class HavenoUtils {
     }
 
     public static boolean isUnresponsive(Throwable e) {
-        return isConnectionRefused(e) || isReadTimeout(e);
+        return isConnectionRefused(e) || isReadTimeout(e) || XmrWalletBase.isSyncWithProgressTimeout(e);
     }
 
     public static boolean isNotEnoughSigners(Throwable e) {
         return e != null && e.getMessage().contains("Not enough signers");
     }
 
+    public static boolean isFailedToParse(Throwable e) {
+        return e != null && e.getMessage().contains("Failed to parse");
+    }
+
     public static boolean isTransactionRejected(Throwable e) {
         return e != null && e.getMessage().contains("was rejected");
+    }
+
+    public static boolean isLRNotFound(Throwable e) {
+        return e != null && e.getMessage().contains("LR not found for enough participants");
     }
 
     public static boolean isIllegal(Throwable e) {
@@ -648,5 +704,17 @@ public class HavenoUtils {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    public static void verifyMinerFee(BigInteger expected, BigInteger actual) {
+        BigInteger max = expected.max(actual);
+        BigInteger min = expected.min(actual);
+        if (min.compareTo(BigInteger.ZERO) <= 0) {
+            throw new IllegalArgumentException("Miner fees must be greater than zero");
+        }
+        double factor = divide(max, min);
+        if (factor > MINER_FEE_TOLERANCE_FACTOR) {
+            throw new IllegalArgumentException("Miner fees are not within " + MINER_FEE_TOLERANCE_FACTOR + "x of each other. Expected=" + expected + ", actual=" + actual + ", factor=" + factor);
+        }
     }
 }

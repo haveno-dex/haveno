@@ -23,17 +23,16 @@ import com.jfoenix.controls.JFXButton;
 import de.jensd.fx.fontawesome.AwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
-import haveno.core.offer.Offer;
-import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HyperlinkWithIcon;
-import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.list.FilterBox;
 import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
@@ -42,7 +41,6 @@ import haveno.desktop.util.GUIUtil;
 import java.math.BigInteger;
 import java.util.Comparator;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.value.ChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -61,7 +59,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -77,13 +74,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     TableColumn<FailedTradesListItem, FailedTradesListItem> priceColumn, amountColumn, volumeColumn,
             marketColumn, directionColumn, dateColumn, tradeIdColumn, stateColumn, removeTradeColumn;
     @FXML
-    HBox searchBox;
-    @FXML
-    AutoTooltipLabel filterLabel;
-    @FXML
-    InputTextField filterTextField;
-    @FXML
-    Pane searchBoxSpacer;
+    FilterBox filterBox;
     @FXML
     Label numItems;
     @FXML
@@ -95,22 +86,26 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     private SortedList<FailedTradesListItem> sortedList;
     private FilteredList<FailedTradesListItem> filteredList;
     private EventHandler<KeyEvent> keyEventEventHandler;
-    private ChangeListener<String> filterTextFieldListener;
     private Scene scene;
     private XmrWalletService xmrWalletService;
+    private User user;
     private ContextMenu contextMenu;
 
     @Inject
     public FailedTradesView(FailedTradesViewModel model,
                             TradeDetailsWindow tradeDetailsWindow,
-                            XmrWalletService xmrWalletService) {
+                            XmrWalletService xmrWalletService,
+                            User user) {
         super(model);
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.xmrWalletService = xmrWalletService;
+        this.user = user;
     }
 
     @Override
     public void initialize() {
+        GUIUtil.applyTableStyle(tableView);
+
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));
         volumeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amount")));
@@ -138,8 +133,8 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         priceColumn.setComparator(Comparator.comparing(o -> o.getTrade().getPrice()));
         volumeColumn.setComparator(Comparator.comparing(o -> o.getTrade().getVolume(), Comparator.nullsFirst(Comparator.naturalOrder())));
         amountColumn.setComparator(Comparator.comparing(o -> o.getTrade().getAmount(), Comparator.nullsFirst(Comparator.naturalOrder())));
-        stateColumn.setComparator(Comparator.comparing(model::getState));
-        marketColumn.setComparator(Comparator.comparing(model::getMarketLabel));
+        stateColumn.setComparator(Comparator.comparing(o -> o.getState()));
+        marketColumn.setComparator(Comparator.comparing(o -> o.getMarketDescription()));
 
         dateColumn.setSortType(TableColumn.SortType.DESCENDING);
         tableView.getSortOrder().add(dateColumn);
@@ -164,12 +159,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
             }
         };
 
-        filterLabel.setText(Res.get("shared.filter"));
-        HBox.setMargin(filterLabel, new Insets(5, 0, 0, 10));
-        filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
-        searchBox.setSpacing(5);
-        HBox.setHgrow(searchBoxSpacer, Priority.ALWAYS);
-
         numItems.setId("num-offers");
         numItems.setPadding(new Insets(-5, 0, 0, 10));
         HBox.setHgrow(footerSpacer, Priority.ALWAYS);
@@ -189,10 +178,38 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
 
+        filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
+        filterBox.setPromptText(Res.get("shared.filter"));
+        filterBox.activate();
+
         contextMenu = new ContextMenu();
-        MenuItem item1 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.maker")));
-        MenuItem item2 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.taker")));
-        contextMenu.getItems().addAll(item1, item2);
+        boolean isArbitrator = user.getRegisteredArbitrator() != null;
+        if (isArbitrator) {
+            MenuItem item1 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.maker")));
+            MenuItem item2 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.taker")));
+
+            item1.setOnAction(event -> {
+                Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
+                handleContextMenu("portfolio.failed.penalty.msg",
+                        Res.get(selectedFailedTrade.getMaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
+                        Res.get("shared.maker"),
+                        selectedFailedTrade.getMaker().getSecurityDeposit(),
+                        selectedFailedTrade.getMaker().getReserveTxHash(),
+                        selectedFailedTrade.getMaker().getReserveTxHex());
+            });
+    
+            item2.setOnAction(event -> {
+                Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
+                handleContextMenu("portfolio.failed.penalty.msg",
+                        Res.get(selectedFailedTrade.getTaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
+                        Res.get("shared.taker"),
+                        selectedFailedTrade.getTaker().getSecurityDeposit(),
+                        selectedFailedTrade.getTaker().getReserveTxHash(),
+                        selectedFailedTrade.getTaker().getReserveTxHex());
+            });
+
+            contextMenu.getItems().addAll(item1, item2);
+        }
 
         tableView.setRowFactory(tv -> {
             TableRow<FailedTradesListItem> row = new TableRow<>();
@@ -202,29 +219,9 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
             return row;
         });
 
-        item1.setOnAction(event -> {
-            Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
-            handleContextMenu("portfolio.failed.penalty.msg",
-                    Res.get(selectedFailedTrade.getMaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
-                    Res.get("shared.maker"),
-                    selectedFailedTrade.getMaker().getSecurityDeposit(),
-                    selectedFailedTrade.getMaker().getReserveTxHash(),
-                    selectedFailedTrade.getMaker().getReserveTxHex());
-        });
-
-        item2.setOnAction(event -> {
-            Trade selectedFailedTrade = tableView.getSelectionModel().getSelectedItem().getTrade();
-            handleContextMenu("portfolio.failed.penalty.msg",
-                    Res.get(selectedFailedTrade.getTaker() == selectedFailedTrade.getBuyer() ? "shared.buyer" : "shared.seller"),
-                    Res.get("shared.taker"),
-                    selectedFailedTrade.getTaker().getSecurityDeposit(),
-                    selectedFailedTrade.getTaker().getReserveTxHash(),
-                    selectedFailedTrade.getTaker().getReserveTxHex());
-        });
-
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
-            ObservableList<TableColumn<FailedTradesListItem, ?>> tableColumns = tableView.getColumns();
+            ObservableList<TableColumn<FailedTradesListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             int reportColumns = tableColumns.size() - 1;    // CSV report excludes the last column (an icon)
             CSVEntryConverter<FailedTradesListItem> headerConverter = item -> {
                 String[] columns = new String[reportColumns];
@@ -234,14 +231,14 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
             };
             CSVEntryConverter<FailedTradesListItem> contentConverter = item -> {
                 String[] columns = new String[reportColumns];
-                columns[0] = model.getTradeId(item);
-                columns[1] = model.getDate(item);
-                columns[2] = model.getMarketLabel(item);
-                columns[3] = model.getPrice(item);
-                columns[4] = model.getAmount(item);
-                columns[5] = model.getVolume(item);
-                columns[6] = model.getDirectionLabel(item);
-                columns[7] = model.getState(item);
+                columns[0] = item.getTrade().getId();
+                columns[1] = item.getDateAsString();
+                columns[2] = item.getMarketDescription();
+                columns[3] = item.getPriceAsString();
+                columns[4] = item.getAmountAsString();
+                columns[5] = item.getVolumeAsString();
+                columns[6] = item.getDirectionLabel();
+                columns[7] = item.getState();
                 return columns;
             };
 
@@ -252,9 +249,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                     sortedList,
                     (Stage) root.getScene().getWindow());
         });
-
-        filterTextField.textProperty().addListener(filterTextFieldListener);
-        applyFilteredListPredicate(filterTextField.getText());
     }
 
     private void handleContextMenu(String msgKey, String buyerOrSeller, String makerOrTaker, BigInteger fee, String reserveTxHash, String reserveTxHex) {
@@ -283,66 +277,9 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         sortedList.comparatorProperty().unbind();
         exportButton.setOnAction(null);
 
-        filterTextField.textProperty().removeListener(filterTextFieldListener);
+        filterBox.deactivate();
     }
 
-    private void applyFilteredListPredicate(String filterString) {
-        filteredList.setPredicate(item -> {
-            if (filterString.isEmpty())
-                return true;
-
-            Offer offer = item.getTrade().getOffer();
-
-            if (offer.getId().contains(filterString)) {
-                return true;
-            }
-            if (model.getDate(item).contains(filterString)) {
-                return true;
-            }
-            if (model.getMarketLabel(item).contains(filterString)) {
-                return true;
-            }
-            if (model.getPrice(item).contains(filterString)) {
-                return true;
-            }
-            if (model.getVolume(item).contains(filterString)) {
-                return true;
-            }
-            if (model.getAmount(item).contains(filterString)) {
-                return true;
-            }
-            if (model.getDirectionLabel(item).contains(filterString)) {
-                return true;
-            }
-
-            Trade trade = item.getTrade();
-
-            if (trade.getMaker().getDepositTxHash() != null && trade.getMaker().getDepositTxHash().contains(filterString)) {
-                return true;
-            }
-            if (trade.getTaker().getDepositTxHash() != null && trade.getTaker().getDepositTxHash().contains(filterString)) {
-                return true;
-            }
-            if (trade.getPayoutTxId() != null && trade.getPayoutTxId().contains(filterString)) {
-                return true;
-            }
-
-            Contract contract = trade.getContract();
-
-            boolean isBuyerOnion = false;
-            boolean isSellerOnion = false;
-            boolean matchesBuyersPaymentAccountData = false;
-            boolean matchesSellersPaymentAccountData = false;
-            if (contract != null) {
-                isBuyerOnion = contract.getBuyerNodeAddress().getFullAddress().contains(filterString);
-                isSellerOnion = contract.getSellerNodeAddress().getFullAddress().contains(filterString);
-                matchesBuyersPaymentAccountData = trade.getBuyer().getPaymentAccountPayload().getPaymentDetails().contains(filterString);
-                matchesSellersPaymentAccountData = trade.getSeller().getPaymentAccountPayload().getPaymentDetails().contains(filterString);
-            }
-            return isBuyerOnion || isSellerOnion ||
-                    matchesBuyersPaymentAccountData || matchesSellersPaymentAccountData;
-        });
-    }
 
     private void onUnfail() {
         Trade trade = sortedList.get(tableView.getSelectionModel().getFocusedIndex()).getTrade();
@@ -377,7 +314,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     }
 
     private void setTradeIdColumnCellFactory() {
-        tradeIdColumn.getStyleClass().add("first-column");
         tradeIdColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
         tradeIdColumn.setCellFactory(
                 new Callback<>() {
@@ -392,7 +328,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             public void updateItem(final FailedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
-                                    field = new HyperlinkWithIcon(model.getTradeId(item));
+                                    field = new HyperlinkWithIcon(item.getTrade().getShortId());
                                     field.setOnAction(event -> tradeDetailsWindow.show(item.getTrade()));
                                     field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                     setGraphic(field);
@@ -419,7 +355,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             public void updateItem(final FailedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null)
-                                    setGraphic(new AutoTooltipLabel(model.getDate(item)));
+                                    setGraphic(new AutoTooltipLabel(item.getDateAsString()));
                                 else
                                     setGraphic(null);
                             }
@@ -439,7 +375,10 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             @Override
                             public void updateItem(final FailedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
-                                setGraphic(new AutoTooltipLabel(model.getMarketLabel(item)));
+                                if (item != null)
+                                    setGraphic(new AutoTooltipLabel(item.getMarketDescription()));
+                                else
+                                    setGraphic(null);
                             }
                         };
                     }
@@ -447,7 +386,6 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     }
 
     private void setStateColumnCellFactory() {
-        stateColumn.getStyleClass().add("last-column");
         stateColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
         stateColumn.setCellFactory(
                 new Callback<>() {
@@ -459,7 +397,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             public void updateItem(final FailedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null)
-                                    setGraphic(new AutoTooltipLabel(model.getState(item)));
+                                    setGraphic(new AutoTooltipLabel(item.getState()));
                                 else
                                     setGraphic(null);
                             }
@@ -480,7 +418,10 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             @Override
                             public void updateItem(final FailedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
-                                setGraphic(new AutoTooltipLabel(model.getAmount(item)));
+                                if (item != null)
+                                    setGraphic(new AutoTooltipLabel(item.getAmountAsString()));
+                                else
+                                    setGraphic(null);
                             }
                         };
                     }
@@ -498,7 +439,10 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             @Override
                             public void updateItem(final FailedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
-                                setGraphic(new AutoTooltipLabel(model.getPrice(item)));
+                                if (item != null)
+                                    setGraphic(new AutoTooltipLabel(item.getPriceAsString()));
+                                else
+                                    setGraphic(null);
                             }
                         };
                     }
@@ -517,7 +461,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             public void updateItem(final FailedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null)
-                                    setGraphic(new AutoTooltipLabel(model.getVolume(item)));
+                                    setGraphic(new AutoTooltipLabel(item.getVolumeAsString()));
                                 else
                                     setGraphic(null);
                             }
@@ -537,7 +481,10 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             @Override
                             public void updateItem(final FailedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
-                                setGraphic(new AutoTooltipLabel(model.getDirectionLabel(item)));
+                                if (item != null)
+                                    setGraphic(new AutoTooltipLabel(item.getDirectionLabel()));
+                                else
+                                    setGraphic(null);
                             }
                         };
                     }

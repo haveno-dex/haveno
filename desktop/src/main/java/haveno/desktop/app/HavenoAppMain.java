@@ -29,6 +29,7 @@ import haveno.desktop.setup.DesktopPersistedDataHost;
 import haveno.desktop.util.ImageUtil;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Pos;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -200,7 +201,7 @@ public class HavenoAppMain extends HavenoExecutable {
 
             // Add an icon to the dialog
             Stage stage = (Stage) getDialogPane().getScene().getWindow();
-            stage.getIcons().add(ImageUtil.getImageByPath("lock.png"));
+            stage.getIcons().add(ImageUtil.getImageByPath("lock@2x.png"));
 
             // Create the password field
             PasswordField passwordField = new PasswordField();
@@ -210,9 +211,16 @@ public class HavenoAppMain extends HavenoExecutable {
             Label errorMessageField = new Label(errorMessage);
             errorMessageField.setTextFill(Color.color(1, 0, 0));
 
+            // Create the version field
+            Label versionField = new Label("v" + Version.VERSION);
+
             // Set the dialog content
             VBox vbox = new VBox(10);
-            vbox.getChildren().addAll(new ImageView(ImageUtil.getImageByPath("logo_splash.png")), passwordField, errorMessageField);
+            ImageView logoImageView = new ImageView(ImageUtil.getImageByPath("logo_splash_light_mode.png"));
+            logoImageView.setFitWidth(342);
+            logoImageView.setPreserveRatio(true);
+            vbox.getChildren().addAll(logoImageView, passwordField, errorMessageField, versionField);
+            vbox.setAlignment(Pos.TOP_CENTER);
             getDialogPane().setContent(vbox);
 
             // Add OK and Cancel buttons

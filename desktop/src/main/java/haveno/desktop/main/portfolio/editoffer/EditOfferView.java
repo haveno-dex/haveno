@@ -19,6 +19,8 @@ package haveno.desktop.main.portfolio.editoffer;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import haveno.common.UserThread;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -90,6 +92,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         addBindings();
 
         hideOptionsGroup();
+        hideNextButtons();
 
         // Lock amount field as it would require bigger changes to support increased amount values.
         amountTextField.setDisable(true);
@@ -100,7 +103,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         volumeCurrencyLabel.setDisable(true);
 
         // Workaround to fix margin on top of amount group
-        gridPane.setPadding(new Insets(-20, 25, -1, 25));
+        gridPane.setPadding(new Insets(-20, 25, 25, 25));
 
         updatePriceToggle();
         updateElementsWithDirection();
@@ -138,7 +141,8 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
         model.applyOpenOffer(openOffer);
 
         initWithData(openOffer.getOffer().getDirection(),
-                CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCurrencyCode()).get(),
+                CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCounterCurrencyCode()).get(),
+                false,
                 null);
 
         model.onStartEditOffer(errorMessage -> {
@@ -178,7 +182,7 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
 
     private void addConfirmEditGroup() {
 
-        int tmpGridRow = 4;
+        int tmpGridRow = 6;
         final Tuple4<Button, BusyAnimation, Label, HBox> editOfferTuple = addButtonBusyAnimationLabelAfterGroup(gridPane, tmpGridRow++, Res.get("editOffer.confirmEdit"));
 
         final HBox editOfferConfirmationBox = editOfferTuple.fourth;
@@ -204,25 +208,34 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
                 cancelButton.setDisable(true);
                 busyAnimation.play();
                 spinnerInfoLabel.setText(Res.get("editOffer.publishOffer"));
-                //edit offer
+
+                // edit offer
                 model.onPublishOffer(() -> {
-                    String key = "editOfferSuccess";
-                    if (DontShowAgainLookup.showAgain(key)) {
-                        new Popup()
-                                .feedback(Res.get("editOffer.success"))
-                                .dontShowAgainId(key)
-                                .show();
+                    if (model.dataModel.hasConflictingClone()) {
+                        new Popup().warning(Res.get("editOffer.hasConflictingClone")).show();
+                    } else {
+                        String key = "editOfferSuccess";
+                        if (DontShowAgainLookup.showAgain(key)) {
+                            new Popup()
+                                    .feedback(Res.get("editOffer.success"))
+                                    .dontShowAgainId(key)
+                                    .show();
+                        }
                     }
-                    spinnerInfoLabel.setText("");
-                    busyAnimation.stop();
-                    close();
+                    UserThread.execute(() -> {
+                        spinnerInfoLabel.setText("");
+                        busyAnimation.stop();
+                        close();
+                    });
                 }, (message) -> {
-                    log.error(message);
-                    spinnerInfoLabel.setText("");
-                    busyAnimation.stop();
-                    model.isNextButtonDisabled.setValue(false);
-                    cancelButton.setDisable(false);
-                    new Popup().warning(Res.get("editOffer.failed", message)).show();
+                    UserThread.execute(() -> {
+                        log.error(message);
+                        spinnerInfoLabel.setText("");
+                        busyAnimation.stop();
+                        model.isNextButtonDisabled.setValue(false);
+                        cancelButton.setDisable(false);
+                        new Popup().warning(Res.get("editOffer.failed", message)).show();
+                    });
                 });
             }
         });

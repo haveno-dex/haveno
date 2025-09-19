@@ -117,7 +117,7 @@ public class WalletAppSetup {
 
     void init(@Nullable Consumer<String> chainFileLockedExceptionHandler,
               @Nullable Runnable showFirstPopupIfResyncSPVRequestedHandler,
-              @Nullable Runnable showPopupIfInvalidBtcConfigHandler,
+              @Nullable Runnable showPopupIfInvalidXmrConfigHandler,
               Runnable downloadCompleteHandler,
               Runnable walletInitializedHandler) {
         log.info("Initialize WalletAppSetup with monero-java v{}", MoneroUtils.getVersion());
@@ -188,6 +188,8 @@ public class WalletAppSetup {
                             } else {
                                 xmrConnectionService.getConnectionServiceErrorMsg().set(Res.get("mainView.walletServiceErrorMsg.connectionError", exception.getMessage()));
                             }
+                        } else {
+                            xmrConnectionService.getConnectionServiceErrorMsg().set(errorMsg);
                         }
                     }
                     return result;
@@ -199,8 +201,8 @@ public class WalletAppSetup {
                     walletInitializedHandler.run();
                 },
                 exception -> {
-                    if (exception instanceof InvalidHostException && showPopupIfInvalidBtcConfigHandler != null) {
-                        showPopupIfInvalidBtcConfigHandler.run();
+                    if (exception instanceof InvalidHostException && showPopupIfInvalidXmrConfigHandler != null) {
+                        showPopupIfInvalidXmrConfigHandler.run();
                     } else {
                         walletServiceException.set(exception);
                     }

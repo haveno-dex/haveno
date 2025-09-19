@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static haveno.core.xmr.wallet.Restrictions.getDefaultSecurityDepositAsPercent;
+import static haveno.core.xmr.wallet.Restrictions.getDefaultSecurityDepositPct;
 
 @Slf4j
 @Data
@@ -58,7 +58,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean autoSelectArbitrators = true;
     private Map<String, Boolean> dontShowAgainMap = new HashMap<>();
     private boolean tacAccepted;
-    private boolean splitOfferOutput = false;
+    private boolean splitOfferOutput = true;
     private boolean showOwnOffersInOfferBook = true;
     @Nullable
     private TradeCurrency preferredTradeCurrency;
@@ -120,10 +120,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String rpcPw;
     @Nullable
     private String takeOfferSelectedPaymentAccountId;
-    private double securityDepositAsPercent = getDefaultSecurityDepositAsPercent();
+    private double securityDepositAsPercent = getDefaultSecurityDepositPct();
     private int ignoreDustThreshold = 600;
-    private int clearDataAfterDays = Preferences.CLEAR_DATA_AFTER_DAYS_INITIAL;
-    private double securityDepositAsPercentForCrypto = getDefaultSecurityDepositAsPercent();
+    private int clearDataAfterDays = Preferences.CLEAR_DATA_AFTER_DAYS_DEFAULT;
+    private double securityDepositAsPercentForCrypto = getDefaultSecurityDepositPct();
     private int blockNotifyPort;
     private boolean tacAcceptedV120;
     private double bsqAverageTrimThreshold = 0.05;

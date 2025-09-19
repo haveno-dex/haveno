@@ -25,6 +25,7 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
 import haveno.core.api.CoreDisputesService;
+import haveno.core.api.CoreDisputesService.PayoutSuggestion;
 import haveno.core.locale.Res;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
@@ -33,7 +34,6 @@ import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
-import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -138,6 +138,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     public void show(Dispute dispute) {
         this.dispute = dispute;
         this.trade = tradeManager.getTrade(dispute.getTradeId());
+        this.payoutSuggestion = null;
 
         rowIndex = -1;
         width = 1150;
@@ -186,7 +187,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     protected void createGridPane() {
         super.createGridPane();
         gridPane.setPadding(new Insets(35, 40, 30, 40));
-        gridPane.getStyleClass().add("grid-pane");
+        gridPane.getStyleClass().addAll("grid-pane", "popup-with-input");
         gridPane.getColumnConstraints().get(0).setHalignment(HPos.LEFT);
         gridPane.setPrefWidth(width);
     }
@@ -219,38 +220,51 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             disputeResult.setSummaryNotes(peersDisputeResult.summaryNotesProperty().get());
             disputeResult.setSubtractFeeFrom(peersDisputeResult.getSubtractFeeFrom());
 
-            buyerGetsTradeAmountRadioButton.setDisable(true);
-            buyerGetsAllRadioButton.setDisable(true);
-            sellerGetsTradeAmountRadioButton.setDisable(true);
-            sellerGetsAllRadioButton.setDisable(true);
-            customRadioButton.setDisable(true);
-
-            buyerPayoutAmountInputTextField.setDisable(true);
-            sellerPayoutAmountInputTextField.setDisable(true);
-            buyerPayoutAmountInputTextField.setEditable(false);
-            sellerPayoutAmountInputTextField.setEditable(false);
-
-            reasonWasBugRadioButton.setDisable(true);
-            reasonWasUsabilityIssueRadioButton.setDisable(true);
-            reasonProtocolViolationRadioButton.setDisable(true);
-            reasonNoReplyRadioButton.setDisable(true);
-            reasonWasScamRadioButton.setDisable(true);
-            reasonWasOtherRadioButton.setDisable(true);
-            reasonWasBankRadioButton.setDisable(true);
-            reasonWasOptionTradeRadioButton.setDisable(true);
-            reasonWasSellerNotRespondingRadioButton.setDisable(true);
-            reasonWasWrongSenderAccountRadioButton.setDisable(true);
-            reasonWasPeerWasLateRadioButton.setDisable(true);
-            reasonWasTradeAlreadySettledRadioButton.setDisable(true);
-
-            applyPayoutAmounts(tradeAmountToggleGroup.selectedToggleProperty().get());
+            disableTradeAmountPayoutControls();
             applyTradeAmountRadioButtonStates();
+        } else if (trade.isPayoutPublished()) {
+            log.warn("Payout is already published for {} {}, disabling payout controls", trade.getClass().getSimpleName(), trade.getId());
+            disableTradeAmountPayoutControls();
+        } else if (trade.isDepositTxMissing()) {
+            log.warn("Missing deposit tx for {} {}, disabling some payout controls", trade.getClass().getSimpleName(), trade.getId());
+            disableTradeAmountPayoutControlsWhenDepositMissing();
         }
 
         setReasonRadioButtonState();
 
         addSummaryNotes();
         addButtons(contract);
+    }
+
+    private void disableTradeAmountPayoutControls() {
+        buyerGetsTradeAmountRadioButton.setDisable(true);
+        buyerGetsAllRadioButton.setDisable(true);
+        sellerGetsTradeAmountRadioButton.setDisable(true);
+        sellerGetsAllRadioButton.setDisable(true);
+        customRadioButton.setDisable(true);
+
+        buyerPayoutAmountInputTextField.setDisable(true);
+        sellerPayoutAmountInputTextField.setDisable(true);
+        buyerPayoutAmountInputTextField.setEditable(false);
+        sellerPayoutAmountInputTextField.setEditable(false);
+
+        reasonWasBugRadioButton.setDisable(true);
+        reasonWasUsabilityIssueRadioButton.setDisable(true);
+        reasonProtocolViolationRadioButton.setDisable(true);
+        reasonNoReplyRadioButton.setDisable(true);
+        reasonWasScamRadioButton.setDisable(true);
+        reasonWasOtherRadioButton.setDisable(true);
+        reasonWasBankRadioButton.setDisable(true);
+        reasonWasOptionTradeRadioButton.setDisable(true);
+        reasonWasSellerNotRespondingRadioButton.setDisable(true);
+        reasonWasWrongSenderAccountRadioButton.setDisable(true);
+        reasonWasPeerWasLateRadioButton.setDisable(true);
+        reasonWasTradeAlreadySettledRadioButton.setDisable(true);
+    }
+
+    private void disableTradeAmountPayoutControlsWhenDepositMissing() {
+        buyerGetsTradeAmountRadioButton.setDisable(true);
+        sellerGetsTradeAmountRadioButton.setDisable(true);
     }
 
     private void addInfoPane() {
@@ -354,22 +368,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         BigInteger sellerAmount = HavenoUtils.parseXmr(sellerPayoutAmountInputTextField.getText());
         Contract contract = dispute.getContract();
         BigInteger tradeAmount = contract.getTradeAmount();
-        BigInteger available = tradeAmount
+        BigInteger expected = tradeAmount
                 .add(trade.getBuyer().getSecurityDeposit())
                 .add(trade.getSeller().getSecurityDeposit());
         BigInteger totalAmount = buyerAmount.add(sellerAmount);
-
-        boolean isRefundAgent = getDisputeManager(dispute) instanceof RefundManager;
-        if (isRefundAgent) {
-            // We allow to spend less in case of RefundAgent or even zero to both, so in that case no payout tx will
-            // be made
-            return totalAmount.compareTo(available) <= 0;
-        } else {
-            if (totalAmount.compareTo(BigInteger.ZERO) <= 0) {
-                return false;
-            }
-            return totalAmount.compareTo(available) == 0;
-        }
+        return totalAmount.compareTo(expected) == 0 || totalAmount.compareTo(trade.getWallet().getBalance()) == 0; // allow spending the expected amount or full wallet balance in case a deposit transaction was dropped
     }
 
     private void applyCustomAmounts(InputTextField inputTextField, boolean oldFocusValue, boolean newFocusValue) {
@@ -379,10 +382,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             return;
         }
 
-        Contract contract = dispute.getContract();
-        BigInteger available = contract.getTradeAmount()
-                .add(trade.getBuyer().getSecurityDeposit())
-                .add(trade.getSeller().getSecurityDeposit());
+        BigInteger available = trade.getWallet().getBalance();
         BigInteger enteredAmount = HavenoUtils.parseXmr(inputTextField.getText());
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;
@@ -412,11 +412,13 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private void addPayoutAmountTextFields() {
         buyerPayoutAmountInputTextField = new InputTextField();
         buyerPayoutAmountInputTextField.setLabelFloat(true);
+        buyerPayoutAmountInputTextField.getStyleClass().add("label-float");
         buyerPayoutAmountInputTextField.setEditable(false);
         buyerPayoutAmountInputTextField.setPromptText(Res.get("disputeSummaryWindow.payoutAmount.buyer"));
 
         sellerPayoutAmountInputTextField = new InputTextField();
         sellerPayoutAmountInputTextField.setLabelFloat(true);
+        sellerPayoutAmountInputTextField.getStyleClass().add("label-float");
         sellerPayoutAmountInputTextField.setPromptText(Res.get("disputeSummaryWindow.payoutAmount.seller"));
         sellerPayoutAmountInputTextField.setEditable(false);
 
@@ -590,16 +592,27 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     !trade.isPayoutPublished()) {
 
                 // create payout tx
-                MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
+                try {
+                    MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
 
-                // show confirmation
-                showPayoutTxConfirmation(contract,
-                        payoutTx,
-                        () -> doClose(closeTicketButton, cancelButton),
-                        () -> {
-                            closeTicketButton.setDisable(false);
-                            cancelButton.setDisable(false);
-                        });
+                    // show confirmation
+                    showPayoutTxConfirmation(contract,
+                            payoutTx,
+                            () -> doClose(closeTicketButton, cancelButton),
+                            () -> {
+                                closeTicketButton.setDisable(false);
+                                cancelButton.setDisable(false);
+                            });
+                } catch (Exception ex) {
+                    if (trade.isPayoutPublished()) {
+                        doClose(closeTicketButton, cancelButton);
+                    } else {
+                        log.error("Error creating dispute payout tx for dispute: " + ex.getMessage(), ex);
+                        new Popup().error(ex.getMessage()).show();
+                        closeTicketButton.setDisable(false);
+                        cancelButton.setDisable(false);
+                    }
+                }
             } else {
                 doClose(closeTicketButton, cancelButton);
             }
@@ -724,6 +737,10 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
     private void applyTradeAmountRadioButtonStates() {
 
+        if (payoutSuggestion == null) {
+            payoutSuggestion = getPayoutSuggestionFromDisputeResult();
+        }
+
         BigInteger buyerPayoutAmount = disputeResult.getBuyerPayoutAmountBeforeCost();
         BigInteger sellerPayoutAmount = disputeResult.getSellerPayoutAmountBeforeCost();
 
@@ -746,6 +763,22 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             case CUSTOM:
                 customRadioButton.setSelected(true);
                 break;
+        }
+    }
+
+    // TODO: Persist the payout suggestion to DisputeResult like Bisq upstream?
+    // That would be a better design, but it's not currently needed.
+    private PayoutSuggestion getPayoutSuggestionFromDisputeResult() {
+        if (disputeResult.getBuyerPayoutAmountBeforeCost().equals(BigInteger.ZERO)) {
+            return PayoutSuggestion.SELLER_GETS_ALL;
+        } else if (disputeResult.getSellerPayoutAmountBeforeCost().equals(BigInteger.ZERO)) {
+            return PayoutSuggestion.BUYER_GETS_ALL;
+        } else if (disputeResult.getBuyerPayoutAmountBeforeCost().equals(trade.getAmount().add(trade.getBuyer().getSecurityDeposit()))) {
+            return PayoutSuggestion.BUYER_GETS_TRADE_AMOUNT;
+        } else if (disputeResult.getSellerPayoutAmountBeforeCost().equals(trade.getAmount().add(trade.getSeller().getSecurityDeposit()))) {
+            return PayoutSuggestion.SELLER_GETS_TRADE_AMOUNT;
+        } else {
+            return PayoutSuggestion.CUSTOM;
         }
     }
 }

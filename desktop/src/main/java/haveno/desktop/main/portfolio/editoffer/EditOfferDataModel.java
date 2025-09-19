@@ -20,6 +20,7 @@ package haveno.desktop.main.portfolio.editoffer;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -54,6 +55,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
     private final CorePersistenceProtoResolver corePersistenceProtoResolver;
     private OpenOffer openOffer;
     private OpenOffer.State initialState;
+    private Offer editedOffer;
 
     @Inject
     EditOfferDataModel(CreateOfferService createOfferService,
@@ -98,7 +100,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
         securityDepositPct.set(0);
         paymentAccounts.clear();
         paymentAccount = null;
-        marketPriceMargin = 0;
+        marketPriceMarginPct = 0;
     }
 
     public void applyOpenOffer(OpenOffer openOffer) {
@@ -106,13 +108,13 @@ class EditOfferDataModel extends MutableOfferDataModel {
 
         Offer offer = openOffer.getOffer();
         direction = offer.getDirection();
-        CurrencyUtil.getTradeCurrency(offer.getCurrencyCode())
+        CurrencyUtil.getTradeCurrency(offer.getCounterCurrencyCode())
                 .ifPresent(c -> this.tradeCurrency = c);
-        tradeCurrencyCode.set(offer.getCurrencyCode());
+        tradeCurrencyCode.set(offer.getCounterCurrencyCode());
 
         this.initialState = openOffer.getState();
         PaymentAccount tmpPaymentAccount = user.getPaymentAccount(openOffer.getOffer().getMakerPaymentAccountId());
-        Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCurrencyCode());
+        Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(openOffer.getOffer().getCounterCurrencyCode());
         if (optionalTradeCurrency.isPresent() && tmpPaymentAccount != null) {
             TradeCurrency selectedTradeCurrency = optionalTradeCurrency.get();
             this.paymentAccount = PaymentAccount.fromProto(tmpPaymentAccount.toProtoMessage(), corePersistenceProtoResolver);
@@ -128,19 +130,21 @@ class EditOfferDataModel extends MutableOfferDataModel {
         // by percentage than the restriction. We can't determine the percentage originally entered at offer
         // creation, so just use the default value as it doesn't matter anyway.
         double securityDepositPercent = CoinUtil.getAsPercentPerXmr(offer.getMaxSellerSecurityDeposit(), offer.getAmount());
-        if (securityDepositPercent > Restrictions.getMaxSecurityDepositAsPercent()
+        if (securityDepositPercent > Restrictions.getMaxSecurityDepositPct()
                 && offer.getMaxSellerSecurityDeposit().equals(Restrictions.getMinSecurityDeposit()))
-            securityDepositPct.set(Restrictions.getDefaultSecurityDepositAsPercent());
+            securityDepositPct.set(Restrictions.getDefaultSecurityDepositPct());
         else
             securityDepositPct.set(securityDepositPercent);
 
         allowAmountUpdate = false;
+
+        triggerPrice = openOffer.getTriggerPrice();
+        extraInfo.set(offer.getOfferExtraInfo());
     }
 
-    @Override
     public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency) {
         try {
-            return super.initWithData(direction, tradeCurrency);
+            return super.initWithData(direction, tradeCurrency, false);
         } catch (NullPointerException e) {
             if (e.getMessage().contains("tradeCurrency")) {
                 throw new IllegalArgumentException("Offers of removed assets cannot be edited. You can only cancel it.", e);
@@ -162,10 +166,11 @@ class EditOfferDataModel extends MutableOfferDataModel {
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
-        setTriggerPrice(openOffer.getTriggerPrice());
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
+        setTriggerPrice(openOffer.getTriggerPrice());
+        setExtraInfo(offer.getOfferExtraInfo());
     }
 
     public void onStartEditOffer(ErrorMessageHandler errorMessageHandler) {
@@ -216,22 +221,35 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorSigner(),
                 offerPayload.getArbitratorSignature(),
-                offerPayload.getReserveTxKeyImages());
+                offerPayload.getReserveTxKeyImages(),
+                newOfferPayload.getExtraInfo());
 
-        final Offer editedOffer = new Offer(editedPayload);
+        editedOffer = new Offer(editedPayload);
         editedOffer.setPriceFeedService(priceFeedService);
         editedOffer.setState(Offer.State.AVAILABLE);
 
         openOfferManager.editOpenOfferPublish(editedOffer, triggerPrice, initialState, () -> {
+            resultHandler.handleResult(); // process result before nullifying state
             openOffer = null;
-            resultHandler.handleResult();
-        }, errorMessageHandler);
+            editedOffer = null;
+        }, (errorMsg) -> {
+            errorMessageHandler.handleErrorMessage(errorMsg);
+        });
     }
 
     public void onCancelEditOffer(ErrorMessageHandler errorMessageHandler) {
         if (openOffer != null)
             openOfferManager.editOpenOfferCancel(openOffer, initialState, () -> {
             }, errorMessageHandler);
+    }
+
+    public boolean hasConflictingClone() {
+        Optional<OpenOffer> editedOpenOffer = openOfferManager.getOpenOffer(openOffer.getId());
+        if (!editedOpenOffer.isPresent()) {
+            log.warn("Edited open offer is no longer present");
+            return false;
+        }
+        return openOfferManager.hasConflictingClone(editedOpenOffer.get());
     }
 
     @Override

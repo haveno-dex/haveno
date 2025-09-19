@@ -21,3 +21,13 @@ When you have something new built for Haveno, submit a pull request for review t
 ## Developer guide
 
 See the [developer guide](developer-guide.md) to get started developing Haveno.
+
+## Translation
+
+Existing translation files are in [core/src/main/resources/i18n/](/core/src/main/resources/i18n/), feel free to update or improve them if needed.
+
+To add a new locale translations, follow these steps:
+
+- Add your [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes) standard country language code to [core/src/main/java/haveno/core/locale/LanguageUtil.java](/core/src/main/java/haveno/core/locale/LanguageUtil.java) and remove it from "// not translated yet" if it is there.
+
+- Copy [displayStrings.properties](/core/src/main/resources/i18n/displayStrings.properties), create new file in [core/src/main/resources/i18n/](/core/src/main/resources/i18n/) in this format: `displayStrings_[insertLocaleName].properties` and then add translations.

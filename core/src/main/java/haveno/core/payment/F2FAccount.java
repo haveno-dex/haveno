@@ -93,7 +93,7 @@ public final class F2FAccount extends CountryBasedPaymentAccount {
         if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
         if (field.getId() == PaymentAccountFormField.FieldId.CITY) field.setLabel(Res.get("payment.f2f.city"));
         if (field.getId() == PaymentAccountFormField.FieldId.CONTACT) field.setLabel(Res.get("payment.f2f.contact"));
-        if (field.getId() == PaymentAccountFormField.FieldId.EXTRA_INFO) field.setLabel(Res.get("payment.shared.extraInfo.prompt"));
+        if (field.getId() == PaymentAccountFormField.FieldId.EXTRA_INFO) field.setLabel(Res.get("payment.shared.extraInfo.prompt.paymentAccount"));
         return field;
     }
 }

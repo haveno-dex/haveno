@@ -239,8 +239,8 @@ public class CoreApi {
         xmrConnectionService.stopCheckingConnection();
     }
 
-    public MoneroRpcConnection getBestAvailableXmrConnection() {
-        return xmrConnectionService.getBestAvailableConnection();
+    public MoneroRpcConnection getBestXmrConnection() {
+        return xmrConnectionService.getBestConnection();
     }
 
     public void setXmrConnectionAutoSwitch(boolean autoSwitch) {
@@ -299,8 +299,12 @@ public class CoreApi {
         return walletsService.createXmrTx(destinations);
     }
 
-    public String relayXmrTx(String metadata) {
-        return walletsService.relayXmrTx(metadata);
+    public List<MoneroTxWallet> createXmrSweepTxs(String address) {
+        return walletsService.createXmrSweepTxs(address);
+    }
+
+    public List<String> relayXmrTxs(List<String> metadatas) {
+        return walletsService.relayXmrTxs(metadatas);
     }
 
     public long getAddressBalance(String addressString) {
@@ -413,20 +417,22 @@ public class CoreApi {
     }
 
     public void postOffer(String currencyCode,
-                                   String directionAsString,
-                                   String priceAsString,
-                                   boolean useMarketBasedPrice,
-                                   double marketPriceMargin,
-                                   long amountAsLong,
-                                   long minAmountAsLong,
-                                   double securityDepositPct,
-                                   String triggerPriceAsString,
-                                   boolean reserveExactAmount,
-                                   String paymentAccountId,
-                                   boolean isPrivateOffer,
-                                   boolean buyerAsTakerWithoutDeposit,
-                                   Consumer<Offer> resultHandler,
-                                   ErrorMessageHandler errorMessageHandler) {
+                            String directionAsString,
+                            String priceAsString,
+                            boolean useMarketBasedPrice,
+                            double marketPriceMargin,
+                            long amountAsLong,
+                            long minAmountAsLong,
+                            double securityDepositPct,
+                            String triggerPriceAsString,
+                            boolean reserveExactAmount,
+                            String paymentAccountId,
+                            boolean isPrivateOffer,
+                            boolean buyerAsTakerWithoutDeposit,
+                            String extraInfo,
+                            String sourceOfferId,
+                            Consumer<Offer> resultHandler,
+                            ErrorMessageHandler errorMessageHandler) {
         coreOffersService.postOffer(currencyCode,
                 directionAsString,
                 priceAsString,
@@ -440,6 +446,8 @@ public class CoreApi {
                 paymentAccountId,
                 isPrivateOffer,
                 buyerAsTakerWithoutDeposit,
+                extraInfo,
+                sourceOfferId,
                 resultHandler,
                 errorMessageHandler);
     }
@@ -455,7 +463,8 @@ public class CoreApi {
                            double securityDepositPct,
                            PaymentAccount paymentAccount,
                            boolean isPrivateOffer,
-                           boolean buyerAsTakerWithoutDeposit) {
+                           boolean buyerAsTakerWithoutDeposit,
+                           String extraInfo) {
         return coreOffersService.editOffer(offerId,
                 currencyCode,
                 direction,
@@ -467,7 +476,8 @@ public class CoreApi {
                 securityDepositPct,
                 paymentAccount,
                 isPrivateOffer,
-                buyerAsTakerWithoutDeposit);
+                buyerAsTakerWithoutDeposit,
+                extraInfo);
     }
 
     public void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {

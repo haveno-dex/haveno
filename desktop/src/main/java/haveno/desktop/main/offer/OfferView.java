@@ -138,7 +138,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
             @Override
             public void onTakeOffer(Offer offer) {
-                Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(offer.getCurrencyCode());
+                Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(offer.getCounterCurrencyCode());
                 if (optionalTradeCurrency.isPresent() && canCreateOrTakeOffer(optionalTradeCurrency.get())) {
                     showTakeOffer(offer);
                 }
@@ -192,12 +192,10 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                     loadTakeViewClass(viewClass, childViewClass, cryptoOfferBookTab);
                 } else {
                     // add sanity check in case of app restart
-                    if (CurrencyUtil.isTraditionalCurrency(tradeCurrency.getCode())) {
-                        Optional<TradeCurrency> tradeCurrencyOptional = (this.direction == OfferDirection.SELL) ?
-                                CurrencyUtil.getTradeCurrency(preferences.getSellScreenCryptoCurrencyCode()) :
-                                CurrencyUtil.getTradeCurrency(preferences.getBuyScreenCryptoCurrencyCode());
-                        tradeCurrency = tradeCurrencyOptional.isEmpty() ? OfferViewUtil.getAnyOfMainCryptoCurrencies() : tradeCurrencyOptional.get();
-                    }
+                    Optional<TradeCurrency> tradeCurrencyOptional = (this.direction == OfferDirection.SELL) ?
+                            CurrencyUtil.getTradeCurrency(preferences.getSellScreenCryptoCurrencyCode()) :
+                            CurrencyUtil.getTradeCurrency(preferences.getBuyScreenCryptoCurrencyCode());
+                    tradeCurrency = tradeCurrencyOptional.isEmpty() ? OfferViewUtil.getAnyOfMainCryptoCurrencies() : tradeCurrencyOptional.get();
                     loadCreateViewClass(cryptoOfferBookView, viewClass, childViewClass, cryptoOfferBookTab, (PaymentMethod) data);
                 }
                 tabPane.getSelectionModel().select(cryptoOfferBookTab);
@@ -220,14 +218,14 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                     labelTab.setClosable(false);
                     Label offerLabel = new Label(getOfferLabel()); // use overlay for label for custom formatting
                     offerLabel.getStyleClass().add("titled-group-bg-label");
-                    offerLabel.setStyle("-fx-font-size: 1.4em;");
+                    offerLabel.setStyle("-fx-font-size: 1.3em;");
                     labelTab.setGraphic(offerLabel);
 
-                    fiatOfferBookTab = new Tab(Res.get("shared.fiat").toUpperCase());
+                    fiatOfferBookTab = new Tab(Res.get("shared.fiat"));
                     fiatOfferBookTab.setClosable(false);
-                    cryptoOfferBookTab = new Tab(Res.get("shared.crypto").toUpperCase());
+                    cryptoOfferBookTab = new Tab(Res.get("shared.crypto"));
                     cryptoOfferBookTab.setClosable(false);
-                    otherOfferBookTab = new Tab(Res.get("shared.other").toUpperCase());
+                    otherOfferBookTab = new Tab(Res.get("shared.other"));
                     otherOfferBookTab.setClosable(false);
                     tabPane.getTabs().addAll(labelTab, fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab);
                 }
@@ -316,7 +314,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private void showTakeOffer(Offer offer) {
         this.offer = offer;
 
-        Class<? extends OfferBookView<?, ?>> offerBookViewClass = getOfferBookViewClassFor(offer.getCurrencyCode());
+        Class<? extends OfferBookView<?, ?>> offerBookViewClass = getOfferBookViewClassFor(offer.getCounterCurrencyCode());
         navigation.navigateTo(MainView.class, this.getClass(), offerBookViewClass, TakeOfferView.class);
     }
 
