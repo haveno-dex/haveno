@@ -2962,87 +2962,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private List<MoneroTxWallet> getTxs(boolean checkPool) {
-        MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-        if (!checkPool) query.setInTxPool(false);
-        if (checkPool) {
-            synchronized (walletLock) {
-                synchronized (HavenoUtils.getDaemonLock()) {
-                    return wallet.getTxs(query);
-                }
-            }
-        } else {
-            return wallet.getTxs(query);
-        }
-    }
-
-    private boolean hasDepositTxs(List<MoneroTxWallet> txs) {
-        return getMakerDepositTx(txs) != null && (getTakerDepositTx(txs) != null || hasBuyerAsTakerWithoutDeposit());
-    }
-
-    private boolean hasPayoutTx(List<MoneroTxWallet> txs) {
-        for (MoneroTxWallet tx : txs) {
-            if (tx.getHash().equals(getPayoutTxId())) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Handle a payout error due to NACK or the transaction failing (e.g. due to reorg).
-     * 
-     * @param syncAndPoll whether to sync and poll
-     * @param resendPaymentReceivedMessages whether to resend payment received messages if previously confirmed
-     * @param paymentReceivedNackSender the peer that sent the payment received NACK, or null if not applicable
-     * @return true if the payment received were resent, false otherwise
-     */
-    public boolean onPayoutError(boolean syncAndPoll, boolean resendPaymentReceivedMessages, TradePeer paymentReceivedNackSender) {
-        log.warn("Handling payout error for {} {}", getClass().getSimpleName(), getId());
-        if (syncAndPoll) {
-            try {
-                syncAndPollWallet();
-            } catch (Exception e) {
-                log.warn("Error syncing and polling wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
-            }
-        }
-
-        // reset trade state
-        log.warn("Resetting trade state after payout error for {} {}, nackSender={}", getClass().getSimpleName(), getId(), paymentReceivedNackSender == null ? null : getPeerRole(paymentReceivedNackSender));
-        processModel.setPaymentSentPayoutTxStale(true);
-        if (paymentReceivedNackSender != null) {
-            paymentReceivedNackSender.setPaymentReceivedMessage(null);
-            paymentReceivedNackSender.setPaymentReceivedMessageState(MessageState.UNDEFINED);
-        }
-        if (!isPayoutPublished()) {
-            getSelf().setUnsignedPayoutTxHex(null);
-            setPayoutTxHex(null);
-            setPayoutTxId(null);
-        }
-
-        persistNow(null);
-
-        // send updated payment received message when payout is confirmed
-        if (resendPaymentReceivedMessages) {
-            if (!isSeller()) throw new IllegalArgumentException("Only the seller can resend PaymentReceivedMessages after a payout error for " + getClass().getSimpleName() + " " + getId());
-            if (!isPaymentReceived()) throw new IllegalStateException("Cannot resend PaymentReceivedMessages after a payout error for " + getClass().getSimpleName() + " " + getId() + " because payment not marked received");
-            log.warn("Sending updated PaymentReceivedMessages for {} {} after payout error", getClass().getSimpleName(), getId());
-            ((SellerProtocol) getProtocol()).onPaymentReceived(() -> {
-                log.info("Done sending updated PaymentReceivedMessages on payout error for {} {}", getClass().getSimpleName(), getId());
-            }, (errorMessage) -> {
-                log.warn("Error sending updated PaymentReceivedMessages on payout error for {} {}: {}", getClass().getSimpleName(), getId(), errorMessage);
-            });
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean isUnlocked(MoneroTx tx) {
-        if (tx == null) return false;
-        if (tx.getNumConfirmations() == null || tx.getNumConfirmations() < XmrWalletService.NUM_BLOCKS_UNLOCK) return false;
-        return true;
-    }
-
-    private boolean hasUnlockedTx() {
-        return isUnlocked(getMaker().getDepositTx()) || isUnlocked(getTaker().getDepositTx());
+    private boolean isWalletBehind() {
+        return walletHeight.get() < xmrConnectionService.getTargetHeight();
     }
 
     private boolean syncWalletIfBehind() {
@@ -3057,8 +2978,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private boolean isWalletBehind() {
-        return walletHeight.get() < xmrConnectionService.getTargetHeight();
+    private List<MoneroTxWallet> getTxs(boolean checkPool) {
+        MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
+        if (!checkPool) query.setInTxPool(false);
+        if (checkPool) {
+            synchronized (walletLock) {
+                synchronized (HavenoUtils.getDaemonLock()) {
+                    return wallet.getTxs(query);
+                }
+            }
+        } else {
+            return wallet.getTxs(query);
+        }
     }
 
     private void setDepositTxs(List<MoneroTxWallet> txs, boolean poolChecked) {
@@ -3109,7 +3040,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         State depositsState = getDepositsState();
         State minDepositsState = isPaymentSent() ? State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN : getState();
         if (poolChecked && depositsState.ordinal() < minDepositsState.ordinal()) {
-            log.warn("Deposits state has reverted from {} to {} for {} {}. Possible reorg?", getState(), depositsState, getClass().getSimpleName(), getShortId());
+            log.warn("Deposits state has reverted from {} to {} for {} {}. Possible reorg?", minDepositsState, depositsState, getClass().getSimpleName(), getShortId());
             if (depositsState == State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) setErrorMessage("Deposit transactions are missing for trade " + getShortId() + ". This can happen after a blockchain reorganization.\n\nIf the issue continues, you can contact support or mark the trade as failed.");
             if (!isPaymentSent()) setState(depositsState); // only revert state if payment not sent
         }
@@ -3160,41 +3091,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private MoneroTxWallet getMakerDepositTx(List<MoneroTxWallet> txs) {
-        return getValidDepositTx(txs, getMaker());
-    }
-
-    private MoneroTxWallet getTakerDepositTx(List<MoneroTxWallet> txs) {
-        return getValidDepositTx(txs, getTaker());
-    }
-
-    private MoneroTxWallet getValidDepositTx(List<MoneroTxWallet> txs, TradePeer peer) {
-        for (MoneroTxWallet tx : txs) {
-            if (tx.getHash().equals(peer.getDepositTxHash()) && !Boolean.TRUE.equals(tx.isFailed())) {
-                return tx;
-            }
-        }
-        return null;
-    }
-
-    private static boolean isSeen(MoneroTx tx) {
-        if (tx == null) return false;
-        if (Boolean.TRUE.equals(tx.isFailed())) return false;
-        if (!Boolean.TRUE.equals(tx.inTxPool()) && !Boolean.TRUE.equals(tx.isConfirmed())) return false;
-        return true;
-    }
-
-    private State getDepositsState() {
-        if (getMaker().getDepositTx() == null || (!hasBuyerAsTakerWithoutDeposit() && getTaker().getDepositTx() == null)) return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
-        if (getMaker().getDepositTx().isFailed() || (!hasBuyerAsTakerWithoutDeposit() && getTaker().getDepositTx().isFailed())) return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
-        if (getMaker().getDepositTx().getNumConfirmations() == null || (!hasBuyerAsTakerWithoutDeposit() && getTaker().getDepositTx().getNumConfirmations() == null)) return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
-        if (getMaker().getDepositTx().getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED)) return State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN;
-        if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) return State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN;
-        if (getMaker().getDepositTx().isConfirmed() && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().isConfirmed())) return State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN;
-        if (isSeen(getMaker().getDepositTx()) && (hasBuyerAsTakerWithoutDeposit() || isSeen(getTaker().getDepositTx()))) return State.DEPOSIT_TXS_SEEN_IN_NETWORK;
-        return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
-    }
-
     public void setPayoutTx(MoneroTx payoutTx) {
 
         // set payout tx fields
@@ -3235,6 +3131,110 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // revert payout state if necessary
         setPayoutState(getPayoutState(payoutTx));
+    }
+
+    /**
+     * Handle a payout error due to NACK or the transaction failing (e.g. due to reorg).
+     * 
+     * @param syncAndPoll whether to sync and poll
+     * @param resendPaymentReceivedMessages whether to resend payment received messages if previously confirmed
+     * @param paymentReceivedNackSender the peer that sent the payment received NACK, or null if not applicable
+     * @return true if the payment received were resent, false otherwise
+     */
+    public boolean onPayoutError(boolean syncAndPoll, boolean resendPaymentReceivedMessages, TradePeer paymentReceivedNackSender) {
+        log.warn("Handling payout error for {} {}", getClass().getSimpleName(), getId());
+        if (syncAndPoll) {
+            try {
+                syncAndPollWallet();
+            } catch (Exception e) {
+                log.warn("Error syncing and polling wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
+            }
+        }
+
+        // reset trade state
+        log.warn("Resetting trade state after payout error for {} {}, nackSender={}", getClass().getSimpleName(), getId(), paymentReceivedNackSender == null ? null : getPeerRole(paymentReceivedNackSender));
+        processModel.setPaymentSentPayoutTxStale(true);
+        if (paymentReceivedNackSender != null) {
+            paymentReceivedNackSender.setPaymentReceivedMessage(null);
+            paymentReceivedNackSender.setPaymentReceivedMessageState(MessageState.UNDEFINED);
+        }
+        if (!isPayoutPublished()) {
+            getSelf().setUnsignedPayoutTxHex(null);
+            setPayoutTxHex(null);
+            setPayoutTxId(null);
+        }
+
+        persistNow(null);
+
+        // send updated payment received message when payout is confirmed
+        if (resendPaymentReceivedMessages) {
+            if (!isSeller()) throw new IllegalArgumentException("Only the seller can resend PaymentReceivedMessages after a payout error for " + getClass().getSimpleName() + " " + getId());
+            if (!isPaymentReceived()) throw new IllegalStateException("Cannot resend PaymentReceivedMessages after a payout error for " + getClass().getSimpleName() + " " + getId() + " because payment not marked received");
+            log.warn("Sending updated PaymentReceivedMessages for {} {} after payout error", getClass().getSimpleName(), getId());
+            ((SellerProtocol) getProtocol()).onPaymentReceived(() -> {
+                log.info("Done sending updated PaymentReceivedMessages on payout error for {} {}", getClass().getSimpleName(), getId());
+            }, (errorMessage) -> {
+                log.warn("Error sending updated PaymentReceivedMessages on payout error for {} {}: {}", getClass().getSimpleName(), getId(), errorMessage);
+            });
+            return true;
+        }
+        return false;
+    }
+
+    private boolean hasDepositTxs(List<MoneroTxWallet> txs) {
+        return getMakerDepositTx(txs) != null && (getTakerDepositTx(txs) != null || hasBuyerAsTakerWithoutDeposit());
+    }
+
+    private boolean hasPayoutTx(List<MoneroTxWallet> txs) {
+        for (MoneroTxWallet tx : txs) {
+            if (tx.getHash().equals(getPayoutTxId())) return true;
+        }
+        return false;
+    }
+
+    private static boolean isUnlocked(MoneroTx tx) {
+        if (tx == null) return false;
+        if (tx.getNumConfirmations() == null || tx.getNumConfirmations() < XmrWalletService.NUM_BLOCKS_UNLOCK) return false;
+        return true;
+    }
+
+    private boolean hasUnlockedTx() {
+        return isUnlocked(getMaker().getDepositTx()) || isUnlocked(getTaker().getDepositTx());
+    }
+
+    private MoneroTxWallet getMakerDepositTx(List<MoneroTxWallet> txs) {
+        return getValidDepositTx(txs, getMaker());
+    }
+
+    private MoneroTxWallet getTakerDepositTx(List<MoneroTxWallet> txs) {
+        return getValidDepositTx(txs, getTaker());
+    }
+
+    private MoneroTxWallet getValidDepositTx(List<MoneroTxWallet> txs, TradePeer peer) {
+        for (MoneroTxWallet tx : txs) {
+            if (tx.getHash().equals(peer.getDepositTxHash()) && !Boolean.TRUE.equals(tx.isFailed())) {
+                return tx;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isSeen(MoneroTx tx) {
+        if (tx == null) return false;
+        if (Boolean.TRUE.equals(tx.isFailed())) return false;
+        if (!Boolean.TRUE.equals(tx.inTxPool()) && !Boolean.TRUE.equals(tx.isConfirmed())) return false;
+        return true;
+    }
+
+    private State getDepositsState() {
+        if (getMaker().getDepositTx() == null || (!hasBuyerAsTakerWithoutDeposit() && getTaker().getDepositTx() == null)) return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
+        if (getMaker().getDepositTx().isFailed() || (!hasBuyerAsTakerWithoutDeposit() && getTaker().getDepositTx().isFailed())) return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
+        if (getMaker().getDepositTx().getNumConfirmations() == null || (!hasBuyerAsTakerWithoutDeposit() && getTaker().getDepositTx().getNumConfirmations() == null)) return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
+        if (getMaker().getDepositTx().getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED)) return State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN;
+        if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) return State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN;
+        if (getMaker().getDepositTx().isConfirmed() && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().isConfirmed())) return State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN;
+        if (isSeen(getMaker().getDepositTx()) && (hasBuyerAsTakerWithoutDeposit() || isSeen(getTaker().getDepositTx()))) return State.DEPOSIT_TXS_SEEN_IN_NETWORK;
+        return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
     }
 
     private static PayoutState getPayoutState(MoneroTx payoutTx) {
