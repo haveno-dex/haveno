@@ -410,16 +410,21 @@ public final class XmrConnectionService {
         if (!isSyncedWithinTolerance()) throw new RuntimeException("Monero node is not synced");
     }
 
-    public boolean isSyncedWithinTolerance() {
-        Long targetHeight = getTargetHeight();
-        if (targetHeight == null) return false;
-        if (targetHeight - chainHeight.get() <= 3) return true; // synced if within 3 blocks of target height
-        return false;
+    public Long getHeight() {
+        if (lastInfo == null) return null;
+        return lastInfo.getHeight();
     }
 
     public Long getTargetHeight() {
         if (lastInfo == null) return null;
         return lastInfo.getTargetHeight() == 0 ? lastInfo.getHeight() : lastInfo.getTargetHeight();
+    }
+
+    public boolean isSyncedWithinTolerance() {
+        Long targetHeight = getTargetHeight();
+        if (targetHeight == null) return false;
+        if (targetHeight - chainHeight.get() <= 3) return true; // synced if within 3 blocks of target height
+        return false;
     }
 
     public XmrKeyImagePoller getKeyImagePoller() {
@@ -843,6 +848,9 @@ public final class XmrConnectionService {
                 isConnected = true;
                 connectionServiceFallbackType.set(null);
 
+                // set chain height
+                chainHeight.set(lastInfo.getHeight());
+
                 // determine if blockchain is syncing locally
                 boolean blockchainSyncing = lastInfo.getHeight().equals(lastInfo.getHeightWithoutBootstrap()) || (lastInfo.getTargetHeight().equals(0l) && lastInfo.getHeightWithoutBootstrap().equals(0l)); // blockchain is syncing if height equals height without bootstrap, or target height and height without bootstrap both equal 0
 
@@ -851,7 +859,7 @@ public final class XmrConnectionService {
 
                 // throttle warnings if monerod not synced
                 if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogMonerodNotSyncedTimestamp > HavenoUtils.LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS) {
-                    log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), getTargetHeight());
+                    log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", getHeight(), getTargetHeight());
                     lastLogMonerodNotSyncedTimestamp = System.currentTimeMillis();
                 }
 
@@ -865,11 +873,8 @@ public final class XmrConnectionService {
                 // get the number of connections, which is only available if not restricted
                 int numOutgoingConnections = Boolean.TRUE.equals(lastInfo.isRestricted()) ? -1 : lastInfo.getNumOutgoingConnections();
 
-                // update properties on user thread
+                // updates on user thread
                 UserThread.execute(() -> {
-
-                    // set chain height
-                    chainHeight.set(lastInfo.getHeight());
 
                     // update sync progress
                     boolean isTestnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL;
