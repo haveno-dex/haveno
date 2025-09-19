@@ -491,7 +491,8 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 log.info("Creating dispute fee estimate tx for {} {}", getClass().getSimpleName(), trade.getShortId());
                 feeEstimateTx = createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
             } catch (Exception e) {
-                log.warn("Could not recreate dispute payout tx to verify fee: {}\n", e.getMessage(), e);
+                if (trade.isPayoutPublished()) log.warn("Payout tx already published for {} {}, skipping fee verification", getClass().getSimpleName(), trade.getShortId());
+                else throw new RuntimeException("Could not recreate dispute payout tx to verify fee: " + e.getMessage(), e);
             }
             if (feeEstimateTx != null) {
                 HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), arbitratorSignedPayoutTx.getFee());
