@@ -108,6 +108,7 @@ import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroMultisigSignResult;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
+import monero.wallet.model.MoneroSyncResult;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxSet;
@@ -167,7 +168,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private Subscription protocolErrorHeightSubscription;
     public static final String PROTOCOL_VERSION = "protocolVersion"; // key for extraDataMap in trade statistics
     public BooleanProperty wasWalletPolled = new SimpleBooleanProperty(false);
-    
+    private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1998,7 +2000,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         this.state = state;
 
-
         persistNow(null);
         UserThread.execute(() -> {
             stateProperty.set(state);
@@ -2010,7 +2011,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
             if (minDepositTxConfirmations != null && minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED) {
                 log.info("Auto-advancing state to {} for {} {} because deposits are unlocked and have at least {} confirmations", State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN, this.getClass().getSimpleName(), getShortId(), NUM_BLOCKS_DEPOSITS_FINALIZED);
-                setState(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
+                setStateDepositsFinalized();
             }
         }
     }
@@ -2891,8 +2892,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     // txs may not be fetched if confirmed after last sync
                     if (isDepositsPublished() && !hasDepositTxs(txs)) {
                         log.info("Deposits are missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
-                        xmrConnectionService.pollMonerod();
-                        syncWalletIfBehind();
+                        HavenoUtils.waitFor(MISSING_TXS_DELAY_MS);
+                        sync();
                         txs = getTxs(true);
                     }
                     setDepositTxs(txs, true);
@@ -2925,8 +2926,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // txs may not be fetched if confirmed after last sync
                 if (!offlinePoll && isPayoutPublished() && getPayoutTxId() != null && !hasPayoutTx(txs)) {
                     log.info("Payout is missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
-                    xmrConnectionService.pollMonerod(); // update target height for syncing
-                    syncWalletIfBehind();
+                    HavenoUtils.waitFor(MISSING_TXS_DELAY_MS);
+                    sync();
                     txs = getTxs(true);
                     checkPool = true;
                 }
@@ -2935,6 +2936,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 setDepositTxs(txs, checkPool);
                 setPayoutTx(txs, checkPool);
             }
+
+            // update trade period if applicable
+            maybeUpdateTradePeriod();
         } catch (Exception e) {
             if (!(e instanceof IllegalStateException) && !isShutDownStarted && !wasWalletPolled.get()) { // request connection switch if failure on first poll
                 ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
@@ -2975,6 +2979,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             } else {
                 return false;
             }
+        }
+    }
+
+    public MoneroSyncResult sync() {
+        synchronized (walletLock) {
+            log.info("Syncing wallet directly for {} {}", getClass().getSimpleName(), getShortId());
+            MoneroSyncResult result = super.sync();
+            log.info("Done syncing wallet directly for {} {}", getClass().getSimpleName(), getShortId());
+            return result;
         }
     }
 
@@ -3130,7 +3143,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // revert payout state if necessary
-        setPayoutState(getPayoutState(payoutTx));
+        if (getPayoutState() != getPayoutState(payoutTx)) setPayoutState(getPayoutState(payoutTx));
     }
 
     /**
@@ -3385,9 +3398,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void setStateDepositsFinalized() {
-        if (!isDepositsFinalized()) {
-            setStateIfValidTransitionTo(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
+        if (!isDepositsFinalized()) setState(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
+        try {
             maybeUpdateTradePeriod();
+        } catch (Exception e) {
+            log.warn("Error updating trade period after deposits finalized for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
         }
     }
 

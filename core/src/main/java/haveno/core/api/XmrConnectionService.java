@@ -769,7 +769,7 @@ public final class XmrConnectionService {
                     try {
                         pollMonerod();
                     } catch (Exception e) {
-                        // error already handled
+                        // error is already handled
                     }
                 }
             });
