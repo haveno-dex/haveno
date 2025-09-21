@@ -3,8 +3,14 @@ package haveno.core.xmr.wallet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -20,13 +26,14 @@ import monero.common.TaskLooper;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletFull;
+import monero.wallet.model.MoneroSyncResult;
 import monero.wallet.model.MoneroWalletListener;
 
 @Slf4j
 public abstract class XmrWalletBase {
 
     // constants
-    public static final int SYNC_PROGRESS_TIMEOUT_SECONDS = 180;
+    public static final int SYNC_TIMEOUT_SECONDS = 180;
     public static final int DIRECT_SYNC_WITHIN_BLOCKS = 100;
     public static final int SAVE_WALLET_DELAY_SECONDS = 300;
     private static final String SYNC_PROGRESS_TIMEOUT_MSG = "Sync progress timeout called";
@@ -61,6 +68,40 @@ public abstract class XmrWalletBase {
 
     public XmrWalletBase() {
         this.xmrConnectionService = HavenoUtils.xmrConnectionService;
+    }
+
+    public MoneroSyncResult sync() {
+        return syncWithTimeout(SYNC_TIMEOUT_SECONDS);
+    }
+
+    public MoneroSyncResult syncWithTimeout(long timeout) {
+        synchronized (walletLock) {
+            synchronized (HavenoUtils.getDaemonLock()) {
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+
+                Callable<MoneroSyncResult> task = () -> {
+                    MoneroSyncResult result = wallet.sync();
+                    walletHeight.set(wallet.getHeight());
+                    return result;
+                };
+
+                Future<MoneroSyncResult> future = executor.submit(task);
+
+                try {
+                    return future.get(timeout, TimeUnit.SECONDS);
+                } catch (TimeoutException e) {
+                    future.cancel(true);
+                    throw new RuntimeException("Sync timed out after " + timeout + " seconds", e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException("Sync failed", e.getCause());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // restore interrupt status
+                    throw new RuntimeException("Sync was interrupted", e);
+                } finally {
+                    executor.shutdownNow();
+                }
+            }
+        }
     }
 
     public void syncWithProgress() {
@@ -223,7 +264,7 @@ public abstract class XmrWalletBase {
             if (isShutDownStarted) return;
             syncProgressError = new RuntimeException(SYNC_PROGRESS_TIMEOUT_MSG);
             syncProgressLatch.countDown();
-        }, SYNC_PROGRESS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }, SYNC_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     private void setWalletSyncedWithProgress() {
