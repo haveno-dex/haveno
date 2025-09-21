@@ -813,9 +813,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         isInitialized = true;
 
         // init syncing if deposit requested
-        if (isDepositRequested()) {
-            tryInitSyncing();
-        }
+        maybeInitSyncing();
         isFullyInitialized = true;
     }
 
@@ -2717,13 +2715,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // sync and reprocess messages on new thread
             if (isInitialized && connection != null && !Boolean.FALSE.equals(xmrConnectionService.isConnected())) {
-                ThreadUtils.execute(() -> tryInitSyncing(), getId());
+                ThreadUtils.execute(() -> maybeInitSyncing(), getId());
             }
         }
     }
 
-    private void tryInitSyncing() {
-        if (isShutDownStarted) return;
+    private void maybeInitSyncing() {
+        if (isShutDownStarted || !isDepositRequested()) return;
 
         // set known deposit txs
         doPollWallet(true);
@@ -2761,6 +2759,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             synchronized (walletLock) {
                 if (getWallet() == null) throw new IllegalStateException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
                 if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
+                if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + ", " + getId());
                 if (isWalletBehind()) {
                     log.info("Syncing wallet for {} {} from height {}", getShortId(), getClass().getSimpleName(), walletHeight.get());
                     long startTime = System.currentTimeMillis();
@@ -2976,6 +2975,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private boolean syncWalletIfBehind() {
         synchronized (walletLock) {
+            if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + ", " + getId());
             if (isWalletBehind()) {
                 syncWithProgress();
                 walletHeight.set(wallet.getHeight());
@@ -2988,6 +2988,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public MoneroSyncResult sync() {
         synchronized (walletLock) {
+            if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + ", " + getId());
             log.info("Syncing wallet directly for {} {}", getClass().getSimpleName(), getShortId());
             MoneroSyncResult result = super.sync();
             log.info("Done syncing wallet directly for {} {}", getClass().getSimpleName(), getShortId());
@@ -3387,7 +3388,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         forceCloseWallet();
         if (!isShutDownStarted) wallet = getWallet();
         restartInProgress = false;
-        if (!isShutDownStarted) ThreadUtils.execute(() -> tryInitSyncing(), getId());
+        ThreadUtils.execute(() -> maybeInitSyncing(), getId());
     }
 
     private void setStateDepositsSeen() {
