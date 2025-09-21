@@ -146,18 +146,15 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         if (canProcessMessage(message)) {
             log.info("Received {} from {} with tradeId {} and uid {}",
                     message.getClass().getSimpleName(), message.getSenderNodeAddress(), message.getTradeId(), message.getUid());
-
-            ThreadUtils.execute(() -> {
-                if (message instanceof DisputeOpenedMessage) {
-                    handle((DisputeOpenedMessage) message);
-                } else if (message instanceof ChatMessage) {
-                    handle((ChatMessage) message);
-                } else if (message instanceof DisputeClosedMessage) {
-                    handle((DisputeClosedMessage) message);
-                } else {
-                    log.warn("Unsupported message at dispatchMessage. message={}", message);
-                }
-            }, message.getTradeId());
+            if (message instanceof DisputeOpenedMessage) {
+                handle((DisputeOpenedMessage) message);
+            } else if (message instanceof ChatMessage) {
+                handle((ChatMessage) message);
+            } else if (message instanceof DisputeClosedMessage) {
+                handle((DisputeClosedMessage) message);
+            } else {
+                log.warn("Unsupported message at dispatchMessage. message={}", message);
+            }
         }
     }
 
@@ -272,6 +269,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             return;
         }
 
+        // save dispute closed message for reprocessing
+        trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
+        persistNow(null);
+
         // try to process dispute closed message
         ThreadUtils.execute(() -> {
             ChatMessage chatMessage = null;
@@ -309,10 +310,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     if (summaryText == null || summaryText.isEmpty()) throw new IllegalArgumentException("Summary text for dispute is missing, tradeId=" + tradeId + (dispute == null ? "" : ", disputeId=" + dispute.getId()));
                     if (dispute != null) DisputeSummaryVerification.verifySignature(summaryText, dispute.getAgentPubKeyRing()); // use dispute's arbitrator pub key ring
                     else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail if arbitrator is unregistered)
-
-                    // save dispute closed message for reprocessing
-                    trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
-                    requestPersistence(trade);
 
                     // verify arbitrator does not receive DisputeClosedMessage
                     if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
