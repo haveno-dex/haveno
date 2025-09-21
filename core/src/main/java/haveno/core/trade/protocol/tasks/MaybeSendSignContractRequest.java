@@ -184,7 +184,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
             processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradePeer().getNodeAddress(), trade.getTradePeer().getPubKeyRing(), request, new SendDirectMessageListener() {
                 @Override
                 public void onArrived() {
-                    log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradePeer().getNodeAddress(), trade.getId());
+                    log.info("{} arrived: trading peer={}; offerId={}; uid={}", request.getClass().getSimpleName(), trade.getTradePeer().getNodeAddress(), trade.getId(), request.getUid());
                     ack1 = true;
                     if (ack1 && ack2) completeAux();
                 }
