@@ -20,7 +20,6 @@ package haveno.common.crypto;
 import haveno.common.util.Hex;
 import haveno.common.util.Utilities;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -101,35 +100,18 @@ public class Encryption {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private static byte[] getPayloadWithHmac(byte[] payload, SecretKey secretKey) {
-        byte[] payloadWithHmac;
         try {
-
-            ByteArrayOutputStream outputStream = null;
-            try {
-                byte[] hmac = getHmac(payload, secretKey);
-                outputStream = new ByteArrayOutputStream();
+            byte[] hmac = getHmac(payload, secretKey);
+            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(payload.length + hmac.length)) {
                 outputStream.write(payload);
                 outputStream.write(hmac);
-                outputStream.flush();
-                payloadWithHmac = outputStream.toByteArray().clone();
-            } catch (IOException | NoSuchProviderException e) {
-                log.error("Could not create hmac", e);
-                throw new RuntimeException("Could not create hmac");
-            } finally {
-                if (outputStream != null) {
-                    try {
-                        outputStream.close();
-                    } catch (IOException ignored) {
-                    }
-                }
+                return outputStream.toByteArray();
             }
         } catch (Throwable e) {
             log.error("Could not create hmac", e);
-            throw new RuntimeException("Could not create hmac");
+            throw new RuntimeException("Could not create hmac", e);
         }
-        return payloadWithHmac;
     }
-
 
     private static boolean verifyHmac(byte[] message, byte[] hmac, SecretKey secretKey) {
         try {
