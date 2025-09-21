@@ -108,6 +108,7 @@ import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroMultisigSignResult;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
+import monero.wallet.model.MoneroSyncResult;
 import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxSet;
@@ -167,6 +168,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private Subscription protocolErrorHeightSubscription;
     public static final String PROTOCOL_VERSION = "protocolVersion"; // key for extraDataMap in trade statistics
     public BooleanProperty wasWalletPolled = new SimpleBooleanProperty(false);
+    private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -1998,7 +2000,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         this.state = state;
 
-
         persistNow(null);
         UserThread.execute(() -> {
             stateProperty.set(state);
@@ -2010,7 +2011,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
             if (minDepositTxConfirmations != null && minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED) {
                 log.info("Auto-advancing state to {} for {} {} because deposits are unlocked and have at least {} confirmations", State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN, this.getClass().getSimpleName(), getShortId(), NUM_BLOCKS_DEPOSITS_FINALIZED);
-                setState(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
+                setStateDepositsFinalized();
             }
         }
     }
@@ -2029,14 +2030,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void setPayoutState(PayoutState payoutState) {
+        if (payoutState.ordinal() < this.payoutState.ordinal()) {
+            log.warn("Reverting payout state from {} to {} for trade {} {}. Possible reorg?", this.payoutState, payoutState, this.getClass().getSimpleName(), getShortId());
+        }
+
         if (isInitialized) {
             // We don't want to log at startup the setState calls from all persisted trades
             log.info("Set new payout state for trade {} {}: {}", getShortId(), this.getClass().getSimpleName(), payoutState);
-        }
-        if (payoutState.ordinal() < this.payoutState.ordinal()) {
-            String message = "We got a payout state change to a previous phase (id=" + getShortId() + ").\n" +
-                    "Old payout state is: " + this.payoutState + ". New payout state is: " + payoutState;
-            log.warn(message);
         }
 
         this.payoutState = payoutState;
@@ -2884,11 +2884,19 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // set deposit txs from trade wallet
                 List<MoneroTxWallet> txs = getTxs(false);
-                if (getValidMakerTx(txs) != null && (getValidTakerTx(txs) != null || hasBuyerAsTakerWithoutDeposit())) {
-                    setDepositTxs(txs);
+                if (hasDepositTxs(txs)) {
+                    setDepositTxs(txs, false);
                 } else if (!offlinePoll) {
-                    txs = getTxs(true); // check pool if deposits not found
-                    setDepositTxs(txs);
+                    txs = getTxs(true);
+
+                    // txs may not be fetched if confirmed after last sync
+                    if (isDepositsPublished() && !hasDepositTxs(txs)) {
+                        log.info("Deposits are missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
+                        HavenoUtils.waitFor(MISSING_TXS_DELAY_MS);
+                        sync();
+                        txs = getTxs(true);
+                    }
+                    setDepositTxs(txs, true);
                 }
             }
 
@@ -2914,26 +2922,23 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // get txs from trade wallet
                 boolean checkPool = !offlinePoll && isPayoutExpected && !isPayoutConfirmed();
                 List<MoneroTxWallet> txs = getTxs(checkPool);
-                setDepositTxs(txs);
 
-                // update payout state
-                boolean hasPayoutTx = false;
-                MoneroTxWallet payoutTx = null;
-                for (MoneroTxWallet tx : txs) {
-                    if (!Boolean.TRUE.equals(tx.isIncoming()) && !tx.isFailed()) {
-                        payoutTx = tx;
-                        hasPayoutTx = true;
-                        break;
-                    } else {
-                        for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-                            if (Boolean.TRUE.equals(output.isSpent())) hasPayoutTx = true; // spent outputs observed on payout published (after rescanning)
-                        }
-                    }
+                // txs may not be fetched if confirmed after last sync
+                if (!offlinePoll && isPayoutPublished() && getPayoutTxId() != null && !hasPayoutTx(txs)) {
+                    log.info("Payout is missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
+                    HavenoUtils.waitFor(MISSING_TXS_DELAY_MS);
+                    sync();
+                    txs = getTxs(true);
+                    checkPool = true;
                 }
-                if (payoutTx != null) setPayoutTx(payoutTx);
-                else if (hasPayoutTx) setPayoutStatePublished();
-                else if (checkPool && isPayoutPublished()) onPayoutUnseen(); // payout tx seen then lost (e.g. reorg)
+
+                // set deposit and payout txs
+                setDepositTxs(txs, checkPool);
+                setPayoutTx(txs, checkPool);
             }
+
+            // update trade period if applicable
+            maybeUpdateTradePeriod();
         } catch (Exception e) {
             if (!(e instanceof IllegalStateException) && !isShutDownStarted && !wasWalletPolled.get()) { // request connection switch if failure on first poll
                 ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
@@ -2961,41 +2966,184 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    private boolean isWalletBehind() {
+        return walletHeight.get() < xmrConnectionService.getTargetHeight();
+    }
+
+    private boolean syncWalletIfBehind() {
+        synchronized (walletLock) {
+            if (isWalletBehind()) {
+                syncWithProgress();
+                walletHeight.set(wallet.getHeight());
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    public MoneroSyncResult sync() {
+        synchronized (walletLock) {
+            log.info("Syncing wallet directly for {} {}", getClass().getSimpleName(), getShortId());
+            MoneroSyncResult result = super.sync();
+            log.info("Done syncing wallet directly for {} {}", getClass().getSimpleName(), getShortId());
+            return result;
+        }
+    }
+
     private List<MoneroTxWallet> getTxs(boolean checkPool) {
         MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-        if (!checkPool) query.setInTxPool(false); // avoid checking pool if possible
-        List<MoneroTxWallet> txs = null;
-        if (!checkPool) txs = wallet.getTxs(query);
-        else {
+        if (!checkPool) query.setInTxPool(false);
+        if (checkPool) {
             synchronized (walletLock) {
                 synchronized (HavenoUtils.getDaemonLock()) {
-                    txs = wallet.getTxs(query);
+                    return wallet.getTxs(query);
+                }
+            }
+        } else {
+            return wallet.getTxs(query);
+        }
+    }
+
+    private void setDepositTxs(List<MoneroTxWallet> txs, boolean poolChecked) {
+
+        // set deposit txs
+        getMaker().setDepositTx(getMakerDepositTx(txs));
+        getTaker().setDepositTx(getTakerDepositTx(txs));
+
+        // set actual buyer security deposit
+        if (isSeen(getBuyer().getDepositTx())) {
+            BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
+            if (!getBuyer().getSecurityDeposit().equals(BigInteger.ZERO) && !buyerSecurityDeposit.equals(getBuyer().getSecurityDeposit())) {
+                log.warn("Overwriting buyer security deposit for {} {}, old={}, new={}", getClass().getSimpleName(), getShortId(), getBuyer().getSecurityDeposit(), buyerSecurityDeposit);
+            }
+            getBuyer().setSecurityDeposit(buyerSecurityDeposit);
+        }
+
+        // set actual seller security deposit
+        if (isSeen(getSeller().getDepositTx())) {
+            BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
+            if (!getSeller().getSecurityDeposit().equals(BigInteger.ZERO) && !sellerSecurityDeposit.equals(getSeller().getSecurityDeposit())) {
+                log.warn("Overwriting seller security deposit for {} {}, old={}, new={}", getClass().getSimpleName(), getShortId(), getSeller().getSecurityDeposit(), sellerSecurityDeposit);
+            }
+            getSeller().setSecurityDeposit(sellerSecurityDeposit);
+        }
+
+        // advance deposit state
+        if (isSeen(getMaker().getDepositTx()) && (hasBuyerAsTakerWithoutDeposit() || isSeen(getTaker().getDepositTx()))) {
+            setStateDepositsSeen();
+
+            // check for deposit txs confirmed
+            if (getMaker().getDepositTx().isConfirmed() && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().isConfirmed())) {
+                setStateDepositsConfirmed();
+            }
+
+            // check for deposit txs unlocked
+            if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) {
+                setStateDepositsUnlocked();
+            }
+
+            // check for deposit txs finalized
+            if (getMaker().getDepositTx().getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED)) {
+                setStateDepositsFinalized();
+            }
+        }
+
+        // revert deposit state if necessary
+        State depositsState = getDepositsState();
+        State minDepositsState = isPaymentSent() ? State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN : getState();
+        if (poolChecked && depositsState.ordinal() < minDepositsState.ordinal()) {
+            log.warn("Deposits state has reverted from {} to {} for {} {}. Possible reorg?", minDepositsState, depositsState, getClass().getSimpleName(), getShortId());
+            if (depositsState == State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) setErrorMessage("Deposit transactions are missing for trade " + getShortId() + ". This can happen after a blockchain reorganization.\n\nIf the issue continues, you can contact support or mark the trade as failed.");
+            if (!isPaymentSent()) setState(depositsState); // only revert state if payment not sent
+        }
+
+        // announce deposits update
+        depositTxsUpdateCounter.set(depositTxsUpdateCounter.get() + 1);
+    }
+
+    private void setPayoutTx(List<MoneroTxWallet> txs, boolean poolChecked) {
+
+        // collect payout info
+        boolean hasPayoutTx = false;
+        MoneroTxWallet payoutTx = null;
+        for (MoneroTxWallet tx : txs) {
+            if (!Boolean.TRUE.equals(tx.isIncoming()) && !tx.isFailed()) {
+                payoutTx = tx;
+                hasPayoutTx = true;
+                break;
+            } else {
+                for (MoneroOutputWallet output : tx.getOutputsWallet()) {
+                    if (Boolean.TRUE.equals(output.isSpent())) hasPayoutTx = true; // spent outputs observed on payout published (after rescanning)
                 }
             }
         }
-        return txs;
+
+        // set payout state
+        if (payoutTx != null) setPayoutTx(payoutTx);
+        else if (hasPayoutTx) setPayoutState(PayoutState.PAYOUT_PUBLISHED);
+        else if (poolChecked && isPayoutPublished()) { // payout tx seen then lost (e.g. reorg)
+            for (TradePeer peer : getAllPeers()) {
+                peer.setPaymentReceivedMessage(null);
+                peer.setPaymentReceivedMessageState(MessageState.UNDEFINED);
+                peer.setDisputeClosedMessage(null);
+            }
+            setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
+            if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
+            String errorMsg = "The payout transaction is not seen for trade " + getShortId() + ". This can happen after a blockchain reorganization..\n\nIf the payout does not confirm automatically, you can contact support or mark the trade as failed.";
+            if (isSeller() && getState().ordinal() >= State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG.ordinal()) {
+                log.warn("Reverting state of {} {} from {} to {} because payout is unseen. Possible reorg?", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+                setState(State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
+                onPayoutError(false, true, null);
+                setErrorMessage(errorMsg);
+            } else if (getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
+                log.warn("Reverting state of {} {} from {} to {} because payout is unseen. Possible reorg?", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
+                setState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
+                setErrorMessage(errorMsg);
+            }
+        }
     }
 
-    private void onPayoutUnseen() {
-        log.warn("Payout tx unseen for {} {} with payout state {}. Possible reorg?", getClass().getSimpleName(), getShortId(), getPayoutState());
-        for (TradePeer peer : getAllPeers()) {
-            peer.setPaymentReceivedMessage(null);
-            peer.setPaymentReceivedMessageState(MessageState.UNDEFINED);
-            peer.setDisputeClosedMessage(null);
+    public void setPayoutTx(MoneroTx payoutTx) {
+
+        // set payout tx fields
+        this.payoutTx = payoutTx;
+        this.payoutTxId = payoutTx.getHash();
+        this.payoutTxFee = payoutTx.getFee() == null ? 0 : payoutTx.getFee().longValueExact();
+        this.payoutTxKey = payoutTx.getKey();
+        if ("".equals(payoutTxId)) this.payoutTxId = null; // tx id is empty until signed
+
+        // set payout tx id in dispute(s)
+        for (Dispute dispute : getDisputes()) dispute.setDisputePayoutTxId(payoutTxId);
+
+        // set final payout amounts
+        if (isPaymentReceived()) {
+            BigInteger splitTxFee = payoutTx.getFee().divide(BigInteger.valueOf(2));
+            getBuyer().setPayoutTxFee(splitTxFee);
+            getSeller().setPayoutTxFee(splitTxFee);
+            getBuyer().setPayoutAmount(getBuyer().getSecurityDeposit().subtract(getBuyer().getPayoutTxFee()).add(getAmount()));
+            getSeller().setPayoutAmount(getSeller().getSecurityDeposit().subtract(getSeller().getPayoutTxFee()));
+        } else {
+            DisputeResult disputeResult = getDisputeResult();
+            if (disputeResult != null) {
+                BigInteger[] buyerSellerPayoutTxFees = ArbitrationManager.getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
+                getBuyer().setPayoutTxFee(buyerSellerPayoutTxFees[0]);
+                getSeller().setPayoutTxFee(buyerSellerPayoutTxFees[1]);
+                getBuyer().setPayoutAmount(disputeResult.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getPayoutTxFee()));
+                getSeller().setPayoutAmount(disputeResult.getSellerPayoutAmountBeforeCost().subtract(getSeller().getPayoutTxFee()));
+            }
         }
-        setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
-        if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
-        String errorMsg = "The payout transaction is not seen for trade " + getShortId() + ". This can happen after a blockchain reorganization..\n\nIf the payout does not confirm automatically, you can contact support or mark the trade as failed.";
-        if (isSeller() && getState().ordinal() >= State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG.ordinal()) {
-            log.warn("Resetting state of {} {} from {} to {} because payout is unpublished", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-            setState(State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
-            onPayoutError(false, true, null);
-            setErrorMessage(errorMsg);
-        } else if (getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
-            log.warn("Resetting state of {} {} from {} to {} because payout is unpublished", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
-            setState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
-            setErrorMessage(errorMsg);
+
+        // advance payout state
+        if (Boolean.TRUE.equals(payoutTx.isRelayed()) || Boolean.TRUE.equals(payoutTx.inTxPool())) setPayoutStatePublished();
+        if (payoutTx.isConfirmed()) setPayoutStateConfirmed();
+        if (payoutTx.getNumConfirmations() != null) {
+            if (payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) setPayoutStateUnlocked();
+            if (payoutTx.getNumConfirmations() >= NUM_BLOCKS_PAYOUT_FINALIZED) setPayoutStateFinalized();
         }
+
+        // revert payout state if necessary
+        if (getPayoutState() != getPayoutState(payoutTx)) setPayoutState(getPayoutState(payoutTx));
     }
 
     /**
@@ -3046,6 +3194,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return false;
     }
 
+    private boolean hasDepositTxs(List<MoneroTxWallet> txs) {
+        return getMakerDepositTx(txs) != null && (getTakerDepositTx(txs) != null || hasBuyerAsTakerWithoutDeposit());
+    }
+
+    private boolean hasPayoutTx(List<MoneroTxWallet> txs) {
+        for (MoneroTxWallet tx : txs) {
+            if (tx.getHash().equals(getPayoutTxId())) return true;
+        }
+        return false;
+    }
+
     private static boolean isUnlocked(MoneroTx tx) {
         if (tx == null) return false;
         if (tx.getNumConfirmations() == null || tx.getNumConfirmations() < XmrWalletService.NUM_BLOCKS_UNLOCK) return false;
@@ -3056,87 +3215,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return isUnlocked(getMaker().getDepositTx()) || isUnlocked(getTaker().getDepositTx());
     }
 
-    private void syncWalletIfBehind() {
-        synchronized (walletLock) {
-            if (isWalletBehind()) {
-                syncWithProgress();
-                walletHeight.set(wallet.getHeight());
-            }
-        }
+    private MoneroTxWallet getMakerDepositTx(List<MoneroTxWallet> txs) {
+        return getValidDepositTx(txs, getMaker());
     }
 
-    private boolean isWalletBehind() {
-        return walletHeight.get() < xmrConnectionService.getTargetHeight();
+    private MoneroTxWallet getTakerDepositTx(List<MoneroTxWallet> txs) {
+        return getValidDepositTx(txs, getTaker());
     }
 
-    private void setDepositTxs(List<MoneroTxWallet> txs) {
-
-        // set deposit txs
-        getMaker().setDepositTx(getValidMakerTx(txs));
-        getTaker().setDepositTx(getValidTakerTx(txs));
-
-        // set actual buyer security deposit
-        if (isSeen(getBuyer().getDepositTx())) {
-            BigInteger buyerSecurityDeposit = ((MoneroTxWallet) getBuyer().getDepositTx()).getIncomingAmount();
-            if (!getBuyer().getSecurityDeposit().equals(BigInteger.ZERO) && !buyerSecurityDeposit.equals(getBuyer().getSecurityDeposit())) {
-                log.warn("Overwriting buyer security deposit for {} {}, old={}, new={}", getClass().getSimpleName(), getShortId(), getBuyer().getSecurityDeposit(), buyerSecurityDeposit);
-            }
-            getBuyer().setSecurityDeposit(buyerSecurityDeposit);
-        }
-
-        // set actual seller security deposit
-        if (isSeen(getSeller().getDepositTx())) {
-            BigInteger sellerSecurityDeposit = ((MoneroTxWallet) getSeller().getDepositTx()).getIncomingAmount().subtract(getAmount());
-            if (!getSeller().getSecurityDeposit().equals(BigInteger.ZERO) && !sellerSecurityDeposit.equals(getSeller().getSecurityDeposit())) {
-                log.warn("Overwriting seller security deposit for {} {}, old={}, new={}", getClass().getSimpleName(), getShortId(), getSeller().getSecurityDeposit(), sellerSecurityDeposit);
-            }
-            getSeller().setSecurityDeposit(sellerSecurityDeposit);
-        }
-
-        // advance deposit state
-        if (isSeen(getMaker().getDepositTx()) && (hasBuyerAsTakerWithoutDeposit() || isSeen(getTaker().getDepositTx()))) {
-            setStateDepositsSeen();
-
-            // check for deposit txs confirmed
-            if (getMaker().getDepositTx().isConfirmed() && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().isConfirmed())) {
-                setStateDepositsConfirmed();
-            }
-
-            // check for deposit txs unlocked
-            if (getMaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) {
-                setStateDepositsUnlocked();
-            }
-
-            // check for deposit txs finalized
-            if (getMaker().getDepositTx().getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED && (hasBuyerAsTakerWithoutDeposit() || getTaker().getDepositTx().getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED)) {
-                setStateDepositsFinalized();
-            }
-        }
-
-        // revert deposit state if necessary
-        State depositsState = getDepositsState();
-        if (!isPaymentSent() && depositsState.ordinal() < getState().ordinal()) {
-            log.warn("Reverting deposits state to {} for {} {}. Possible reorg?", depositsState, getClass().getSimpleName(), getShortId());
-            if (depositsState == State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) setErrorMessage("Deposit transactions are missing for trade " + getShortId() + ". This can happen after a blockchain reorganization..\n\nIf the issue continues, you can contact support or mark the trade as failed.");
-            setState(depositsState);
-        }
-
-        // announce deposits update
-        depositTxsUpdateCounter.set(depositTxsUpdateCounter.get() + 1);
-    }
-
-    private MoneroTxWallet getValidMakerTx(List<MoneroTxWallet> txs) {
+    private MoneroTxWallet getValidDepositTx(List<MoneroTxWallet> txs, TradePeer peer) {
         for (MoneroTxWallet tx : txs) {
-            if (tx.getHash().equals(getMaker().getDepositTxHash()) && !Boolean.TRUE.equals(tx.isFailed())) {
-                return tx;
-            }
-        }
-        return null;
-    }
-
-    private MoneroTxWallet getValidTakerTx(List<MoneroTxWallet> txs) {
-        for (MoneroTxWallet tx : txs) {
-            if (tx.getHash().equals(getTaker().getDepositTxHash()) && !Boolean.TRUE.equals(tx.isFailed())) {
+            if (tx.getHash().equals(peer.getDepositTxHash()) && !Boolean.TRUE.equals(tx.isFailed())) {
                 return tx;
             }
         }
@@ -3161,52 +3250,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
     }
 
-    public void setPayoutTx(MoneroTx payoutTx) {
-
-        // set payout tx fields
-        this.payoutTx = payoutTx;
-        this.payoutTxId = payoutTx.getHash();
-        this.payoutTxFee = payoutTx.getFee() == null ? 0 : payoutTx.getFee().longValueExact();
-        this.payoutTxKey = payoutTx.getKey();
-        if ("".equals(payoutTxId)) this.payoutTxId = null; // tx id is empty until signed
-
-        // set payout tx id in dispute(s)
-        for (Dispute dispute : getDisputes()) dispute.setDisputePayoutTxId(payoutTxId);
-
-        // set final payout amounts
-        if (isPaymentReceived()) {
-            BigInteger splitTxFee = payoutTx.getFee().divide(BigInteger.valueOf(2));
-            getBuyer().setPayoutTxFee(splitTxFee);
-            getSeller().setPayoutTxFee(splitTxFee);
-            getBuyer().setPayoutAmount(getBuyer().getSecurityDeposit().subtract(getBuyer().getPayoutTxFee()).add(getAmount()));
-            getSeller().setPayoutAmount(getSeller().getSecurityDeposit().subtract(getSeller().getPayoutTxFee()));
-        } else {
-            DisputeResult disputeResult = getDisputeResult();
-            if (disputeResult != null) {
-                BigInteger[] buyerSellerPayoutTxFees = ArbitrationManager.getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
-                getBuyer().setPayoutTxFee(buyerSellerPayoutTxFees[0]);
-                getSeller().setPayoutTxFee(buyerSellerPayoutTxFees[1]);
-                getBuyer().setPayoutAmount(disputeResult.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getPayoutTxFee()));
-                getSeller().setPayoutAmount(disputeResult.getSellerPayoutAmountBeforeCost().subtract(getSeller().getPayoutTxFee()));
-            }
-        }
-
-        // advance payout state
-        if (Boolean.TRUE.equals(payoutTx.isRelayed()) || Boolean.TRUE.equals(payoutTx.inTxPool())) setPayoutStatePublished();
-        if (payoutTx.isConfirmed()) setPayoutStateConfirmed();
-        if (payoutTx.getNumConfirmations() != null) {
-            if (payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) setPayoutStateUnlocked();
-            if (payoutTx.getNumConfirmations() >= NUM_BLOCKS_PAYOUT_FINALIZED) setPayoutStateFinalized();
-        }
-
-        // revert payout state if necessary
-        PayoutState payoutState = getPayoutState(payoutTx);
-        if (payoutState.ordinal() < getPayoutState().ordinal()) {
-            log.warn("Reverting payout state to {} for {} {}. Possible reorg?", payoutState, getClass().getSimpleName(), getShortId());
-            setPayoutState(payoutState);
-        }
-    }
-
     private static PayoutState getPayoutState(MoneroTx payoutTx) {
         if (payoutTx.getHash() == null) return PayoutState.PAYOUT_UNPUBLISHED;
         if (Boolean.TRUE.equals(payoutTx.isFailed())) return PayoutState.PAYOUT_UNPUBLISHED;
@@ -3215,7 +3258,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) return PayoutState.PAYOUT_UNLOCKED;
         }
         if (payoutTx.isConfirmed()) return PayoutState.PAYOUT_CONFIRMED;
-        return PayoutState.PAYOUT_PUBLISHED; // payout is published by default in the wallet
+        if (Boolean.TRUE.equals(payoutTx.isRelayed()) || Boolean.TRUE.equals(payoutTx.inTxPool())) return PayoutState.PAYOUT_PUBLISHED;
+        return PayoutState.PAYOUT_UNPUBLISHED;
     }
 
     // TODO: wallet is sometimes missing balance or deposits, due to reorgs, specific daemon connections, not saving?
@@ -3355,9 +3399,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void setStateDepositsFinalized() {
-        if (!isDepositsFinalized()) {
-            setStateIfValidTransitionTo(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
-            ThreadUtils.submitToPool(() -> maybeUpdateTradePeriod());
+        if (!isDepositsFinalized()) setState(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
+        try {
+            maybeUpdateTradePeriod();
+        } catch (Exception e) {
+            log.warn("Error updating trade period after deposits finalized for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
         }
     }
 
