@@ -122,6 +122,8 @@ public abstract class SupportManager {
 
     public abstract void requestPersistence();
 
+    public abstract void persistNow(@Nullable Runnable completeHandler);
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Delegates p2pService
@@ -195,7 +197,7 @@ public abstract class SupportManager {
                             synchronized (dispute.getChatMessages()) {
                                 for (ChatMessage chatMessage : dispute.getChatMessages()) {
                                     if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                        if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED) {
+                                        if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_PREPARING || trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED) { // ack can arrive before saw arrived
                                             if (dispute.isClosed()) dispute.reOpen();
                                             trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                                         } else if (dispute.isClosed()) {
@@ -217,12 +219,8 @@ public abstract class SupportManager {
                         synchronized (dispute.getChatMessages()) {
                             for (ChatMessage chatMessage : dispute.getChatMessages()) {
                                 if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                    if (trade.getDisputeState().isRequested()) {
+                                    if (!trade.isArbitrator() && (trade.getDisputeState().isRequested() || trade.getDisputeState().isCloseRequested())) {
                                         log.warn("DisputeOpenedMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
-                                        dispute.setIsClosed();
-                                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
-                                    } else if (trade.getDisputeState().isCloseRequested()) {
-                                        log.warn("DisputeCloseMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
                                         dispute.setIsClosed();
                                         trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                                     }
@@ -243,6 +241,9 @@ public abstract class SupportManager {
                                 msg.setAckError(ackMessage.getErrorMessage());
                         });
                     });
+
+            tradeManager.persistNow(null);
+            persistNow(null);
             requestPersistence();
         }
     }
@@ -266,7 +267,7 @@ public abstract class SupportManager {
 
             mailboxMessageService.sendEncryptedMailboxMessage(peersNodeAddress,
                     receiverPubKeyRing,
-                    message,
+                    message.copy(),
                     new SendMailboxMessageListener() {
                         @Override
                         public void onArrived() {

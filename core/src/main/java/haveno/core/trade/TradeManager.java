@@ -67,6 +67,7 @@ import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
+import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.handlers.TradeResultHandler;
@@ -196,6 +197,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             PaymentSentMessage.class,
             PaymentReceivedMessage.class,
             DisputeOpenedMessage.class,
+            ChatMessage.class,
             DisputeClosedMessage.class);
 
         @Override
@@ -459,13 +461,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 if (!trade.isArbitrator()) continue;
                 if (trade.isIdling()) {
                     ThreadUtils.submitToPool(() -> {
-                    
-                        // add random delay to avoid syncing at exactly the same time
-                        if (trades.size() > 1 && trade.walletExists()) {
-                            int delay = (int) (Math.random() * INIT_TRADE_RANDOM_DELAY_MS);
-                            HavenoUtils.waitFor(delay);
-                        }
-                        
                         trade.syncAndPollWallet();
                     });
                 }
@@ -534,12 +529,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         tradesToSkip.add(trade);
                         return;
                     }
-                }
-
-                // add random delay to avoid syncing at exactly the same time
-                if (trades.size() > 1 && trade.walletExists()) {
-                    int delay = (int) (Math.random() * INIT_TRADE_RANDOM_DELAY_MS);
-                    HavenoUtils.waitFor(delay);
                 }
 
                 // initialize trade

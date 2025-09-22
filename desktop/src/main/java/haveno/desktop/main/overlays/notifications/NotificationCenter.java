@@ -19,6 +19,8 @@ package haveno.desktop.main.overlays.notifications;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.core.api.NotificationListener;
 import haveno.core.locale.Res;
@@ -135,7 +137,7 @@ public class NotificationCenter {
                         log.debug("We have already an entry in disputeStateSubscriptionsMap.");
                     } else {
                         Subscription disputeStateSubscription = EasyBind.subscribe(trade.disputeStateProperty(),
-                                disputeState -> onDisputeStateChanged(trade, disputeState));
+                                disputeState -> ThreadUtils.submitToPool(() -> onDisputeStateChanged(trade, disputeState)));
                         disputeStateSubscriptionsMap.put(tradeId, disputeStateSubscription);
                     }
 
@@ -153,7 +155,7 @@ public class NotificationCenter {
         tradeManager.getObservableList().forEach(trade -> {
                     String tradeId = trade.getId();
                     Subscription disputeStateSubscription = EasyBind.subscribe(trade.disputeStateProperty(),
-                            disputeState -> onDisputeStateChanged(trade, disputeState));
+                            disputeState -> ThreadUtils.submitToPool(() -> onDisputeStateChanged(trade, disputeState)));
                     disputeStateSubscriptionsMap.put(tradeId, disputeStateSubscription);
 
                     Subscription tradePhaseSubscription = EasyBind.subscribe(trade.statePhaseProperty(),
@@ -267,7 +269,7 @@ public class NotificationCenter {
             if (message != null) {
                 goToSupport(trade, message, trade.isArbitrator() ? ArbitratorView.class : ArbitrationClientView.class);
             }
-        }else if (refundManager.findDispute(trade.getId()).isPresent()) {
+        } else if (refundManager.findDispute(trade.getId()).isPresent()) {
             String disputeOrTicket = refundManager.findDispute(trade.getId()).get().isSupportTicket() ?
                     Res.get("shared.supportTicket") :
                     Res.get("shared.dispute");

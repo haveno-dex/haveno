@@ -66,6 +66,7 @@ import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
+import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.xmr.wallet.Restrictions;
@@ -158,12 +159,19 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     @Override
     public void requestPersistence() {
+        tradeManager.requestPersistence();
         disputeListService.requestPersistence();
     }
 
     protected void requestPersistence(Trade trade) {
         trade.requestPersistence();
         disputeListService.requestPersistence();
+    }
+
+    @Override
+    public void persistNow(@Nullable Runnable completeHandler) {
+        tradeManager.persistNow(null);
+        disputeListService.persistNow(completeHandler);
     }
 
     @Override
@@ -347,6 +355,36 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             return;
         }
 
+        // update dispute state
+        trade.setDisputeState(Trade.DisputeState.DISPUTE_PREPARING);
+
+        // open dispute on trade thread
+        ThreadUtils.execute(() -> {
+
+            // try to send dispute
+            try {
+                sendDisputeOpenedMessageAux(trade, dispute, resultHandler, (errorMessage, throwable) -> {
+                    log.warn("Failed to open dispute for trade: " + dispute.getTradeId() + ": " + errorMessage, throwable);
+                    removeDisputes(trade);
+                    faultHandler.handleFault(errorMessage, throwable);
+                });
+            } catch (Exception e) {
+                String errorMsg = "Failed to open dispute for trade " + dispute.getTradeId() + ": " + e.getMessage();
+                log.error(errorMsg, e);
+                removeDisputes(trade);
+                faultHandler.handleFault(errorMsg, e);
+            }
+        }, trade.getId());
+    }
+
+    private void sendDisputeOpenedMessageAux(Trade trade,
+                                             Dispute dispute,
+                                             ResultHandler resultHandler,
+                                             FaultHandler faultHandler) {
+        log.info("Opening dispute for {} {}, dispute {}",
+                DisputeOpenedMessage.class.getSimpleName(), trade.getClass().getSimpleName(),
+                dispute.getTradeId(), dispute.getId());
+
         // arbitrator cannot open disputes
         if (trade.isArbitrator()) {
             String errorMsg = "Arbitrators cannot open disputes.";
@@ -354,13 +392,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             return;
         }
 
-        log.info("Sending {} for {} {}, dispute {}",
-                DisputeOpenedMessage.class.getSimpleName(), trade.getClass().getSimpleName(),
-                dispute.getTradeId(), dispute.getId());
-
-        T disputeList = getDisputeList();
-        if (disputeList == null) {
-            log.warn("disputes is null");
+        // verify deposits unlocked or one is missing
+        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal() && !trade.isDepositTxMissing()) {
+            String errorMsg = Res.get("portfolio.pending.error.depositTxNotConfirmed");
+            faultHandler.handleFault(errorMsg, new IllegalStateException(errorMsg));
             return;
         }
 
@@ -371,6 +406,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             return;
         }
 
+        // set dispute
+        T disputeList = getDisputeList();
         synchronized (disputeList.getObservableList()) {
             if (disputeList.contains(dispute)) {
                 String msg = "We got a dispute msg that we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
@@ -388,114 +425,144 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             } else {
                 disputeList.add(dispute);
             }
-
-            String disputeInfo = getDisputeInfo(dispute);
-            String sysMsg = dispute.isSupportTicket() ?
-                    Res.get("support.youOpenedTicket", disputeInfo, Version.VERSION) :
-                    Res.get("support.youOpenedDispute", disputeInfo, Version.VERSION);
-
-            ChatMessage chatMessage = new ChatMessage(
-                    getSupportType(),
-                    dispute.getTradeId(),
-                    keyRing.getPubKeyRing().hashCode(),
-                    false,
-                    Res.get("support.systemMsg", sysMsg),
-                    p2PService.getAddress());
-            chatMessage.setSystemMessage(true);
-            dispute.addAndPersistChatMessage(chatMessage);
-
-            // try to import latest multisig info
-            try {
-                trade.importMultisigHex();
-            } catch (Exception e) {
-                log.error("Failed to import multisig hex", e);
-            }
-
-            // try to export latest multisig info
-            try {
-                trade.exportMultisigHex();
-                if (trade instanceof SellerTrade) {
-                    trade.getProcessModel().setPaymentSentPayoutTxStale(true); // exporting multisig hex will invalidate previously unsigned payout txs
-                    trade.getSelf().setUnsignedPayoutTxHex(null);
-                }
-            } catch (Exception e) {
-                log.error("Failed to export multisig hex", e);
-            }
-
-            // create dispute opened message
-            NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
-            DisputeOpenedMessage disputeOpenedMessage = new DisputeOpenedMessage(dispute,
-                    p2PService.getAddress(),
-                    UUID.randomUUID().toString(),
-                    getSupportType(),
-                    trade.getSelf().getUpdatedMultisigHex(),
-                    trade.getArbitrator().getPaymentSentMessage());
-            log.info("Send {} to peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
-                    "chatMessage.uid={}",
-                    disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
-                    disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
-                    chatMessage.getUid());
-            recordPendingMessage(disputeOpenedMessage.getClass().getSimpleName());
-
-            // send dispute opened message
-            trade.setDisputeState(Trade.DisputeState.DISPUTE_REQUESTED);
-            mailboxMessageService.sendEncryptedMailboxMessage(agentNodeAddress,
-                    dispute.getAgentPubKeyRing(),
-                    disputeOpenedMessage,
-                    new SendMailboxMessageListener() {
-                        @Override
-                        public void onArrived() {
-                            log.info("{} arrived at peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
-                                    "chatMessage.uid={}",
-                                    disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
-                                    disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
-                                    chatMessage.getUid());
-                            clearPendingMessage();
-
-                            // We use the chatMessage wrapped inside the openNewDisputeMessage for
-                            // the state, as that is displayed to the user and we only persist that msg
-                            chatMessage.setArrived(true);
-                            trade.advanceDisputeState(Trade.DisputeState.DISPUTE_REQUESTED);
-                            requestPersistence();
-                            resultHandler.handleResult();
-                        }
-
-                        @Override
-                        public void onStoredInMailbox() {
-                            log.info("{} stored in mailbox for peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
-                                            "chatMessage.uid={}",
-                                    disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
-                                    disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
-                                    chatMessage.getUid());
-                            clearPendingMessage();
-
-                            // We use the chatMessage wrapped inside the openNewDisputeMessage for
-                            // the state, as that is displayed to the user and we only persist that msg
-                            chatMessage.setStoredInMailbox(true);
-                            requestPersistence();
-                            resultHandler.handleResult();
-                        }
-
-                        @Override
-                        public void onFault(String errorMessage) {
-                            log.error("{} failed: Peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
-                                    "chatMessage.uid={}, errorMessage={}",
-                                    disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
-                                    disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
-                                    chatMessage.getUid(), errorMessage);
-
-                            clearPendingMessage();
-                            // We use the chatMessage wrapped inside the openNewDisputeMessage for
-                            // the state, as that is displayed to the user and we only persist that msg
-                            chatMessage.setSendMessageError(errorMessage);
-                            trade.setDisputeState(Trade.DisputeState.NO_DISPUTE);
-                            requestPersistence();
-                            faultHandler.handleFault("Sending dispute message failed: " +
-                                    errorMessage, new DisputeMessageDeliveryFailedException());
-                        }
-                    });
         }
 
+        // save state
+        persistNow(null);
+
+        String disputeInfo = getDisputeInfo(dispute);
+        String sysMsg = dispute.isSupportTicket() ?
+                Res.get("support.youOpenedTicket", disputeInfo, Version.VERSION) :
+                Res.get("support.youOpenedDispute", disputeInfo, Version.VERSION);
+
+        ChatMessage chatMessage = new ChatMessage(
+                getSupportType(),
+                dispute.getTradeId(),
+                keyRing.getPubKeyRing().hashCode(),
+                false,
+                Res.get("support.systemMsg", sysMsg),
+                p2PService.getAddress());
+        chatMessage.setSystemMessage(true);
+        dispute.addAndPersistChatMessage(chatMessage);
+
+        // try to import latest multisig info
+        try {
+            trade.importMultisigHex();
+        } catch (Exception e) {
+            if (!trade.isShutDownStarted()) log.error("Failed to import multisig hex", e);
+        }
+
+        // abort if shutting down
+        if (trade.isShutDownStarted()) {
+            String errorMsg = "Aborting opening dispute for " + trade.getClass().getSimpleName() + " " + trade.getId() + " because shut down is started";
+            faultHandler.handleFault(errorMsg, new IllegalStateException(errorMsg));
+            return;
+        }
+
+        // try to export latest multisig info
+        try {
+            trade.exportMultisigHex();
+            if (trade instanceof SellerTrade) {
+                trade.getProcessModel().setPaymentSentPayoutTxStale(true); // exporting multisig hex will invalidate previously unsigned payout txs
+                trade.getSelf().setUnsignedPayoutTxHex(null);
+            }
+        } catch (Exception e) {
+            if (!trade.isShutDownStarted()) log.error("Failed to export multisig hex", e);
+        }
+
+        // abort if shutting down
+        if (trade.isShutDownStarted()) {
+            String errorMsg = "Aborting opening dispute for " + trade.getClass().getSimpleName() + " " + trade.getId() + " because shut down is started";
+            faultHandler.handleFault(errorMsg, new IllegalStateException(errorMsg));
+            return;
+        }
+
+        // create dispute opened message
+        NodeAddress agentNodeAddress = getAgentNodeAddress(dispute);
+        DisputeOpenedMessage disputeOpenedMessage = new DisputeOpenedMessage(dispute,
+                p2PService.getAddress(),
+                UUID.randomUUID().toString(),
+                getSupportType(),
+                trade.getSelf().getUpdatedMultisigHex(),
+                trade.getArbitrator().getPaymentSentMessage());
+        log.info("Send {} to peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
+                "chatMessage.uid={}",
+                disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
+                disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
+                chatMessage.getUid());
+        recordPendingMessage(disputeOpenedMessage.getClass().getSimpleName());
+
+        // send dispute opened message
+        mailboxMessageService.sendEncryptedMailboxMessage(agentNodeAddress,
+                dispute.getAgentPubKeyRing(),
+                disputeOpenedMessage,
+                new SendMailboxMessageListener() {
+                    @Override
+                    public void onArrived() {
+                        log.info("{} arrived at peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
+                                "chatMessage.uid={}",
+                                disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
+                                disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
+                                chatMessage.getUid());
+                        clearPendingMessage();
+
+                        // We use the chatMessage wrapped inside the openNewDisputeMessage for
+                        // the state, as that is displayed to the user and we only persist that msg
+                        chatMessage.setArrived(true);
+                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_REQUESTED);
+                        persistNow(null);
+                        if (resultHandler != null) resultHandler.handleResult();
+                    }
+
+                    @Override
+                    public void onStoredInMailbox() {
+                        log.info("{} stored in mailbox for peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
+                                        "chatMessage.uid={}",
+                                disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
+                                disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
+                                chatMessage.getUid());
+                        clearPendingMessage();
+
+                        // We use the chatMessage wrapped inside the openNewDisputeMessage for
+                        // the state, as that is displayed to the user and we only persist that msg
+                        chatMessage.setStoredInMailbox(true);
+                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_REQUESTED);
+                        trade.persistNow(null);
+                        persistNow(null);
+                        if (resultHandler != null) resultHandler.handleResult();
+                    }
+
+                    @Override
+                    public void onFault(String errorMessage) {
+                        log.error("{} failed: Peer {}. tradeId={}, openNewDisputeMessage.uid={}, " +
+                                "chatMessage.uid={}, errorMessage={}",
+                                disputeOpenedMessage.getClass().getSimpleName(), agentNodeAddress,
+                                disputeOpenedMessage.getTradeId(), disputeOpenedMessage.getUid(),
+                                chatMessage.getUid(), errorMessage);
+
+                        clearPendingMessage();
+                        // We use the chatMessage wrapped inside the openNewDisputeMessage for
+                        // the state, as that is displayed to the user and we only persist that msg
+                        chatMessage.setSendMessageError(errorMessage);
+                        trade.setDisputeState(Trade.DisputeState.NO_DISPUTE);
+                        persistNow(null);
+                        faultHandler.handleFault("Sending dispute message failed: " +
+                                errorMessage, new DisputeMessageDeliveryFailedException());
+                    }
+                });
+
+        persistNow(null);
+    }
+
+    public void removeDisputes(Trade trade) {
+        T disputeList = getDisputeList();
+        synchronized (disputeList.getObservableList()) {
+            for (Dispute dispute : trade.getDisputes()) {
+                disputeList.remove(dispute);
+            }
+        }
+        trade.setDisputeState(Trade.DisputeState.NO_DISPUTE);
+        clearPendingMessage();
         requestPersistence();
     }
 
@@ -793,7 +860,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
                         // the state, as that is displayed to the user and we only persist that msg
                         chatMessage.setArrived(true);
-                        requestPersistence();
+                        persistNow(null);
                     }
 
                     @Override
@@ -808,7 +875,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
                         // the state, as that is displayed to the user and we only persist that msg
                         chatMessage.setStoredInMailbox(true);
-                        requestPersistence();
+                        persistNow(null);
                     }
 
                     @Override
@@ -823,11 +890,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
                         // the state, as that is displayed to the user and we only persist that msg
                         chatMessage.setSendMessageError(errorMessage);
-                        requestPersistence();
+                        persistNow(null);
                     }
                 }
         );
-        requestPersistence();
+        persistNow(null);
     }
 
     // arbitrator sends result to trader when their dispute is closed
@@ -1108,6 +1175,24 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             retVal = tradeManager.getClosedTrade(dispute.getTradeId());
         }
         return retVal;
+    }
+
+    public boolean canSendChatMessages(Dispute dispute) {
+        Optional<Trade> tradeOptional = findTrade(dispute);
+        if (!tradeOptional.isPresent()) {
+            log.warn("Dispute trade {} does not exist", dispute.getTradeId());
+            return false;
+        }
+        Trade trade = tradeOptional.get();
+        if (trade.isPayoutPublished()) return false;
+        if (trade.getDisputeState() == DisputeState.DISPUTE_REQUESTED) {
+            for (ChatMessage msg : dispute.getChatMessages()) {
+                if (Boolean.TRUE.equals(msg.getStoredInMailboxProperty().get())) {
+                    return true;
+                }
+            }
+        }
+        return trade.getDisputeState().isOpen();
     }
 
     private void addMediationResultMessage(Dispute dispute) {

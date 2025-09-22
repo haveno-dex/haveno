@@ -298,6 +298,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public enum DisputeState {
         NO_DISPUTE,
+        DISPUTE_PREPARING,
         DISPUTE_REQUESTED,
         DISPUTE_OPENED,
         ARBITRATOR_SENT_DISPUTE_CLOSED_MSG,
@@ -324,19 +325,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             return protobuf.Trade.DisputeState.valueOf(disputeState.name());
         }
 
-        public boolean isNotDisputed() {
-            return this == Trade.DisputeState.NO_DISPUTE;
-        }
-
         public boolean isMediated() {
             return this == Trade.DisputeState.MEDIATION_REQUESTED ||
                     this == Trade.DisputeState.MEDIATION_STARTED_BY_PEER ||
                     this == Trade.DisputeState.MEDIATION_CLOSED;
         }
 
-        public boolean isArbitrated() {
-            if (isMediated()) return false; // TODO: remove mediation?
-            return this.ordinal() >= DisputeState.DISPUTE_REQUESTED.ordinal();
+        public boolean isDisputed() {
+            return this.ordinal() >= DisputeState.DISPUTE_PREPARING.ordinal();
+        }
+
+        public boolean isPreparing() {
+            return this == DisputeState.DISPUTE_PREPARING;
         }
 
         public boolean isRequested() {
@@ -720,7 +720,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     });
 
                     // complete disputed trade
-                    if (getDisputeState().isArbitrated() && !getDisputeState().isClosed()) {
+                    if (getDisputeState().isDisputed() && !getDisputeState().isClosed()) {
                         processModel.getTradeManager().closeDisputedTrade(getId(), Trade.DisputeState.DISPUTE_CLOSED);
                         if (!isArbitrator()) for (Dispute dispute : getDisputes()) dispute.setIsClosed(); // auto close trader tickets
                     }
@@ -1215,6 +1215,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         } catch (IllegalArgumentException | IllegalStateException e) {
                             throw e;
                         } catch (Exception e) {
+                            if (isShutDownStarted && wallet == null) {
+                                log.warn("Aborting import of multisig hex for {} {} because shut down is started and wallet is closed", getClass().getSimpleName(), getShortId());
+                                break;
+                            }
                             log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             handleWalletError(e, sourceConnection, i + 1);
                             doPollWallet();

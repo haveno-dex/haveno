@@ -169,6 +169,25 @@ public final class ChatMessage extends SupportMessage {
                 false);
     }
 
+    public ChatMessage copy() {
+        return new ChatMessage(supportType,
+                tradeId,
+                traderId,
+                senderIsTrader,
+                message,
+                new ArrayList<>(attachments),
+                senderNodeAddress,
+                date,
+                arrivedProperty.get(),
+                storedInMailboxProperty.get(),
+                uid,
+                messageVersion,
+                acknowledgedProperty.get(),
+                sendMessageErrorProperty.get(),
+                ackErrorProperty.get(),
+                wasDisplayed);
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER

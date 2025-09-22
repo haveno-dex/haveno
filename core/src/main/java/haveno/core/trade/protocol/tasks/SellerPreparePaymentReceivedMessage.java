@@ -98,7 +98,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             }
 
             // close open disputes
-            if (trade.isPayoutPublished() && trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
+            if (trade.isPayoutPublished() && trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_PREPARING.ordinal()) {
                 trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                 for (Dispute dispute : trade.getDisputes()) dispute.setIsClosed();
             }
