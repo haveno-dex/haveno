@@ -33,8 +33,7 @@ import monero.wallet.model.MoneroWalletListener;
 public abstract class XmrWalletBase {
 
     // constants
-    public static final int SYNC_TIMEOUT_SECONDS = 180;
-    public static final int DIRECT_SYNC_WITHIN_BLOCKS = 100;
+    public static final int SYNC_TIMEOUT_SECONDS = 240;
     public static final int SAVE_WALLET_DELAY_SECONDS = 300;
     private static final String SYNC_PROGRESS_TIMEOUT_MSG = "Sync progress timeout called";
 
@@ -74,7 +73,7 @@ public abstract class XmrWalletBase {
         return syncWithTimeout(SYNC_TIMEOUT_SECONDS);
     }
 
-    public MoneroSyncResult syncWithTimeout(long timeout) {
+    public MoneroSyncResult syncWithTimeout(long timeoutSec) {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getDaemonLock()) {
                 ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -88,10 +87,10 @@ public abstract class XmrWalletBase {
                 Future<MoneroSyncResult> future = executor.submit(task);
 
                 try {
-                    return future.get(timeout, TimeUnit.SECONDS);
+                    return future.get(timeoutSec, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     future.cancel(true);
-                    throw new RuntimeException("Sync timed out after " + timeout + " seconds", e);
+                    throw new RuntimeException("Sync timed out after " + timeoutSec + " seconds", e);
                 } catch (ExecutionException e) {
                     throw new RuntimeException("Sync failed", e.getCause());
                 } catch (InterruptedException e) {
