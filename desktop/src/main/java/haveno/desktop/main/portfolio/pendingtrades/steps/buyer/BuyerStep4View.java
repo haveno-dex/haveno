@@ -79,7 +79,7 @@ public class BuyerStep4View extends TradeStepView {
         TitledGroupBg completedTradeLabel = new TitledGroupBg();
         if (trade.getDisputeState().isMediated()) {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle.mediated"));
-        } else if (trade.getDisputeState().isArbitrated() && trade.getDisputeResult() != null) {
+        } else if (trade.getDisputeState().isDisputed() && trade.getDisputeResult() != null) {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle.arbitrated"));
         } else {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle"));

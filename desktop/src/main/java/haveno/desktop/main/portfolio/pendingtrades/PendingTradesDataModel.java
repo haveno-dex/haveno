@@ -437,25 +437,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
           return;
       }
 
-      // We do not support opening a dispute if the deposit tx is null. Traders have to use the support channel at keybase
-      // in such cases. The mediators or arbitrators could not help anyway with a payout in such cases.
-      String depositTxId = null;
-      if (isMaker) {
-        if (trade.getMaker().getDepositTxHash() == null) {
-          log.error("Deposit tx must not be null");
-          new Popup().instruction(Res.get("portfolio.pending.error.depositTxNull")).show();
-          return;
-        }
-        depositTxId = trade.getMaker().getDepositTxHash();
-      } else {
-        if (trade.getTaker().getDepositTxHash() == null && !trade.hasBuyerAsTakerWithoutDeposit()) {
-          log.error("Deposit tx must not be null");
-          new Popup().instruction(Res.get("portfolio.pending.error.depositTxNull")).show();
-          return;
-        }
-        depositTxId = trade.getTaker().getDepositTxHash();
-      }
-
       Offer offer = trade.getOffer();
       if (offer == null) {
           log.warn("offer is null at doOpenDispute");
@@ -576,8 +557,9 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     }
 
     private void doSendDisputeOpenedMessage(Dispute dispute, DisputeManager<? extends DisputeList<Dispute>> disputeManager) {
+        navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class);
         disputeManager.sendDisputeOpenedMessage(dispute,
-                () -> navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class),
+                null,
                 (errorMessage, throwable) -> new Popup().warning(errorMessage).show());
     }
 

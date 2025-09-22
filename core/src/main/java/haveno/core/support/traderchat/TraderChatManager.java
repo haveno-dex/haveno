@@ -78,6 +78,11 @@ public class TraderChatManager extends SupportManager {
     }
 
     @Override
+    public void persistNow(Runnable completeHandler) {
+        tradeManager.persistNow(completeHandler);
+    }
+
+    @Override
     public NodeAddress getPeerNodeAddress(ChatMessage message) {
         return tradeManager.getOpenTrade(message.getTradeId()).map(trade -> {
             if (trade.getContract() != null) {

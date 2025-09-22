@@ -1495,6 +1495,7 @@ message Trade {
     enum DisputeState {
         PB_ERROR_DISPUTE_STATE = 0;
         NO_DISPUTE = 1;
+        DISPUTE_PREPARING = 15;
         DISPUTE_REQUESTED = 2;
         DISPUTE_OPENED = 3;
         ARBITRATOR_SENT_DISPUTE_CLOSED_MSG = 4;

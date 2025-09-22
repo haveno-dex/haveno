@@ -67,6 +67,7 @@ import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -172,11 +173,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
 
     @Override
     public void cleanupDisputes() {
-
-        // remove disputes opened by arbitrator, which is not allowed
-        Set<Dispute> toRemoves = new HashSet<>();
         List<Dispute> disputes = getDisputeList().getList();
         synchronized (disputes) {
+
+            // collect disputes to remove
+            Set<Dispute> toRemoves = new HashSet<>();
             for (Dispute dispute : disputes) {
 
                 // get dispute's trade
@@ -186,15 +187,47 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     return;
                 }
     
-                // collect dispute if owned by arbitrator
+                // remove dispute if owned by arbitrator
                 if (dispute.getTraderPubKeyRing().equals(trade.getArbitrator().getPubKeyRing())) {
+                    log.warn("Removing invalid dispute opened by arbitrator, disputeId={}", trade.getId(), dispute.getId());
                     toRemoves.add(dispute);
                 }
+
+                // remove dispute if preparing
+                if (trade.getDisputeState() == DisputeState.DISPUTE_PREPARING) {
+                    log.warn("Removing dispute for {} {} with disputeState={}, disputeId={}", trade.getClass().getSimpleName(), trade.getId(), trade.getDisputeState(), dispute.getId());
+                    toRemoves.add(dispute);
+                }
+
+                // remove dispute if requested and not stored in mailbox
+                if (trade.getDisputeState() == DisputeState.DISPUTE_REQUESTED) {
+                    boolean storedInMailbox = false;
+                    for (ChatMessage msg : dispute.getChatMessages()) {
+                        if (Boolean.TRUE.equals(msg.getStoredInMailboxProperty().get())) {
+                            storedInMailbox = true;
+                            log.info("Keeping dispute for {} {} with disputeState={}, disputeId={}. Stored in mailbox", trade.getClass().getSimpleName(), trade.getId(), trade.getDisputeState(), dispute.getId());
+                            break;
+                        }
+                    }
+                    if (!storedInMailbox) {
+                        log.warn("Removing dispute for {} {} with disputeState={}, disputeId={}. Not stored in mailbox", trade.getClass().getSimpleName(), trade.getId(), trade.getDisputeState(), dispute.getId());
+                        toRemoves.add(dispute);
+                    }
+                }
             }
-        }
-        for (Dispute toRemove : toRemoves) {
-            log.warn("Removing invalid dispute opened by arbitrator, disputeId={}", toRemove.getTradeId(), toRemove.getId());
-            getDisputeList().remove(toRemove);
+
+            // remove disputes and reset state
+            for (Dispute dispute : toRemoves) {
+                getDisputeList().remove(dispute);
+
+                // get dispute's trade
+                final Trade trade = tradeManager.getTrade(dispute.getTradeId());
+                if (trade == null) {
+                    log.warn("Dispute trade {} does not exist", dispute.getTradeId());
+                    continue;
+                }
+                trade.setDisputeState(DisputeState.NO_DISPUTE);
+            }
         }
     }
 

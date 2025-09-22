@@ -332,6 +332,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
             TableRow<Dispute> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    if (!canViewChatMessages(row.getItem())) return;
                     openChat(row.getItem());
                 }
             });
@@ -1045,10 +1046,17 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                     @Override
                     public TableCell<Dispute, Dispute> call(TableColumn<Dispute, Dispute> column) {
                         return new TableCell<>() {
+
+                            Subscription subscription;
+
                             @Override
                             public void updateItem(final Dispute item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
+                                    if (subscription != null)  {
+                                        subscription.unsubscribe();
+                                        subscription = null;
+                                    }
                                     String id = item.getId();
                                     Button button;
                                     if (!chatButtonByDispute.containsKey(id)) {
@@ -1075,10 +1083,22 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                         listenerByDispute.put(id, listener);
                                         item.getChatMessages().addListener(listener);
                                     }
+                                    
+                                    // subscribe to trade's dispute state
+                                    Trade trade = tradeManager.getTrade(item.getTradeId());
+                                    if (trade == null) log.warn("Dispute's trade is null for trade {}", item.getTradeId());
+                                    else subscription = EasyBind.subscribe(trade.disputeStateProperty(), disputeState -> {
+                                        chatBadge.setDisable(!canViewChatMessages(item));
+                                        updateChatMessageCount(item, chatBadge);
+                                    });
                                     updateChatMessageCount(item, chatBadge);
                                     setGraphic(chatBadge);
                                 } else {
                                     setGraphic(null);
+                                    if (subscription != null)  {
+                                        subscription.unsubscribe();
+                                        subscription = null;
+                                    }
                                 }
                             }
                         };
@@ -1356,7 +1376,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                     public TableCell<Dispute, Dispute> call(TableColumn<Dispute, Dispute> column) {
                         return new TableCell<>() {
 
-
                             ReadOnlyBooleanProperty closedProperty;
                             ChangeListener<Boolean> listener;
                             Subscription subscription;
@@ -1419,6 +1438,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         switch (trade.getDisputeState()) {
             case NO_DISPUTE:
                 return Res.get("shared.pending");
+            case DISPUTE_PREPARING:
+                return Res.get("support.preparing");
             case DISPUTE_REQUESTED:
                 return Res.get("support.requested");
             default:
@@ -1447,7 +1468,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 return;
             }
 
-            if (dispute.unreadMessageCount(senderFlag()) > 0) {
+            if (canViewChatMessages(dispute) && dispute.unreadMessageCount(senderFlag()) > 0) {
                 chatBadge.setText(String.valueOf(dispute.unreadMessageCount(senderFlag())));
                 chatBadge.setEnabled(true);
             } else {
@@ -1497,5 +1518,9 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
             return;
         ArbitrationManager arbitrationManager = (ArbitrationManager) disputeManager;
         new SendLogFilesWindow(dispute.getTradeId(), dispute.getTraderId(), arbitrationManager).show();
+    }
+
+    private boolean canViewChatMessages(Dispute dispute) {
+        return disputeManager.canSendChatMessages(dispute) || dispute.isClosed();
     }
 }

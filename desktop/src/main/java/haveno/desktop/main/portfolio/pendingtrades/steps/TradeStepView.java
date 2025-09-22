@@ -274,12 +274,8 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void openSupportTicket() {
-        if (trade.isDepositTxMissing() || trade.getPhase().ordinal() >= Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
-            applyOnDisputeOpened();
-            model.dataModel.onOpenDispute();
-        } else {
-            new Popup().warning(Res.get("portfolio.pending.error.depositTxNotConfirmed")).show();
-        }
+        applyOnDisputeOpened();
+        model.dataModel.onOpenDispute();
     }
 
     private void openChat() {
@@ -494,6 +490,7 @@ public abstract class TradeStepView extends AnchorPane {
             case NO_DISPUTE:
                 break;
 
+            case DISPUTE_PREPARING:
             case DISPUTE_REQUESTED:
             case DISPUTE_OPENED:
                 if (tradeStepInfo != null) {
@@ -770,7 +767,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateTradePeriodState(Trade.TradePeriodState tradePeriodState) {
-        if (!trade.getDisputeState().isOpen()) {
+        if (!trade.getDisputeState().isDisputed()) {
             switch (tradePeriodState) {
                 case FIRST_HALF:
                     // just for dev testing. not possible to go back in time ;-)

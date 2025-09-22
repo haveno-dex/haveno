@@ -108,7 +108,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (!trade.isPayoutConfirmed()) processPayoutTx(message);
 
             // close open disputes
-            if (trade.isPayoutPublished() && trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
+            if (trade.isPayoutPublished() && trade.getDisputeState().isDisputed()) {
                 trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                 for (Dispute dispute : trade.getDisputes()) dispute.setIsClosed();
             }
