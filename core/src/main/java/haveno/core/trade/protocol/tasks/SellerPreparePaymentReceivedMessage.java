@@ -40,17 +40,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             // check connection
             trade.verifyDaemonConnection();
 
-            // import and export multisig hex if payout already published
-            if (trade.isPayoutPublished()) {
-                synchronized (trade.getWalletLock()) {
-                    if (trade.walletExists()) {
-                        synchronized (HavenoUtils.getWalletFunctionLock()) {
-                            trade.importMultisigHex();
-                            trade.exportMultisigHex();
-                        }
-                    }
-                }
-            } else {
+            if (!trade.isPayoutPublished()) {
 
                 // process or create payout tx
                 if (trade.getPayoutTxHex() == null) {
@@ -94,6 +84,17 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                     // republish payout tx from previous message
                     log.info("Seller re-verifying and publishing signed payout tx for trade {}", trade.getId());
                     trade.processPayoutTx(trade.getPayoutTxHex(), false, true);
+                }
+            } else if (!trade.isPayoutFinalized() && (trade.getArbitrator().getPaymentReceivedMessage() == null || trade.getBuyer().getPaymentReceivedMessage() == null)) {
+
+                // update multisig info if payout not finalized and recreating messages
+                synchronized (trade.getWalletLock()) {
+                    if (trade.walletExists()) {
+                        synchronized (HavenoUtils.getWalletFunctionLock()) {
+                            trade.importMultisigHex();
+                            trade.exportMultisigHex();
+                        }
+                    }
                 }
             }
 
