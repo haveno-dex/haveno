@@ -740,7 +740,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     if (!isInitialized) return;
                     log.info("Payout finalized for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
                     if (isInitialized && isFinished()) clearAndShutDown();
-                    else deleteWallet();
+                    else ThreadUtils.execute(() -> deleteWallet(), getId());
                 }
             });
         });
@@ -817,6 +817,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         isFullyInitialized = true;
     }
 
+    // Note that this function is overriden by subclasses.
     public boolean isFinished() {
         if (!isCompleted()) return false;
         if (isPayoutUnlocked() && !walletExists()) return true;
@@ -1062,8 +1063,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (walletExists()) {
                 try {
 
-                    // check wallet state if deposit requested
-                    if (isDepositRequested()) {
+                    // check wallet state if deposit requested and payout not finalized
+                    if (isDepositRequested() && !isPayoutFinalized()) {
 
                         // ensure wallet is initialized
                         boolean syncedWallet = false;
@@ -1074,13 +1075,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                             syncedWallet = true;
                         }
     
-                        // sync wallet if deposit requested and payout not finalized
-                        if (!isPayoutFinalized() && !syncedWallet) {
+                        // sync wallet if deposit requested
+                        if (!syncedWallet) {
                             log.warn("Syncing wallet on deletion for trade {} {}, syncing", getClass().getSimpleName(), getId());
                             syncWallet(true);
                         }
     
-                        // check if deposits published and payout not finalized
+                        // check if deposits published
                         if (isDepositsPublished() && !isPayoutFinalized()) {
                             throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because the deposit txs have been published but payout tx has not finalized");
                         }
@@ -1849,8 +1850,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (lastWalletHeight.longValue() < processModel.getTradeProtocolErrorHeight() + DELETE_AFTER_NUM_BLOCKS) return;
             if (System.currentTimeMillis() - startTime < DELETE_AFTER_MS) return;
 
-            // remove trade off thread
-            ThreadUtils.submitToPool(() -> {
+            // remove on trade thread
+            ThreadUtils.execute(() -> {
 
                 // get trade's deposit txs from daemon
                 MoneroTx makerDepositTx = getMaker().getDepositTxHash() == null ? null : xmrWalletService.getMonerod().getTx(getMaker().getDepositTxHash());
@@ -1880,7 +1881,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     protocolErrorHeightSubscription.unsubscribe();
                     protocolErrorHeightSubscription = null;
                 }
-            });
+            }, getId());
         });
     }
 
