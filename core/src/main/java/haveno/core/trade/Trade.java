@@ -1733,14 +1733,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void onShutDownStarted() {
-        if (wallet != null) log.info("Preparing to shut down {} {}", getClass().getSimpleName(), getId());
-        isShutDownStarted = true;
-        stopPolling();
+        if (!isShutDownStarted) {
+            if (wallet != null) log.info("Preparing to shut down {} {}", getClass().getSimpleName(), getId());
+            isShutDownStarted = true;
+            stopPolling();
+        }
     }
 
     public void shutDown() {
         if (isShutDown) return; // ignore if already shut down
-        isShutDownStarted = true;
+        onShutDownStarted();
         if (!isPayoutFinalized()) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
 
         // unregister p2p message listener

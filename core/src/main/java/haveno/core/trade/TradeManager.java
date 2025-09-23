@@ -1102,6 +1102,15 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade is in already in critical state (if taker role: taker fee; both roles: after deposit published)
     // we move the trade to FailedTradesManager
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
+        if (trade.isInitialized()) {
+            ThreadUtils.execute(() -> {
+                try {
+                    trade.shutDown();
+                } catch (Exception e) {
+                    log.warn("Error shutting down {} {} on move to failed trades", trade.getClass().getSimpleName(), trade.getShortId(), e);
+                }
+            }, trade.getId() + "_init");
+        }
         failedTradesManager.add(trade);
         removeTrade(trade);
         xmrWalletService.fixReservedOutputs();
@@ -1125,11 +1134,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void addTradeToPendingTrades(Trade trade) {
         if (!trade.isInitialized()) {
-            try {
-                initTrade(trade);
-            } catch (Exception e) {
-                log.warn("Error initializing {} {} on move to pending trades", trade.getClass().getSimpleName(), trade.getShortId(), e);
-            }
+            ThreadUtils.execute(() -> {
+                try {
+                    initTrade(trade);
+                } catch (Exception e) {
+                    log.warn("Error initializing {} {} on move to pending trades", trade.getClass().getSimpleName(), trade.getShortId(), e);
+                }
+            }, trade.getId() + "_init");
         }
         addTrade(trade);
     }
