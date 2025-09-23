@@ -2894,7 +2894,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     txs = getTxs(true);
 
                     // txs may not be fetched if confirmed after last sync
-                    if (isDepositsPublished() && !hasDepositTxs(txs)) {
+                    if (isDepositsSeen() && !hasDepositTxs(txs)) {
                         log.info("Deposits are missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
                         HavenoUtils.waitFor(MISSING_TXS_DELAY_MS);
                         sync();
