@@ -1993,10 +1993,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void setState(State state) {
+
+        // skip if no change
+        if (state.ordinal() == this.state.ordinal()) return;
+
+        // skip logging until initialized
         if (isInitialized) {
-            // We don't want to log at startup the setState calls from all persisted trades
             log.info("Set new state for trade {} {}: {}", getShortId(), this.getClass().getSimpleName(), state);
         }
+
+        // warn if reverting state
         if (state.getPhase().ordinal() < this.state.getPhase().ordinal()) {
             String message = "We got a state change to a previous phase (id=" + getShortId() + ").\n" +
                     "Old state is: " + this.state + ". New state is: " + state;
@@ -2035,12 +2041,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void setPayoutState(PayoutState payoutState) {
+
+        // skip if no change
+        if (payoutState.ordinal() == this.payoutState.ordinal()) return;
+
+        // warn if reverting state
         if (payoutState.ordinal() < this.payoutState.ordinal()) {
             log.warn("Reverting payout state from {} to {} for trade {} {}. Possible reorg?", this.payoutState, payoutState, this.getClass().getSimpleName(), getShortId());
         }
 
+        // skip logging until initialized
         if (isInitialized) {
-            // We don't want to log at startup the setState calls from all persisted trades
             log.info("Set new payout state for trade {} {}: {}", getShortId(), this.getClass().getSimpleName(), payoutState);
         }
 
@@ -2050,10 +2061,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void setDisputeState(DisputeState disputeState) {
+
+        // skip if no change
+        if (disputeState.ordinal() == this.disputeState.ordinal()) return;
+
+        // skip logging until initialized
         if (isInitialized) {
-            // We don't want to log at startup the setState calls from all persisted trades
             log.info("Set new dispute state for trade {} {}: {}", getShortId(), this.getClass().getSimpleName(), disputeState);
         }
+
+        // warn if reverting state
         if (disputeState.ordinal() < this.disputeState.ordinal()) {
             String message = "We got a dispute state change to a previous state (id=" + getShortId() + ").\n" +
                     "Old dispute state is: " + this.disputeState + ". New dispute state is: " + disputeState;
