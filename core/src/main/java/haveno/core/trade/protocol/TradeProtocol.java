@@ -120,7 +120,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private boolean makerInitTradeRequestHasBeenNacked = false;
     private PaymentReceivedMessage lastAckedPaymentReceivedMessage = null;
 
-    private static int MAX_PAYMENT_RECEIVED_NACKS = 5;
+    private static int MAX_PAYMENT_RECEIVED_NACKS = 6;
     private int numPaymentReceivedNacks = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////

@@ -107,7 +107,13 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             trade.requestPersistence();
             complete();
         } catch (Throwable t) {
-            failed(t);
+            if (HavenoUtils.isIllegal(t)) {
+                log.error("Illegal exception preparing payment received message in {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), t.getMessage(), t);
+                trade.exportMultisigHex();
+                complete(); // proceed to send the message to perform nack flow with updated multsig state
+            } else {
+                failed(t);
+            }
         }
     }
 

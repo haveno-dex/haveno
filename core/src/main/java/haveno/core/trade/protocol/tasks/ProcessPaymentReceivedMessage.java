@@ -47,7 +47,6 @@ import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
@@ -66,7 +65,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             PaymentReceivedMessage message = (PaymentReceivedMessage) processModel.getTradeMessage();
             checkNotNull(message);
             Validator.checkTradeId(processModel.getOfferId(), message);
-            checkArgument(message.getUnsignedPayoutTxHex() != null || message.getSignedPayoutTxHex() != null, "No payout tx hex provided");
 
             // verify signature of payment received message
             HavenoUtils.verifyPaymentReceivedMessage(trade, message);
@@ -145,6 +143,11 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
         // handle if payout tx not published
         if (!trade.isPayoutPublished()) {
+
+            // nack with updated multisig info if no payout tx provided
+            if (message.getUnsignedPayoutTxHex() == null && message.getSignedPayoutTxHex() == null && message.getPayoutTxId() == null) {
+                throw new IllegalStateException("No payout tx provided in PaymentReceivedMessage for " + trade.getClass().getSimpleName() + " " + trade.getId());
+            }
 
             // wait to publish payout tx if defer flag set from seller (payout is expected)
             if (message.isDeferPublishPayout()) {

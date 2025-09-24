@@ -542,7 +542,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 break;
             } catch (Exception e) {
                 if (trade.isPayoutPublished()) return null;
-                if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isNotEnoughSigners(e) || HavenoUtils.isFailedToParse(e)) throw new IllegalArgumentException(e);
+                if (HavenoUtils.isMultisigError(e)) throw new IllegalArgumentException(e);
                 log.warn("Failed to submit dispute payout tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                 if (trade.getXmrConnectionService().isConnected()) trade.requestSwitchToNextBestConnection(sourceConnection);
