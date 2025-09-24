@@ -167,7 +167,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private Subscription protocolErrorStateSubscription;
     private Subscription protocolErrorHeightSubscription;
     public static final String PROTOCOL_VERSION = "protocolVersion"; // key for extraDataMap in trade statistics
-    public BooleanProperty wasWalletPolled = new SimpleBooleanProperty(false);
+    public BooleanProperty wasWalletPolledProperty = new SimpleBooleanProperty(false);
+    public BooleanProperty wasWalletSyncedAndPolledProperty = new SimpleBooleanProperty(false);
     private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -838,16 +839,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         getProtocol().maybeReprocessPaymentReceivedMessage(false);
         HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
 
-        // handle when wallet first polled
-        if (wasWalletPolled.get()) onWalletFirstPolled();
+        // handle when wallet first synced
+        if (wasWalletSyncedAndPolledProperty.get()) onWalletFirstSynced();
         else {
-            wasWalletPolled.addListener((observable, oldValue, newValue) -> {
-                if (newValue) onWalletFirstPolled();
+            wasWalletSyncedAndPolledProperty.addListener((observable, oldValue, newValue) -> {
+                if (newValue) onWalletFirstSynced();
             });
         }
     }
 
-    private void onWalletFirstPolled() {
+    private void onWalletFirstSynced() {
         requestSaveWallet();
         checkForUnconfirmedTimeout();
     }
@@ -1000,14 +1001,20 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     @Override
-    public void requestSaveWallet() {
+    public void requestSaveWalletIfElapsedTime() {
+        ThreadUtils.submitToPool(() -> {
+            synchronized (walletLock) {
+                if (walletExists()) saveWalletIfElapsedTime();
+            }
+        });
+    }
 
-        // save wallet off main thread
-        ThreadUtils.execute(() -> {
+    private void requestSaveWallet() {
+        ThreadUtils.submitToPool(() -> {
             synchronized (walletLock) {
                 if (walletExists()) saveWallet();
             }
-         }, getId());
+        });
     }
 
     @Override
@@ -1019,6 +1026,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
             if (wallet == null) throw new RuntimeException("Trade wallet is not open for trade " + getShortId());
             xmrWalletService.saveWallet(wallet);
+            lastSaveTimeMs = System.currentTimeMillis();
             maybeBackupWallet();
         }
     }
@@ -1448,8 +1456,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     } finally {
-                        requestSaveWallet();
-                        requestPersistence();
+                        saveWallet();
+                        persistNow(null);
                     }
                 }
             }
@@ -2394,7 +2402,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isDepositTxMissing() {
-        if (!wasWalletPolled.get()) throw new IllegalStateException("Cannot determine if deposit tx is missing because wallet has not been polled");
+        if (!wasWalletPolledProperty.get()) throw new IllegalStateException("Cannot determine if deposit tx is missing because wallet has not been polled");
         MoneroTxWallet makerDepositTx = getMakerDepositTx();
         MoneroTxWallet takerDepositTx = getTakerDepositTx();
         boolean hasUnlockedDepositTx = (makerDepositTx != null && Boolean.FALSE.equals(makerDepositTx.isLocked())) || (takerDepositTx != null && Boolean.FALSE.equals(takerDepositTx.isLocked()));
@@ -2960,10 +2968,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 setPayoutTx(txs, checkPool);
             }
 
-            // update trade period if applicable
+            // update trade period and poll properties
             maybeUpdateTradePeriod();
+            wasWalletPolledProperty.set(true);
+            if (!offlinePoll) wasWalletSyncedAndPolledProperty.set(true);
         } catch (Exception e) {
-            if (!(e instanceof IllegalStateException) && !isShutDownStarted && !wasWalletPolled.get()) { // request connection switch if failure on first poll
+            if (!(e instanceof IllegalStateException) && !isShutDownStarted && !offlinePoll && !wasWalletSyncedAndPolledProperty.get()) { // request connection switch on failure until synced and polled
                 ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
             }
             if (HavenoUtils.isUnresponsive(e)) { // wallet can be stuck a while
@@ -2984,8 +2994,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     pollInProgress = false;
                 }
             }
-            wasWalletPolled.set(true);
-            saveWalletWithDelay();
+            requestSaveWalletIfElapsedTime();
         }
     }
 
@@ -3364,7 +3373,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (!skipLog) log.info("Rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
                 wallet.rescanSpent();
                 if (!skipLog) log.info("Done rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
-                saveWalletWithDelay();
+                saveWalletIfElapsedTime();
             } catch (Exception e) {
                 log.warn("Error rescanning spent outputs for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
                 if (HavenoUtils.isUnresponsive(e)) forceRestartTradeWallet(); // wallet can be stuck a while
