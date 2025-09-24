@@ -96,6 +96,9 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         try {
             runInterceptHook();
 
+            // reset ack state
+            getReceiver().setPaymentReceivedMessageState(MessageState.UNDEFINED);
+
             // skip if stopped
             if (stopSending()) {
                 if (!isCompleted()) complete();
@@ -149,8 +152,6 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             // verify message
             if (trade.isPayoutPublished()) {
                 checkArgument(message.getUpdatedMultisigHex() != null || message.getPayoutTxId() != null, "PaymentReceivedMessage does not include updated multisig hex or payout tx id after payout published");
-            } else {
-                checkArgument(message.getUnsignedPayoutTxHex() != null || message.getSignedPayoutTxHex() != null, "PaymentReceivedMessage does not include payout tx hex");
             }
 
             // sign message

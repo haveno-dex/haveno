@@ -828,7 +828,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
         for (TradePeer peer : getAllPeers()) {
             peer.setPaymentReceivedMessage(null);
-            peer.setPaymentReceivedMessageState(MessageState.UNDEFINED);
         }
         setPayoutTxHex(null);
     }
@@ -1385,7 +1384,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 .setRelay(false)
                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
         } catch (Exception e) {
-            if (HavenoUtils.isLRNotFound(e)) throw new IllegalStateException(e);
+            if (HavenoUtils.isMultisigError(e)) throw new IllegalStateException(e);
             else throw e;
         }
 
@@ -1409,6 +1408,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
                     } catch (Exception e) {
+                        if (HavenoUtils.isMultisigError(e)) throw new IllegalStateException(e);
                         if (e.getMessage().contains("not possible")) throw new IllegalArgumentException("Loser payout is too small to cover the mining fee");
                         handleWalletError(e, sourceConnection, i + 1);
                         doPollWallet();
@@ -1557,7 +1557,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 setPayoutStatePublished();
             } catch (Exception e) {
                 if (!isPayoutPublished()) {
-                    if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isNotEnoughSigners(e) || HavenoUtils.isFailedToParse(e)) throw new IllegalArgumentException(e);
+                    if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isMultisigError(e)) throw new IllegalArgumentException(e);
                     throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId() + ", error=" + e.getMessage(), e);
                 }
             }
@@ -2191,13 +2191,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         throw new RuntimeException("Trade is not maker, taker, or arbitrator");
     }
 
-    private List<TradePeer> getOtherPeers() {
+    public List<TradePeer> getOtherPeers() {
         List<TradePeer> peers = getAllPeers();
         if (!peers.remove(getSelf())) throw new IllegalStateException("Failed to remove self from list of peers");
         return peers;
     }
 
-    private List<TradePeer> getAllPeers() {
+    public List<TradePeer> getAllPeers() {
         List<TradePeer> peers = new ArrayList<TradePeer>();
         peers.add(getMaker());
         peers.add(getTaker());
@@ -3194,7 +3194,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         processModel.setPaymentSentPayoutTxStale(true);
         if (paymentReceivedNackSender != null) {
             paymentReceivedNackSender.setPaymentReceivedMessage(null);
-            paymentReceivedNackSender.setPaymentReceivedMessageState(MessageState.UNDEFINED);
+            paymentReceivedNackSender.setPaymentReceivedMessageState(MessageState.NACKED);
         }
         if (!isPayoutPublished()) {
             getSelf().setUnsignedPayoutTxHex(null);
@@ -3302,8 +3302,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // rescan blockchain
                 rescanBlockchain();
 
-                // import multisig hex
-                log.warn("Importing multisig hex to recover wallet data for {} {}", getClass().getSimpleName(), getShortId());
+                // must import multisig hex after rescan
+                log.warn("Importing multisig hex after rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
                 importMultisigHex();
 
                 // poll wallet

@@ -630,20 +630,33 @@ public class HavenoUtils {
         return isConnectionRefused(e) || isReadTimeout(e) || XmrWalletBase.isSyncWithProgressTimeout(e);
     }
 
-    public static boolean isNotEnoughSigners(Throwable e) {
+    private static boolean isNotEnoughSigners(Throwable e) {
         return e != null && e.getMessage().contains("Not enough signers");
     }
 
-    public static boolean isFailedToParse(Throwable e) {
+    private static boolean isFailedToParse(Throwable e) {
         return e != null && e.getMessage().contains("Failed to parse");
+    }
+
+    private static boolean isStaleData(Throwable e) {
+        return e != null && e.getMessage().contains("stale data");
+    }
+
+    private static boolean isNoTransactionCreated(Throwable e) {
+        return e != null && e.getMessage().contains("No transaction created");
+    }
+
+    private static boolean isLRNotFound(Throwable e) {
+        return e != null && e.getMessage().contains("LR not found for enough participants");
+    }
+
+    // TODO: handling specific error messages is brittle, inverse so all errors are illegal except known local issues?
+    public static boolean isMultisigError(Throwable e) {
+        return isLRNotFound(e) || isNotEnoughSigners(e) || isNoTransactionCreated(e) || isFailedToParse(e) || isStaleData(e);
     }
 
     public static boolean isTransactionRejected(Throwable e) {
         return e != null && e.getMessage().contains("was rejected");
-    }
-
-    public static boolean isLRNotFound(Throwable e) {
-        return e != null && e.getMessage().contains("LR not found for enough participants");
     }
 
     public static boolean isIllegal(Throwable e) {
