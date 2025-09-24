@@ -12,6 +12,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.core.api.XmrConnectionService;
@@ -33,9 +34,11 @@ import monero.wallet.model.MoneroWalletListener;
 public abstract class XmrWalletBase {
 
     // constants
-    public static final int SYNC_TIMEOUT_SECONDS = 240;
-    public static final int SAVE_WALLET_DELAY_SECONDS = 300;
-    private static final String SYNC_PROGRESS_TIMEOUT_MSG = "Sync progress timeout called";
+    private static final int SYNC_TIMEOUT_SECONDS = 240;
+    private static final String SYNC_TIMEOUT_MSG = "Sync timeout called";
+    private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
+    private Object saveIntervalLock = new Object();
+    protected long lastSaveTimeMs = 0;
 
     // inherited
     protected MoneroWallet wallet;
@@ -80,6 +83,7 @@ public abstract class XmrWalletBase {
 
                 Callable<MoneroSyncResult> task = () -> {
                     MoneroSyncResult result = wallet.sync();
+                    saveWalletIfElapsedTime();
                     walletHeight.set(wallet.getHeight());
                     return result;
                 };
@@ -90,7 +94,7 @@ public abstract class XmrWalletBase {
                     return future.get(timeoutSec, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     future.cancel(true);
-                    throw new RuntimeException("Sync timed out after " + timeoutSec + " seconds", e);
+                    throw new RuntimeException(SYNC_TIMEOUT_MSG, e);
                 } catch (ExecutionException e) {
                     throw new RuntimeException("Sync failed", e.getCause());
                 } catch (InterruptedException e) {
@@ -190,7 +194,7 @@ public abstract class XmrWalletBase {
                 if (wallet != null) { // can become null if interrupted by force close
                     if (syncProgressError == null || !HavenoUtils.isUnresponsive(syncProgressError)) { // TODO: skipping stop sync if unresponsive because wallet will hang. if unresponsive, wallet is assumed to be force restarted by caller, but that should be done internally here instead of externally?
                         wallet.stopSyncing();
-                        saveWallet();
+                        saveWalletIfElapsedTime();
                     }
                 }
                 if (syncProgressError != null) throw new RuntimeException(syncProgressError);
@@ -210,25 +214,26 @@ public abstract class XmrWalletBase {
         return false;
     }
 
-    public void saveWalletWithDelay() {
-        // delay writing to disk to avoid frequent write operations
-        if (saveWalletDelayTimer == null) {
-            saveWalletDelayTimer = UserThread.runAfter(() -> {
-                requestSaveWallet();
-                UserThread.execute(() -> saveWalletDelayTimer = null);
-            }, SAVE_WALLET_DELAY_SECONDS, TimeUnit.SECONDS);
+    public void saveWalletIfElapsedTime() {
+        synchronized (saveIntervalLock) {
+            if (System.currentTimeMillis() - lastSaveTimeMs >= SAVE_AFTER_ELAPSED_SECONDS * 1000) {
+                saveWallet();
+                lastSaveTimeMs = System.currentTimeMillis();
+            }
         }
+    }
+
+    public void requestSaveWalletIfElapsedTime() {
+        ThreadUtils.submitToPool(() -> saveWalletIfElapsedTime());
+    }
+
+    public static boolean isSyncWithProgressTimeout(Throwable e) {
+        return e.getMessage().contains(SYNC_TIMEOUT_MSG);
     }
 
     // --------------------------------- ABSTRACT -----------------------------
 
-    public static boolean isSyncWithProgressTimeout(Throwable e) {
-        return e.getMessage().contains(SYNC_PROGRESS_TIMEOUT_MSG);
-    }
-
     public abstract void saveWallet();
-
-    public abstract void requestSaveWallet();
 
     protected abstract void onConnectionChanged(MoneroRpcConnection connection);
 
@@ -261,7 +266,7 @@ public abstract class XmrWalletBase {
         if (syncProgressTimeout != null) syncProgressTimeout.stop();
         syncProgressTimeout = UserThread.runAfter(() -> {
             if (isShutDownStarted) return;
-            syncProgressError = new RuntimeException(SYNC_PROGRESS_TIMEOUT_MSG);
+            syncProgressError = new RuntimeException(SYNC_TIMEOUT_MSG);
             syncProgressLatch.countDown();
         }, SYNC_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }

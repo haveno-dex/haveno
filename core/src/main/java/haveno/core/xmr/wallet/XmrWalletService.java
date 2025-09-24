@@ -239,7 +239,10 @@ public class XmrWalletService extends XmrWalletBase {
 
     @Override
     public void saveWallet() {
-        saveWallet(shouldBackup(wallet));
+        synchronized (walletLock) {
+            saveWallet(shouldBackup(wallet));
+            lastSaveTimeMs = System.currentTimeMillis();
+        }
     }
 
     private boolean shouldBackup(MoneroWallet wallet) {
@@ -250,11 +253,6 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (walletLock) {
             saveWallet(getWallet(), backup);
         }
-    }
-
-    @Override
-    public void requestSaveWallet() {
-        ThreadUtils.submitToPool(() -> saveWallet()); // save wallet off main thread
     }
 
     public boolean isWalletAvailable() {
@@ -432,7 +430,7 @@ public class XmrWalletService extends XmrWalletBase {
                 if (Boolean.TRUE.equals(txConfig.getRelay())) {
                     cachedTxs.addFirst(tx);
                     cacheWalletInfo();
-                    requestSaveWallet();
+                    saveWallet();
                 }
                 return tx;
             }
@@ -450,7 +448,7 @@ public class XmrWalletService extends XmrWalletBase {
                 if (Boolean.TRUE.equals(txConfig.getRelay())) {
                     for (MoneroTxWallet tx : txs) cachedTxs.addFirst(tx);
                     cacheWalletInfo();
-                    requestSaveWallet();
+                    saveWallet();
                 }
                 return txs;
             }
@@ -460,7 +458,7 @@ public class XmrWalletService extends XmrWalletBase {
     public List<String> relayTxs(List<String> metadatas) {
         synchronized (walletLock) {
             List<String> txIds = wallet.relayTxs(metadatas);
-            requestSaveWallet();
+            saveWallet();
             return txIds;
         }
     }
@@ -554,7 +552,7 @@ public class XmrWalletService extends XmrWalletBase {
             for (String keyImage : unfrozenKeyImages) wallet.freezeOutput(keyImage);
             cacheNonPoolTxs();
             cacheWalletInfo();
-            requestSaveWallet();
+            saveWallet();
         }
     }
 
@@ -577,7 +575,7 @@ public class XmrWalletService extends XmrWalletBase {
             for (String keyImage : frozenKeyImages) wallet.thawOutput(keyImage);
             cacheNonPoolTxs();
             cacheWalletInfo();
-            requestSaveWallet();
+            saveWallet();
         }
     }
 
@@ -2075,7 +2073,7 @@ public class XmrWalletService extends XmrWalletBase {
                     pollInProgress = false;
                 }
             }
-            saveWalletWithDelay();
+            saveWalletIfElapsedTime();
 
             // cache wallet info last
             synchronized (walletLock) {

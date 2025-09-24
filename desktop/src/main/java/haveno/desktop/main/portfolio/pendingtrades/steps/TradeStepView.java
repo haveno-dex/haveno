@@ -257,8 +257,8 @@ public abstract class TradeStepView extends AnchorPane {
             }
         });
 
-        if (trade.wasWalletPolled.get()) addTradeStateSubscription();
-        else trade.wasWalletPolled.addListener((observable, oldValue, newValue) -> {
+        if (trade.wasWalletSyncedAndPolledProperty.get()) addTradeStateSubscription();
+        else trade.wasWalletSyncedAndPolledProperty.addListener((observable, oldValue, newValue) -> {
             if (newValue) addTradeStateSubscription();
         });
 
