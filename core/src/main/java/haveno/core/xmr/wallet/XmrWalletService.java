@@ -300,7 +300,9 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public boolean isProxyApplied(boolean wasWalletSynced) {
-        return xmrConnectionService.isProxyApplied() || preferences.isProxyApplied(wasWalletSynced);
+        MoneroRpcConnection connection = xmrConnectionService.getConnection();
+        if (connection != null && connection.isOnion()) return true; // must use proxy if connected to onion
+        return xmrConnectionService.isProxyApplied() && preferences.isProxyApplied(wasWalletSynced);
     }
 
     public String getWalletPassword() {
