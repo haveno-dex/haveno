@@ -79,6 +79,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
@@ -334,6 +335,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             textArea.setMaxHeight(Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
             textArea.setEditable(false);
             GUIUtil.adjustHeightAutomatically(textArea, Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
+            GridPane.setVgrow(textArea, Priority.SOMETIMES);
         }
 
         // get amount reserved for the offer
@@ -436,6 +438,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             final Tuple2<Label, Label> labelLabelTuple2 = addConfirmationLabelLabel(gridPane, rowIndex, Res.get("offerDetailsWindow.agree"), Res.get("createOffer.tac"),
                     Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
             labelLabelTuple2.second.setWrapText(true);
+            labelLabelTuple2.second.setMinHeight(Region.USE_PREF_SIZE);
+            GridPane.setVgrow(labelLabelTuple2.second, Priority.ALWAYS);
 
             addConfirmAndCancelButtons(true);
         } else if (takeOfferHandlerOptional.isPresent()) {
