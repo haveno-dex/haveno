@@ -421,7 +421,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 UserThread.runAfter(() -> tp.hide(), 1);
                 tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
             });
-            copyButton.setId("buy-button");
+            copyButton.setId("copy-button-thin");
             copyButton.setFocusTraversable(false);
             vbox.getChildren().addAll(centerLabel, copyButton);
 

@@ -2215,6 +2215,14 @@ textfield */
     -fx-background-color: derive(-bs-buy, -10%);
 }
 
+#copy-button-thin {
+    -fx-background-color: -bs-buy;
+    -fx-text-fill: -bs-white;
+    -fx-min-height: 30px;
+    -fx-max-height: 30px;
+    -fx-pref-height: 30px;
+}
+
 #sell-button-big {
     -fx-background-color: -bs-sell;
     -fx-text-fill: -bs-white;
