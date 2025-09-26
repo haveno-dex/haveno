@@ -30,7 +30,7 @@ import java.util.Date;
 @Slf4j
 public abstract class SellerTrade extends Trade {
 
-    private static final long resendPaymentReceivedMessagesDurationMs = 2L * 30 * 24 * 60 * 60 * 1000; // ~2 months
+    private static final long resendPaymentReceivedMessagesDurationMs = 1L * 30 * 24 * 60 * 60 * 1000; // ~1 month
 
     SellerTrade(Offer offer,
                 BigInteger tradeAmount,
