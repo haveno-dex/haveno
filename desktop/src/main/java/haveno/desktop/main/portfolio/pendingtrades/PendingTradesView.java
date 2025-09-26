@@ -239,7 +239,15 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                             log.warn("Unable to get offerPayload - {}", e.toString());
                         }
                     });
-                    rowMenu.getItems().add(duplicateItem);
+                    MenuItem moveToFailedItem = new MenuItem(Res.get("portfolio.pending.failedTrade.moveTradeToFailedIcon.tooltip"));
+                    moveToFailedItem.setOnAction((event) -> {
+                        if (isMaybeInvalidTrade(row.getItem().getTrade())) {
+                            onMoveInvalidTradeToFailedTrades(row.getItem().getTrade());
+                        } else {
+                            model.dataModel.tradeManager.onMoveInvalidTradeToFailedTrades(row.getItem().getTrade());
+                        }
+                    });
+                    rowMenu.getItems().addAll(duplicateItem, moveToFailedItem);
                     row.contextMenuProperty().bind(
                             Bindings.when(Bindings.isNotNull(row.itemProperty()))
                                     .then(rowMenu)
