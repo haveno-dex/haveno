@@ -823,7 +823,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     // Note that this function is overriden by subclasses.
     public boolean isFinished() {
         if (!isCompleted()) return false;
-        if (isPayoutUnlocked() && !walletExists()) return true;
+        if (isPayoutUnlocked() && !walletExistsNoSync()) return true;
         return isPayoutFinalized();
     }
 
@@ -909,7 +909,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private boolean walletExistsNoSync() {
+    protected boolean walletExistsNoSync() {
         return xmrWalletService.walletExists(getWalletName());
     }
 
@@ -958,7 +958,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public boolean isIdling() {
         if (isPayoutUnlocked()) return true; // idle after payout unlocked
-        return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExists() && pollNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
+        return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExistsNoSync() && pollNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
     }
 
     public boolean isSyncedWithinTolerance() {
