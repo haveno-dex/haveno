@@ -1704,14 +1704,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // TODO: clear other process data
-        if (processModel.isPaymentReceivedMessagesReceived()) setPayoutTxHex(null);
+        if (processModel.isPaymentReceivedMessagesAckedOrStored()) setPayoutTxHex(null);
         for (TradePeer peer : getAllPeers()) {
             peer.setUpdatedMultisigHex(null);
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
             peer.setDepositTxHex(null);
             peer.setDepositTxKey(null);
-            if (peer.isPaymentReceivedMessageReceived()) {
+            if (peer.isPaymentReceivedMessageAckedOrStored()) {
                 peer.setUnsignedPayoutTxHex(null);
                 peer.setPaymentReceivedMessage(null);
             }
@@ -3249,8 +3249,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         persistNow(null);
 
-        // send updated payment received message when payout is confirmed
-        if (resendPaymentReceivedMessages) {
+        // send updated payment received message if applicable
+        if (resendPaymentReceivedMessages && walletExists()) {
             if (!isSeller()) throw new IllegalArgumentException("Only the seller can resend PaymentReceivedMessages after a payout error for " + getClass().getSimpleName() + " " + getId());
             if (!isPaymentReceived()) throw new IllegalStateException("Cannot resend PaymentReceivedMessages after a payout error for " + getClass().getSimpleName() + " " + getId() + " because payment not marked received");
             log.warn("Sending updated PaymentReceivedMessages for {} {} after payout error", getClass().getSimpleName(), getId());

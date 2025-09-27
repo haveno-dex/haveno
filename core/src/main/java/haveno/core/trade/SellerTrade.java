@@ -69,7 +69,9 @@ public abstract class SellerTrade extends Trade {
     }
 
     public boolean needsToResendPaymentReceivedMessages() {
-        return !isShutDownStarted() && getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !getProcessModel().isPaymentReceivedMessagesReceived() && resendPaymentReceivedMessagesEnabled() && resendPaymentReceivedMessagesWithinDuration();
+        boolean hasNoPaymentReceivedMessages = getBuyer().getPaymentReceivedMessage() == null && getArbitrator().getPaymentReceivedMessage() == null;
+        if (!walletExists() && !hasNoPaymentReceivedMessages) return false; // cannot provide any updated state
+        return !isShutDownStarted() && getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !getProcessModel().isPaymentReceivedMessagesAckedOrStored() && resendPaymentReceivedMessagesEnabled() && resendPaymentReceivedMessagesWithinDuration();
     }
 
     private boolean resendPaymentReceivedMessagesEnabled() {
@@ -81,4 +83,3 @@ public abstract class SellerTrade extends Trade {
         return new Date().getTime() <= (startDate.getTime() + resendPaymentReceivedMessagesDurationMs);
     }
 }
-
