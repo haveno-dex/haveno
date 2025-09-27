@@ -256,7 +256,15 @@ public final class TradePeer implements PersistablePayload {
     }
 
     public boolean isPaymentReceivedMessageReceived() {
+        return isPaymentReceivedMessageAckedOrStored() || isPaymentReceivedMessageNacked();
+    }
+
+    public boolean isPaymentReceivedMessageAckedOrStored() {
         return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || paymentReceivedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+    }
+
+    public boolean isPaymentReceivedMessageNacked() {
+        return paymentReceivedMessageStateProperty.get() == MessageState.NACKED;
     }
 
     public boolean isPaymentReceivedMessageArrived() {

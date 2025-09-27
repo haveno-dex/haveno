@@ -74,6 +74,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     private String unsignedPayoutTxHex = null;
     private String signedPayoutTxHex = null;
     private String updatedMultisigHex = null;
+    private PaymentReceivedMessage message = null;
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -96,8 +97,10 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         try {
             runInterceptHook();
 
-            // reset ack state
-            getReceiver().setPaymentReceivedMessageState(MessageState.UNDEFINED);
+            // reset nack state
+            if (getReceiver().isPaymentReceivedMessageNacked()) {
+                getReceiver().setPaymentReceivedMessageState(MessageState.UNDEFINED);
+            }
 
             // skip if stopped
             if (stopSending()) {
@@ -105,6 +108,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                 return;
             }
 
+            // reset ack state
+            getReceiver().setPaymentReceivedMessageState(MessageState.UNDEFINED);
             super.run();
         } catch (Throwable t) {
             failed(t);
@@ -116,13 +121,17 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         if (getReceiver().getPaymentReceivedMessage() == null) {
 
             // sign account witness
-            AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
-            if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
-                try {
-                    accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
-                    log.info("{} {} signed and published peers account age witness", trade.getClass().getSimpleName(), trade.getId());
-                } catch (Exception e) {
-                    log.warn("Failed to sign and publish peer's account age witness for {} {}, error={}\n", getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+            if (trade.getSelf().getPaymentAccountPayload() == null) {
+                log.warn("Cannot sign account age witness for {} {} as no payment account is set", trade.getClass().getSimpleName(), trade.getId());
+            } else {
+                AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
+                if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
+                    try {
+                        accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
+                        log.info("{} {} signed and published peers account age witness", trade.getClass().getSimpleName(), trade.getId());
+                    } catch (Exception e) {
+                        log.warn("Failed to sign and publish peer's account age witness for {} {}, error={}\n", getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                    }
                 }
             }
 
@@ -135,7 +144,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             unsignedPayoutTxHex = trade.getPayoutTxHex() == null ? trade.getSelf().getUnsignedPayoutTxHex() : null; // signed
             signedPayoutTxHex = trade.getPayoutTxHex();
             updatedMultisigHex = trade.getSelf().getUpdatedMultisigHex();
-            PaymentReceivedMessage message = new PaymentReceivedMessage(
+            message = new PaymentReceivedMessage(
                     tradeId,
                     processModel.getMyNodeAddress(),
                     deterministicId,
@@ -258,6 +267,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         if (trade.isPayoutPublished() && !((SellerTrade) trade).resendPaymentReceivedMessagesWithinDuration()) return true; // stop if payout is published and we are not in the resend period
 
         // check if message state is outdated
+        if (message != null && !message.equals(getReceiver().getPaymentReceivedMessage())) return true;
         if (unsignedPayoutTxHex != null && !StringUtils.equals(unsignedPayoutTxHex, trade.getSelf().getUnsignedPayoutTxHex())) return true;
         if (signedPayoutTxHex != null && !StringUtils.equals(signedPayoutTxHex, trade.getPayoutTxHex())) return true;
         if (updatedMultisigHex != null && !StringUtils.equals(updatedMultisigHex, trade.getSelf().getUpdatedMultisigHex())) return true;
