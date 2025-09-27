@@ -34,7 +34,7 @@ import monero.wallet.model.MoneroWalletListener;
 public abstract class XmrWalletBase {
 
     // constants
-    private static final int SYNC_TIMEOUT_SECONDS = 240;
+    private static final int SYNC_TIMEOUT_SECONDS = 180;
     private static final String SYNC_TIMEOUT_MSG = "Sync timeout called";
     private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
     private Object saveIntervalLock = new Object();
