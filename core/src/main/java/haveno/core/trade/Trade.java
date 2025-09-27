@@ -907,6 +907,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    private boolean walletExistsNoSync() {
+        return xmrWalletService.walletExists(getWalletName());
+    }
+
     public MoneroWallet createWallet() {
         synchronized (walletLock) {
             if (walletExists()) throw new RuntimeException("Cannot create trade wallet because it already exists");
@@ -1751,7 +1755,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void shutDown() {
         if (isShutDown) return; // ignore if already shut down
         onShutDownStarted();
-        if (!isPayoutFinalized()) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
+        if (!isPayoutFinalized() || !(isPayoutUnlocked() && !walletExistsNoSync())) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
 
         // unregister p2p message listener
         removeDecryptedDirectMessageListener();
