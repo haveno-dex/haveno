@@ -1901,8 +1901,10 @@ public class XmrWalletService extends XmrWalletBase {
         List<Trade> trades = tradeManager.getAllTrades();
         for (Trade trade : trades) {
             tasks.add(() -> {
-                if (trade.walletExists()) {
-                    trade.changeWalletPassword(oldPassword, newPassword); // TODO (woodser): this unnecessarily connects and syncs unopen wallets and leaves open
+                synchronized (trade.getWalletLock()) {
+                    if (trade.walletExists()) {
+                        trade.changeWalletPassword(oldPassword, newPassword); // TODO (woodser): this unnecessarily connects and syncs unopen wallets and leaves open
+                    }
                 }
             });
         }
