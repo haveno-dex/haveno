@@ -209,7 +209,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         addPayoutAmountTextFields();
         addReasonControls();
 
-        boolean applyPeersDisputeResult = peersDisputeOptional.isPresent() && peersDisputeOptional.get().isClosed();
+        boolean applyPeersDisputeResult = peersDisputeOptional.isPresent() && peersDisputeOptional.get().isClosed() && peersDisputeOptional.get().getDisputeResultProperty().get() != null;
         if (applyPeersDisputeResult) {
             // If the other peers dispute has been closed we apply the result to ourselves
             DisputeResult peersDisputeResult = peersDisputeOptional.get().getDisputeResultProperty().get();
@@ -223,7 +223,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             disableTradeAmountPayoutControls();
             applyTradeAmountRadioButtonStates();
         } else if (trade.isPayoutPublished()) {
-            log.warn("Payout is already published for {} {}, disabling payout controls", trade.getClass().getSimpleName(), trade.getId());
+            log.info("Payout is already published for {} {}, disabling payout controls", trade.getClass().getSimpleName(), trade.getId());
             disableTradeAmountPayoutControls();
         } else if (trade.isDepositTxMissing()) {
             log.warn("Missing deposit tx for {} {}, disabling some payout controls", trade.getClass().getSimpleName(), trade.getId());
@@ -625,8 +625,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         });
 
         cancelButton.setOnAction(e -> {
-            dispute.setDisputeResult(disputeResult);
-            checkNotNull(getDisputeManager(dispute)).requestPersistence();
             hide();
         });
     }
