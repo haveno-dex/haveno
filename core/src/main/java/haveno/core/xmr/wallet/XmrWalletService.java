@@ -2077,7 +2077,7 @@ public class XmrWalletService extends XmrWalletBase {
                     pollInProgress = false;
                 }
             }
-            saveWalletIfElapsedTime();
+            requestSaveWalletIfElapsedTime();
 
             // cache wallet info last
             synchronized (walletLock) {
