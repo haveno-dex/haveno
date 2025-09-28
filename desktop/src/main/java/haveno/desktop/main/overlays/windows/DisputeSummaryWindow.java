@@ -564,6 +564,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         summaryNotesTextArea.setPrefHeight(50);
         summaryNotesTextArea.textProperty().bindBidirectional(disputeResult.summaryNotesProperty());
+
+        if (isClosedAndPublished()) {
+            summaryNotesTextArea.setEditable(false);
+            summaryNotesTextArea.setDisable(true);
+        }
     }
 
     private void addButtons(Contract contract) {
@@ -575,7 +580,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 () -> tradeAmountToggleGroup.getSelectedToggle() == null
                         || summaryNotesTextArea.getText() == null
                         || summaryNotesTextArea.getText().length() == 0
-                        || !isPayoutAmountValid(),
+                        || !isPayoutAmountValid()
+                        || isClosedAndPublished(),
             tradeAmountToggleGroup.selectedToggleProperty(),
             summaryNotesTextArea.textProperty(),
             buyerPayoutAmountInputTextField.textProperty(),
@@ -623,6 +629,10 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             checkNotNull(getDisputeManager(dispute)).requestPersistence();
             hide();
         });
+    }
+
+    private boolean isClosedAndPublished() {
+        return dispute.isClosed() && trade.isPayoutPublished();
     }
 
     private void showPayoutTxConfirmation(Contract contract, MoneroTxWallet payoutTx, ResultHandler resultHandler, ResultHandler cancelHandler) {
