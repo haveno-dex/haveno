@@ -225,6 +225,43 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }
                 trade.setDisputeState(DisputeState.NO_DISPUTE);
             }
+
+            // close open disputes with published payout
+            for (Dispute dispute : disputes) {
+
+                // skip if dispute is closed
+                if (dispute.isClosed()) continue;
+
+                // get dispute's trade
+                final Trade trade = tradeManager.getTrade(dispute.getTradeId());
+                if (trade == null) {
+                    log.warn("Dispute trade {} does not exist", dispute.getTradeId());
+                    continue;
+                }
+
+                // skip if trade's payout is not published
+                if (!trade.isPayoutPublished()) continue;
+
+                // skip if arbitrator's peer dispute is closed
+                Optional<Dispute> peersDisputeOptional = null;
+                if (trade.isArbitrator()) {
+                    peersDisputeOptional = getDisputesAsObservableList().stream()
+                        .filter(d -> dispute.getTradeId().equals(d.getTradeId()) && dispute.getTraderId() != d.getTraderId())
+                        .findFirst();
+                    if (peersDisputeOptional.isPresent()) {
+                        if (peersDisputeOptional.get().isClosed()) continue;
+                    } else {
+                        log.warn("No peer dispute found for disputeId={}, tradeId={}", dispute.getId(), dispute.getTradeId());
+                        continue;
+                    }
+                }
+
+                // close trade disputes if payout published
+                log.warn("Auto-closing dispute for {} {} with published payout, disputeId={}", trade.getClass().getSimpleName(), trade.getId(), dispute.getId());
+                dispute.setIsClosed();
+                if (peersDisputeOptional != null && peersDisputeOptional.isPresent()) peersDisputeOptional.get().setIsClosed();
+                trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+            }
         }
     }
 
