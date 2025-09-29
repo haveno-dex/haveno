@@ -643,6 +643,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void initialize(ProcessModelServiceProvider serviceProvider) {
         if (isInitialized) throw new IllegalStateException(getClass().getSimpleName() + " " + getId() + " is already initialized");
 
+        // reset shut down state
+        isShutDownStarted = false;
+        isShutDown = false;
+
         // skip initialization if trade is complete
         // starting in v1.0.19, seller resends payment received message until acked or stored in mailbox
         if (isFinished()) {
@@ -2738,7 +2742,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // set daemon connection (must restart monero-wallet-rpc if proxy uri changed)
             String oldProxyUri = wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();
             String newProxyUri = connection == null ? null : connection.getProxyUri();
-            log.info("Setting daemon connection for trade wallet {}: uri={}, proxyUri={}", getId() , connection == null ? null : connection.getUri(), newProxyUri);
+            log.info("Setting daemon connection for {} {}: uri={}, proxyUri={}", getClass().getSimpleName(), getId() , connection == null ? null : connection.getUri(), newProxyUri);
             if (xmrWalletService.isProxyApplied(wasWalletSynced) && wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
                 log.info("Restarting trade wallet {} because proxy URI has changed, old={}, new={}", getId(), oldProxyUri, newProxyUri);
                 closeWallet();
@@ -2751,6 +2755,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (isInitialized && connection != null && !Boolean.FALSE.equals(xmrConnectionService.isConnected())) {
                 ThreadUtils.execute(() -> maybeInitSyncing(), getId());
             }
+
+            log.info("Done setting daemon connection for {} {}", getClass().getSimpleName(), getId());
         }
     }
 

@@ -234,7 +234,7 @@ public class CoreDisputesService {
         } else if (payoutSuggestion == PayoutSuggestion.BUYER_GETS_ALL) {
             disputeResult.setBuyerPayoutAmountBeforeCost(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser? (see post v1.1.7)
             disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.ZERO);
-            if (disputeResult.getBuyerPayoutAmountBeforeCost().compareTo(trade.getWallet().getBalance()) > 0) { // in case peer's deposit transaction is not confirmed
+            if (!trade.isPayoutPublished() && disputeResult.getBuyerPayoutAmountBeforeCost().compareTo(trade.getWallet().getBalance()) > 0) { // in case peer's deposit transaction is not confirmed
                 log.warn("Payout amount for buyer is more than wallet's balance. This can happen if a deposit tx is dropped. Decreasing payout amount from {} to {}",
                         HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost()),
                         HavenoUtils.formatXmr(trade.getWallet().getBalance()));
@@ -246,14 +246,14 @@ public class CoreDisputesService {
         } else if (payoutSuggestion == PayoutSuggestion.SELLER_GETS_ALL) {
             disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.ZERO);
             disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit).add(buyerSecurityDeposit));
-            if (disputeResult.getSellerPayoutAmountBeforeCost().compareTo(trade.getWallet().getBalance()) > 0) { // in case peer's deposit transaction is not confirmed
+            if (!trade.isPayoutPublished() && disputeResult.getSellerPayoutAmountBeforeCost().compareTo(trade.getWallet().getBalance()) > 0) { // in case peer's deposit transaction is not confirmed
                 log.warn("Payout amount for seller is more than wallet's balance. This can happen if a deposit tx is dropped. Decreasing payout amount from {} to {}",
                         HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost()),
                         HavenoUtils.formatXmr(trade.getWallet().getBalance()));
                 disputeResult.setSellerPayoutAmountBeforeCost(trade.getWallet().getBalance());
             }
         } else if (payoutSuggestion == PayoutSuggestion.CUSTOM) {
-            if (customWinnerAmount > trade.getWallet().getBalance().longValueExact()) throw new RuntimeException("Winner payout is more than the trade wallet's balance");
+            if (!trade.isPayoutPublished() && customWinnerAmount > trade.getWallet().getBalance().longValueExact()) throw new RuntimeException("Winner payout is more than the trade wallet's balance");
             long loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).subtract(BigInteger.valueOf(customWinnerAmount)).longValueExact();
             if (loserAmount < 0) throw new RuntimeException("Loser payout cannot be negative");
             disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));
