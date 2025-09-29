@@ -1955,7 +1955,7 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (walletLock) {
             if (isShutDownStarted || isPolling()) return;
             updatePollPeriod();
-            pollLooper = new TaskLooper(() -> pollWallet());
+            pollLooper = new TaskLooper(() -> new Thread(() -> pollWallet()).start());
             pollLooper.start(pollPeriodMs);
         }
     }
