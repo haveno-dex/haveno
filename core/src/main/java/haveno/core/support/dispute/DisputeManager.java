@@ -382,8 +382,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                              ResultHandler resultHandler,
                                              FaultHandler faultHandler) {
         log.info("Opening dispute for {} {}, dispute {}",
-                DisputeOpenedMessage.class.getSimpleName(), trade.getClass().getSimpleName(),
-                dispute.getTradeId(), dispute.getId());
+                trade.getClass().getSimpleName(), dispute.getTradeId(), dispute.getId());
 
         // arbitrator cannot open disputes
         if (trade.isArbitrator()) {
