@@ -214,14 +214,15 @@ public class ChatView extends AnchorPane {
         sendButton = new AutoTooltipButton(Res.get("support.send"));
         sendButton.setDefaultButton(true);
         sendButton.setOnAction(e -> onTrySendMessage());
+        sendButton.setStyle("-fx-pref-width: 125; -fx-min-width: 110; -fx-padding: 3 3 3 3;");
         inputTextAreaTextSubscription = EasyBind.subscribe(inputTextArea.textProperty(), t -> sendButton.setDisable(t.isEmpty()));
 
         Button uploadButton = new AutoTooltipButton(Res.get("support.addAttachments"));
         uploadButton.setOnAction(e -> onRequestUpload());
         Button clipboardButton = new AutoTooltipButton(Res.get("shared.copyToClipboard"));
         clipboardButton.setOnAction(e -> copyChatMessagesToClipboard(clipboardButton));
-        uploadButton.setStyle("-fx-pref-width: 125; -fx-padding: 3 3 3 3;");
-        clipboardButton.setStyle("-fx-pref-width: 125; -fx-padding: 3 3 3 3;");
+        uploadButton.setStyle("-fx-pref-width: 125; -fx-min-width: 110; -fx-padding: 3 3 3 3;");
+        clipboardButton.setStyle("-fx-pref-width: 125; -fx-min-width: 110; -fx-padding: 3 3 3 3;");
 
         sendMsgInfoLabel = new AutoTooltipLabel();
         sendMsgInfoLabel.setVisible(false);

@@ -159,14 +159,12 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
                 EasyBind.subscribe(dispute.getBadgeCountProperty(),
                         isAlerting -> {
                             // We get the event before the list gets updated, so we execute on next frame
-                            UserThread.execute(() -> {
-                                synchronized (disputeList.getObservableList()) {
-                                    int numAlerts = (int) disputeList.getList().stream()
-                                            .mapToLong(x -> x.getBadgeCountProperty().getValue())
-                                            .sum();
-                                    numOpenDisputes.set(numAlerts);
-                                }
-                            });
+                            synchronized (disputeList.getObservableList()) {
+                                int numAlerts = (int) disputeList.getList().stream()
+                                        .mapToLong(x -> x.getBadgeCountProperty().getValue())
+                                        .sum();
+                                UserThread.execute(() -> numOpenDisputes.set(numAlerts));
+                            }
                         });
                 disputedTradeIds.add(dispute.getTradeId());
             });
@@ -175,5 +173,9 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
 
     public void requestPersistence() {
         persistenceManager.requestPersistence();
+    }
+
+    public void persistNow(@Nullable Runnable completeHandler) {
+        persistenceManager.persistNow(completeHandler);
     }
 }

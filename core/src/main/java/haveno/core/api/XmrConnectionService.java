@@ -24,6 +24,7 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
+import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.model.EncryptedConnectionList;
@@ -74,6 +75,8 @@ public final class XmrConnectionService {
     private static final long REFRESH_PERIOD_ONION_MS = 30000; // refresh period when connected to remote node over tor
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL = 20000; // 20 seconds
     private static final long KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE = 300000; // 5 minutes
+    private static final int MAX_CONSECUTIVE_ERRORS = 3; // max errors before switching connections
+    private static int numConsecutiveErrors = 0;
 
     public enum XmrConnectionFallbackType {
         LOCAL,
@@ -407,16 +410,21 @@ public final class XmrConnectionService {
         if (!isSyncedWithinTolerance()) throw new RuntimeException("Monero node is not synced");
     }
 
+    public Long getHeight() {
+        if (lastInfo == null) return null;
+        return lastInfo.getHeight();
+    }
+
+    public Long getTargetHeight() {
+        if (lastInfo == null) return null;
+        return lastInfo.getTargetHeight() == 0 ? lastInfo.getHeight() : lastInfo.getTargetHeight();
+    }
+
     public boolean isSyncedWithinTolerance() {
         Long targetHeight = getTargetHeight();
         if (targetHeight == null) return false;
         if (targetHeight - chainHeight.get() <= 3) return true; // synced if within 3 blocks of target height
         return false;
-    }
-
-    public Long getTargetHeight() {
-        if (lastInfo == null) return null;
-        return lastInfo.getTargetHeight() == 0 ? chainHeight.get() : lastInfo.getTargetHeight(); // monerod sync_info's target_height returns 0 when node is fully synced
     }
 
     public XmrKeyImagePoller getKeyImagePoller() {
@@ -735,7 +743,7 @@ public final class XmrConnectionService {
         keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
         
         // update polling
-        doPollMonerod();
+        tryPollMonerod();
         if (currentConnection != getConnection()) return; // polling can change connection
         UserThread.runAfter(() -> updatePolling(), getInternalRefreshPeriodMs() / 1000);
 
@@ -756,7 +764,11 @@ public final class XmrConnectionService {
     private void startPolling() {
         synchronized (lock) {
             if (monerodPollLooper != null) monerodPollLooper.stop();
-            monerodPollLooper = new TaskLooper(() -> pollMonerod());
+            monerodPollLooper = new TaskLooper(() -> {
+                if (!pollInProgress) {
+                    tryPollMonerod();
+                }
+            });
             monerodPollLooper.start(getInternalRefreshPeriodMs());
         }
     }
@@ -770,12 +782,18 @@ public final class XmrConnectionService {
         }
     }
 
-    private void pollMonerod() {
-        if (pollInProgress) return;
-        doPollMonerod();
+    private void tryPollMonerod() {
+        try {
+            pollMonerod();
+        } catch (Exception e) {
+            // error is already handled
+        }
     }
 
-    private void doPollMonerod() {
+    /**
+     * Polls monerod for the latest info and updates the connection if necessary.
+     */
+    private void pollMonerod() {
         synchronized (pollLock) {
             pollInProgress = true;
             if (isShutDownStarted) return;
@@ -786,10 +804,19 @@ public final class XmrConnectionService {
                 try {
                     if (monerod == null) throw new RuntimeException("No connection to Monero daemon");
                     lastInfo = monerod.getInfo();
+                    numConsecutiveErrors = 0;
                 } catch (Exception e) {
 
                     // skip handling if shutting down
                     if (isShutDownStarted) return;
+
+                    // skip error handling up to max attempts
+                    numConsecutiveErrors++;
+                    if (numConsecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
+                        return;
+                    } else {
+                        numConsecutiveErrors = 0; // reset error count
+                    }
 
                     // invoke fallback handling on startup error
                     boolean canFallback = isFixedConnection() || isProvidedConnections() || isCustomConnections() || usedSyncingLocalNodeBeforeStartup;
@@ -811,8 +838,9 @@ public final class XmrConnectionService {
                     }
 
                     // log error message periodically
-                    if (lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
-                        log.warn("Failed to fetch monerod info, trying to switch to best connection, error={}", e.getMessage());
+                    if (lastWarningOutsidePeriod()) {
+                        MoneroRpcConnection connection = getConnection();
+                        log.warn("Error fetching daemon info after max attempts. Trying to switch to best connection. monerod={}, error={}", connection == null ? "null" : connection.getUri(), e.getMessage());
                         if (DevEnv.isDevMode()) log.error(ExceptionUtils.getStackTrace(e));
                         lastLogPollErrorTimestamp = System.currentTimeMillis();
                     }
@@ -827,6 +855,9 @@ public final class XmrConnectionService {
                 isConnected = true;
                 connectionServiceFallbackType.set(null);
 
+                // set chain height
+                chainHeight.set(lastInfo.getHeight());
+
                 // determine if blockchain is syncing locally
                 boolean blockchainSyncing = lastInfo.getHeight().equals(lastInfo.getHeightWithoutBootstrap()) || (lastInfo.getTargetHeight().equals(0l) && lastInfo.getHeightWithoutBootstrap().equals(0l)); // blockchain is syncing if height equals height without bootstrap, or target height and height without bootstrap both equal 0
 
@@ -835,7 +866,7 @@ public final class XmrConnectionService {
 
                 // throttle warnings if monerod not synced
                 if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogMonerodNotSyncedTimestamp > HavenoUtils.LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS) {
-                    log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", chainHeight.get(), getTargetHeight());
+                    log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", getHeight(), getTargetHeight());
                     lastLogMonerodNotSyncedTimestamp = System.currentTimeMillis();
                 }
 
@@ -849,11 +880,8 @@ public final class XmrConnectionService {
                 // get the number of connections, which is only available if not restricted
                 int numOutgoingConnections = Boolean.TRUE.equals(lastInfo.isRestricted()) ? -1 : lastInfo.getNumOutgoingConnections();
 
-                // update properties on user thread
+                // updates on user thread
                 UserThread.execute(() -> {
-
-                    // set chain height
-                    chainHeight.set(lastInfo.getHeight());
 
                     // update sync progress
                     boolean isTestnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL;
@@ -903,12 +931,24 @@ public final class XmrConnectionService {
                 // skip if shut down
                 if (isShutDownStarted) return;
 
+                // format error message
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.contains(": ")) {
+                    errorMsg = errorMsg.substring(errorMsg.indexOf(": ") + 2); // strip exception class
+                }
+                errorMsg = Res.get("popup.warning.moneroConnection", errorMsg);
+
                 // set error message
-                getConnectionServiceErrorMsg().set(e.getMessage());
+                getConnectionServiceErrorMsg().set(errorMsg);
+                throw e;
             } finally {
                 pollInProgress = false;
             }
         }
+    }
+
+    private boolean lastWarningOutsidePeriod() {
+        return lastLogPollErrorTimestamp == null || System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS;
     }
 
     private boolean isFixedConnection() {

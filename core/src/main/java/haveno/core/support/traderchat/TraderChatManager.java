@@ -32,6 +32,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import java.util.List;
@@ -74,6 +75,11 @@ public class TraderChatManager extends SupportManager {
     @Override
     public void requestPersistence() {
         tradeManager.requestPersistence();
+    }
+
+    @Override
+    public void persistNow(Runnable completeHandler) {
+        tradeManager.persistNow(completeHandler);
     }
 
     @Override
@@ -139,6 +145,19 @@ public class TraderChatManager extends SupportManager {
     @Override
     public void onAllServicesInitialized() {
         super.onAllServicesInitialized();
+        
+        p2PService.addP2PServiceListener(new BootstrapListener() {
+            @Override
+            public void onDataReceived() {
+                tryApplyMessages();
+            }
+        });
+
+        xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
+            if (xmrWalletService.isSyncedWithinTolerance())
+                tryApplyMessages();
+        });
+
         tryApplyMessages();
     }
 
@@ -148,7 +167,7 @@ public class TraderChatManager extends SupportManager {
             log.info("Received {} with tradeId {} and uid {}",
                     message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
             if (message instanceof ChatMessage) {
-                handleChatMessage((ChatMessage) message);
+                handle((ChatMessage) message);
             } else {
                 log.warn("Unsupported message at dispatchMessage. message={}", message);
             }

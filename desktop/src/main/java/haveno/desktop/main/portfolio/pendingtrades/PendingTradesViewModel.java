@@ -27,11 +27,8 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
-import haveno.core.trade.ArbitratorTrade;
-import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.HavenoUtils;
-import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeUtil;
 import haveno.core.user.User;
@@ -48,6 +45,8 @@ import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -107,6 +106,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     private Subscription messageStateSubscription;
     @Getter
     protected final IntegerProperty mempoolStatus = new SimpleIntegerProperty();
+    private transient Map<String, Boolean> showPaymentDetailsEarly = new HashMap<String, Boolean>();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -266,7 +266,13 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         return getMaxTradePeriodDate() != null && new Date().after(getMaxTradePeriodDate());
     }
 
-    //
+    public boolean getShowPaymentDetailsEarly() {
+        return showPaymentDetailsEarly.getOrDefault(dataModel.getTrade().getId(), false);
+    }
+
+    public void setShowPaymentDetailsEarly(boolean show) {
+        showPaymentDetailsEarly.put(dataModel.getTrade().getId(), show);
+    }
 
     String getMyRole(PendingTradesListItem item) {
         return tradeUtil.getRole(item.getTrade());
@@ -349,12 +355,12 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onTradeStateChanged(Trade.State tradeState) {
-        log.info("UI tradeState={}, id={}",
+        log.debug("UI tradeState={}, id={}",
                 tradeState,
                 trade != null ? trade.getShortId() : "trade is null");
 
         // arbitrator trade view only shows tx status
-        if (trade instanceof ArbitratorTrade) {
+        if (trade.isArbitrator()) {
             buyerState.set(BuyerState.STEP1);
             sellerState.set(SellerState.STEP1);
             return;
@@ -391,8 +397,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 break;
 
             // buyer and seller step 2
-            // deposits unlocked
+            // deposits unlocked or finalized
             case DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN:
+            case DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN:
                 buyerState.set(BuyerState.STEP2);
                 sellerState.set(SellerState.STEP2);
                 break;
@@ -414,18 +421,26 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 buyerState.set(BuyerState.STEP2);
                 break;
 
+            // payment marked as received
+            case SELLER_CONFIRMED_PAYMENT_RECEIPT:
+                if (trade.isBuyer()) {
+                    buyerState.set(BuyerState.STEP3);
+                } else if (trade.isSeller()) {
+                    sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
+                }
+                break;
+
             // payment received
             case SELLER_SENT_PAYMENT_RECEIVED_MSG:
-                if (trade instanceof BuyerTrade) {
+                if (trade.isBuyer()) {
                     buyerState.set(BuyerState.UNDEFINED); // TODO: resetting screen to populate summary information which can be missing before payout message processed
                     buyerState.set(BuyerState.STEP4);
-                } else if (trade instanceof SellerTrade) {
+                } else if (trade.isSeller()) {
                     sellerState.set(trade.isPayoutPublished() ? SellerState.STEP4 : SellerState.STEP3);
                 }
                 break;
 
             // seller step 3 or 4 if published
-            case SELLER_CONFIRMED_PAYMENT_RECEIPT:
             case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
             case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
             case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
@@ -443,16 +458,17 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     private void onPayoutStateChanged(Trade.PayoutState payoutState) {
-        log.info("UI payoutState={}, id={}",
+        log.debug("UI payoutState={}, id={}",
                 payoutState,
                 trade != null ? trade.getShortId() : "trade is null");
 
-        if (trade instanceof ArbitratorTrade) return;
+        if (trade.isArbitrator()) return;
 
         switch (payoutState) {
             case PAYOUT_PUBLISHED:
             case PAYOUT_CONFIRMED:
             case PAYOUT_UNLOCKED:
+            case PAYOUT_FINALIZED:
                 sellerState.set(SellerState.STEP4);
                 buyerState.set(BuyerState.STEP4);
                 break;

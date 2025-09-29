@@ -198,11 +198,15 @@ public class CurrencyUtil {
         final List<CryptoCurrency> result = new ArrayList<>();
         result.add(new CryptoCurrency("BTC", "Bitcoin"));
         result.add(new CryptoCurrency("BCH", "Bitcoin Cash"));
+        result.add(new CryptoCurrency("DOGE", "Dogecoin"));
         result.add(new CryptoCurrency("ETH", "Ether"));
         result.add(new CryptoCurrency("LTC", "Litecoin"));
+        result.add(new CryptoCurrency("XRP", "Ripple"));
+        result.add(new CryptoCurrency("ADA", "Cardano"));
+        result.add(new CryptoCurrency("SOL", "Solana"));
+        result.add(new CryptoCurrency("TRX", "Tron"));
         result.add(new CryptoCurrency("DAI-ERC20", "Dai Stablecoin"));
         result.add(new CryptoCurrency("USDT-ERC20", "Tether USD"));
-        result.add(new CryptoCurrency("USDT-TRC20", "Tether USD"));
         result.add(new CryptoCurrency("USDC-ERC20", "USD Coin"));
         result.sort(TradeCurrency::compareTo);
         return result;

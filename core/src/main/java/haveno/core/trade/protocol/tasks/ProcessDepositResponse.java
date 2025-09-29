@@ -41,7 +41,7 @@ public class ProcessDepositResponse extends TradeTask {
           // handle error
           DepositResponse message = (DepositResponse) processModel.getTradeMessage();
           if (message.getErrorMessage() != null) {
-            log.warn("Deposit response for {} {} has error message={}", trade.getClass().getSimpleName(), trade.getShortId(), message.getErrorMessage());
+            log.warn("Deposit response has error message for {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), message.getErrorMessage());
             trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
             trade.setInitError(new RuntimeException(message.getErrorMessage()));
             complete();
@@ -52,7 +52,7 @@ public class ProcessDepositResponse extends TradeTask {
           try {
             model.getXmrWalletService().getMonerod().submitTxHex(trade.getSelf().getDepositTxHex());
           } catch (Exception e) {
-            log.error("Failed to redundantly publish deposit transaction for {} {}", trade.getClass().getSimpleName(), trade.getShortId(), e);
+            log.warn("Failed to redundantly publish deposit transaction for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
           }
 
           // record security deposits

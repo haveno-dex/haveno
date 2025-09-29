@@ -266,6 +266,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
             triggerPriceInputTextField.setText(model.triggerPrice.get());
             extraInfoTextArea.setText(model.dataModel.extraInfo.get());
+
+            // show or hide elements based on current screen
+            if (model.showPayFundsScreenDisplayed.get()) {
+                onShowPayFundsScreen();
+            }
         }
     }
 
@@ -289,7 +294,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     @Override
     public void onTabSelected(boolean isSelected) {
-        if (isSelected && !model.getDataModel().isTabSelected) {
+        if (isSelected) {
             doActivate();
         } else {
             deactivate();
@@ -533,7 +538,15 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void onCurrencyComboBoxSelected() {
-        model.onCurrencySelected(currencyComboBox.getSelectionModel().getSelectedItem());
+        TradeCurrency currency = currencyComboBox.getSelectionModel().getSelectedItem();
+        model.onCurrencySelected(currency);
+
+        // update the place offer button text
+        if (OfferViewUtil.isShownAsBuyOffer(model.getDataModel().getDirection(), currency)) {
+            placeOfferButton.updateText( Res.get("createOffer.placeOfferButton.buy", currency.getCode()));
+        } else {
+            placeOfferButton.updateText(Res.get("createOffer.placeOfferButton.sell", currency.getCode()));
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

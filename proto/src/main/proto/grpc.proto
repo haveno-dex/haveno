@@ -896,11 +896,13 @@ message TradeInfo {
     bool is_deposits_published = 25;
     bool is_deposits_confirmed = 26;
     bool is_deposits_unlocked = 27;
+    bool is_deposits_finalized = 43;
     bool is_payment_sent = 28;
     bool is_payment_received = 29;
     bool is_payout_published = 30;
     bool is_payout_confirmed = 31;
     bool is_payout_unlocked = 32;
+    bool is_payout_finalized = 44;
     bool is_completed = 33;
     string contract_as_json = 34;
     ContractInfo contract = 35;

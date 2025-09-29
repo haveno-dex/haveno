@@ -53,7 +53,7 @@ public class ProvidersRepository {
     private static final List<String> DEFAULT_NODES = Arrays.asList(
             "http://elaxlgigphpicy5q7pi5wkz2ko2vgjbq4576vic7febmx4xcxvk6deqd.onion/", // Haveno
             "http://lrrgpezvdrbpoqvkavzobmj7dr2otxc5x6wgktrw337bk6mxsvfp5yid.onion/", // Cake
-            "http://2c6y3sqmknakl3fkuwh4tjhxb2q5isr53dnfcqs33vt3y7elujc6tyad.onion/" // boldsuck
+            "http://agorise7ae5g7lkqp7r7qddsyzskft7cqhgguwkadbqamtsrap5onead.onion/" // Agorise
     );
 
     private final Config config;

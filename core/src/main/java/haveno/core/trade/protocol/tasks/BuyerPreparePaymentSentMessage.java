@@ -63,6 +63,11 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
         try {
             runInterceptHook();
 
+            // quit if payout already published
+            if (trade.isPayoutPublished()) {
+                throw new RuntimeException("Cannot mark payment sent because payout already published for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
+            }
+
             // skip if payout tx already created
             if (trade.getSelf().getUnsignedPayoutTxHex() != null) {
                 log.warn("Skipping preparation of payment sent message because payout tx is already created for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
@@ -83,16 +88,21 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
                 // synchronize on lock for wallet operations
                 synchronized (trade.getWalletLock()) {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
+                        try {
 
-                        // import multisig hex
-                        trade.importMultisigHex();
+                            // import multisig hex
+                            trade.importMultisigHex();
 
-                        // create payout tx
-                        log.info("Buyer creating unsigned payout tx for {} {} ", trade.getClass().getSimpleName(), trade.getShortId());
-                        MoneroTxWallet payoutTx = trade.createPayoutTx();
-                        trade.updatePayout(payoutTx);
-                        trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
-                        trade.requestPersistence();
+                            // create payout tx
+                            log.info("Buyer creating unsigned payout tx for {} {} ", trade.getClass().getSimpleName(), trade.getShortId());
+                            MoneroTxWallet payoutTx = trade.createPayoutTx();
+                            trade.setPayoutTx(payoutTx);
+                            trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                            trade.requestPersistence();
+                        } catch (Exception e) {
+                            if (HavenoUtils.isIllegal(e)) log.warn("Failed to create unsigned payout tx for " + trade.getClass().getSimpleName() + " " + trade.getShortId(), e); // continue to send message if illegal state
+                            else throw e;
+                        }
                     }
                 }
             }

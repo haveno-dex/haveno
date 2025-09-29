@@ -44,6 +44,7 @@ import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.JsonUtil;
+import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 
@@ -626,11 +627,32 @@ public class HavenoUtils {
     }
 
     public static boolean isUnresponsive(Throwable e) {
-        return isConnectionRefused(e) || isReadTimeout(e);
+        return isConnectionRefused(e) || isReadTimeout(e) || XmrWalletBase.isSyncWithProgressTimeout(e);
     }
 
-    public static boolean isNotEnoughSigners(Throwable e) {
+    private static boolean isNotEnoughSigners(Throwable e) {
         return e != null && e.getMessage().contains("Not enough signers");
+    }
+
+    private static boolean isFailedToParse(Throwable e) {
+        return e != null && e.getMessage().contains("Failed to parse");
+    }
+
+    private static boolean isStaleData(Throwable e) {
+        return e != null && e.getMessage().contains("stale data");
+    }
+
+    private static boolean isNoTransactionCreated(Throwable e) {
+        return e != null && e.getMessage().contains("No transaction created");
+    }
+
+    private static boolean isLRNotFound(Throwable e) {
+        return e != null && e.getMessage().contains("LR not found for enough participants");
+    }
+
+    // TODO: handling specific error messages is brittle, inverse so all errors are illegal except known local issues?
+    public static boolean isMultisigError(Throwable e) {
+        return isLRNotFound(e) || isNotEnoughSigners(e) || isNoTransactionCreated(e) || isFailedToParse(e) || isStaleData(e);
     }
 
     public static boolean isTransactionRejected(Throwable e) {

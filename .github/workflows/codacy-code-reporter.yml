@@ -9,7 +9,7 @@ jobs:
   build:
     if: github.repository == 'haveno-dex/haveno'
     name: Publish coverage
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -18,6 +18,11 @@ jobs:
         with:
           java-version: '21'
           distribution: 'adopt'
+
+      - name: Create local share directory
+        # ubuntu-24.04 Github runners do not have `~/.local/share` directory by default.
+        # This causes issues when testing `FileTransferSend`
+        run: mkdir -p ~/.local/share
 
       - name: Build with Gradle
         run: ./gradlew clean build -x checkstyleMain -x checkstyleTest -x shadowJar

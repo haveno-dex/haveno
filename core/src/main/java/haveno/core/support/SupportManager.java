@@ -122,6 +122,8 @@ public abstract class SupportManager {
 
     public abstract void requestPersistence();
 
+    public abstract void persistNow(@Nullable Runnable completeHandler);
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Delegates p2pService
@@ -154,15 +156,15 @@ public abstract class SupportManager {
     // Message handler
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected void handleChatMessage(ChatMessage chatMessage) {
+    protected void handle(ChatMessage chatMessage) {
         final String tradeId = chatMessage.getTradeId();
         final String uid = chatMessage.getUid();
         log.info("Received {} from peer {}. tradeId={}, uid={}", chatMessage.getClass().getSimpleName(), chatMessage.getSenderNodeAddress(), tradeId, uid);
         boolean channelOpen = channelOpen(chatMessage);
         if (!channelOpen) {
-            log.debug("We got a chatMessage but we don't have a matching chat. TradeId = " + tradeId);
+            log.warn("We got a chatMessage but we don't have a matching chat. TradeId = " + tradeId);
             if (!delayMsgMap.containsKey(uid)) {
-                Timer timer = UserThread.runAfter(() -> handleChatMessage(chatMessage), 1);
+                Timer timer = UserThread.runAfter(() -> handle(chatMessage), 1);
                 delayMsgMap.put(uid, timer);
             } else {
                 String msg = "We got a chatMessage after we already repeated to apply the message after a delay. That should never happen. TradeId = " + tradeId;
@@ -195,7 +197,7 @@ public abstract class SupportManager {
                             synchronized (dispute.getChatMessages()) {
                                 for (ChatMessage chatMessage : dispute.getChatMessages()) {
                                     if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                        if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED) {
+                                        if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_PREPARING || trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED) { // ack can arrive before saw arrived
                                             if (dispute.isClosed()) dispute.reOpen();
                                             trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                                         } else if (dispute.isClosed()) {
@@ -217,8 +219,8 @@ public abstract class SupportManager {
                         synchronized (dispute.getChatMessages()) {
                             for (ChatMessage chatMessage : dispute.getChatMessages()) {
                                 if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
-                                    if (trade.getDisputeState().isCloseRequested()) {
-                                        log.warn("DisputeCloseMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
+                                    if (!trade.isArbitrator() && (trade.getDisputeState().isRequested() || trade.getDisputeState().isCloseRequested())) {
+                                        log.warn("DisputeOpenedMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
                                         dispute.setIsClosed();
                                         trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                                     }
@@ -239,6 +241,9 @@ public abstract class SupportManager {
                                 msg.setAckError(ackMessage.getErrorMessage());
                         });
                     });
+
+            tradeManager.persistNow(null);
+            persistNow(null);
             requestPersistence();
         }
     }
@@ -262,7 +267,7 @@ public abstract class SupportManager {
 
             mailboxMessageService.sendEncryptedMailboxMessage(peersNodeAddress,
                     receiverPubKeyRing,
-                    message,
+                    message.copy(),
                     new SendMailboxMessageListener() {
                         @Override
                         public void onArrived() {

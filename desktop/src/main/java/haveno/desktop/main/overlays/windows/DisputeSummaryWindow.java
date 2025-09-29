@@ -225,6 +225,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         } else if (trade.isPayoutPublished()) {
             log.warn("Payout is already published for {} {}, disabling payout controls", trade.getClass().getSimpleName(), trade.getId());
             disableTradeAmountPayoutControls();
+        } else if (trade.isDepositTxMissing()) {
+            log.warn("Missing deposit tx for {} {}, disabling some payout controls", trade.getClass().getSimpleName(), trade.getId());
+            disableTradeAmountPayoutControlsWhenDepositMissing();
         }
 
         setReasonRadioButtonState();
@@ -257,6 +260,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         reasonWasWrongSenderAccountRadioButton.setDisable(true);
         reasonWasPeerWasLateRadioButton.setDisable(true);
         reasonWasTradeAlreadySettledRadioButton.setDisable(true);
+    }
+
+    private void disableTradeAmountPayoutControlsWhenDepositMissing() {
+        buyerGetsTradeAmountRadioButton.setDisable(true);
+        sellerGetsTradeAmountRadioButton.setDisable(true);
     }
 
     private void addInfoPane() {
@@ -374,10 +382,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             return;
         }
 
-        Contract contract = dispute.getContract();
-        BigInteger available = contract.getTradeAmount()
-                .add(trade.getBuyer().getSecurityDeposit())
-                .add(trade.getSeller().getSecurityDeposit());
+        BigInteger available = trade.getWallet().getBalance();
         BigInteger enteredAmount = HavenoUtils.parseXmr(inputTextField.getText());
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;

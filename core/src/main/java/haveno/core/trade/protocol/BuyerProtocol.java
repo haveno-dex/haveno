@@ -120,13 +120,23 @@ public class BuyerProtocol extends DisputeProtocol {
 
     public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info(TradeProtocol.LOG_HIGHLIGHT + "BuyerProtocol.onPaymentSent() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+
+        // advance trade state
+        if (trade.isDepositsUnlocked() || trade.isDepositsFinalized() || trade.isPaymentSent()) {
+            trade.advanceState(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT);
+        } else {
+            errorMessageHandler.handleErrorMessage("Cannot confirm payment sent for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " in state " + trade.getState());
+            return;
+        }
+
+        // process on trade thread
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 latchTrade();
                 this.errorMessageHandler = errorMessageHandler;
                 BuyerEvent event = BuyerEvent.PAYMENT_SENT;
                 try {
-                    expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.PAYMENT_SENT)
+                    expect(anyPhase(Trade.Phase.DEPOSITS_UNLOCKED, Trade.Phase.DEPOSITS_FINALIZED, Trade.Phase.PAYMENT_SENT)
                             .with(event)
                             .preCondition(trade.confirmPermitted()))
                             .setup(tasks(ApplyFilter.class,
@@ -145,7 +155,6 @@ public class BuyerProtocol extends DisputeProtocol {
                                         trade.setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
                                         handleTaskRunnerFault(event, errorMessage);
                                     })))
-                            .run(() -> trade.advanceState(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT))
                             .executeTasks(true);
                 } catch (Exception e) {
                     errorMessageHandler.handleErrorMessage("Error confirming payment sent: " + e.getMessage());

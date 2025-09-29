@@ -60,6 +60,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
+
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
 public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessageTask {
@@ -69,6 +71,10 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     private static final int MAX_RESEND_ATTEMPTS = 20;
     private int delayInMin = 10;
     private int resendCounter = 0;
+    private String unsignedPayoutTxHex = null;
+    private String signedPayoutTxHex = null;
+    private String updatedMultisigHex = null;
+    private PaymentReceivedMessage message = null;
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -91,12 +97,19 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         try {
             runInterceptHook();
 
+            // reset nack state
+            if (getReceiver().isPaymentReceivedMessageNacked()) {
+                getReceiver().setPaymentReceivedMessageState(MessageState.UNDEFINED);
+            }
+
             // skip if stopped
             if (stopSending()) {
                 if (!isCompleted()) complete();
                 return;
             }
 
+            // reset ack state
+            getReceiver().setPaymentReceivedMessageState(MessageState.UNDEFINED);
             super.run();
         } catch (Throwable t) {
             failed(t);
@@ -108,13 +121,17 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         if (getReceiver().getPaymentReceivedMessage() == null) {
 
             // sign account witness
-            AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
-            if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
-                try {
-                    accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
-                    log.info("{} {} signed and published peers account age witness", trade.getClass().getSimpleName(), trade.getId());
-                } catch (Exception e) {
-                    log.warn("Failed to sign and publish peer's account age witness for {} {}, error={}\n", getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+            if (trade.getSelf().getPaymentAccountPayload() == null) {
+                log.warn("Cannot sign account age witness for {} {} as no payment account is set", trade.getClass().getSimpleName(), trade.getId());
+            } else {
+                AccountAgeWitnessService accountAgeWitnessService = processModel.getAccountAgeWitnessService();
+                if (accountAgeWitnessService.isSignWitnessTrade(trade)) {
+                    try {
+                        accountAgeWitnessService.traderSignAndPublishPeersAccountAgeWitness(trade).ifPresent(witness -> signedWitness = witness);
+                        log.info("{} {} signed and published peers account age witness", trade.getClass().getSimpleName(), trade.getId());
+                    } catch (Exception e) {
+                        log.warn("Failed to sign and publish peer's account age witness for {} {}, error={}\n", getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                    }
                 }
             }
 
@@ -123,20 +140,28 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             // messages where only the one which gets processed by the peer would be removed we use the same uid. All
             // other data stays the same when we re-send the message at any time later.
             String deterministicId = HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, getReceiverNodeAddress());
-            boolean deferPublishPayout = trade.isPayoutPublished() || trade.getState().ordinal() >= Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG.ordinal(); // informs receiver to expect payout so delay processing
-            PaymentReceivedMessage message = new PaymentReceivedMessage(
+            boolean deferPublishPayout = getReceiver() == trade.getArbitrator() && (trade.isPayoutPublished() || trade.getOtherPeer(getReceiver()).isPaymentReceivedMessageArrived()); // informs receiver to expect payout so delay processing
+            unsignedPayoutTxHex = trade.getPayoutTxHex() == null ? trade.getSelf().getUnsignedPayoutTxHex() : null; // signed
+            signedPayoutTxHex = trade.getPayoutTxHex();
+            updatedMultisigHex = trade.getSelf().getUpdatedMultisigHex();
+            message = new PaymentReceivedMessage(
                     tradeId,
                     processModel.getMyNodeAddress(),
                     deterministicId,
-                    trade.getPayoutTxHex() == null ? trade.getSelf().getUnsignedPayoutTxHex() : null, // unsigned // TODO: phase in after next update to clear old style trades
-                    trade.getPayoutTxHex() == null ? null : trade.getPayoutTxHex(), // signed
-                    trade.getSelf().getUpdatedMultisigHex(),
+                    unsignedPayoutTxHex,
+                    signedPayoutTxHex,
+                    updatedMultisigHex,
                     deferPublishPayout,
                     trade.getTradePeer().getAccountAgeWitness(),
                     signedWitness,
-                    getReceiver() == trade.getArbitrator() ? trade.getBuyer().getPaymentSentMessage() : null // buyer already has payment sent message
+                    getReceiver() == trade.getArbitrator() ? trade.getBuyer().getPaymentSentMessage() : null, // buyer already has payment sent message,
+                    trade.getPayoutTxId()
             );
-            checkArgument(message.getUnsignedPayoutTxHex() != null || message.getSignedPayoutTxHex() != null, "PaymentReceivedMessage does not include payout tx hex");
+
+            // verify message
+            if (trade.isPayoutPublished()) {
+                checkArgument(message.getUpdatedMultisigHex() != null || message.getPayoutTxId() != null, "PaymentReceivedMessage does not include updated multisig hex or payout tx id after payout published");
+            }
 
             // sign message
             try {
@@ -240,6 +265,12 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         if (isMessageReceived()) return true; // stop if message received
         if (!trade.isPaymentReceived()) return true; // stop if trade state reset
         if (trade.isPayoutPublished() && !((SellerTrade) trade).resendPaymentReceivedMessagesWithinDuration()) return true; // stop if payout is published and we are not in the resend period
+
+        // check if message state is outdated
+        if (message != null && !message.equals(getReceiver().getPaymentReceivedMessage())) return true;
+        if (unsignedPayoutTxHex != null && !StringUtils.equals(unsignedPayoutTxHex, trade.getSelf().getUnsignedPayoutTxHex())) return true;
+        if (signedPayoutTxHex != null && !StringUtils.equals(signedPayoutTxHex, trade.getPayoutTxHex())) return true;
+        if (updatedMultisigHex != null && !StringUtils.equals(updatedMultisigHex, trade.getSelf().getUpdatedMultisigHex())) return true;
         return false;
     }
 }

@@ -4,9 +4,14 @@
 # See https://haveno.exchange/list-asset for complete instructions.
 haveno.asset.coins.Bitcoin$Mainnet
 haveno.asset.coins.BitcoinCash
+haveno.asset.coins.Cardano
+haveno.asset.coins.Dogecoin
 haveno.asset.coins.Ether
 haveno.asset.coins.Litecoin
 haveno.asset.coins.Monero
+haveno.asset.coins.Ripple
+haveno.asset.coins.Solana
+haveno.asset.coins.Tron
 haveno.asset.tokens.TetherUSDERC20
 haveno.asset.tokens.TetherUSDTRC20
 haveno.asset.tokens.USDCoinERC20

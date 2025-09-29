@@ -101,11 +101,11 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
                     message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
 
             if (message instanceof DisputeOpenedMessage) {
-                handleDisputeOpenedMessage((DisputeOpenedMessage) message);
+                handle((DisputeOpenedMessage) message);
             } else if (message instanceof ChatMessage) {
-                handleChatMessage((ChatMessage) message);
+                handle((ChatMessage) message);
             } else if (message instanceof DisputeClosedMessage) {
-                handleDisputeClosedMessage((DisputeClosedMessage) message);
+                handle((DisputeClosedMessage) message);
             } else {
                 log.warn("Unsupported message at dispatchMessage. message={}", message);
             }
@@ -150,7 +150,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
 
     @Override
     // We get that message at both peers. The dispute object is in context of the trader
-    public void handleDisputeClosedMessage(DisputeClosedMessage disputeResultMessage) {
+    public void handle(DisputeClosedMessage disputeResultMessage) {
         DisputeResult disputeResult = disputeResultMessage.getDisputeResult();
         String tradeId = disputeResult.getTradeId();
         ChatMessage chatMessage = disputeResult.getChatMessage();
@@ -163,7 +163,7 @@ public final class MediationManager extends DisputeManager<MediationDisputeList>
                     "We try again after 2 sec. to apply the disputeResultMessage. TradeId = " + tradeId);
             if (!delayMsgMap.containsKey(uid)) {
                 // We delay 2 sec. to be sure the comm. msg gets added first
-                Timer timer = UserThread.runAfter(() -> handleDisputeClosedMessage(disputeResultMessage), 2);
+                Timer timer = UserThread.runAfter(() -> handle(disputeResultMessage), 2);
                 delayMsgMap.put(uid, timer);
             } else {
                 log.warn("We got a dispute result msg after we already repeated to apply the message after a delay. " +

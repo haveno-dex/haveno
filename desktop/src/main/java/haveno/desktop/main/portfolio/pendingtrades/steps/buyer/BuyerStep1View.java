@@ -36,7 +36,7 @@ public class BuyerStep1View extends TradeStepView {
         super.onPendingTradesInitialized();
         //validatePayoutTx(); // TODO (woodser): no payout tx in xmr integration, do something else?
         //validateDepositInputs();
-        checkForUnconfirmedTimeout();
+        //checkForUnconfirmedTimeout();
     }
 
 

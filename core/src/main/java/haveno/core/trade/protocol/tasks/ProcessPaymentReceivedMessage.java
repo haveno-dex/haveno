@@ -41,16 +41,17 @@ import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ProcessPaymentReceivedMessage extends TradeTask {
+
     public ProcessPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
@@ -64,7 +65,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             PaymentReceivedMessage message = (PaymentReceivedMessage) processModel.getTradeMessage();
             checkNotNull(message);
             Validator.checkTradeId(processModel.getOfferId(), message);
-            checkArgument(message.getUnsignedPayoutTxHex() != null || message.getSignedPayoutTxHex() != null, "No payout tx hex provided");
 
             // verify signature of payment received message
             HavenoUtils.verifyPaymentReceivedMessage(trade, message);
@@ -80,6 +80,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                 complete();
                 return;
             }
+
+            // set state to confirmed payment receipt before processing
+            trade.advanceState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
 
             // cannot process until wallet sees deposits unlocked
             if (!trade.isDepositsUnlocked()) {
@@ -103,7 +106,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (!trade.isPayoutConfirmed()) processPayoutTx(message);
 
             // close open disputes
-            if (trade.isPayoutPublished() && trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_REQUESTED.ordinal()) {
+            if (trade.isPayoutPublished() && trade.getDisputeState().isDisputed()) {
                 trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                 for (Dispute dispute : trade.getDisputes()) dispute.setIsClosed();
             }
@@ -122,9 +125,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             complete();
         } catch (Throwable t) {
 
-            // do not reprocess illegal argument
+            // handle illegal exception
             if (HavenoUtils.isIllegal(t)) {
-                trade.getSeller().setPaymentReceivedMessage(null); // do not reprocess
+                trade.getSeller().setPaymentReceivedMessage(null); // stops reprocessing
                 trade.requestPersistence();
             }
 
@@ -141,6 +144,11 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
         // handle if payout tx not published
         if (!trade.isPayoutPublished()) {
 
+            // nack with updated multisig info if no payout tx provided
+            if (message.getUnsignedPayoutTxHex() == null && message.getSignedPayoutTxHex() == null && message.getPayoutTxId() == null) {
+                throw new IllegalStateException("No payout tx provided in PaymentReceivedMessage for " + trade.getClass().getSimpleName() + " " + trade.getId());
+            }
+
             // wait to publish payout tx if defer flag set from seller (payout is expected)
             if (message.isDeferPublishPayout()) {
                 log.info("Deferring publishing payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
@@ -155,8 +163,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // verify and publish payout tx
             if (!trade.isPayoutPublished()) {
                 try {
-                    boolean isSigned = message.getSignedPayoutTxHex() != null;
-                    if (isSigned) {
+                    if (message.getPayoutTxId() != null && trade.isBuyer()) {
+                        trade.processBuyerPayout(message.getPayoutTxId()); // buyer can validate payout tx by id with main wallet (in case of multisig issues)
+                    } else if (message.getSignedPayoutTxHex() != null) {
                         log.info("{} {} publishing signed payout tx from seller", trade.getClass().getSimpleName(), trade.getId());
                         trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
                     } else {
@@ -177,9 +186,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     else throw e;
                 }
             }
-        } else {
-            log.info("Payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            if (message.getSignedPayoutTxHex() != null && !trade.isPayoutConfirmed()) trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);
         }
     }
 }

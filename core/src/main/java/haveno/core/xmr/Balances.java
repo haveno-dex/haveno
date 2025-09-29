@@ -165,10 +165,10 @@ public class Balances {
                 // play sound if funds received
                 boolean fundsReceived = balanceSumBefore != null && getNonTradeBalanceSum().compareTo(balanceSumBefore) > 0;
                 if (fundsReceived) HavenoUtils.playCashRegisterSound();
-
-                // notify balance update
-                updateCounter.set(updateCounter.get() + 1);
             }
+
+            // notify balance update
+            updateCounter.set(updateCounter.get() + 1);
         }
     }
 

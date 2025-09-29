@@ -122,16 +122,16 @@ public final class OpenOffer implements Tradable {
         this(offer, 0, false);
     }
 
-    public OpenOffer(Offer offer, long triggerPrice) {
-        this(offer, triggerPrice, false);
+    public OpenOffer(Offer offer, long triggerPrice, boolean reserveExactAmount) {
+        this(offer, triggerPrice, reserveExactAmount, null);
     }
 
-    public OpenOffer(Offer offer, long triggerPrice, boolean reserveExactAmount) {
+    public OpenOffer(Offer offer, long triggerPrice, boolean reserveExactAmount, String groupId) {
         this.offer = offer;
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
         this.challenge = offer.getChallenge();
-        this.groupId = UUID.randomUUID().toString();
+        this.groupId = groupId == null ? UUID.randomUUID().toString() : groupId;
         state = State.PENDING;
     }
 

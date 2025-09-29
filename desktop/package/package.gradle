@@ -252,7 +252,7 @@ task packageInstallers {
         }
 
         //String appDescription = 'A decentralized monero exchange network.'
-        String appCopyright = '© 2024 Haveno'
+        String appCopyright = '© 2025 Haveno'
         String appNameAndVendor = 'Haveno'
 
         String commonOpts = new String(
@@ -321,6 +321,7 @@ task packageInstallers {
 
             // Package deb
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
+                    " --resource-dir \"${project(':desktop').projectDir}/package/linux/jpackage.deb\"" +
                     " --linux-deb-maintainer noreply@haveno.exchange" +
                     " --type deb")
 

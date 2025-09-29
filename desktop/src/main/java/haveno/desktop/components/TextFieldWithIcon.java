@@ -54,10 +54,11 @@ public class TextFieldWithIcon extends AnchorPane {
 
         iconLabel = new Label();
         iconLabel.setLayoutX(0);
+        iconLabel.setTranslateX(-15);
         iconLabel.setLayoutY(Layout.FLOATING_ICON_Y - 2);
 
         dummyTextField.widthProperty().addListener((observable, oldValue, newValue) -> {
-            iconLabel.setLayoutX(dummyTextField.widthProperty().get() + 20 + Layout.FLOATING_ICON_Y);
+            iconLabel.setLayoutX(dummyTextField.widthProperty().get() + 35 + Layout.FLOATING_ICON_Y);
         });
 
         getChildren().addAll(textField, dummyTextField, iconLabel);

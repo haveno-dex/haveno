@@ -22,7 +22,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 
-import haveno.common.ThreadUtils;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.FaultHandler;
@@ -101,57 +100,51 @@ public class CoreDisputesService {
     public void openDispute(String tradeId, ResultHandler resultHandler, FaultHandler faultHandler) {
         Trade trade = tradeManager.getOpenTrade(tradeId).orElseThrow(() ->
                 new IllegalArgumentException(format("trade with id '%s' not found", tradeId)));
+        Offer offer = trade.getOffer();
+        if (offer == null) throw new IllegalStateException(format("offer with tradeId '%s' is null", tradeId));
 
-        // open dispute on trade thread
-        ThreadUtils.execute(() -> {
-            Offer offer = trade.getOffer();
-            if (offer == null) throw new IllegalStateException(format("offer with tradeId '%s' is null", tradeId));
+        // Dispute agents are registered as mediators and refund agents, but current UI appears to be hardcoded
+        // to reference the arbitrator. Reference code is in desktop PendingTradesDataModel.java and could be refactored.
+        var disputeManager = arbitrationManager;
+        var isSupportTicket = false;
+        var isMaker = tradeManager.isMyOffer(offer);
+        var dispute = createDisputeForTrade(trade, offer, keyRing.getPubKeyRing(), isMaker, isSupportTicket);
 
-            // Dispute agents are registered as mediators and refund agents, but current UI appears to be hardcoded
-            // to reference the arbitrator. Reference code is in desktop PendingTradesDataModel.java and could be refactored.
-            var disputeManager = arbitrationManager;
-            var isSupportTicket = false;
-            var isMaker = tradeManager.isMyOffer(offer);
-            var dispute = createDisputeForTrade(trade, offer, keyRing.getPubKeyRing(), isMaker, isSupportTicket);
-
-            // Sends the openNewDisputeMessage to arbitrator, who will then create 2 disputes
-            // one for the opener, the other for the peer, see sendPeerOpenedDisputeMessage.
-            disputeManager.sendDisputeOpenedMessage(dispute, resultHandler, faultHandler);
-            tradeManager.requestPersistence();
-        }, trade.getId());
+        // Sends the openNewDisputeMessage to arbitrator, who will then create 2 disputes
+        // one for the opener, the other for the peer, see sendPeerOpenedDisputeMessage.
+        disputeManager.sendDisputeOpenedMessage(dispute, resultHandler, faultHandler);
+        tradeManager.requestPersistence();
     }
 
     public Dispute createDisputeForTrade(Trade trade, Offer offer, PubKeyRing pubKey, boolean isMaker, boolean isSupportTicket) {
-        synchronized (trade.getLock()) {
-            byte[] payoutTxSerialized = null;
-            String payoutTxHashAsString = null;
+        byte[] payoutTxSerialized = null;
+        String payoutTxHashAsString = null;
 
-            PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
-            checkNotNull(arbitratorPubKeyRing, "arbitratorPubKeyRing must not be null");
-            Dispute dispute = new Dispute(new Date().getTime(),
-                    trade.getId(),
-                    pubKey.hashCode(), // trader id,
-                    true,
-                    (offer.getDirection() == OfferDirection.BUY) == isMaker,
-                    isMaker,
-                    pubKey,
-                    trade.getDate().getTime(),
-                    trade.getMaxTradePeriodDate().getTime(),
-                    trade.getContract(),
-                    trade.getContractHash(),
-                    payoutTxSerialized,
-                    payoutTxHashAsString,
-                    trade.getContractAsJson(),
-                    trade.getMaker().getContractSignature(),
-                    trade.getTaker().getContractSignature(),
-                    trade.getMaker().getPaymentAccountPayload(),
-                    trade.getTaker().getPaymentAccountPayload(),
-                    arbitratorPubKeyRing,
-                    isSupportTicket,
-                    SupportType.ARBITRATION);
+        PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
+        checkNotNull(arbitratorPubKeyRing, "arbitratorPubKeyRing must not be null");
+        Dispute dispute = new Dispute(new Date().getTime(),
+                trade.getId(),
+                pubKey.hashCode(), // trader id,
+                true,
+                (offer.getDirection() == OfferDirection.BUY) == isMaker,
+                isMaker,
+                pubKey,
+                trade.getDate().getTime(),
+                trade.getMaxTradePeriodDate().getTime(),
+                trade.getContract(),
+                trade.getContractHash(),
+                payoutTxSerialized,
+                payoutTxHashAsString,
+                trade.getContractAsJson(),
+                trade.getMaker().getContractSignature(),
+                trade.getTaker().getContractSignature(),
+                trade.getMaker().getPaymentAccountPayload(),
+                trade.getTaker().getPaymentAccountPayload(),
+                arbitratorPubKeyRing,
+                isSupportTicket,
+                SupportType.ARBITRATION);
 
-            return dispute;
-        }
+        return dispute;
     }
 
     // TODO: does not wait for success or error response
@@ -242,7 +235,7 @@ public class CoreDisputesService {
             disputeResult.setBuyerPayoutAmountBeforeCost(tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit)); // TODO (woodser): apply min payout to incentivize loser? (see post v1.1.7)
             disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.ZERO);
             if (disputeResult.getBuyerPayoutAmountBeforeCost().compareTo(trade.getWallet().getBalance()) > 0) { // in case peer's deposit transaction is not confirmed
-                log.warn("Payout amount for buyer is more than wallet's balance. Decreasing payout amount from {} to {}",
+                log.warn("Payout amount for buyer is more than wallet's balance. This can happen if a deposit tx is dropped. Decreasing payout amount from {} to {}",
                         HavenoUtils.formatXmr(disputeResult.getBuyerPayoutAmountBeforeCost()),
                         HavenoUtils.formatXmr(trade.getWallet().getBalance()));
                 disputeResult.setBuyerPayoutAmountBeforeCost(trade.getWallet().getBalance());
@@ -254,7 +247,7 @@ public class CoreDisputesService {
             disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.ZERO);
             disputeResult.setSellerPayoutAmountBeforeCost(tradeAmount.add(sellerSecurityDeposit).add(buyerSecurityDeposit));
             if (disputeResult.getSellerPayoutAmountBeforeCost().compareTo(trade.getWallet().getBalance()) > 0) { // in case peer's deposit transaction is not confirmed
-                log.warn("Payout amount for seller is more than wallet's balance. Decreasing payout amount from {} to {}",
+                log.warn("Payout amount for seller is more than wallet's balance. This can happen if a deposit tx is dropped. Decreasing payout amount from {} to {}",
                         HavenoUtils.formatXmr(disputeResult.getSellerPayoutAmountBeforeCost()),
                         HavenoUtils.formatXmr(trade.getWallet().getBalance()));
                 disputeResult.setSellerPayoutAmountBeforeCost(trade.getWallet().getBalance());
@@ -313,6 +306,7 @@ public class CoreDisputesService {
         Dispute dispute;
         if (disputeOptional.isPresent()) dispute = disputeOptional.get();
         else throw new IllegalStateException(format("dispute with id '%s' not found", disputeId));
+        if (!arbitrationManager.canSendChatMessages(dispute)) throw new IllegalStateException(format("dispute with id '%s' cannot send chat messages (must be open or stored to mailbox)", disputeId));
         ChatMessage chatMessage = new ChatMessage(
                 arbitrationManager.getSupportType(),
                 dispute.getTradeId(),

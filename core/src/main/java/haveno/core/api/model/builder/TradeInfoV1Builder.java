@@ -64,11 +64,13 @@ public final class TradeInfoV1Builder {
     private boolean isDepositsPublished;
     private boolean isDepositsConfirmed;
     private boolean isDepositsUnlocked;
+    private boolean isDepositsFinalized;
     private boolean isPaymentSent;
     private boolean isPaymentReceived;
     private boolean isPayoutPublished;
     private boolean isPayoutConfirmed;
     private boolean isPayoutUnlocked;
+    private boolean isPayoutFinalized;
     private boolean isCompleted;
     private String contractAsJson;
     private ContractInfo contract;
@@ -242,6 +244,11 @@ public final class TradeInfoV1Builder {
         return this;
     }
 
+    public TradeInfoV1Builder withIsDepositsFinalized(boolean isDepositsFinalized) {
+        this.isDepositsFinalized = isDepositsFinalized;
+        return this;
+    }
+
     public TradeInfoV1Builder withIsPaymentSent(boolean isPaymentSent) {
         this.isPaymentSent = isPaymentSent;
         return this;
@@ -264,6 +271,11 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withIsPayoutUnlocked(boolean isPayoutUnlocked) {
         this.isPayoutUnlocked = isPayoutUnlocked;
+        return this;
+    }
+
+    public TradeInfoV1Builder withIsPayoutFinalized(boolean isPayoutFinalized) {
+        this.isPayoutFinalized = isPayoutFinalized;
         return this;
     }
 

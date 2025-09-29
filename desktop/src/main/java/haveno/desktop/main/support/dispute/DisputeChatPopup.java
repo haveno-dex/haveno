@@ -125,7 +125,7 @@ public class DisputeChatPopup {
                 menuItem2.setOnAction(e -> chatCallback.onSendLogsFromChatWindow(selectedDispute));
                 menuButton.getItems().addAll(menuItem1, menuItem2);
                 menuButton.getStyleClass().add("jfx-button");
-                menuButton.setStyle("-fx-padding: 0 10 0 10;");
+                menuButton.setStyle("-fx-min-width: 95; -fx-padding: 0 10 0 10;");
                 chatView.display(concreteDisputeSession, menuButton, pane.widthProperty());
             }
         }

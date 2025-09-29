@@ -1224,17 +1224,21 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             MoneroTxWallet splitOutputTx = xmrWalletService.getTx(openOffer.getSplitOutputTxHash());
 
             // check if split output tx is available for offer
-            if (splitOutputTx.isLocked()) return splitOutputTx;
-            else {
-                boolean isAvailable = true;
-                for (MoneroOutputWallet output : splitOutputTx.getOutputsWallet()) {
-                    if (output.isSpent() || output.isFrozen()) {
-                        isAvailable = false;
-                        break;
+            if (splitOutputTx != null) {
+                if (splitOutputTx.isLocked()) return splitOutputTx;
+                else {
+                    boolean isAvailable = true;
+                    for (MoneroOutputWallet output : splitOutputTx.getOutputsWallet()) {
+                        if (output.isSpent() || output.isFrozen()) {
+                            isAvailable = false;
+                            break;
+                        }
                     }
+                    if (isAvailable || isReservedByOffer(openOffer, splitOutputTx)) return splitOutputTx;
+                    else log.warn("Split output tx {} is no longer available for offer {}", openOffer.getSplitOutputTxHash(), openOffer.getId());
                 }
-                if (isAvailable || isReservedByOffer(openOffer, splitOutputTx)) return splitOutputTx;
-                else log.warn("Split output tx is no longer available for offer {}", openOffer.getId());
+            } else {
+                log.warn("Split output tx {} no longer exists for offer {}", openOffer.getSplitOutputTxHash(), openOffer.getId());
             }
         }
 
@@ -1260,7 +1264,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private List<MoneroTxWallet> getSplitOutputFundingTxs(BigInteger reserveAmount, Integer preferredSubaddressIndex) {
-        List<MoneroTxWallet> splitOutputTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsIncoming(true).setIsFailed(false));
+        List<MoneroTxWallet> splitOutputTxs = xmrWalletService.getTxs(new MoneroTxQuery().setIsFailed(false)); // TODO: not using setIsIncoming(true) because split output txs sent to self have false; fix in monero-java?
         Set<MoneroTxWallet> removeTxs = new HashSet<MoneroTxWallet>();
         for (MoneroTxWallet tx : splitOutputTxs) {
             if (tx.getOutputs() != null) { // outputs not available until first confirmation
@@ -1283,6 +1287,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         boolean hasExactTransfer = (tx.getTransfers(new MoneroTransferQuery()
                 .setAccountIndex(0)
                 .setSubaddressIndex(preferredSubaddressIndex)
+                .setIsIncoming(true)
                 .setAmount(amount)).size() > 0);
         return hasExactTransfer;
     }
@@ -1756,6 +1761,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             errorMessage = "Exception at handleSignOfferRequest " + e.getMessage();
             log.error(errorMessage + "\n", e);
         } finally {
+            if (result == false && errorMessage == null) {
+                log.warn("Arbitrator is NACKing SignOfferRequest for unknown reason with offerId={}. That should never happen", request.getOfferId());
+                log.warn("Printing stacktrace:");
+                Thread.dumpStack();
+            }
             sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }
     }
@@ -1945,8 +1955,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 result,
                 errorMessage);
 
-        log.info("Send AckMessage for {} to peer {} with offerId {} and sourceUid {}",
-                reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid());
+        if (ackMessage.isSuccess()) {
+            log.info("Send AckMessage for {} to peer {} with offerId {} and sourceUid {}",
+                    reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid());
+        } else {
+            log.warn("Sending NACK for {} to peer {} with offerId {} and sourceUid {}, errorMessage={}",
+                    reqClass.getSimpleName(), sender, offerId, ackMessage.getSourceUid(), errorMessage);
+        }
+
         p2PService.sendEncryptedDirectMessage(
                 sender,
                 senderPubKeyRing,
@@ -1972,8 +1988,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void maybeUpdatePersistedOffers() {
-        List<OpenOffer> openOffersClone = getOpenOffers();
-        openOffersClone.forEach(originalOpenOffer -> {
+
+        // update open offers
+        List<OpenOffer> updatedOpenOffers = new ArrayList<>();
+        getOpenOffers().forEach(originalOpenOffer -> {
             Offer originalOffer = originalOpenOffer.getOffer();
 
             OfferPayload originalOfferPayload = originalOffer.getOfferPayload();
@@ -2068,15 +2086,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // create new offer
                 Offer updatedOffer = new Offer(updatedPayload);
                 updatedOffer.setPriceFeedService(priceFeedService);
-
                 long normalizedTriggerPrice = originalOffer.isInverted() ? PriceUtil.invertLongPrice(originalOpenOffer.getTriggerPrice(), originalOffer.getCounterCurrencyCode()) : originalOpenOffer.getTriggerPrice();
-                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, normalizedTriggerPrice);
+                OpenOffer updatedOpenOffer = new OpenOffer(updatedOffer, normalizedTriggerPrice, originalOpenOffer.isReserveExactAmount(), originalOpenOffer.getGroupId());
                 updatedOpenOffer.setChallenge(originalOpenOffer.getChallenge());
-                addOpenOffer(updatedOpenOffer);
-                requestPersistence();
-
-                log.info("Updating offer completed. id={}", originalOffer.getId());
+                updatedOpenOffers.add(updatedOpenOffer);
             }
+        });
+
+        // add updated open offers
+        updatedOpenOffers.forEach(updatedOpenOffer -> {
+            addOpenOffer(updatedOpenOffer);
+            requestPersistence();
+            log.info("Updating offer completed. id={}", updatedOpenOffer.getId());
         });
     }
 
