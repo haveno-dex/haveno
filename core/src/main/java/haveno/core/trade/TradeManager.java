@@ -418,6 +418,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
+    private void unregisterTradeProtocol(Trade trade) {
+        synchronized (tradeProtocolByTradeId) {
+            tradeProtocolByTradeId.remove(trade.getUid());
+        }
+    }
+
     public TradeProtocol createTradeProtocol(Trade trade) {
         synchronized (tradeProtocolByTradeId) {
             TradeProtocol tradeProtocol = TradeProtocolFactory.getNewTradeProtocol(trade);
@@ -1102,14 +1108,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade is in already in critical state (if taker role: taker fee; both roles: after deposit published)
     // we move the trade to FailedTradesManager
     public void onMoveInvalidTradeToFailedTrades(Trade trade) {
+        log.warn("Moving {} {} to failed trades", trade.getClass().getSimpleName(), trade.getShortId());
         if (trade.isInitialized()) {
-            ThreadUtils.execute(() -> {
+            ThreadUtils.submitToPool(() -> {
                 try {
                     trade.shutDown();
+                    unregisterTradeProtocol(trade);
                 } catch (Exception e) {
                     log.warn("Error shutting down {} {} on move to failed trades", trade.getClass().getSimpleName(), trade.getShortId(), e);
                 }
-            }, trade.getId() + "_init");
+            });
         }
         failedTradesManager.add(trade);
         removeTrade(trade);
@@ -1140,7 +1148,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 } catch (Exception e) {
                     log.warn("Error initializing {} {} on move to pending trades", trade.getClass().getSimpleName(), trade.getShortId(), e);
                 }
-            }, trade.getId() + "_init");
+            }, trade.getId());
         }
         addTrade(trade);
     }
