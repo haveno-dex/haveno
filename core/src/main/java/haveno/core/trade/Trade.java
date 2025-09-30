@@ -2856,7 +2856,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (isShutDownStarted || isPolling()) return;
             updatePollPeriod();
             log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
-            pollLooper = new TaskLooper(() -> pollWallet());
+            pollLooper = new TaskLooper(() -> new Thread(() -> pollWallet()).start());
             pollLooper.start(pollPeriodMs);
         }
     }
