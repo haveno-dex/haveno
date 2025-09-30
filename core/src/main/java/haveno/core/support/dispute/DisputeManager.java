@@ -1184,7 +1184,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         if (dispute.isClosed()) return false;
         Optional<Trade> tradeOptional = findTrade(dispute);
         if (!tradeOptional.isPresent()) {
-            log.warn("Dispute trade {} does not exist", dispute.getTradeId());
+            //log.warn("Dispute trade {} does not exist", dispute.getTradeId());
             return false;
         }
         Trade trade = tradeOptional.get();
