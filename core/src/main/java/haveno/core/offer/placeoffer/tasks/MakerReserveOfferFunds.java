@@ -57,8 +57,15 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
             // skip if reserve tx already created
             if (openOffer.getReserveTxHash() != null && !openOffer.getReserveTxHash().isEmpty()) {
                 log.info("Reserve tx already created for offerId={}", openOffer.getShortId());
-                complete();
-                return;
+
+                // verify reserve tx key images
+                if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null || openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().isEmpty()) {
+                    log.warn("Reserve tx key images missing for offerId={}", openOffer.getShortId());
+                    setReserveTx(null);
+                } else {
+                    complete();
+                    return;
+                }
             }
 
             // verify monero connection
@@ -115,39 +122,23 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 } catch (Exception e) {
 
                     // reset state with wallet lock
+                    setReserveTx(null);
                     model.getXmrWalletService().resetAddressEntriesForOpenOffer(offer.getId());
                     if (reserveTx != null) model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
-                    offer.getOfferPayload().setReserveTxKeyImages(null);
                     throw e;
                 }
 
                 // reset protocol timeout
                 model.getProtocol().startTimeoutTimer();
 
-                // collect reserved key images
-                List<String> reservedKeyImages = new ArrayList<String>();
-                for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
-
-                // update offer state including clones
-                if (openOffer.getGroupId() == null) {
-                    openOffer.setReserveTxHash(reserveTx.getHash());
-                    openOffer.setReserveTxHex(reserveTx.getFullHex());
-                    openOffer.setReserveTxKey(reserveTx.getKey());
-                    offer.getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
-                } else {
-                    for (OpenOffer offerClone : model.getOpenOfferManager().getOpenOfferGroup(model.getOpenOffer().getGroupId())) {
-                        offerClone.setReserveTxHash(reserveTx.getHash());
-                        offerClone.setReserveTxHex(reserveTx.getFullHex());
-                        offerClone.setReserveTxKey(reserveTx.getKey());
-                        offerClone.getOffer().getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
-                    }
-                }
+                // update offer reserve tx
+                setReserveTx(reserveTx);
 
                 // reset offer funding address entries if unused
                 if (fundingEntry != null) {
 
                     // get reserve tx inputs
-                    List<MoneroOutputWallet> inputs = model.getXmrWalletService().getOutputs(reservedKeyImages);
+                    List<MoneroOutputWallet> inputs = model.getXmrWalletService().getOutputs(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
 
                     // collect subaddress indices of inputs
                     Set<Integer> inputSubaddressIndices = new HashSet<>();
@@ -172,6 +163,33 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 "Error message:\n"
                 + t.getMessage());
             failed(t);
+        }
+    }
+
+    private void setReserveTx(MoneroTxWallet reserveTx) {
+        OpenOffer openOffer = model.getOpenOffer();
+
+        // collect reserved key images
+        List<String> reservedKeyImages = null;
+        if (reserveTx != null) {
+            reservedKeyImages = new ArrayList<String>();
+            for (MoneroOutput input : reserveTx.getInputs()) reservedKeyImages.add(input.getKeyImage().getHex());
+        }
+
+        // collect offers to update
+        List<OpenOffer> offersToUpdate = new ArrayList<OpenOffer>();
+        if (openOffer.getGroupId() == null) {
+            offersToUpdate.add(openOffer);
+        } else {
+            offersToUpdate.addAll(model.getOpenOfferManager().getOpenOfferGroup(model.getOpenOffer().getGroupId()));
+        }
+
+        // update offer state
+        for (OpenOffer offerToUpdate : offersToUpdate) {
+            offerToUpdate.setReserveTxHash(reserveTx == null ? null : reserveTx.getHash());
+            offerToUpdate.setReserveTxHex(reserveTx == null ? null : reserveTx.getFullHex());
+            offerToUpdate.setReserveTxKey(reserveTx == null ? null : reserveTx.getKey());
+            offerToUpdate.getOffer().getOfferPayload().setReserveTxKeyImages(reservedKeyImages);
         }
     }
 
