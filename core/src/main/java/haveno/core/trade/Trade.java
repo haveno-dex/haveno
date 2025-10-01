@@ -1761,7 +1761,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void shutDown() {
         if (isShutDown) return; // ignore if already shut down
         onShutDownStarted();
-        if (!isPayoutFinalized() || !(isPayoutUnlocked() && !walletExistsNoSync())) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
+        boolean isUnlockedAndDeleted = isPayoutUnlocked() && !walletExistsNoSync(); // previous versions deleted wallet after payout unlocked
+        if (!isPayoutFinalized() && !isUnlockedAndDeleted) log.info("Shutting down {} {}", getClass().getSimpleName(), getId());
 
         // unregister p2p message listener
         removeDecryptedDirectMessageListener();
