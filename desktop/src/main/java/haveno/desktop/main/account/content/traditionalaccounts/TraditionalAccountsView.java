@@ -277,7 +277,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
             new Popup().information(Res.get("payment.f2f.info"))
                     .width(700)
                     .closeButtonText(Res.get("payment.f2f.info.openURL"))
-                    .onClose(() -> GUIUtil.openWebPage("https://docs.haveno.exchange/the-project/payment_methods/F2F"))
+                    .onClose(() -> GUIUtil.openWebPage("https://docs.haveno.exchange/overview/payment_methods/F2F"))
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> doSaveNewAccount(paymentAccount))
                     .show();
