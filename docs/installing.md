@@ -32,6 +32,18 @@ sdk install java 21.0.2.fx-librca
 
 Restart the terminal for the changes to take effect.
 
+On [NixOS](https://nixos.org) or using [Nix](https://nixos.org/download) on any platform:
+
+```
+git clone https://github.com/haveno-dex/haveno.git
+cd haveno
+nix-shell
+```
+
+*No need to install dependencies neither java. They are managed by shell.nix file in the project.*
+
+*In nix-shell terminal, you can build and run haveno.*
+
 ## Build Haveno
 
 If it's the first time you are building Haveno, run the following commands to download the repository, the needed dependencies, and build the latest release. If using a third party network, replace the repository URL with theirs:
