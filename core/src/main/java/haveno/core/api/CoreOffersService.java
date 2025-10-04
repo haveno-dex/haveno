@@ -313,6 +313,14 @@ public class CoreOffersService {
                 extraInfo);
     }
 
+    void deactivateOffer(String offerId, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        openOfferManager.deactivateOpenOffer(getMyOffer(offerId), false, resultHandler, errorMessageHandler);
+    }
+
+    void activateOffer(String offerId, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        openOfferManager.activateOpenOffer(getMyOffer(offerId), resultHandler, errorMessageHandler);
+    }
+
     void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Offer offer = getMyOffer(id).getOffer();
         openOfferManager.removeOffer(offer, resultHandler, errorMessageHandler);

@@ -480,6 +480,14 @@ public class CoreApi {
                 extraInfo);
     }
 
+    public void deactivateOffer(String offerId, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        coreOffersService.deactivateOffer(offerId, resultHandler, errorMessageHandler);
+    }
+
+    public void activateOffer(String offerId, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        coreOffersService.activateOffer(offerId, resultHandler, errorMessageHandler);
+    }
+
     public void cancelOffer(String id, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         coreOffersService.cancelOffer(id, resultHandler, errorMessageHandler);
     }

@@ -475,6 +475,10 @@ service Offers {
     }
     rpc PostOffer (PostOfferRequest) returns (PostOfferReply) {
     }
+    rpc DeactivateOffer (DeactivateOfferRequest) returns (DeactivateOfferReply) {
+    }
+    rpc ActivateOffer (ActivateOfferRequest) returns (ActivateOfferReply) {
+    }
     rpc CancelOffer (CancelOfferRequest) returns (CancelOfferReply) {
     }
 }
@@ -533,6 +537,20 @@ message PostOfferRequest {
 
 message PostOfferReply {
     OfferInfo offer = 1;
+}
+
+message DeactivateOfferRequest {
+    string offer_id = 1;
+}
+
+message DeactivateOfferReply {
+}
+
+message ActivateOfferRequest {
+    string offer_id = 1;
+}
+
+message ActivateOfferReply {
 }
 
 message CancelOfferRequest {
