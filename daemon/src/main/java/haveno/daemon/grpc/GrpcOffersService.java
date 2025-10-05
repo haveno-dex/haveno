@@ -26,8 +26,12 @@ import haveno.core.offer.OpenOffer;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import haveno.proto.grpc.ActivateOfferReply;
+import haveno.proto.grpc.ActivateOfferRequest;
 import haveno.proto.grpc.CancelOfferReply;
 import haveno.proto.grpc.CancelOfferRequest;
+import haveno.proto.grpc.DeactivateOfferReply;
+import haveno.proto.grpc.DeactivateOfferRequest;
 import haveno.proto.grpc.GetMyOfferReply;
 import haveno.proto.grpc.GetMyOfferRequest;
 import haveno.proto.grpc.GetMyOffersReply;
@@ -38,6 +42,8 @@ import haveno.proto.grpc.GetOffersReply;
 import haveno.proto.grpc.GetOffersRequest;
 import static haveno.proto.grpc.OffersGrpc.OffersImplBase;
 import static haveno.proto.grpc.OffersGrpc.getCancelOfferMethod;
+import static haveno.proto.grpc.OffersGrpc.getDeactivateOfferMethod;
+import static haveno.proto.grpc.OffersGrpc.getActivateOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetMyOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetMyOffersMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetOfferMethod;
@@ -172,6 +178,40 @@ class GrpcOffersService extends OffersImplBase {
                     errorMessage -> {
                         if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void deactivateOffer(DeactivateOfferRequest req,
+                            StreamObserver<DeactivateOfferReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getDeactivateOfferMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
+        try {
+            coreApi.deactivateOffer(req.getOfferId(), () -> {
+                var reply = DeactivateOfferReply.newBuilder().build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            }, errorMessage -> {
+                if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+            });
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void activateOffer(ActivateOfferRequest req,
+                            StreamObserver<ActivateOfferReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getActivateOfferMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
+        try {
+            coreApi.activateOffer(req.getOfferId(), () -> {
+                var reply = ActivateOfferReply.newBuilder().build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            }, errorMessage -> {
+                if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+            });
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
