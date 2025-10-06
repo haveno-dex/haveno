@@ -178,7 +178,6 @@ public abstract class XmrWalletBase {
                     long appliedTargetHeight = repeatSyncToLatestHeight ? xmrConnectionService.getTargetHeight() : targetHeightAtStart;
                     updateSyncProgress(height, appliedTargetHeight);
                     if (height >= appliedTargetHeight) {
-                        setWalletSyncedWithProgress();
                         syncProgressLatch.countDown();
                     }
                 });
@@ -187,21 +186,20 @@ public abstract class XmrWalletBase {
 
                 // wait for sync to complete
                 HavenoUtils.awaitLatch(syncProgressLatch);
-
-                // stop polling
                 syncProgressLooper.stop();
-                syncProgressTimeout.stop();
-                if (wallet != null) { // can become null if interrupted by force close
-                    if (syncProgressError == null || !HavenoUtils.isUnresponsive(syncProgressError)) { // TODO: skipping stop sync if unresponsive because wallet will hang. if unresponsive, wallet is assumed to be force restarted by caller, but that should be done internally here instead of externally?
-                        wallet.stopSyncing();
-                        saveWalletIfElapsedTime();
-                    }
+
+
+                // set synced or throw error
+                if (syncProgressError == null) {
+                    setWalletSyncedWithProgress();
+                } else {
+                    throw new RuntimeException(syncProgressError);
                 }
-                if (syncProgressError != null) throw new RuntimeException(syncProgressError);
             } catch (Exception e) {
                 throw e;
             } finally {
                 isSyncingWithProgress = false;
+                if (syncProgressTimeout != null) syncProgressTimeout.stop();
             }
         }
     }
@@ -272,8 +270,16 @@ public abstract class XmrWalletBase {
     }
 
     private void setWalletSyncedWithProgress() {
+
+        // stop syncing and save wallet if elapsed time
+        if (wallet != null) { // can become null if interrupted by force close
+            if (syncProgressError == null || !HavenoUtils.isUnresponsive(syncProgressError)) { // TODO: skipping stop sync if unresponsive because wallet will hang. if unresponsive, wallet is assumed to be force restarted by caller, but that should be done internally here instead of externally?
+                wallet.stopSyncing();
+                saveWalletIfElapsedTime();
+            }
+        }
+
+        // update state
         wasWalletSynced = true;
-        isSyncingWithProgress = false;
-        if (syncProgressTimeout != null) syncProgressTimeout.stop();
     }
 }
