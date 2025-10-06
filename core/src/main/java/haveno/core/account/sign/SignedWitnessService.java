@@ -29,8 +29,8 @@ import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.user.User;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
@@ -60,7 +60,7 @@ import org.bitcoinj.core.Utils;
 public class SignedWitnessService {
     public static final long SIGNER_AGE_DAYS = 30;
     private static final long SIGNER_AGE = SIGNER_AGE_DAYS * ChronoUnit.DAYS.getDuration().toMillis();
-    public static final BigInteger MINIMUM_TRADE_AMOUNT_FOR_SIGNING = HavenoUtils.xmrToAtomicUnits(.1);
+    public static final BigInteger MINIMUM_TRADE_AMOUNT_FOR_SIGNING = Restrictions.getMinTradeAmount();
 
     private final KeyRing keyRing;
     private final P2PService p2PService;
