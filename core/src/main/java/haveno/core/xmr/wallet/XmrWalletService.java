@@ -1466,7 +1466,7 @@ public class XmrWalletService extends XmrWalletBase {
                         long time = System.currentTimeMillis();
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
-                            syncWithProgress(true); // repeat sync to latest target height
+                            syncWithProgress(!wasWalletSynced); // repeat sync to latest target height until first sync
                         } catch (Exception e) {
                             if (wallet != null) log.warn("Error syncing wallet with progress on startup: " + e.getMessage());
                             forceCloseMainWallet();
