@@ -38,7 +38,6 @@ import com.google.common.base.Charsets;
 
 import haveno.common.Timer;
 import haveno.common.UserThread;
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.account.sign.SignedWitness;
@@ -49,9 +48,7 @@ import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
-import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.JsonUtil;
-import haveno.network.p2p.NodeAddress;
 import javafx.beans.value.ChangeListener;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -78,18 +75,6 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
 
     public SellerSendPaymentReceivedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
-    }
-    
-    protected abstract TradePeer getReceiver();
-    
-    @Override
-    protected NodeAddress getReceiverNodeAddress() {
-        return getReceiver().getNodeAddress();
-    }
-
-    @Override
-    protected PubKeyRing getReceiverPubKeyRing() {
-        return getReceiver().getPubKeyRing();
     }
 
     @Override

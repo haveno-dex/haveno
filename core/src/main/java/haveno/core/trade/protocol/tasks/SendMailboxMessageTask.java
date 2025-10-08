@@ -20,6 +20,7 @@ package haveno.core.trade.protocol.tasks;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendMailboxMessageListener;
 import haveno.network.p2p.mailbox.MailboxMessage;
@@ -31,12 +32,14 @@ public abstract class SendMailboxMessageTask extends TradeTask {
         super(taskHandler, trade);
     }
 
+    protected abstract TradePeer getReceiver();
+
     protected NodeAddress getReceiverNodeAddress() {
-        return trade.getTradePeer().getNodeAddress();
+        return getReceiver().getNodeAddress();
     }
 
     protected PubKeyRing getReceiverPubKeyRing() {
-        return trade.getTradePeer().getPubKeyRing();
+        return getReceiver().getPubKeyRing();
     }
 
     protected abstract MailboxMessage getMailboxMessage(String tradeId);

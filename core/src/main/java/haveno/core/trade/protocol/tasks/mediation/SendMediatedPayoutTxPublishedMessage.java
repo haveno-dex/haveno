@@ -21,6 +21,7 @@ import haveno.common.taskrunner.TaskRunner;
 import haveno.core.support.dispute.mediation.MediationResultState;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.TradeMailboxMessage;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.tasks.SendMailboxMessageTask;
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,6 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 public class SendMediatedPayoutTxPublishedMessage extends SendMailboxMessageTask {
     public SendMediatedPayoutTxPublishedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
+    }
+
+    @Override
+    protected TradePeer getReceiver() {
+        return trade.getTradePeer();
     }
 
     @Override
