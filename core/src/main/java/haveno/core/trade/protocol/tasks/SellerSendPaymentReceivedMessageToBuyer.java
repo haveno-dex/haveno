@@ -19,8 +19,8 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
-import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.protocol.TradePeer;
+import haveno.network.p2p.mailbox.MailboxMessage;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
@@ -63,7 +63,7 @@ public class SellerSendPaymentReceivedMessageToBuyer extends SellerSendPaymentRe
 
     // continue execution on fault so payment received message is sent to arbitrator
     @Override
-    protected void onFault(String errorMessage, TradeMessage message) {
+    protected void onFault(String errorMessage, MailboxMessage message) {
         setStateFault();
         appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
         complete();

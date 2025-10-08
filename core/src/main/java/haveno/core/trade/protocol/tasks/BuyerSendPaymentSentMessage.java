@@ -104,7 +104,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
     }
 
     @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
+    protected TradeMailboxMessage getMailboxMessage(String tradeId) {
         if (getReceiver().getPaymentSentMessage() == null) {
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the

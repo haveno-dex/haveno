@@ -78,7 +78,7 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
     }
 
     @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
+    protected TradeMailboxMessage getMailboxMessage(String tradeId) {
         if (message == null) {
 
             // export multisig hex once

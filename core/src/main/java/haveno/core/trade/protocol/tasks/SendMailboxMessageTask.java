@@ -20,10 +20,9 @@ package haveno.core.trade.protocol.tasks;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
-import haveno.core.trade.messages.TradeMailboxMessage;
-import haveno.core.trade.messages.TradeMessage;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendMailboxMessageListener;
+import haveno.network.p2p.mailbox.MailboxMessage;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -40,7 +39,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
         return trade.getTradePeer().getPubKeyRing();
     }
 
-    protected abstract TradeMailboxMessage getTradeMailboxMessage(String tradeId);
+    protected abstract MailboxMessage getMailboxMessage(String tradeId);
 
     protected abstract void setStateSent();
 
@@ -55,7 +54,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
         try {
             runInterceptHook();
             String id = processModel.getOfferId();
-            TradeMailboxMessage message = getTradeMailboxMessage(id);
+            MailboxMessage message = getMailboxMessage(id);
             setStateSent();
             NodeAddress peersNodeAddress = getReceiverNodeAddress();
             log.info("Send {} to peer {} for {} {}, uid={}",
@@ -69,21 +68,21 @@ public abstract class SendMailboxMessageTask extends TradeTask {
                     new SendMailboxMessageListener() {
                         @Override
                         public void onArrived() {
-                            log.info("{} arrived at peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid());
+                            log.info("{} arrived at peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, trade.getId(), message.getUid());
                             setStateArrived();
                             if (!task.isCompleted()) complete();
                         }
 
                         @Override
                         public void onStoredInMailbox() {
-                            log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid());
+                            log.info("{} stored in mailbox for peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, trade.getId(), message.getUid());
                             SendMailboxMessageTask.this.onStoredInMailbox();
                         }
 
                         @Override
                         public void onFault(String errorMessage) {
                             if (processModel.getP2PService().isShutDownStarted()) return;
-                            log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}", message.getClass().getSimpleName(), peersNodeAddress, message.getOfferId(), message.getUid(), errorMessage);
+                            log.error("{} failed: Peer {}. tradeId={}, uid={}, errorMessage={}", message.getClass().getSimpleName(), peersNodeAddress, trade.getId(), message.getUid(), errorMessage);
                             SendMailboxMessageTask.this.onFault(errorMessage, message);
                         }
                     }
@@ -98,7 +97,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
         if (!isCompleted()) complete();
     }
 
-    protected void onFault(String errorMessage, TradeMessage message) {
+    protected void onFault(String errorMessage, MailboxMessage message) {
         setStateFault();
         appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
         failed(errorMessage);

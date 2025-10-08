@@ -32,7 +32,7 @@ public class SendMediatedPayoutTxPublishedMessage extends SendMailboxMessageTask
     }
 
     @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String id) {
+    protected TradeMailboxMessage getMailboxMessage(String id) {
         throw new RuntimeException("SendMediatedPayoutTxPublishedMessage.getMessage(id) not implemented for xmr");
 //        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
 //        return new MediatedPayoutTxPublishedMessage(

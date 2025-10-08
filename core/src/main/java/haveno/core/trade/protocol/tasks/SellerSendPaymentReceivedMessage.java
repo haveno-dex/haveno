@@ -117,7 +117,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     }
 
     @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
+    protected TradeMailboxMessage getMailboxMessage(String tradeId) {
         if (getReceiver().getPaymentReceivedMessage() == null) {
 
             // sign account witness
