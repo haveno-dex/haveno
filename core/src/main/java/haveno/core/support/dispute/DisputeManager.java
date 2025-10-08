@@ -606,8 +606,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         }
         if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
 
-        // // save message for reprocessing
-        // // TODO: handle reprocessing if needed
+        // TODO: save message for reprocessing (arbitrator must remove this when processed or it'll attempt to be sent to peer)
         // sender.setDisputeOpenedMessage(message);
 
         // process on trade thread
