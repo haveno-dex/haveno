@@ -25,7 +25,9 @@ import haveno.common.UserThread;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.network.MessageState;
 import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.network.p2p.mailbox.MailboxMessage;
@@ -50,6 +52,7 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
     private static final int MAX_RESEND_ATTEMPTS = 20;
     private int delayInMin = 10;
     private int resendCounter = 0;
+    private DisputeOpenedMessage message = null;
 
     public ArbitratorSendDisputeOpenedMessage(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -60,12 +63,19 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
         try {
             runInterceptHook();
 
+            // reset nack state
+            if (getReceiver().isDisputeOpenedMessageReceived()) {
+                getReceiver().setDisputeOpenedMessageState(MessageState.UNDEFINED);
+            }
+
             // skip if not applicable or already acked
-            if (getReceiver().getDisputeOpenedMessage() == null || isAckedByReceiver()) {
+            if (stopSending()) {
                 if (!isCompleted()) complete();
                 return;
             }
 
+            // reset ack state
+            getReceiver().setPaymentReceivedMessageState(MessageState.UNDEFINED);
             super.run();
         } catch (Throwable t) {
             failed(t);
@@ -82,7 +92,8 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
 
     @Override
     protected MailboxMessage getMailboxMessage(String tradeId) {
-        return getReceiver().getDisputeOpenedMessage();
+        if (message == null) message = getReceiver().getDisputeOpenedMessage();
+        return message;
     }
 
     @Override
@@ -125,7 +136,7 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
     private void tryToSendAgainLater() {
 
         // skip if already acked
-        if (isAckedByReceiver()) return;
+        if (stopSending()) return;
 
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
@@ -159,12 +170,21 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
     }
 
     private void onMessageStateChange(MessageState newValue) {
-        if (isAckedByReceiver()) {
+        if (isMessageReceived()) {
             cleanup();
         }
     }
 
-    protected boolean isAckedByReceiver() {
+    protected boolean isMessageReceived() {
         return getReceiver().isDisputeOpenedMessageReceived();
+    }
+
+    protected boolean stopSending() {
+        if (getReceiver().getDisputeOpenedMessage() == null) return true; // stop if no message to send
+        if (isMessageReceived()) return true; // stop if message received
+        if (trade.isPayoutPublished()) return true; // stop if payout is published
+        if (!((ArbitratorTrade) trade).resendDisputeOpenedMessageWithinDuration()) return true; // stop if payout is published and we are not in the resend period
+        if (message != null && !message.equals(getReceiver().getDisputeOpenedMessage())) return true; // stop if message state is outdated
+        return false;
     }
 }
