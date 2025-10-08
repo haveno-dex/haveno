@@ -9,9 +9,12 @@ import haveno.core.trade.messages.DepositResponse;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.SignContractResponse;
 import haveno.core.trade.messages.TradeMessage;
+import haveno.core.trade.protocol.FluentProtocol.Condition;
 import haveno.core.trade.protocol.tasks.ApplyFilter;
 import haveno.core.trade.protocol.tasks.ArbitratorProcessDepositRequest;
 import haveno.core.trade.protocol.tasks.ArbitratorProcessReserveTx;
+import haveno.core.trade.protocol.tasks.ArbitratorSendDisputeOpenedMessageToBuyer;
+import haveno.core.trade.protocol.tasks.ArbitratorSendDisputeOpenedMessageToSeller;
 import haveno.core.trade.protocol.tasks.ArbitratorSendInitTradeOrMultisigRequests;
 import haveno.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToBuyer;
@@ -36,6 +39,42 @@ public class ArbitratorProtocol extends DisputeProtocol {
     @Override
     public void onMailboxMessage(TradeMessage message, NodeAddress peer) {
         super.onMailboxMessage(message, peer);
+    }
+
+    @Override
+    protected void onInitialized() {
+        super.onInitialized();
+
+        // re-send dispute opened message if applicable
+        sendDisputeOpenedMessageIfApplicable();
+
+        // TODO: resend dispute closed message if not acked
+    }
+
+    public void sendDisputeOpenedMessageIfApplicable() {
+        ThreadUtils.execute(() -> {
+            if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+            synchronized (trade.getLock()) {
+                if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
+                if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_OPENED) {
+                    latchTrade();
+                    given(new Condition(trade))
+                        .setup(tasks(
+                                ArbitratorSendDisputeOpenedMessageToBuyer.class,
+                                ArbitratorSendDisputeOpenedMessageToSeller.class)
+                        .using(new TradeTaskRunner(trade,
+                                () -> {
+                                    unlatchTrade();
+                                },
+                                (errorMessage) -> {
+                                    log.warn("Error sending DisputeOpenedMessage: " + errorMessage);
+                                    unlatchTrade();
+                                })))
+                        .executeTasks();
+                    awaitTradeLatch();
+                }
+            }
+        }, trade.getId());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

@@ -255,6 +255,13 @@ public final class TradePeer implements PersistablePayload {
         }
     }
 
+    public void setDisputeOpenedAckMessage(AckMessage ackMessage) {
+        MessageState messageState = ackMessage.isSuccess() ?
+                MessageState.ACKNOWLEDGED :
+                MessageState.NACKED;
+        setDisputeOpenedMessageState(messageState);
+    }
+
     public void setDisputeOpenedMessageState(MessageState disputeOpenedMessageStateProperty) {
         this.disputeOpenedMessageStateProperty.set(disputeOpenedMessageStateProperty);
         if (tradeManager != null) {
@@ -291,6 +298,10 @@ public final class TradePeer implements PersistablePayload {
 
     public boolean isPaymentReceivedMessageArrived() {
         return paymentReceivedMessageStateProperty.get() == MessageState.ARRIVED;
+    }
+
+    public boolean isDisputeOpenedMessageReceived() {
+        return disputeOpenedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || disputeOpenedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX || disputeOpenedMessageStateProperty.get() == MessageState.NACKED;
     }
 
     @Override

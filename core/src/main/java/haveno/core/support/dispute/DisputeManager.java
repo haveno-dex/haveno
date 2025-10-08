@@ -68,6 +68,7 @@ import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.ArbitratorProtocol;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.TradeWalletService;
@@ -590,11 +591,29 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // use existing dispute or create new
         Dispute dispute = reOpen ? storedDisputeOptional.get() : msgDispute;
 
+        // get contract
+        Contract contract = dispute.getContract();
+
+        // get sender
+        TradePeer sender;
+        PubKeyRing senderPubKeyRing;
+        if (reOpen) { // re-open can come from either peer
+            sender = trade.isArbitrator() ? trade.getTradePeer(message.getSenderNodeAddress()) : trade.getArbitrator();
+            senderPubKeyRing = sender.getPubKeyRing();
+        } else {
+            senderPubKeyRing = trade.isArbitrator() ? (dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing()) : trade.getArbitrator().getPubKeyRing();
+            sender = trade.getTradePeer(senderPubKeyRing);
+        }
+        if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
+
+        // // save message for reprocessing
+        // // TODO: handle reprocessing if needed
+        // sender.setDisputeOpenedMessage(message);
+
         // process on trade thread
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
                 String errorMessage = null;
-                PubKeyRing senderPubKeyRing = null;
                 try {
 
                     // initialize
@@ -605,7 +624,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     }
                     dispute.setSupportType(message.getSupportType());
                     dispute.setState(Dispute.State.NEW);
-                    Contract contract = dispute.getContract();
 
                     // validate dispute
                     try {
@@ -633,17 +651,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         if (trade.getBuyer().getPaymentAccountPayload() == null) trade.getBuyer().setPaymentAccountPayload(dispute.getBuyerPaymentAccountPayload());
                         if (trade.getSeller().getPaymentAccountPayload() == null) trade.getSeller().setPaymentAccountPayload(dispute.getSellerPaymentAccountPayload());
                     }
-
-                    // get sender
-                    TradePeer sender;
-                    if (reOpen) { // re-open can come from either peer
-                        sender = trade.isArbitrator() ? trade.getTradePeer(message.getSenderNodeAddress()) : trade.getArbitrator();
-                        senderPubKeyRing = sender.getPubKeyRing();
-                    } else {
-                        senderPubKeyRing = trade.isArbitrator() ? (dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing()) : trade.getArbitrator().getPubKeyRing();
-                        sender = trade.getTradePeer(senderPubKeyRing);
-                    }
-                    if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
 
                     // update sender node address
                     sender.setNodeAddress(message.getSenderNodeAddress());
@@ -833,8 +840,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         // create dispute opened message with peer dispute
         TradePeer peer = trade.getTradePeer(pubKeyRing);
-        PubKeyRing peersPubKeyRing = peer.getPubKeyRing();
-        NodeAddress peersNodeAddress = peer.getNodeAddress();
         DisputeOpenedMessage peerOpenedDisputeMessage = new DisputeOpenedMessage(dispute,
                 p2PService.getAddress(),
                 UUID.randomUUID().toString(),
@@ -842,61 +847,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 updatedMultisigHex,
                 trade.getArbitrator().getPaymentSentMessage());
 
-        log.info("Send {} to peer {}. tradeId={}, peerOpenedDisputeMessage.uid={}, chatMessage.uid={}",
-                peerOpenedDisputeMessage.getClass().getSimpleName(), peersNodeAddress,
-                peerOpenedDisputeMessage.getTradeId(), peerOpenedDisputeMessage.getUid(),
-                chatMessage.getUid());
-        recordPendingMessage(peerOpenedDisputeMessage.getClass().getSimpleName());
-        mailboxMessageService.sendEncryptedMailboxMessage(peersNodeAddress,
-                peersPubKeyRing,
-                peerOpenedDisputeMessage,
-                new SendMailboxMessageListener() {
-                    @Override
-                    public void onArrived() {
-                        log.info("{} arrived at peer {}. tradeId={}, peerOpenedDisputeMessage.uid={}, " +
-                                        "chatMessage.uid={}",
-                                peerOpenedDisputeMessage.getClass().getSimpleName(), peersNodeAddress,
-                                peerOpenedDisputeMessage.getTradeId(), peerOpenedDisputeMessage.getUid(),
-                                chatMessage.getUid());
+        // save message for resending if needed
+        peer.setDisputeOpenedMessage(peerOpenedDisputeMessage);
 
-                        clearPendingMessage();
-                        // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
-                        // the state, as that is displayed to the user and we only persist that msg
-                        chatMessage.setArrived(true);
-                        persistNow(null);
-                    }
-
-                    @Override
-                    public void onStoredInMailbox() {
-                        log.info("{} stored in mailbox for peer {}. tradeId={}, peerOpenedDisputeMessage.uid={}, " +
-                                        "chatMessage.uid={}",
-                                peerOpenedDisputeMessage.getClass().getSimpleName(), peersNodeAddress,
-                                peerOpenedDisputeMessage.getTradeId(), peerOpenedDisputeMessage.getUid(),
-                                chatMessage.getUid());
-
-                        clearPendingMessage();
-                        // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
-                        // the state, as that is displayed to the user and we only persist that msg
-                        chatMessage.setStoredInMailbox(true);
-                        persistNow(null);
-                    }
-
-                    @Override
-                    public void onFault(String errorMessage) {
-                        log.error("{} failed: Peer {}. tradeId={}, peerOpenedDisputeMessage.uid={}, " +
-                                        "chatMessage.uid={}, errorMessage={}",
-                                peerOpenedDisputeMessage.getClass().getSimpleName(), peersNodeAddress,
-                                peerOpenedDisputeMessage.getTradeId(), peerOpenedDisputeMessage.getUid(),
-                                chatMessage.getUid(), errorMessage);
-
-                        clearPendingMessage();
-                        // We use the chatMessage wrapped inside the peerOpenedDisputeMessage for
-                        // the state, as that is displayed to the user and we only persist that msg
-                        chatMessage.setSendMessageError(errorMessage);
-                        persistNow(null);
-                    }
-                }
-        );
+        // send dispute opened message
+        ((ArbitratorProtocol) trade.getProtocol()).sendDisputeOpenedMessageIfApplicable();
         persistNow(null);
     }
 
@@ -1142,6 +1097,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 .findAny();
     }
 
+    // TODO: throw if more than one dispute found? should not be called then
     public Optional<Dispute> findDispute(String tradeId) {
         T disputeList = getDisputeList();
         if (disputeList == null) {
