@@ -755,7 +755,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                                     .dontShowAgainId(key)
                                     .actionButtonTextWithGoTo("portfolio.tab.openOffers")
                                     .onAction(this::closeAndGoToOpenOffers)
-                                    .onClose(this::closeAndGoToOpenOffers)
+                                    .onClose(this::close)
                                     .show(),
                             1);
                 } else {
