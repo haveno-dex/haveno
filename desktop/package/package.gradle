@@ -423,7 +423,7 @@ task packageInstallers {
 
             // Command to build the Flatpak
             exec {
-                commandLine 'flatpak-builder', '--force-clean', flatpakOutputDir, flatpakManifestFile, '--user', '--install-deps-from=flathub'
+                commandLine 'flatpak', 'run', 'org.flatpak.Builder', '--force-clean', flatpakOutputDir, flatpakManifestFile, '--user', '--install-deps-from=flathub'
             }
 
             // Command to export the Flatpak
