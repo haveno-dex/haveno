@@ -2158,7 +2158,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         ThreadUtils.execute(() -> {
 
             // skip if prevented from publishing
-            if (preventedFromPublishing(openOffer)) {
+            if (preventedFromPublishing(openOffer, false)) {
                 if (completeHandler != null) completeHandler.run();
                 return;
             }
@@ -2171,7 +2171,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     latch.countDown();
 
                     // skip if prevented from publishing
-                    if (preventedFromPublishing(openOffer)) {
+                    if (preventedFromPublishing(openOffer, true)) {
                         if (completeHandler != null) completeHandler.run();
                         return;
                     }
@@ -2209,11 +2209,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }, THREAD_ID);
     }
 
-    private boolean preventedFromPublishing(OpenOffer openOffer) {
+    private boolean preventedFromPublishing(OpenOffer openOffer, boolean checkSignature) {
         if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) return true;
         return openOffer.isDeactivated() ||
                 openOffer.isCanceled() ||
-                openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null ||
+                (checkSignature && openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null) ||
                 hasConflictingClone(openOffer);
     }
 
@@ -2270,7 +2270,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void maybeRefreshOffer(OpenOffer openOffer, int numAttempts, int maxAttempts) {
-        if (preventedFromPublishing(openOffer)) return;
+        if (preventedFromPublishing(openOffer, true)) return;
         offerBookService.refreshTTL(openOffer.getOffer().getOfferPayload(),
                 () -> log.debug("Successful refreshed TTL for offer"),
                 (errorMessage) -> {
