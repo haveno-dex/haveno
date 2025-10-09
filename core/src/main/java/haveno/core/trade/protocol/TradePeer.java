@@ -304,6 +304,10 @@ public final class TradePeer implements PersistablePayload {
         return disputeOpenedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || disputeOpenedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX || disputeOpenedMessageStateProperty.get() == MessageState.NACKED;
     }
 
+    public boolean isDisputeOpenedMessageAckedOrStored() {
+        return disputeOpenedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || disputeOpenedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+    }
+
     @Override
     public Message toProtoMessage() {
         final protobuf.TradePeer.Builder builder = protobuf.TradePeer.newBuilder();

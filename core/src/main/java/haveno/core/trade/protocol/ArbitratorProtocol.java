@@ -53,28 +53,36 @@ public class ArbitratorProtocol extends DisputeProtocol {
 
     public void sendDisputeOpenedMessageIfApplicable() {
         ThreadUtils.execute(() -> {
+            if (!needsToResendDisputeOpenedMessage()) return;
             if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
             synchronized (trade.getLock()) {
-                if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
-                if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_OPENED) {
-                    latchTrade();
-                    given(new Condition(trade))
-                        .setup(tasks(
-                                ArbitratorSendDisputeOpenedMessageToBuyer.class,
-                                ArbitratorSendDisputeOpenedMessageToSeller.class)
-                        .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    unlatchTrade();
-                                },
-                                (errorMessage) -> {
-                                    log.warn("Error sending DisputeOpenedMessage: " + errorMessage);
-                                    unlatchTrade();
-                                })))
-                        .executeTasks();
-                    awaitTradeLatch();
-                }
+                if (!needsToResendDisputeOpenedMessage()) return;
+                latchTrade();
+                given(new Condition(trade))
+                    .setup(tasks(
+                            ArbitratorSendDisputeOpenedMessageToBuyer.class,
+                            ArbitratorSendDisputeOpenedMessageToSeller.class)
+                    .using(new TradeTaskRunner(trade,
+                            () -> {
+                                unlatchTrade();
+                            },
+                            (errorMessage) -> {
+                                log.warn("Error sending DisputeOpenedMessage: " + errorMessage);
+                                unlatchTrade();
+                            })))
+                    .executeTasks();
+                awaitTradeLatch();
             }
         }, trade.getId());
+    }
+
+    private boolean needsToResendDisputeOpenedMessage() {
+        if (trade.isShutDownStarted()) return false;
+        if (trade.isPayoutPublished()) return false;
+        if (trade.getBuyer().getDisputeOpenedMessage() == null && trade.getSeller().getDisputeOpenedMessage() == null) return false;
+        if (trade.getDisputeState() != Trade.DisputeState.DISPUTE_OPENED) return false;
+        if (!((ArbitratorTrade) trade).resendDisputeOpenedMessageWithinDuration()) return false;
+        return !trade.getProcessModel().isDisputeOpenedMessageAckedOrStored();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
