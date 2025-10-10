@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Getter
 public abstract class DisputeAgent implements ProtectedStoragePayload, ExpirablePayload {
-    public static final long TTL = TimeUnit.DAYS.toMillis(10);
+    public static final long TTL = TimeUnit.DAYS.toMillis(5);
 
     protected final NodeAddress nodeAddress;
     protected final PubKeyRing pubKeyRing;
