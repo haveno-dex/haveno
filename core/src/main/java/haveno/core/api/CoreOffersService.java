@@ -44,6 +44,7 @@ import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
@@ -54,10 +55,14 @@ import haveno.core.offer.OfferDirection;
 import static haveno.core.offer.OfferDirection.BUY;
 import haveno.core.offer.OfferFilterService;
 import haveno.core.offer.OfferFilterService.Result;
+import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
+import haveno.core.proto.persistable.CorePersistenceProtoResolver;
+import haveno.core.provider.price.PriceFeedService;
+
 import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
 import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
@@ -68,6 +73,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import static java.util.Comparator.comparing;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -93,6 +99,8 @@ public class CoreOffersService {
     private final OfferFilterService offerFilter;
     private final OpenOfferManager openOfferManager;
     private final User user;
+    private final PriceFeedService priceFeedService;
+    private final CorePersistenceProtoResolver corePersistenceProtoResolver;
 
     @Inject
     public CoreOffersService(CoreContext coreContext,
@@ -103,7 +111,9 @@ public class CoreOffersService {
                              OfferFilterService offerFilter,
                              OpenOfferManager openOfferManager,
                              OfferUtil offerUtil,
-                             User user) {
+                             User user,
+                             PriceFeedService priceFeedService,
+                             CorePersistenceProtoResolver corePersistenceProtoResolver) {
         this.coreContext = coreContext;
         this.keyRing = keyRing;
         this.coreWalletsService = coreWalletsService;
@@ -112,6 +122,8 @@ public class CoreOffersService {
         this.offerFilter = offerFilter;
         this.openOfferManager = openOfferManager;
         this.user = user;
+        this.priceFeedService = priceFeedService;
+        this.corePersistenceProtoResolver = corePersistenceProtoResolver;
     }
 
     // excludes my offers
@@ -257,7 +269,7 @@ public class CoreOffersService {
         // get payment account
         if (paymentAccountId.isEmpty()) paymentAccountId = sourceOffer.getOfferPayload().getMakerPaymentAccountId();
         PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
-        if (paymentAccount == null) throw new IllegalArgumentException(format("payment acRcount with id %s not found", paymentAccountId));
+        if (paymentAccount == null) throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId));
 
         // get extra info
         if (extraInfo.isEmpty()) extraInfo = sourceOffer.getOfferPayload().getExtraInfo();
@@ -284,33 +296,134 @@ public class CoreOffersService {
                 errorMessageHandler);
     }
 
-    // TODO: this implementation is missing; implement.
-    Offer editOffer(String offerId,
-                    String currencyCode,
-                    OfferDirection direction,
-                    Price price,
-                    boolean useMarketBasedPrice,
-                    double marketPriceMargin,
-                    BigInteger amount,
-                    BigInteger minAmount,
-                    double securityDepositPct,
-                    PaymentAccount paymentAccount,
-                    boolean isPrivateOffer,
-                    boolean buyerAsTakerWithoutDeposit,
-                    String extraInfo) {
-        return createOfferService.createAndGetOffer(offerId,
-                direction,
-                currencyCode.toUpperCase(),
-                amount,
-                minAmount,
-                price,
-                useMarketBasedPrice,
-                exactMultiply(marketPriceMargin, 0.01),
-                securityDepositPct,
-                paymentAccount,
-                isPrivateOffer,
-                buyerAsTakerWithoutDeposit,
-                extraInfo);
+    void editOffer(String offerId,
+                          String currencyCode,
+                          String priceAsString,
+                          boolean useMarketBasedPrice,
+                          double marketPriceMarginPct,
+                          String triggerPriceAsString,
+                          String paymentAccountId,
+                          String extraInfo,
+                          Consumer<Offer> resultHandler, 
+                          ErrorMessageHandler errorMessageHandler) {
+
+        // collect offer info
+        final OpenOffer openOffer = getMyOffer(offerId); 
+        final Offer offer = openOffer.getOffer();
+        final OfferPayload offerPayload = openOffer.getOffer().getOfferPayload();
+
+        // get currency code
+        if (currencyCode.isEmpty()) currencyCode = offer.getCounterCurrencyCode();
+        String upperCaseCurrencyCode = currencyCode.toUpperCase();
+
+        // get payment account
+        if (paymentAccountId.isEmpty()) paymentAccountId = offer.getOfferPayload().getMakerPaymentAccountId();
+        PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
+        if (paymentAccount == null) throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId)); // TODO: invoke error handler for this and other offer methods
+
+        // get preselected payment account
+        PaymentAccount preselectedPaymentAccount = getPreselectedPaymentAccount(paymentAccount, currencyCode);
+
+        // start edit offer
+        OpenOffer.State initialState = openOffer.getState();
+        openOfferManager.editOpenOfferStart(openOffer, () -> {
+            try {
+
+                // create edited offer
+                Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
+                final OfferPayload newOfferPayload = createOfferService.createAndGetOffer(offerId,
+                        offer.getDirection(),
+                        upperCaseCurrencyCode,
+                        offer.getAmount(),
+                        offer.getMinAmount(),
+                        price,
+                        useMarketBasedPrice,
+                        exactMultiply(marketPriceMarginPct, 0.01),
+                        offerPayload.getBuyerSecurityDepositPct(),
+                        preselectedPaymentAccount,
+                        offerPayload.isPrivateOffer(),
+                        offer.hasBuyerAsTakerWithoutDeposit(),
+                        extraInfo).getOfferPayload();
+                Offer editedOffer = getEditedOffer(openOffer, newOfferPayload);
+
+                // publish edited offer
+                long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, upperCaseCurrencyCode);
+                openOfferManager.editOpenOfferPublish(editedOffer, triggerPriceAsLong, initialState, () -> {
+                    Offer updatedEditedOffer = openOfferManager.getOpenOffer(offerId).get().getOffer(); // get latest offer
+                    resultHandler.accept(updatedEditedOffer);
+                }, (errorMsg) -> {
+                    errorMessageHandler.handleErrorMessage(errorMsg);
+                });
+            } catch (Exception e) {
+                errorMessageHandler.handleErrorMessage(format("Error editing offer %s: %s", offerId, e.getMessage()));
+                return;
+            }
+        }, errorMessageHandler);
+    }
+
+    private PaymentAccount getPreselectedPaymentAccount(PaymentAccount paymentAccount, String currencyCode) {
+        if (paymentAccount == null) throw new IllegalArgumentException("payment account cannot be null");
+        if (currencyCode == null || currencyCode.isEmpty()) throw new IllegalArgumentException("currency code cannot be null or empty");
+        Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(currencyCode);
+        if (!optionalTradeCurrency.isPresent()) throw new IllegalArgumentException(format("cannot get trade currency for currency code %s", currencyCode));
+        TradeCurrency selectedTradeCurrency = optionalTradeCurrency.get();
+        PaymentAccount preselectedPaymentAccount = PaymentAccount.fromProto(paymentAccount.toProtoMessage(), corePersistenceProtoResolver);
+        if (paymentAccount.getSingleTradeCurrency() != null)
+            preselectedPaymentAccount.setSingleTradeCurrency(selectedTradeCurrency);
+        else
+            preselectedPaymentAccount.setSelectedTradeCurrency(selectedTradeCurrency);
+        return preselectedPaymentAccount;
+    }
+
+    public Offer getEditedOffer(OpenOffer openOffer, OfferPayload newOfferPayload) {
+        // editedPayload is a merge of the original offerPayload and newOfferPayload
+        // fields which are editable are merged in from newOfferPayload (such as payment account details)
+        // fields which cannot change (most importantly XMR amount) are sourced from the original offerPayload
+        final OfferPayload offerPayload = openOffer.getOffer().getOfferPayload();
+        final OfferPayload editedPayload = new OfferPayload(offerPayload.getId(),
+                offerPayload.getDate(),
+                offerPayload.getOwnerNodeAddress(),
+                offerPayload.getPubKeyRing(),
+                offerPayload.getDirection(),
+                newOfferPayload.getPrice(),
+                newOfferPayload.getMarketPriceMarginPct(),
+                newOfferPayload.isUseMarketBasedPrice(),
+                offerPayload.getAmount(),
+                offerPayload.getMinAmount(),
+                offerPayload.getMakerFeePct(),
+                offerPayload.getTakerFeePct(),
+                offerPayload.getPenaltyFeePct(),
+                offerPayload.getBuyerSecurityDepositPct(),
+                offerPayload.getSellerSecurityDepositPct(),
+                newOfferPayload.getBaseCurrencyCode(),
+                newOfferPayload.getCounterCurrencyCode(),
+                newOfferPayload.getPaymentMethodId(),
+                newOfferPayload.getMakerPaymentAccountId(),
+                newOfferPayload.getCountryCode(),
+                newOfferPayload.getAcceptedCountryCodes(),
+                newOfferPayload.getBankId(),
+                newOfferPayload.getAcceptedBankIds(),
+                offerPayload.getVersionNr(),
+                offerPayload.getBlockHeightAtOfferCreation(),
+                offerPayload.getMaxTradeLimit(),
+                offerPayload.getMaxTradePeriod(),
+                offerPayload.isUseAutoClose(),
+                offerPayload.isUseReOpenAfterAutoClose(),
+                offerPayload.getLowerClosePrice(),
+                offerPayload.getUpperClosePrice(),
+                offerPayload.isPrivateOffer(),
+                offerPayload.getChallengeHash(),
+                offerPayload.getExtraDataMap(),
+                offerPayload.getProtocolVersion(),
+                offerPayload.getArbitratorSigner(),
+                offerPayload.getArbitratorSignature(),
+                offerPayload.getReserveTxKeyImages(),
+                newOfferPayload.getExtraInfo());
+
+        Offer editedOffer = new Offer(editedPayload);
+        editedOffer.setPriceFeedService(priceFeedService);
+        editedOffer.setState(Offer.State.AVAILABLE);
+        return editedOffer;
     }
 
     void deactivateOffer(String offerId, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
