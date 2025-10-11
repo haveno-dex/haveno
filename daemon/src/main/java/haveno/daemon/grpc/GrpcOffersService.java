@@ -32,6 +32,8 @@ import haveno.proto.grpc.CancelOfferReply;
 import haveno.proto.grpc.CancelOfferRequest;
 import haveno.proto.grpc.DeactivateOfferReply;
 import haveno.proto.grpc.DeactivateOfferRequest;
+import haveno.proto.grpc.EditOfferReply;
+import haveno.proto.grpc.EditOfferRequest;
 import haveno.proto.grpc.GetMyOfferReply;
 import haveno.proto.grpc.GetMyOfferRequest;
 import haveno.proto.grpc.GetMyOffersReply;
@@ -42,6 +44,7 @@ import haveno.proto.grpc.GetOffersReply;
 import haveno.proto.grpc.GetOffersRequest;
 import static haveno.proto.grpc.OffersGrpc.OffersImplBase;
 import static haveno.proto.grpc.OffersGrpc.getCancelOfferMethod;
+import static haveno.proto.grpc.OffersGrpc.getEditOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getDeactivateOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getActivateOfferMethod;
 import static haveno.proto.grpc.OffersGrpc.getGetMyOfferMethod;
@@ -170,6 +173,37 @@ class GrpcOffersService extends OffersImplBase {
                         OpenOffer openOffer = coreApi.getMyOffer(offer.getId());
                         OfferInfo offerInfo = OfferInfo.toMyOfferInfo(openOffer);
                         PostOfferReply reply = PostOfferReply.newBuilder()
+                                .setOffer(offerInfo.toProtoMessage())
+                                .build();
+                        responseObserver.onNext(reply);
+                        responseObserver.onCompleted();
+                    },
+                    errorMessage -> {
+                        if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+                    });
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void editOffer(EditOfferRequest req,
+                            StreamObserver<EditOfferReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getEditOfferMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
+        try {
+            coreApi.editOffer(
+                    req.getOfferId(),
+                    req.getCurrencyCode(),
+                    req.getPrice(),
+                    req.getUseMarketBasedPrice(),
+                    req.getMarketPriceMarginPct(),
+                    req.getTriggerPrice(),
+                    req.getPaymentAccountId(),
+                    req.getExtraInfo(),
+                    (offer) -> {
+                        OpenOffer openOffer = coreApi.getMyOffer(offer.getId());
+                        OfferInfo offerInfo = OfferInfo.toMyOfferInfo(openOffer);
+                        EditOfferReply reply = EditOfferReply.newBuilder()
                                 .setOffer(offerInfo.toProtoMessage())
                                 .build();
                         responseObserver.onNext(reply);

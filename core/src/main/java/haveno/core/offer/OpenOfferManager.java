@@ -727,6 +727,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         ThreadUtils.execute(() -> {
             Optional<OpenOffer> openOfferOptional = getOpenOffer(editedOffer.getId());
 
+            // check that trigger price is not set for fixed price offers
+            boolean isFixedPrice = editedOffer.getOfferPayload().getPrice() != 0;
+            if (triggerPrice != 0 && isFixedPrice) {
+                errorMessageHandler.handleErrorMessage("Cannot set trigger price for fixed price offers.");
+                return;
+            }
+
             if (openOfferOptional.isPresent()) {
                 OpenOffer openOffer = openOfferOptional.get();
 

@@ -49,9 +49,7 @@ import haveno.core.api.model.MarketPriceInfo;
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.app.AppStartupState;
-import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
-import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOffer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
@@ -66,7 +64,6 @@ import haveno.core.xmr.XmrNodeSettings;
 import haveno.proto.grpc.NotificationMessage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -452,32 +449,26 @@ public class CoreApi {
                 errorMessageHandler);
     }
 
-    public Offer editOffer(String offerId,
-                           String currencyCode,
-                           OfferDirection direction,
-                           Price price,
-                           boolean useMarketBasedPrice,
-                           double marketPriceMargin,
-                           BigInteger amount,
-                           BigInteger minAmount,
-                           double securityDepositPct,
-                           PaymentAccount paymentAccount,
-                           boolean isPrivateOffer,
-                           boolean buyerAsTakerWithoutDeposit,
-                           String extraInfo) {
-        return coreOffersService.editOffer(offerId,
+    public void editOffer(String offerId,
+                          String currencyCode,
+                          String priceAsString,
+                          boolean useMarketBasedPrice,
+                          double marketPriceMarginPct,
+                          String triggerPriceAsString,
+                          String paymentAccountId,
+                          String extraInfo,
+                          Consumer<Offer> resultHandler,
+                          ErrorMessageHandler errorMessageHandler) {
+        coreOffersService.editOffer(offerId,
                 currencyCode,
-                direction,
-                price,
+                priceAsString,
                 useMarketBasedPrice,
-                marketPriceMargin,
-                amount,
-                minAmount,
-                securityDepositPct,
-                paymentAccount,
-                isPrivateOffer,
-                buyerAsTakerWithoutDeposit,
-                extraInfo);
+                marketPriceMarginPct,
+                triggerPriceAsString,
+                paymentAccountId,
+                extraInfo,
+                resultHandler,
+                errorMessageHandler);
     }
 
     public void deactivateOffer(String offerId, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
