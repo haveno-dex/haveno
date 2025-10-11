@@ -741,7 +741,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     } else {
                         editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
                     }
-                    applyTriggerState(editedOpenOffer);
                 } else {
                     if (originalState == OpenOffer.State.AVAILABLE && hasConflictingClone(editedOpenOffer)) {
                         editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
@@ -749,7 +748,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         editedOpenOffer.setState(originalState);
                     }
                 }
-
+                
+                applyTriggerState(editedOpenOffer); // apply trigger state before adding so it's not immediately removed
                 addOpenOffer(editedOpenOffer);
 
                 // check for valid arbitrator signature after editing
