@@ -62,6 +62,7 @@ import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.proto.persistable.CorePersistenceProtoResolver;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 
 import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
 import haveno.core.user.User;
@@ -83,6 +84,8 @@ import org.bitcoinj.core.Transaction;
 @Singleton
 @Slf4j
 public class CoreOffersService {
+
+    private static final long WAIT_FOR_EDIT_REMOVAL_MS = 5000;
 
     private final Supplier<Comparator<Offer>> priceComparator = () -> comparing(Offer::getPrice);
     private final Supplier<Comparator<OpenOffer>> openOfferPriceComparator = () -> comparing(openOffer -> openOffer.getOffer().getPrice());
@@ -328,6 +331,10 @@ public class CoreOffersService {
         OpenOffer.State initialState = openOffer.getState();
         openOfferManager.editOpenOfferStart(openOffer, () -> {
             try {
+
+                // wait for remove offer to propagate
+                // TODO: if offer edit is published too quickly, the remove message can be received after the add message, in which case the offer will be offline until the next offer refresh
+                HavenoUtils.waitFor(WAIT_FOR_EDIT_REMOVAL_MS);
 
                 // create edited offer
                 Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
