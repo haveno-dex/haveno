@@ -1614,6 +1614,7 @@ message TradePeer {
     bytes mediated_payout_tx_signature = 22;
     PaymentSentMessage payment_sent_message = 23;
     PaymentReceivedMessage payment_received_message = 24;
+    DisputeOpenedMessage dispute_opened_message = 46;
     DisputeClosedMessage dispute_closed_message = 25;
     string reserve_tx_hash = 26;
     string reserve_tx_hex = 27;
@@ -1635,6 +1636,8 @@ message TradePeer {
     string deposits_confirmed_message_state = 43;
     string payment_sent_message_state = 44;
     string payment_received_message_state = 45;
+    string dispute_opened_message_state = 47;
+    string dispute_closed_message_state = 48;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

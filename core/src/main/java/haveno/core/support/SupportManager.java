@@ -29,6 +29,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.AckMessageSourceType;
@@ -197,6 +198,16 @@ public abstract class SupportManager {
                             synchronized (dispute.getChatMessages()) {
                                 for (ChatMessage chatMessage : dispute.getChatMessages()) {
                                     if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
+                                        
+                                        // set ack state
+                                        TradePeer sender = trade.getTradePeer(ackMessage.getSenderNodeAddress());
+                                        if (sender == null) {
+                                            log.warn("Received AckMessage from unknown peer {} for {} with tradeId={}, uid={}", ackMessage.getSenderNodeAddress(), ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
+                                        } else {
+                                            sender.setDisputeOpenedAckMessage(ackMessage);
+                                        }
+
+                                        // advance trade state
                                         if (trade.getDisputeState() == Trade.DisputeState.DISPUTE_PREPARING || trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED) { // ack can arrive before saw arrived
                                             if (dispute.isClosed()) dispute.reOpen();
                                             trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
@@ -220,6 +231,16 @@ public abstract class SupportManager {
                             for (ChatMessage chatMessage : dispute.getChatMessages()) {
                                 if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
                                     if (!trade.isArbitrator() && (trade.getDisputeState().isRequested() || trade.getDisputeState().isCloseRequested())) {
+
+                                        // set ack state
+                                        TradePeer sender = trade.getTradePeer(ackMessage.getSenderNodeAddress());
+                                        if (sender == null) {
+                                            log.warn("Received AckMessage from unknown peer {} for {} with tradeId={}, uid={}", ackMessage.getSenderNodeAddress(), ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
+                                        } else {
+                                            sender.setDisputeOpenedAckMessage(ackMessage);
+                                        }
+
+                                        // advance trade state
                                         log.warn("DisputeOpenedMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
                                         dispute.setIsClosed();
                                         trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);

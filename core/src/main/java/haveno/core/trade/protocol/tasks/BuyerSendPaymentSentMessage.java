@@ -38,16 +38,13 @@ import java.util.concurrent.TimeUnit;
 
 import haveno.common.Timer;
 import haveno.common.UserThread;
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.network.MessageState;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
-import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.JsonUtil;
-import haveno.network.p2p.NodeAddress;
 import javafx.beans.value.ChangeListener;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -74,18 +71,6 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
         super(taskHandler, trade);
     }
 
-    protected abstract TradePeer getReceiver();
-
-    @Override
-    protected NodeAddress getReceiverNodeAddress() {
-        return getReceiver().getNodeAddress();
-    }
-
-    @Override
-    protected PubKeyRing getReceiverPubKeyRing() {
-        return getReceiver().getPubKeyRing();
-    }
-
     @Override
     protected void run() {
         try {
@@ -104,7 +89,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
     }
 
     @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
+    protected TradeMailboxMessage getMailboxMessage(String tradeId) {
         if (getReceiver().getPaymentSentMessage() == null) {
 
             // We do not use a real unique ID here as we want to be able to re-send the exact same message in case the
@@ -170,7 +155,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             timer.stop();
         }
         if (listener != null) {
-            trade.getSeller().getPaymentReceivedMessageStateProperty().removeListener(listener);
+            getReceiver().getPaymentReceivedMessageStateProperty().removeListener(listener);
         }
     }
 

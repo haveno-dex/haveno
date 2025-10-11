@@ -21,6 +21,7 @@ import haveno.common.taskrunner.TaskRunner;
 import haveno.core.support.dispute.mediation.MediationResultState;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.TradeMailboxMessage;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.tasks.SendMailboxMessageTask;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,7 +33,12 @@ public class SendMediatedPayoutTxPublishedMessage extends SendMailboxMessageTask
     }
 
     @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String id) {
+    protected TradePeer getReceiver() {
+        return trade.getTradePeer();
+    }
+
+    @Override
+    protected TradeMailboxMessage getMailboxMessage(String id) {
         throw new RuntimeException("SendMediatedPayoutTxPublishedMessage.getMessage(id) not implemented for xmr");
 //        Transaction payoutTx = checkNotNull(trade.getPayoutTx(), "trade.getPayoutTx() must not be null");
 //        return new MediatedPayoutTxPublishedMessage(

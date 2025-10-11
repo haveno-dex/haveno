@@ -21,15 +21,12 @@ import java.util.concurrent.TimeUnit;
 
 import haveno.common.Timer;
 import haveno.common.UserThread;
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.network.MessageState;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
-import haveno.core.trade.protocol.TradePeer;
-import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -65,20 +62,8 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         }
     }
 
-    protected abstract TradePeer getReceiver();
-
     @Override
-    protected NodeAddress getReceiverNodeAddress() {
-        return getReceiver().getNodeAddress();
-    }
-
-    @Override
-    protected PubKeyRing getReceiverPubKeyRing() {
-        return getReceiver().getPubKeyRing();
-    }
-
-    @Override
-    protected TradeMailboxMessage getTradeMailboxMessage(String tradeId) {
+    protected TradeMailboxMessage getMailboxMessage(String tradeId) {
         if (message == null) {
 
             // export multisig hex once
