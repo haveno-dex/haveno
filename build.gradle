@@ -459,14 +459,14 @@ configure(project(':core')) {
         doLast {
             // get monero binaries download url
             Map moneroBinaries = [
-                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-linux-x86_64.tar.gz',
-                'linux-x86_64-sha256'  : '713d64ff6423add0d065d9dfbf8a120dfbf3995d4b2093f8235b4da263d8a89c',
-                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-linux-aarch64.tar.gz',
-                'linux-aarch64-sha256' : '332dcc6a5d7eec754c010a1f893f81656be1331b847b06e9be69293b456f67cc',
-                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'           : '1c5bcd23373132528634352e604c1d732a73c634f3c77314fae503c6d23e10b0',
-                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-windows.zip',
-                'windows-sha256'       : '3d57b980e0208a950fd795f442d9e087b5298a914b0bd96fec431188b5ab0dad'
+                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release8/monero-bins-haveno-linux-x86_64.tar.gz',
+                'linux-x86_64-sha256'  : '17b1bd82a4e0fa51fbf0ddab2f0639455c0e733d15e16e14865bd3fb7edbeca9',
+                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release8/monero-bins-haveno-linux-aarch64.tar.gz',
+                'linux-aarch64-sha256' : '759f210de6f3358779b96841b4de16622d2b70d8bc813941c8a421ea34392abe',
+                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release8/monero-bins-haveno-mac.tar.gz',
+                'mac-sha256'           : '1a56ed4ee78f0ce463814c9dd34b52f8096b78a913dcfb18c4d4f717358dd778',
+                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release8/monero-bins-haveno-windows.zip',
+                'windows-sha256'       : '65b0e22841e58e8c935d358cc0543b58d675393136397a2e136aeb661b461e7e'
             ]
 
             String osKey
