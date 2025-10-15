@@ -115,7 +115,6 @@ import monero.wallet.model.MoneroTxSet;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
 
-import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -2729,8 +2728,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     protected void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (walletLock) {
 
-            // use current connection
+            // configure current connection
             connection = xmrConnectionService.getConnection();
+            if (!xmrWalletService.isProxyApplied(wasWalletSynced)) connection.setProxyUri(null);
 
             // check if ignored
             if (isShutDownStarted) return;
@@ -2740,17 +2740,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 return;
             }
 
-            // set daemon connection (must restart monero-wallet-rpc if proxy uri changed)
-            String oldProxyUri = wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getProxyUri();
-            String newProxyUri = connection == null ? null : connection.getProxyUri();
-            log.info("Setting daemon connection for {} {}: uri={}, proxyUri={}", getClass().getSimpleName(), getId() , connection == null ? null : connection.getUri(), newProxyUri);
-            if (xmrWalletService.isProxyApplied(wasWalletSynced) && wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
-                log.info("Restarting trade wallet {} because proxy URI has changed, old={}, new={}", getId(), oldProxyUri, newProxyUri);
-                closeWallet();
-                wallet = getWallet();
-            } else {
-                wallet.setDaemonConnection(connection);
-            }
+            // set daemon connection
+            log.info("Setting daemon connection for {} {}: uri={}, proxyUri={}", getClass().getSimpleName(), getId() , connection == null ? null : connection.getUri(), connection == null ? null : connection.getProxyUri());
+            wallet.setDaemonConnection(connection);
 
             // sync and reprocess messages on new thread
             if (isInitialized && connection != null && !Boolean.FALSE.equals(xmrConnectionService.isConnected())) {
