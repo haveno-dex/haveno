@@ -212,7 +212,7 @@ public abstract class SupportManager {
                                             if (dispute.isClosed()) dispute.reOpen();
                                             trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                                         } else if (dispute.isClosed()) {
-                                            trade.pollWalletNormallyForMs(60000); // sync to check for payout
+                                            trade.pollWalletNormallyForMs(Trade.POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS); // sync to check for payout
                                         }
                                     }
                                 }

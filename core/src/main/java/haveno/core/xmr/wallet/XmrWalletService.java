@@ -363,7 +363,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
-        log.info("{}.closeWallet({}, {})", getClass().getSimpleName(), wallet.getPath(), save);
+        log.info("{}.closeWallet(), path={}, save={}", getClass().getSimpleName(), wallet.getPath(), save);
         MoneroError err = null;
         String path = wallet.getPath();
         try {

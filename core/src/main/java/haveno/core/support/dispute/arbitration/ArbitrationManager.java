@@ -383,6 +383,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                         // wait to sign and publish payout tx if defer flag set
                         if (disputeClosedMessage.isDeferPublishPayout()) {
                             log.info("Deferring signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                            trade.pollWalletNormallyForMs(Trade.POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS); // override idling
                             for (int i = 0; i < 5; i++) {
                                 if (trade.isPayoutPublished()) break;
                                 HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
@@ -556,7 +557,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             MoneroTxWallet feeEstimateTx = null;
             try {
                 log.info("Creating dispute fee estimate tx for {} {}", getClass().getSimpleName(), trade.getShortId());
-                feeEstimateTx = createDisputePayoutTx(trade, dispute.getContract(), disputeResult, false);
+                feeEstimateTx = trade.createDisputePayoutTx(dispute.getContract(), disputeResult, false);
             } catch (Exception e) {
                 if (trade.isPayoutPublished()) log.warn("Payout tx already published for {} {}, skipping fee verification", getClass().getSimpleName(), trade.getShortId());
                 else throw new RuntimeException("Could not recreate dispute payout tx to verify fee: " + e.getMessage(), e);
