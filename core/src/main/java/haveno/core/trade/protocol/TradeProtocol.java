@@ -577,7 +577,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         return;
                     }
                     if (message != trade.getBuyer().getPaymentSentMessage()) {
-                        log.warn("Ignoring PaymentSentMessage which was replaced by a newer message", trade.getClass().getSimpleName(), trade.getId());
+                        log.warn("Ignoring PaymentSentMessage which was replaced by a newer message for {} {}", trade.getClass().getSimpleName(), trade.getId());
                         return;
                     }
                     latchTrade();
