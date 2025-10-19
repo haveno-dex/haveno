@@ -2457,6 +2457,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (monerod == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
 
             // get finalize time of last deposit tx
+            if (getWallet() == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because cannot get its wallet");
             long finalizeHeight = getDepositsFinalizedHeight();
             long finalizeTime = monerod.getBlockByHeight(finalizeHeight).getTimestamp() * 1000;
 
