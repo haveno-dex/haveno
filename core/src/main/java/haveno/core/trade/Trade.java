@@ -790,9 +790,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // open wallet or done if wallet does not exist
-        if (walletExists()) {
-            isDepositsFinalized(); // TODO: this opens wallet if necessary to determine deposits state
-        } else {
+        if (!walletExists()) {
             MoneroTx payoutTx = getPayoutTx();
             if (payoutTx != null) {
 
@@ -2558,16 +2556,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else if (getState().getPhase() == Phase.DEPOSITS_FINALIZED) return true;
         else if (isPayoutFinalized()) return true;
         else {
-            Long minDepositTxConfirmations = getMinDepositTxConfirmations();
-            if (minDepositTxConfirmations == null) {
-                log.warn("Opening wallet to check deposit tx confirmations for {} {}", getClass().getSimpleName(), getShortId());
-                synchronized (walletLock) {
-                    getWallet(); // open wallet if necessary
-                    minDepositTxConfirmations = getMinDepositTxConfirmations();
-                }
-            }
 
             // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits, or a single published state + num confirmations
+            Long minDepositTxConfirmations = getMinDepositTxConfirmations();
             if (minDepositTxConfirmations == null) {    
                 log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in phase {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState().getPhase());
                 Thread.dumpStack();
