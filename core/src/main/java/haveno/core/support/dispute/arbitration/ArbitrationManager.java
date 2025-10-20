@@ -556,7 +556,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
             MoneroTxWallet feeEstimateTx = null;
             try {
-                log.info("Creating dispute fee estimate tx for {} {}", getClass().getSimpleName(), trade.getShortId());
+                log.info("Creating dispute fee estimate tx for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
                 feeEstimateTx = trade.createDisputePayoutTx(dispute.getContract(), disputeResult, false);
             } catch (Exception e) {
                 if (trade.isPayoutPublished()) log.warn("Payout tx already published for {} {}, skipping fee verification", getClass().getSimpleName(), trade.getShortId());
@@ -564,10 +564,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             }
             if (feeEstimateTx != null) {
                 HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), arbitratorSignedPayoutTx.getFee());
-                log.info("Dispute payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), trade.getShortId());
+                log.info("Dispute payout tx fee is within tolerance for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
             }
         } else {
-            log.warn("Payout tx already signed for {} {}, skipping signing", getClass().getSimpleName(), trade.getShortId());
+            log.warn("Payout tx already signed for {} {}, skipping signing", trade.getClass().getSimpleName(), trade.getShortId());
             disputeTxSet.setMultisigTxHex(trade.getPayoutTxHex());
         }
 

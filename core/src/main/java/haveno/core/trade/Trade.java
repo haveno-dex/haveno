@@ -795,13 +795,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (payoutTx != null) {
 
                 // update payout state if necessary
-                if (!isPayoutUnlocked() && payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
-                    log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
-                    setPayoutStateUnlocked();
-                }
-                if (!isPayoutFinalized() && payoutTx.getNumConfirmations() >= NUM_BLOCKS_PAYOUT_FINALIZED) {
-                    log.warn("Payout state for {} {} is {} but payout is finalized, updating state", getClass().getSimpleName(), getId(), getPayoutState());
-                    setPayoutStateFinalized();
+                if (payoutTx.getNumConfirmations() != null) {
+                    if (!isPayoutUnlocked() && payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
+                        log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
+                        setPayoutStateUnlocked();
+                    }
+                    if (!isPayoutFinalized() && payoutTx.getNumConfirmations() >= NUM_BLOCKS_PAYOUT_FINALIZED) {
+                        log.warn("Payout state for {} {} is {} but payout is finalized, updating state", getClass().getSimpleName(), getId(), getPayoutState());
+                        setPayoutStateFinalized();
+                    }
                 }
                 isInitialized = true;
                 isFullyInitialized = true;
@@ -966,15 +968,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (pollNormalStartTimeMs != null) return false;
         if (!walletExistsNoSync()) return false;
         if (isPayoutUnlocked()) return true;
-        if (!isPayoutPublished()) {
-            if (isBuyer() && !isPaymentSent()) return false; // buyer can confirm payment sent at any time
-            if (isSeller() && isPaymentSent() && !isPaymentReceived()) return false; // seller can confirm payment received at any time
-            if (!isArbitrator() && (isPaymentReceived() || isDisputeClosed())) return false;
-            if (!isBuyer() && isDepositsUnlocked()) return true;
-            if (isBuyer() && isPaymentSent()) return true;
-        }
+        if (isPayoutPublished()) return false;
         if (isArbitrator() && isDepositsConfirmed()) return true;
-        return false;
+        if (!isDepositsUnlocked()) return false;
+        if (isBuyer()) return isPaymentSent();
+        if (isSeller()) {
+            if (!isPaymentSent()) return true;
+            if (isPaymentSent() && !isPaymentReceived()) return false;
+        }
+        if (!isArbitrator() && (isPaymentReceived() || isDisputeClosed())) return false;
+        return true;
     }
 
     public boolean isSyncedWithinTolerance() {
@@ -1755,6 +1758,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (hasBuyerAsTakerWithoutDeposit()) return makerDepositTx.getNumConfirmations();
         MoneroTxWallet takerDepositTx = getTakerDepositTx();
         if (takerDepositTx == null) return null;
+        if (makerDepositTx.getNumConfirmations() == null || takerDepositTx.getNumConfirmations() == null) return null;
         return Math.min(makerDepositTx.getNumConfirmations(), takerDepositTx.getNumConfirmations());
     }
 
@@ -2559,11 +2563,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits, or a single published state + num confirmations
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
-            if (minDepositTxConfirmations == null) {    
-                log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in phase {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState().getPhase());
-                Thread.dumpStack();
+            if (minDepositTxConfirmations == null) {
+                if (isBuyer()) { // log a warning for the buyer, since only they are at risk of reorg after payment sent
+                    log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in state {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState());
+                    Thread.dumpStack();
+                }
                 return true;
-            } 
+            }
             return minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
         }
     }
@@ -3215,14 +3221,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 setStateDepositsConfirmed();
             }
 
-            // check for deposit txs unlocked
-            if (makerDepositTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || takerDepositTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) {
-                setStateDepositsUnlocked();
-            }
+            if (makerDepositTx.getNumConfirmations() != null) {
 
-            // check for deposit txs finalized
-            if (makerDepositTx.getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED && (hasBuyerAsTakerWithoutDeposit() || takerDepositTx.getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED)) {
-                setStateDepositsFinalized();
+                // check for deposit txs unlocked
+                if (makerDepositTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || (takerDepositTx.getNumConfirmations() != null && takerDepositTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK))) {
+                    setStateDepositsUnlocked();
+                }
+
+                // check for deposit txs finalized
+                if (makerDepositTx.getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED && (hasBuyerAsTakerWithoutDeposit() || (takerDepositTx.getNumConfirmations() != null && takerDepositTx.getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED))) {
+                    setStateDepositsFinalized();
+                }
             }
         }
 
