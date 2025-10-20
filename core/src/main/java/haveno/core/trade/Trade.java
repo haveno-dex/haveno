@@ -3282,10 +3282,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else if (poolChecked && isPayoutPublished()) { // payout tx seen then lost (e.g. reorg)
 
             // skip reverting state until next confirmation
-            if (lastPayoutTxMissingHeight == null || lastPayoutTxMissingHeight <= walletHeight.get()) {
-                if (lastPayoutTxMissingHeight == null) log.warn("Missing payout tx for {} {} at height {}, waiting for a block before reverting state", getClass().getSimpleName(), getShortId(), lastPayoutTxMissingHeight);
-                lastPayoutTxMissingHeight = wallet.getHeight();
-            } else {
+            if (lastPayoutTxMissingHeight != null && walletHeight.get() > lastPayoutTxMissingHeight) {
 
                 // reset payment received and dispute closed messages
                 for (TradePeer peer : getAllPeers()) {
@@ -3310,6 +3307,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // move trade back to pending if marked completed
                 if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
+            } else {
+                if (lastPayoutTxMissingHeight == null) log.warn("Missing payout tx for {} {} at height {}, waiting for a block before reverting state", getClass().getSimpleName(), getShortId(), lastPayoutTxMissingHeight);
+                lastPayoutTxMissingHeight = wallet.getHeight();
             }
         }
     }
