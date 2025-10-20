@@ -2570,6 +2570,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else if (isPayoutFinalized()) return true;
         else {
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
+            if (minDepositTxConfirmations == null) {
+                synchronized (wallet) {
+                    getWallet(); // open wallet if necessary
+                    minDepositTxConfirmations = getMinDepositTxConfirmations();
+                }
+            }
 
             // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits, or a single published state + num confirmations
             if (minDepositTxConfirmations == null) {    
