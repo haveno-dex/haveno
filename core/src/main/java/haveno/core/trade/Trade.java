@@ -790,7 +790,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // open wallet or done if wallet does not exist
-        if (!walletExists()) {
+        if (walletExists()) {
+            isDepositsFinalized(); // TODO: this opens wallet if necessary to determine deposits state
+        } else {
             MoneroTx payoutTx = getPayoutTx();
             if (payoutTx != null) {
 
