@@ -925,26 +925,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     /**
-     * Get the trade wallet in a polling state, opening the wallet if necessary.
+     * Get the trade wallet, opening the wallet if necessary.
      * 
      * @return the trade wallet, or null if the wallet does not exist
      */
     public MoneroWallet getWallet() {
         synchronized (walletLock) {
-            if (wallet == null) wallet = openWallet();
-            startPolling(); // ignored if already polling
-            return wallet;
-        }
-    }
-
-    /**
-     * Open the trade wallet without starting polling.
-     * 
-     * @return the trade wallet, or null if the wallet does not exist
-     */
-    private MoneroWallet openWallet() {
-        synchronized (walletLock) {
-            if (wallet != null) throw new RuntimeException("Cannot open wallet for " + getClass().getSimpleName() + " " + getId() + " because it is already open");
+            if (wallet != null) return wallet;
             if (!walletExists()) return null;
             if (isShutDownStarted) throw new RuntimeException("Cannot open wallet for " + getClass().getSimpleName() + " " + getId() + " because shut down is started");
             wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
@@ -1119,7 +1106,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         boolean syncedWallet = false;
                         if (wallet == null) {
                             log.warn("Wallet is not initialized for {} {}, opening", getClass().getSimpleName(), getId());
-                            openWallet();
+                            getWallet();
                             syncWallet(true);
                             syncedWallet = true;
                         }
@@ -1597,7 +1584,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         recoverIfMissingWalletData();
 
         // gather relevant info
-        MoneroWallet wallet = getWallet();
+        getWallet();
         Contract contract = getContract();
         BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
         BigInteger buyerDepositAmount = hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : getBuyer().getDepositTx().getIncomingAmount();
@@ -2050,7 +2037,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // force close and re-open wallet in case stuck
             forceCloseWallet();
-            if (isDepositRequested()) openWallet();
+            if (isDepositRequested()) getWallet();
 
             // unreserve taker's key images
             if (this instanceof TakerTrade) {
@@ -2574,7 +2561,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
             if (minDepositTxConfirmations == null) {
                 synchronized (walletLock) {
-                    openWallet(); // open wallet if necessary
+                    getWallet(); // open wallet if necessary
                     minDepositTxConfirmations = getMinDepositTxConfirmations();
                 }
             }
