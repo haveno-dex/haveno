@@ -3241,15 +3241,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (poolChecked && depositsState.ordinal() < minDepositsState.ordinal()) {
 
             // skip reverting state until next confirmation // TODO: sometimes txs are missing from the wallet and reappear without reorg
-            if (lastDepositTxMissingHeight == null || lastDepositTxMissingHeight <= walletHeight.get()) {
-                if (lastDepositTxMissingHeight == null) log.warn("Missing deposit txs for {} {} at height {}, waiting for a block before reverting state", getClass().getSimpleName(), getShortId(), lastDepositTxMissingHeight);
-                lastDepositTxMissingHeight = wallet.getHeight();
-            } else {
+            if (lastDepositTxMissingHeight != null && walletHeight.get() > lastDepositTxMissingHeight) {
                 log.warn("Reverting deposits state from {} to {} for {} {}. Possible reorg?", minDepositsState, depositsState, getClass().getSimpleName(), getShortId());
                 getMaker().setDepositTx(makerDepositTx);
                 getTaker().setDepositTx(takerDepositTx);
                 if (depositsState == State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) setErrorMessage("Deposit transactions are missing for trade " + getShortId() + ". This can happen after a blockchain reorganization.\n\nIf the issue continues, you can contact support or mark the trade as failed.");
                 if (!isPaymentSent()) setState(depositsState); // only revert state if payment not sent
+            } else {
+                if (lastDepositTxMissingHeight == null) log.warn("Missing deposit txs for {} {} at height {}, waiting for a block before reverting state", getClass().getSimpleName(), getShortId(), lastDepositTxMissingHeight);
+                lastDepositTxMissingHeight = wallet.getHeight();
             }
         } else {
             lastDepositTxMissingHeight = null;
