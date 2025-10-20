@@ -1695,6 +1695,7 @@ public class XmrWalletService extends XmrWalletBase {
             return walletRpc;
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
+            log.warn("Could not create RPC wallet '" + config.getPath() + "': " + e.getMessage() + "\n", e);
             throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage(), e);
         }
     }
@@ -1702,6 +1703,10 @@ public class XmrWalletService extends XmrWalletBase {
     private MoneroWalletRpc openWalletRpc(MoneroWalletConfig config, Integer port, boolean applyProxyUri) {
         MoneroWalletRpc walletRpc = null;
         try {
+
+            // get daemon connection from service
+            MoneroRpcConnection serviceConnection = xmrConnectionService.getConnection();
+            if (serviceConnection == null) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' via RPC because daemon connection is null");
 
             // start monero-wallet-rpc instance
             walletRpc = startWalletRpcInstance(port);
@@ -1711,7 +1716,7 @@ public class XmrWalletService extends XmrWalletBase {
             walletRpc.stopSyncing();
 
             // configure connection
-            MoneroRpcConnection connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
+            MoneroRpcConnection connection = new MoneroRpcConnection(serviceConnection);
             if (!applyProxyUri) connection.setProxyUri(null);
 
             // try opening wallet
@@ -1791,6 +1796,7 @@ public class XmrWalletService extends XmrWalletBase {
             return walletRpc;
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
+            log.warn("Could not open RPC wallet '{}': {}\n", config.getPath(), e.getMessage(), e);
             throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage(), e);
         }
     }
