@@ -619,11 +619,11 @@ public class HavenoUtils {
     }
 
     public static boolean isConnectionRefused(Throwable e) {
-        return e != null && e.getMessage().contains("Connection refused");
+        return e != null && e.getMessage() != null && e.getMessage().contains("Connection refused");
     }
 
     public static boolean isReadTimeout(Throwable e) {
-        return e != null && e.getMessage().contains("Read timed out");
+        return e != null && e.getMessage() != null && e.getMessage().contains("Read timed out");
     }
 
     public static boolean isUnresponsive(Throwable e) {
@@ -631,23 +631,23 @@ public class HavenoUtils {
     }
 
     private static boolean isNotEnoughSigners(Throwable e) {
-        return e != null && e.getMessage().contains("Not enough signers");
+        return e != null && e.getMessage() != null && e.getMessage().contains("Not enough signers");
     }
 
     private static boolean isFailedToParse(Throwable e) {
-        return e != null && e.getMessage().contains("Failed to parse");
+        return e != null && e.getMessage() != null && e.getMessage().contains("Failed to parse");
     }
 
     private static boolean isStaleData(Throwable e) {
-        return e != null && e.getMessage().contains("stale data");
+        return e != null && e.getMessage() != null && e.getMessage().contains("stale data");
     }
 
     private static boolean isNoTransactionCreated(Throwable e) {
-        return e != null && e.getMessage().contains("No transaction created");
+        return e != null && e.getMessage() != null && e.getMessage().contains("No transaction created");
     }
 
     private static boolean isLRNotFound(Throwable e) {
-        return e != null && e.getMessage().contains("LR not found for enough participants");
+        return e != null && e.getMessage() != null && e.getMessage().contains("LR not found for enough participants");
     }
 
     // TODO: handling specific error messages is brittle, inverse so all errors are illegal except known local issues?
@@ -656,7 +656,7 @@ public class HavenoUtils {
     }
 
     public static boolean isTransactionRejected(Throwable e) {
-        return e != null && e.getMessage().contains("was rejected");
+        return e != null && e.getMessage() != null && e.getMessage().contains("was rejected");
     }
 
     public static boolean isIllegal(Throwable e) {
