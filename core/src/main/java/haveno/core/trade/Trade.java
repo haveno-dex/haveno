@@ -2572,7 +2572,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
             if (minDepositTxConfirmations == null) {
                 synchronized (walletLock) {
-                    getWallet(); // open wallet if necessary
+                    openWallet(); // open wallet if necessary
                     minDepositTxConfirmations = getMinDepositTxConfirmations();
                 }
             }
