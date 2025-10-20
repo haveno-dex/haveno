@@ -2560,6 +2560,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else {
             Long minDepositTxConfirmations = getMinDepositTxConfirmations();
             if (minDepositTxConfirmations == null) {
+                log.warn("Opening wallet to check deposit tx confirmations for {} {}", getClass().getSimpleName(), getShortId());
                 synchronized (walletLock) {
                     getWallet(); // open wallet if necessary
                     minDepositTxConfirmations = getMinDepositTxConfirmations();
