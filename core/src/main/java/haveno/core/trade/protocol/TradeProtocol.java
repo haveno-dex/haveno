@@ -576,8 +576,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         removeMailboxMessageAfterProcessing(message);
                         return;
                     }
+
+                    // ignore the message if a newer message was received before processing
                     if (message != trade.getBuyer().getPaymentSentMessage()) {
-                        log.warn("Ignoring PaymentSentMessage which was replaced by a newer message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                        log.info("Ignoring PaymentSentMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
                         return;
                     }
                     latchTrade();

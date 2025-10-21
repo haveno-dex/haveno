@@ -838,17 +838,20 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public void initializeAfterMailboxMessages() {
         if (!isDepositRequested() || isPayoutFinalized() || isCompleted()) return;
-        getProtocol().maybeReprocessPaymentSentMessage(false);
-        getProtocol().maybeReprocessPaymentReceivedMessage(false);
-        HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
+        // TODO: this is unnecessary persistence, at least request persistence
+        persistNow(() -> { // TODO: if these run immediately on the trade thread, they run before the messages are first handled, because handling calls persistNow(). this causes unnecessary reprocessing. message handling does not use a result handler to observe completion, so we break encapsulation and persist first to preserve thread ordering
+            getProtocol().maybeReprocessPaymentSentMessage(false);
+            getProtocol().maybeReprocessPaymentReceivedMessage(false);
+            HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
 
-        // handle when wallet first synced
-        if (wasWalletSyncedAndPolledProperty.get()) onWalletFirstSynced();
-        else {
-            wasWalletSyncedAndPolledProperty.addListener((observable, oldValue, newValue) -> {
-                if (newValue) onWalletFirstSynced();
-            });
-        }
+            // handle when wallet first synced
+            if (wasWalletSyncedAndPolledProperty.get()) onWalletFirstSynced();
+            else {
+                wasWalletSyncedAndPolledProperty.addListener((observable, oldValue, newValue) -> {
+                    if (newValue) onWalletFirstSynced();
+                });
+            }
+        });
     }
 
     private void onWalletFirstSynced() {
