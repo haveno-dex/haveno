@@ -558,7 +558,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // get latest message
             HavenoUtils.waitFor(100);
             if (message != trade.getBuyer().getPaymentSentMessage()) {
-                log.info("Ignoring PaymentSentMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                //log.info("Ignoring PaymentSentMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 return;
             }
 
@@ -655,7 +655,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // get latest message
             HavenoUtils.waitFor(100);
             if (message != trade.getSeller().getPaymentReceivedMessage()) {
-                log.info("Ignoring PaymentReceivedMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                //log.info("Ignoring PaymentReceivedMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 return;
             }
 
