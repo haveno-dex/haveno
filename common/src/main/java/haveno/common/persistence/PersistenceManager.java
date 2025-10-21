@@ -387,7 +387,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             log.info("Reading {} completed in {} ms", fileName, System.currentTimeMillis() - ts);
             return persistableEnvelope;
         } catch (Throwable t) {
-            log.error("Reading {} failed with {}.", fileName, t.getMessage());
+            log.error("Reading {} failed with {}.", fileName, t.getMessage(), t);
             try {
                 // We keep a backup which might be used for recovery
                 FileUtil.removeAndBackupFile(dir, storageFile, fileName, "backup_of_corrupted_data");
