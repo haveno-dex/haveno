@@ -1760,14 +1760,25 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return getMaker().getDepositTx();
     }
 
-    private Long getMinDepositTxConfirmations() {
+    private Long getNumDepositsConfirmations() {
+        Long depositsConfirmedHeight = getDepositsConfirmedHeight();
+        if (depositsConfirmedHeight == null) return null;
+        return walletHeight.get() - depositsConfirmedHeight + 1;
+    }
+
+    private Long getDepositsConfirmedHeight() {
         MoneroTxWallet makerDepositTx = getMakerDepositTx();
-        if (makerDepositTx == null) return null;
-        if (hasBuyerAsTakerWithoutDeposit()) return makerDepositTx.getNumConfirmations();
         MoneroTxWallet takerDepositTx = getTakerDepositTx();
-        if (takerDepositTx == null) return null;
-        if (makerDepositTx.getNumConfirmations() == null || takerDepositTx.getNumConfirmations() == null) return null;
-        return Math.min(makerDepositTx.getNumConfirmations(), takerDepositTx.getNumConfirmations());
+        if (makerDepositTx == null || (takerDepositTx == null && !hasBuyerAsTakerWithoutDeposit())) return null;
+        if (Boolean.TRUE.equals(makerDepositTx.isFailed()) || (takerDepositTx != null && Boolean.TRUE.equals(takerDepositTx.isFailed()))) return null;
+        if (makerDepositTx.getHeight() == null || (takerDepositTx != null && takerDepositTx.getHeight() == null)) return null;
+        return Math.max(makerDepositTx.getHeight(), hasBuyerAsTakerWithoutDeposit() ? 0l : takerDepositTx.getHeight());
+    }
+
+    private Long getDepositsFinalizedHeight() {
+        Long depositsConfirmedHeight = getDepositsConfirmedHeight();
+        if (depositsConfirmedHeight == null) return null;
+        return depositsConfirmedHeight + NUM_BLOCKS_DEPOSITS_FINALIZED - 1;
     }
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
@@ -2151,8 +2162,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // automatically advance unlocked state to finalized if sufficient confirmations
         if (state == State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN) {
-            Long minDepositTxConfirmations = getMinDepositTxConfirmations();
-            if (minDepositTxConfirmations != null && minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED) {
+            Long numDepositsConfirmations = getNumDepositsConfirmations();
+            if (numDepositsConfirmations != null && numDepositsConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED) {
                 log.info("Auto-advancing state to {} for {} {} because deposits are unlocked and have at least {} confirmations", State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN, this.getClass().getSimpleName(), getShortId(), NUM_BLOCKS_DEPOSITS_FINALIZED);
                 setStateDepositsFinalized();
             }
@@ -2474,13 +2485,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private long getDepositsFinalizedHeight() {
-        MoneroTxWallet makerDepositTx = getMakerDepositTx();
-        MoneroTxWallet takerDepositTx = getTakerDepositTx();
-        if (makerDepositTx == null || (takerDepositTx == null && !hasBuyerAsTakerWithoutDeposit())) throw new RuntimeException("Cannot get finalized height for trade " + getId() + " because its deposit tx is null. Is client connected to a daemon?");
-        return Math.max(makerDepositTx.getHeight() + NUM_BLOCKS_DEPOSITS_FINALIZED - 1, hasBuyerAsTakerWithoutDeposit() ? 0l : takerDepositTx.getHeight() + NUM_BLOCKS_DEPOSITS_FINALIZED - 1);
-    }
-
     public long getMaxTradePeriod() {
         return getOffer().getPaymentMethod().getMaxTradePeriod();
     }
@@ -2571,15 +2575,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else {
 
             // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits, or a single published state + num confirmations
-            Long minDepositTxConfirmations = getMinDepositTxConfirmations();
-            if (minDepositTxConfirmations == null) {
+            Long numDepositsConfirmations = getNumDepositsConfirmations();
+            if (numDepositsConfirmations == null) {
                 if (isBuyer()) { // log a warning for the buyer, since only they are at risk of reorg after payment sent
                     log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in state {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState());
                     Thread.dumpStack();
                 }
                 return true;
             }
-            return minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
+            return numDepositsConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
         }
     }
 
