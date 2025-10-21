@@ -549,71 +549,79 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             return;
         }
 
-        // save message for reprocessing
+        // set message for reprocessing
         trade.getBuyer().setPaymentSentMessage(message);
-        trade.persistNow(() -> {
 
-            // process message on trade thread
-            if (!trade.isInitialized() || trade.isShutDownStarted()) return;
-            ThreadUtils.execute(() -> {
-                // We are more tolerant with expected phase and allow also DEPOSITS_PUBLISHED as it can be the case
-                // that the wallet is still syncing and so the DEPOSITS_CONFIRMED state to yet triggered when we received
-                // a mailbox message with PaymentSentMessage.
-                // TODO A better fix would be to add a listener for the wallet sync state and process
-                // the mailbox msg once wallet is ready and trade state set.
-                synchronized (trade.getLock()) {
-                    if (!trade.isInitialized() || trade.isShutDownStarted()) return;
-                    if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
-                        log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
-                        handleTaskRunnerSuccess(peer, message);
-                        return;
-                    }
-                    if (trade.getPayoutTx() != null) {
-                        log.warn("We received a PaymentSentMessage but we have already created the payout tx " +
-                                                "so we ignore the message. This can happen if the ACK message to the peer did not " +
-                                                "arrive and the peer repeats sending us the message. We send another ACK msg.");
-                        sendAckMessage(peer, message, true, null);
-                        removeMailboxMessageAfterProcessing(message);
-                        return;
-                    }
+        // get latest message on initialization thread
+        ThreadUtils.execute(() -> {
 
-                    // ignore the message if a newer message was received before processing
-                    if (message != trade.getBuyer().getPaymentSentMessage()) {
-                        log.info("Ignoring PaymentSentMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        return;
+            // get latest message
+            HavenoUtils.waitFor(100);
+            if (message != trade.getBuyer().getPaymentSentMessage()) {
+                log.info("Ignoring PaymentSentMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
+
+            // persist before processing on trade thread
+            trade.persistNow(() -> {
+
+                // process message on trade thread
+                if (!trade.isInitialized() || trade.isShutDownStarted()) return;
+                ThreadUtils.execute(() -> {
+
+                    // We are more tolerant with expected phase and allow also DEPOSITS_PUBLISHED as it can be the case
+                    // that the wallet is still syncing and so the DEPOSITS_CONFIRMED state to yet triggered when we received
+                    // a mailbox message with PaymentSentMessage.
+                    // TODO A better fix would be to add a listener for the wallet sync state and process
+                    // the mailbox msg once wallet is ready and trade state set.
+                    synchronized (trade.getLock()) {
+                        if (!trade.isInitialized() || trade.isShutDownStarted()) return;
+                        if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
+                            log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
+                            handleTaskRunnerSuccess(peer, message);
+                            return;
+                        }
+                        if (trade.getPayoutTx() != null) {
+                            log.warn("We received a PaymentSentMessage but we have already created the payout tx " +
+                                                    "so we ignore the message. This can happen if the ACK message to the peer did not " +
+                                                    "arrive and the peer repeats sending us the message. We send another ACK msg.");
+                            sendAckMessage(peer, message, true, null);
+                            removeMailboxMessageAfterProcessing(message);
+                            return;
+                        }
+                        latchTrade();
+                        expect(anyPhase()
+                                .with(message)
+                                .from(peer))
+                                .setup(tasks(
+                                        ApplyFilter.class,
+                                        ProcessPaymentSentMessage.class,
+                                        VerifyPeersAccountAgeWitness.class)
+                                .using(new TradeTaskRunner(trade,
+                                        () -> {
+                                            handleTaskRunnerSuccess(peer, message);
+                                        },
+                                        (errorMessage) -> {
+                                            log.warn("Error processing payment sent message: " + errorMessage);
+                                            processModel.getTradeManager().requestPersistence();
+            
+                                            // schedule to reprocess message unless deleted
+                                            if (trade.getBuyer().getPaymentSentMessage() != null) {
+                                                UserThread.runAfter(() -> {
+                                                    reprocessPaymentSentMessageCount++;
+                                                    maybeReprocessPaymentSentMessage(reprocessOnError);
+                                                }, trade.getReprocessDelayInSeconds(reprocessPaymentSentMessageCount));
+                                            } else {
+                                                handleTaskRunnerFault(peer, message, errorMessage); // otherwise send nack
+                                            }
+                                            unlatchTrade();
+                                        })))
+                                .executeTasks(true);
+                        awaitTradeLatch();
                     }
-                    latchTrade();
-                    expect(anyPhase()
-                            .with(message)
-                            .from(peer))
-                            .setup(tasks(
-                                    ApplyFilter.class,
-                                    ProcessPaymentSentMessage.class,
-                                    VerifyPeersAccountAgeWitness.class)
-                            .using(new TradeTaskRunner(trade,
-                                    () -> {
-                                        handleTaskRunnerSuccess(peer, message);
-                                    },
-                                    (errorMessage) -> {
-                                        log.warn("Error processing payment sent message: " + errorMessage);
-                                        processModel.getTradeManager().requestPersistence();
-        
-                                        // schedule to reprocess message unless deleted
-                                        if (trade.getBuyer().getPaymentSentMessage() != null) {
-                                            UserThread.runAfter(() -> {
-                                                reprocessPaymentSentMessageCount++;
-                                                maybeReprocessPaymentSentMessage(reprocessOnError);
-                                            }, trade.getReprocessDelayInSeconds(reprocessPaymentSentMessageCount));
-                                        } else {
-                                            handleTaskRunnerFault(peer, message, errorMessage); // otherwise send nack
-                                        }
-                                        unlatchTrade();
-                                    })))
-                            .executeTasks(true);
-                    awaitTradeLatch();
-                }
-            }, trade.getId());
-        });
+                }, trade.getId());
+            });
+        }, trade.getInitId());
     }
 
     // received by buyer and arbitrator
@@ -641,87 +649,94 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // save message for reprocessing
         trade.getSeller().setPaymentReceivedMessage(message);
 
-        // persist trade before processing on trade thread
-        trade.persistNow(() -> {
+        // get latest message on initialization thread
+        ThreadUtils.execute(() -> {
 
-            // process message on trade thread
-            if (!trade.isInitialized() || trade.isShutDownStarted()) return;
-            ThreadUtils.execute(() -> {
-                synchronized (trade.getLock()) {
-                    if (!trade.isInitialized() || trade.isShutDownStarted()) {
-                        log.warn("Skipping processing PaymentReceivedMessage because the trade is not initialized or it's shutting down for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        return;
-                    }
-                    if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
-                        log.warn("Received another PaymentReceivedMessage after payout is published {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
-                        handleTaskRunnerSuccess(peer, message);
-                        return;
-                    }
-                    if (message != trade.getSeller().getPaymentReceivedMessage()) {
-                        log.warn("Ignoring PaymentReceivedMessage which was replaced by a newer message for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        return;
-                    }
-                    if (lastAckedPaymentReceivedMessage != null && lastAckedPaymentReceivedMessage.equals(trade.getSeller().getPaymentReceivedMessage())) {
-                        log.warn("Ignoring PaymentReceivedMessage which was already processed and responded to for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        return;
-                    }
-                    latchTrade();
-                    Validator.checkTradeId(processModel.getOfferId(), message);
-                    processModel.setTradeMessage(message);
+            // get latest message
+            HavenoUtils.waitFor(100);
+            if (message != trade.getSeller().getPaymentReceivedMessage()) {
+                log.info("Ignoring PaymentReceivedMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
 
-                    // check minimum trade phase
-                    if (trade.isBuyer() && trade.getPhase().ordinal() < Trade.Phase.PAYMENT_SENT.ordinal()) {
-                        log.warn("Received PaymentReceivedMessage before payment sent for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
-                        return;
-                    }
-                    if (trade.isArbitrator() && trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_CONFIRMED.ordinal()) {
-                        log.warn("Received PaymentReceivedMessage before deposits confirmed for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
-                        return;
-                    }
-                    if (trade.isSeller() && trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
-                        log.warn("Received PaymentReceivedMessage before deposits unlocked for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
-                        return;
-                    }
+            // persist trade before processing on trade thread
+            trade.persistNow(() -> {
 
-                    expect(anyPhase()
-                        .with(message)
-                        .from(peer))
-                        .setup(tasks(
-                            ProcessPaymentReceivedMessage.class)
-                            .using(new TradeTaskRunner(trade,
-                                () -> {
-                                    lastAckedPaymentReceivedMessage = message;
-                                    handleTaskRunnerSuccess(peer, message);
-                                },
-                                errorMessage -> {
-                                    log.warn("Error processing payment received message: " + errorMessage);
-                                    processModel.getTradeManager().requestPersistence();
+                // process message on trade thread
+                if (!trade.isInitialized() || trade.isShutDownStarted()) return;
+                ThreadUtils.execute(() -> {
+                    synchronized (trade.getLock()) {
+                        if (!trade.isInitialized() || trade.isShutDownStarted()) {
+                            log.warn("Skipping processing PaymentReceivedMessage because the trade is not initialized or it's shutting down for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                            return;
+                        }
+                        if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
+                            log.warn("Received another PaymentReceivedMessage after payout is published {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
+                            handleTaskRunnerSuccess(peer, message);
+                            return;
+                        }
+                        if (lastAckedPaymentReceivedMessage != null && lastAckedPaymentReceivedMessage.equals(trade.getSeller().getPaymentReceivedMessage())) {
+                            log.warn("Ignoring PaymentReceivedMessage which was already processed and responded to for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                            return;
+                        }
+                        latchTrade();
+                        Validator.checkTradeId(processModel.getOfferId(), message);
+                        processModel.setTradeMessage(message);
 
-                                    // schedule to reprocess message or nack
-                                    if (trade.getSeller().getPaymentReceivedMessage() != null) {
-                                        if (reprocessOnError) {
-                                            UserThread.runAfter(() -> {
-                                                reprocessPaymentReceivedMessageCount++;
-                                                maybeReprocessPaymentReceivedMessage(reprocessOnError);
-                                            }, trade.getReprocessDelayInSeconds(reprocessPaymentReceivedMessageCount));
-                                        }
-                                        unlatchTrade();
-                                    } else {
+                        // check minimum trade phase
+                        if (trade.isBuyer() && trade.getPhase().ordinal() < Trade.Phase.PAYMENT_SENT.ordinal()) {
+                            log.warn("Received PaymentReceivedMessage before payment sent for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
+                            return;
+                        }
+                        if (trade.isArbitrator() && trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_CONFIRMED.ordinal()) {
+                            log.warn("Received PaymentReceivedMessage before deposits confirmed for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
+                            return;
+                        }
+                        if (trade.isSeller() && trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
+                            log.warn("Received PaymentReceivedMessage before deposits unlocked for {} {}, ignoring", trade.getClass().getSimpleName(), trade.getId());
+                            return;
+                        }
 
-                                        // export fresh multisig info for nack
-                                        trade.exportMultisigHex();
-
-                                        // handle payout error
+                        expect(anyPhase()
+                            .with(message)
+                            .from(peer))
+                            .setup(tasks(
+                                ProcessPaymentReceivedMessage.class)
+                                .using(new TradeTaskRunner(trade,
+                                    () -> {
                                         lastAckedPaymentReceivedMessage = message;
-                                        trade.onPayoutError(false, false, null);
-                                        handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
-                                    }
-                                })))
-                        .executeTasks(true);
-                    awaitTradeLatch();
-                }
-            }, trade.getId());
-        });
+                                        handleTaskRunnerSuccess(peer, message);
+                                    },
+                                    errorMessage -> {
+                                        log.warn("Error processing payment received message: " + errorMessage);
+                                        processModel.getTradeManager().requestPersistence();
+
+                                        // schedule to reprocess message or nack
+                                        if (trade.getSeller().getPaymentReceivedMessage() != null) {
+                                            if (reprocessOnError) {
+                                                UserThread.runAfter(() -> {
+                                                    reprocessPaymentReceivedMessageCount++;
+                                                    maybeReprocessPaymentReceivedMessage(reprocessOnError);
+                                                }, trade.getReprocessDelayInSeconds(reprocessPaymentReceivedMessageCount));
+                                            }
+                                            unlatchTrade();
+                                        } else {
+
+                                            // export fresh multisig info for nack
+                                            trade.exportMultisigHex();
+
+                                            // handle payout error
+                                            lastAckedPaymentReceivedMessage = message;
+                                            trade.onPayoutError(false, false, null);
+                                            handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
+                                        }
+                                    })))
+                            .executeTasks(true);
+                        awaitTradeLatch();
+                    }
+                }, trade.getId());
+            });
+        }, trade.getInitId());
     }
 
     public void onWithdrawCompleted() {

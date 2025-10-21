@@ -306,153 +306,167 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             return;
         }
 
-        // save dispute closed message for reprocessing
+        // set dispute closed message for reprocessing
         trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
-        persistNow(null);
 
-        // try to process dispute closed message
+        // get latest message on initialization thread
         ThreadUtils.execute(() -> {
-            ChatMessage chatMessage = null;
-            Dispute dispute = null;
-            synchronized (trade.getLock()) {
-                try {
-                    DisputeResult disputeResult = disputeClosedMessage.getDisputeResult();
-                    chatMessage = disputeResult.getChatMessage();
-                    checkNotNull(chatMessage, "chatMessage must not be null");
-                    String tradeId = disputeResult.getTradeId();
 
-                    log.info("Processing {} for {} {}", disputeClosedMessage.getClass().getSimpleName(), trade.getClass().getSimpleName(), disputeResult.getTradeId());
+            // get latest message
+            HavenoUtils.waitFor(100);
+            if (disputeClosedMessage != trade.getArbitrator().getDisputeClosedMessage()) {
+                log.info("Ignoring DisputeClosedMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
 
-                    // get dispute
-                    Optional<Dispute> disputeOptional = findDispute(disputeResult);
-                    String uid = disputeClosedMessage.getUid();
-                    if (!disputeOptional.isPresent()) {
-                        log.warn("We got a dispute closed msg but we don't have a matching dispute. " +
-                                "That might happen when we get the DisputeClosedMessage before the dispute was created. " +
-                                "We try again after 2 sec. to apply the DisputeClosedMessage. TradeId = " + tradeId);
-                        if (!delayMsgMap.containsKey(uid)) {
-                            // We delay 2 sec. to be sure the comm. msg gets added first
-                            Timer timer = UserThread.runAfter(() -> handle(disputeClosedMessage), 2);
-                            delayMsgMap.put(uid, timer);
-                        } else {
-                            log.warn("We got a dispute closed msg after we already repeated to apply the message after a delay. " +
-                                    "That should never happen. TradeId = " + tradeId);
-                        }
-                        return;
-                    }
-                    dispute = disputeOptional.get();
+            // persist before processing on trade thread
+            trade.persistNow(() -> {
 
-                    // verify arbitrator signature
-                    String summaryText = chatMessage.getMessage();
-                    if (summaryText == null || summaryText.isEmpty()) throw new IllegalArgumentException("Summary text for dispute is missing, tradeId=" + tradeId + (dispute == null ? "" : ", disputeId=" + dispute.getId()));
-                    if (dispute != null) DisputeSummaryVerification.verifySignature(summaryText, dispute.getAgentPubKeyRing()); // use dispute's arbitrator pub key ring
-                    else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail if arbitrator is unregistered)
+                // try to process dispute closed message
+                ThreadUtils.execute(() -> {
+                    ChatMessage chatMessage = null;
+                    Dispute dispute = null;
+                    synchronized (trade.getLock()) {
+                        try {
+                            DisputeResult disputeResult = disputeClosedMessage.getDisputeResult();
+                            chatMessage = disputeResult.getChatMessage();
+                            checkNotNull(chatMessage, "chatMessage must not be null");
+                            String tradeId = disputeResult.getTradeId();
 
-                    // verify arbitrator does not receive DisputeClosedMessage
-                    if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
-                        log.error("Arbitrator received disputeResultMessage. That should never happen.");
-                        trade.getArbitrator().setDisputeClosedMessage(null); // don't reprocess
-                        return;
-                    }
+                            log.info("Processing {} for {} {}", disputeClosedMessage.getClass().getSimpleName(), trade.getClass().getSimpleName(), disputeResult.getTradeId());
 
-                    // set dispute state
-                    cleanupRetryMap(uid);
-                    synchronized (dispute.getChatMessages()) {
-                        if (!dispute.getChatMessages().contains(chatMessage)) {
-                            dispute.addAndPersistChatMessage(chatMessage);
-                        } else {
-                            log.warn("We got a dispute mail msg that we have already stored. TradeId = " + chatMessage.getTradeId());
-                        }
-                    }
-                    dispute.setIsClosed();
-                    if (dispute.disputeResultProperty().get() != null) {
-                        log.info("We already got a dispute result, indicating the message was resent after updating multisig info. TradeId = " + tradeId);
-                    }
-                    dispute.setDisputeResult(disputeResult);
-
-                    // update multisig hex
-                    if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
-                    if (trade.walletExists()) trade.importMultisigHex();
-
-                    // sync and save wallet
-                    if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
-
-                    // attempt to sign and publish dispute payout tx if given and not already published
-                    if (!trade.isPayoutPublished() && disputeClosedMessage.getUnsignedPayoutTxHex() != null) {
-
-                        // wait to sign and publish payout tx if defer flag set
-                        if (disputeClosedMessage.isDeferPublishPayout()) {
-                            log.info("Deferring signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                            trade.pollWalletNormallyForMs(Trade.POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS); // override idling
-                            for (int i = 0; i < 5; i++) {
-                                if (trade.isPayoutPublished()) break;
-                                HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
-                            }
-                            if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
-                        }
-
-                        // sign and publish dispute payout tx if peer still has not published
-                        if (trade.isPayoutPublished()) {
-                            log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        } else {
-                            try {
-                                log.info("Signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                                processDisputePayoutTx(trade);
-                            } catch (Exception e) {
-
-                                // check if payout published again
-                                trade.syncAndPollWallet();
-                                if (trade.isPayoutPublished()) {
-                                    log.warn("Payout tx already published for {} {}, skipping dispute processing", trade.getClass().getSimpleName(), trade.getId());
+                            // get dispute
+                            Optional<Dispute> disputeOptional = findDispute(disputeResult);
+                            String uid = disputeClosedMessage.getUid();
+                            if (!disputeOptional.isPresent()) {
+                                log.warn("We got a dispute closed msg but we don't have a matching dispute. " +
+                                        "That might happen when we get the DisputeClosedMessage before the dispute was created. " +
+                                        "We try again after 2 sec. to apply the DisputeClosedMessage. TradeId = " + tradeId);
+                                if (!delayMsgMap.containsKey(uid)) {
+                                    // We delay 2 sec. to be sure the comm. msg gets added first
+                                    Timer timer = UserThread.runAfter(() -> handle(disputeClosedMessage), 2);
+                                    delayMsgMap.put(uid, timer);
                                 } else {
-                                    if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) throw e;
-                                    else throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator for " + trade.getClass().getSimpleName() + " " + tradeId + ": " + e.getMessage(), e);
+                                    log.warn("We got a dispute closed msg after we already repeated to apply the message after a delay. " +
+                                            "That should never happen. TradeId = " + tradeId);
+                                }
+                                return;
+                            }
+                            dispute = disputeOptional.get();
+
+                            // verify arbitrator signature
+                            String summaryText = chatMessage.getMessage();
+                            if (summaryText == null || summaryText.isEmpty()) throw new IllegalArgumentException("Summary text for dispute is missing, tradeId=" + tradeId + (dispute == null ? "" : ", disputeId=" + dispute.getId()));
+                            if (dispute != null) DisputeSummaryVerification.verifySignature(summaryText, dispute.getAgentPubKeyRing()); // use dispute's arbitrator pub key ring
+                            else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail if arbitrator is unregistered)
+
+                            // verify arbitrator does not receive DisputeClosedMessage
+                            if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
+                                log.error("Arbitrator received disputeResultMessage. That should never happen.");
+                                trade.getArbitrator().setDisputeClosedMessage(null); // don't reprocess
+                                return;
+                            }
+
+                            // set dispute state
+                            cleanupRetryMap(uid);
+                            synchronized (dispute.getChatMessages()) {
+                                if (!dispute.getChatMessages().contains(chatMessage)) {
+                                    dispute.addAndPersistChatMessage(chatMessage);
+                                } else {
+                                    log.warn("We got a dispute mail msg that we have already stored. TradeId = " + chatMessage.getTradeId());
                                 }
                             }
+                            dispute.setIsClosed();
+                            if (dispute.disputeResultProperty().get() != null) {
+                                log.info("We already got a dispute result, indicating the message was resent after updating multisig info. TradeId = " + tradeId);
+                            }
+                            dispute.setDisputeResult(disputeResult);
+
+                            // update multisig hex
+                            if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
+                            if (trade.walletExists()) trade.importMultisigHex();
+
+                            // sync and save wallet
+                            if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
+
+                            // attempt to sign and publish dispute payout tx if given and not already published
+                            if (!trade.isPayoutPublished() && disputeClosedMessage.getUnsignedPayoutTxHex() != null) {
+
+                                // wait to sign and publish payout tx if defer flag set
+                                if (disputeClosedMessage.isDeferPublishPayout()) {
+                                    log.info("Deferring signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                                    trade.pollWalletNormallyForMs(Trade.POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS); // override idling
+                                    for (int i = 0; i < 5; i++) {
+                                        if (trade.isPayoutPublished()) break;
+                                        HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
+                                    }
+                                    if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
+                                }
+
+                                // sign and publish dispute payout tx if peer still has not published
+                                if (trade.isPayoutPublished()) {
+                                    log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                                } else {
+                                    try {
+                                        log.info("Signing and publishing dispute payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                                        processDisputePayoutTx(trade);
+                                    } catch (Exception e) {
+
+                                        // check if payout published again
+                                        trade.syncAndPollWallet();
+                                        if (trade.isPayoutPublished()) {
+                                            log.warn("Payout tx already published for {} {}, skipping dispute processing", trade.getClass().getSimpleName(), trade.getId());
+                                        } else {
+                                            if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) throw e;
+                                            else throw new RuntimeException("Failed to sign and publish dispute payout tx from arbitrator for " + trade.getClass().getSimpleName() + " " + tradeId + ": " + e.getMessage(), e);
+                                        }
+                                    }
+                                }
+                            } else {
+                                if (trade.isPayoutPublished()) log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                                else if (disputeClosedMessage.getUnsignedPayoutTxHex() == null) log.info("{} did not receive unsigned dispute payout tx for trade {} because the arbitrator did not have their updated multisig info (can happen if trader went offline after trade started)", trade.getClass().getSimpleName(), trade.getId());
+                            }
+
+                            // complete disputed trade
+                            if (trade.isPayoutPublished()) {
+                                tradeManager.closeDisputedTrade(trade.getId(), Trade.DisputeState.DISPUTE_CLOSED);
+                            }
+
+                            // We use the chatMessage as we only persist those not the DisputeClosedMessage.
+                            // If we would use the DisputeClosedMessage we could not lookup for the msg when we receive the AckMessage.
+                            sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null);
+                            requestPersistence(trade);
+                        } catch (Exception e) {
+                            log.warn("Error processing dispute closed message: {}", e.getMessage());
+                            log.warn(ExceptionUtils.getStackTrace(e));
+                            requestPersistence(trade);
+
+                            // nack bad message and do not reprocess
+                            if (HavenoUtils.isIllegal(e)) {
+                                trade.setPayoutTxHex(null); // clear signed payout tx hex
+                                trade.getArbitrator().setDisputeClosedMessage(null); // message is processed
+                                trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                                String warningMsg = "Error processing dispute closed message: " +  e.getMessage() + "\n\nOpen another dispute to try again (ctrl+o).";
+                                trade.prependErrorMessage(warningMsg);
+                                sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), false, e.getMessage());
+                                HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
+                                requestPersistence(trade);
+                                throw e;
+                            }
+
+                            // schedule to reprocess message unless deleted
+                            if (trade.getArbitrator().getDisputeClosedMessage() != null && reprocessOnError) {
+                                if (!reprocessDisputeClosedMessageCounts.containsKey(trade.getId())) reprocessDisputeClosedMessageCounts.put(trade.getId(), 0);
+                                UserThread.runAfter(() -> {
+                                    reprocessDisputeClosedMessageCounts.put(trade.getId(), reprocessDisputeClosedMessageCounts.get(trade.getId()) + 1); // increment reprocess count
+                                    maybeReprocessDisputeClosedMessage(trade, reprocessOnError);
+                                }, trade.getReprocessDelayInSeconds(reprocessDisputeClosedMessageCounts.get(trade.getId())));
+                            }
                         }
-                    } else {
-                        if (trade.isPayoutPublished()) log.info("Dispute payout tx already published for {} {}", trade.getClass().getSimpleName(), trade.getId());
-                        else if (disputeClosedMessage.getUnsignedPayoutTxHex() == null) log.info("{} did not receive unsigned dispute payout tx for trade {} because the arbitrator did not have their updated multisig info (can happen if trader went offline after trade started)", trade.getClass().getSimpleName(), trade.getId());
                     }
-
-                    // complete disputed trade
-                    if (trade.isPayoutPublished()) {
-                        tradeManager.closeDisputedTrade(trade.getId(), Trade.DisputeState.DISPUTE_CLOSED);
-                    }
-
-                    // We use the chatMessage as we only persist those not the DisputeClosedMessage.
-                    // If we would use the DisputeClosedMessage we could not lookup for the msg when we receive the AckMessage.
-                    sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null);
-                    requestPersistence(trade);
-                } catch (Exception e) {
-                    log.warn("Error processing dispute closed message: {}", e.getMessage());
-                    log.warn(ExceptionUtils.getStackTrace(e));
-                    requestPersistence(trade);
-
-                    // nack bad message and do not reprocess
-                    if (HavenoUtils.isIllegal(e)) {
-                        trade.setPayoutTxHex(null); // clear signed payout tx hex
-                        trade.getArbitrator().setDisputeClosedMessage(null); // message is processed
-                        trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
-                        String warningMsg = "Error processing dispute closed message: " +  e.getMessage() + "\n\nOpen another dispute to try again (ctrl+o).";
-                        trade.prependErrorMessage(warningMsg);
-                        sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), false, e.getMessage());
-                        HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
-                        requestPersistence(trade);
-                        throw e;
-                    }
-
-                    // schedule to reprocess message unless deleted
-                    if (trade.getArbitrator().getDisputeClosedMessage() != null && reprocessOnError) {
-                        if (!reprocessDisputeClosedMessageCounts.containsKey(trade.getId())) reprocessDisputeClosedMessageCounts.put(trade.getId(), 0);
-                        UserThread.runAfter(() -> {
-                            reprocessDisputeClosedMessageCounts.put(trade.getId(), reprocessDisputeClosedMessageCounts.get(trade.getId()) + 1); // increment reprocess count
-                            maybeReprocessDisputeClosedMessage(trade, reprocessOnError);
-                        }, trade.getReprocessDelayInSeconds(reprocessDisputeClosedMessageCounts.get(trade.getId())));
-                    }
-                }
-            }
-        }, trade.getId());
+                }, trade.getId());
+            });
+        }, trade.getInitId());
     }
 
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {
