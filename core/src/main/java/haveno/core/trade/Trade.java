@@ -2469,8 +2469,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // get finalize time of last deposit tx
             if (getWallet() == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because cannot get its wallet");
-            long finalizeHeight = getDepositsFinalizedHeight();
-            if (finalizeHeight > xmrConnectionService.getTargetHeight()) return; // TODO: isDepositsFinalized() can assume true, so skip if finalized height not reached
+            Long finalizeHeight = getDepositsFinalizedHeight();
+            if (finalizeHeight == null || finalizeHeight > xmrConnectionService.getTargetHeight()) return; // TODO: isDepositsFinalized() can assume true, so skip if finalized height not reached
             long finalizeTime = monerod.getBlockByHeight(finalizeHeight).getTimestamp() * 1000;
 
             // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
