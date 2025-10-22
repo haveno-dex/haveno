@@ -578,14 +578,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                         if (!trade.isInitialized() || trade.isShutDownStarted()) return;
                         if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
                             log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
-                            handleTaskRunnerSuccess(peer, message);
+                            handleTaskRunnerSuccess(trade.getBuyer().getNodeAddress(), message);
                             return;
                         }
                         if (trade.getPayoutTx() != null) {
                             log.warn("We received a PaymentSentMessage but we have already created the payout tx " +
                                                     "so we ignore the message. This can happen if the ACK message to the peer did not " +
                                                     "arrive and the peer repeats sending us the message. We send another ACK msg.");
-                            sendAckMessage(peer, message, true, null);
+                            sendAckMessage(trade.getBuyer().getNodeAddress(), message, true, null);
                             removeMailboxMessageAfterProcessing(message);
                             return;
                         }
@@ -671,8 +671,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             return;
                         }
                         if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
-                            log.warn("Received another PaymentReceivedMessage after payout is published {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
-                            handleTaskRunnerSuccess(peer, message);
+                            log.warn("Received another PaymentReceivedMessage after payout is published for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
+                            handleTaskRunnerSuccess(trade.getSeller().getNodeAddress(), message);
                             return;
                         }
                         if (lastAckedPaymentReceivedMessage != null && lastAckedPaymentReceivedMessage.equals(trade.getSeller().getPaymentReceivedMessage())) {
@@ -813,9 +813,17 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // get trade peer
         TradePeer peer = trade.getTradePeer(sender);
         if (peer == null) {
+
+            // TODO: better way to assign these
             if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
             else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
             else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
+            if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
+            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
+            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
+            if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
+            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
+            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
         }
         if (peer == null) {
             if (ackMessage.isSuccess()) log.warn("Received AckMessage from unknown peer for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
