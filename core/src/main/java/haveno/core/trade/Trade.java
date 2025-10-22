@@ -979,6 +979,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (isPayoutPublished()) return false;
         if (isArbitrator() && isDepositsConfirmed()) return true;
         if (!isDepositsUnlocked()) return false;
+        if (isPaymentReceived() || isDisputeClosed()) return false;
         if (isBuyer()) return isPaymentSent();
         if (isSeller()) {
             if (!isPaymentSent()) return true;
