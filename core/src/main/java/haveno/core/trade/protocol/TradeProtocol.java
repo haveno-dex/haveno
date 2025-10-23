@@ -563,11 +563,16 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             }
 
             // persist before processing on trade thread
+            CountDownLatch initLatch = new CountDownLatch(1);
             trade.persistNow(() -> {
 
                 // process message on trade thread
-                if (!trade.isInitialized() || trade.isShutDownStarted()) return;
+                if (!trade.isInitialized() || trade.isShutDownStarted()) {
+                    initLatch.countDown();
+                    return;
+                }
                 ThreadUtils.execute(() -> {
+                    initLatch.countDown();
 
                     // We are more tolerant with expected phase and allow also DEPOSITS_PUBLISHED as it can be the case
                     // that the wallet is still syncing and so the DEPOSITS_CONFIRMED state to yet triggered when we received
@@ -621,6 +626,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     }
                 }, trade.getId());
             });
+            HavenoUtils.awaitLatch(initLatch);
         }, trade.getInitId());
     }
 
@@ -660,11 +666,16 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             }
 
             // persist trade before processing on trade thread
+            CountDownLatch initLatch = new CountDownLatch(1);
             trade.persistNow(() -> {
 
                 // process message on trade thread
-                if (!trade.isInitialized() || trade.isShutDownStarted()) return;
+                if (!trade.isInitialized() || trade.isShutDownStarted()) {
+                    initLatch.countDown();
+                    return;
+                }
                 ThreadUtils.execute(() -> {
+                    initLatch.countDown();
                     synchronized (trade.getLock()) {
                         if (!trade.isInitialized() || trade.isShutDownStarted()) {
                             log.warn("Skipping processing PaymentReceivedMessage because the trade is not initialized or it's shutting down for {} {}", trade.getClass().getSimpleName(), trade.getId());
@@ -736,6 +747,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     }
                 }, trade.getId());
             });
+            HavenoUtils.awaitLatch(initLatch);
         }, trade.getInitId());
     }
 

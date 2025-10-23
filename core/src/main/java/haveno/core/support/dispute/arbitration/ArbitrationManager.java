@@ -93,6 +93,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -320,10 +321,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             }
 
             // persist before processing on trade thread
+            CountDownLatch initLatch = new CountDownLatch(1);
             trade.persistNow(() -> {
 
                 // try to process dispute closed message
                 ThreadUtils.execute(() -> {
+                    initLatch.countDown();
                     ChatMessage chatMessage = null;
                     Dispute dispute = null;
                     synchronized (trade.getLock()) {
@@ -466,6 +469,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                     }
                 }, trade.getId());
             });
+            HavenoUtils.awaitLatch(initLatch);
         }, trade.getInitId());
     }
 
