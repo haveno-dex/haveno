@@ -2951,7 +2951,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (this.isShutDownStarted) return;
             if (this.pollPeriodMs != null && this.pollPeriodMs == pollPeriodMs) return;
             this.pollPeriodMs = pollPeriodMs;
-            resetPolling();
+            if (isPolling()) resetPolling(false);
         }
     }
 
@@ -2990,17 +2990,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private void resetPolling() {
-        resetPolling(false);
-    }
-
     private void resetPolling(boolean skipFirstPoll) {
         synchronized (pollLock) {
             if (isShutDownStarted) return;
-            if (isPolling()) {
-                stopPolling();
-                startPolling(skipFirstPoll);
-            }
+            stopPolling();
+            startPolling(skipFirstPoll);
         }
     }
     
