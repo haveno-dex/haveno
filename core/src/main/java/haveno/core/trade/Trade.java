@@ -725,7 +725,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         HavenoUtils.waitFor(1000);
                         if (isPayoutConfirmed()) return;
                         if (isShutDownStarted) return;
-                        if (xmrConnectionService.isConnected()) syncAndPollWallet();
+                        if (xmrConnectionService.isConnected()) xmrWalletService.doPollWallet(true);
                     });
 
                     // complete disputed trade
@@ -3026,6 +3026,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // skip if shut down started
         if (isShutDownStarted) return;
+
+        log.warn("Polling wallet for {} {}", getClass().getSimpleName(), getId(), new RuntimeException("Where are we"));
 
         // set poll in progress
         boolean pollInProgressSet = false;
