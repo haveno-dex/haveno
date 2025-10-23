@@ -3116,7 +3116,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
 
             // update trade period and poll properties
-            maybeUpdateTradePeriod();
+            if (!offlinePoll) maybeUpdateTradePeriod(); // no update possible if offline poll (also avoids deadlock because setting trade period state depends on locking wallet within another lock)
             wasWalletPolledProperty.set(true);
             if (!offlinePoll) {
                 wasWalletSyncedAndPolledProperty.set(true);
