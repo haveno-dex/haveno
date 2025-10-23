@@ -3027,8 +3027,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // skip if shut down started
         if (isShutDownStarted) return;
 
-        log.warn("Polling wallet for {} {}", getClass().getSimpleName(), getId(), new RuntimeException("Where are we"));
-
         // set poll in progress
         boolean pollInProgressSet = false;
         synchronized (pollLock) {
