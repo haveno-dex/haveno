@@ -280,7 +280,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // reprocess messages if applicable
             maybeReprocessPaymentSentMessage(false);
             maybeReprocessPaymentReceivedMessage(false);
-            HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(trade, false); // TODO:  move this to here, getInitId() is private
+            maybeReprocessDisputeClosedMessage(false);
 
             // initialize trade after startup mailbox messages processed
             trade.initializeAfterMailboxMessages();
@@ -345,6 +345,22 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
                 log.warn("Reprocessing PaymentReceivedMessage for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 handle(trade.getSeller().getPaymentReceivedMessage(), trade.getSeller().getPaymentReceivedMessage().getSenderNodeAddress(), reprocessOnError);
+            }
+        }, trade.getId());
+    }
+
+    public void maybeReprocessDisputeClosedMessage(boolean reprocessOnError) {
+        if (trade.isShutDownStarted()) return;
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
+
+                // skip if no need to reprocess
+                if (trade.isArbitrator() || trade.getArbitrator().getDisputeClosedMessage() == null || trade.getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex() == null || trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_CLOSED.ordinal()) {
+                    return;
+                }
+
+                log.warn("Reprocessing dispute closed message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                HavenoUtils.arbitrationManager.handle(trade.getArbitrator().getDisputeClosedMessage(), reprocessOnError);
             }
         }, trade.getId());
     }

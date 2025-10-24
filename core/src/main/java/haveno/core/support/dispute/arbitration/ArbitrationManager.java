@@ -298,7 +298,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         handle(disputeClosedMessage, true);
     }
 
-    private void handle(DisputeClosedMessage disputeClosedMessage, boolean reprocessOnError) {
+    public void handle(DisputeClosedMessage disputeClosedMessage, boolean reprocessOnError) {
 
         // get dispute's trade
         final Trade trade = tradeManager.getTrade(disputeClosedMessage.getTradeId());
@@ -470,7 +470,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }, trade.getId());
             });
             HavenoUtils.awaitLatch(initLatch);
-        }, trade.getProtocol().getInitId());
+        }, trade.getProtocol().getInitId()); // TODO: getInitId() should be private, but logic above depends on SupportManager internals
     }
 
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {
