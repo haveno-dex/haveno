@@ -256,17 +256,26 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         synchronized (trade.getLock()) {
             trade.initialize(processModel.getProvider());
 
-            // process mailbox messages
+            // wait for mailbox messages to be processed
             MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
             if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
-            handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
+            mailboxMessageService.getIsBootstrappedProperty().addListener((obs, wasBootstrapped, isNowBootstrapped) -> {
+                if (!isNowBootstrapped) return;
 
-            // reprocess applicable messages
-            trade.initializeAfterMailboxMessages();
+                // process mailbox messages if applicable
+                handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages()); // TODO: this comes from bisq, but is it necessary? seems mailbox message are already handled
+
+                // initialize trade after mailbox messages processed
+                onInitializedAfterMailboxMessages();
+            });
         }
 
         // send deposits confirmed message if applicable
         EasyBind.subscribe(trade.stateProperty(), state -> maybeSendDepositsConfirmedMessages());
+    }
+
+    protected void onInitializedAfterMailboxMessages() {
+        // no-op
     }
 
     public void maybeSendDepositsConfirmedMessages() {

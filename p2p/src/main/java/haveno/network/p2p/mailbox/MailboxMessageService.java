@@ -75,6 +75,9 @@ import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.utils.CapabilityUtils;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+
 import java.security.PublicKey;
 import java.time.Clock;
 import java.util.ArrayDeque;
@@ -138,6 +141,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     private boolean isBootstrapped;
     private boolean allServicesInitialized;
     private boolean initAfterBootstrapped;
+    private BooleanProperty isBootstrappedProperty = new SimpleBooleanProperty(false);
     private static Comparator<MailboxMessage> mailboxMessageComparator;
 
     @Inject
@@ -275,9 +279,13 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
             addHashMapChangedListener();
             onAdded(p2PDataStorage.getMap().values());
             maybeRepublishMailBoxMessages();
+            isBootstrappedProperty.set(true);
         }
     }
 
+    public BooleanProperty getIsBootstrappedProperty() {
+        return isBootstrappedProperty;
+    }
 
     public void sendEncryptedMailboxMessage(NodeAddress peer,
                                             PubKeyRing peersPubKeyRing,
