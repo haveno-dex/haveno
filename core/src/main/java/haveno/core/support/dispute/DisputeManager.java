@@ -161,7 +161,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         disputeListService.requestPersistence();
     }
 
-    protected void requestPersistence(Trade trade) {
+    public void requestPersistence(Trade trade) {
         trade.requestPersistence();
         disputeListService.requestPersistence();
     }
