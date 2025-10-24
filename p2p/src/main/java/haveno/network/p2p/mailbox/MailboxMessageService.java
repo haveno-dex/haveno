@@ -141,7 +141,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     private boolean isBootstrapped;
     private boolean allServicesInitialized;
     private boolean initAfterBootstrapped;
-    private BooleanProperty isBootstrappedProperty = new SimpleBooleanProperty(false);
+    private BooleanProperty isInitializedProperty = new SimpleBooleanProperty(false);
     private static Comparator<MailboxMessage> mailboxMessageComparator;
 
     @Inject
@@ -279,12 +279,11 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
             addHashMapChangedListener();
             onAdded(p2PDataStorage.getMap().values());
             maybeRepublishMailBoxMessages();
-            isBootstrappedProperty.set(true);
         }
     }
 
-    public BooleanProperty getIsBootstrappedProperty() {
-        return isBootstrappedProperty;
+    public BooleanProperty getIsInitializedProperty() {
+        return isInitializedProperty;
     }
 
     public void sendEncryptedMailboxMessage(NodeAddress peer,
@@ -469,7 +468,10 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
 
         Futures.addCallback(future, new FutureCallback<>() {
             public void onSuccess(Set<MailboxItem> decryptedMailboxMessageWithEntries) {
-                new Thread(() -> handleMailboxItems(decryptedMailboxMessageWithEntries)).start();
+                new Thread(() -> {
+                    handleMailboxItems(decryptedMailboxMessageWithEntries);
+                    isInitializedProperty.set(true);
+                }).start();
             }
 
             public void onFailure(@NotNull Throwable throwable) {

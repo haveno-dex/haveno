@@ -259,11 +259,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // wait for mailbox messages to be processed
             MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
             if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
-            mailboxMessageService.getIsBootstrappedProperty().addListener((obs, wasBootstrapped, isNowBootstrapped) -> {
-                if (!isNowBootstrapped) return;
-
-                // process mailbox messages if applicable
-                handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages()); // TODO: this comes from bisq, but is it necessary? seems mailbox message are already handled
+            mailboxMessageService.getIsInitializedProperty().addListener((obs, oldBootstrapped, newBootstrapped) -> {
+                if (!newBootstrapped || oldBootstrapped == newBootstrapped) return;
 
                 // initialize trade after mailbox messages processed
                 onInitializedAfterMailboxMessages();
