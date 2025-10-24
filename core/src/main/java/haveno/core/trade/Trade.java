@@ -58,7 +58,6 @@ import haveno.core.proto.network.CoreNetworkProtoResolver;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeResult.Winner;
-import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationResultState;
 import haveno.core.support.dispute.refund.RefundResultState;
 import haveno.core.support.messages.ChatMessage;
@@ -1683,8 +1682,34 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    // TODO: make this handling more consistent with trade.processPayoutTx()
-    public MoneroTxSet processDisputePayoutTx() {
+    public void processDisputePayoutTx() {
+        synchronized (walletLock) {
+            synchronized (HavenoUtils.getWalletFunctionLock()) {
+                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
+                    try {
+                        doProcessDisputePayoutTx();
+                        break;
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        handleWalletError(e, sourceConnection, i + 1);
+                        doPollWallet();
+                        if (isPayoutPublished()) break;
+                        log.warn("Failed to process dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage(), e);
+                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                    } finally {
+                        saveWallet();
+                        persistNow(null);
+                    }
+                }
+            }
+        }
+    }
+
+    private MoneroTxSet doProcessDisputePayoutTx() {
+        log.info("Processing dispute payout tx for {} {}", getClass().getSimpleName(), getId());
 
         // recover if missing wallet data
         recoverIfMissingWalletData();
@@ -1698,10 +1723,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
         String unsignedPayoutTxHex = getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex();
 
-//    Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
-//    BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getMaker().getDepositTxHash() : trade.getTaker().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): use contract instead of trade to get deposit tx ids when contract has deposit tx ids
-//    BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getTaker().getDepositTxHash() : trade.getMaker().getDepositTxHash()).getIncomingAmount();
-//    BigInteger tradeAmount = BigInteger.valueOf(contract.getTradeAmount().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
+        // Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
+        // BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getMaker().getDepositTxHash() : trade.getTaker().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): use contract instead of trade to get deposit tx ids when contract has deposit tx ids
+        // BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getTaker().getDepositTxHash() : trade.getMaker().getDepositTxHash()).getIncomingAmount();
+        // BigInteger tradeAmount = BigInteger.valueOf(contract.getTradeAmount().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
 
         // parse arbitrator-signed payout tx
         MoneroTxSet disputeTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(unsignedPayoutTxHex));
