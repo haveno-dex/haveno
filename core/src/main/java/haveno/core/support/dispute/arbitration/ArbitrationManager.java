@@ -316,7 +316,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             // get latest message
             HavenoUtils.waitFor(100);
             if (disputeClosedMessage != trade.getArbitrator().getDisputeClosedMessage()) {
-                //log.info("Ignoring DisputeClosedMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                log.info("Ignoring DisputeClosedMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
                 return;
             }
 
