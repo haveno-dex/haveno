@@ -470,7 +470,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }, trade.getId());
             });
             HavenoUtils.awaitLatch(initLatch);
-        }, trade.getInitId());
+        }, trade.getProtocol().getInitId());
     }
 
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {

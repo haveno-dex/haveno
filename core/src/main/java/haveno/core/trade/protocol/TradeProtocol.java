@@ -272,7 +272,23 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     protected void onInitializeAfterMailboxMessages() {
-        trade.initializeAfterMailboxMessages();
+
+        // run on initialization thread to preserve ordering processing messages
+        ThreadUtils.execute(() -> {
+            if (!trade.isDepositRequested() || trade.isPayoutFinalized() || trade.isCompleted()) return;
+
+            // reprocess messages if applicable
+            maybeReprocessPaymentSentMessage(false);
+            maybeReprocessPaymentReceivedMessage(false);
+            HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(trade, false); // TODO:  move this to here, getInitId() is private
+
+            // initialize trade after startup mailbox messages processed
+            trade.initializeAfterMailboxMessages();
+        }, getInitId());
+    }
+
+    public String getInitId() {
+        return trade.getId() + "_INIT";
     }
 
     public void maybeSendDepositsConfirmedMessages() {
@@ -633,7 +649,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 }, trade.getId());
             });
             HavenoUtils.awaitLatch(initLatch);
-        }, trade.getInitId());
+        }, getInitId());
     }
 
     // received by buyer and arbitrator
@@ -754,7 +770,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 }, trade.getId());
             });
             HavenoUtils.awaitLatch(initLatch);
-        }, trade.getInitId());
+        }, getInitId());
     }
 
     public void onWithdrawCompleted() {

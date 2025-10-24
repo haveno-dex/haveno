@@ -837,24 +837,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void initializeAfterMailboxMessages() {
-        ThreadUtils.execute(() -> {
-            if (!isDepositRequested() || isPayoutFinalized() || isCompleted()) return;
-            getProtocol().maybeReprocessPaymentSentMessage(false);
-            getProtocol().maybeReprocessPaymentReceivedMessage(false);
-            HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
 
-            // handle when wallet first synced
-            if (wasWalletSyncedAndPolledProperty.get()) onWalletFirstSynced();
-            else {
-                wasWalletSyncedAndPolledProperty.addListener((observable, oldValue, newValue) -> {
-                    if (newValue) onWalletFirstSynced();
-                });
-            }
-        }, getInitId());
-    }
-
-    public String getInitId() {
-        return getId() + "_INIT";
+        // handle when wallet first synced
+        if (wasWalletSyncedAndPolledProperty.get()) onWalletFirstSynced();
+        else {
+            wasWalletSyncedAndPolledProperty.addListener((observable, oldValue, newValue) -> {
+                if (newValue) onWalletFirstSynced();
+            });
+        }
     }
 
     private void onWalletFirstSynced() {
