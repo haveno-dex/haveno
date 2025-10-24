@@ -263,7 +263,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 if (!newBootstrapped || oldBootstrapped == newBootstrapped) return;
 
                 // initialize trade after mailbox messages processed
-                onInitializedAfterMailboxMessages();
+                onInitializeAfterMailboxMessages();
             });
         }
 
@@ -271,8 +271,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         EasyBind.subscribe(trade.stateProperty(), state -> maybeSendDepositsConfirmedMessages());
     }
 
-    protected void onInitializedAfterMailboxMessages() {
-        // no-op
+    protected void onInitializeAfterMailboxMessages() {
+        trade.initializeAfterMailboxMessages();
     }
 
     public void maybeSendDepositsConfirmedMessages() {
