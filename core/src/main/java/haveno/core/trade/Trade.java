@@ -157,8 +157,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized and multisig wallet deleted
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
     public static final long POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS = 120000; // 2 minutes
-    private static final long TRADER_IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 60000 : 28 * 60 * 1000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
-    private static final long ARBITRATOR_IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 60000 : 60 * 60 * 1000; // 1 hour (arbitrators close idling trade wallets, so period can be longer than 30 minutes)
+    private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 60000 : 28 * 60 * 1000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
@@ -3123,7 +3122,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private long getPollPeriod() {
-        if (isIdling()) return isArbitrator() ? ARBITRATOR_IDLE_SYNC_PERIOD_MS : TRADER_IDLE_SYNC_PERIOD_MS;
+        if (isIdling()) return IDLE_SYNC_PERIOD_MS;
         return xmrConnectionService.getRefreshPeriodMs();
     }
 
@@ -3275,7 +3274,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // get txs from trade wallet
                 boolean checkPool = !offlinePoll && isPayoutExpected && !isPayoutConfirmed();
-                List<MoneroTxWallet> txs = getTxs(checkPool);
+                List<MoneroTxWallet> txs = null;
+                if (getMaker().getDepositTx() == null || wallet != null) { // skip getting txs if wallet not synced, because no updates
+                    txs = getTxs(checkPool);
+                }
 
                 // txs may not be fetched if confirmed after last sync
                 if (!offlinePoll && isPayoutPublished() && getPayoutTxId() != null && !hasPayoutTx(txs)) {
