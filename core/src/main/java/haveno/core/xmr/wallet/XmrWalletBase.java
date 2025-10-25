@@ -226,7 +226,7 @@ public abstract class XmrWalletBase {
     }
 
     public static boolean isSyncWithProgressTimeout(Throwable e) {
-        return e.getMessage().contains(SYNC_TIMEOUT_MSG);
+        return e.getMessage() != null && e.getMessage().contains(SYNC_TIMEOUT_MSG);
     }
 
     // --------------------------------- ABSTRACT -----------------------------
