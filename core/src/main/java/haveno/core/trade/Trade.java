@@ -3271,7 +3271,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // get txs from trade wallet
                 boolean checkPool = !offlinePoll && isPayoutExpected && !isPayoutConfirmed();
                 List<MoneroTxWallet> txs = null;
-                if (getMaker().getDepositTx() == null || wallet != null) { // skip getting txs if wallet not synced, because no updates
+                if (depositTxsUninitialized || wallet != null) { // get txs if deposits uninitialized or wallet is open
                     txs = getTxs(checkPool);
                 }
 
