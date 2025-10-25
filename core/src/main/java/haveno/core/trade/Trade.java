@@ -929,7 +929,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (wallet != null) return wallet;
             if (!walletExists()) return null;
             if (isShutDownStarted) throw new RuntimeException("Cannot open wallet for " + getClass().getSimpleName() + " " + getId() + " because shut down is started");
-            if (!suppressLogs()) log.info("Opening wallet for {} {}", getClass().getSimpleName(), getId());
+            if (!isIdlingArbitrator()) log.info("Opening wallet for {} {}", getClass().getSimpleName(), getId());
             wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
             walletHeight.set(wallet.getHeight());
             doPollWallet(true); // poll wallet without network calls
@@ -937,7 +937,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private boolean suppressLogs() {
+    private boolean isIdlingArbitrator() {
         return isArbitrator() && isIdling();
     }
 
@@ -1078,7 +1078,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 pollPeriodMs = null;
             }
             if (wallet == null) return; // already closed
-            if (!suppressLogs()) log.info("Closing wallet for {} {}", getClass().getSimpleName(), getId());
+            if (!isIdlingArbitrator()) log.info("Closing wallet for {} {}", getClass().getSimpleName(), getId());
             xmrWalletService.closeWallet(wallet, true);
             maybeBackupWallet();
             wallet = null;
