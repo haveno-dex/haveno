@@ -2308,7 +2308,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // warn if reverting state
         if (state.getPhase().ordinal() < this.state.getPhase().ordinal()) {
-            String message = "We got a state change to a previous phase (id=" + getShortId() + ").\n" +
+            String message = "We got a state change to a previous phase for " + getClass().getSimpleName() + " " + getShortId() + "\n" +
                     "Old state is: " + this.state + ". New state is: " + state;
             log.warn(message);
         }
