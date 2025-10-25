@@ -470,7 +470,9 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
             public void onSuccess(Set<MailboxItem> decryptedMailboxMessageWithEntries) {
                 new Thread(() -> {
                     handleMailboxItems(decryptedMailboxMessageWithEntries);
-                    isInitializedProperty.set(true);
+                    synchronized (isInitializedProperty) {
+                        isInitializedProperty.set(true);
+                    }
                 }).start();
             }
 
