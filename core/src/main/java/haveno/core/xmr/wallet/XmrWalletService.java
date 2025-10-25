@@ -329,7 +329,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public MoneroWallet openWallet(String walletName, Integer walletRpcPort, boolean applyProxyUri) {
-        log.info("{}.openWallet({})", getClass().getSimpleName(), walletName);
+        log.debug("{}.openWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet because shutting down");
         MoneroWalletConfig config = getWalletConfig(walletName);
         return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri);
@@ -363,7 +363,6 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
-        log.info("{}.closeWallet(), path={}, save={}", getClass().getSimpleName(), wallet.getPath(), save);
         MoneroError err = null;
         String path = wallet.getPath();
         try {
@@ -1721,7 +1720,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // try opening wallet
             if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' because shutdown is started");
-            log.info("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
+            log.debug("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
             config.setServer(connection);
             try {
                 walletRpc.openWallet(config);
@@ -1792,7 +1791,7 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
             if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
-            log.info("Done opening RPC wallet " + config.getPath());
+            log.debug("Done opening RPC wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
@@ -1901,6 +1900,7 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 if (wallet != null) {
                     isClosingWallet = true;
+                    log.info("Closing main wallet");
                     closeWallet(wallet, true);
                     wallet = null;
                 }
