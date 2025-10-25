@@ -3040,13 +3040,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (isShutDownStarted || !isDepositRequested()) return;
 
         // start polling
-        if (isIdling()) {
+        if (isArbitrator() && isIdling()) {
             long startSyncingInSec = Math.max(1, ThreadLocalRandom.current().nextLong(0, getPollPeriod()) / 1000l); // random seconds to start polling
             UserThread.runAfter(() -> ThreadUtils.execute(() -> {
                 if (!isShutDownStarted) doTryInitSyncing();
             }, getId()), startSyncingInSec);
         } else {
-            doTryInitSyncing();
+            doTryInitSyncing(); // peers start syncing immediately
         }
     }
     
