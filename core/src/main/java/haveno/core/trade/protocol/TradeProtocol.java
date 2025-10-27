@@ -590,7 +590,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // set message for reprocessing
         trade.getBuyer().setPaymentSentMessage(message);
 
-        // get latest message on initialization thread
+        // persist trade and return when processing on trade thread
         ThreadUtils.execute(() -> {
 
             // get latest message
@@ -693,7 +693,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         // save message for reprocessing
         trade.getSeller().setPaymentReceivedMessage(message);
 
-        // get latest message on initialization thread
+        // process on initialization thread after delay to get latest message
         ThreadUtils.execute(() -> {
 
             // get latest message
@@ -703,7 +703,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 return;
             }
 
-            // persist trade before processing on trade thread
+            // persist trade and return when processing on trade thread
             CountDownLatch initLatch = new CountDownLatch(1);
             trade.persistNow(() -> {
 

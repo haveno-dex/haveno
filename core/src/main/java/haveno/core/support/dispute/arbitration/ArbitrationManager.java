@@ -300,7 +300,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         // set dispute closed message for reprocessing
         trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
 
-        // get latest message on initialization thread
+        // process on initialization thread after delay to get latest message
         ThreadUtils.execute(() -> {
 
             // get latest message
@@ -310,7 +310,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 return;
             }
 
-            // persist before processing on trade thread
+            // persist trade and return when processing on trade thread
             CountDownLatch initLatch = new CountDownLatch(1);
             trade.persistNow(() -> {
 
