@@ -460,7 +460,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 }, trade.getId());
             });
             HavenoUtils.awaitLatch(initLatch);
-        }, trade.getProtocol().getInitId()); // TODO: getInitId() should be private, but logic above depends on SupportManager internals
+        }, trade.getProtocol().getInitId()); // TODO: getInitId() should be private. ideally this function is moved to TradeProtocol, but logic above depends on SupportManager internals
     }
 
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {

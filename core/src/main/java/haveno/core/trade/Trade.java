@@ -3048,7 +3048,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (!isShutDownStarted) doTryInitSyncing();
             }, getId()), startSyncingInSec);
         } else {
-            doTryInitSyncing(); // peers start syncing immediately
+            doTryInitSyncing(); // traders start syncing immediately
         }
     }
     
