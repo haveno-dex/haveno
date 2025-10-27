@@ -159,6 +159,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public static final long POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS = 120000; // 2 minutes
     private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 60000 : 28 * 60 * 1000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
+    private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 3;
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
     protected static final Object importMultisigLock = new Object();
@@ -3427,14 +3428,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (poolChecked && depositsState.ordinal() < minDepositsState.ordinal()) {
 
             // skip reverting state until next confirmation // TODO: sometimes txs are missing from the wallet and reappear without reorg
-            if (lastDepositTxMissingHeight != null && walletHeight.get() > lastDepositTxMissingHeight) {
+            if (lastDepositTxMissingHeight != null && walletHeight.get() > lastDepositTxMissingHeight + REVERT_AFTER_NUM_CONFIRMATIONS - 1) {
                 log.warn("Reverting deposits state from {} to {} for {} {}. Possible reorg?", minDepositsState, depositsState, getClass().getSimpleName(), getShortId());
                 getMaker().setDepositTx(makerDepositTx);
                 getTaker().setDepositTx(takerDepositTx);
                 if (depositsState == State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) setErrorMessage("Deposit transactions are missing for trade " + getShortId() + ". This can happen after a blockchain reorganization.\n\nIf the issue continues, you can contact support or mark the trade as failed.");
                 if (!isPaymentSent()) setState(depositsState); // only revert state if payment not sent
             } else {
-                if (lastDepositTxMissingHeight == null) log.warn("Missing deposit txs for {} {} at height {}, waiting for a block before reverting state", getClass().getSimpleName(), getShortId(), lastDepositTxMissingHeight);
+                if (lastDepositTxMissingHeight == null) log.warn("Missing deposit txs for {} {} at height {}. Waiting {} confirmation before reverting state", getClass().getSimpleName(), getShortId(), lastDepositTxMissingHeight, REVERT_AFTER_NUM_CONFIRMATIONS);
                 lastDepositTxMissingHeight = wallet.getHeight();
             }
         } else {
@@ -3467,8 +3468,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else if (hasPayoutTx) setPayoutState(PayoutState.PAYOUT_PUBLISHED);
         else if (poolChecked && isPayoutPublished()) { // payout tx seen then lost (e.g. reorg)
 
-            // skip reverting state until next confirmation
-            if (lastPayoutTxMissingHeight != null && walletHeight.get() > lastPayoutTxMissingHeight) {
+            // skip reverting state until confirmations
+            if (lastPayoutTxMissingHeight != null && walletHeight.get() > lastPayoutTxMissingHeight + REVERT_AFTER_NUM_CONFIRMATIONS - 1) {
 
                 // reset payment received and dispute closed messages
                 for (TradePeer peer : getAllPeers()) {
@@ -3494,7 +3495,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // move trade back to pending if marked completed
                 if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
             } else {
-                if (lastPayoutTxMissingHeight == null) log.warn("Missing payout tx for {} {} at height {}, waiting for a block before reverting state", getClass().getSimpleName(), getShortId(), lastPayoutTxMissingHeight);
+                if (lastPayoutTxMissingHeight == null) log.warn("Missing payout tx for {} {} at height {}. Waiting {} confirmations before reverting state", getClass().getSimpleName(), getShortId(), lastPayoutTxMissingHeight, REVERT_AFTER_NUM_CONFIRMATIONS);
                 lastPayoutTxMissingHeight = wallet.getHeight();
             }
         }
