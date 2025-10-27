@@ -3222,7 +3222,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (!offlinePoll && (xmrConnectionService.getTargetHeight() == null || !xmrConnectionService.isSyncedWithinTolerance())) return;
 
             // sync if wallet too far behind daemon
-            if (!offlinePoll && walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) syncWallet(false);
+            boolean longSync = false;
+            if (!offlinePoll && walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) {
+                longSync = true;
+                syncWallet(false);
+            }
 
             // update deposit txs
             boolean depositTxsUninitialized = isDepositRequested() && (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit()));
@@ -3260,7 +3264,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (!offlinePoll && (isPayoutExpected || isPayoutPublished())) syncWalletIfBehind();
 
                 // rescan spent outputs to detect unconfirmed payout tx
-                if (getPayoutState() == PayoutState.PAYOUT_PUBLISHED || (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0)) {
+                if (getPayoutState() == PayoutState.PAYOUT_PUBLISHED || (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) || (isDepositsPublished() && longSync)) {
                     try {
                         rescanSpent(true);
                     } catch (Exception e) {
