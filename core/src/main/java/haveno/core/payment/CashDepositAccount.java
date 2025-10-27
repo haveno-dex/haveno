@@ -32,6 +32,12 @@ public final class CashDepositAccount extends CountryBasedPaymentAccount impleme
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public CashDepositAccount() {
         super(PaymentMethod.CASH_DEPOSIT);
     }
@@ -48,7 +54,7 @@ public final class CashDepositAccount extends CountryBasedPaymentAccount impleme
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     @Override

@@ -17,13 +17,23 @@
 
 package haveno.core.payment;
 
+import java.util.List;
+
+import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.RtgsAccountPayload;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 
 @EqualsAndHashCode(callSuper = true)
 public final class RtgsAccount extends IfscBasedAccount {
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.MOBILE_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public RtgsAccount() {
         super(PaymentMethod.RTGS);
@@ -32,6 +42,11 @@ public final class RtgsAccount extends IfscBasedAccount {
     @Override
     protected PaymentAccountPayload createPayload() {
         return new RtgsAccountPayload(paymentMethod.getId(), id);
+    }
+
+   @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 
     public String getMessageForBuyer() {

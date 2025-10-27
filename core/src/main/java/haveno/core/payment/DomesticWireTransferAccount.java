@@ -34,6 +34,16 @@ public final class DomesticWireTransferAccount extends CountryBasedPaymentAccoun
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BRANCH_ID,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.HOLDER_ADDRESS,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public DomesticWireTransferAccount() {
         super(PaymentMethod.DOMESTIC_WIRE_TRANSFER);
     }
@@ -79,6 +89,6 @@ public final class DomesticWireTransferAccount extends CountryBasedPaymentAccoun
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }
