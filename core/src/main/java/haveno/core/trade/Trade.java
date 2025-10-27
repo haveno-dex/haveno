@@ -3336,7 +3336,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + ", " + getId());
             if (isWalletBehind()) {
                 syncWithProgress();
-                walletHeight.set(wallet.getHeight());
                 return true;
             } else {
                 return false;
