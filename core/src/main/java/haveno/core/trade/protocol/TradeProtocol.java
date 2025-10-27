@@ -862,19 +862,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // get trade peer
         TradePeer peer = trade.getTradePeer(sender);
-        if (peer == null) {
-
-            // TODO: better way to assign these
-            if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
-            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
-            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
-            if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
-            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
-            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
-            if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getArbitrator().getNodeAddress()))) peer = trade.getArbitrator();
-            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getMaker().getNodeAddress()))) peer = trade.getMaker();
-            else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getTaker().getNodeAddress()))) peer = trade.getTaker();
-        }
+        if (peer == null) peer = getTradePeer(ackMessage);
         if (peer == null) {
             if (ackMessage.isSuccess()) log.warn("Received AckMessage from unknown peer for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
             else log.warn("Received AckMessage with error state from unknown peer for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
@@ -1014,6 +1002,20 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // notify trade listeners
         trade.onAckMessage(ackMessage, sender);
+    }
+
+    // TODO: better way to get peer from ack message?
+    private TradePeer getTradePeer(AckMessage ackMessage) {
+        if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getArbitrator().getNodeAddress()))) return trade.getArbitrator();
+        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getMaker().getNodeAddress()))) return trade.getMaker();
+        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getTaker().getNodeAddress()))) return trade.getTaker();
+        if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getArbitrator().getNodeAddress()))) return trade.getArbitrator();
+        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getMaker().getNodeAddress()))) return trade.getMaker();
+        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getTaker().getNodeAddress()))) return trade.getTaker();
+        if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getArbitrator().getNodeAddress()))) return trade.getArbitrator();
+        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getMaker().getNodeAddress()))) return trade.getMaker();
+        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getTaker().getNodeAddress()))) return trade.getTaker();
+        return null;
     }
 
     private static boolean ignoreInitTradeRequestNackFromArbitrator(AckMessage ackMessage) {
