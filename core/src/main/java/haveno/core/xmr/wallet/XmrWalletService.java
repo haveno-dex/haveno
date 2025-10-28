@@ -1703,16 +1703,16 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroWalletRpc walletRpc = null;
         try {
 
-            // get daemon connection from service
-            MoneroRpcConnection serviceConnection = xmrConnectionService.getConnection();
-            if (serviceConnection == null) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' via RPC because daemon connection is null");
-
             // start monero-wallet-rpc instance
             walletRpc = startWalletRpcInstance(port);
             walletRpc.getRpcConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
 
             // prevent wallet rpc from syncing
             walletRpc.stopSyncing();
+
+            // get daemon connection from service
+            MoneroRpcConnection serviceConnection = xmrConnectionService.getConnection();
+            if (serviceConnection == null) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' via RPC because daemon connection is null");
 
             // configure connection
             MoneroRpcConnection connection = new MoneroRpcConnection(serviceConnection);
