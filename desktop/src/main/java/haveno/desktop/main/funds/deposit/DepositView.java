@@ -58,6 +58,7 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.TitledGroupBg;
+import haveno.desktop.components.list.FilterBox;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
 import static haveno.desktop.util.FormBuilder.addAddressTextField;
@@ -76,6 +77,7 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -107,6 +109,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
     @FXML
     GridPane gridPane;
     @FXML
+    FilterBox filterBox;
+    @FXML
     TableView<DepositListItem> tableView;
     @FXML
     TableColumn<DepositListItem, DepositListItem> addressColumn, balanceColumn, confirmationsColumn, usageColumn;
@@ -123,7 +127,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private final CoinFormatter formatter;
     private String paymentLabelString;
     private final ObservableList<DepositListItem> observableList = FXCollections.observableArrayList();
-    private final SortedList<DepositListItem> sortedList = new SortedList<>(observableList);
+    private final FilteredList<DepositListItem> filteredList = new FilteredList<>(observableList);
+    private final SortedList<DepositListItem> sortedList = new SortedList<>(filteredList);
     private XmrBalanceListener balanceListener;
     private MoneroWalletListener walletListener;
     private Subscription amountTextFieldSubscription;
@@ -146,6 +151,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
     @Override
     public void initialize() {
         GUIUtil.applyTableStyle(tableView);
+        filterBox.initialize(filteredList, tableView);
+        filterBox.setPromptText(Res.get("shared.filter"));
 
         paymentLabelString = Res.get("funds.deposit.fundHavenoWallet");
         addressColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.address")));
@@ -268,6 +275,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     protected void activate() {
         ThreadUtils.execute(() -> {
             UserThread.execute(() -> {
+                filterBox.activate();
                 tableView.getSelectionModel().selectedItemProperty().addListener(tableViewSelectionListener);
                 sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         
@@ -296,6 +304,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     @Override
     protected void deactivate() {
         ThreadUtils.execute(() -> {
+            filterBox.deactivate();
             tableView.getSelectionModel().selectedItemProperty().removeListener(tableViewSelectionListener);
             sortedList.comparatorProperty().unbind();
             observableList.forEach(DepositListItem::cleanup);
