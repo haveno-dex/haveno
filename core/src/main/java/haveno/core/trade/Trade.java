@@ -3435,7 +3435,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (!isPaymentSent()) setState(depositsState); // only revert state if payment not sent
             } else {
                 if (lastDepositTxMissingHeight == null) log.warn("Missing deposit txs for {} {} at height {}. Waiting {} confirmation before reverting state", getClass().getSimpleName(), getShortId(), lastDepositTxMissingHeight, REVERT_AFTER_NUM_CONFIRMATIONS);
-                lastDepositTxMissingHeight = wallet.getHeight();
+                lastDepositTxMissingHeight = walletHeight.get();
             }
         } else {
             lastDepositTxMissingHeight = null;
@@ -3495,7 +3495,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
             } else {
                 if (lastPayoutTxMissingHeight == null) log.warn("Missing payout tx for {} {} at height {}. Waiting {} confirmations before reverting state", getClass().getSimpleName(), getShortId(), lastPayoutTxMissingHeight, REVERT_AFTER_NUM_CONFIRMATIONS);
-                lastPayoutTxMissingHeight = wallet.getHeight();
+                lastPayoutTxMissingHeight = walletHeight.get();
             }
         }
     }
