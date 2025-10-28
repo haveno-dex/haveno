@@ -232,15 +232,22 @@ public class OfferBook {
         buyOfferCountMap.clear();
         sellOfferCountMap.clear();
         final String[] ccyCode = new String[1];
+        final String[] paymentMethod = new String[1];
         final int[] offerCount = new int[1];
+        final int[] paymentMethodOfferCount = new int[1];
         offerBookListItems.forEach(o -> {
+            paymentMethod[0] = o.getOffer().getPaymentMethod().getId();
             ccyCode[0] = o.getOffer().getCounterCurrencyCode();
             if (o.getOffer().getDirection() == BUY) {
                 offerCount[0] = buyOfferCountMap.getOrDefault(ccyCode[0], 0) + 1;
+                paymentMethodOfferCount[0] = buyOfferCountMap.getOrDefault(paymentMethod[0], 0) + 1;
                 buyOfferCountMap.put(ccyCode[0], offerCount[0]);
+                buyOfferCountMap.put(paymentMethod[0], paymentMethodOfferCount[0]);
             } else {
                 offerCount[0] = sellOfferCountMap.getOrDefault(ccyCode[0], 0) + 1;
+                paymentMethodOfferCount[0] = sellOfferCountMap.getOrDefault(paymentMethod[0], 0) + 1;
                 sellOfferCountMap.put(ccyCode[0], offerCount[0]);
+                sellOfferCountMap.put(paymentMethod[0], paymentMethodOfferCount[0]);
             }
         });
         log.debug("buyOfferCountMap.size {}   sellOfferCountMap.size {}",

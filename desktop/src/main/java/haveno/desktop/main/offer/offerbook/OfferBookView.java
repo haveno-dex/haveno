@@ -183,7 +183,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         Tuple3<VBox, Label, AutocompleteComboBox<PaymentMethod>> paymentBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByPaymentMethod"));
         paymentMethodComboBox = paymentBoxTuple.third;
-        paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
         paymentMethodComboBox.setPrefWidth(250);
         paymentMethodComboBox.getStyleClass().add("input-with-border");
 
@@ -382,6 +381,10 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 volumeColumn.setComparator(Comparator.comparing(o -> o.getOffer().getMinVolume(), Comparator.nullsFirst(Comparator.naturalOrder())));
             }
         });
+
+        paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory(Res.get("shared.oneOffer"),
+                Res.get("shared.multipleOffers"),
+                offerCounts));
 
         paymentMethodComboBox.setConverter(new PaymentMethodStringConverter(paymentMethodComboBox));
         paymentMethodComboBox.getEditor().getStyleClass().add("combo-box-editor-bold");

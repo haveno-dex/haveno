@@ -561,7 +561,9 @@ public class GUIUtil {
         };
     }
 
-    public static Callback<ListView<PaymentMethod>, ListCell<PaymentMethod>> getPaymentMethodCellFactory() {
+    public static Callback<ListView<PaymentMethod>, ListCell<PaymentMethod>> getPaymentMethodCellFactory(String postFixSingle,
+                                                                                                         String postFixMulti,
+                                                                                                         Map<String, Integer> offerCounts) {
         return p -> new ListCell<>() {
             @Override
             protected void updateItem(PaymentMethod method, boolean empty) {
@@ -572,16 +574,24 @@ public class GUIUtil {
 
                     HBox box = new HBox();
                     box.setSpacing(20);
+                    box.setAlignment(Pos.CENTER_LEFT);
                     Label paymentType = new AutoTooltipLabel(getCurrencyType(method));
                     paymentType.getStyleClass().add("currency-label-small");
                     Label paymentMethod = new AutoTooltipLabel(Res.get(id));
                     paymentMethod.getStyleClass().add("currency-label");
-                    box.getChildren().addAll(paymentType, paymentMethod);
+                    Label numOffersLabel = new AutoTooltipLabel();
+                    box.getChildren().addAll(paymentType, paymentMethod, numOffersLabel);
 
                     if (id.equals(GUIUtil.SHOW_ALL_FLAG)) {
                         paymentType.setText(Res.get("shared.all"));
                         paymentMethod.setText(Res.get("list.currency.showAll"));
                     }
+                    Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(id));
+                    offerCountOptional.ifPresent(numOffers -> {
+                        HBox.setMargin(numOffersLabel, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
+                        numOffersLabel.getStyleClass().add("offer-label");
+                        numOffersLabel.setText(numOffers + " " + (numOffers == 1 ? postFixSingle : postFixMulti));
+                    });
 
                     setGraphic(box);
 
