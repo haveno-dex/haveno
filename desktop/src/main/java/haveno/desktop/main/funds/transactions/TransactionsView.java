@@ -20,6 +20,7 @@ package haveno.desktop.main.funds.transactions;
 import com.google.inject.Inject;
 import com.googlecode.jcsv.writer.CSVEntryConverter;
 import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.common.UserThread;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
@@ -32,6 +33,7 @@ import haveno.desktop.components.AddressWithIconAndDirection;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.components.list.FilterBox;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.overlays.windows.TxDetailsWindow;
@@ -40,7 +42,9 @@ import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.Comparator;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -63,7 +67,8 @@ import monero.wallet.model.MoneroWalletListener;
 @FxmlView
 public class TransactionsView extends ActivatableView<VBox, Void> {
 
-
+    @FXML
+    FilterBox filterBox;
     @FXML
     TableView<TransactionsListItem> tableView;
     @FXML
@@ -76,7 +81,10 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     AutoTooltipButton exportButton;
 
     private final DisplayedTransactions displayedTransactions;
-    private final SortedList<TransactionsListItem> sortedDisplayedTransactions;
+
+    private final ObservableList<TransactionsListItem> observableList = FXCollections.observableArrayList();
+    private final FilteredList<TransactionsListItem> filteredList = new FilteredList<>(observableList);
+    private final SortedList<TransactionsListItem> sortedList = new SortedList<>(filteredList);
 
     private final XmrWalletService xmrWalletService;
     private final Preferences preferences;
@@ -92,11 +100,11 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     private class TransactionsUpdater extends MoneroWalletListener {
         @Override
         public void onNewBlock(long height) {
-            displayedTransactions.update();
+            updateList();
         }
         @Override
         public void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
-            displayedTransactions.update();
+            updateList();
         }
     }
 
@@ -119,12 +127,14 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         this.offerDetailsWindow = offerDetailsWindow;
         this.txDetailsWindow = txDetailsWindow;
         this.displayedTransactions = displayedTransactionsFactory.create();
-        this.sortedDisplayedTransactions = displayedTransactions.asSortedList();
+        updateList();
     }
 
     @Override
     public void initialize() {
         GUIUtil.applyTableStyle(tableView);
+        filterBox.initialize(filteredList, tableView);
+        filterBox.setPromptText(Res.get("shared.filter"));
 
         dateColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.dateTime")));
         detailsColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.details")));
@@ -176,16 +186,12 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     @Override
     protected void activate() {
-        sortedDisplayedTransactions.comparatorProperty().bind(tableView.comparatorProperty());
-        tableView.setItems(sortedDisplayedTransactions);
-
-        // try to update displayed transactions
-        try {
-            displayedTransactions.update();
-        } catch (Exception e) {
-            log.warn("Failed to update displayed transactions");
-            e.printStackTrace();
-        }
+        sortedList.comparatorProperty().bind(tableView.comparatorProperty());
+        tableView.setItems(sortedList);
+        updateList();
+        filterBox.initializeWithCallback(filteredList, tableView, () ->
+                numItems.setText(Res.get("shared.numItemsLabel", sortedList.size())));
+        filterBox.activate();
 
         xmrWalletService.addWalletListener(transactionsUpdater);
 
@@ -193,7 +199,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         if (scene != null)
             scene.addEventHandler(KeyEvent.KEY_RELEASED, keyEventEventHandler);
 
-        numItems.setText(Res.get("shared.numItemsLabel", sortedDisplayedTransactions.size()));
         exportButton.setOnAction(event -> {
             final ObservableList<TableColumn<TransactionsListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             final int reportColumns = tableColumns.size();
@@ -217,20 +222,27 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
             };
 
             GUIUtil.exportCSV("transactions.csv", headerConverter, contentConverter,
-                    new TransactionsListItem(), sortedDisplayedTransactions, (Stage) root.getScene().getWindow());
+                    new TransactionsListItem(), sortedList, (Stage) root.getScene().getWindow());
         });
     }
 
     @Override
     protected void deactivate() {
-        sortedDisplayedTransactions.comparatorProperty().unbind();
-        displayedTransactions.forEach(TransactionsListItem::cleanup);
+        filterBox.deactivate();
+        sortedList.comparatorProperty().unbind();
         xmrWalletService.removeWalletListener(transactionsUpdater);
 
         if (scene != null)
             scene.removeEventHandler(KeyEvent.KEY_RELEASED, keyEventEventHandler);
 
         exportButton.setOnAction(null);
+    }
+
+    private void updateList() {
+        displayedTransactions.update();
+        UserThread.execute((() -> {
+            observableList.setAll(displayedTransactions);
+        }));
     }
 
     private void openTxInBlockExplorer(TransactionsListItem item) {
