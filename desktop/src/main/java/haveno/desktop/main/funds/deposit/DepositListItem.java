@@ -27,6 +27,7 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.filtering.FilterableListItem;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.control.Tooltip;
@@ -37,8 +38,10 @@ import monero.wallet.model.MoneroTxWallet;
 import java.math.BigInteger;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 @Slf4j
-class DepositListItem {
+class DepositListItem implements FilterableListItem {
     private final StringProperty balance = new SimpleStringProperty();
     private final XmrAddressEntry addressEntry;
     private final XmrWalletService xmrWalletService;
@@ -155,5 +158,19 @@ class DepositListItem {
             }
         }
         return highestTx;
+    }
+
+@Override
+    public boolean match(String filterString) {
+        if (filterString.isEmpty()) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getAddressString(), filterString)) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getUsage(), filterString)) {
+            return true;
+        }
+        return getBalance().contains(filterString);
     }
 }
