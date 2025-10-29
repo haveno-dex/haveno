@@ -1004,17 +1004,17 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         trade.onAckMessage(ackMessage, sender);
     }
 
-    // TODO: better way to get peer from ack message?
     private TradePeer getTradePeer(AckMessage ackMessage) {
-        if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getArbitrator().getNodeAddress()))) return trade.getArbitrator();
-        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getMaker().getNodeAddress()))) return trade.getMaker();
-        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, DepositsConfirmedMessage.class, trade.getTaker().getNodeAddress()))) return trade.getTaker();
-        if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getArbitrator().getNodeAddress()))) return trade.getArbitrator();
-        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getMaker().getNodeAddress()))) return trade.getMaker();
-        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentSentMessage.class, trade.getTaker().getNodeAddress()))) return trade.getTaker();
-        if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getArbitrator().getNodeAddress()))) return trade.getArbitrator();
-        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getMaker().getNodeAddress()))) return trade.getMaker();
-        else if (ackMessage.getSourceUid().equals(HavenoUtils.getDeterministicId(trade, PaymentReceivedMessage.class, trade.getTaker().getNodeAddress()))) return trade.getTaker();
+        Class<?>[] messageClasses = {DepositsConfirmedMessage.class, PaymentSentMessage.class, PaymentReceivedMessage.class}; // TODO: same for DisputeOpenedMessage, DisputeClosedMessage?
+        TradePeer[] peers = {trade.getArbitrator(), trade.getMaker(), trade.getTaker()};
+        for (Class<?> messageClass : messageClasses) {
+            for (TradePeer peer : peers) {
+                String expectedUid = HavenoUtils.getDeterministicId(trade, messageClass, peer.getNodeAddress());
+                if (ackMessage.getSourceUid().equals(expectedUid)) {
+                    return peer;
+                }
+            }
+        }
         return null;
     }
 
