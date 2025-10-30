@@ -3014,6 +3014,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     protected void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (walletLock) {
 
+            // ignore if wallet is not open
+            if (wallet == null) return;
+
             // configure current connection
             connection = xmrConnectionService.getConnection();
             if (!xmrWalletService.isProxyApplied(wasWalletSynced)) connection.setProxyUri(null);
