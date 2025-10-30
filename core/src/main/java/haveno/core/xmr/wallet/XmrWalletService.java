@@ -317,7 +317,7 @@ public class XmrWalletService extends XmrWalletBase {
         return createWallet(walletName, null);
     }
 
-    public MoneroWallet createWallet(String walletName, Integer walletRpcPort) {
+    private MoneroWallet createWallet(String walletName, Integer walletRpcPort) {
         log.info("{}.createWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
         MoneroWalletConfig config = getWalletConfig(walletName);
@@ -363,6 +363,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
+        log.info("Closing wallet with path={}, save={}", wallet.getPath(), save);
         MoneroError err = null;
         String path = wallet.getPath();
         try {
@@ -1720,7 +1721,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // try opening wallet
             if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' because shutdown is started");
-            log.debug("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
+            log.info("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
             config.setServer(connection);
             try {
                 walletRpc.openWallet(config);
@@ -1791,7 +1792,7 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
             if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
-            log.debug("Done opening RPC wallet " + config.getPath());
+            log.info("Done opening RPC wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
@@ -1900,7 +1901,7 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 if (wallet != null) {
                     isClosingWallet = true;
-                    log.info("Closing main wallet");
+                    log.debug("Closing main wallet");
                     closeWallet(wallet, true);
                     wallet = null;
                 }
