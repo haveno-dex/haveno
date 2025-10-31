@@ -367,8 +367,12 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroError err = null;
         String path = wallet.getPath();
         try {
-            if (save) saveWallet(wallet, shouldBackup(wallet));
-            wallet.close();
+            if (save && wallet instanceof MoneroWalletRpc) {
+                ((MoneroWalletRpc) wallet).stop(); // saves wallet and stops rpc server
+            } else {
+                if (save) saveWallet(wallet);
+                wallet.close();
+            }
         } catch (MoneroError e) {
             err = e;
         }
@@ -1902,6 +1906,7 @@ public class XmrWalletService extends XmrWalletBase {
                 if (wallet != null) {
                     isClosingWallet = true;
                     log.debug("Closing main wallet");
+                    if (shouldBackup(wallet)) backupWallet(MONERO_WALLET_NAME);
                     closeWallet(wallet, true);
                     wallet = null;
                 }
