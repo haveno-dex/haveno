@@ -858,12 +858,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public boolean hasConflictingClone(OpenOffer openOffer) {
-        for (OpenOffer clonedOffer : getOpenOfferGroup(openOffer.getGroupId())) {
+        return hasConflictingClone(getOpenOffers(), openOffer);
+    }
+
+    private static boolean hasConflictingClone(List<OpenOffer> openOffers, OpenOffer openOffer) {
+        for (OpenOffer clonedOffer : getOpenOfferGroup(openOffers, openOffer.getGroupId())) {
             if (clonedOffer.getId().equals(openOffer.getId())) continue;
             if (clonedOffer.isDeactivated()) continue; // deactivated offers do not conflict
 
             // pending offers later in the order do not conflict
-            List<OpenOffer> openOffers = getOpenOffers();
             if (clonedOffer.isPending() && openOffers.indexOf(clonedOffer) > openOffers.indexOf(openOffer)) {
                 continue;
             }
@@ -877,12 +880,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public boolean hasConflictingClone(Offer offer, OpenOffer sourceOffer) {
-        return getOpenOfferGroup(sourceOffer.getGroupId()).stream()
+        return hasConflictingClone(getOpenOffers(), offer, sourceOffer);
+    }
+
+    private static boolean hasConflictingClone(List<OpenOffer> openOffers, Offer offer, OpenOffer sourceOffer) {
+        return getOpenOfferGroup(openOffers, sourceOffer.getGroupId()).stream()
                 .filter(openOffer -> !openOffer.isDeactivated()) // we only check with activated offers
                 .anyMatch(openOffer -> samePaymentMethodAndCurrency(openOffer.getOffer(), offer));
     }
 
-    private boolean samePaymentMethodAndCurrency(Offer offer1, Offer offer2) {
+    private static boolean samePaymentMethodAndCurrency(Offer offer1, Offer offer2) {
         return offer1.getPaymentMethodId().equalsIgnoreCase(offer2.getPaymentMethodId()) &&
                 offer1.getCounterCurrencyCode().equalsIgnoreCase(offer2.getCounterCurrencyCode()) &&
                 offer1.getBaseCurrencyCode().equalsIgnoreCase(offer2.getBaseCurrencyCode());
@@ -912,21 +919,30 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public List<OpenOffer> getOpenOfferGroup(String groupId) {
+        return getOpenOfferGroup(getOpenOffers(), groupId);
+    }
+
+    private static List<OpenOffer> getOpenOfferGroup(List<OpenOffer> openOffers, String groupId) {
         if (groupId == null) throw new IllegalArgumentException("groupId cannot be null");
-        return getOpenOffers().stream()
+        return openOffers.stream()
                 .filter(openOffer -> groupId.equals(openOffer.getGroupId()))
                 .collect(Collectors.toList());
     }
 
     public boolean hasClonedOffer(String offerId) {
-        OpenOffer openOffer = getOpenOffer(offerId).orElse(null);
+        return hasClonedOffer(getOpenOffers(), offerId);
+    }
+
+    private static boolean hasClonedOffer(List<OpenOffer> openOffers, String offerId) {
+        OpenOffer openOffer = getOpenOffer(openOffers, offerId).orElse(null);
         if (openOffer == null) return false;
-        return getOpenOfferGroup(openOffer.getGroupId()).size() > 1;
+        return getOpenOfferGroup(openOffers, openOffer.getGroupId()).size() > 1;
     }
 
     public boolean hasClonedOffers() {
-        for (OpenOffer openOffer : getOpenOffers()) {
-            if (getOpenOfferGroup(openOffer.getGroupId()).size() > 1) {
+        List<OpenOffer> openOffers = getOpenOffers();
+        for (OpenOffer openOffer : openOffers) {
+            if (getOpenOfferGroup(openOffers, openOffer.getGroupId()).size() > 1) {
                 return true;
             }
         }
@@ -950,11 +966,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public Optional<OpenOffer> getOpenOffer(String offerId) {
-        return getOpenOffers().stream().filter(e -> e.getId().equals(offerId)).findFirst();
+        return getOpenOffer(getOpenOffers(), offerId);
     }
 
-    public boolean hasOpenOffer(String offerId) {
-        return getOpenOffer(offerId).isPresent();
+    private static Optional<OpenOffer> getOpenOffer(List<OpenOffer> openOffers, String offerId) {
+        return openOffers.stream().filter(e -> e.getId().equals(offerId)).findFirst();
+    }
+
+    private static boolean hasOpenOffer(List<OpenOffer> openOffers, String offerId) {
+        return getOpenOffer(openOffers, offerId).isPresent();
     }
 
     public Optional<SignedOffer> getSignedOfferById(String offerId) {
@@ -1121,7 +1141,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                     // only process the first offer of a pending clone group
                     if (openOffer.getGroupId() != null) {
-                        List<OpenOffer> openOfferClones = getOpenOfferGroup(openOffer.getGroupId());
+                        List<OpenOffer> openOfferClones = getOpenOfferGroup(openOffers, openOffer.getGroupId());
                         if (openOfferClones.size() > 1 && !openOfferClones.get(0).getId().equals(openOffer.getId()) && openOfferClones.get(0).isPending()) {
                             resultHandler.handleResult(null);
                             return;
