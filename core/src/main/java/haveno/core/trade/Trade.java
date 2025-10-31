@@ -1077,8 +1077,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
             if (wallet == null) return; // already closed
             log.debug("Closing wallet for {} {}", getClass().getSimpleName(), getId());
-            xmrWalletService.closeWallet(wallet, true);
             maybeBackupWallet();
+            xmrWalletService.closeWallet(wallet, true);
             wallet = null;
         }
     }
