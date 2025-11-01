@@ -162,7 +162,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 3;
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
-    protected static final Object importMultisigLock = new Object();
     private boolean pollInProgress;
     private boolean restartInProgress;
     private Subscription protocolErrorStateSubscription;
@@ -1246,7 +1245,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         synchronized (walletLock) {
             if (getWallet() == null) throw new IllegalStateException("Cannot import multisig hex for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
-                synchronized (importMultisigLock) {
+                synchronized (HavenoUtils.getImportMultisigLock()) {
                     for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
@@ -1259,7 +1258,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                                 log.warn("Aborting import of multisig hex for {} {} because shut down is started and wallet is closed", getClass().getSimpleName(), getShortId());
                                 break;
                             }
-                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             handleWalletError(e, sourceConnection, i + 1);
                             doPollWallet();
                             if (isPayoutPublished()) break;
