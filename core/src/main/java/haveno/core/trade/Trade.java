@@ -3229,7 +3229,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // sync if wallet too far behind daemon
             boolean longSync = false;
-            if (!offlinePoll && walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) {
+            if (!offlinePoll && (!wasWalletSynced || walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS)) {
                 longSync = true;
                 syncWallet(false);
             }
