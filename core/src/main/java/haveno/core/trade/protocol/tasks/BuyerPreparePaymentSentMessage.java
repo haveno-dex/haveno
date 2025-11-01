@@ -63,7 +63,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
         try {
             runInterceptHook();
 
-            // quit if payout already published
+            // done if payout already published
             if (trade.isPayoutPublished()) {
                 throw new RuntimeException("Cannot mark payment sent because payout already published for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
             }
