@@ -74,7 +74,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             trade.requestPersistence();
 
             // ack and complete if already processed
-            if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
+            if (trade.getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && trade.isPayoutPublished()) {
                 log.warn("Received another PaymentReceivedMessage which was already processed, ACKing");
                 complete();
                 return;
@@ -92,7 +92,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // set state
-            trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+            if (!trade.isPayoutPublished()) trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
             if (trade.isArbitrator() && trade.getBuyer().getPaymentSentMessage() == null) {
                 checkNotNull(message.getPaymentSentMessage(), "PaymentSentMessage is null for arbitrator");
