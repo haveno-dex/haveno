@@ -692,6 +692,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
+                awaitInitialized();
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) onDepositRequested();
                 if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) onDepositsPublished();
                 if (newValue == Trade.Phase.DEPOSITS_CONFIRMED) onDepositsConfirmed();
@@ -714,6 +715,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
+                awaitInitialized();
                 updatePollPeriod();
 
                 // handle when payout published
@@ -758,9 +760,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         disputeStateSubscription = EasyBind.subscribe(disputeStateProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
-                if (isDisputeClosed()) {
-                    maybePublishTradeStatistics();
-                }
+                awaitInitialized();
+                if (isDisputeClosed()) maybePublishTradeStatistics();
             });
         });
 
@@ -3057,6 +3058,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
     
     private void doTryInitSyncing() {
+        getWallet(); // ensure wallet is initialized
         updatePollPeriod();
         startPolling();
     }
