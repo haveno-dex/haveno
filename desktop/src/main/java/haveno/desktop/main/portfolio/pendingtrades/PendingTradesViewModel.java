@@ -267,7 +267,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     public boolean getShowPaymentDetailsEarly() {
-        return showPaymentDetailsEarly.getOrDefault(dataModel.getTrade().getId(), false);
+        return !HavenoUtils.RECOMMEND_CONFIRMATIONS_BEFORE_SENDING_PAYMENT || showPaymentDetailsEarly.getOrDefault(dataModel.getTrade().getId(), false);
     }
 
     public void setShowPaymentDetailsEarly(boolean show) {
@@ -275,7 +275,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     String getMyRole(PendingTradesListItem item) {
-        return tradeUtil.getRole(item.getTrade());
+        return TradeUtil.getRole(item.getTrade());
     }
 
     String getPaymentMethod(PendingTradesListItem item) {

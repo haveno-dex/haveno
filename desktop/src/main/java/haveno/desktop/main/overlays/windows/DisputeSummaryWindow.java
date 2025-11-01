@@ -580,8 +580,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 () -> tradeAmountToggleGroup.getSelectedToggle() == null
                         || summaryNotesTextArea.getText() == null
                         || summaryNotesTextArea.getText().length() == 0
-                        || !isPayoutAmountValid()
-                        || isClosedAndPublished(),
+                        || isClosedAndPublished()
+                        || !isPayoutAmountValid(),
             tradeAmountToggleGroup.selectedToggleProperty(),
             summaryNotesTextArea.textProperty(),
             buyerPayoutAmountInputTextField.textProperty(),
@@ -599,7 +599,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
                 // create payout tx
                 try {
-                    MoneroTxWallet payoutTx = arbitrationManager.createDisputePayoutTx(trade, dispute.getContract(), disputeResult, true);
+                    MoneroTxWallet payoutTx = trade.createDisputePayoutTx(dispute.getContract(), disputeResult, true);
 
                     // show confirmation
                     showPayoutTxConfirmation(contract,

@@ -44,6 +44,8 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.CryptoException;
@@ -75,6 +77,9 @@ import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.utils.CapabilityUtils;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+
 import java.security.PublicKey;
 import java.time.Clock;
 import java.util.ArrayDeque;
@@ -120,6 +125,7 @@ import org.jetbrains.annotations.NotNull;
 public class MailboxMessageService implements HashMapChangedListener, PersistedDataHost {
     private static final long REPUBLISH_DELAY_SEC = TimeUnit.MINUTES.toSeconds(2);
     private static final long MAX_SERIALIZED_SIZE = 50000;
+    private static final String THREAD_ID = MailboxMessageService.class.getSimpleName();
 
     private final NetworkNode networkNode;
     private final PeerManager peerManager;
@@ -138,6 +144,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     private boolean isBootstrapped;
     private boolean allServicesInitialized;
     private boolean initAfterBootstrapped;
+    private BooleanProperty isInitializedProperty = new SimpleBooleanProperty(false);
     private static Comparator<MailboxMessage> mailboxMessageComparator;
 
     @Inject
@@ -278,6 +285,9 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
         }
     }
 
+    public BooleanProperty getIsInitializedProperty() {
+        return isInitializedProperty;
+    }
 
     public void sendEncryptedMailboxMessage(NodeAddress peer,
                                             PubKeyRing peersPubKeyRing,
@@ -461,7 +471,12 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
 
         Futures.addCallback(future, new FutureCallback<>() {
             public void onSuccess(Set<MailboxItem> decryptedMailboxMessageWithEntries) {
-                new Thread(() -> handleMailboxItems(decryptedMailboxMessageWithEntries)).start();
+                ThreadUtils.execute(() -> {
+                    handleMailboxItems(decryptedMailboxMessageWithEntries);
+                    synchronized (isInitializedProperty) {
+                        isInitializedProperty.set(true);
+                    }
+                }, THREAD_ID);
             }
 
             public void onFailure(@NotNull Throwable throwable) {

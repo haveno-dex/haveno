@@ -63,10 +63,14 @@ public class SellerProtocol extends DisputeProtocol {
     public SellerProtocol(SellerTrade trade) {
         super(trade);
     }
-    
+
     @Override
-    protected void onInitialized() {
-        super.onInitialized();
+    protected void onInitializeAfterMailboxMessages() {
+        super.onInitializeAfterMailboxMessages();
+        maybeResendPaymentReceivedMessage();
+    }
+
+    private void maybeResendPaymentReceivedMessage() {
 
         // re-send payment received message if not acked
         ThreadUtils.execute(() -> {
@@ -93,7 +97,6 @@ public class SellerProtocol extends DisputeProtocol {
             }
         }, trade.getId());
     }
-
 
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {

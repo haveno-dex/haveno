@@ -317,7 +317,7 @@ public class XmrWalletService extends XmrWalletBase {
         return createWallet(walletName, null);
     }
 
-    public MoneroWallet createWallet(String walletName, Integer walletRpcPort) {
+    private MoneroWallet createWallet(String walletName, Integer walletRpcPort) {
         log.info("{}.createWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
         MoneroWalletConfig config = getWalletConfig(walletName);
@@ -329,7 +329,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public MoneroWallet openWallet(String walletName, Integer walletRpcPort, boolean applyProxyUri) {
-        log.info("{}.openWallet({})", getClass().getSimpleName(), walletName);
+        log.debug("{}.openWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet because shutting down");
         MoneroWalletConfig config = getWalletConfig(walletName);
         return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri);
@@ -363,7 +363,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
-        log.info("{}.closeWallet({}, {})", getClass().getSimpleName(), wallet.getPath(), save);
+        log.info("Closing wallet with path={}, save={}", wallet.getPath(), save);
         MoneroError err = null;
         String path = wallet.getPath();
         try {
@@ -1695,6 +1695,7 @@ public class XmrWalletService extends XmrWalletBase {
             return walletRpc;
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
+            if (!isShutDownStarted) log.warn("Could not create RPC wallet '" + config.getPath() + "': " + e.getMessage() + "\n", e);
             throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage(), e);
         }
     }
@@ -1710,8 +1711,12 @@ public class XmrWalletService extends XmrWalletBase {
             // prevent wallet rpc from syncing
             walletRpc.stopSyncing();
 
+            // get daemon connection from service
+            MoneroRpcConnection serviceConnection = xmrConnectionService.getConnection();
+            if (serviceConnection == null) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' via RPC because daemon connection is null");
+
             // configure connection
-            MoneroRpcConnection connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
+            MoneroRpcConnection connection = new MoneroRpcConnection(serviceConnection);
             if (!applyProxyUri) connection.setProxyUri(null);
 
             // try opening wallet
@@ -1791,6 +1796,7 @@ public class XmrWalletService extends XmrWalletBase {
             return walletRpc;
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
+            if (!isShutDownStarted) log.warn("Could not open RPC wallet '{}': {}\n", config.getPath(), e.getMessage(), e);
             throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage(), e);
         }
     }
@@ -1895,6 +1901,7 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 if (wallet != null) {
                     isClosingWallet = true;
+                    log.debug("Closing main wallet");
                     closeWallet(wallet, true);
                     wallet = null;
                 }
