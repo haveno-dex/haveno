@@ -259,6 +259,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // wait for mailbox messages to be processed
             MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
             if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
+            handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
             mailboxMessageService.getIsInitializedProperty().addListener((obs, oldBootstrapped, newBootstrapped) -> {
                 if (!newBootstrapped || oldBootstrapped == newBootstrapped) return;
 
