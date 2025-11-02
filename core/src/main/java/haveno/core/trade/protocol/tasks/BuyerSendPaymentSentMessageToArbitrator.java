@@ -39,6 +39,6 @@ public class BuyerSendPaymentSentMessageToArbitrator extends BuyerSendPaymentSen
     @Override
     protected void setStateSent() {
         super.setStateSent();
-        complete(); // don't wait for message to arbitrator
+        if (!isCompleted()) complete(); // don't wait for message to arbitrator
     }
 }

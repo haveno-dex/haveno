@@ -462,16 +462,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // remove skipped trades
             trades.removeAll(tradesToSkip);
 
-            // arbitrator syncs idle trades once in background after active trades
-            for (Trade trade : trades) {
-                if (!trade.isArbitrator()) continue;
-                if (trade.isIdling()) {
-                    ThreadUtils.submitToPool(() -> {
-                        trade.syncAndPollWallet();
-                    });
-                }
-            }
-
             // process after all wallets initialized
             if (!HavenoUtils.isSeedNode()) {
 
@@ -565,7 +555,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void initTradeAndProtocol(Trade trade, TradeProtocol tradeProtocol) {
         tradeProtocol.initialize(processModelServiceProvider, this);
-        requestPersistence(); // TODO requesting persistence twice with initPersistedTrade()
+        requestPersistence(); // TODO requesting persistence twice with initTrade()
     }
 
     public void requestPersistence() {

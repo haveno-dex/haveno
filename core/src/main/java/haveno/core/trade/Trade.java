@@ -57,7 +57,7 @@ import haveno.core.proto.CoreProtoResolver;
 import haveno.core.proto.network.CoreNetworkProtoResolver;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeResult;
-import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.support.dispute.DisputeResult.Winner;
 import haveno.core.support.dispute.mediation.MediationResultState;
 import haveno.core.support.dispute.refund.RefundResultState;
 import haveno.core.support.messages.ChatMessage;
@@ -156,8 +156,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public static final int NUM_BLOCKS_DEPOSITS_FINALIZED = 30; // ~1 hour before deposits are considered finalized
     public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized and multisig wallet deleted
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
-    private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 30000 : 1680000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
+    public static final long POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS = 120000; // 2 minutes
+    private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 60000 : 28 * 60 * 1000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
+    private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 3;
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
     protected static final Object importMultisigLock = new Object();
@@ -171,6 +173,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
     private Long lastDepositTxMissingHeight; // height when we last saw missing deposit txs (to wait for a confirmation before reverting state)
     private Long lastPayoutTxMissingHeight; // height when we last saw missing payout tx (to wait for a confirmation before reverting state)
+    private boolean skipNextPollLoop = false;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -689,6 +692,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
+                awaitInitialized();
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) onDepositRequested();
                 if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) onDepositsPublished();
                 if (newValue == Trade.Phase.DEPOSITS_CONFIRMED) onDepositsConfirmed();
@@ -711,6 +715,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
+                awaitInitialized();
                 updatePollPeriod();
 
                 // handle when payout published
@@ -722,7 +727,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         HavenoUtils.waitFor(1000);
                         if (isPayoutConfirmed()) return;
                         if (isShutDownStarted) return;
-                        if (xmrConnectionService.isConnected()) syncAndPollWallet();
+                        if (xmrConnectionService.isConnected()) xmrWalletService.doPollWallet(true);
                     });
 
                     // complete disputed trade
@@ -755,17 +760,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         disputeStateSubscription = EasyBind.subscribe(disputeStateProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
             ThreadUtils.submitToPool(() -> {
-                if (isDisputeClosed()) {
-                    maybePublishTradeStatistics();
-                }
+                awaitInitialized();
+                if (isDisputeClosed()) maybePublishTradeStatistics();
             });
         });
 
-        // arbitrator syncs idle wallet when payout unlock expected
-        if (this instanceof ArbitratorTrade) {
-            idlePayoutSyncer = new IdlePayoutSyncer();
-            xmrWalletService.addWalletListener(idlePayoutSyncer);
-        }
+        // listen to wallet events to sync when idling
+        idlePayoutSyncer = new IdlePayoutSyncer();
+        xmrWalletService.addWalletListener(idlePayoutSyncer);
 
         // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed mismatch in v1.0.19, but can this check be removed?
         if (isBuyer()) {
@@ -789,19 +791,20 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // open wallet or done if wallet does not exist
-        if (walletExists()) getWallet();
-        else {
+        if (!walletExists()) {
             MoneroTx payoutTx = getPayoutTx();
             if (payoutTx != null) {
 
                 // update payout state if necessary
-                if (!isPayoutUnlocked() && payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
-                    log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
-                    setPayoutStateUnlocked();
-                }
-                if (!isPayoutFinalized() && payoutTx.getNumConfirmations() >= NUM_BLOCKS_PAYOUT_FINALIZED) {
-                    log.warn("Payout state for {} {} is {} but payout is finalized, updating state", getClass().getSimpleName(), getId(), getPayoutState());
-                    setPayoutStateFinalized();
+                if (payoutTx.getNumConfirmations() != null) {
+                    if (!isPayoutUnlocked() && payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) {
+                        log.warn("Payout state for {} {} is {} but payout is unlocked, updating state", getClass().getSimpleName(), getId(), getPayoutState());
+                        setPayoutStateUnlocked();
+                    }
+                    if (!isPayoutFinalized() && payoutTx.getNumConfirmations() >= NUM_BLOCKS_PAYOUT_FINALIZED) {
+                        log.warn("Payout state for {} {} is {} but payout is finalized, updating state", getClass().getSimpleName(), getId(), getPayoutState());
+                        setPayoutStateFinalized();
+                    }
                 }
                 isInitialized = true;
                 isFullyInitialized = true;
@@ -810,10 +813,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 throw new RuntimeException("Missing trade wallet for " + getClass().getSimpleName() + " " + getShortId() + ", state=" + getState() + ", marked completed=" + isCompleted());
             }
         }
-
-        // poll wallet without network calls
-        walletHeight.set(wallet.getHeight());
-        doPollWallet(true);
 
         // trade is initialized
         isInitialized = true;
@@ -839,10 +838,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void initializeAfterMailboxMessages() {
-        if (!isDepositRequested() || isPayoutFinalized() || isCompleted()) return;
-        getProtocol().maybeReprocessPaymentSentMessage(false);
-        getProtocol().maybeReprocessPaymentReceivedMessage(false);
-        HavenoUtils.arbitrationManager.maybeReprocessDisputeClosedMessage(this, false);
 
         // handle when wallet first synced
         if (wasWalletSyncedAndPolledProperty.get()) onWalletFirstSynced();
@@ -926,12 +921,20 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    /**
+     * Get the trade wallet, opening the wallet if necessary.
+     * 
+     * @return the trade wallet, or null if the wallet does not exist
+     */
     public MoneroWallet getWallet() {
         synchronized (walletLock) {
             if (wallet != null) return wallet;
             if (!walletExists()) return null;
             if (isShutDownStarted) throw new RuntimeException("Cannot open wallet for " + getClass().getSimpleName() + " " + getId() + " because shut down is started");
-            else wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
+            log.debug("Opening wallet for {} {}", getClass().getSimpleName(), getId());
+            wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
+            walletHeight.set(wallet.getHeight());
+            doPollWallet(true); // poll wallet without network calls
             return wallet;
         }
     }
@@ -960,13 +963,24 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isIdling() {
-        if (isPayoutUnlocked()) return true; // idle after payout unlocked
-        return this instanceof ArbitratorTrade && isDepositsConfirmed() && walletExistsNoSync() && pollNormalStartTimeMs == null; // arbitrator idles trade after deposits confirm unless overriden
+        if (pollNormalStartTimeMs != null) return false;
+        if (!walletExistsNoSync()) return false;
+        if (isPayoutUnlocked()) return true;
+        if (isPayoutPublished()) return false;
+        if (isArbitrator() && isDepositsConfirmed()) return true;
+        if (!isDepositsUnlocked()) return false;
+        if (isPaymentReceived() || isDisputeClosed()) return false;
+        if (isBuyer()) return isPaymentSent();
+        if (isSeller()) {
+            if (!isPaymentSent()) return true;
+            if (isPaymentSent() && !isPaymentReceived()) return false;
+        }
+        if (!isArbitrator() && (isPaymentReceived() || isDisputeClosed())) return false;
+        return true;
     }
 
     public boolean isSyncedWithinTolerance() {
         synchronized (walletLock) {
-            if (wallet == null) return false;
             if (!xmrConnectionService.isSyncedWithinTolerance()) return false;
             Long targetHeight = xmrConnectionService.getTargetHeight();
             if (targetHeight == null) return false;
@@ -1052,13 +1066,20 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void closeWallet() {
+        closeWallet(true);
+    }
+
+    private void closeWallet(boolean stopPolling) {
         synchronized (walletLock) {
-            if (wallet == null) throw new RuntimeException("Trade wallet to close is not open for trade " + getId());
-            stopPolling();
+            if (stopPolling) {
+                stopPolling();
+                pollPeriodMs = null;
+            }
+            if (wallet == null) return; // already closed
+            log.debug("Closing wallet for {} {}", getClass().getSimpleName(), getId());
             xmrWalletService.closeWallet(wallet, true);
             maybeBackupWallet();
             wallet = null;
-            pollPeriodMs = null;
         }
     }
 
@@ -1173,6 +1194,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public MoneroTxWallet createTx(MoneroTxConfig txConfig) {
         synchronized (walletLock) {
+            if (getWallet() == null) throw new IllegalStateException("Cannot create transaction for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 MoneroTxWallet tx = wallet.createTx(txConfig);
                 exportMultisigHex();
@@ -1184,6 +1206,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void exportMultisigHex() {
         synchronized (walletLock) {
             log.info("Exporting multisig info for {} {}", getClass().getSimpleName(), getShortId());
+            if (getWallet() == null) throw new IllegalStateException("Cannot export multisig hex for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
             getSelf().setUpdatedMultisigHex(wallet.exportMultisigHex());
             saveWallet();
         }
@@ -1191,6 +1214,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public void importMultisigHexIfNeeded() {
         synchronized (walletLock) {
+            if (getWallet() == null) throw new IllegalStateException("Cannot import multisig hex if needed for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
             if (wallet.isMultisigImportNeeded()) {
                 importMultisigHex();
             }
@@ -1220,6 +1244,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public void importMultisigHex() {
         synchronized (walletLock) {
+            if (getWallet() == null) throw new IllegalStateException("Cannot import multisig hex for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
                 synchronized (importMultisigLock) {
                     for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
@@ -1414,8 +1439,88 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return payoutTx;
     }
 
-    public MoneroTxWallet createDisputePayoutTx(MoneroTxConfig txConfig) {
+    public MoneroTxWallet createDisputePayoutTx(Contract contract, DisputeResult disputeResult, boolean updateState) {
         synchronized (walletLock) {
+
+            // import multisig hex
+            importMultisigHex();
+
+            // sync and poll
+            syncAndPollWallet();
+
+            // recover if missing wallet data
+            recoverIfMissingWalletData();
+
+            // check if payout tx already published
+            String alreadyPublishedMsg = "Cannot create dispute payout tx because payout tx is already published for trade " + getId();
+            if (isPayoutPublished()) throw new RuntimeException(alreadyPublishedMsg);
+
+            // create unsigned dispute payout tx
+            if (updateState) log.info("Creating unsigned dispute payout tx for trade {}", getId());
+            try {
+
+                // trade wallet must be synced
+                if (getWallet().isMultisigImportNeeded()) throw new RuntimeException("Arbitrator's wallet needs updated multisig hex to create payout tx which means a trader must have already broadcast the payout tx for trade " + getId());
+
+                // check amounts
+                if (disputeResult.getBuyerPayoutAmountBeforeCost().compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Buyer payout cannot be negative");
+                if (disputeResult.getSellerPayoutAmountBeforeCost().compareTo(BigInteger.ZERO) < 0) throw new RuntimeException("Seller payout cannot be negative");
+                if (disputeResult.getBuyerPayoutAmountBeforeCost().add(disputeResult.getSellerPayoutAmountBeforeCost()).compareTo(getWallet().getUnlockedBalance()) > 0) {
+                    throw new RuntimeException("The payout amounts are more than the wallet's unlocked balance, unlocked balance=" + getWallet().getUnlockedBalance() + " vs " + disputeResult.getBuyerPayoutAmountBeforeCost() + " + " + disputeResult.getSellerPayoutAmountBeforeCost() + " = " + (disputeResult.getBuyerPayoutAmountBeforeCost().add(disputeResult.getSellerPayoutAmountBeforeCost())));
+                }
+
+                // create dispute payout tx config
+                MoneroTxConfig txConfig = new MoneroTxConfig().setAccountIndex(0);
+                String buyerPayoutAddress = contract.isBuyerMakerAndSellerTaker() ? contract.getMakerPayoutAddressString() : contract.getTakerPayoutAddressString();
+                String sellerPayoutAddress = contract.isBuyerMakerAndSellerTaker() ? contract.getTakerPayoutAddressString() : contract.getMakerPayoutAddressString();
+                txConfig.setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY);
+                if (disputeResult.getBuyerPayoutAmountBeforeCost().compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(buyerPayoutAddress, disputeResult.getBuyerPayoutAmountBeforeCost());
+                if (disputeResult.getSellerPayoutAmountBeforeCost().compareTo(BigInteger.ZERO) > 0) txConfig.addDestination(sellerPayoutAddress, disputeResult.getSellerPayoutAmountBeforeCost());
+
+                // configure who pays mining fee
+                BigInteger loserPayoutAmount = disputeResult.getWinner() == Winner.BUYER ? disputeResult.getSellerPayoutAmountBeforeCost() : disputeResult.getBuyerPayoutAmountBeforeCost();
+                if (loserPayoutAmount.equals(BigInteger.ZERO)) txConfig.setSubtractFeeFrom(0); // winner pays fee if loser gets 0
+                else {
+                    switch (disputeResult.getSubtractFeeFrom()) {
+                        case BUYER_AND_SELLER:
+                            txConfig.setSubtractFeeFrom(0, 1);
+                            break;
+                        case BUYER_ONLY:
+                            txConfig.setSubtractFeeFrom(0);
+                            break;
+                        case SELLER_ONLY:
+                            txConfig.setSubtractFeeFrom(1);
+                            break;
+                    }
+                }
+
+                // create dispute payout tx
+                MoneroTxWallet payoutTx = createDisputePayoutTx(txConfig);
+
+                // update trade state
+                if (updateState) {
+                    getProcessModel().setUnsignedPayoutTx(payoutTx);
+                    setPayoutTx(payoutTx);
+                    if (getBuyer().getUpdatedMultisigHex() != null) getBuyer().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                    if (getSeller().getUpdatedMultisigHex() != null) getSeller().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
+                }
+                requestPersistence();
+                return payoutTx;
+            } catch (Exception e) {
+                syncAndPollWallet();
+                if (isPayoutPublished()) throw new IllegalStateException(alreadyPublishedMsg);
+                throw e;
+            } catch (AssertionError e) { // tx creation throws assertion error with invalid config
+                syncAndPollWallet();
+                if (isPayoutPublished()) throw new IllegalStateException(alreadyPublishedMsg);
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private MoneroTxWallet createDisputePayoutTx(MoneroTxConfig txConfig) {
+        synchronized (walletLock) {
+            if (getWallet() == null) throw new IllegalStateException("Cannot create dispute payout tx for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
@@ -1480,7 +1585,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         recoverIfMissingWalletData();
 
         // gather relevant info
-        MoneroWallet wallet = getWallet();
+        getWallet();
         Contract contract = getContract();
         BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
         BigInteger buyerDepositAmount = hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : getBuyer().getDepositTx().getIncomingAmount();
@@ -1581,6 +1686,179 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
+    public void processDisputePayoutTx() {
+        synchronized (walletLock) {
+            synchronized (HavenoUtils.getWalletFunctionLock()) {
+                for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
+                    try {
+                        doProcessDisputePayoutTx();
+                        break;
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        handleWalletError(e, sourceConnection, i + 1);
+                        doPollWallet();
+                        if (isPayoutPublished()) break;
+                        log.warn("Failed to process dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage(), e);
+                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                    } finally {
+                        saveWallet();
+                        persistNow(null);
+                    }
+                }
+            }
+        }
+    }
+
+    private MoneroTxSet doProcessDisputePayoutTx() {
+        log.info("Processing dispute payout tx for {} {}", getClass().getSimpleName(), getId());
+
+        // recover if missing wallet data
+        recoverIfMissingWalletData();
+
+        // gather trade info
+        MoneroWallet multisigWallet = getWallet();
+        Optional<Dispute> disputeOptional = HavenoUtils.arbitrationManager.findDispute(getId());
+        if (!disputeOptional.isPresent()) throw new IllegalArgumentException("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + getId());
+        Dispute dispute = disputeOptional.get();
+        Contract contract = dispute.getContract();
+        DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
+        String unsignedPayoutTxHex = getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex();
+
+        // Offer offer = checkNotNull(trade.getOffer(), "offer must not be null");
+        // BigInteger sellerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getMaker().getDepositTxHash() : trade.getTaker().getDepositTxHash()).getIncomingAmount();   // TODO (woodser): use contract instead of trade to get deposit tx ids when contract has deposit tx ids
+        // BigInteger buyerDepositAmount = multisigWallet.getTx(trade instanceof MakerTrade ? trade.getTaker().getDepositTxHash() : trade.getMaker().getDepositTxHash()).getIncomingAmount();
+        // BigInteger tradeAmount = BigInteger.valueOf(contract.getTradeAmount().value).multiply(ParsingUtils.XMR_SATOSHI_MULTIPLIER);
+
+        // parse arbitrator-signed payout tx
+        MoneroTxSet disputeTxSet = multisigWallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(unsignedPayoutTxHex));
+        if (disputeTxSet.getTxs() == null || disputeTxSet.getTxs().size() != 1) throw new IllegalArgumentException("Bad arbitrator-signed payout tx");  // TODO (woodser): nack
+        MoneroTxWallet arbitratorSignedPayoutTx = disputeTxSet.getTxs().get(0);
+
+        // verify payout tx has 1 or 2 destinations
+        int numDestinations = arbitratorSignedPayoutTx.getOutgoingTransfer() == null || arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations() == null ? 0 : arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations().size();
+        if (numDestinations != 1 && numDestinations != 2) throw new IllegalArgumentException("Buyer-signed payout tx does not have 1 or 2 destinations");
+
+        // get buyer and seller destinations (order not preserved)
+        List<MoneroDestination> destinations = arbitratorSignedPayoutTx.getOutgoingTransfer().getDestinations();
+        boolean buyerFirst = destinations.get(0).getAddress().equals(contract.getBuyerPayoutAddressString());
+        MoneroDestination buyerPayoutDestination = buyerFirst ? destinations.get(0) : numDestinations == 2 ? destinations.get(1) : null;
+        MoneroDestination sellerPayoutDestination = buyerFirst ? (numDestinations == 2 ? destinations.get(1) : null) : destinations.get(0);
+
+        // verify payout addresses
+        if (buyerPayoutDestination != null && !buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new IllegalArgumentException("Buyer payout address does not match contract");
+        if (sellerPayoutDestination != null && !sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Seller payout address does not match contract");
+
+        // verify change address is multisig's primary address
+        if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO) && !arbitratorSignedPayoutTx.getChangeAddress().equals(multisigWallet.getPrimaryAddress())) throw new IllegalArgumentException("Change address is not multisig wallet's primary address");
+
+        // verify sum of outputs = destination amounts + change amount
+        BigInteger destinationSum = (buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount()).add(sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount());
+        if (!arbitratorSignedPayoutTx.getOutputSum().equals(destinationSum.add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new IllegalArgumentException("Sum of outputs != destination amounts + change amount");
+
+        // get actual payout amounts
+        BigInteger actualBuyerAmount = buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount();
+        BigInteger actualSellerAmount = sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount();
+
+        // verify payouts sum to unlocked balance within loss of precision due to conversion to centineros
+        BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // cost = fee + lost dust change
+        if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), getId(), arbitratorSignedPayoutTx.getChangeAmount());
+        if (getWallet().getUnlockedBalance().subtract(actualBuyerAmount.add(actualSellerAmount).add(txCost)).compareTo(BigInteger.ZERO) > 0) {
+            throw new IllegalArgumentException("The dispute payout amounts do not sum to the wallet's unlocked balance while verifying the dispute payout tx, unlocked balance=" + getWallet().getUnlockedBalance() + " vs sum payout amount=" + actualBuyerAmount.add(actualSellerAmount) + ", buyer payout=" + actualBuyerAmount + ", seller payout=" + actualSellerAmount);
+        }
+
+        // verify payout amounts
+        BigInteger[] buyerSellerPayoutTxCost = getBuyerSellerPayoutTxCost(disputeResult, txCost);
+        BigInteger expectedBuyerAmount = disputeResult.getBuyerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxCost[0]);
+        BigInteger expectedSellerAmount = disputeResult.getSellerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxCost[1]);
+        if (!expectedBuyerAmount.equals(actualBuyerAmount)) throw new IllegalArgumentException("Unexpected buyer payout: " + expectedBuyerAmount + " vs " + actualBuyerAmount);
+        if (!expectedSellerAmount.equals(actualSellerAmount)) throw new IllegalArgumentException("Unexpected seller payout: " + expectedSellerAmount + " vs " + actualSellerAmount);
+
+        // check daemon connection
+        verifyDaemonConnection();
+
+        // sign arbitrator-signed payout tx
+        if (getPayoutTxHex() == null) {
+            try {
+                log.info("Signing dispute payout tx for {} {}", getClass().getSimpleName(), getShortId());
+                MoneroMultisigSignResult result = multisigWallet.signMultisigTxHex(unsignedPayoutTxHex);
+                if (result.getSignedMultisigTxHex() == null) throw new RuntimeException("Error signing arbitrator-signed payout tx");
+                String signedMultisigTxHex = result.getSignedMultisigTxHex();
+                disputeTxSet.setMultisigTxHex(signedMultisigTxHex);
+                setPayoutTxHex(signedMultisigTxHex);
+                HavenoUtils.arbitrationManager.requestPersistence(this); // TODO: no need to update disputes so far?
+            } catch (Exception e) {
+                throw new IllegalStateException(e.getMessage());
+            }
+
+            // verify mining fee is within tolerance by recreating payout tx
+            // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
+            MoneroTxWallet feeEstimateTx = null;
+            try {
+                log.info("Creating dispute fee estimate tx for {} {}", getClass().getSimpleName(), getShortId());
+                feeEstimateTx = createDisputePayoutTx(dispute.getContract(), disputeResult, false);
+            } catch (Exception e) {
+                if (isPayoutPublished()) log.warn("Payout tx already published for {} {}, skipping fee verification", getClass().getSimpleName(), getShortId());
+                else throw new RuntimeException("Could not recreate dispute payout tx to verify fee: " + e.getMessage(), e);
+            }
+            if (feeEstimateTx != null) {
+                HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), arbitratorSignedPayoutTx.getFee());
+                log.info("Dispute payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), getShortId());
+            }
+        } else {
+            log.warn("Payout tx already signed for {} {}, skipping signing", getClass().getSimpleName(), getShortId());
+            disputeTxSet.setMultisigTxHex(getPayoutTxHex());
+        }
+
+        // submit fully signed payout tx to the network
+        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+            MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
+            try {
+                List<String> txHashes = multisigWallet.submitMultisigTxHex(disputeTxSet.getMultisigTxHex());
+                disputeTxSet.getTxs().get(0).setHash(txHashes.get(0)); // manually update hash which is known after signed
+                break;
+            } catch (Exception e) {
+                if (isPayoutPublished()) return null;
+                if (HavenoUtils.isMultisigError(e)) throw new IllegalArgumentException(e);
+                log.warn("Failed to submit dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                if (getXmrConnectionService().isConnected()) requestSwitchToNextBestConnection(sourceConnection);
+                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+            }
+        }
+
+        // update state
+        setPayoutTx(disputeTxSet.getTxs().get(0));
+        setPayoutState(Trade.PayoutState.PAYOUT_PUBLISHED);
+        dispute.setDisputePayoutTxId(disputeTxSet.getTxs().get(0).getHash());
+        HavenoUtils.arbitrationManager.requestPersistence(this);
+        return disputeTxSet;
+    }
+
+    private static BigInteger[] getBuyerSellerPayoutTxCost(DisputeResult disputeResult, BigInteger payoutTxCost) {
+        boolean isBuyerWinner = disputeResult.getWinner() == Winner.BUYER;
+        BigInteger loserAmount = isBuyerWinner ? disputeResult.getSellerPayoutAmountBeforeCost() : disputeResult.getBuyerPayoutAmountBeforeCost();
+        if (loserAmount.equals(BigInteger.ZERO)) {
+            BigInteger buyerPayoutTxFee = isBuyerWinner ? payoutTxCost : BigInteger.ZERO;
+            BigInteger sellerPayoutTxFee = isBuyerWinner ? BigInteger.ZERO : payoutTxCost;
+            return new BigInteger[] { buyerPayoutTxFee, sellerPayoutTxFee };
+        } else {
+            switch (disputeResult.getSubtractFeeFrom()) {
+                case BUYER_AND_SELLER:
+                    BigInteger payoutTxFeeSplit = payoutTxCost.divide(BigInteger.valueOf(2));
+                    return new BigInteger[] { payoutTxFeeSplit, payoutTxFeeSplit };
+                case BUYER_ONLY:
+                    return new BigInteger[] { payoutTxCost, BigInteger.ZERO };
+                case SELLER_ONLY:
+                    return new BigInteger[] { BigInteger.ZERO, payoutTxCost };
+                default:
+                    throw new RuntimeException("Unsupported subtract fee from: " + disputeResult.getSubtractFeeFrom());
+            }
+        }
+    }
+
     /**
      * In case there's a problem observing the payout tx (e.g. due to stale multisig state),
      * peers can communicate the payout tx id.
@@ -1647,13 +1925,25 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return getMaker().getDepositTx();
     }
 
-    private Long getMinDepositTxConfirmations() {
+    private Long getDepositsNumConfirmations() {
+        Long depositsConfirmedHeight = getDepositsConfirmedHeight();
+        if (depositsConfirmedHeight == null) return null;
+        return walletHeight.get() - depositsConfirmedHeight + 1;
+    }
+
+    private Long getDepositsConfirmedHeight() {
         MoneroTxWallet makerDepositTx = getMakerDepositTx();
-        if (makerDepositTx == null) return null;
-        if (hasBuyerAsTakerWithoutDeposit()) return makerDepositTx.getNumConfirmations();
         MoneroTxWallet takerDepositTx = getTakerDepositTx();
-        if (takerDepositTx == null) return null;
-        return Math.min(makerDepositTx.getNumConfirmations(), takerDepositTx.getNumConfirmations());
+        if (makerDepositTx == null || (takerDepositTx == null && !hasBuyerAsTakerWithoutDeposit())) return null;
+        if (Boolean.TRUE.equals(makerDepositTx.isFailed()) || (takerDepositTx != null && Boolean.TRUE.equals(takerDepositTx.isFailed()))) return null;
+        if (makerDepositTx.getHeight() == null || (takerDepositTx != null && takerDepositTx.getHeight() == null)) return null;
+        return Math.max(makerDepositTx.getHeight(), hasBuyerAsTakerWithoutDeposit() ? 0l : takerDepositTx.getHeight());
+    }
+
+    private Long getDepositsFinalizedHeight() {
+        Long depositsConfirmedHeight = getDepositsConfirmedHeight();
+        if (depositsConfirmedHeight == null) return null;
+        return depositsConfirmedHeight + NUM_BLOCKS_DEPOSITS_FINALIZED - 1;
     }
 
     public void addAndPersistChatMessage(ChatMessage chatMessage) {
@@ -2022,7 +2312,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // warn if reverting state
         if (state.getPhase().ordinal() < this.state.getPhase().ordinal()) {
-            String message = "We got a state change to a previous phase (id=" + getShortId() + ").\n" +
+            String message = "We got a state change to a previous phase for " + getClass().getSimpleName() + " " + getShortId() + "\n" +
                     "Old state is: " + this.state + ". New state is: " + state;
             log.warn(message);
         }
@@ -2037,8 +2327,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // automatically advance unlocked state to finalized if sufficient confirmations
         if (state == State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN) {
-            Long minDepositTxConfirmations = getMinDepositTxConfirmations();
-            if (minDepositTxConfirmations != null && minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED) {
+            Long numDepositsConfirmations = getDepositsNumConfirmations();
+            if (numDepositsConfirmations != null && numDepositsConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED) {
                 log.info("Auto-advancing state to {} for {} {} because deposits are unlocked and have at least {} confirmations", State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN, this.getClass().getSimpleName(), getShortId(), NUM_BLOCKS_DEPOSITS_FINALIZED);
                 setStateDepositsFinalized();
             }
@@ -2343,7 +2633,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (monerod == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
 
             // get finalize time of last deposit tx
-            long finalizeHeight = getDepositsFinalizedHeight();
+            if (getWallet() == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because cannot get its wallet");
+            Long finalizeHeight = getDepositsFinalizedHeight();
+            if (finalizeHeight == null || finalizeHeight > xmrConnectionService.getTargetHeight()) return; // TODO: isDepositsFinalized() can assume true, so skip if finalized height not reached
             long finalizeTime = monerod.getBlockByHeight(finalizeHeight).getTimestamp() * 1000;
 
             // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
@@ -2356,13 +2648,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             log.debug("We set the start for the trade period to {}. Trade started at: {}. Block got mined at: {}",
                     new Date(startTime), new Date(tradeTime), new Date(finalizeTime));
         }
-    }
-
-    private long getDepositsFinalizedHeight() {
-        MoneroTxWallet makerDepositTx = getMakerDepositTx();
-        MoneroTxWallet takerDepositTx = getTakerDepositTx();
-        if (makerDepositTx == null || (takerDepositTx == null && !hasBuyerAsTakerWithoutDeposit())) throw new RuntimeException("Cannot get finalized height for trade " + getId() + " because its deposit tx is null. Is client connected to a daemon?");
-        return Math.max(makerDepositTx.getHeight() + NUM_BLOCKS_DEPOSITS_FINALIZED - 1, hasBuyerAsTakerWithoutDeposit() ? 0l : takerDepositTx.getHeight() + NUM_BLOCKS_DEPOSITS_FINALIZED - 1);
     }
 
     public long getMaxTradePeriod() {
@@ -2453,15 +2738,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else if (getState().getPhase() == Phase.DEPOSITS_FINALIZED) return true;
         else if (isPayoutFinalized()) return true;
         else {
-            Long minDepositTxConfirmations = getMinDepositTxConfirmations();
 
             // TODO: state can be past finalized (e.g. payment_sent) before the deposits are finalized, ideally use separate enum for deposits, or a single published state + num confirmations
-            if (minDepositTxConfirmations == null) {    
-                log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in phase {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState().getPhase());
-                Thread.dumpStack();
+            Long numDepositsConfirmations = getDepositsNumConfirmations();
+            if (numDepositsConfirmations == null) {
+                if (isBuyer()) { // log a warning for the buyer, since only they are at risk of reorg after payment sent
+                    log.warn("Assuming that deposit txs are finalized for trade {} {} because trade is in state {} but has unknown confirmations", getClass().getSimpleName(), getShortId(), getState());
+                    Thread.dumpStack();
+                }
                 return true;
-            } 
-            return minDepositTxConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
+            }
+            return numDepositsConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
         }
     }
 
@@ -2728,6 +3015,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     protected void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (walletLock) {
 
+            // ignore if wallet is not open
+            if (wallet == null) return;
+
             // configure current connection
             connection = xmrConnectionService.getConnection();
             if (!xmrWalletService.isProxyApplied(wasWalletSynced)) connection.setProxyUri(null);
@@ -2756,22 +3046,19 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void maybeInitSyncing() {
         if (isShutDownStarted || !isDepositRequested()) return;
 
-        // set known deposit txs
-        doPollWallet(true);
-
         // start polling
-        if (isIdling()) {
+        if (isArbitrator() && isIdling()) {
             long startSyncingInSec = Math.max(1, ThreadLocalRandom.current().nextLong(0, getPollPeriod()) / 1000l); // random seconds to start polling
             UserThread.runAfter(() -> ThreadUtils.execute(() -> {
                 if (!isShutDownStarted) doTryInitSyncing();
             }, getId()), startSyncingInSec);
         } else {
-            doTryInitSyncing();
+            doTryInitSyncing(); // traders start syncing immediately
         }
     }
     
     private void doTryInitSyncing() {
-        if (!wasWalletSynced) trySyncWallet(true);
+        getWallet(); // ensure wallet is initialized
         updatePollPeriod();
         startPolling();
     }
@@ -2790,9 +3077,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
         try {
             synchronized (walletLock) {
-                if (getWallet() == null) throw new IllegalStateException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
-                if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
-                if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + ", " + getId());
+                if (getWallet() == null) throw new IllegalStateException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
+                if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + " " + getId());
+                if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + " " + getId());
                 if (isWalletBehind()) {
                     log.info("Syncing wallet for {} {} from height {}", getShortId(), getClass().getSimpleName(), walletHeight.get());
                     long startTime = System.currentTimeMillis();
@@ -2832,10 +3119,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (this.isShutDownStarted) return;
             if (this.pollPeriodMs != null && this.pollPeriodMs == pollPeriodMs) return;
             this.pollPeriodMs = pollPeriodMs;
-            if (isPolling()) {
-                stopPolling();
-                startPolling();
-            }
+            if (isPolling()) resetPolling(false);
         }
     }
 
@@ -2845,11 +3129,22 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void startPolling() {
+        startPolling(false);
+    }
+
+    private void startPolling(boolean skipFirstPoll) {
         synchronized (pollLock) {
             if (isShutDownStarted || isPolling()) return;
             updatePollPeriod();
-            log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
-            pollLooper = new TaskLooper(() -> new Thread(() -> pollWallet()).start());
+            skipNextPollLoop = skipFirstPoll;
+            if (!skipFirstPoll) log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
+            pollLooper = new TaskLooper(() -> new Thread(() -> {
+                if (skipNextPollLoop) {
+                    skipNextPollLoop = false;
+                    return;
+                }
+                pollWallet();
+            }).start());
             pollLooper.start(pollPeriodMs);
         }
     }
@@ -2862,6 +3157,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
         }
     }
+
+    private void resetPolling(boolean skipFirstPoll) {
+        synchronized (pollLock) {
+            if (isShutDownStarted) return;
+            stopPolling();
+            startPolling(skipFirstPoll);
+        }
+    }
     
     private boolean isPolling() {
         synchronized (pollLock) {
@@ -2871,9 +3174,25 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private void pollWallet() {
         synchronized (pollLock) {
-            if (pollInProgress) return;
+            if (pollInProgress) {
+                maybeCloseIdlingWallet();
+                return;
+            }
         }
         doPollWallet();
+        maybeCloseIdlingWallet();
+    }
+
+    private void maybeCloseIdlingWallet() {
+        
+        // close arbitrator trade wallet while idling
+        if (isArbitrator()) {
+            ThreadUtils.execute(() -> {
+                if (isIdling() && !isPayoutFinalized()) {
+                    closeWallet(false);
+                }
+            }, getId());
+        }
     }
 
     private void doPollWallet() {
@@ -2909,7 +3228,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (!offlinePoll && (xmrConnectionService.getTargetHeight() == null || !xmrConnectionService.isSyncedWithinTolerance())) return;
 
             // sync if wallet too far behind daemon
-            if (!offlinePoll && walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) syncWallet(false);
+            boolean longSync = false;
+            if (!offlinePoll && (!wasWalletSynced || walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS)) {
+                longSync = true;
+                syncWallet(false);
+            }
 
             // update deposit txs
             boolean depositTxsUninitialized = isDepositRequested() && (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit()));
@@ -2947,7 +3270,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (!offlinePoll && (isPayoutExpected || isPayoutPublished())) syncWalletIfBehind();
 
                 // rescan spent outputs to detect unconfirmed payout tx
-                if (getPayoutState() == PayoutState.PAYOUT_PUBLISHED || (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0)) {
+                if (getPayoutState() == PayoutState.PAYOUT_PUBLISHED || (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) || (isDepositsPublished() && longSync)) {
                     try {
                         rescanSpent(true);
                     } catch (Exception e) {
@@ -2957,7 +3280,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // get txs from trade wallet
                 boolean checkPool = !offlinePoll && isPayoutExpected && !isPayoutConfirmed();
-                List<MoneroTxWallet> txs = getTxs(checkPool);
+                List<MoneroTxWallet> txs = null;
+                if (depositTxsUninitialized || wallet != null) { // get txs if deposits uninitialized or wallet is open
+                    txs = getTxs(checkPool);
+                }
 
                 // txs may not be fetched if confirmed after last sync
                 if (!offlinePoll && isPayoutPublished() && getPayoutTxId() != null && !hasPayoutTx(txs)) {
@@ -2974,9 +3300,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
 
             // update trade period and poll properties
-            maybeUpdateTradePeriod();
+            if (!offlinePoll) maybeUpdateTradePeriod(); // no update possible if offline poll (also avoids deadlock because setting trade period state depends on locking wallet within another lock)
             wasWalletPolledProperty.set(true);
-            if (!offlinePoll) wasWalletSyncedAndPolledProperty.set(true);
+            if (!offlinePoll) {
+                wasWalletSyncedAndPolledProperty.set(true);
+                resetPolling(true); // do not poll again until next period
+            }
         } catch (Exception e) {
             if (!(e instanceof IllegalStateException) && !isShutDownStarted && !offlinePoll && !wasWalletSyncedAndPolledProperty.get()) { // request connection switch on failure until synced and polled
                 ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
@@ -2990,7 +3319,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             } else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
-                    log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
+                    if (e instanceof NullPointerException) {
+                        log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection(), e);
+                    } else {
+                        log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
+                    }
                 }
             }
         } finally {
@@ -3012,7 +3345,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + ", " + getId());
             if (isWalletBehind()) {
                 syncWithProgress();
-                walletHeight.set(wallet.getHeight());
                 return true;
             } else {
                 return false;
@@ -3033,14 +3365,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private List<MoneroTxWallet> getTxs(boolean checkPool) {
         MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
         if (!checkPool) query.setInTxPool(false);
-        if (checkPool) {
-            synchronized (walletLock) {
+        synchronized (walletLock) {
+            if (getWallet() == null) throw new IllegalStateException("Cannot get transactions from trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+            if (checkPool) {
                 synchronized (HavenoUtils.getDaemonLock()) {
                     return wallet.getTxs(query);
                 }
+            } else {
+                return wallet.getTxs(query);
             }
-        } else {
-            return wallet.getTxs(query);
         }
     }
 
@@ -3083,14 +3416,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 setStateDepositsConfirmed();
             }
 
-            // check for deposit txs unlocked
-            if (makerDepositTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || takerDepositTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK)) {
-                setStateDepositsUnlocked();
-            }
+            if (makerDepositTx.getNumConfirmations() != null) {
 
-            // check for deposit txs finalized
-            if (makerDepositTx.getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED && (hasBuyerAsTakerWithoutDeposit() || takerDepositTx.getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED)) {
-                setStateDepositsFinalized();
+                // check for deposit txs unlocked
+                if (makerDepositTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK && (hasBuyerAsTakerWithoutDeposit() || (takerDepositTx.getNumConfirmations() != null && takerDepositTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK))) {
+                    setStateDepositsUnlocked();
+                }
+
+                // check for deposit txs finalized
+                if (makerDepositTx.getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED && (hasBuyerAsTakerWithoutDeposit() || (takerDepositTx.getNumConfirmations() != null && takerDepositTx.getNumConfirmations() >= NUM_BLOCKS_DEPOSITS_FINALIZED))) {
+                    setStateDepositsFinalized();
+                }
             }
         }
 
@@ -3100,15 +3436,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (poolChecked && depositsState.ordinal() < minDepositsState.ordinal()) {
 
             // skip reverting state until next confirmation // TODO: sometimes txs are missing from the wallet and reappear without reorg
-            if (lastDepositTxMissingHeight == null || lastDepositTxMissingHeight <= walletHeight.get()) {
-                if (lastDepositTxMissingHeight == null) log.warn("Missing deposit txs for {} {} at height {}, waiting for a block before reverting state", getClass().getSimpleName(), getShortId(), lastDepositTxMissingHeight);
-                lastDepositTxMissingHeight = wallet.getHeight();
-            } else {
+            if (lastDepositTxMissingHeight != null && walletHeight.get() > lastDepositTxMissingHeight + REVERT_AFTER_NUM_CONFIRMATIONS - 1) {
                 log.warn("Reverting deposits state from {} to {} for {} {}. Possible reorg?", minDepositsState, depositsState, getClass().getSimpleName(), getShortId());
                 getMaker().setDepositTx(makerDepositTx);
                 getTaker().setDepositTx(takerDepositTx);
                 if (depositsState == State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) setErrorMessage("Deposit transactions are missing for trade " + getShortId() + ". This can happen after a blockchain reorganization.\n\nIf the issue continues, you can contact support or mark the trade as failed.");
                 if (!isPaymentSent()) setState(depositsState); // only revert state if payment not sent
+            } else {
+                if (lastDepositTxMissingHeight == null) log.warn("Missing deposit txs for {} {} at height {}. Waiting {} confirmation before reverting state", getClass().getSimpleName(), getShortId(), lastDepositTxMissingHeight, REVERT_AFTER_NUM_CONFIRMATIONS);
+                lastDepositTxMissingHeight = walletHeight.get();
             }
         } else {
             lastDepositTxMissingHeight = null;
@@ -3140,11 +3476,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         else if (hasPayoutTx) setPayoutState(PayoutState.PAYOUT_PUBLISHED);
         else if (poolChecked && isPayoutPublished()) { // payout tx seen then lost (e.g. reorg)
 
-            // skip reverting state until next confirmation
-            if (lastPayoutTxMissingHeight == null || lastPayoutTxMissingHeight <= walletHeight.get()) {
-                if (lastPayoutTxMissingHeight == null) log.warn("Missing payout tx for {} {} at height {}, waiting for a block before reverting state", getClass().getSimpleName(), getShortId(), lastPayoutTxMissingHeight);
-                lastPayoutTxMissingHeight = wallet.getHeight();
-            } else {
+            // skip reverting state until confirmations
+            if (lastPayoutTxMissingHeight != null && walletHeight.get() > lastPayoutTxMissingHeight + REVERT_AFTER_NUM_CONFIRMATIONS - 1) {
 
                 // reset payment received and dispute closed messages
                 for (TradePeer peer : getAllPeers()) {
@@ -3169,6 +3502,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // move trade back to pending if marked completed
                 if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
+            } else {
+                if (lastPayoutTxMissingHeight == null) log.warn("Missing payout tx for {} {} at height {}. Waiting {} confirmations before reverting state", getClass().getSimpleName(), getShortId(), lastPayoutTxMissingHeight, REVERT_AFTER_NUM_CONFIRMATIONS);
+                lastPayoutTxMissingHeight = walletHeight.get();
             }
         }
     }
@@ -3195,7 +3531,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         } else {
             DisputeResult disputeResult = getDisputeResult();
             if (disputeResult != null) {
-                BigInteger[] buyerSellerPayoutTxFees = ArbitrationManager.getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
+                BigInteger[] buyerSellerPayoutTxFees = getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
                 getBuyer().setPayoutTxFee(buyerSellerPayoutTxFees[0]);
                 getSeller().setPayoutTxFee(buyerSellerPayoutTxFees[1]);
                 getBuyer().setPayoutAmount(disputeResult.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getPayoutTxFee()));
@@ -3433,6 +3769,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private boolean isWalletMissingData() {
         synchronized (walletLock) {
+            if (getWallet() == null) throw new IllegalStateException("Cannot check for missing wallet data for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
             if (!isDepositsUnlocked() || isPayoutPublished()) return false;
             if (getMakerDepositTx() == null) {
                 log.warn("Missing maker deposit tx for {} {}", getClass().getSimpleName(), getId());
@@ -3476,7 +3813,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void setStateDepositsFinalized() {
-        if (!isDepositsFinalized()) setState(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN);
+        if (!isPaymentSent() && !isDepositsFinalized()) advanceState(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN); // do not revert state if payment already sent
         try {
             maybeUpdateTradePeriod();
         } catch (Exception e) {
@@ -3535,12 +3872,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         else if (tx.isConfirmed()) payoutHeight = tx.getHeight();
                     }
 
-                    // sync wallet if confirm or unlock expected
+                    // sync wallet if confirm, unlock, or finalize expected
                     long currentHeight = xmrWalletService.getMonerod().getHeight();
                     if (!isPayoutConfirmed() || (payoutHeight != null && 
                             ((!isPayoutUnlocked() && currentHeight >= payoutHeight + XmrWalletService.NUM_BLOCKS_UNLOCK) ||
                             (!isPayoutFinalized() && currentHeight >= payoutHeight + NUM_BLOCKS_PAYOUT_FINALIZED)))) {
-                        log.info("Syncing idle trade wallet to update payout tx, tradeId={}", getId());
+                        log.info("Syncing idle trade wallet to update payout for {} {}", getTrade().getClass().getSimpleName(), getId());
                         syncAndPollWallet();
                     }
                     processing = false;
