@@ -215,26 +215,25 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             timer.stop();
         }
 
-        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-
+        // register listeners once
         if (resendCounter == 0) {
             listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
             getReceiver().getPaymentReceivedMessageStateProperty().addListener(listener);
             onMessageStateChange(getReceiver().getPaymentReceivedMessageStateProperty().get());
         }
 
-        // first re-send is after 2 minutes (10 if stored)
+        // first re-send is after 2 minutes (longer if stored)
         if (resendCounter == 0) {
-            int shortDelay = getReceiver().isPaymentReceivedMessageStored() ? 10 : 2;
+            long shortDelay = getReceiver().isPaymentReceivedMessageStored() ? delayInMin : 2;
             log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
             timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
         } else {
 
-            // further re-sends start at 10 minutes (TTL / 3 if stored), then increase the delay exponentially
-            if (delayInMin == -1) delayInMin = getReceiver().isPaymentReceivedMessageStored() ? TimeUnit.MILLISECONDS.toMinutes(TradeMailboxMessage.TTL) / 3 : 10;
+            // further re-sends start at 10 minutes (12 hours if stored), then increase the delay exponentially
+            if (delayInMin == -1) delayInMin = getReceiver().isPaymentReceivedMessageStored() ? TimeUnit.HOURS.toMinutes(12) : 10;
             log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
             timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-            delayInMin = Math.min(TradeMailboxMessage.TTL, (long) ((double) delayInMin * 1.5));
+            delayInMin = Math.min(TradeMailboxMessage.TTL, (long) ((double) delayInMin * 2));
         }
         resendCounter++;
     }

@@ -174,8 +174,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             timer.stop();
         }
 
-        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-
+        // register listeners once
         if (resendCounter == 0) {
             listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
             getReceiver().getPaymentSentMessageStateProperty().addListener(listener);

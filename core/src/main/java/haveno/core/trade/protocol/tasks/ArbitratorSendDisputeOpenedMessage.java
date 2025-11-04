@@ -148,8 +148,6 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
             timer.stop();
         }
 
-        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-
         if (resendCounter == 0) {
             listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
             getReceiver().getDisputeOpenedMessageStateProperty().addListener(listener);
