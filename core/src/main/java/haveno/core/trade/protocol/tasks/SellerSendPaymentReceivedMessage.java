@@ -66,7 +66,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     private ChangeListener<MessageState> listener;
     private Timer timer;
     private static final int MAX_RESEND_ATTEMPTS = 20;
-    private int delayInMin = 10;
+    private long delayInMin = -1;
     private int resendCounter = 0;
     private String unsignedPayoutTxHex = null;
     private String signedPayoutTxHex = null;
@@ -223,15 +223,18 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             onMessageStateChange(getReceiver().getPaymentReceivedMessageStateProperty().get());
         }
 
-        // first re-send is after 2 minutes, then increase the delay exponentially
+        // first re-send is after 2 minutes (10 if stored)
         if (resendCounter == 0) {
-            int shortDelay = 2;
+            int shortDelay = getReceiver().isPaymentReceivedMessageStored() ? 10 : 2;
             log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
             timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
         } else {
+
+            // further re-sends start at 10 minutes (TTL / 3 if stored), then increase the delay exponentially
+            if (delayInMin == -1) delayInMin = getReceiver().isPaymentReceivedMessageStored() ? TimeUnit.MILLISECONDS.toMinutes(TradeMailboxMessage.TTL) / 3 : 10;
             log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
             timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-            delayInMin = (int) ((double) delayInMin * 1.5);
+            delayInMin = Math.min(TradeMailboxMessage.TTL, (long) ((double) delayInMin * 1.5));
         }
         resendCounter++;
     }
