@@ -82,7 +82,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
         if (trade.getBuyer().getDisputeOpenedMessage() == null && trade.getSeller().getDisputeOpenedMessage() == null) return false;
         if (trade.getDisputeState() != Trade.DisputeState.DISPUTE_OPENED) return false;
         if (!((ArbitratorTrade) trade).resendDisputeOpenedMessageWithinDuration()) return false;
-        return !trade.getProcessModel().isDisputeOpenedMessageAckedOrStored();
+        return !trade.getProcessModel().isDisputeOpenedMessageAckedOrNacked();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

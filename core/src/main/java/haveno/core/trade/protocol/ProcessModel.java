@@ -313,8 +313,8 @@ public class ProcessModel implements Model, PersistablePayload {
         return getArbitrator().isPaymentReceivedMessageAckedOrNacked() && getBuyer().isPaymentReceivedMessageAckedOrNacked();
     }
 
-    public boolean isDisputeOpenedMessageAckedOrStored() {
-        return getBuyer().isDisputeOpenedMessageAckedOrStored() || getSeller().isDisputeOpenedMessageAckedOrStored();
+    public boolean isDisputeOpenedMessageAckedOrNacked() {
+        return getBuyer().isDisputeOpenedMessageAckedOrNacked() || getSeller().isDisputeOpenedMessageAckedOrNacked();
     }
 
     void setDepositTxSentAckMessage(AckMessage ackMessage) {

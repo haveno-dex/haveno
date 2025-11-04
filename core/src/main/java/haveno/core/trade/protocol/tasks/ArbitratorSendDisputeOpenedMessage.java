@@ -64,7 +64,7 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
             runInterceptHook();
 
             // reset nack state
-            if (getReceiver().isDisputeOpenedMessageReceived()) {
+            if (getReceiver().isDisputeOpenedMessageAckedOrNacked()) {
                 getReceiver().setDisputeOpenedMessageState(MessageState.UNDEFINED);
             }
 
@@ -176,7 +176,7 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
     }
 
     protected boolean isMessageReceived() {
-        return getReceiver().isDisputeOpenedMessageReceived();
+        return getReceiver().isDisputeOpenedMessageAckedOrNacked();
     }
 
     protected boolean stopSending() {
