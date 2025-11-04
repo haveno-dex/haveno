@@ -17,6 +17,8 @@
 
 package haveno.core.trade.protocol.tasks;
 
+import java.util.concurrent.TimeUnit;
+
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.Trade;
@@ -28,6 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class SendMailboxMessageTask extends TradeTask {
+
+    public static final long RESEND_STORED_MESSAGE_DELAY_MIN = TimeUnit.HOURS.toMinutes(12);
+
     public SendMailboxMessageTask(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }

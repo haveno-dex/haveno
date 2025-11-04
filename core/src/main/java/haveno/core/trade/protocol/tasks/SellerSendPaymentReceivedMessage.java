@@ -229,8 +229,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
         } else {
 
-            // further re-sends start at 10 minutes (12 hours if stored), then increase the delay exponentially
-            if (delayInMin == -1) delayInMin = getReceiver().isPaymentReceivedMessageStored() ? TimeUnit.HOURS.toMinutes(12) : 10;
+            // further re-sends start at 10 minutes (longer if stored), then increase the delay exponentially
+            if (delayInMin == -1) delayInMin = getReceiver().isPaymentReceivedMessageStored() ? RESEND_STORED_MESSAGE_DELAY_MIN : 15;
             log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
             timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
             delayInMin = Math.min(TradeMailboxMessage.TTL, (long) ((double) delayInMin * 2));
