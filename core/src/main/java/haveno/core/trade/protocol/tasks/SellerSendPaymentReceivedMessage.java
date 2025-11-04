@@ -243,7 +243,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     }
 
     protected boolean isMessageReceived() {
-        return getReceiver().isPaymentReceivedMessageReceived();
+        return getReceiver().isPaymentReceivedMessageAckedOrNacked();
     }
 
     protected boolean stopSending() {
