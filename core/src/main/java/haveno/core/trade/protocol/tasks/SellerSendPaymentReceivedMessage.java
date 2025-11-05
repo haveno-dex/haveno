@@ -217,7 +217,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             timer.stop();
         }
 
-        // increase delay if message is stored in mailbox
+        // increase minimum delay if message is stored to mailbox
         if (getReceiver().isPaymentReceivedMessageStored()) {
             delayInMin = Math.max(delayInMin, SendMailboxMessageTask.RESEND_STORED_MESSAGE_INITIAL_DELAY_MINS);
         }

@@ -151,7 +151,7 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
             timer.stop();
         }
 
-        // increase delay if message is stored in mailbox
+        // increase minimum delay if message is stored to mailbox
         if (getReceiver().isDisputeOpenedMessageStored()) {
             delayInMin = Math.max(delayInMin, SendMailboxMessageTask.RESEND_STORED_MESSAGE_INITIAL_DELAY_MINS);
         }
