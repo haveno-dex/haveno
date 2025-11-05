@@ -284,6 +284,10 @@ public final class TradePeer implements PersistablePayload {
         return paymentSentMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
     }
 
+    public boolean isPaymentSentMessageStored() {
+        return paymentSentMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+    }
+
     public boolean isPaymentReceivedMessageAcked() {
         return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
     }
@@ -306,6 +310,10 @@ public final class TradePeer implements PersistablePayload {
 
     public boolean isDisputeOpenedMessageAckedOrNacked() {
         return disputeOpenedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || disputeOpenedMessageStateProperty.get() == MessageState.NACKED;
+    }
+
+    public boolean isDisputeOpenedMessageStored() {
+        return disputeOpenedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
     }
 
     @Override

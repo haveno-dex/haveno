@@ -217,6 +217,11 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             timer.stop();
         }
 
+        // increase delay if message is stored in mailbox
+        if (getReceiver().isPaymentReceivedMessageStored()) {
+            delayInMin = Math.max(delayInMin, SendMailboxMessageTask.RESEND_STORED_MESSAGE_DELAY_MIN);
+        }
+
         // send again after delay
         log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
         if (timer != null) {
@@ -237,13 +242,9 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     }
 
     private void onMessageStateChange(MessageState newValue) {
-        if (isMessageReceived()) {
+        if (stopSending()) {
             cleanup();
         }
-    }
-
-    protected boolean isMessageReceived() {
-        return getReceiver().isPaymentReceivedMessageAckedOrNacked();
     }
 
     protected boolean stopSending() {
@@ -257,5 +258,9 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         if (signedPayoutTxHex != null && !StringUtils.equals(signedPayoutTxHex, trade.getPayoutTxHex())) return true;
         if (updatedMultisigHex != null && !StringUtils.equals(updatedMultisigHex, trade.getSelf().getUpdatedMultisigHex())) return true;
         return false;
+    }
+
+    protected boolean isMessageReceived() {
+        return getReceiver().isPaymentReceivedMessageAckedOrNacked();
     }
 }
