@@ -66,7 +66,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
     private ChangeListener<MessageState> listener;
     private Timer timer;
     private static final int MAX_RESEND_ATTEMPTS = 20;
-    private long delayInMin = -1;
+    private long delayInMin = 15;
     private int resendCounter = 0;
     private String unsignedPayoutTxHex = null;
     private String signedPayoutTxHex = null;
@@ -205,15 +205,24 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
         // skip if stopped
         if (stopSending()) return;
 
+        // stop after max attempts
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
             log.warn("We never received an ACK message when sending the PaymentReceivedMessage to the peer. We stop trying to send the message.");
             return;
         }
 
+        // reset timer
         if (timer != null) {
             timer.stop();
         }
+
+        // send again after delay
+        log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
+        if (timer != null) {
+            timer.stop();
+        }
+        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
 
         // register listeners once
         if (resendCounter == 0) {
@@ -222,19 +231,8 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             onMessageStateChange(getReceiver().getPaymentReceivedMessageStateProperty().get());
         }
 
-        // first re-send is after 2 minutes (longer if stored)
-        if (resendCounter == 0) {
-            long shortDelay = getReceiver().isPaymentReceivedMessageStored() ? delayInMin : 2;
-            log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
-            timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
-        } else {
-
-            // further re-sends start at 10 minutes (longer if stored), then increase the delay exponentially
-            if (delayInMin == -1) delayInMin = getReceiver().isPaymentReceivedMessageStored() ? RESEND_STORED_MESSAGE_DELAY_MIN : 15;
-            log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
-            timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-            delayInMin = Math.min(TradeMailboxMessage.TTL, (long) ((double) delayInMin * 2));
-        }
+        // increase delay up to message TTL
+        delayInMin = Math.min(TradeMailboxMessage.TTL, delayInMin * 2);
         resendCounter++;
     }
 
