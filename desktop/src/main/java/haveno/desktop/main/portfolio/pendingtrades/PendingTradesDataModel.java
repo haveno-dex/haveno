@@ -320,12 +320,12 @@ public class PendingTradesDataModel extends ActivatableDataModel {
             for (Trade trade : tradeManager.getObservableList()) {
                 if (isTradeShown(trade)) {
                     if (hiddenTrades.contains(trade)) {
-                        trade.stateProperty().removeListener(hiddenStateChangeListener);
+                        UserThread.execute(() -> trade.stateProperty().removeListener(hiddenStateChangeListener));
                         hiddenTrades.remove(trade);
                     }
                 } else {
                     if (!hiddenTrades.contains(trade)) {
-                        trade.stateProperty().addListener(hiddenStateChangeListener);
+                        UserThread.execute(() -> trade.stateProperty().addListener(hiddenStateChangeListener));
                         hiddenTrades.add(trade);
                     }
                 }
@@ -390,7 +390,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     takerTxId.set(nullToEmptyString(takerDepositTxHash));
                     if (makerDepositTxHash != null || takerDepositTxHash != null) {
                         notificationCenter.setSelectedTradeId(tradeId);
-                        selectedTrade.stateProperty().removeListener(tradeStateChangeListener);
+                        UserThread.execute(() -> selectedTrade.stateProperty().removeListener(tradeStateChangeListener));
                     }
                 };
                 selectedTrade.stateProperty().addListener(tradeStateChangeListener);
