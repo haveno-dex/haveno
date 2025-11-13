@@ -570,7 +570,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // arbitrator receives dispute opened message from opener, opener's peer receives from arbitrator
     protected void handle(DisputeOpenedMessage message) {
         Dispute msgDispute = message.getDispute();
-        log.info("Processing {} with trade {}, dispute {}", message.getClass().getSimpleName(), msgDispute.getTradeId(), msgDispute.getId());
+        log.info("Processing DisputeOpenedMessage with trade {}, dispute {}", message.getClass().getSimpleName(), msgDispute.getTradeId(), msgDispute.getId());
 
         // get trade
         Trade trade = tradeManager.getTrade(msgDispute.getTradeId());
