@@ -286,7 +286,15 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     }
 
     public BooleanProperty getIsInitializedProperty() {
-        return isInitializedProperty;
+        synchronized (isInitializedProperty) {
+            return isInitializedProperty;
+        }
+    }
+
+    public void addInitializedListener(javafx.beans.value.ChangeListener<? super Boolean> listener) {
+        synchronized (isInitializedProperty) {
+            isInitializedProperty.addListener(listener);
+        }
     }
 
     public void sendEncryptedMailboxMessage(NodeAddress peer,
