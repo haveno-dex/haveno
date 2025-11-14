@@ -284,28 +284,36 @@ public final class TradePeer implements PersistablePayload {
         return paymentSentMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
     }
 
-    public boolean isPaymentReceivedMessageReceived() {
-        return isPaymentReceivedMessageAckedOrStored() || isPaymentReceivedMessageNacked();
+    public boolean isPaymentSentMessageStored() {
+        return paymentSentMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
     }
 
-    public boolean isPaymentReceivedMessageAckedOrStored() {
-        return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || paymentReceivedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+    public boolean isPaymentReceivedMessageAcked() {
+        return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
     }
 
     public boolean isPaymentReceivedMessageNacked() {
         return paymentReceivedMessageStateProperty.get() == MessageState.NACKED;
     }
 
+    public boolean isPaymentReceivedMessageStored() {
+        return paymentReceivedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+    }
+
+    public boolean isPaymentReceivedMessageAckedOrNacked() {
+        return isPaymentReceivedMessageAcked() || isPaymentReceivedMessageNacked();
+    }
+
     public boolean isPaymentReceivedMessageArrived() {
         return paymentReceivedMessageStateProperty.get() == MessageState.ARRIVED;
     }
 
-    public boolean isDisputeOpenedMessageReceived() {
-        return disputeOpenedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || disputeOpenedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX || disputeOpenedMessageStateProperty.get() == MessageState.NACKED;
+    public boolean isDisputeOpenedMessageAckedOrNacked() {
+        return disputeOpenedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || disputeOpenedMessageStateProperty.get() == MessageState.NACKED;
     }
 
-    public boolean isDisputeOpenedMessageAckedOrStored() {
-        return disputeOpenedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || disputeOpenedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+    public boolean isDisputeOpenedMessageStored() {
+        return disputeOpenedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
     }
 
     @Override

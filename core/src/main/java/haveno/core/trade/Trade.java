@@ -1997,14 +1997,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // TODO: clear other process data
-        if (processModel.isPaymentReceivedMessagesAckedOrStored()) setPayoutTxHex(null);
+        if (processModel.isPaymentReceivedMessagesAckedOrNacked()) setPayoutTxHex(null);
         for (TradePeer peer : getAllPeers()) {
             peer.setUpdatedMultisigHex(null);
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
             peer.setDepositTxHex(null);
             peer.setDepositTxKey(null);
-            if (peer.isPaymentReceivedMessageAckedOrStored()) {
+            if (peer.isPaymentReceivedMessageAckedOrNacked()) {
                 peer.setUnsignedPayoutTxHex(null);
                 peer.setPaymentReceivedMessage(null);
             }

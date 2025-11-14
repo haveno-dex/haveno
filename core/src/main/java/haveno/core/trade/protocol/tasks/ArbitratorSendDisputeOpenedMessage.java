@@ -30,6 +30,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.trade.messages.TradeMailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import javafx.beans.value.ChangeListener;
 import lombok.EqualsAndHashCode;
@@ -50,7 +51,7 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
     private ChangeListener<MessageState> listener;
     private Timer timer;
     private static final int MAX_RESEND_ATTEMPTS = 20;
-    private int delayInMin = 10;
+    private long delayInMin = 15;
     private int resendCounter = 0;
     private DisputeOpenedMessage message = null;
 
@@ -64,7 +65,7 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
             runInterceptHook();
 
             // reset nack state
-            if (getReceiver().isDisputeOpenedMessageReceived()) {
+            if (getReceiver().isDisputeOpenedMessageAckedOrNacked()) {
                 getReceiver().setDisputeOpenedMessageState(MessageState.UNDEFINED);
             }
 
@@ -135,48 +136,49 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
 
     private void tryToSendAgainLater() {
 
-        // skip if already acked
+        // skip if stopped
         if (stopSending()) return;
 
+        // stop after max attempts
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
             log.warn("We never received an ACK message when sending the DisputeOpenedMessage to the peer. We stop trying to send the message.");
             return;
         }
 
+        // reset timer
         if (timer != null) {
             timer.stop();
         }
 
+        // increase minimum delay if message is stored to mailbox
+        if (getReceiver().isDisputeOpenedMessageStored()) {
+            delayInMin = Math.max(delayInMin, SendMailboxMessageTask.RESEND_STORED_MESSAGE_INITIAL_DELAY_MINS);
+        }
+
+        // send again after delay
+        log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
+        if (timer != null) {
+            timer.stop();
+        }
         timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
 
+        // register listeners once
         if (resendCounter == 0) {
             listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
             getReceiver().getDisputeOpenedMessageStateProperty().addListener(listener);
             onMessageStateChange(getReceiver().getDisputeOpenedMessageStateProperty().get());
         }
 
-        // first re-send is after 2 minutes, then increase the delay exponentially
-        if (resendCounter == 0) {
-            int shortDelay = 2;
-            log.info("We will send the DisputeOpenedMessage again to the peer after a delay of {} min.", shortDelay);
-            timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
-        } else {
-            log.info("We will send the DisputeOpenedMessage again to the peer after a delay of {} min.", delayInMin);
-            timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-            delayInMin = (int) ((double) delayInMin * 1.5);
-        }
+        // increase delay up to message TTL
+        delayInMin = Math.min(TradeMailboxMessage.TTL, delayInMin * 2);
         resendCounter++;
     }
 
     private void onMessageStateChange(MessageState newValue) {
-        if (isMessageReceived()) {
+        if (stopSending()) {
             cleanup();
         }
-    }
-
-    protected boolean isMessageReceived() {
-        return getReceiver().isDisputeOpenedMessageReceived();
     }
 
     protected boolean stopSending() {
@@ -186,5 +188,9 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
         if (!((ArbitratorTrade) trade).resendDisputeOpenedMessageWithinDuration()) return true; // stop if payout is published and we are not in the resend period
         if (message != null && !message.equals(getReceiver().getDisputeOpenedMessage())) return true; // stop if message state is outdated
         return false;
+    }
+
+    protected boolean isMessageReceived() {
+        return getReceiver().isDisputeOpenedMessageAckedOrNacked();
     }
 }
