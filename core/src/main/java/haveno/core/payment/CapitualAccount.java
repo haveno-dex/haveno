@@ -38,6 +38,12 @@ public final class CapitualAccount extends PaymentAccount {
             new TraditionalCurrency("USD")
     );
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public CapitualAccount() {
         super(PaymentMethod.CAPITUAL);
     }
@@ -56,7 +62,7 @@ public final class CapitualAccount extends PaymentAccount {
     @NotNull
     @Override
     public List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountNr(String accountNr) {
