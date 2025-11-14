@@ -44,6 +44,7 @@ import haveno.desktop.Navigation;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
@@ -97,9 +98,21 @@ public class FiatOfferBookViewModel extends OfferBookViewModel {
                         ObservableList<TradeCurrency> allCurrencies) {
         // Used for ignoring filter (show all)
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
-        tradeCurrencies.addAll(preferences.getTraditionalCurrenciesAsObservable().stream()
+
+        // get and sort currencies
+        List<TraditionalCurrency> traditionalCurrencies = preferences.getTraditionalCurrenciesAsObservable().stream()
             .filter(withFiatCurrency())
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList());
+        if (OfferBookViewModel.SORT_CURRENCIES_BY_OFFER_COUNT) {
+            Map<String, Integer> offerCounts = getOfferCounts();
+            traditionalCurrencies.sort((o1, o2) -> {
+                Integer count1 = offerCounts.getOrDefault(o1.getCode(), 0);
+                Integer count2 = offerCounts.getOrDefault(o2.getCode(), 0);
+                return Integer.compare(count2, count1);
+            });
+        }
+
+        tradeCurrencies.addAll(traditionalCurrencies);
         tradeCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
 
         allCurrencies.add(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));

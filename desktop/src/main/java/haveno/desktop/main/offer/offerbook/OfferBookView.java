@@ -333,7 +333,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     @Override
     protected void activate() {
 
-        Map<String, Integer> offerCounts = OfferViewUtil.isShownAsBuyOffer(model.getDirection(), model.getSelectedTradeCurrency()) ? model.getSellOfferCounts() : model.getBuyOfferCounts();
+        Map<String, Integer> offerCounts = model.getOfferCounts();
         currencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory(Res.get("shared.oneOffer"),
                 Res.get("shared.multipleOffers"),
                 offerCounts));

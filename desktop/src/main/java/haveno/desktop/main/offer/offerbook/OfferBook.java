@@ -228,7 +228,7 @@ public class OfferBook {
         return sellOfferCountMap;
     }
 
-    private void fillOfferCountMaps() {
+    public void fillOfferCountMaps() {
         buyOfferCountMap.clear();
         sellOfferCountMap.clear();
         final String[] ccyCode = new String[1];
