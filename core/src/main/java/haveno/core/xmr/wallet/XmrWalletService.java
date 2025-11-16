@@ -2042,8 +2042,11 @@ public class XmrWalletService extends XmrWalletBase {
             if (wallet == null || isShutDownStarted) return;
             if (HavenoUtils.isUnresponsive(e)) forceRestartMainWallet();
             else if (isWalletConnectedToDaemon()) {
-                log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection());
-                //e.printStackTrace();
+                if (isExpectedWalletError(e)) {
+                    log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection());
+                } else {
+                    log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection(), e); // include stack trace for unexpected errors
+                }
             }
         } finally {
             if (pollInProgressSet) {
