@@ -3317,10 +3317,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             } else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
-                    if (e instanceof NullPointerException) {
-                        log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection(), e);
-                    } else {
+                    if (isExpectedWalletError(e)) {
                         log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
+                    } else {
+                        log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection(), e); // include stack trace for unexpected errors
                     }
                 }
             }
