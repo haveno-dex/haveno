@@ -36,6 +36,7 @@ public abstract class XmrWalletBase {
     // constants
     private static final int SYNC_TIMEOUT_SECONDS = 180;
     private static final String SYNC_TIMEOUT_MSG = "Sync timeout called";
+    private static final String RECEIVED_ERROR_RESPONSE_MSG = "Received error response from RPC request";
     private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
     private Object saveIntervalLock = new Object();
     protected long lastSaveTimeMs = 0;
@@ -96,7 +97,7 @@ public abstract class XmrWalletBase {
                     future.cancel(true);
                     throw new RuntimeException(SYNC_TIMEOUT_MSG, e);
                 } catch (ExecutionException e) {
-                    throw new RuntimeException("Sync failed", e.getCause());
+                    throw new RuntimeException("Sync failed", e);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt(); // restore interrupt status
                     throw new RuntimeException("Sync was interrupted", e);
@@ -280,5 +281,9 @@ public abstract class XmrWalletBase {
 
         // update state
         wasWalletSynced = true;
+    }
+
+    protected boolean isExpectedWalletError(Exception e) {
+        return e.getMessage() != null && e.getMessage().contains(RECEIVED_ERROR_RESPONSE_MSG); // TODO: why does this error happen "normally"?
     }
 }
