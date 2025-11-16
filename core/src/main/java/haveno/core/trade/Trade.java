@@ -147,7 +147,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     @Getter
     public final Object lock = new Object();
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
-    private static final long SHUTDOWN_TIMEOUT_MS = 60000;
+    private static final long SHUTDOWN_TIMEOUT_MS = Config.baseCurrencyNetwork().isTestnet() ? 20000 : 60000;
     private static final long SYNC_EVERY_NUM_BLOCKS = 360; // ~1/2 day
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
