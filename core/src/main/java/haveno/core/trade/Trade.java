@@ -3492,14 +3492,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // revert state
                 setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
                 String errorMsg = "The payout transaction is not seen for trade " + getShortId() + ". This can happen after a blockchain reorganization..\n\nIf the payout does not confirm automatically, you can contact support or mark the trade as failed.";
-                if (isSeller() && getState().ordinal() >= State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG.ordinal()) {
-                    log.warn("Reverting state of {} {} from {} to {} because payout is unseen. Possible reorg?", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-                    setState(State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
-                    onPayoutError(false, true, null);
-                    setErrorMessage(errorMsg);
-                } else if (getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
+                if (getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
                     log.warn("Reverting state of {} {} from {} to {} because payout is unseen. Possible reorg?", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
                     setState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
+                    if (isSeller()) onPayoutError(false, true, null);
                     setErrorMessage(errorMsg);
                 }
 
