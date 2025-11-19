@@ -3575,7 +3575,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             paymentReceivedNackSender.setPaymentReceivedMessage(null);
             paymentReceivedNackSender.setPaymentReceivedMessageState(MessageState.NACKED);
         }
-        if (!isPayoutPublished()) {
+        if (!isPayoutFinalized()) { // payout tx may be stale and show as published after reorg, so clear local info for reprocessing until finalized
+            log.warn("Resetting missing or failed payout tx after payout error for {} {}", getClass().getSimpleName(), getId());
             getSelf().setUnsignedPayoutTxHex(null);
             setPayoutTxHex(null);
             setPayoutTxId(null);
