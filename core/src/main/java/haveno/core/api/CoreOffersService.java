@@ -72,7 +72,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
-import static java.util.Comparator.comparing;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -87,9 +86,21 @@ public class CoreOffersService {
 
     private static final long WAIT_FOR_EDIT_REMOVAL_MS = 5000;
 
-    private final Supplier<Comparator<Offer>> priceComparator = () -> comparing(Offer::getPrice);
-    private final Supplier<Comparator<OpenOffer>> openOfferPriceComparator = () -> comparing(openOffer -> openOffer.getOffer().getPrice());
-    private final Supplier<Comparator<Offer>> reversePriceComparator = () -> comparing(Offer::getPrice).reversed();
+    private final Supplier<Comparator<Offer>> priceComparator =
+        () -> Comparator.comparing(
+                Offer::getPrice,
+                Comparator.nullsLast(Comparator.naturalOrder())
+        );
+    private final Supplier<Comparator<OpenOffer>> openOfferPriceComparator =
+        () -> Comparator.comparing(
+                openOffer -> openOffer.getOffer().getPrice(),
+                Comparator.nullsLast(Comparator.naturalOrder())
+        );
+    private final Supplier<Comparator<Offer>> reversePriceComparator =
+        () -> Comparator.comparing(
+                Offer::getPrice,
+                Comparator.nullsLast(Comparator.naturalOrder())
+        ).reversed();
 
     private final CoreContext coreContext;
     private final KeyRing keyRing;
