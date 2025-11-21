@@ -98,14 +98,22 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
 
     @Override
     public void handleInitTradeRequest(InitTradeRequest message,
-                                       NodeAddress peer) {
-        log.info(TradeProtocol.LOG_HIGHLIGHT + "handleInitTradeRequest() for {} {} from {}", trade.getClass().getSimpleName(), trade.getShortId(), peer);
+                                       NodeAddress sender) {
+        log.info(TradeProtocol.LOG_HIGHLIGHT + "handleInitTradeRequest() for {} {} from {}", trade.getClass().getSimpleName(), trade.getShortId(), sender);
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
+
+                // ignore if assigned a different arbitrator
+                NodeAddress nodeAddress = trade.getArbitrator().getNodeAddress();
+                if (nodeAddress != null && !nodeAddress.equals(sender)) {
+                    log.warn("Ignoring InitTradeRequest because sender is not the arbitrator for the trade, tradeId={}, sender={}", message.getOfferId(), sender);
+                    return;
+                }
+
                 latchTrade();
                 expect(phase(Trade.Phase.INIT)
                         .with(message)
-                        .from(peer))
+                        .from(sender))
                         .setup(tasks(
                                 ApplyFilter.class,
                                 ProcessInitTradeRequest.class,
@@ -113,10 +121,10 @@ public class BuyerAsTakerProtocol extends BuyerProtocol implements TakerProtocol
                         .using(new TradeTaskRunner(trade,
                                 () -> {
                                     startTimeout();
-                                    handleTaskRunnerSuccess(peer, message);
+                                    handleTaskRunnerSuccess(sender, message);
                                 },
                                 errorMessage -> {
-                                    handleTaskRunnerFault(peer, message, errorMessage);
+                                    handleTaskRunnerFault(sender, message, errorMessage);
                                 }))
                         .withTimeout(TRADE_STEP_TIMEOUT_SECONDS))
                         .executeTasks(true);
