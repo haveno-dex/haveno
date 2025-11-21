@@ -122,7 +122,7 @@ public class SellerProtocol extends DisputeProtocol {
         log.info(TradeProtocol.LOG_HIGHLIGHT + "SellerProtocol.onPaymentReceived() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
 
         // advance trade state
-        if (trade.isPaymentSent() || trade.isPaymentReceived()) {
+        if (trade.getState() == Trade.State.BUYER_SENT_PAYMENT_SENT_MSG || trade.isPaymentReceived()) {
             trade.setStateIfValidTransitionTo(Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
         } else {
             errorMessageHandler.handleErrorMessage("Cannot confirm payment received for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " in state " + trade.getState());
