@@ -249,22 +249,24 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onInitialized() {
 
-        // listen for direct messages unless completed
-        if (!trade.isFinished()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
-
+        // listen for direct messages unless finished (assumes this is called before mailbox message service is intialized)
+        MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
+        if (!trade.isFinished()) {
+            processModel.getP2PService().addDecryptedDirectMessageListener(this);
+            mailboxMessageService.addDecryptedMailboxListener(this);
+        }
+        
         // initialize trade
         synchronized (trade.getLock()) {
             trade.initialize(processModel.getProvider());
 
-            // wait for mailbox messages to be processed
-            MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
-            if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
-            handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
-            mailboxMessageService.getIsInitializedProperty().addListener((obs, oldBootstrapped, newBootstrapped) -> {
-                if (!newBootstrapped || oldBootstrapped == newBootstrapped) return;
-
-                // initialize trade after mailbox messages processed
-                onInitializeAfterMailboxMessages();
+            // initialize trade after mailbox messages processed
+            UserThread.execute(() -> { // subscribe on user thread to avoid concurrent modification
+                EasyBind.subscribe(mailboxMessageService.getIsInitializedProperty(), changed -> {
+                    if (Boolean.TRUE.equals(changed)) {
+                        onInitializeAfterMailboxMessages();
+                    }
+                });
             });
         }
 
