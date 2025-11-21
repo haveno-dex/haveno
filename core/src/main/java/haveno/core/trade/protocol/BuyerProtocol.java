@@ -127,7 +127,7 @@ public class BuyerProtocol extends DisputeProtocol {
 
         // advance trade state
         if (trade.isDepositsUnlocked() || trade.isDepositsFinalized() || trade.isPaymentSent()) {
-            trade.advanceState(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT);
+            trade.setStateIfValidTransitionTo(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT);
         } else {
             errorMessageHandler.handleErrorMessage("Cannot confirm payment sent for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " in state " + trade.getState());
             return;
