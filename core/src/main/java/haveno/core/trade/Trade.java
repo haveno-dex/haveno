@@ -2278,12 +2278,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     // Setters
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void setStateIfValidTransitionTo(State newState) {
-        if (state.isValidTransitionTo(newState)) {
-            setState(newState);
-        }
-    }
-
     public void addInitProgressStep() {
         startProtocolTimeout();
         initProgress = Math.min(1.0, (double) ++initStep / TOTAL_INIT_STEPS);
@@ -2300,6 +2294,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         TradeProtocol protocol = getProtocol();
         if (protocol == null) return;
         protocol.stopTimeout();
+    }
+
+    public void setStateIfValidTransitionTo(State newState) {
+        if (state.isValidTransitionTo(newState)) {
+            setState(newState);
+        }
     }
 
     public void setState(State state) {
@@ -2755,10 +2755,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    public boolean isPaymentSent() {
-        return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal() && getState() != State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG;
-    }
-
     public boolean hasPaymentSentMessage() {
         return (isBuyer() ? getSeller() : getBuyer()).getPaymentSentMessage() != null; // buyer stores message to seller and arbitrator, peers store message from buyer
     }
@@ -2779,6 +2775,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     public boolean isPaymentMarkedSent() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal();
+    }
+
+    public boolean isPaymentSent() {
+        return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal() && getState() != State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG;
     }
 
     public boolean isPaymentMarkedReceived() {
@@ -3815,7 +3815,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void setStateDepositsFinalized() {
-        if (!isPaymentSent() && !isDepositsFinalized()) advanceState(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN); // do not revert state if payment already sent
+        if (!isPaymentSent() && !isDepositsFinalized()) setStateIfValidTransitionTo(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN); // do not revert state if payment already sent
         try {
             maybeUpdateTradePeriod();
         } catch (Exception e) {
