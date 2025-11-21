@@ -280,8 +280,10 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
             // Only now we start listening and processing. The p2PDataStorage is our cache for data we have received
             // after the hidden service was ready.
             addHashMapChangedListener();
-            onAdded(p2PDataStorage.getMap().values());
+            Collection<ProtectedStorageEntry> entries = p2PDataStorage.getMap().values();
+            onAdded(entries);
             maybeRepublishMailBoxMessages();
+            if (entries.isEmpty()) UserThread.execute(() -> isInitializedProperty.set(true));
         }
     }
 
@@ -473,9 +475,7 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
             public void onSuccess(Set<MailboxItem> decryptedMailboxMessageWithEntries) {
                 ThreadUtils.execute(() -> {
                     handleMailboxItems(decryptedMailboxMessageWithEntries);
-                    synchronized (isInitializedProperty) {
-                        isInitializedProperty.set(true);
-                    }
+                    UserThread.execute(() -> isInitializedProperty.set(true));
                 }, THREAD_ID);
             }
 
