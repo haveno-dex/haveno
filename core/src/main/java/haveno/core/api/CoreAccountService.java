@@ -189,7 +189,7 @@ public class CoreAccountService {
                 for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountDeleted(onShutdown);
             }
             File dataDir = new File(config.appDataDir.getPath()); // TODO (woodser): deleting directory after gracefulShutdown() so services don't throw when they try to persist (e.g. XmrTxProofService), but gracefulShutdown() should honor read-only shutdown
-            FileUtil.deleteDirectory(dataDir, null, false);
+            FileUtil.deleteDirectory(dataDir, null, true);
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
