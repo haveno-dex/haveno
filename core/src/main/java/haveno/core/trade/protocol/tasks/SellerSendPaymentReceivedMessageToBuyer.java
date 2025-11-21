@@ -39,25 +39,29 @@ public class SellerSendPaymentReceivedMessageToBuyer extends SellerSendPaymentRe
 
     @Override
     protected void setStateSent() {
-        trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
+        if (trade.getState().equals(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG)) {
+            trade.setState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
+        } else {
+            trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG); // do not revert previous send progress
+        }
         super.setStateSent();
     }
 
     @Override
     protected void setStateFault() {
-        trade.advanceState(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
+        trade.setStateIfValidTransitionTo(Trade.State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG);
         super.setStateFault();
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.advanceState(Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
+        trade.setStateIfValidTransitionTo(Trade.State.SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG);
         super.setStateStoredInMailbox();
     }
 
     @Override
     protected void setStateArrived() {
-        trade.advanceState(Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
+        trade.setStateIfValidTransitionTo(Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG);
         super.setStateArrived();
     }
 

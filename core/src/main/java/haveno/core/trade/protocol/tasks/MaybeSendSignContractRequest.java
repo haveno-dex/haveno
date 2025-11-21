@@ -25,7 +25,6 @@ import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
-import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.model.XmrAddressEntry;
@@ -217,7 +216,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
     }
 
     private void completeAux() {
-        trade.setState(State.CONTRACT_SIGNATURE_REQUESTED);
+        trade.setState(Trade.State.CONTRACT_SIGNATURE_REQUESTED);
         trade.addInitProgressStep();
         processModel.getTradeManager().requestPersistence();
         complete();

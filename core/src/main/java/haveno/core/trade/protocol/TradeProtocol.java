@@ -620,7 +620,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     // the mailbox msg once wallet is ready and trade state set.
                     synchronized (trade.getLock()) {
                         if (!trade.isInitialized() || trade.isShutDownStarted()) return;
-                        if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
+                        if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) {
                             log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                             handleTaskRunnerSuccess(trade.getBuyer().getNodeAddress(), message);
                             return;
