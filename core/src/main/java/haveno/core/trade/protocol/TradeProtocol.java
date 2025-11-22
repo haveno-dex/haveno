@@ -776,9 +776,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                             trade.exportMultisigHex();
 
                                             // handle payout error
+                                            boolean isFirstNack = lastAckedPaymentReceivedMessage == null; // TODO: this is "poor man's" first nack because it's only in memory
                                             lastAckedPaymentReceivedMessage = message;
                                             trade.onPayoutError(false, false, null);
-                                            handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
+                                            handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex(), !isFirstNack); // send nack
                                         }
                                     })))
                             .executeTasks(true);
@@ -1208,21 +1209,29 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     void handleTaskRunnerFault(NodeAddress ackReceiver, @Nullable TradeMessage message, String source, String errorMessage, String updatedMultisigHex) {
+        handleTaskRunnerFault(ackReceiver, message, source, errorMessage, updatedMultisigHex, true);
+    }
+
+    void handleTaskRunnerFault(NodeAddress ackReceiver, @Nullable TradeMessage message, String source, String errorMessage, String updatedMultisigHex, boolean setTradeError) {
         log.error("Task runner failed with error {}. Triggered from {}. Monerod={}" , errorMessage, source, trade.getXmrWalletService().getXmrConnectionService().getConnection());
 
-        handleError(errorMessage);
+        handleError(errorMessage, setTradeError);
 
         if (message != null) {
             sendAckMessage(ackReceiver, message, false, errorMessage, updatedMultisigHex);
         }
     }
 
-    // these are not thread safe, so they must be used within a lock on the trade
+    // NOTE: these are not thread safe, so they must be used within a lock on the trade
 
     protected void handleError(String errorMessage) {
+        handleError(errorMessage, true);
+    }
+
+    protected void handleError(String errorMessage, boolean setTradeError) {
         stopTimeout();
         log.error(errorMessage);
-        trade.setErrorMessage(errorMessage);
+        if (setTradeError) trade.setErrorMessage(errorMessage);
         processModel.getTradeManager().requestPersistence();
         unlatchTrade();
         if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);
