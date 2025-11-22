@@ -29,7 +29,6 @@ import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
-import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.messages.SignContractResponse;
 import haveno.core.trade.protocol.TradePeer;
@@ -162,7 +161,7 @@ public class ProcessSignContractRequest extends TradeTask {
 
     private void completeAux() {
         trade.addInitProgressStep();
-        trade.setState(State.CONTRACT_SIGNED);
+        trade.setState(Trade.State.CONTRACT_SIGNED);
         processModel.getTradeManager().requestPersistence();
         complete();
     }
