@@ -71,7 +71,7 @@ public abstract class SellerTrade extends Trade {
     public boolean needsToResendPaymentReceivedMessages() {
         boolean hasNoPaymentReceivedMessages = getBuyer().getPaymentReceivedMessage() == null && getArbitrator().getPaymentReceivedMessage() == null;
         if (!walletExistsNoSync() && !hasNoPaymentReceivedMessages) return false; // cannot provide any updated state
-        return !isShutDownStarted() && getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !getProcessModel().isPaymentReceivedMessagesAckedOrNacked() && resendPaymentReceivedMessagesEnabled() && resendPaymentReceivedMessagesWithinDuration();
+        return !isShutDownStarted() && getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !getProcessModel().isPaymentReceivedMessagesAcked() && resendPaymentReceivedMessagesEnabled() && resendPaymentReceivedMessagesWithinDuration();
     }
 
     private boolean resendPaymentReceivedMessagesEnabled() {
