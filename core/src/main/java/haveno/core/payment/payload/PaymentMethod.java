@@ -99,9 +99,9 @@ import haveno.core.payment.WesternUnionAccount;
 import haveno.core.trade.HavenoUtils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -377,7 +377,35 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 AMAZON_GIFT_CARD_ID,
                 ACH_TRANSFER_ID,
                 INTERAC_E_TRANSFER_ID,
-                US_POSTAL_MONEY_ORDER_ID);
+                US_POSTAL_MONEY_ORDER_ID,
+                WESTERN_UNION_ID,
+                NATIONAL_BANK_ID,
+                SAME_BANK_ID,
+                SPECIFIC_BANKS_ID,
+                NEFT_ID,
+                RTGS_ID,
+                IMPS_ID,
+                UPI_ID,
+                PAYTM_ID,
+                DOMESTIC_WIRE_TRANSFER_ID,
+                JAPAN_BANK_ID,
+                PROMPT_PAY_ID,
+                VERSE_ID,
+                HAL_CASH_ID,
+                MONEY_BEAM_ID,
+                POPMONEY_ID,
+                CASH_DEPOSIT_ID,
+                PERFECT_MONEY_ID,
+                ADVANCED_CASH_ID,
+                PAYSERA_ID,
+                NEQUI_ID,
+                BIZUM_ID,
+                PIX_ID,
+                CAPITUAL_ID,
+                CELPAY_ID,
+                MONESE_ID,
+                SATISPAY_ID,
+                TIKKIE_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -538,7 +566,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     @Override
-    public int compareTo(@NotNull PaymentMethod other) {
+    public int compareTo(@NonNull PaymentMethod other) {
         return Res.get(id).compareTo(Res.get(other.id));
     }
 
