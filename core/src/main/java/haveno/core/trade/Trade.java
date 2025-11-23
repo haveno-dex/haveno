@@ -2779,12 +2779,23 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal() && getState() != State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG;
     }
 
+    public boolean isPaymentSentMessageProcessed() {
+        if (isPaymentReceived()) return true;
+        if (isBuyer()) return getState() == State.SELLER_RECEIVED_PAYMENT_SENT_MSG;
+        return getState() == Trade.State.BUYER_SENT_PAYMENT_SENT_MSG;
+    }
+
     public boolean isPaymentMarkedReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
     }
 
     public boolean isPaymentReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal() && getState() != State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG;
+    }
+
+    public boolean isPaymentReceivedMessageProcessed() {
+        if (isSeller()) return getState() == State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG;
+        return getState() == Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG;
     }
 
     public boolean isPayoutPublished() {

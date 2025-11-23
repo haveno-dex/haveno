@@ -620,7 +620,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     // the mailbox msg once wallet is ready and trade state set.
                     synchronized (trade.getLock()) {
                         if (!trade.isInitialized() || trade.isShutDownStarted()) return;
-                        if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) {
+                        if (trade.isPaymentSentMessageProcessed()) {
                             log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                             handleTaskRunnerSuccess(trade.getBuyer().getNodeAddress(), message);
                             return;
@@ -720,8 +720,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             log.warn("Skipping processing PaymentReceivedMessage because the trade is not initialized or it's shutting down for {} {}", trade.getClass().getSimpleName(), trade.getId());
                             return;
                         }
-                        if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && trade.isPayoutPublished()) {
-                            log.warn("Received another PaymentReceivedMessage after payout is published for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
+                        if (trade.isPaymentReceivedMessageProcessed() && trade.isPayoutPublished()) {
+                            log.warn("Received another PaymentReceivedMessage after processed and payout is published for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                             handleTaskRunnerSuccess(trade.getSeller().getNodeAddress(), message);
                             return;
                         }
