@@ -381,9 +381,9 @@ public class PriceFeedService {
         requestAllPricesError = null;
         requestPrices();
         UserThread.runAfter(() -> {
-            if (latch.getCount() > 0) requestAllPricesError = "Timeout fetching market prices within 20 seconds";
+            if (latch.getCount() > 0) requestAllPricesError = "Timeout fetching market prices within 30 seconds";
             UserThread.execute(() -> latch.countDown());
-        }, 20);
+        }, 30);
         try {
             latch.await();
         } catch (InterruptedException e) {
