@@ -73,7 +73,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             trade.requestPersistence();
 
             // ack and complete if already processed
-            if (trade.getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && trade.isPayoutPublished()) {
+            if (trade.isPaymentReceivedMessageProcessed() && trade.isPayoutPublished()) {
                 log.warn("Received another PaymentReceivedMessage which was already processed, ACKing");
                 complete();
                 return;
