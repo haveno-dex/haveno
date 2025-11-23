@@ -959,8 +959,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = onPaymentReceivedNack(true, peer, ackMessage);
-                        if (autoResent) return; // skip remaining processing if auto resent
+                        onPaymentReceivedNack(true, peer, ackMessage);
+                        return; // skip remaining processing
                     }
                 }
             }
@@ -978,8 +978,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = onPaymentReceivedNack(true, peer, ackMessage);
-                        if (autoResent) return; // skip remaining processing if auto resent
+                        onPaymentReceivedNack(true, peer, ackMessage);
+                        return; // skip remaining processing
                     }
                 }
             } else {
