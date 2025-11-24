@@ -3286,7 +3286,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     try {
                         rescanSpent(true);
                     } catch (Exception e) {
-                        ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection)); // do not block polling thread
+                        // TODO: rescan error is common, e.g. "no connection to daemon"
+                        //ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection)); // do not block polling thread
                     }
                 }
 
