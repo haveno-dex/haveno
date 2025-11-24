@@ -1252,8 +1252,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                             doImportMultisigHex();
                             break;
                         } catch (IllegalArgumentException | IllegalStateException e) {
+                            log.warn("Illegal error importing multisig hex for {} {} on attempt {}/{}: {}", getClass().getSimpleName(), getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             throw e;
                         } catch (Exception e) {
+                            log.warn("Error importing multisig hex for {} {} on attempt {}/{}: {}", getClass().getSimpleName(), getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             if (isShutDownStarted && wallet == null) {
                                 log.warn("Aborting import of multisig hex for {} {} because shut down is started and wallet is closed", getClass().getSimpleName(), getShortId());
                                 break;
