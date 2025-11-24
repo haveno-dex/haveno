@@ -18,6 +18,7 @@
 package haveno.core.api;
 
 import static com.google.common.base.Preconditions.checkState;
+import ch.qos.logback.classic.LoggerContext;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.config.Config;
@@ -39,6 +40,7 @@ import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
 
 /**
  * Manages the account state. A created account must have a password which encrypts
@@ -188,8 +190,18 @@ public class CoreAccountService {
             synchronized (listeners) {
                 for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountDeleted(onShutdown);
             }
-            File dataDir = new File(config.appDataDir.getPath()); // TODO (woodser): deleting directory after gracefulShutdown() so services don't throw when they try to persist (e.g. XmrTxProofService), but gracefulShutdown() should honor read-only shutdown
-            FileUtil.deleteDirectory(dataDir, null, false);
+
+            LoggerContext context = (LoggerContext)LoggerFactory.getILoggerFactory();
+            context.stop();
+
+            try {
+                File dataDir = new File(config.appDataDir.getPath()); // TODO (woodser): deleting directory after gracefulShutdown() so services don't throw when they try to persist (e.g. XmrTxProofService), but gracefulShutdown() should honor read-only shutdown
+                FileUtil.deleteDirectory(dataDir, null, false);
+            }
+            catch (Exception err) {
+                context.start();
+                throw err;
+            }
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
