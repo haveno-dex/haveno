@@ -176,8 +176,6 @@ public class KeyStorage {
                 keyStore.load(fileInputStream, passwordChars);
             }
 
-            System.gc();
-
             Key key = keyStore.getKey(keyEntry.getAlias(), passwordChars);
             return (SecretKey) key;
         } catch (UnrecoverableKeyException e) { // null password when password is required
@@ -268,13 +266,13 @@ public class KeyStorage {
                 keyStore.load(null, null);
             }
 
-            System.gc();
-
             // store in the keystore
             keyStore.setKeyEntry(alias, key, passwordChars, null);
 
-            // save the keystore
-            keyStore.store(new FileOutputStream(path), passwordChars);
+            try (FileOutputStream fileOutputStream = new FileOutputStream(path)) {
+                // save the keystore
+                keyStore.store(fileOutputStream, passwordChars);
+            }
         } catch (Exception e) {
             throw new RuntimeException("Could not save key " + alias, e);
         }
