@@ -171,7 +171,11 @@ public class KeyStorage {
         char[] passwordChars = password == null ? new char[0] : password.toCharArray();
         try {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(new FileInputStream(storageDir + "/" + keyEntry.getFileName()), passwordChars);
+
+            try (FileInputStream fileInputStream = new FileInputStream(storageDir + "/" + keyEntry.getFileName())) {
+                keyStore.load(fileInputStream, passwordChars);
+            }
+
             Key key = keyStore.getKey(keyEntry.getAlias(), passwordChars);
             return (SecretKey) key;
         } catch (UnrecoverableKeyException e) { // null password when password is required
@@ -255,17 +259,20 @@ public class KeyStorage {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
 
             // load from existing file or initialize new
-            try {
-                keyStore.load(new FileInputStream(path), oldPasswordChars);
-            } catch (Exception e) {
+            try (FileInputStream fileInputStream = new FileInputStream(path)) {
+                keyStore.load(fileInputStream, oldPasswordChars);
+            }
+            catch (Exception e) {
                 keyStore.load(null, null);
             }
 
             // store in the keystore
             keyStore.setKeyEntry(alias, key, passwordChars, null);
 
-            // save the keystore
-            keyStore.store(new FileOutputStream(path), passwordChars);
+            try (FileOutputStream fileOutputStream = new FileOutputStream(path)) {
+                // save the keystore
+                keyStore.store(fileOutputStream, passwordChars);
+            }
         } catch (Exception e) {
             throw new RuntimeException("Could not save key " + alias, e);
         }

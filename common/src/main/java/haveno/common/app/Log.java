@@ -23,6 +23,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.FileAppender;
 import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
@@ -107,5 +108,21 @@ public class Log {
 
     public static void setCustomLogLevel(String pattern, Level logLevel) {
         ((Logger) LoggerFactory.getLogger(pattern)).setLevel(logLevel);
+    }
+
+    public static void stop() {
+        var context = logbackLogger.getLoggerContext();
+
+        for (Logger logger : context.getLoggerList()) {
+
+            var iteratorForAppenders = logger.iteratorForAppenders();
+            while (iteratorForAppenders.hasNext()) {
+                var appender = iteratorForAppenders.next();
+                if (appender instanceof FileAppender) {
+                    appender.stop();
+                    System.out.println("Released: " + ((FileAppender<?>) appender).getFile());
+                }
+            }
+        }
     }
 }

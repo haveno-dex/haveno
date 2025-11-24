@@ -18,8 +18,10 @@
 package haveno.core.api;
 
 import static com.google.common.base.Preconditions.checkState;
+import ch.qos.logback.classic.Level;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import haveno.common.app.Log;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
@@ -32,6 +34,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -145,6 +148,8 @@ public class CoreAccountService {
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
         if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
 
+        var accountWasOpen = isAccountOpen();
+
         // flush all known persistence objects to disk
         PersistenceManager.flushAllDataToDiskAtBackup(() -> {
             try {
@@ -159,6 +164,9 @@ public class CoreAccountService {
                         new File(XmrLocalNode.MONEROD_PATH)
                 );
 
+                if (accountWasOpen)
+                    closeAccount();
+
                 new Thread(() -> {
                     try {
                         ZipUtils.zipDirToStream(dataDir, out, bufferSize, excludedFiles);
@@ -169,6 +177,13 @@ public class CoreAccountService {
                 consume.accept(in);
             } catch (java.io.IOException err) {
                 error.accept(err);
+            }
+
+            try {
+                if (accountWasOpen)
+                    openAccount(password);
+            } catch (Exception ex){
+                throw new RuntimeException(ex);
             }
         });
     }
@@ -188,8 +203,17 @@ public class CoreAccountService {
             synchronized (listeners) {
                 for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountDeleted(onShutdown);
             }
-            File dataDir = new File(config.appDataDir.getPath()); // TODO (woodser): deleting directory after gracefulShutdown() so services don't throw when they try to persist (e.g. XmrTxProofService), but gracefulShutdown() should honor read-only shutdown
-            FileUtil.deleteDirectory(dataDir, null, false);
+
+            Log.stop();
+
+            try {
+                File dataDir = new File(config.appDataDir.getPath()); // TODO (woodser): deleting directory after gracefulShutdown() so services don't throw when they try to persist (e.g. XmrTxProofService), but gracefulShutdown() should honor read-only shutdown
+                FileUtil.deleteDirectory(dataDir, null, false);
+            }
+            finally {
+                Log.setup(Paths.get(config.appDataDir.getPath(), "haveno").toString());
+                Log.setLevel(Level.toLevel(config.logLevel));
+            }
         } catch (Exception err) {
             throw new RuntimeException(err);
         }
