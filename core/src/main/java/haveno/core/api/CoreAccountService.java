@@ -20,6 +20,7 @@ package haveno.core.api;
 import static com.google.common.base.Preconditions.checkState;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import haveno.common.app.Log;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
@@ -145,6 +146,11 @@ public class CoreAccountService {
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
         if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
 
+        var accountWasOpen = isAccountOpen();
+        // Needed to unlock haveno_XMR.keys
+        if (accountWasOpen)
+            closeAccount();
+
         // flush all known persistence objects to disk
         PersistenceManager.flushAllDataToDiskAtBackup(() -> {
             try {
@@ -152,7 +158,7 @@ public class CoreAccountService {
                 PipedInputStream in = new PipedInputStream(bufferSize); // pipe the serialized account object to stream which will be read by the consumer
                 PipedOutputStream out = new PipedOutputStream(in);
                 log.info("Zipping directory " + dataDir);
-                
+
                 // exclude monero binaries from backup so they're reinstalled with permissions
                 List<File> excludedFiles = Arrays.asList(
                         new File(XmrWalletService.MONERO_WALLET_RPC_PATH),
@@ -171,6 +177,14 @@ public class CoreAccountService {
                 error.accept(err);
             }
         });
+
+        if (accountWasOpen) {
+            try {
+                openAccount(password);
+            } catch (Exception ex){
+                throw new RuntimeException(ex);
+            }
+        }
     }
 
     public void restoreAccount(InputStream inputStream, int bufferSize, Runnable onShutdown) throws Exception {
@@ -188,6 +202,10 @@ public class CoreAccountService {
             synchronized (listeners) {
                 for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountDeleted(onShutdown);
             }
+
+            // Log files are locked on Windows so we need to release them. Logging resumes on automatic restart
+            Log.stopFileLogging();
+
             File dataDir = new File(config.appDataDir.getPath()); // TODO (woodser): deleting directory after gracefulShutdown() so services don't throw when they try to persist (e.g. XmrTxProofService), but gracefulShutdown() should honor read-only shutdown
             FileUtil.deleteDirectory(dataDir, null, false);
         } catch (Exception err) {
