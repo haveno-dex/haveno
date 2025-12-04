@@ -40,6 +40,12 @@ public final class AdvancedCashAccount extends PaymentAccount {
             new TraditionalCurrency("UAH"),
             new TraditionalCurrency("USD"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+	        PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public AdvancedCashAccount() {
         super(PaymentMethod.ADVANCED_CASH);
     }
@@ -58,7 +64,7 @@ public final class AdvancedCashAccount extends PaymentAccount {
     @NotNull
     @Override
     public List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountNr(String accountNr) {
