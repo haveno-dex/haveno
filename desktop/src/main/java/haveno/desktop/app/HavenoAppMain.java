@@ -23,6 +23,7 @@ import haveno.common.app.Version;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.core.app.AvoidStandbyModeService;
 import haveno.core.app.HavenoExecutable;
+import haveno.core.locale.Res;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
 import haveno.desktop.setup.DesktopPersistedDataHost;
@@ -212,7 +213,7 @@ public class HavenoAppMain extends HavenoExecutable {
             errorMessageField.setTextFill(Color.color(1, 0, 0));
 
             // Create the version field
-            Label versionField = new Label("v" + Version.VERSION);
+            Label versionField = new Label(Res.get("mainView.footer.version", Version.VERSION));
 
             // Set the dialog content
             VBox vbox = new VBox(10);

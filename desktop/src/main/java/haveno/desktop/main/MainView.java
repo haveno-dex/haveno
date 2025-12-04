@@ -671,7 +671,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         splashP2PNetworkBox.setPrefHeight(40);
         splashP2PNetworkBox.getChildren().addAll(splashP2PNetworkLabel, splashP2PNetworkBusyAnimation, splashP2PNetworkIcon, showTorNetworkSettingsButton);
 
-        Label versionLabel = new Label("v" + Version.VERSION);
+        Label versionLabel = new Label(Res.get("mainView.footer.version", Version.VERSION));
 
         vBox.getChildren().addAll(logo, blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox, versionLabel);
         return vBox;
