@@ -294,8 +294,6 @@ public class FluentProtocol {
                 return Result.VALID.info(info);
             } else {
                 String info = MessageFormat.format("We received a {0} but we are are not in the expected phase.\n" +
-                                "This can be an expected case if we get a repeated PaymentSentMessage " +
-                                "after we have already received one as the peer re-sends that message at each startup.\n" +
                                 "Expected phases={1},\nTrade phase={2},\nTrade state= {3},\ntradeId={4}",
                         trigger,
                         expectedPhases,

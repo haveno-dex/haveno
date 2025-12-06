@@ -44,7 +44,6 @@ public abstract class TradeTask extends Task<Trade> {
 
     @Override
     protected void failed() {
-        trade.setErrorMessage(errorMessage);
         processModel.getTradeManager().requestPersistence();
 
         super.failed();
@@ -53,7 +52,6 @@ public abstract class TradeTask extends Task<Trade> {
     @Override
     protected void failed(String message) {
         appendToErrorMessage(message);
-        trade.setErrorMessage(errorMessage);
         processModel.getTradeManager().requestPersistence();
 
         super.failed();
@@ -63,7 +61,6 @@ public abstract class TradeTask extends Task<Trade> {
     protected void failed(Throwable t) {
         log.error("Trade task failed, error={}\n", t.getMessage(), t);
         appendExceptionToErrorMessage(t);
-        trade.setErrorMessage(errorMessage);
         processModel.getTradeManager().requestPersistence();
 
         super.failed();

@@ -40,7 +40,6 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
-import haveno.core.trade.Trade.State;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
@@ -74,14 +73,14 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             trade.requestPersistence();
 
             // ack and complete if already processed
-            if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
+            if (trade.isPaymentReceivedMessageProcessed() && trade.isPayoutPublished()) {
                 log.warn("Received another PaymentReceivedMessage which was already processed, ACKing");
                 complete();
                 return;
             }
 
             // set state to confirmed payment receipt before processing
-            trade.advanceState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
+            trade.setStateIfValidTransitionTo(Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
 
             // cannot process until wallet sees deposits unlocked
             if (!trade.isDepositsUnlocked()) {
@@ -92,7 +91,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // set state
-            trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+            if (!trade.isPayoutPublished()) trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
             if (trade.isArbitrator() && trade.getBuyer().getPaymentSentMessage() == null) {
                 checkNotNull(message.getPaymentSentMessage(), "PaymentSentMessage is null for arbitrator");
@@ -111,7 +110,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // advance state, arbitrator auto completes when payout published
-            trade.advanceState(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
+            trade.setStateIfValidTransitionTo(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
 
             // buyer republishes signed witness for resilience
             SignedWitness signedWitness = message.getBuyerSignedWitness();
