@@ -55,7 +55,7 @@ public class CreateOfferDataModelTest {
         when(preferences.isUsePercentageBasedPrice()).thenReturn(true);
         when(preferences.getSecurityDepositAsPercent(null)).thenReturn(0.01);
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
-        when(tradeStats.getObservableTradeStatisticsSet()).thenReturn(FXCollections.observableSet());
+        when(tradeStats.getObservableTradeStatisticsList()).thenReturn(FXCollections.observableArrayList());
 
         model = new CreateOfferDataModel(createOfferService,
                 null,

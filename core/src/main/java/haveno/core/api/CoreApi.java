@@ -337,7 +337,7 @@ public class CoreApi {
     }
 
     public List<TradeStatistics3> getTradeStatistics() {
-        return new ArrayList<>(tradeStatisticsManager.getObservableTradeStatisticsSet());
+        return new ArrayList<>(tradeStatisticsManager.getObservableTradeStatisticsList());
     }
 
     public int getNumConfirmationsForMostRecentTransaction(String addressString) {
