@@ -76,8 +76,8 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.collections.SetChangeListener;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
@@ -94,7 +94,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     private final CoinFormatter btcFormatter;
     private final Navigation navigation;
     private final String offerId;
-    private final SetChangeListener<PaymentAccount> paymentAccountsChangeListener;
+    private final ListChangeListener<PaymentAccount> paymentAccountsChangeListener;
 
     protected OfferDirection direction;
     protected TradeCurrency tradeCurrency;

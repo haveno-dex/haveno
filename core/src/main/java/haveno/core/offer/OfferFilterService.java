@@ -32,7 +32,7 @@ import haveno.network.p2p.P2PService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import javafx.collections.SetChangeListener;
+import javafx.collections.ListChangeListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
@@ -62,7 +62,7 @@ public class OfferFilterService {
 
         if (user != null && user.getPaymentAccountsAsObservable() != null) {
             // If our accounts have changed we reset our myInsufficientTradeLimitCache as it depends on account data
-            user.getPaymentAccountsAsObservable().addListener((SetChangeListener<PaymentAccount>) c ->
+            user.getPaymentAccountsAsObservable().addListener((ListChangeListener<PaymentAccount>) c ->
                     myInsufficientTradeLimitCache.clear());
         }
     }

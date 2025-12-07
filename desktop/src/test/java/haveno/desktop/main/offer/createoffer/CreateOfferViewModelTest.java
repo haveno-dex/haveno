@@ -98,7 +98,7 @@ public class CreateOfferViewModelTest {
                         true));
         when(user.findFirstPaymentAccountWithCurrency(any())).thenReturn(paymentAccount);
         when(paymentAccount.getPaymentMethod()).thenReturn(PaymentMethod.ZELLE);
-        when(user.getPaymentAccountsAsObservable()).thenReturn(FXCollections.observableSet());
+        when(user.getPaymentAccountsAsObservable()).thenReturn(FXCollections.observableArrayList());
         when(securityDepositValidator.validate(any())).thenReturn(new InputValidator.ValidationResult(false));
         when(accountAgeWitnessService.getMyTradeLimit(any(), any(), any(), anyBoolean())).thenReturn(100000000L);
         when(preferences.getUserCountry()).thenReturn(new Country("ES", "Spain", null));
