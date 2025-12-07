@@ -99,7 +99,7 @@ public class OfferBookViewModelTest {
     private PriceUtil getPriceUtil() {
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
         TradeStatisticsManager tradeStatisticsManager = mock(TradeStatisticsManager.class);
-        when(tradeStatisticsManager.getObservableTradeStatisticsSet()).thenReturn(FXCollections.observableSet());
+        when(tradeStatisticsManager.getObservableTradeStatisticsList()).thenReturn(FXCollections.observableArrayList());
         return new PriceUtil(priceFeedService, tradeStatisticsManager, empty);
     }
 

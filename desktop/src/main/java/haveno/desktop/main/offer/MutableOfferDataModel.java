@@ -347,7 +347,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             // Get average historic prices over for the prior trade period equaling the lock time
             var blocksRange = Restrictions.getLockTime(paymentAccount.getPaymentMethod().isBlockchain());
             var startDate = new Date(System.currentTimeMillis() - blocksRange * 10L * 60000);
-            var sortedRangeData = tradeStatisticsManager.getObservableTradeStatisticsSet().stream()
+            var sortedRangeData = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
                     .filter(e -> e.getCurrency().equals(getTradeCurrency().getCode()))
                     .filter(e -> e.getDate().compareTo(startDate) >= 0)
                     .sorted(Comparator.comparing(TradeStatistics3::getDate))

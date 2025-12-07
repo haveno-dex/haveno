@@ -42,7 +42,7 @@ public class AveragePriceUtil {
                                                             int days) {
         double percentToTrim = Math.max(0, Math.min(49, preferences.getBsqAverageTrimThreshold() * 100));
         Date pastXDays = getPastDate(days);
-        List<TradeStatistics3> bsqAllTradePastXDays = tradeStatisticsManager.getObservableTradeStatisticsSet().stream()
+        List<TradeStatistics3> bsqAllTradePastXDays = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
                 .filter(e -> e.getCurrency().equals("BSQ"))
                 .filter(e -> e.getDate().after(pastXDays))
                 .collect(Collectors.toList());
@@ -50,7 +50,7 @@ public class AveragePriceUtil {
                 removeOutliers(bsqAllTradePastXDays, percentToTrim) :
                 bsqAllTradePastXDays;
 
-        List<TradeStatistics3> usdAllTradePastXDays = tradeStatisticsManager.getObservableTradeStatisticsSet().stream()
+        List<TradeStatistics3> usdAllTradePastXDays = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
                 .filter(e -> e.getCurrency().equals("USD"))
                 .filter(e -> e.getDate().after(pastXDays))
                 .collect(Collectors.toList());

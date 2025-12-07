@@ -41,8 +41,8 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.collections.SetChangeListener;
 import javafx.scene.chart.XYChart;
 import javafx.util.Pair;
 
@@ -79,7 +79,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
     private final PriceFeedService priceFeedService;
     private final Navigation navigation;
 
-    private final SetChangeListener<TradeStatistics3> setChangeListener;
+    private final ListChangeListener<TradeStatistics3> listChangeListener;
     final ObjectProperty<TradeCurrency> selectedTradeCurrencyProperty = new SimpleObjectProperty<>();
     final BooleanProperty showAllTradeCurrenciesProperty = new SimpleBooleanProperty(false);
     private final CurrencyList currencyListItems;
@@ -109,7 +109,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
         this.priceFeedService = priceFeedService;
         this.navigation = navigation;
 
-        setChangeListener = change -> {
+        listChangeListener = change -> {
             applyAsyncTradeStatisticsForCurrency(getCurrencyCode())
                     .whenComplete((result, throwable) -> {
                         if (deactivateCalled) {
@@ -141,7 +141,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
         long ts = System.currentTimeMillis();
         deactivateCalled = false;
 
-        tradeStatisticsManager.getObservableTradeStatisticsSet().addListener(setChangeListener);
+        tradeStatisticsManager.getObservableTradeStatisticsList().addListener(listChangeListener);
         if (!fillTradeCurrenciesOnActivateCalled) {
             fillTradeCurrencies();
             fillTradeCurrenciesOnActivateCalled = true;
@@ -179,7 +179,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
     @Override
     protected void deactivate() {
         deactivateCalled = true;
-        tradeStatisticsManager.getObservableTradeStatisticsSet().removeListener(setChangeListener);
+        tradeStatisticsManager.getObservableTradeStatisticsList().removeListener(listChangeListener);
 
         // We want to avoid to trigger listeners in the view so we delay a bit. Deactivate on model is called before
         // deactivate on view.
@@ -200,7 +200,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     private void applyAsyncUsdAveragePriceMapsPerTickUnit(CompletableFuture<Boolean> completeFuture) {
         long ts = System.currentTimeMillis();
-        ChartCalculations.getUsdAveragePriceMapsPerTickUnit(tradeStatisticsManager.getObservableTradeStatisticsSet())
+        ChartCalculations.getUsdAveragePriceMapsPerTickUnit(tradeStatisticsManager.getObservableTradeStatisticsList())
                 .whenComplete((usdAveragePriceMapsPerTickUnit, throwable) -> {
                     if (deactivateCalled) {
                         return;
@@ -227,7 +227,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
                                                                             @Nullable CompletableFuture<Boolean> completeFuture) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         long ts = System.currentTimeMillis();
-        ChartCalculations.getTradeStatisticsForCurrency(tradeStatisticsManager.getObservableTradeStatisticsSet(),
+        ChartCalculations.getTradeStatisticsForCurrency(tradeStatisticsManager.getObservableTradeStatisticsList(),
                 currencyCode,
                 showAllTradeCurrenciesProperty.get())
                 .whenComplete((list, throwable) -> {
@@ -359,7 +359,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     private void fillTradeCurrencies() {
         // Don't use a set as we need all entries
-        List<TradeCurrency> tradeCurrencyList = tradeStatisticsManager.getObservableTradeStatisticsSet().stream()
+        List<TradeCurrency> tradeCurrencyList = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
                 .flatMap(e -> CurrencyUtil.getTradeCurrency(e.getCurrency()).stream())
                 .collect(Collectors.toList());
         currencyListItems.updateWithCurrencies(tradeCurrencyList, showAllCurrencyListItem);

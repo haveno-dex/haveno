@@ -62,7 +62,7 @@ public class DisputeAgentSelection {
                                                                        DisputeAgentManager<T> disputeAgentManager,
                                                                        Set<NodeAddress> excludedDisputeAgents) {
         // We take last 100 entries from trade statistics
-        List<TradeStatistics3> list = new ArrayList<>(tradeStatisticsManager.getObservableTradeStatisticsSet());
+        List<TradeStatistics3> list = new ArrayList<>(tradeStatisticsManager.getObservableTradeStatisticsList());
         list.sort(Comparator.comparing(TradeStatistics3::getDateAsLong));
         Collections.reverse(list);
         if (!list.isEmpty()) {

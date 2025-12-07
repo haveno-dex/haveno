@@ -59,7 +59,7 @@ public class ChartCalculations {
     // Async
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    static CompletableFuture<Map<TradesChartsViewModel.TickUnit, Map<Long, Long>>> getUsdAveragePriceMapsPerTickUnit(Set<TradeStatistics3> tradeStatisticsSet) {
+    static CompletableFuture<Map<TradesChartsViewModel.TickUnit, Map<Long, Long>>> getUsdAveragePriceMapsPerTickUnit(List<TradeStatistics3> tradeStatisticsList) {
         return CompletableFuture.supplyAsync(() -> {
             Map<TradesChartsViewModel.TickUnit, Map<Long, Long>> usdAveragePriceMapsPerTickUnit = new HashMap<>();
             Map<TradesChartsViewModel.TickUnit, Map<Long, List<TradeStatistics3>>> dateMapsPerTickUnit = new HashMap<>();
@@ -67,7 +67,7 @@ public class ChartCalculations {
                 dateMapsPerTickUnit.put(tick, new HashMap<>());
             }
 
-            tradeStatisticsSet.stream()
+            tradeStatisticsList.stream()
                     .filter(e -> e.getCurrency().equals("USD"))
                     .forEach(tradeStatistics -> {
                         for (TradesChartsViewModel.TickUnit tick : TradesChartsViewModel.TickUnit.values()) {
@@ -80,18 +80,18 @@ public class ChartCalculations {
 
             dateMapsPerTickUnit.forEach((tick, map) -> {
                 HashMap<Long, Long> priceMap = new HashMap<>();
-                map.forEach((date, tradeStatisticsList) -> priceMap.put(date, getAverageTraditionalPrice(tradeStatisticsList)));
+                map.forEach((date, tradeStatistics) -> priceMap.put(date, getAverageTraditionalPrice(tradeStatistics)));
                 usdAveragePriceMapsPerTickUnit.put(tick, priceMap);
             });
             return usdAveragePriceMapsPerTickUnit;
         });
     }
 
-    static CompletableFuture<List<TradeStatistics3>> getTradeStatisticsForCurrency(Set<TradeStatistics3> tradeStatisticsSet,
+    static CompletableFuture<List<TradeStatistics3>> getTradeStatisticsForCurrency(List<TradeStatistics3> tradeStatisticsList,
                                                                                    String currencyCode,
                                                                                    boolean showAllTradeCurrencies) {
         return CompletableFuture.supplyAsync(() -> {
-            return tradeStatisticsSet.stream()
+            return tradeStatisticsList.stream()
                     .filter(e -> showAllTradeCurrencies || e.getCurrency().equals(currencyCode))
                     .collect(Collectors.toList());
         });
