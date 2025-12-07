@@ -791,8 +791,6 @@ configure(project(':statsnode')) {
 configure(project(':daemon')) {
     mainClassName = 'haveno.daemon.app.HavenoDaemonMain'
 
-    apply plugin: 'com.github.johnrengelman.shadow'
-
     dependencies {
         implementation project(':proto')
         implementation project(':common')
