@@ -32,6 +32,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+      - name: Free disk space on Ubuntu runners
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          echo "Initial free space:"
+          df -h /
+
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /opt/hostedtoolcache || true
+          sudo rm -rf /usr/lib/jvm || true
+          sudo rm -rf /usr/local/share/boost || true
+          sudo rm -rf /usr/local/share/powershell || true
+          sudo rm -rf /usr/local/.ghcup || true
+          sudo rm -rf /usr/local/share/swift || true
+          sudo docker system prune -af || true
+
+          echo "Free space after cleanup:"
+          df -h /
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
