@@ -44,8 +44,8 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableSet;
-import javafx.collections.SetChangeListener;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +61,7 @@ public class User implements PersistedDataHost {
     private final PersistenceManager<UserPayload> persistenceManager;
     private final KeyRing keyRing;
 
-    private ObservableSet<PaymentAccount> paymentAccountsAsObservable;
+    private ObservableList<PaymentAccount> paymentAccountsAsObservable;
     private ObjectProperty<PaymentAccount> currentPaymentAccountProperty;
 
     private UserPayload userPayload = new UserPayload();
@@ -98,7 +98,7 @@ public class User implements PersistedDataHost {
 
         checkNotNull(userPayload.getPaymentAccounts(), "userPayload.getPaymentAccounts() must not be null");
         checkNotNull(userPayload.getAcceptedLanguageLocaleCodes(), "userPayload.getAcceptedLanguageLocaleCodes() must not be null");
-        paymentAccountsAsObservable = FXCollections.observableSet(userPayload.getPaymentAccounts());
+        paymentAccountsAsObservable = FXCollections.observableArrayList(userPayload.getPaymentAccounts());
         currentPaymentAccountProperty = new SimpleObjectProperty<>(userPayload.getCurrentPaymentAccount());
         userPayload.setAccountId(String.valueOf(Math.abs(checkNotNull(keyRing).getPubKeyRing().hashCode())));
 
@@ -109,7 +109,7 @@ public class User implements PersistedDataHost {
         if (!userPayload.getAcceptedLanguageLocaleCodes().contains(english))
             userPayload.getAcceptedLanguageLocaleCodes().add(english);
 
-        paymentAccountsAsObservable.addListener((SetChangeListener<PaymentAccount>) change -> {
+        paymentAccountsAsObservable.addListener((ListChangeListener<PaymentAccount>) change -> {
             synchronized (paymentAccountsAsObservable) {
                 userPayload.setPaymentAccounts(new HashSet<>(paymentAccountsAsObservable));
                 requestPersistence();
@@ -403,7 +403,7 @@ public class User implements PersistedDataHost {
     }
 
     @Nullable
-    public ObservableSet<PaymentAccount> getPaymentAccountsAsObservable() {
+    public ObservableList<PaymentAccount> getPaymentAccountsAsObservable() {
         return paymentAccountsAsObservable;
     }
 

@@ -60,7 +60,7 @@ import java.util.List;
 import java.util.Optional;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
-import javafx.collections.SetChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -93,7 +93,7 @@ public class MobileNotificationsView extends ActivatableView<GridPane, Void> {
             priceCheckBoxListener, priceAlertHighFocusListener, priceAlertLowFocusListener, marketAlertTriggerFocusListener;
     private ChangeListener<String> tokenInputTextFieldListener, priceAlertHighListener, priceAlertLowListener, marketAlertTriggerListener;
     private ChangeListener<Number> priceFeedServiceListener;
-    private SetChangeListener<PaymentAccount> paymentAccountsChangeListener;
+    private ListChangeListener<PaymentAccount> paymentAccountsChangeListener;
 
     private int gridRow = 0;
     private int testMsgCounter = 0;
