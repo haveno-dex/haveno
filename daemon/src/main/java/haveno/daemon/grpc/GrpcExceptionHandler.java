@@ -24,7 +24,6 @@ import static io.grpc.Status.INVALID_ARGUMENT;
 import static io.grpc.Status.UNKNOWN;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
 
@@ -72,7 +71,7 @@ class GrpcExceptionHandler {
         // interface, an interface that is not allowed to throw exceptions.
         log.error(errorMessage);
         var grpcStatusRuntimeException = new StatusRuntimeException(
-                UNKNOWN.withDescription(cliStyleErrorMessage.apply(errorMessage)));
+                UNKNOWN.withDescription(errorMessage));
         responseObserver.onError(grpcStatusRuntimeException);
         throw grpcStatusRuntimeException;
     }
@@ -95,13 +94,6 @@ class GrpcExceptionHandler {
             return new StatusRuntimeException(mapGrpcErrorStatus(t, "unexpected error on server"));
         }
     }
-
-    private final Function<String, String> cliStyleErrorMessage = (e) -> {
-        String[] line = e.split("\\r?\\n");
-        int lastLine = line.length;
-        return line[lastLine - 1].toLowerCase();
-    };
-
     private Status mapGrpcErrorStatus(Throwable t, String description) {
         // We default to the UNKNOWN status, except were the mapping of a core api
         // exception to a gRPC Status is obvious.  If we ever use a gRPC reverse-proxy
