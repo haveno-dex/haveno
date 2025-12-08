@@ -325,6 +325,11 @@ public class CoreOffersService {
         final Offer offer = openOffer.getOffer();
         final OfferPayload offerPayload = openOffer.getOffer().getOfferPayload();
 
+        // cannot edit reserved offer
+        if (openOffer.isReserved()) {
+            throw new IllegalStateException("Cannot edit offer " + offer.getId() + " because it's reserved");
+        }
+
         // get currency code
         if (currencyCode.isEmpty()) currencyCode = offer.getCounterCurrencyCode();
         String upperCaseCurrencyCode = currencyCode.toUpperCase();
