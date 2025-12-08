@@ -29,7 +29,6 @@ import lombok.ToString;
 import javax.annotation.Nullable;
 import java.util.Optional;
 
-import static haveno.common.util.MathUtils.exactMultiply;
 import static haveno.core.util.PriceUtil.reformatMarketPrice;
 import static haveno.core.util.VolumeUtil.formatVolume;
 import static java.util.Objects.requireNonNull;
@@ -154,7 +153,6 @@ public class OfferInfo implements Payload {
         var preciseOfferPrice = reformatMarketPrice(
                 requireNonNull(offer.getPrice()).toPlainString(),
                 currencyCode);
-        var marketPriceMarginAsPctLiteral = exactMultiply(offer.getMarketPriceMarginPct(), 100);
         var roundedVolume = formatVolume(requireNonNull(offer.getVolume()));
         var roundedMinVolume = formatVolume(requireNonNull(offer.getMinVolume()));
         return new OfferInfoBuilder()
@@ -162,7 +160,7 @@ public class OfferInfo implements Payload {
                 .withDirection(offer.getDirection().name())
                 .withPrice(preciseOfferPrice)
                 .withUseMarketBasedPrice(offer.isUseMarketBasedPrice())
-                .withMarketPriceMarginPct(marketPriceMarginAsPctLiteral)
+                .withMarketPriceMarginPct(offer.getMarketPriceMarginPct())
                 .withAmount(offer.getAmount().longValueExact())
                 .withMinAmount(offer.getMinAmount().longValueExact())
                 .withMakerFeePct(offer.getMakerFeePct())

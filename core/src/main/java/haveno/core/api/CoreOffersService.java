@@ -39,7 +39,6 @@ import com.google.inject.Singleton;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
-import static haveno.common.util.MathUtils.exactMultiply;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.core.locale.CurrencyUtil;
@@ -190,7 +189,7 @@ public class CoreOffersService {
                              String directionAsString,
                              String priceAsString,
                              boolean useMarketBasedPrice,
-                             double marketPriceMargin,
+                             double marketPriceMarginPct,
                              long amountAsLong,
                              long minAmountAsLong,
                              double securityDepositPct,
@@ -215,7 +214,7 @@ public class CoreOffersService {
                     currencyCode,
                     priceAsString,
                     useMarketBasedPrice,
-                    marketPriceMargin,
+                    marketPriceMarginPct,
                     triggerPriceAsString,
                     paymentAccountId,
                     extraInfo,
@@ -238,7 +237,7 @@ public class CoreOffersService {
                 minAmount,
                 price,
                 useMarketBasedPrice,
-                exactMultiply(marketPriceMargin, 0.01),
+                marketPriceMarginPct,
                 securityDepositPct,
                 paymentAccount,
                 isPrivateOffer,
@@ -260,7 +259,7 @@ public class CoreOffersService {
                     String currencyCode,
                     String priceAsString,
                     boolean useMarketBasedPrice,
-                    double marketPriceMargin,
+                    double marketPriceMarginPct,
                     String triggerPriceAsString,
                     String paymentAccountId,
                     String extraInfo,
@@ -293,7 +292,7 @@ public class CoreOffersService {
                 upperCaseCurrencyCode,
                 price,
                 useMarketBasedPrice,
-                exactMultiply(marketPriceMargin, 0.01),
+                marketPriceMarginPct,
                 paymentAccount,
                 extraInfo);
         
@@ -356,7 +355,7 @@ public class CoreOffersService {
                         offer.getMinAmount(),
                         price,
                         useMarketBasedPrice,
-                        exactMultiply(marketPriceMarginPct, 0.01),
+                        marketPriceMarginPct,
                         offerPayload.getBuyerSecurityDepositPct(),
                         preselectedPaymentAccount,
                         offerPayload.isPrivateOffer(),
