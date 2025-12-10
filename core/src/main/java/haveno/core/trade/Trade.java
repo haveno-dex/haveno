@@ -511,7 +511,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private String payoutTxKey;
     private long payoutTxFee;
     private Long payoutHeight;
-    private IdlePayoutSyncer idlePayoutSyncer;
+    private IdleSyncer idleSyncer;
     @Getter
     private boolean isCompleted;
     @Getter
@@ -765,9 +765,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             });
         });
 
-        // listen to wallet events to sync when idling
-        idlePayoutSyncer = new IdlePayoutSyncer();
-        xmrWalletService.addWalletListener(idlePayoutSyncer);
+        // listen to wallet events to sync while idling
+        idleSyncer = new IdleSyncer();
+        xmrWalletService.addWalletListener(idleSyncer);
 
         // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed mismatch in v1.0.19, but can this check be removed?
         if (isBuyer()) {
@@ -1926,9 +1926,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private Long getDepositsNumConfirmations() {
-        Long depositsConfirmedHeight = getDepositsConfirmedHeight();
-        if (depositsConfirmedHeight == null) return null;
-        return walletHeight.get() - depositsConfirmedHeight + 1;
+        MoneroTxWallet makerDepositTx = getMakerDepositTx();
+        MoneroTxWallet takerDepositTx = getTakerDepositTx();
+        if (makerDepositTx == null || (takerDepositTx == null && !hasBuyerAsTakerWithoutDeposit())) return null;
+        if (Boolean.TRUE.equals(makerDepositTx.isFailed()) || (takerDepositTx != null && Boolean.TRUE.equals(takerDepositTx.isFailed()))) return null;
+        if (makerDepositTx.getHeight() == null || (takerDepositTx != null && takerDepositTx.getHeight() == null)) return null;
+        return hasBuyerAsTakerWithoutDeposit() ? makerDepositTx.getNumConfirmations() : Math.min(makerDepositTx.getNumConfirmations(), takerDepositTx.getNumConfirmations());
     }
 
     private Long getDepositsConfirmedHeight() {
@@ -2096,9 +2099,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // de-initialize
-        if (idlePayoutSyncer != null) {
-            xmrWalletService.removeWalletListener(idlePayoutSyncer);
-            idlePayoutSyncer = null;
+        if (idleSyncer != null) {
+            xmrWalletService.removeWalletListener(idleSyncer);
+            idleSyncer = null;
         }
         UserThread.execute(() -> {
             if (tradeStateSubscription != null) tradeStateSubscription.unsubscribe();
@@ -2747,8 +2750,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     Thread.dumpStack();
                 }
                 return true;
+            } else {
+                return numDepositsConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
             }
-            return numDepositsConfirmations >= NUM_BLOCKS_DEPOSITS_FINALIZED;
         }
     }
 
@@ -3843,9 +3847,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     /**
      * Listen to block notifications from the main wallet in order to sync
-     * idling trade wallets awaiting the payout to confirm or unlock.
+     * idling trade wallets if necessary.
      */
-    private class IdlePayoutSyncer extends MoneroWalletListener {
+    private class IdleSyncer extends MoneroWalletListener {
 
         boolean processing = false;
 
@@ -3857,8 +3861,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (processing) return;
                 processing = true;
 
-                // skip if not idling and not waiting for payout to finalize
-                if (!isIdling() || !isPayoutPublished() || isPayoutFinalized())  {
+                // skip if not idling or not waiting for finalization
+                if (!isIdling() || (isDepositsFinalized() && (!isPayoutPublished() || isPayoutFinalized())))  {
                     processing = false;
                     return;
                 }
@@ -3874,10 +3878,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                     // sync wallet if confirm, unlock, or finalize expected
                     long currentHeight = xmrWalletService.getMonerod().getHeight();
-                    if (!isPayoutConfirmed() || (payoutHeight != null && 
+                    if (!isPayoutConfirmed() ||
+                            (!isDepositsFinalized() && (currentHeight - getDepositsConfirmedHeight() >= NUM_BLOCKS_DEPOSITS_FINALIZED)) ||
+                            (payoutHeight != null && 
                             ((!isPayoutUnlocked() && currentHeight >= payoutHeight + XmrWalletService.NUM_BLOCKS_UNLOCK) ||
                             (!isPayoutFinalized() && currentHeight >= payoutHeight + NUM_BLOCKS_PAYOUT_FINALIZED)))) {
-                        log.info("Syncing idle trade wallet to update payout for {} {}", getTrade().getClass().getSimpleName(), getId());
+                        log.info("Syncing idle trade wallet for {} {}", getTrade().getClass().getSimpleName(), getId());
                         syncAndPollWallet();
                     }
                     processing = false;
