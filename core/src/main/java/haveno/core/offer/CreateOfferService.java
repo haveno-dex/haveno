@@ -141,6 +141,11 @@ public class CreateOfferService {
             if (!isPrivateOffer) throw new IllegalArgumentException("Must set offer to private for buyer as taker without deposit");
         }
 
+        // verify payment account supports trade currency
+        if (paymentAccount.getTradeCurrencies().stream().noneMatch(tradeCurrency -> tradeCurrency.getCode().equals(currencyCode))) {
+            throw new IllegalArgumentException("Payment account does not support trade currency");
+        }
+
         // verify fixed price xor market price with margin
         if (fixedPrice != null) {
             if (useMarketBasedPrice) throw new IllegalArgumentException("Can create offer with fixed price or floating market price but not both");
