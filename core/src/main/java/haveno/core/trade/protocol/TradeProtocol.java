@@ -119,8 +119,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private int reprocessPaymentReceivedMessageCount;
     private boolean makerInitTradeRequestHasBeenNacked = false;
     private PaymentReceivedMessage lastAckedPaymentReceivedMessage = null;
-
-    private static int MAX_PAYMENT_RECEIVED_NACKS = 6;
     private int numPaymentReceivedNacks = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -249,22 +247,24 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onInitialized() {
 
-        // listen for direct messages unless completed
-        if (!trade.isFinished()) processModel.getP2PService().addDecryptedDirectMessageListener(this);
-
+        // listen for direct messages unless finished (assumes this is called before mailbox message service is intialized)
+        MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
+        if (!trade.isFinished()) {
+            processModel.getP2PService().addDecryptedDirectMessageListener(this);
+            mailboxMessageService.addDecryptedMailboxListener(this);
+        }
+        
         // initialize trade
         synchronized (trade.getLock()) {
             trade.initialize(processModel.getProvider());
 
-            // wait for mailbox messages to be processed
-            MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
-            if (!trade.isCompleted()) mailboxMessageService.addDecryptedMailboxListener(this);
-            handleMailboxCollection(mailboxMessageService.getMyDecryptedMailboxMessages());
-            mailboxMessageService.getIsInitializedProperty().addListener((obs, oldBootstrapped, newBootstrapped) -> {
-                if (!newBootstrapped || oldBootstrapped == newBootstrapped) return;
-
-                // initialize trade after mailbox messages processed
-                onInitializeAfterMailboxMessages();
+            // initialize trade after mailbox messages processed
+            UserThread.execute(() -> { // subscribe on user thread to avoid concurrent modification
+                EasyBind.subscribe(mailboxMessageService.getIsInitializedProperty(), changed -> {
+                    if (Boolean.TRUE.equals(changed)) {
+                        onInitializeAfterMailboxMessages();
+                    }
+                });
             });
         }
 
@@ -620,7 +620,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     // the mailbox msg once wallet is ready and trade state set.
                     synchronized (trade.getLock()) {
                         if (!trade.isInitialized() || trade.isShutDownStarted()) return;
-                        if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
+                        if (trade.isPaymentSentMessageProcessed()) {
                             log.warn("Received another PaymentSentMessage which was already processed for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                             handleTaskRunnerSuccess(trade.getBuyer().getNodeAddress(), message);
                             return;
@@ -720,8 +720,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             log.warn("Skipping processing PaymentReceivedMessage because the trade is not initialized or it's shutting down for {} {}", trade.getClass().getSimpleName(), trade.getId());
                             return;
                         }
-                        if (trade.getPhase().ordinal() >= Trade.Phase.PAYMENT_RECEIVED.ordinal() && trade.isPayoutPublished()) {
-                            log.warn("Received another PaymentReceivedMessage after payout is published for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
+                        if (trade.isPaymentReceivedMessageProcessed() && trade.isPayoutPublished()) {
+                            log.warn("Received another PaymentReceivedMessage after processed and payout is published for {} {}, ACKing", trade.getClass().getSimpleName(), trade.getId());
                             handleTaskRunnerSuccess(trade.getSeller().getNodeAddress(), message);
                             return;
                         }
@@ -776,9 +776,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                             trade.exportMultisigHex();
 
                                             // handle payout error
+                                            boolean isFirstNack = lastAckedPaymentReceivedMessage == null; // TODO: this is "poor man's" first nack because it's only in memory
                                             lastAckedPaymentReceivedMessage = message;
                                             trade.onPayoutError(false, false, null);
-                                            handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex()); // send nack
+                                            handleTaskRunnerFault(peer, message, null, errorMessage, trade.getSelf().getUpdatedMultisigHex(), !isFirstNack); // send nack
                                         }
                                     })))
                             .executeTasks(true);
@@ -958,8 +959,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = onPaymentReceivedNack(true, peer);
-                        if (autoResent) return; // skip remaining processing if auto resent
+                        onPaymentReceivedNack(true, peer, ackMessage);
+                        return; // skip remaining processing
                     }
                 }
             }
@@ -977,8 +978,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        boolean autoResent = onPaymentReceivedNack(true, peer);
-                        if (autoResent) return; // skip remaining processing if auto resent
+                        onPaymentReceivedNack(true, peer, ackMessage);
+                        return; // skip remaining processing
                     }
                 }
             } else {
@@ -1023,12 +1024,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         return ackMessage.getErrorMessage() != null && ackMessage.getErrorMessage().contains(SEND_INIT_TRADE_REQUEST_FAILED); // ignore if arbitrator's request failed to taker
     }
 
-    private boolean onPaymentReceivedNack(boolean syncAndPoll, TradePeer peer) {
+    private boolean onPaymentReceivedNack(boolean syncAndPoll, TradePeer peer, AckMessage ackMessage) {
 
         // prevent infinite nack loop with max attempts
         numPaymentReceivedNacks++;
-        if (numPaymentReceivedNacks > MAX_PAYMENT_RECEIVED_NACKS) {
-            String errorMsg = "The maximum number of attempts to process the payment confirmation has been reached for " + trade.getClass().getSimpleName() + " " + trade.getId() + ". Restart the application to try again.";
+        if (numPaymentReceivedNacks > MAX_ATTEMPTS) {
+            String errorMsg = "Failed to process the payment confirmation after " + MAX_ATTEMPTS + " attempts for " + trade.getClass().getSimpleName() + " " + trade.getId() + ". Restart the application to try again.\n\nMessage from peer:\n" + ackMessage.getErrorMessage();
             log.warn(errorMsg);
             trade.setErrorMessage(errorMsg);
             return false;
@@ -1208,21 +1209,29 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     void handleTaskRunnerFault(NodeAddress ackReceiver, @Nullable TradeMessage message, String source, String errorMessage, String updatedMultisigHex) {
+        handleTaskRunnerFault(ackReceiver, message, source, errorMessage, updatedMultisigHex, true);
+    }
+
+    void handleTaskRunnerFault(NodeAddress ackReceiver, @Nullable TradeMessage message, String source, String errorMessage, String updatedMultisigHex, boolean setTradeError) {
         log.error("Task runner failed with error {}. Triggered from {}. Monerod={}" , errorMessage, source, trade.getXmrWalletService().getXmrConnectionService().getConnection());
 
-        handleError(errorMessage);
+        handleError(errorMessage, setTradeError);
 
         if (message != null) {
             sendAckMessage(ackReceiver, message, false, errorMessage, updatedMultisigHex);
         }
     }
 
-    // these are not thread safe, so they must be used within a lock on the trade
+    // NOTE: these are not thread safe, so they must be used within a lock on the trade
 
     protected void handleError(String errorMessage) {
+        handleError(errorMessage, true);
+    }
+
+    protected void handleError(String errorMessage, boolean setTradeError) {
         stopTimeout();
         log.error(errorMessage);
-        trade.setErrorMessage(errorMessage);
+        if (setTradeError) trade.setErrorMessage(errorMessage);
         processModel.getTradeManager().requestPersistence();
         unlatchTrade();
         if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);

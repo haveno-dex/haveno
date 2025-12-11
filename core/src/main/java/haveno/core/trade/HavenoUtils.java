@@ -114,12 +114,17 @@ public class HavenoUtils {
     // synchronize requests to the daemon
     private static boolean SYNC_DAEMON_REQUESTS = false; // sync long requests to daemon (e.g. refresh, update pool) // TODO: performance suffers by syncing daemon requests, but otherwise we sometimes get sporadic errors?
     private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create txs)
+    private static boolean SYNC_IMPORT_MULTISIG_REQUESTS = false; // sync import multisig requests to avoid concurrent imports
     private static Object DAEMON_LOCK = new Object();
+    private static Object IMPORT_MULTISIG_LOCK = new Object();
     public static Object getDaemonLock() {
         return SYNC_DAEMON_REQUESTS ? DAEMON_LOCK : new Object();
     }
     public static Object getWalletFunctionLock() {
         return SYNC_WALLET_REQUESTS ? getDaemonLock() : new Object();
+    }
+    public static Object getImportMultisigLock() {
+        return SYNC_IMPORT_MULTISIG_REQUESTS ? IMPORT_MULTISIG_LOCK : new Object();
     }
 
     // non-configurable

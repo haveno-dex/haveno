@@ -309,8 +309,8 @@ public class ProcessModel implements Model, PersistablePayload {
         return getP2PService().getAddress();
     }
 
-    public boolean isPaymentReceivedMessagesAckedOrNacked() {
-        return getArbitrator().isPaymentReceivedMessageAckedOrNacked() && getBuyer().isPaymentReceivedMessageAckedOrNacked();
+    public boolean isPaymentReceivedMessagesAcked() {
+        return getArbitrator().isPaymentReceivedMessageAcked() && getBuyer().isPaymentReceivedMessageAcked();
     }
 
     public boolean isDisputeOpenedMessageAckedOrNacked() {
