@@ -157,10 +157,6 @@ public abstract class TradeStepView extends AnchorPane {
                 updateTimeLeft();
             }
         };
-
-//        newBestBlockListener = block -> {
-//            checkIfLockTimeIsOver();
-//        };
     }
 
     public void activate() {
@@ -286,40 +282,41 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     public void deactivate() {
-      if (selfTxIdSubscription != null)
-          selfTxIdSubscription.unsubscribe();
-      if (peerTxIdSubscription != null)
-          peerTxIdSubscription.unsubscribe();
+        if (selfTxIdSubscription != null)
+            selfTxIdSubscription.unsubscribe();
+        if (peerTxIdSubscription != null)
+            peerTxIdSubscription.unsubscribe();
 
-      if (selfTxIdTextField != null)
-          selfTxIdTextField.cleanup();
-      if (peerTxIdTextField != null)
-          peerTxIdTextField.cleanup();
+        if (selfTxIdTextField != null)
+            selfTxIdTextField.cleanup();
+        if (peerTxIdTextField != null)
+            peerTxIdTextField.cleanup();
 
-      if (errorMessageListener != null)
-          trade.errorMessageProperty().removeListener(errorMessageListener);
+        if (errorMessageListener != null)
+            trade.errorMessageProperty().removeListener(errorMessageListener);
 
-      if (disputeStateSubscription != null)
-          disputeStateSubscription.unsubscribe();
+        if (disputeStateSubscription != null)
+            disputeStateSubscription.unsubscribe();
 
-      if (mediationResultStateSubscription != null)
-          mediationResultStateSubscription.unsubscribe();
+        if (mediationResultStateSubscription != null)
+            mediationResultStateSubscription.unsubscribe();
 
-      if (tradePeriodStateSubscription != null)
-          tradePeriodStateSubscription.unsubscribe();
-      if (tradeStateSubscription != null)
-          tradeStateSubscription.unsubscribe();
+        if (tradePeriodStateSubscription != null)
+            tradePeriodStateSubscription.unsubscribe();
 
-      if (clockListener != null)
-          model.clockWatcher.removeListener(clockListener);
+        if (tradeStateSubscription != null)
+            tradeStateSubscription.unsubscribe();
 
-      if (tradeStepInfo != null)
-          tradeStepInfo.setOnAction(null);
+        if (clockListener != null)
+            model.clockWatcher.removeListener(clockListener);
 
-      if (acceptMediationResultPopup != null) {
-          acceptMediationResultPopup.hide();
-          acceptMediationResultPopup = null;
-      }
+        if (tradeStepInfo != null)
+            tradeStepInfo.setOnAction(null);
+
+        if (acceptMediationResultPopup != null) { 
+            acceptMediationResultPopup.hide();
+            acceptMediationResultPopup = null;
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -431,8 +428,10 @@ public abstract class TradeStepView extends AnchorPane {
             String remainingTime = model.getRemainingTradeDurationAsWords();
             timeLeftProgressBar.setProgress(model.getRemainingTradeDurationAsPercentage());
             if (!remainingTime.isEmpty()) {
-                timeLeftTextField.setText(Res.get("portfolio.pending.remainingTimeDetail",
-                        remainingTime, model.getDateForOpenDispute()));
+                boolean isDepositsFinalized = trade.isDepositsFinalized();
+                timeLeftTextField.setText(isDepositsFinalized ?
+                        Res.get("portfolio.pending.remainingTimeDetail", remainingTime, model.getDateForOpenDispute()) :
+                        Res.get("portfolio.pending.remainingTimeDetail.startsAfter", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
                 if (model.showWarning() || model.showDispute()) {
                     timeLeftTextField.getStyleClass().add("error-text");
                     timeLeftProgressBar.getStyleClass().add("error");
@@ -799,6 +798,7 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateTradeState(Trade.State tradeState) {
+        updateTimeLeft();
         if (!trade.getDisputeState().isOpen() && trade.isDepositTxMissing()) {
             tradeStepInfo.setState(TradeStepInfo.State.DEPOSIT_MISSING);
         }
