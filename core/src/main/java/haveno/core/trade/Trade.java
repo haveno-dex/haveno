@@ -148,7 +148,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public final Object lock = new Object();
     private static final String MONERO_TRADE_WALLET_PREFIX = "xmr_trade_";
     private static final long SHUTDOWN_TIMEOUT_MS = Config.baseCurrencyNetwork().isTestnet() ? 20000 : 60000;
-    private static final long SYNC_EVERY_NUM_BLOCKS = 360; // ~1/2 day
+    private static final long SYNC_EVERY_NUM_BLOCKS = Config.baseCurrencyNetwork().isTestnet() ? 40 : 360; // ~1/2 day
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
@@ -3229,17 +3229,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // sync if wallet too far behind daemon
             boolean longSync = false;
-            if (!offlinePoll && (!wasWalletSynced || walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS)) {
-                longSync = true;
-                syncWallet(false);
+            if (!offlinePoll) {
+                if (!wasWalletSynced || walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) {
+                    longSync = true;
+                    syncWallet(false);
+                } else {
+                    syncWalletIfBehind();
+                }
             }
 
             // update deposit txs
             boolean depositTxsUninitialized = isDepositRequested() && (getMaker().getDepositTx() == null || (getTaker().getDepositTx() == null && !hasBuyerAsTakerWithoutDeposit()));
             if (depositTxsUninitialized || !isDepositsFinalized()) {
-
-                // sync wallet if behind
-                if (!offlinePoll) syncWalletIfBehind();
 
                 // set deposit txs from trade wallet
                 List<MoneroTxWallet> txs = getTxs(false);
@@ -3265,9 +3266,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // determine if payout tx expected
                 boolean isPayoutExpected = isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
-
-                // sync wallet if payout expected or payout is published
-                if (!offlinePoll && (isPayoutExpected || isPayoutPublished())) syncWalletIfBehind();
 
                 // rescan spent outputs to detect unconfirmed payout tx
                 if (getPayoutState() == PayoutState.PAYOUT_PUBLISHED || (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) || (isDepositsPublished() && longSync)) {
