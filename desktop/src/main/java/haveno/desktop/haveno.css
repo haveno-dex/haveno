@@ -2432,7 +2432,7 @@ textfield */
 }
 
 .message-header {
-    -fx-text-fill: -bs-color-gray-3;
+    -fx-text-fill: -bs-color-gray-6;
     -fx-font-size: 0.846em;
 }
 
