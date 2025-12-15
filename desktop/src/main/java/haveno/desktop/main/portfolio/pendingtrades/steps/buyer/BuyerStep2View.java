@@ -690,7 +690,7 @@ public class BuyerStep2View extends TradeStepView {
 
     private void showPopup() {
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
-        if (paymentAccountPayload != null) {
+        if (paymentAccountPayload != null && !trade.isPayoutPublished()) {
             String message = Res.get("portfolio.pending.step2.confReached");
             String refTextWarn = Res.get("portfolio.pending.step2_buyer.refTextWarn");
             String fees = Res.get("portfolio.pending.step2_buyer.fees");
