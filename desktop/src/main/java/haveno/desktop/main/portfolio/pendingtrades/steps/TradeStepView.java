@@ -842,7 +842,7 @@ public abstract class TradeStepView extends AnchorPane {
         infoGridPane.setHgap(5);
         infoGridPane.setVgap(10);
         infoGridPane.setPadding(new Insets(10, 10, 10, 10));
-        Label label = addMultilineLabel(infoGridPane, rowIndex++, Res.get("portfolio.pending.tradePeriodInfo"));
+        Label label = addMultilineLabel(infoGridPane, rowIndex++, Res.get("portfolio.pending.tradePeriodInfo", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
         label.setMaxWidth(450);
 
         HBox warningBox = new HBox();
