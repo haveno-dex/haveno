@@ -69,6 +69,7 @@ public class XmrLocalNode {
         MONEROD_ARGS.add("--p2p-bind-ip");
         MONEROD_ARGS.add(HavenoUtils.LOOPBACK_HOST);
         if (!Config.baseCurrencyNetwork().isMainnet()) MONEROD_ARGS.add("--" + Config.baseCurrencyNetwork().getNetwork().toLowerCase());
+        if (!Config.baseCurrencyNetwork().isTestnet()) MONEROD_ARGS.add("--offline");
     }
 
     @Inject

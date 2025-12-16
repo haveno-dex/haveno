@@ -445,6 +445,10 @@ public final class XmrConnectionService {
         return isConnectionLocalHost() ? KEY_IMAGE_REFRESH_PERIOD_MS_LOCAL : KEY_IMAGE_REFRESH_PERIOD_MS_REMOTE;
     }
 
+    public boolean isTestnet() {
+        return Config.baseCurrencyNetwork().isTestnet();
+    }
+
     // ----------------------------- APP METHODS ------------------------------
 
     public ReadOnlyIntegerProperty numConnectionsProperty() {
@@ -885,14 +889,13 @@ public final class XmrConnectionService {
                 }
 
                 // get the number of connections, which is only available if not restricted
-                int numOutgoingConnections = Boolean.TRUE.equals(lastInfo.isRestricted()) ? -1 : lastInfo.getNumOutgoingConnections();
+                int numOutgoingConnections = isTestnet() ? monerod.getPeers().size() : Boolean.TRUE.equals(lastInfo.isRestricted()) ? -1 : lastInfo.getNumOutgoingConnections();
 
                 // updates on user thread
                 UserThread.execute(() -> {
 
                     // update sync progress
-                    boolean isTestnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL;
-                    if (lastInfo.isSynchronized() || isTestnet) doneDownload(); // TODO: skipping synchronized check for testnet because CI tests do not sync 3rd local node, see "Can manage Monero daemon connections"
+                    if (lastInfo.isSynchronized() || isTestnet()) doneDownload(); // TODO: skipping synchronized check for testnet because CI tests do not sync 3rd local node, see "Can manage Monero daemon connections"
                     else if (lastInfo.isBusySyncing()) {
                         long targetHeight = lastInfo.getTargetHeight();
                         long blocksLeft = targetHeight - lastInfo.getHeight();

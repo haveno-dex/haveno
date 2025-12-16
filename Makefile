@@ -63,6 +63,7 @@ deploy-tmux:
 monerod1-local:
 	./.localnet/monerod \
 		--testnet \
+		--offline \
 		--no-igd \
 		--hide-my-port \
 		--data-dir .localnet/xmr_local/node1 \
@@ -80,6 +81,7 @@ monerod1-local:
 monerod2-local:
 	./.localnet/monerod \
 		--testnet \
+		--offline \
 		--no-igd \
 		--hide-my-port \
 		--data-dir .localnet/xmr_local/node2 \
@@ -101,6 +103,7 @@ monerod2-local:
 monerod3-local:
 	./.localnet/monerod \
 		--testnet \
+		--offline \
 		--no-igd \
 		--hide-my-port \
 		--data-dir .localnet/xmr_local/node3 \
