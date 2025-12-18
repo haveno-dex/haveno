@@ -47,7 +47,7 @@ public class AppStartupState {
     private final BooleanProperty applicationFullyInitialized = new SimpleBooleanProperty();
     private final BooleanProperty updatedDataReceived = new SimpleBooleanProperty();
     private final BooleanProperty isBlockDownloadComplete = new SimpleBooleanProperty();
-    private final BooleanProperty isWalletSynced = new SimpleBooleanProperty();
+    private final BooleanProperty wasWalletSynced = new SimpleBooleanProperty();
     private final BooleanProperty hasSufficientPeersForBroadcast = new SimpleBooleanProperty();
 
     @Inject
@@ -69,8 +69,7 @@ public class AppStartupState {
         });
 
         xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrWalletService.wasWalletSynced())
-                isWalletSynced.set(true);
+            wasWalletSynced.set(xmrWalletService.wasWalletSynced());
         });
 
         xmrConnectionService.numConnectionsProperty().addListener((observable, oldValue, newValue) -> {
@@ -80,21 +79,27 @@ public class AppStartupState {
 
         p2pNetworkAndWalletInitialized = EasyBind.combine(updatedDataReceived,
                 isBlockDownloadComplete,
-                isWalletSynced,
+                wasWalletSynced,
                 hasSufficientPeersForBroadcast, // TODO: consider sufficient number of peers?
                 allDomainServicesInitialized,
                 (a, b, c, d, e) -> {
-                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && isWalletSynced={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d && e), updatedDataReceived.get(), isBlockDownloadComplete.get(), isWalletSynced.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
+                    log.info("Combined initialized state = {} = updatedDataReceived={} && isBlockDownloadComplete={} && isWalletSynced={} && hasSufficientPeersForBroadcast={} && allDomainServicesInitialized={}", (a && b && c && d && e), updatedDataReceived.get(), isBlockDownloadComplete.get(), wasWalletSynced.get(), hasSufficientPeersForBroadcast.get(), allDomainServicesInitialized.get());
                     if (a && b && c) {
                         walletAndNetworkReady.set(true);
+                    } else if (!wasWalletSynced()) {
+                        walletAndNetworkReady.set(false);
                     }
-                    return a && e; // app fully initialized before daemon connection and wallet by default
+                    return a && c && e;
                 });
         p2pNetworkAndWalletInitialized.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
                 applicationFullyInitialized.set(true);
                 notificationService.sendAppInitializedNotification();
                 log.info("Application fully initialized");
+            } else {
+                applicationFullyInitialized.set(false);
+                notificationService.sendAppInitializedNotification();
+                log.info("Application is not fully initialized");
             }
         });
     }
@@ -144,8 +149,8 @@ public class AppStartupState {
         return isBlockDownloadComplete.get();
     }
 
-    public boolean isWalletSynced() {
-        return isWalletSynced.get();
+    public boolean wasWalletSynced() {
+        return wasWalletSynced.get();
     }
 
     public ReadOnlyBooleanProperty isBlockDownloadCompleteProperty() {
