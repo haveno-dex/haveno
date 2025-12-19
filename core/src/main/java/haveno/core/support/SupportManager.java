@@ -387,7 +387,7 @@ public abstract class SupportManager {
                 p2PService.isBootstrapped() &&
                 xmrConnectionService.isDownloadComplete() &&
                 xmrConnectionService.hasSufficientPeersForBroadcast() &&
-                xmrWalletService.isDownloadComplete();
+                xmrWalletService.wasWalletSynced();
     }
 
 

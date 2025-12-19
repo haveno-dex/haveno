@@ -63,7 +63,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javafx.beans.property.LongProperty;
-import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
@@ -264,18 +263,6 @@ public class XmrWalletService extends XmrWalletBase {
 
     public boolean isWalletEncrypted() {
         return accountService.getPassword() != null;
-    }
-
-    public ReadOnlyDoubleProperty downloadPercentageProperty() {
-        return downloadListener.percentageProperty();
-    }
-
-    private void doneDownload() {
-        downloadListener.doneDownload();
-    }
-
-    public boolean isDownloadComplete() {
-        return downloadPercentageProperty().get() == 1d;
     }
 
     public LongProperty walletHeightProperty() {
@@ -1494,7 +1481,7 @@ public class XmrWalletService extends XmrWalletBase {
                         resetIfWalletChanged();
 
                         // signal that main wallet is synced
-                        doneDownload();
+                        walletSyncListener.doneDownload();
 
                         // notify setup that main wallet is initialized
                         // TODO: app fully initializes after this is set to true, even though wallet might not be initialized if unconnected. wallet will be created when connection detected

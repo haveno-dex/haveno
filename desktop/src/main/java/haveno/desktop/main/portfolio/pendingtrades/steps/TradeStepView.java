@@ -77,7 +77,7 @@ public abstract class TradeStepView extends AnchorPane {
     protected final Preferences preferences;
     protected final GridPane gridPane;
 
-    private Subscription tradePeriodStateSubscription, tradeStateSubscription, disputeStateSubscription, mediationResultStateSubscription;
+    private Subscription tradePeriodStateSubscription, tradeStateSubscription, disputeStateSubscription, mediationResultStateSubscription, syncProgressSubscription;
     protected int gridRow = 0;
     private TextField timeLeftTextField;
     private ProgressBar timeLeftProgressBar;
@@ -93,6 +93,9 @@ public abstract class TradeStepView extends AnchorPane {
     private BootstrapListener bootstrapListener;
     private TradeSubView.ChatCallback chatCallback;
     private ChangeListener<Boolean> pendingTradesInitializedListener;
+    protected Label statusLabel;
+    protected String syncStatus;
+    protected String tradeStatus;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -258,7 +261,19 @@ public abstract class TradeStepView extends AnchorPane {
             if (newValue) addTradeStateSubscription();
         });
 
+        syncProgressSubscription = EasyBind.subscribe(trade.downloadPercentageProperty(), newValue -> {
+            if (newValue != null) onSyncProgress((double) newValue);
+        });
+
         UserThread.execute(() -> model.p2PService.removeP2PServiceListener(bootstrapListener));
+    }
+
+    protected void onSyncProgress(double percent) {
+        if (percent < 0.0 || percent >= 1.0) setSyncStatus("");
+        else {
+            long blocksRemaining = HavenoUtils.xmrConnectionService.getTargetHeight() - trade.getHeight();
+            setSyncStatus(Res.get("portfolio.pending.syncing", ((int) Math.round(percent * 100)), blocksRemaining));
+        }
     }
 
     private void addTradeStateSubscription() {
@@ -300,6 +315,9 @@ public abstract class TradeStepView extends AnchorPane {
 
         if (mediationResultStateSubscription != null)
             mediationResultStateSubscription.unsubscribe();
+
+        if (syncProgressSubscription != null)
+            syncProgressSubscription.unsubscribe();
 
         if (tradePeriodStateSubscription != null)
             tradePeriodStateSubscription.unsubscribe();
@@ -402,6 +420,9 @@ public abstract class TradeStepView extends AnchorPane {
 
         infoLabel = addMultilineLabel(gridPane, gridRow, "", Layout.COMPACT_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
         GridPane.setColumnSpan(infoLabel, 2);
+
+        statusLabel = new Label();
+        gridPane.add(statusLabel, 0, ++gridRow, 2, 1);
     }
 
     protected String getInfoText() {
@@ -868,5 +889,25 @@ public abstract class TradeStepView extends AnchorPane {
 
     public void setChatCallback(TradeSubView.ChatCallback chatCallback) {
         this.chatCallback = chatCallback;
+    }
+
+    protected void setSyncStatus(String text) {
+        syncStatus = text;
+        if (syncStatus == null || syncStatus.isEmpty()) {
+            setStatus(tradeStatus);
+        } else {
+            setStatus(syncStatus);
+        }
+    }
+
+    protected void setTradeStatus(String text) {
+        tradeStatus = text;
+        if (syncStatus == null || syncStatus.isEmpty()) {
+            setStatus(tradeStatus);
+        }
+    }
+
+    private void setStatus(String text) {
+        if (statusLabel != null) statusLabel.setText(text == null ? "" : text);
     }
 }

@@ -18,6 +18,7 @@
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
 import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
 import haveno.core.network.MessageState;
 import haveno.desktop.components.TextFieldWithIcon;
@@ -27,10 +28,11 @@ import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithIcon;
+import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithIconLabel;
 
 public class BuyerStep3View extends TradeStepView {
     private final ChangeListener<MessageState> messageStateChangeListener;
@@ -74,8 +76,11 @@ public class BuyerStep3View extends TradeStepView {
         addTitledGroupBg(gridPane, ++gridRow, 2, getInfoBlockTitle(), Layout.GROUP_DISTANCE);
         infoLabel = addMultilineLabel(gridPane, gridRow, "", Layout.FIRST_ROW_AND_GROUP_DISTANCE);
         GridPane.setColumnSpan(infoLabel, 2);
-        textFieldWithIcon = addTopLabelTextFieldWithIcon(gridPane, ++gridRow,
-                Res.get("portfolio.pending.step3_buyer.wait.msgStateInfo.label"), 0).second;
+        Tuple4<VBox, Label, TextFieldWithIcon, Label> tuple = addTopLabelTextFieldWithIconLabel(gridPane, ++gridRow,
+                Res.get("portfolio.pending.step3_buyer.wait.msgStateInfo.label"), 0);
+        GridPane.setColumnSpan(tuple.first, 2);
+        textFieldWithIcon = tuple.third;
+        statusLabel = tuple.fourth;
     }
 
     @Override
