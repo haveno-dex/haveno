@@ -128,7 +128,6 @@ import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 public class BuyerStep2View extends TradeStepView {
 
     private Button confirmButton;
-    private Label statusLabel;
     private BusyAnimation busyAnimation;
     private Subscription tradeStatePropertySubscription;
     private Timer timeoutTimer;
@@ -159,40 +158,40 @@ public class BuyerStep2View extends TradeStepView {
 
                 if (trade.isDepositsUnlocked() && !trade.isPaymentSent()) {
                     busyAnimation.stop();
-                    statusLabel.setText("");
+                    setTradeStatus("");
                     showPopup();
                 } else if (state.ordinal() <= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
                     switch (state) {
                         case BUYER_CONFIRMED_PAYMENT_SENT:
                             busyAnimation.play();
-                            statusLabel.setText(Res.get("shared.preparingConfirmation"));
+                            setTradeStatus(Res.get("shared.preparingConfirmation"));
                             break;
                         case BUYER_SENT_PAYMENT_SENT_MSG:
                             busyAnimation.play();
-                            statusLabel.setText(Res.get("shared.sendingConfirmation"));
+                            setTradeStatus(Res.get("shared.sendingConfirmation"));
                             timeoutTimer = UserThread.runAfter(() -> {
                                 busyAnimation.stop();
-                                statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
+                                setTradeStatus(Res.get("shared.sendingConfirmationAgain"));
                             }, 30);
                             break;
                         case BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
+                            setTradeStatus(Res.get("shared.messageStoredInMailbox"));
                             break;
                         case BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG:
                         case SELLER_RECEIVED_PAYMENT_SENT_MSG:
                             busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.messageArrived"));
+                            setTradeStatus(Res.get("shared.messageArrived"));
                             break;
                         case BUYER_SEND_FAILED_PAYMENT_SENT_MSG:
                             // We get a popup and the trade closed, so we dont need to show anything here
                             busyAnimation.stop();
-                            statusLabel.setText("");
+                            setTradeStatus("");
                             break;
                         default:
                             log.warn("Unexpected case: State={}, tradeId={} ", state.name(), trade.getId());
                             busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
+                            setTradeStatus(Res.get("shared.sendingConfirmationAgain"));
                             break;
                     }
                 }
@@ -676,7 +675,7 @@ public class BuyerStep2View extends TradeStepView {
 
     private void confirmPaymentSent() {
         busyAnimation.play();
-        statusLabel.setText(Res.get("shared.preparingConfirmation"));
+        setTradeStatus(Res.get("shared.preparingConfirmation"));
         confirmButton.setDisable(true);
 
         model.dataModel.onPaymentSent(() -> {
@@ -684,7 +683,7 @@ public class BuyerStep2View extends TradeStepView {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentSentPermitted());
-            UserThread.execute(() -> statusLabel.setText("Error confirming payment sent."));
+            UserThread.execute(() -> setTradeStatus("Error confirming payment sent."));
         });
     }
 

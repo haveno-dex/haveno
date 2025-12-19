@@ -10,6 +10,7 @@ import java.util.Date;
 public class DownloadListener {
     private final DoubleProperty percentage = new SimpleDoubleProperty(-1);
 
+    // TODO: remove redundant execute?
     public void progress(double percentage, long blocksLeft, Date date) {
         UserThread.execute(() -> {
             UserThread.await(() -> this.percentage.set(percentage)); // TODO: these awaits are jenky
