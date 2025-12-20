@@ -39,7 +39,11 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
     
     @Override
     protected void setStateSent() {
-        if (trade.getState().ordinal() < Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal()) trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+        if (trade.getState().equals(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)) {
+            trade.setState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+        } else {
+            trade.advanceState(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG); // do not revert previous send progress
+        }
         super.setStateSent();
     }
 

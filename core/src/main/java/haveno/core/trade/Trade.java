@@ -159,10 +159,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public static final long POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS = 120000; // 2 minutes
     private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 60000 : 28 * 60 * 1000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
-    private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 3;
+    private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 2;
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
-    protected static final Object importMultisigLock = new Object();
     private boolean pollInProgress;
     private boolean restartInProgress;
     private Subscription protocolErrorStateSubscription;
@@ -171,8 +170,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public BooleanProperty wasWalletPolledProperty = new SimpleBooleanProperty(false);
     public BooleanProperty wasWalletSyncedAndPolledProperty = new SimpleBooleanProperty(false);
     private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
-    private Long lastDepositTxMissingHeight; // height when we last saw missing deposit txs (to wait for a confirmation before reverting state)
-    private Long lastPayoutTxMissingHeight; // height when we last saw missing payout tx (to wait for a confirmation before reverting state)
+    private Long firstDepositTxMissingHeight; // height when we first saw missing deposit txs (to wait for a confirmation before reverting state)
+    private Long firstPayoutTxMissingHeight; // height when we first saw missing payout tx (to wait for a confirmation before reverting state)
     private boolean skipNextPollLoop = false;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1077,8 +1076,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
             if (wallet == null) return; // already closed
             log.debug("Closing wallet for {} {}", getClass().getSimpleName(), getId());
-            xmrWalletService.closeWallet(wallet, true);
             maybeBackupWallet();
+            xmrWalletService.closeWallet(wallet, true);
             wallet = null;
         }
     }
@@ -1246,20 +1245,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         synchronized (walletLock) {
             if (getWallet() == null) throw new IllegalStateException("Cannot import multisig hex for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
             synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
-                synchronized (importMultisigLock) {
+                synchronized (HavenoUtils.getImportMultisigLock()) {
                     for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
                             doImportMultisigHex();
                             break;
                         } catch (IllegalArgumentException | IllegalStateException e) {
+                            log.warn("Illegal error importing multisig hex for {} {} on attempt {}/{}: {}", getClass().getSimpleName(), getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             throw e;
                         } catch (Exception e) {
+                            log.warn("Error importing multisig hex for {} {} on attempt {}/{}: {}", getClass().getSimpleName(), getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             if (isShutDownStarted && wallet == null) {
                                 log.warn("Aborting import of multisig hex for {} {} because shut down is started and wallet is closed", getClass().getSimpleName(), getShortId());
                                 break;
                             }
-                            log.warn("Failed to import multisig hex, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                             handleWalletError(e, sourceConnection, i + 1);
                             doPollWallet();
                             if (isPayoutPublished()) break;
@@ -1675,7 +1675,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         boolean doPublish = publish && !isPayoutPublished();
         if (doPublish) {
             try {
-                wallet.submitMultisigTxHex(getPayoutTxHex());
+                List<String> payoutTxIds = wallet.submitMultisigTxHex(getPayoutTxHex());
+                payoutTxId = payoutTxIds.get(0);
                 setPayoutStatePublished();
             } catch (Exception e) {
                 if (!isPayoutPublished()) {
@@ -1875,8 +1876,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // fetch payout tx from main wallet
         MoneroTxWallet payoutTx = xmrWalletService.getWallet().getTx(payoutTxId);
-        if (payoutTx == null) throw new RuntimeException("Payout tx id " + payoutTxId + " not found for " + getClass().getSimpleName() + " " + getId());
-        if (payoutTx.isFailed()) throw new RuntimeException("Payout tx " + payoutTxId + " is failed for " + getClass().getSimpleName() + " " + getId());
+        if (payoutTx == null) throw new IllegalStateException("Payout tx id " + payoutTxId + " not found for " + getClass().getSimpleName() + " " + getId());
+        if (payoutTx.isFailed()) throw new IllegalStateException("Payout tx " + payoutTxId + " is failed for " + getClass().getSimpleName() + " " + getId());
 
         // verify incoming amount
         BigInteger txCost = payoutTx.getFee();
@@ -2000,17 +2001,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // TODO: clear other process data
-        if (processModel.isPaymentReceivedMessagesAckedOrNacked()) setPayoutTxHex(null);
+        if (isPayoutFinalized() || processModel.isPaymentReceivedMessagesAcked()) setPayoutTxHex(null);
         for (TradePeer peer : getAllPeers()) {
             peer.setUpdatedMultisigHex(null);
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
             peer.setDepositTxHex(null);
             peer.setDepositTxKey(null);
-            if (peer.isPaymentReceivedMessageAckedOrNacked()) {
-                peer.setUnsignedPayoutTxHex(null);
-                peer.setPaymentReceivedMessage(null);
-            }
+            if (peer.isPaymentReceivedMessageAckedOrNacked() || isPayoutFinalized()) peer.setUnsignedPayoutTxHex(null);
+            if (peer.isPaymentReceivedMessageAckedOrNacked()) peer.setPaymentReceivedMessage(null);
         }
     }
 
@@ -2279,12 +2278,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     // Setters
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void setStateIfValidTransitionTo(State newState) {
-        if (state.isValidTransitionTo(newState)) {
-            setState(newState);
-        }
-    }
-
     public void addInitProgressStep() {
         startProtocolTimeout();
         initProgress = Math.min(1.0, (double) ++initStep / TOTAL_INIT_STEPS);
@@ -2301,6 +2294,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         TradeProtocol protocol = getProtocol();
         if (protocol == null) return;
         protocol.stopTimeout();
+    }
+
+    public void setStateIfValidTransitionTo(State newState) {
+        if (state.isValidTransitionTo(newState)) {
+            setState(newState);
+        }
     }
 
     public void setState(State state) {
@@ -2756,10 +2755,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    public boolean isPaymentSent() {
-        return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal() && getState() != State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG;
-    }
-
     public boolean hasPaymentSentMessage() {
         return (isBuyer() ? getSeller() : getBuyer()).getPaymentSentMessage() != null; // buyer stores message to seller and arbitrator, peers store message from buyer
     }
@@ -2782,12 +2777,27 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal();
     }
 
+    public boolean isPaymentSent() {
+        return getState().getPhase().ordinal() >= Phase.PAYMENT_SENT.ordinal() && getState() != State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG;
+    }
+
+    public boolean isPaymentSentMessageProcessed() {
+        if (isPaymentReceived()) return true;
+        if (isBuyer()) return getState() == State.SELLER_RECEIVED_PAYMENT_SENT_MSG;
+        return getState() == Trade.State.BUYER_SENT_PAYMENT_SENT_MSG;
+    }
+
     public boolean isPaymentMarkedReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal();
     }
 
     public boolean isPaymentReceived() {
         return getState().getPhase().ordinal() >= Phase.PAYMENT_RECEIVED.ordinal() && getState() != State.SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG;
+    }
+
+    public boolean isPaymentReceivedMessageProcessed() {
+        if (isSeller()) return getState() == State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG;
+        return getState() == Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG;
     }
 
     public boolean isPayoutPublished() {
@@ -3276,7 +3286,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     try {
                         rescanSpent(true);
                     } catch (Exception e) {
-                        ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection)); // do not block polling thread
+                        // TODO: rescan error is common, e.g. "no connection to daemon"
+                        //ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection)); // do not block polling thread
                     }
                 }
 
@@ -3321,10 +3332,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             } else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
                 if (wallet != null && !isShutDownStarted && isWalletConnected) {
-                    if (e instanceof NullPointerException) {
-                        log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection(), e);
-                    } else {
+                    if (isExpectedWalletError(e)) {
                         log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
+                    } else {
+                        log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection(), e); // include stack trace for unexpected errors
                     }
                 }
             }
@@ -3435,21 +3446,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // revert deposit state if necessary
         State depositsState = getDepositsState(makerDepositTx, takerDepositTx);
         State minDepositsState = isPaymentSent() ? State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN : getState();
-        if (poolChecked && depositsState.ordinal() < minDepositsState.ordinal()) {
+        if (depositsState.ordinal() >= minDepositsState.ordinal()) {
+            firstDepositTxMissingHeight = null;
+        } else if (poolChecked) {
 
             // skip reverting state until next confirmation // TODO: sometimes txs are missing from the wallet and reappear without reorg
-            if (lastDepositTxMissingHeight != null && walletHeight.get() > lastDepositTxMissingHeight + REVERT_AFTER_NUM_CONFIRMATIONS - 1) {
+            if (firstDepositTxMissingHeight != null && walletHeight.get() > firstDepositTxMissingHeight + REVERT_AFTER_NUM_CONFIRMATIONS - 1) {
                 log.warn("Reverting deposits state from {} to {} for {} {}. Possible reorg?", minDepositsState, depositsState, getClass().getSimpleName(), getShortId());
                 getMaker().setDepositTx(makerDepositTx);
                 getTaker().setDepositTx(takerDepositTx);
                 if (depositsState == State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS) setErrorMessage("Deposit transactions are missing for trade " + getShortId() + ". This can happen after a blockchain reorganization.\n\nIf the issue continues, you can contact support or mark the trade as failed.");
                 if (!isPaymentSent()) setState(depositsState); // only revert state if payment not sent
-            } else {
-                if (lastDepositTxMissingHeight == null) log.warn("Missing deposit txs for {} {} at height {}. Waiting {} confirmation before reverting state", getClass().getSimpleName(), getShortId(), lastDepositTxMissingHeight, REVERT_AFTER_NUM_CONFIRMATIONS);
-                lastDepositTxMissingHeight = walletHeight.get();
+            } else if (firstDepositTxMissingHeight == null) {
+                log.warn("Missing deposit txs for {} {} at height {}. Waiting {} confirmation before reverting state", getClass().getSimpleName(), getShortId(), walletHeight.get(), REVERT_AFTER_NUM_CONFIRMATIONS);
+                firstDepositTxMissingHeight = walletHeight.get();
             }
-        } else {
-            lastDepositTxMissingHeight = null;
         }
 
         // announce deposits update
@@ -3474,12 +3485,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // set payout state
-        if (payoutTx != null) setPayoutTx(payoutTx);
-        else if (hasPayoutTx) setPayoutState(PayoutState.PAYOUT_PUBLISHED);
-        else if (poolChecked && isPayoutPublished()) { // payout tx seen then lost (e.g. reorg)
+        if (payoutTx != null) {
+            firstPayoutTxMissingHeight = null;
+            setPayoutTx(payoutTx);
+        } else if (hasPayoutTx) {
+            firstPayoutTxMissingHeight = null;
+            setPayoutState(PayoutState.PAYOUT_PUBLISHED);
+        } else if (poolChecked && isPayoutPublished()) { // payout tx seen then lost (e.g. reorg)
 
             // skip reverting state until confirmations
-            if (lastPayoutTxMissingHeight != null && walletHeight.get() > lastPayoutTxMissingHeight + REVERT_AFTER_NUM_CONFIRMATIONS - 1) {
+            if (firstPayoutTxMissingHeight != null && walletHeight.get() > firstPayoutTxMissingHeight + REVERT_AFTER_NUM_CONFIRMATIONS - 1) {
 
                 // reset payment received and dispute closed messages
                 for (TradePeer peer : getAllPeers()) {
@@ -3491,22 +3506,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // revert state
                 setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
                 String errorMsg = "The payout transaction is not seen for trade " + getShortId() + ". This can happen after a blockchain reorganization..\n\nIf the payout does not confirm automatically, you can contact support or mark the trade as failed.";
-                if (isSeller() && getState().ordinal() >= State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG.ordinal()) {
-                    log.warn("Reverting state of {} {} from {} to {} because payout is unseen. Possible reorg?", getClass().getSimpleName(), getId(), getState(), Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
-                    setState(State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
-                    onPayoutError(false, true, null);
-                    setErrorMessage(errorMsg);
-                } else if (getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
+                if (getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
                     log.warn("Reverting state of {} {} from {} to {} because payout is unseen. Possible reorg?", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
                     setState(State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
+                    if (isSeller()) onPayoutError(false, true, null);
                     setErrorMessage(errorMsg);
                 }
 
                 // move trade back to pending if marked completed
                 if (isCompleted()) processModel.getTradeManager().onMoveClosedTradeToPendingTrades(this);
-            } else {
-                if (lastPayoutTxMissingHeight == null) log.warn("Missing payout tx for {} {} at height {}. Waiting {} confirmations before reverting state", getClass().getSimpleName(), getShortId(), lastPayoutTxMissingHeight, REVERT_AFTER_NUM_CONFIRMATIONS);
-                lastPayoutTxMissingHeight = walletHeight.get();
+            } else if (firstPayoutTxMissingHeight == null) {
+                log.warn("Missing payout tx for {} {} at height {}. Waiting {} confirmations before reverting state", getClass().getSimpleName(), getShortId(), walletHeight.get(), REVERT_AFTER_NUM_CONFIRMATIONS);
+                firstPayoutTxMissingHeight = walletHeight.get();
             }
         }
     }
@@ -3578,7 +3589,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             paymentReceivedNackSender.setPaymentReceivedMessage(null);
             paymentReceivedNackSender.setPaymentReceivedMessageState(MessageState.NACKED);
         }
-        if (!isPayoutPublished()) {
+        if (!isPayoutFinalized()) { // payout tx may be stale and show as published after reorg, so clear local info for reprocessing until finalized
+            log.warn("Resetting missing or failed payout tx after payout error for {} {}", getClass().getSimpleName(), getId());
             getSelf().setUnsignedPayoutTxHex(null);
             setPayoutTxHex(null);
             setPayoutTxId(null);
@@ -3815,7 +3827,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void setStateDepositsFinalized() {
-        if (!isPaymentSent() && !isDepositsFinalized()) advanceState(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN); // do not revert state if payment already sent
+        if (!isPaymentSent() && !isDepositsFinalized()) setStateIfValidTransitionTo(State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN); // do not revert state if payment already sent
         try {
             maybeUpdateTradePeriod();
         } catch (Exception e) {
@@ -3911,7 +3923,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // close open offer or reset address entries
         if (this instanceof MakerTrade) {
             processModel.getOpenOfferManager().closeSpentOffer(getOffer());
-            HavenoUtils.notificationService.sendTradeNotification(this, Phase.DEPOSITS_PUBLISHED, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); // TODO (woodser): use language translation
+
+            // TODO: use language translation
+            // TODO: this will send notification if deposits are reverted to published
+            HavenoUtils.notificationService.sendTradeNotification(this, Phase.DEPOSITS_PUBLISHED, "Offer Taken", "Your offer " + offer.getId() + " has been accepted"); 
         } else {
             getXmrWalletService().resetAddressEntriesForOpenOffer(getId());
         }

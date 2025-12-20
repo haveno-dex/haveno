@@ -165,6 +165,8 @@ public class DomainInitialisation {
 
         PersistenceManager.onAllServicesInitialized();
 
+        p2PService.onAllServicesInitialized();
+
         arbitratorManager.onAllServicesInitialized();
         mediatorManager.onAllServicesInitialized();
         refundAgentManager.onAllServicesInitialized();
@@ -191,8 +193,6 @@ public class DomainInitialisation {
             if (displayPrivateNotificationHandler != null)
                 displayPrivateNotificationHandler.accept(newValue);
         });
-
-        p2PService.onAllServicesInitialized();
 
         tradeStatisticsManager.onAllServicesInitialized();
 

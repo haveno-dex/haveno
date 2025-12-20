@@ -201,7 +201,10 @@ public class XmrWalletService extends XmrWalletBase {
                 @Override
                 public void onAccountClosed() {
                     log.info("onAccountClosed()");
+                    wasWalletSynced = false;
+                    walletSyncListener.progress(-1, -1, null);
                     closeMainWallet(true);
+                    // TODO: reset more properties?
                 }
 
                 @Override
@@ -354,8 +357,12 @@ public class XmrWalletService extends XmrWalletBase {
         MoneroError err = null;
         String path = wallet.getPath();
         try {
-            if (save) saveWallet(wallet, shouldBackup(wallet));
-            wallet.close();
+            if (save && wallet instanceof MoneroWalletRpc) {
+                ((MoneroWalletRpc) wallet).stop(); // saves wallet and stops rpc server
+            } else {
+                if (save) saveWallet(wallet);
+                wallet.close();
+            }
         } catch (MoneroError e) {
             err = e;
         }
@@ -1889,6 +1896,7 @@ public class XmrWalletService extends XmrWalletBase {
                 if (wallet != null) {
                     isClosingWallet = true;
                     log.debug("Closing main wallet");
+                    if (shouldBackup(wallet)) backupWallet(MONERO_WALLET_NAME);
                     closeWallet(wallet, true);
                     wallet = null;
                 }
@@ -2037,8 +2045,11 @@ public class XmrWalletService extends XmrWalletBase {
             if (wallet == null || isShutDownStarted) return;
             if (HavenoUtils.isUnresponsive(e)) forceRestartMainWallet();
             else if (isWalletConnectedToDaemon()) {
-                log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection());
-                //e.printStackTrace();
+                if (isExpectedWalletError(e)) {
+                    log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection());
+                } else {
+                    log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection(), e); // include stack trace for unexpected errors
+                }
             }
         } finally {
             if (pollInProgressSet) {

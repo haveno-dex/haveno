@@ -440,69 +440,62 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private void initTrades() {
         log.info("Initializing trades");
 
-        // initialize off main thread
-        new Thread(() -> {
+        // get all trades
+        List<Trade> trades = getAllTrades();
 
-            // get all trades
-            List<Trade> trades = getAllTrades();
+        // initialize trades in parallel
+        int threadPoolSize = 10;
+        Set<Runnable> initTradeTasks = new HashSet<Runnable>();
+        Set<String> uids = new HashSet<String>();
+        Set<Trade> tradesToSkip = new HashSet<Trade>();
+        Set<Trade> uninitializedTrades = new HashSet<Trade>();
+        for (Trade trade : trades) {
+            initTradeTasks.add(getInitTradeTask(trade, trades, tradesToSkip, uninitializedTrades, uids));
+        };
+        ThreadUtils.awaitTasks(initTradeTasks, threadPoolSize);
+        log.info("Done initializing trades");
+        if (isShutDownStarted) return;
 
-            // initialize trades in parallel
-            int threadPoolSize = 10;
-            Set<Runnable> initTradeTasks = new HashSet<Runnable>();
-            Set<String> uids = new HashSet<String>();
-            Set<Trade> tradesToSkip = new HashSet<Trade>();
-            Set<Trade> uninitializedTrades = new HashSet<Trade>();
-            for (Trade trade : trades) {
-                initTradeTasks.add(getInitTradeTask(trade, trades, tradesToSkip, uninitializedTrades, uids));
-            };
-            ThreadUtils.awaitTasks(initTradeTasks, threadPoolSize);
-            log.info("Done initializing trades");
-            if (isShutDownStarted) return;
+        // remove skipped trades
+        trades.removeAll(tradesToSkip);
 
-            // remove skipped trades
-            trades.removeAll(tradesToSkip);
+        // process after all wallets initialized
+        if (!HavenoUtils.isSeedNode()) {
 
-            // process after all wallets initialized
-            if (!HavenoUtils.isSeedNode()) {
-
-                // handle uninitialized trades
-                for (Trade trade : uninitializedTrades) {
-                    trade.onProtocolInitializationError();
-                }
-
-                // freeze or thaw outputs
-                if (isShutDownStarted) return;
-                xmrWalletService.fixReservedOutputs();
-
-                // reset any available funded address entries
-                if (isShutDownStarted) return;
-                xmrWalletService.getAddressEntriesForAvailableBalanceStream()
-                        .filter(addressEntry -> addressEntry.getOfferId() != null)
-                        .forEach(addressEntry -> {
-                            log.warn("Swapping pending {} entries at startup. offerId={}", addressEntry.getContext(), addressEntry.getOfferId());
-                            xmrWalletService.swapAddressEntryToAvailable(addressEntry.getOfferId(), addressEntry.getContext());
-                        });
-
-                checkForLockedUpFunds();
+            // handle uninitialized trades
+            for (Trade trade : uninitializedTrades) {
+                trade.onProtocolInitializationError();
             }
 
-            // notify that persisted trades initialized
+            // freeze or thaw outputs
             if (isShutDownStarted) return;
-            tradesInitialized.set(true);
-            getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
-            onTradesChanged();
+            xmrWalletService.fixReservedOutputs();
 
-            // We do not include failed trades as they should not be counted anyway in the trade statistics
-            // TODO: remove stats?
-            Set<Trade> nonFailedTrades = new HashSet<>(closedTradableManager.getClosedTrades());
-            nonFailedTrades.addAll(tradableList.getList());
-            String referralId = referralIdService.getOptionalReferralId().orElse(null);
-            boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
-            tradeStatisticsManager.maybePublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
-        }).start();
+            // reset any available funded address entries
+            if (isShutDownStarted) return;
+            xmrWalletService.getAddressEntriesForAvailableBalanceStream()
+                    .filter(addressEntry -> addressEntry.getOfferId() != null)
+                    .forEach(addressEntry -> {
+                        log.warn("Swapping pending {} entries at startup. offerId={}", addressEntry.getContext(), addressEntry.getOfferId());
+                        xmrWalletService.swapAddressEntryToAvailable(addressEntry.getOfferId(), addressEntry.getContext());
+                    });
 
-        // allow execution to start
-        HavenoUtils.waitFor(100);
+            checkForLockedUpFunds();
+        }
+
+        // notify that persisted trades initialized
+        if (isShutDownStarted) return;
+        tradesInitialized.set(true);
+        getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
+        onTradesChanged();
+
+        // We do not include failed trades as they should not be counted anyway in the trade statistics
+        // TODO: remove stats?
+        Set<Trade> nonFailedTrades = new HashSet<>(closedTradableManager.getClosedTrades());
+        nonFailedTrades.addAll(tradableList.getList());
+        String referralId = referralIdService.getOptionalReferralId().orElse(null);
+        boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
+        tradeStatisticsManager.maybePublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
     }
 
     private Runnable getInitTradeTask(Trade trade, Collection<Trade> trades, Set<Trade> tradesToSkip, Set<Trade> uninitializedTrades, Set<String> uids) {
