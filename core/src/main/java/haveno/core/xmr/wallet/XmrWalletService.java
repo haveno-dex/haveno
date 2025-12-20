@@ -201,7 +201,10 @@ public class XmrWalletService extends XmrWalletBase {
                 @Override
                 public void onAccountClosed() {
                     log.info("onAccountClosed()");
+                    wasWalletSynced = false;
+                    walletSyncListener.progress(-1, -1, null);
                     closeMainWallet(true);
+                    // TODO: reset more properties?
                 }
 
                 @Override
