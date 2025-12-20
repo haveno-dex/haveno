@@ -321,7 +321,7 @@ public class HavenoUtils {
     }
 
     public static BigInteger parseXmr(String input) {
-        if (input == null || input.length() == 0) return BigInteger.ZERO;
+        if (input == null || input.length() == 0) return BigInteger.ZERO; // TODO: throw instead?
         try {
             return new BigDecimal(input).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
         } catch (Exception e) {
