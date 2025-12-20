@@ -99,7 +99,7 @@ public class CreateOfferService {
                                    BigInteger minAmount,
                                    Price fixedPrice,
                                    boolean useMarketBasedPrice,
-                                   double marketPriceMargin,
+                                   double marketPriceMarginPct,
                                    double securityDepositPct,
                                    PaymentAccount paymentAccount,
                                    boolean isPrivateOffer,
@@ -110,7 +110,7 @@ public class CreateOfferService {
                         "direction={}, " +
                         "fixedPrice={}, " +
                         "useMarketBasedPrice={}, " +
-                        "marketPriceMargin={}, " +
+                        "marketPriceMarginPct={}, " +
                         "amount={}, " +
                         "minAmount={}, " +
                         "securityDepositPct={}, " +
@@ -122,7 +122,7 @@ public class CreateOfferService {
                 direction,
                 fixedPrice == null ? null : fixedPrice.getValue(),
                 useMarketBasedPrice,
-                marketPriceMargin,
+                marketPriceMarginPct,
                 amount,
                 minAmount,
                 securityDepositPct,
@@ -141,10 +141,15 @@ public class CreateOfferService {
             if (!isPrivateOffer) throw new IllegalArgumentException("Must set offer to private for buyer as taker without deposit");
         }
 
+        // verify payment account supports trade currency
+        if (paymentAccount.getTradeCurrencies().stream().noneMatch(tradeCurrency -> tradeCurrency.getCode().equals(currencyCode))) {
+            throw new IllegalArgumentException("Payment account does not support trade currency");
+        }
+
         // verify fixed price xor market price with margin
         if (fixedPrice != null) {
             if (useMarketBasedPrice) throw new IllegalArgumentException("Can create offer with fixed price or floating market price but not both");
-            if (marketPriceMargin != 0) throw new IllegalArgumentException("Cannot set market price margin with fixed price");
+            if (marketPriceMarginPct != 0) throw new IllegalArgumentException("Cannot set market price margin with fixed price");
         }
 
         // verify price
@@ -172,7 +177,7 @@ public class CreateOfferService {
         long creationTime = new Date().getTime();
         NodeAddress makerAddress = p2PService.getAddress();
         long priceAsLong = fixedPrice != null ? fixedPrice.getValue() : 0L;
-        double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMargin : 0;
+        double marketPriceMarginParam = useMarketBasedPriceValue ? marketPriceMarginPct : 0;
         long amountAsLong = amount != null ? amount.longValueExact() : 0L;
         long minAmountAsLong = minAmount != null ? minAmount.longValueExact() : 0L;
         String baseCurrencyCode = Res.getBaseCurrencyCode();

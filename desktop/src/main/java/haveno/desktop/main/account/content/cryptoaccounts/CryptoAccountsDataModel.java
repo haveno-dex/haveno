@@ -33,8 +33,8 @@ import haveno.core.user.User;
 import haveno.desktop.common.model.ActivatableDataModel;
 import haveno.desktop.util.GUIUtil;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.collections.SetChangeListener;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
@@ -50,7 +50,7 @@ class CryptoAccountsDataModel extends ActivatableDataModel {
     private final TradeManager tradeManager;
     private final AccountAgeWitnessService accountAgeWitnessService;
     final ObservableList<PaymentAccount> paymentAccounts = FXCollections.observableArrayList();
-    private final SetChangeListener<PaymentAccount> setChangeListener;
+    private final ListChangeListener<PaymentAccount> listChangeListener;
     private final String accountsFileName = "CryptoPaymentAccounts";
     private final PersistenceProtoResolver persistenceProtoResolver;
     private final CorruptedStorageFileHandler corruptedStorageFileHandler;
@@ -70,12 +70,12 @@ class CryptoAccountsDataModel extends ActivatableDataModel {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.persistenceProtoResolver = persistenceProtoResolver;
         this.corruptedStorageFileHandler = corruptedStorageFileHandler;
-        setChangeListener = change -> fillAndSortPaymentAccounts();
+        listChangeListener = change -> fillAndSortPaymentAccounts();
     }
 
     @Override
     protected void activate() {
-        user.getPaymentAccountsAsObservable().addListener(setChangeListener);
+        user.getPaymentAccountsAsObservable().addListener(listChangeListener);
         fillAndSortPaymentAccounts();
     }
 
@@ -90,7 +90,7 @@ class CryptoAccountsDataModel extends ActivatableDataModel {
 
     @Override
     protected void deactivate() {
-        user.getPaymentAccountsAsObservable().removeListener(setChangeListener);
+        user.getPaymentAccountsAsObservable().removeListener(listChangeListener);
     }
 
 

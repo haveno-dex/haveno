@@ -54,7 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -346,10 +345,10 @@ public class PriceFeedService {
         return new Date(epochInMillisAtLastRequest);
     }
 
-    public void applyLatestHavenoMarketPrice(Set<TradeStatistics3> tradeStatisticsSet) {
+    public void applyLatestHavenoMarketPrice(List<TradeStatistics3> tradeStatisticsList) {
         // takes about 10 ms for 5000 items
         Map<String, List<TradeStatistics3>> mapByCurrencyCode = new HashMap<>();
-        tradeStatisticsSet.forEach(e -> {
+        tradeStatisticsList.forEach(e -> {
             List<TradeStatistics3> list;
             String currencyCode = e.getCurrency();
             if (mapByCurrencyCode.containsKey(currencyCode)) {

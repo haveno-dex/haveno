@@ -69,8 +69,12 @@ public class BuyerProtocol extends DisputeProtocol {
     }
 
     @Override
-    protected void onInitialized() {
-        super.onInitialized();
+    protected void onInitializeAfterMailboxMessages() {
+        super.onInitializeAfterMailboxMessages();
+        maybeResendPaymentSentMessage();
+    }
+
+    private void maybeResendPaymentSentMessage() {
 
         // re-send payment sent message if not acked
         ThreadUtils.execute(() -> {

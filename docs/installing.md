@@ -9,7 +9,7 @@ These are the steps to build and run Haveno using the *official test network*.
 > 
 > Alternatively, you can [create your own mainnet network](create-mainnet.md).
 
-## Install dependencies
+## Install dependencies manually
 
 On Ubuntu: `sudo apt install make wget git`
 
@@ -32,6 +32,18 @@ sdk install java 21.0.2.fx-librca
 
 Restart the terminal for the changes to take effect.
 
+## Install dependencies using Nix
+
+Alternatively, dependencies can be installed automatically using [NixOS](https://nixos.org) or [Nix](https://nixos.org/download) on any platform:
+
+```
+git clone https://github.com/haveno-dex/haveno.git
+cd haveno
+nix-shell
+```
+
+*Using Nix, there is no need to install Java dependencies, because they are managed by the shell.nix file. Build and run haveno in nix-shell terminal.*
+
 ## Build Haveno
 
 If it's the first time you are building Haveno, run the following commands to download the repository, the needed dependencies, and build the latest release. If using a third party network, replace the repository URL with theirs:
@@ -39,7 +51,7 @@ If it's the first time you are building Haveno, run the following commands to do
 ```
 git clone https://github.com/haveno-dex/haveno.git
 cd haveno
-git checkout v1.2.1
+git checkout v1.2.2
 make
 ```
 
@@ -48,7 +60,7 @@ make
 If you are updating from a previous version, run from the root of the repository:
 
 ```
-git checkout v1.2.1
+git checkout v1.2.2
 git pull
 make clean && make
 ```

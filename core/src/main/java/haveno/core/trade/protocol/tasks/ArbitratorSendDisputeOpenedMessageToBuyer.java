@@ -25,20 +25,14 @@ import lombok.extern.slf4j.Slf4j;
 
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
-public class BuyerSendPaymentSentMessageToArbitrator extends BuyerSendPaymentSentMessage {
+public class ArbitratorSendDisputeOpenedMessageToBuyer extends ArbitratorSendDisputeOpenedMessage {
 
-    public BuyerSendPaymentSentMessageToArbitrator(TaskRunner<Trade> taskHandler, Trade trade) {
+    public ArbitratorSendDisputeOpenedMessageToBuyer(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
     @Override
     protected TradePeer getReceiver() {
-        return trade.getArbitrator();
-    }
-
-    @Override
-    protected void setStateSent() {
-        super.setStateSent();
-        if (!isCompleted()) complete(); // don't wait for message to arbitrator
+        return trade.getBuyer();
     }
 }

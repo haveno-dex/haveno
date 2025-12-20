@@ -46,10 +46,16 @@ public class FilterBox extends HBox {
         this.filteredList = filteredList;
         listener = (observable, oldValue, newValue) -> {
             UserThread.execute(() -> {
-                tableView.getSelectionModel().clearSelection();
-                applyFilteredListPredicate(textField.getText());
+                applyFilter(tableView, null);
             });
         };
+    }
+
+    public void initializeWithCallback(FilteredList<? extends FilterableListItem> filteredList,
+                                       TableView<? extends FilterableListItem> tableView, Runnable callback) {
+        this.filteredList = filteredList;
+        listener = (observable, oldValue, newValue) -> applyFilter(tableView, callback);
+        applyFilter(tableView, callback); // first time init
     }
 
     public void activate() {
@@ -59,6 +65,14 @@ public class FilterBox extends HBox {
 
     public void deactivate() {
         textField.textProperty().removeListener(listener);
+    }
+
+    private void applyFilter(TableView<? extends FilterableListItem> tableView, Runnable callback) {
+        tableView.getSelectionModel().clearSelection();
+        applyFilteredListPredicate(textField.getText());
+        if (callback != null) {
+            callback.run();
+        }
     }
 
     private void applyFilteredListPredicate(String filterString) {

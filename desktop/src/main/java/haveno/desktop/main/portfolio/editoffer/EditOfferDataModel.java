@@ -24,12 +24,12 @@ import com.google.inject.name.Named;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.api.CoreOffersService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
-import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
@@ -56,6 +56,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
     private OpenOffer openOffer;
     private OpenOffer.State initialState;
     private Offer editedOffer;
+    private final CoreOffersService coreOffersService;
 
     @Inject
     EditOfferDataModel(CreateOfferService createOfferService,
@@ -70,7 +71,8 @@ class EditOfferDataModel extends MutableOfferDataModel {
                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                        CorePersistenceProtoResolver corePersistenceProtoResolver,
                        TradeStatisticsManager tradeStatisticsManager,
-                       Navigation navigation) {
+                       Navigation navigation,
+                       CoreOffersService coreOffersService) {
 
         super(createOfferService,
                 openOfferManager,
@@ -85,6 +87,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
                 tradeStatisticsManager,
                 navigation);
         this.corePersistenceProtoResolver = corePersistenceProtoResolver;
+        this.coreOffersService = coreOffersService;
     }
 
     public void reset() {
@@ -179,55 +182,11 @@ class EditOfferDataModel extends MutableOfferDataModel {
     }
 
     public void onPublishOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        // editedPayload is a merge of the original offerPayload and newOfferPayload
-        // fields which are editable are merged in from newOfferPayload (such as payment account details)
-        // fields which cannot change (most importantly BTC amount) are sourced from the original offerPayload
-        final OfferPayload offerPayload = openOffer.getOffer().getOfferPayload();
-        final OfferPayload newOfferPayload = createAndGetOffer().getOfferPayload();
-        final OfferPayload editedPayload = new OfferPayload(offerPayload.getId(),
-                offerPayload.getDate(),
-                offerPayload.getOwnerNodeAddress(),
-                offerPayload.getPubKeyRing(),
-                offerPayload.getDirection(),
-                newOfferPayload.getPrice(),
-                newOfferPayload.getMarketPriceMarginPct(),
-                newOfferPayload.isUseMarketBasedPrice(),
-                offerPayload.getAmount(),
-                offerPayload.getMinAmount(),
-                offerPayload.getMakerFeePct(),
-                offerPayload.getTakerFeePct(),
-                offerPayload.getPenaltyFeePct(),
-                offerPayload.getBuyerSecurityDepositPct(),
-                offerPayload.getSellerSecurityDepositPct(),
-                newOfferPayload.getBaseCurrencyCode(),
-                newOfferPayload.getCounterCurrencyCode(),
-                newOfferPayload.getPaymentMethodId(),
-                newOfferPayload.getMakerPaymentAccountId(),
-                newOfferPayload.getCountryCode(),
-                newOfferPayload.getAcceptedCountryCodes(),
-                newOfferPayload.getBankId(),
-                newOfferPayload.getAcceptedBankIds(),
-                offerPayload.getVersionNr(),
-                offerPayload.getBlockHeightAtOfferCreation(),
-                offerPayload.getMaxTradeLimit(),
-                offerPayload.getMaxTradePeriod(),
-                offerPayload.isUseAutoClose(),
-                offerPayload.isUseReOpenAfterAutoClose(),
-                offerPayload.getLowerClosePrice(),
-                offerPayload.getUpperClosePrice(),
-                offerPayload.isPrivateOffer(),
-                offerPayload.getChallengeHash(),
-                offerPayload.getExtraDataMap(),
-                offerPayload.getProtocolVersion(),
-                offerPayload.getArbitratorSigner(),
-                offerPayload.getArbitratorSignature(),
-                offerPayload.getReserveTxKeyImages(),
-                newOfferPayload.getExtraInfo());
 
-        editedOffer = new Offer(editedPayload);
-        editedOffer.setPriceFeedService(priceFeedService);
-        editedOffer.setState(Offer.State.AVAILABLE);
+        // get edited offer
+        editedOffer = coreOffersService.getEditedOffer(openOffer, createAndGetOffer().getOfferPayload());
 
+        // publish edited offer
         openOfferManager.editOpenOfferPublish(editedOffer, triggerPrice, initialState, () -> {
             resultHandler.handleResult(); // process result before nullifying state
             openOffer = null;

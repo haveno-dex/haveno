@@ -77,7 +77,6 @@ import static haveno.desktop.util.Layout.FLOATING_LABEL_DISTANCE;
 public class SellerStep3View extends TradeStepView {
 
     private Button confirmButton;
-    private Label statusLabel;
     private BusyAnimation busyAnimation;
     private Subscription tradeStatePropertySubscription;
     private Timer timeoutTimer;
@@ -110,44 +109,44 @@ public class SellerStep3View extends TradeStepView {
 
             if (trade.isPaymentSent() && !trade.isPaymentReceived()) {
                 busyAnimation.stop();
-                statusLabel.setText("");
+                setTradeStatus("");
                 showPopup();
             } else if (trade.isPaymentReceived()) {
                 if (trade.isCompleted()) {
                     if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
                     busyAnimation.stop();
-                    statusLabel.setText("");
+                    setTradeStatus("");
                 } else switch (state) {
                     case SELLER_CONFIRMED_PAYMENT_RECEIPT:
                         busyAnimation.play();
-                        statusLabel.setText(Res.get("shared.preparingConfirmation"));
+                        setTradeStatus(Res.get("shared.preparingConfirmation"));
                         break;
                     case SELLER_SENT_PAYMENT_RECEIVED_MSG:
                         busyAnimation.play();
-                        statusLabel.setText(Res.get("shared.sendingConfirmation"));
+                        setTradeStatus(Res.get("shared.sendingConfirmation"));
                         timeoutTimer = UserThread.runAfter(() -> {
                             busyAnimation.stop();
-                            statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
+                            setTradeStatus(Res.get("shared.sendingConfirmationAgain"));
                         }, 30);
                         break;
                     case SELLER_STORED_IN_MAILBOX_PAYMENT_RECEIVED_MSG:
                         busyAnimation.stop();
-                        statusLabel.setText(Res.get("shared.messageStoredInMailbox"));
+                        setTradeStatus(Res.get("shared.messageStoredInMailbox"));
                         break;
                     case SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG:
                     case BUYER_RECEIVED_PAYMENT_RECEIVED_MSG:
                         busyAnimation.stop();
-                        statusLabel.setText(Res.get("shared.messageArrived"));
+                        setTradeStatus(Res.get("shared.messageArrived"));
                         break;
                     case SELLER_SEND_FAILED_PAYMENT_RECEIVED_MSG:
                         // We get a popup and the trade closed, so we dont need to show anything here
                         busyAnimation.stop();
-                        statusLabel.setText("");
+                        setTradeStatus("");
                         break;
                     default:
                         log.warn("Unexpected case: State={}, tradeId={} " + state.name(), trade.getId());
                         busyAnimation.stop();
-                        statusLabel.setText(Res.get("shared.sendingConfirmationAgain"));
+                        setTradeStatus(Res.get("shared.sendingConfirmationAgain"));
                         break;
                 }
             }
@@ -446,7 +445,7 @@ public class SellerStep3View extends TradeStepView {
     private void confirmPaymentReceived() {
         log.info("User pressed the [Confirm payment receipt] button for Trade {}", trade.getShortId());
         busyAnimation.play();
-        statusLabel.setText(Res.get("shared.preparingConfirmation"));
+        setTradeStatus(Res.get("shared.preparingConfirmation"));
         confirmButton.setDisable(true);
 
         model.dataModel.onPaymentReceived(() -> {
@@ -454,7 +453,7 @@ public class SellerStep3View extends TradeStepView {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentReceivedPermitted());
-            UserThread.execute(() -> statusLabel.setText("Error confirming payment received."));
+            UserThread.execute(() -> setTradeStatus("Error confirming payment received."));
         });
     }
 

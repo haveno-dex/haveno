@@ -265,7 +265,7 @@
     -fx-background: -bs-background-color;
     -fx-background-color: -bs-color-background-form-field-readonly;
     -fx-prompt-text-fill: -bs-color-gray-2;
-    -fx-text-fill: -bs-color-gray-3;
+    -fx-text-fill: -bs-color-gray-4;
 }
 
 .popover > .content .text-field {
@@ -647,4 +647,8 @@
 
 #image-fiat-logo {
     -fx-image: url("../../images/fiat_logo_dark_mode.png");
+}
+
+#message-list-view.list-view {
+    -fx-background-image: url("../../images/chatbg_dark.png");
 }

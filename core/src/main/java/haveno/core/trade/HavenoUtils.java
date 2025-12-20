@@ -109,6 +109,7 @@ public class HavenoUtils {
     public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
     public static final long LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS = 1000 * 30; // log warnings when daemon not synced once every 30s
     public static final int PRIVATE_OFFER_PASSPHRASE_NUM_WORDS = 8; // number of words in a private offer passphrase
+    public static final boolean RECOMMEND_CONFIRMATIONS_BEFORE_SENDING_PAYMENT = true; // recommend waiting additional confirmations before sending payment
 
     // synchronize requests to the daemon
     private static boolean SYNC_DAEMON_REQUESTS = false; // sync long requests to daemon (e.g. refresh, update pool) // TODO: performance suffers by syncing daemon requests, but otherwise we sometimes get sporadic errors?
@@ -320,7 +321,7 @@ public class HavenoUtils {
     }
 
     public static BigInteger parseXmr(String input) {
-        if (input == null || input.length() == 0) return BigInteger.ZERO;
+        if (input == null || input.length() == 0) return BigInteger.ZERO; // TODO: throw instead?
         try {
             return new BigDecimal(input).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
         } catch (Exception e) {
@@ -619,11 +620,11 @@ public class HavenoUtils {
     }
 
     public static boolean isConnectionRefused(Throwable e) {
-        return e != null && e.getMessage().contains("Connection refused");
+        return e != null && e.getMessage() != null && e.getMessage().contains("Connection refused");
     }
 
     public static boolean isReadTimeout(Throwable e) {
-        return e != null && e.getMessage().contains("Read timed out");
+        return e != null && e.getMessage() != null && e.getMessage().contains("Read timed out");
     }
 
     public static boolean isUnresponsive(Throwable e) {
@@ -631,23 +632,23 @@ public class HavenoUtils {
     }
 
     private static boolean isNotEnoughSigners(Throwable e) {
-        return e != null && e.getMessage().contains("Not enough signers");
+        return e != null && e.getMessage() != null && e.getMessage().contains("Not enough signers");
     }
 
     private static boolean isFailedToParse(Throwable e) {
-        return e != null && e.getMessage().contains("Failed to parse");
+        return e != null && e.getMessage() != null && e.getMessage().contains("Failed to parse");
     }
 
     private static boolean isStaleData(Throwable e) {
-        return e != null && e.getMessage().contains("stale data");
+        return e != null && e.getMessage() != null && e.getMessage().contains("stale data");
     }
 
     private static boolean isNoTransactionCreated(Throwable e) {
-        return e != null && e.getMessage().contains("No transaction created");
+        return e != null && e.getMessage() != null && e.getMessage().contains("No transaction created");
     }
 
     private static boolean isLRNotFound(Throwable e) {
-        return e != null && e.getMessage().contains("LR not found for enough participants");
+        return e != null && e.getMessage() != null && e.getMessage().contains("LR not found for enough participants");
     }
 
     // TODO: handling specific error messages is brittle, inverse so all errors are illegal except known local issues?
@@ -656,7 +657,7 @@ public class HavenoUtils {
     }
 
     public static boolean isTransactionRejected(Throwable e) {
-        return e != null && e.getMessage().contains("was rejected");
+        return e != null && e.getMessage() != null && e.getMessage().contains("was rejected");
     }
 
     public static boolean isIllegal(Throwable e) {

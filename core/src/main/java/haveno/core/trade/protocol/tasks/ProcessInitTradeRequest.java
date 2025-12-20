@@ -132,6 +132,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                 if (request.getTradePrice() != trade.getPrice().getValue()) throw new RuntimeException("Trade price does not match request's trade price");
                 Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(request.getArbitratorNodeAddress());
                 if (arbitrator == null) throw new RuntimeException("Arbitrator is not accepted by taker");
+                if (trade.getArbitrator().getNodeAddress() != null && !trade.getArbitrator().getNodeAddress().equals(request.getArbitratorNodeAddress())) throw new RuntimeException("Trade's arbitrator node address does not match request");
                 trade.getArbitrator().setNodeAddress(request.getArbitratorNodeAddress());
                 trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
                 sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());

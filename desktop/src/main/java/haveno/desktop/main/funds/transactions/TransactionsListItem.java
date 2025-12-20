@@ -30,6 +30,7 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.filtering.FilterableListItem;
 import javafx.scene.control.Tooltip;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -38,12 +39,15 @@ import monero.wallet.model.MoneroOutgoingTransfer;
 import monero.wallet.model.MoneroTxWallet;
 
 import javax.annotation.Nullable;
+
+import org.apache.commons.lang3.StringUtils;
+
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.Optional;
 
 @Slf4j
-public class TransactionsListItem {
+public class TransactionsListItem implements FilterableListItem {
     private String dateString;
     private final Date date;
     private final String txId;
@@ -257,5 +261,31 @@ public class TransactionsListItem {
 
     public String getMemo() {
         return memo;
+    }
+
+    @Override
+    public boolean match(String filterString) {
+        if (filterString.isEmpty()) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getTxId(), filterString)) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getDetails(), filterString)) {
+            return true;
+        }
+        if (getMemo() != null && StringUtils.containsIgnoreCase(getMemo(), filterString)) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getDirection(), filterString)) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getDateString(), filterString)) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getAmountStr(), filterString)) {
+            return true;
+        }
+        return StringUtils.containsIgnoreCase(getAddressString(), filterString);
     }
 }

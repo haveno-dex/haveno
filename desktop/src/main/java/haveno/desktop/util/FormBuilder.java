@@ -540,6 +540,42 @@ public class FormBuilder {
         return new Tuple2<>(addTopLabelWithVBox(gridPane, rowIndex, columnIndex, title, textFieldWithIcon, top).first, textFieldWithIcon);
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Label  + TextFieldWithIcon + Label
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    public static Tuple4<VBox, Label, TextFieldWithIcon, Label> addTopLabelTextFieldWithIconLabel(GridPane gridPane,
+                                                                                int rowIndex,
+                                                                                String title,
+                                                                                double top) {
+        return addTopLabelTextFieldWithIconLabel(gridPane, rowIndex, 0, title, top);
+    }
+
+    public static Tuple4<VBox, Label, TextFieldWithIcon, Label> addTopLabelTextFieldWithIconLabel(GridPane gridPane,
+                                                                                int rowIndex,
+                                                                                int columnIndex,
+                                                                                String title,
+                                                                                double top) {
+        HBox hBox = new HBox();
+        hBox.setSpacing(10);
+
+        TextFieldWithIcon textFieldWithIcon = new TextFieldWithIcon();
+        textFieldWithIcon.setFocusTraversable(false);
+
+        Label label = new AutoTooltipLabel();
+        hBox.setAlignment(Pos.CENTER_LEFT);
+
+        hBox.getChildren().addAll(textFieldWithIcon, label);
+        GridPane.setRowIndex(hBox, rowIndex);
+        GridPane.setColumnIndex(hBox, columnIndex);
+        GridPane.setMargin(hBox, new Insets(top, 0, 0, 0));
+        gridPane.getChildren().add(hBox);
+
+        Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, columnIndex, title, hBox, top);
+
+        return new Tuple4<>(topLabelWithVBox.second, topLabelWithVBox.first, textFieldWithIcon, label);
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     //  HyperlinkWithIcon

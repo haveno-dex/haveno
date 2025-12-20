@@ -703,6 +703,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             return;
         }
 
+        log.info("Editing open offer: {}", openOffer.getId());
         offersToBeEdited.put(openOffer.getId(), openOffer);
 
         if (openOffer.isAvailable()) {
@@ -723,58 +724,74 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                      OpenOffer.State originalState,
                                      ResultHandler resultHandler,
                                      ErrorMessageHandler errorMessageHandler) {
-        Optional<OpenOffer> openOfferOptional = getOpenOffer(editedOffer.getId());
+        ThreadUtils.execute(() -> {
+            Optional<OpenOffer> openOfferOptional = getOpenOffer(editedOffer.getId());
 
-        if (openOfferOptional.isPresent()) {
-            OpenOffer openOffer = openOfferOptional.get();
-
-            openOffer.getOffer().setState(Offer.State.REMOVED);
-            openOffer.setState(OpenOffer.State.CANCELED);
-            removeOpenOffer(openOffer);
-
-            OpenOffer editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
-            if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
-                if (hasConflictingClone(editedOpenOffer)) {
-                    editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
-                } else {
-                    editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
-                }
-                applyTriggerState(editedOpenOffer);
-            } else {
-                if (originalState == OpenOffer.State.AVAILABLE && hasConflictingClone(editedOpenOffer)) {
-                    editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
-                } else {
-                    editedOpenOffer.setState(originalState);
-                }
+            // check that trigger price is not set for fixed price offers
+            boolean isFixedPrice = editedOffer.getOfferPayload().getPrice() != 0;
+            if (triggerPrice != 0 && isFixedPrice) {
+                errorMessageHandler.handleErrorMessage("Cannot set trigger price for fixed price offers.");
+                return;
             }
 
-            addOpenOffer(editedOpenOffer);
+            if (openOfferOptional.isPresent()) {
+                OpenOffer openOffer = openOfferOptional.get();
 
-            // check for valid arbitrator signature after editing
-            Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(editedOpenOffer.getOffer().getOfferPayload().getArbitratorSigner());
-            if (arbitrator == null || !HavenoUtils.isArbitratorSignatureValid(editedOpenOffer.getOffer().getOfferPayload(), arbitrator)) {
+                openOffer.getOffer().setState(Offer.State.REMOVED);
+                openOffer.setState(OpenOffer.State.CANCELED);
+                removeOpenOffer(openOffer);
 
-                // reset arbitrator signature
-                editedOpenOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
-                editedOpenOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
+                OpenOffer editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
+                if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
+                    if (hasConflictingClone(editedOpenOffer)) {
+                        editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                    } else {
+                        editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
+                    }
+                } else {
+                    if (originalState == OpenOffer.State.AVAILABLE && hasConflictingClone(editedOpenOffer)) {
+                        editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                    } else {
+                        editedOpenOffer.setState(originalState);
+                    }
+                }
+                
+                applyTriggerState(editedOpenOffer); // apply trigger state before adding so it's not immediately removed
+                addOpenOffer(editedOpenOffer);
 
-                // process offer to sign and publish
-                processOffer(getOpenOffers(), editedOpenOffer, (transaction) -> {
+                // check for valid arbitrator signature after editing
+                Arbitrator arbitrator = user.getAcceptedArbitratorByAddress(editedOpenOffer.getOffer().getOfferPayload().getArbitratorSigner());
+                if (arbitrator == null || !HavenoUtils.isArbitratorSignatureValid(editedOpenOffer.getOffer().getOfferPayload(), arbitrator)) {
+
+                    // reset arbitrator signature
+                    editedOpenOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
+                    editedOpenOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
+                    if (editedOpenOffer.isAvailable()) editedOpenOffer.setState(OpenOffer.State.PENDING);
+
+                    // process offer to sign and publish
+                    synchronized (processOffersLock) {
+                        CountDownLatch latch = new CountDownLatch(1);
+                        processOffer(getOpenOffers(), editedOpenOffer, (transaction) -> {
+                            offersToBeEdited.remove(openOffer.getId());
+                            requestPersistence();
+                            latch.countDown();
+                            resultHandler.handleResult();
+                        }, (errorMsg) -> {
+                            latch.countDown();
+                            errorMessageHandler.handleErrorMessage(errorMsg);
+                        });
+                        HavenoUtils.awaitLatch(latch);
+                    }
+                } else {
+                    maybeRepublishOffer(editedOpenOffer, null);
                     offersToBeEdited.remove(openOffer.getId());
                     requestPersistence();
                     resultHandler.handleResult();
-                }, (errorMsg) -> {
-                    errorMessageHandler.handleErrorMessage(errorMsg);
-                });
+                }
             } else {
-                maybeRepublishOffer(editedOpenOffer, null);
-                offersToBeEdited.remove(openOffer.getId());
-                requestPersistence();
-                resultHandler.handleResult();
+                errorMessageHandler.handleErrorMessage("There is no offer with this id existing to be published.");
             }
-        } else {
-            errorMessageHandler.handleErrorMessage("There is no offer with this id existing to be published.");
-        }
+        }, THREAD_ID);
     }
 
     public void editOpenOfferCancel(OpenOffer openOffer,
@@ -1112,21 +1129,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     }
                 } else {
 
-                    // validate non-pending state
-                    boolean skipValidation = openOffer.isDeactivated() && hasConflictingClone(openOffer) && openOffer.getOffer().getOfferPayload().getArbitratorSignature() == null; // clone with conflicting offer is deactivated and unsigned at first
-                    if (!skipValidation) {
-                        try {
-                            validateSignedState(openOffer);
-                            resultHandler.handleResult(null); // done processing if non-pending state is valid
-                            return;
-                        } catch (Exception e) {
-                            log.warn(e.getMessage());
+                    // validate or reset non-pending state
+                    try {
+                        validateSignedState(openOffer);
+                        resultHandler.handleResult(null); // done processing if non-pending state is valid
+                        return;
+                    } catch (Exception e) {
+                        log.info("Open offer {} has invalid signature, which can happen after editing or cloning offer, validationMsg={}", openOffer.getId(), e.getMessage());
 
-                            // reset arbitrator signature
-                            openOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
-                            openOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
-                            if (openOffer.isAvailable()) openOffer.setState(OpenOffer.State.PENDING);
-                        }
+                        // reset arbitrator signature
+                        openOffer.getOffer().getOfferPayload().setArbitratorSignature(null);
+                        openOffer.getOffer().getOfferPayload().setArbitratorSigner(null);
+                        if (openOffer.isAvailable()) openOffer.setState(OpenOffer.State.PENDING);
                     }
                 }
 
@@ -2149,7 +2163,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         ThreadUtils.execute(() -> {
 
             // skip if prevented from publishing
-            if (preventedFromPublishing(openOffer)) {
+            if (preventedFromPublishing(openOffer, false)) {
                 if (completeHandler != null) completeHandler.run();
                 return;
             }
@@ -2162,7 +2176,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     latch.countDown();
 
                     // skip if prevented from publishing
-                    if (preventedFromPublishing(openOffer)) {
+                    if (preventedFromPublishing(openOffer, true)) {
                         if (completeHandler != null) completeHandler.run();
                         return;
                     }
@@ -2200,11 +2214,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }, THREAD_ID);
     }
 
-    private boolean preventedFromPublishing(OpenOffer openOffer) {
+    private boolean preventedFromPublishing(OpenOffer openOffer, boolean checkSignature) {
         if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) return true;
         return openOffer.isDeactivated() ||
                 openOffer.isCanceled() ||
-                openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null ||
+                (checkSignature && openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null) ||
                 hasConflictingClone(openOffer);
     }
 
@@ -2261,7 +2275,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void maybeRefreshOffer(OpenOffer openOffer, int numAttempts, int maxAttempts) {
-        if (preventedFromPublishing(openOffer)) return;
+        if (preventedFromPublishing(openOffer, true)) return;
         offerBookService.refreshTTL(openOffer.getOffer().getOfferPayload(),
                 () -> log.debug("Successful refreshed TTL for offer"),
                 (errorMessage) -> {

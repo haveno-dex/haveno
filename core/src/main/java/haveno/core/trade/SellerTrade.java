@@ -30,7 +30,7 @@ import java.util.Date;
 @Slf4j
 public abstract class SellerTrade extends Trade {
 
-    private static final long resendPaymentReceivedMessagesDurationMs = 1L * 30 * 24 * 60 * 60 * 1000; // ~1 month
+    private static final long resendPaymentReceivedMessagesDurationMs = 1L * 30 * 24 * 60 * 60 * 1000; // 30 days
 
     SellerTrade(Offer offer,
                 BigInteger tradeAmount,
@@ -71,7 +71,7 @@ public abstract class SellerTrade extends Trade {
     public boolean needsToResendPaymentReceivedMessages() {
         boolean hasNoPaymentReceivedMessages = getBuyer().getPaymentReceivedMessage() == null && getArbitrator().getPaymentReceivedMessage() == null;
         if (!walletExistsNoSync() && !hasNoPaymentReceivedMessages) return false; // cannot provide any updated state
-        return !isShutDownStarted() && getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !getProcessModel().isPaymentReceivedMessagesAckedOrStored() && resendPaymentReceivedMessagesEnabled() && resendPaymentReceivedMessagesWithinDuration();
+        return !isShutDownStarted() && getState().ordinal() >= Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal() && !getProcessModel().isPaymentReceivedMessagesAckedOrNacked() && resendPaymentReceivedMessagesEnabled() && resendPaymentReceivedMessagesWithinDuration();
     }
 
     private boolean resendPaymentReceivedMessagesEnabled() {

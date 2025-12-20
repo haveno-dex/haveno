@@ -69,7 +69,7 @@ public class AppStartupState {
         });
 
         xmrWalletService.downloadPercentageProperty().addListener((observable, oldValue, newValue) -> {
-            if (xmrWalletService.isDownloadComplete())
+            if (xmrWalletService.wasWalletSynced())
                 isWalletSynced.set(true);
         });
 

@@ -526,12 +526,12 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         havenoSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
 
-        this.footerVersionInfo.setValue("v" + Version.VERSION);
+        this.footerVersionInfo.setValue(Res.get("mainView.footer.version", Version.VERSION));
         this.getNewVersionAvailableProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
-                this.footerVersionInfo.setValue("v" + Version.VERSION + " " + Res.get("mainView.version.update"));
+                this.footerVersionInfo.setValue(Res.get("mainView.footer.version", Version.VERSION) + " " + Res.get("mainView.version.update"));
             } else {
-                this.footerVersionInfo.setValue("v" + Version.VERSION);
+                this.footerVersionInfo.setValue(Res.get("mainView.footer.version", Version.VERSION));
             }
         });
 

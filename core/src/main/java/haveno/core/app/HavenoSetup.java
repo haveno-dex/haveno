@@ -102,7 +102,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
-import javafx.collections.SetChangeListener;
+import javafx.collections.ListChangeListener;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
@@ -622,8 +622,8 @@ public class HavenoSetup {
     private void maybeShowSecurityRecommendation() {
         if (user.getPaymentAccountsAsObservable() == null) return;
         String key = "remindPasswordAndBackup";
-        user.getPaymentAccountsAsObservable().addListener((SetChangeListener<PaymentAccount>) change -> {
-            if (!walletsManager.areWalletsEncrypted() && !user.isPaymentAccountImport() && preferences.showAgain(key) && change.wasAdded() &&
+        user.getPaymentAccountsAsObservable().addListener((ListChangeListener<PaymentAccount>) change -> {
+            if (!walletsManager.areWalletsEncrypted() && !user.isPaymentAccountImport() && preferences.showAgain(key) && change.next() && change.wasAdded() &&
                     displaySecurityRecommendationHandler != null)
                 displaySecurityRecommendationHandler.accept(key);
         });

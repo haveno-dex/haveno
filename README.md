@@ -46,7 +46,6 @@ Note that Haveno is being actively developed. If you find issues or bugs, please
 
 - **[haveno](https://github.com/haveno-dex/haveno)** - This repository. The core of Haveno.
 - **[haveno-ts](https://github.com/haveno-dex/haveno-ts)** - TypeScript library for using Haveno.
-- **[haveno-ui](https://github.com/haveno-dex/haveno-ui)** - A new user interface (WIP).
 - **[haveno-meta](https://github.com/haveno-dex/haveno-meta)** - For project-wide discussions and proposals.
 
 If you wish to help, take a look at the repositories above and look for open issues. We run a bounty program to incentivize development. See [Bounties](#bounties).

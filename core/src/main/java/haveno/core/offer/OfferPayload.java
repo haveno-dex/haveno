@@ -491,10 +491,10 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
                 ",\r\n     lowerClosePrice=" + lowerClosePrice +
                 ",\r\n     upperClosePrice=" + upperClosePrice +
                 ",\r\n     isPrivateOffer=" + isPrivateOffer +
-                ",\r\n     challengeHash='" + challengeHash +
+                ",\r\n     challengeHash='" + challengeHash + '\'' +
                 ",\r\n     arbitratorSigner=" + arbitratorSigner +
                 ",\r\n     arbitratorSignature=" + Utilities.bytesAsHexString(arbitratorSignature) +
-                ",\r\n     extraInfo='" + extraInfo +
+                ",\r\n     extraInfo='" + extraInfo + '\'' +
                 "\r\n} ";
     }
 

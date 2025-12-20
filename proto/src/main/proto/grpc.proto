@@ -475,6 +475,12 @@ service Offers {
     }
     rpc PostOffer (PostOfferRequest) returns (PostOfferReply) {
     }
+    rpc EditOffer (EditOfferRequest) returns (EditOfferReply) {
+    }
+    rpc DeactivateOffer (DeactivateOfferRequest) returns (DeactivateOfferReply) {
+    }
+    rpc ActivateOffer (ActivateOfferRequest) returns (ActivateOfferReply) {
+    }
     rpc CancelOffer (CancelOfferRequest) returns (CancelOfferReply) {
     }
 }
@@ -533,6 +539,35 @@ message PostOfferRequest {
 
 message PostOfferReply {
     OfferInfo offer = 1;
+}
+
+message EditOfferRequest {
+    string offer_id = 1;
+    string currency_code = 2;
+    string price = 3;
+    bool use_market_based_price = 4;
+    double market_price_margin_pct = 5;
+    string trigger_price = 6;
+    string payment_account_id = 7;
+    string extra_info = 8;
+}
+
+message EditOfferReply {
+    OfferInfo offer = 1;
+}
+
+message DeactivateOfferRequest {
+    string offer_id = 1;
+}
+
+message DeactivateOfferReply {
+}
+
+message ActivateOfferRequest {
+    string offer_id = 1;
+}
+
+message ActivateOfferReply {
 }
 
 message CancelOfferRequest {

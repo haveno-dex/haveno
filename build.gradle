@@ -49,7 +49,7 @@ configure(subprojects) {
         gsonVersion = '2.8.5'
         guavaVersion = '32.1.1-jre'
         guiceVersion = '7.0.0'
-        moneroJavaVersion = '0.8.38'
+        moneroJavaVersion = '0.8.40'
         httpclient5Version = '5.0'
         hamcrestVersion = '2.2'
         httpclientVersion = '4.5.12'
@@ -459,14 +459,14 @@ configure(project(':core')) {
         doLast {
             // get monero binaries download url
             Map moneroBinaries = [
-                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-linux-x86_64.tar.gz',
-                'linux-x86_64-sha256'  : '713d64ff6423add0d065d9dfbf8a120dfbf3995d4b2093f8235b4da263d8a89c',
-                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-linux-aarch64.tar.gz',
-                'linux-aarch64-sha256' : '332dcc6a5d7eec754c010a1f893f81656be1331b847b06e9be69293b456f67cc',
-                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'           : '1c5bcd23373132528634352e604c1d732a73c634f3c77314fae503c6d23e10b0',
-                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release7/monero-bins-haveno-windows.zip',
-                'windows-sha256'       : '3d57b980e0208a950fd795f442d9e087b5298a914b0bd96fec431188b5ab0dad'
+                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release9/monero-bins-haveno-linux-x86_64.tar.gz',
+                'linux-x86_64-sha256'  : 'e1df7c2789472ece060619bcfe1a8a6e792799c4cd963433226e12b265ca0c9f',
+                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release9/monero-bins-haveno-linux-aarch64.tar.gz',
+                'linux-aarch64-sha256' : 'b197c46b08780c27ccd05d8123207af25211dd59edff0a63d73e93aa88d16892',
+                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release9/monero-bins-haveno-mac.tar.gz',
+                'mac-sha256'           : '1f39647d686a7a15b72ecff594069d90f047ed2f6df1817165ef1abc5419ec43',
+                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release9/monero-bins-haveno-windows.zip',
+                'windows-sha256'       : '10f7b38ebc1679ad9d25ac72a930141a082e6e502d7a5b06816ad770fe23f27c'
             ]
 
             String osKey
@@ -612,7 +612,7 @@ configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.2.1-SNAPSHOT'
+    version = '1.2.2-SNAPSHOT'
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,

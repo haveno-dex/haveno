@@ -18,6 +18,10 @@
 package haveno.desktop.main.offer.offerbook;
 
 import com.google.common.base.Joiner;
+
+import haveno.common.ThreadUtils;
+import haveno.common.Timer;
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -53,6 +57,7 @@ import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableViewModel;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.offer.OfferView;
+import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.DisplayUtils;
@@ -80,14 +85,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 @Slf4j
 abstract class OfferBookViewModel extends ActivatableViewModel {
     private final OpenOfferManager openOfferManager;
     private final User user;
-    private final OfferBook offerBook;
+    final OfferBook offerBook;
     final Preferences preferences;
     private final WalletsSetup walletsSetup;
     private final P2PService p2PService;
@@ -113,6 +121,11 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     private OfferDirection direction;
 
     final StringProperty tradeCurrencyCode = new SimpleStringProperty();
+    
+    private static final Object processOfferBookListItemsLock = new Object();
+    @Nullable
+    private static Timer processOfferBookListItemsTimer;
+    private final String THREAD_ID = OfferBookViewModel.class.getSimpleName();
 
     private OfferView.OfferActionHandler offerActionHandler;
 
@@ -131,6 +144,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     boolean showAllPaymentMethods = true;
     boolean useOffersMatchingMyAccountsFilter;
     boolean showPrivateOffers;
+
+    protected static final boolean SORT_CURRENCIES_BY_OFFER_COUNT = true; // TODO: make configurable via preferences?
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -173,12 +188,26 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
         tradeCurrencyListChangeListener = c -> fillCurrencies();
 
-        // refresh filter on changes
-        // TODO: This is removed because it's expensive to re-filter offers for every change (high cpu for many offers).
-        // This was used to ensure offer list is fully refreshed, but is unnecessary after refactoring OfferBookService to clone offers?
-        // offerBook.getOfferBookListItems().addListener((ListChangeListener<OfferBookListItem>) c -> {
-        //     filterOffers();
-        // });
+        // refresh on offer changes
+        offerBook.getOfferBookListItems().addListener((ListChangeListener<OfferBookListItem>) c -> {
+            synchronized (processOfferBookListItemsLock) {
+                if (processOfferBookListItemsTimer == null) {
+                    processOfferBookListItemsTimer = UserThread.runAfter(() -> {
+                        ThreadUtils.execute(() -> {
+                            offerBook.fillOfferCountMaps();
+                            fillCurrencies();
+                            synchronized (processOfferBookListItemsLock) {
+                                processOfferBookListItemsTimer = null;
+                            }
+                        }, THREAD_ID);
+                    }, 100, TimeUnit.MILLISECONDS);
+                }
+            }
+
+            // TODO: This is removed because it's expensive to re-filter offers for every change (high cpu for many offers).
+            // This was used to ensure offer list is fully refreshed, but is unnecessary after refactoring OfferBookService to clone offers?
+            //filterOffers();
+        });
 
         filterItemsListener = c -> {
             final Optional<OfferBookListItem> highestAmountOffer = filteredItems.stream()
@@ -223,8 +252,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         useOffersMatchingMyAccountsFilter = !disableMatchToggle.get() && isShowOffersMatchingMyAccounts();
         showPrivateOffers = preferences.isShowPrivateOffers();
 
-        fillCurrencies();
         updateSelectedTradeCurrency();
+        fillCurrencies();
         preferences.getTradeCurrenciesAsObservable().addListener(tradeCurrencyListChangeListener);
         offerBook.fillOfferBookListItems();
         filterOffers();
@@ -360,6 +389,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     TradeCurrency getSelectedTradeCurrency() {
         return selectedTradeCurrency;
+    }
+
+    Map<String, Integer> getOfferCounts() {
+        return OfferViewUtil.isShownAsBuyOffer(getDirection(), getSelectedTradeCurrency()) ? getSellOfferCounts() : getBuyOfferCounts();
     }
 
     ObservableList<PaymentMethod> getPaymentMethods() {

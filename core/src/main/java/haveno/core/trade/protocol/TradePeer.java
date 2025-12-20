@@ -28,6 +28,7 @@ import haveno.core.network.MessageState;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
+import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
@@ -100,6 +101,9 @@ public final class TradePeer implements PersistablePayload {
     @Nullable
     @Setter
     @Getter
+    private DisputeOpenedMessage disputeOpenedMessage;
+    @Setter
+    @Getter
     private DisputeClosedMessage disputeClosedMessage;
 
     // added in v 0.6
@@ -159,6 +163,10 @@ public final class TradePeer implements PersistablePayload {
     private ObjectProperty<MessageState> paymentSentMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
     @Setter
     private ObjectProperty<MessageState> paymentReceivedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    @Setter
+    private ObjectProperty<MessageState> disputeOpenedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+    @Setter
+    private ObjectProperty<MessageState> disputeClosedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
 
     public TradePeer() {
     }
@@ -247,6 +255,27 @@ public final class TradePeer implements PersistablePayload {
         }
     }
 
+    public void setDisputeOpenedAckMessage(AckMessage ackMessage) {
+        MessageState messageState = ackMessage.isSuccess() ?
+                MessageState.ACKNOWLEDGED :
+                MessageState.NACKED;
+        setDisputeOpenedMessageState(messageState);
+    }
+
+    public void setDisputeOpenedMessageState(MessageState disputeOpenedMessageStateProperty) {
+        this.disputeOpenedMessageStateProperty.set(disputeOpenedMessageStateProperty);
+        if (tradeManager != null) {
+            tradeManager.requestPersistence();
+        }
+    }
+
+    public void setDisputeClosedMessageState(MessageState disputeClosedMessageStateProperty) {
+        this.disputeClosedMessageStateProperty.set(disputeClosedMessageStateProperty);
+        if (tradeManager != null) {
+            tradeManager.requestPersistence();
+        }
+    }
+
     public boolean isDepositsConfirmedMessageAcked() {
         return depositsConfirmedMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
     }
@@ -255,20 +284,36 @@ public final class TradePeer implements PersistablePayload {
         return paymentSentMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
     }
 
-    public boolean isPaymentReceivedMessageReceived() {
-        return isPaymentReceivedMessageAckedOrStored() || isPaymentReceivedMessageNacked();
+    public boolean isPaymentSentMessageStored() {
+        return paymentSentMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
     }
 
-    public boolean isPaymentReceivedMessageAckedOrStored() {
-        return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || paymentReceivedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+    public boolean isPaymentReceivedMessageAcked() {
+        return paymentReceivedMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
     }
 
     public boolean isPaymentReceivedMessageNacked() {
         return paymentReceivedMessageStateProperty.get() == MessageState.NACKED;
     }
 
+    public boolean isPaymentReceivedMessageStored() {
+        return paymentReceivedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
+    }
+
+    public boolean isPaymentReceivedMessageAckedOrNacked() {
+        return isPaymentReceivedMessageAcked() || isPaymentReceivedMessageNacked();
+    }
+
     public boolean isPaymentReceivedMessageArrived() {
         return paymentReceivedMessageStateProperty.get() == MessageState.ARRIVED;
+    }
+
+    public boolean isDisputeOpenedMessageAckedOrNacked() {
+        return disputeOpenedMessageStateProperty.get() == MessageState.ACKNOWLEDGED || disputeOpenedMessageStateProperty.get() == MessageState.NACKED;
+    }
+
+    public boolean isDisputeOpenedMessageStored() {
+        return disputeOpenedMessageStateProperty.get() == MessageState.STORED_IN_MAILBOX;
     }
 
     @Override
@@ -293,6 +338,7 @@ public final class TradePeer implements PersistablePayload {
         Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
         Optional.ofNullable(paymentReceivedMessage).ifPresent(e -> builder.setPaymentReceivedMessage(paymentReceivedMessage.toProtoNetworkEnvelope().getPaymentReceivedMessage()));
+        Optional.ofNullable(disputeOpenedMessage).ifPresent(e -> builder.setDisputeOpenedMessage(disputeOpenedMessage.toProtoNetworkEnvelope().getDisputeOpenedMessage()));
         Optional.ofNullable(disputeClosedMessage).ifPresent(e -> builder.setDisputeClosedMessage(disputeClosedMessage.toProtoNetworkEnvelope().getDisputeClosedMessage()));
         Optional.ofNullable(reserveTxHash).ifPresent(e -> builder.setReserveTxHash(reserveTxHash));
         Optional.ofNullable(reserveTxHex).ifPresent(e -> builder.setReserveTxHex(reserveTxHex));
@@ -314,6 +360,8 @@ public final class TradePeer implements PersistablePayload {
         builder.setDepositsConfirmedMessageState(depositsConfirmedMessageStateProperty.get().name());
         builder.setPaymentSentMessageState(paymentSentMessageStateProperty.get().name());
         builder.setPaymentReceivedMessageState(paymentReceivedMessageStateProperty.get().name());
+        builder.setDisputeOpenedMessageState(disputeOpenedMessageStateProperty.get().name());
+        builder.setDisputeClosedMessageState(disputeClosedMessageStateProperty.get().name());
 
         builder.setCurrentDate(currentDate);
         return builder.build();
@@ -345,6 +393,7 @@ public final class TradePeer implements PersistablePayload {
             tradePeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
             tradePeer.setPaymentSentMessage(proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), Version.getP2PMessageVersion()) : null);
             tradePeer.setPaymentReceivedMessage(proto.hasPaymentReceivedMessage() ? PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), Version.getP2PMessageVersion()) : null);
+            tradePeer.setDisputeOpenedMessage(proto.hasDisputeOpenedMessage() ? DisputeOpenedMessage.fromProto(proto.getDisputeOpenedMessage(), coreProtoResolver, Version.getP2PMessageVersion()) : null);
             tradePeer.setDisputeClosedMessage(proto.hasDisputeClosedMessage() ? DisputeClosedMessage.fromProto(proto.getDisputeClosedMessage(), Version.getP2PMessageVersion()) : null);
             tradePeer.setReserveTxHash(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()));
             tradePeer.setReserveTxHex(ProtoUtil.stringOrNullFromProto(proto.getReserveTxHex()));
@@ -375,6 +424,14 @@ public final class TradePeer implements PersistablePayload {
             String paymentReceivedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getPaymentReceivedMessageState());
             MessageState paymentReceivedMessageState = ProtoUtil.enumFromProto(MessageState.class, paymentReceivedMessageStateString);
             tradePeer.setPaymentReceivedMessageState(paymentReceivedMessageState);
+
+            String disputeOpenedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getDisputeOpenedMessageState());
+            MessageState disputeOpenedMessageState = ProtoUtil.enumFromProto(MessageState.class, disputeOpenedMessageStateString);
+            tradePeer.setDisputeOpenedMessageState(disputeOpenedMessageState);
+
+            String disputeClosedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getDisputeClosedMessageState());
+            MessageState disputeClosedMessageState = ProtoUtil.enumFromProto(MessageState.class, disputeClosedMessageStateString);
+            tradePeer.setDisputeClosedMessageState(disputeClosedMessageState);
 
             return tradePeer;
         }

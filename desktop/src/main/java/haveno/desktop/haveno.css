@@ -773,8 +773,8 @@ tree-table-view:focused {
     -fx-background-color: -bs-rd-nav-background;
     -fx-border-width: 0 0 0 0;
     -fx-border-color: -bs-rd-nav-primary-border;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
 }
 
 .top-navigation .separator:vertical .line {
@@ -1912,23 +1912,23 @@ textfield */
 
 /* message-list-view*/
 #message-list-view.list-view:focused > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: transparent;
 }
 
 #message-list-view.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: transparent;
 }
 
 #message-list-view.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: transparent;
 }
 
 #message-list-view.list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: transparent;
 }
 
 #message-list-view.list-view:focused > .virtual-flow > .clipped-container > .sheet > .list-cell {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: transparent;
 }
 
 #message-list-view.list-cell {
@@ -1936,13 +1936,17 @@ textfield */
 }
 
 #message-list-view.list-view {
-    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-color: transparent;
     -fx-background-insets: 0, 1;
     -fx-padding: 1;
+    -fx-background-image: url("../../images/chatbg_light.png");
+    -fx-background-repeat: repeat;
+    -fx-background-position: 0 0;
+    -fx-background-size: 700px;
 }
 
 #message-list-view.list-view:focused {
-    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-color: transparent;
     -fx-background-insets: 0, 1;
     -fx-padding: 1;
 }
@@ -2428,7 +2432,7 @@ textfield */
 }
 
 .message-header {
-    -fx-text-fill: -bs-color-gray-3;
+    -fx-text-fill: -bs-color-gray-6;
     -fx-font-size: 0.846em;
 }
 

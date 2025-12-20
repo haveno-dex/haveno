@@ -97,7 +97,7 @@ public class TacWindow extends Overlay<TacWindow> {
         messageTextArea.getStyleClass().add(fontStyleClass);
 
         HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(gridPane, ++rowIndex, Res.get("tacWindow.arbitrationSystem"),
-                "https://docs.haveno.exchange/the-project/dispute-resolution");
+                "https://docs.haveno.exchange/overview/dispute-resolution");
         hyperlinkWithIcon.getStyleClass().add(fontStyleClass);
         GridPane.setMargin(hyperlinkWithIcon, new Insets(-6, 0, -20, -4));
     }
