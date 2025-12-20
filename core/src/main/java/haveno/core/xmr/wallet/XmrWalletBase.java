@@ -125,8 +125,8 @@ public abstract class XmrWalletBase {
                 if (isSyncing()) log.warn("Syncing with progress while already syncing. That should never happen.");
                 resetSyncProgressTimeout();
                 isSyncingWithProgress = true;
+                syncStartHeight = null;
                 walletSyncListener.progress(0, -1, null); // reset progress
-                syncProgressError = null;
                 long targetHeightAtStart = xmrConnectionService.getTargetHeight();
                 updateSyncProgress(walletHeight.get(), targetHeightAtStart);
 
