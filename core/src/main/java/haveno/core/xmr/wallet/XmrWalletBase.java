@@ -38,7 +38,6 @@ public abstract class XmrWalletBase {
     private static final int SYNC_TIMEOUT_SECONDS = 180;
     private static final String SYNC_TIMEOUT_MSG = "Sync timeout called";
     private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
-    private Object saveIntervalLock = new Object();
     protected long lastSaveTimeMs = 0;
 
     // inherited
@@ -220,7 +219,7 @@ public abstract class XmrWalletBase {
     }
 
     public void saveWalletIfElapsedTime() {
-        synchronized (saveIntervalLock) {
+        synchronized (walletLock) {
             if (System.currentTimeMillis() - lastSaveTimeMs >= SAVE_AFTER_ELAPSED_SECONDS * 1000) {
                 saveWallet();
                 lastSaveTimeMs = System.currentTimeMillis();
