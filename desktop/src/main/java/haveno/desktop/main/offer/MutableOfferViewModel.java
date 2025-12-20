@@ -741,38 +741,42 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
                 if (minAmount.get() != null)
                     minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
-            } else if (amount.get() != null && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) {
-                if (ParsingUtils.parseNumberStringToDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(dataModel.getMinTradeLimit())) {
-                    amountValidationResult.set(result);
-                } else {
-                    amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
-                    boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
-                    boolean isSellerWithinReleaseWindow = !isBuy && HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS);
-                    if (isSellerWithinReleaseWindow) {
-
-                        // format release date plus days
-                        Date releaseDate = HavenoUtils.getReleaseDate();
-                        Calendar c = Calendar.getInstance();
-                        c.setTime(releaseDate);
-                        c.add(Calendar.DATE, HavenoUtils.RELEASE_LIMIT_DAYS);
-                        Date releaseDatePlusDays = c.getTime();
-                        SimpleDateFormat formatter = new SimpleDateFormat("MMMM d, yyyy");
-                        String releaseDatePlusDaysAsString = formatter.format(releaseDatePlusDays);
-
-                        // popup temporary restriction
-                        new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller.releaseLimit",
-                                HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
-                                releaseDatePlusDaysAsString,
-                                Res.get("offerbook.warning.newVersionAnnouncement")))
-                        .width(900)
-                        .show();
+            } else if (amount.get() != null && !amount.get().isEmpty() && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) { // TODO: tolerated small amount will only equal max trade limit for riskiest payment methods, so that logic is not relevant?
+                try {
+                    if (ParsingUtils.parseNumberStringToDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(dataModel.getMinTradeLimit())) {
+                        amountValidationResult.set(result);
                     } else {
-                        new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
-                                HavenoUtils.formatXmr(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, true),
-                                Res.get("offerbook.warning.newVersionAnnouncement")))
-                        .width(900)
-                        .show();
+                        amount.set(HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit()));
+                        boolean isBuy = dataModel.getDirection() == OfferDirection.BUY;
+                        boolean isSellerWithinReleaseWindow = !isBuy && HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS);
+                        if (isSellerWithinReleaseWindow) {
+
+                            // format release date plus days
+                            Date releaseDate = HavenoUtils.getReleaseDate();
+                            Calendar c = Calendar.getInstance();
+                            c.setTime(releaseDate);
+                            c.add(Calendar.DATE, HavenoUtils.RELEASE_LIMIT_DAYS);
+                            Date releaseDatePlusDays = c.getTime();
+                            SimpleDateFormat formatter = new SimpleDateFormat("MMMM d, yyyy");
+                            String releaseDatePlusDaysAsString = formatter.format(releaseDatePlusDays);
+
+                            // popup temporary restriction
+                            new Popup().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller.releaseLimit",
+                                    HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit(), true),
+                                    releaseDatePlusDaysAsString,
+                                    Res.get("offerbook.warning.newVersionAnnouncement")))
+                            .width(900)
+                            .show();
+                        } else {
+                            new Popup().information(Res.get(isBuy ? "popup.warning.tradeLimitDueAccountAgeRestriction.buyer" : "popup.warning.tradeLimitDueAccountAgeRestriction.seller",
+                                    HavenoUtils.formatXmr(xmrValidator.getMaxTradeLimit(), true),
+                                    Res.get("offerbook.warning.newVersionAnnouncement")))
+                            .width(900)
+                            .show();
+                        }
                     }
+                } catch (Exception e) {
+                    log.warn("Error while parsing amount on focus out: ", e);
                 }
             }
 
@@ -1248,7 +1252,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     private InputValidator.ValidationResult isXmrInputValid(String input) {
-        return xmrValidator.validate("" + HavenoUtils.atomicUnitsToXmr(HavenoUtils.parseXmr(input)));
+        return xmrValidator.validate(input);
     }
 
     private InputValidator.ValidationResult isPriceInputValid(String input) {
