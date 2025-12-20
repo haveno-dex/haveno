@@ -61,8 +61,24 @@ public class CountryUtil {
 
     public static List<Country> getAllSepaEuroCountries() {
         List<Country> list = new ArrayList<>();
-        String[] codes = {"AT", "BE", "CY", "DE", "EE", "FI", "FR", "GR", "IE",
-                "IT", "LV", "LT", "LU", "MC", "MT", "NL", "PT", "SK", "SI", "ES", "AD", "SM", "VA"};
+        String[] codes = {
+
+            // Eurozone countries
+            "AT", "BE", "CY", "DE", "EE", "FI", "FR", "GR", "HR", "IE",
+            "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES",
+
+            // Microstates using EUR officially
+            "AD", "MC", "SM", "VA",
+
+            // French euro territories
+            "PM", "YT", "RE", "GP", "MQ", "GF", "BL", "MF",
+
+            // Spanish euro territories
+            "EA", "IC",
+
+            // Finnish euro territory
+            "AX"
+        };
         populateCountryListByCodes(list, codes);
         list.sort((a, b) -> a.name.compareTo(b.name));
 
@@ -110,8 +126,20 @@ public class CountryUtil {
 
     public static List<Country> getAllSepaNonEuroCountries() {
         List<Country> list = new ArrayList<>();
-        String[] codes = {"BG", "HR", "CZ", "DK", "GB", "HU", "PL", "RO",
-                "SE", "IS", "NO", "LI", "CH", "JE"};
+        String[] codes = {
+
+            // EU non-euro SEPA countries
+            "BG", "CZ", "DK", "HU", "PL", "RO", "SE",
+
+            // EEA SEPA (non-euro)
+            "IS", "NO", "LI",
+
+            // Non-EEA SEPA
+            "CH", "GB", "JE", "GG", "IM",
+
+            // SEPA extension (non-EEA, non-euro)
+            "GI", "AL", "MD", "ME", "RS", "MK"
+        };
         populateCountryListByCodes(list, codes);
         list.sort((a, b) -> a.name.compareTo(b.name));
         return list;
@@ -319,6 +347,7 @@ public class CountryUtil {
         regionByCountryCodeMap.put("DJ", "AF"); // name=Djibouti / region=Africa / subregion=Eastern Africa
         regionByCountryCodeMap.put("DM", "AM"); // name=Dominica / region=Americas / subregion=Caribbean
         regionByCountryCodeMap.put("DO", "AM"); // name=Dominican Republic / region=Americas / subregion=Caribbean
+        regionByCountryCodeMap.put("EA", "EU"); // name=Ceuta, Melilla / region=Europe / subregion=Northern Africa
         regionByCountryCodeMap.put("EC", "AM"); // name=Ecuador / region=Americas / subregion=South America
         regionByCountryCodeMap.put("EG", "AF"); // name=Egypt / region=Africa / subregion=Northern Africa
         regionByCountryCodeMap.put("SV", "AM"); // name=El Salvador / region=Americas / subregion=Central America
@@ -355,6 +384,7 @@ public class CountryUtil {
         regionByCountryCodeMap.put("HN", "AM"); // name=Honduras / region=Americas / subregion=Central America
         regionByCountryCodeMap.put("HK", "AS"); // name=Hong Kong / region=Asia / subregion=Eastern Asia
         regionByCountryCodeMap.put("HU", "EU"); // name=Hungary / region=Europe / subregion=Eastern Europe
+        regionByCountryCodeMap.put("IC", "EU"); // name=Canary Islands / region=Europe / subregion=Northern Africa
         regionByCountryCodeMap.put("IS", "EU"); // name=Iceland / region=Europe / subregion=Northern Europe
         regionByCountryCodeMap.put("IN", "AS"); // name=India / region=Asia / subregion=Southern Asia
         regionByCountryCodeMap.put("ID", "AS"); // name=Indonesia / region=Asia / subregion=South-Eastern Asia
