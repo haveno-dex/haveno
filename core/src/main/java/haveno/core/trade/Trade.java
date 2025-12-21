@@ -1084,13 +1084,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private void forceCloseWallet() {
         if (wallet != null) {
+            MoneroWallet walletRef = wallet;
+            wallet = null; // nullify wallet before force closing so state is updated for error handling
             try {
-                xmrWalletService.forceCloseWallet(wallet, wallet.getPath());
+                xmrWalletService.forceCloseWallet(walletRef, walletRef.getPath());
             } catch (Exception e) {
                 log.warn("Error force closing wallet for {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage());
             }
             stopPolling();
-            wallet = null;
         }
     }
 
@@ -3089,6 +3090,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private void syncWallet(boolean pollWallet) {
         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
+        MoneroWallet sourceWallet = wallet;
         try {
             synchronized (walletLock) {
                 if (getWallet() == null) throw new IllegalStateException("Cannot sync trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
@@ -3112,6 +3114,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     
             if (pollWallet) doPollWallet();
         } catch (Exception e) {
+            if (wallet == null || wallet != sourceWallet) throw e;
             if (!(e instanceof IllegalStateException) && !isShutDownStarted) {
                 ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
             }
@@ -3214,6 +3217,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void doPollWallet(boolean offlinePoll) {
+        MoneroWallet sourceWallet = wallet;
 
         // skip if shut down started
         if (isShutDownStarted) return;
@@ -3320,6 +3324,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 resetPolling(true); // do not poll again until next period
             }
         } catch (Exception e) {
+            if (wallet == null || wallet != sourceWallet) return; // skip error handling if another thread force restarts while polling
             if (!(e instanceof IllegalStateException) && !isShutDownStarted && !offlinePoll && !wasWalletSyncedAndPolledProperty.get()) { // request connection switch on failure until synced and polled
                 ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
             }
@@ -3331,7 +3336,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 else forceRestartTradeWallet();
             } else {
                 boolean isWalletConnected = isWalletConnectedToDaemon();
-                if (wallet != null && !isShutDownStarted && isWalletConnected) {
+                if (!isShutDownStarted && isWalletConnected) {
                     if (isExpectedWalletError(e)) {
                         log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), wallet.getDaemonConnection());
                     } else {
