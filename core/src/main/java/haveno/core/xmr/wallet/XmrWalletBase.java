@@ -119,6 +119,7 @@ public abstract class XmrWalletBase {
     }
 
     public void syncWithProgress(boolean repeatSyncToLatestHeight) {
+        MoneroWallet sourceWallet = wallet;
         synchronized (walletLock) {
             try {
 
@@ -127,6 +128,7 @@ public abstract class XmrWalletBase {
                 resetSyncProgressTimeout();
                 isSyncingWithProgress = true;
                 syncStartHeight = null;
+                syncProgressError = null;
                 walletSyncListener.progress(0, -1, null); // reset progress
                 long targetHeightAtStart = xmrConnectionService.getTargetHeight();
                 updateSyncProgress(walletHeight.get(), targetHeightAtStart);
@@ -160,8 +162,8 @@ public abstract class XmrWalletBase {
                 syncProgressLooper = new TaskLooper(() -> {
 
                     // stop if shutdown or null wallet
-                    if (isShutDownStarted || wallet == null) {
-                        syncProgressError = new RuntimeException("Shut down or wallet has become null while syncing with progress");
+                    if (isShutDownStarted || wallet == null || wallet != sourceWallet) {
+                        syncProgressError = new RuntimeException("Wallet is shutting down or has changed while syncing with progress");
                         syncProgressLatch.countDown();
                         return;
                     }
@@ -174,8 +176,8 @@ public abstract class XmrWalletBase {
                         if (wallet != null && !isShutDownStarted) {
                             log.warn("Error getting wallet height while syncing with progress: " + e.getMessage());
                         }
-                        if (wallet == null) {
-                            syncProgressError = new RuntimeException("Wallet has become null while syncing with progress");
+                        if (isShutDownStarted || wallet == null || wallet != sourceWallet) {
+                            syncProgressError = new RuntimeException("Wallet is shutting down or has changed while getting height with progress");
                             syncProgressLatch.countDown();
                         }
                         return;

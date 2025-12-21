@@ -1909,9 +1909,9 @@ public class XmrWalletService extends XmrWalletBase {
     private void forceCloseMainWallet() {
         stopPolling();
         if (wallet != null && !isClosingWallet) {
-            isClosingWallet = true;
-            forceCloseWallet(wallet, getWalletPath(MONERO_WALLET_NAME));
-            wallet = null;
+            MoneroWallet walletRef = wallet;
+            wallet = null; // nullify wallet before force closing so state is updated for error handling
+            forceCloseWallet(walletRef, getWalletPath(MONERO_WALLET_NAME));
         }
     }
 
@@ -1977,6 +1977,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void doPollWallet(boolean updateTxs) {
+        MoneroWallet sourceWallet = wallet;
 
         // skip if shut down started
         if (isShutDownStarted) return;
@@ -2042,7 +2043,7 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
         } catch (Exception e) {
-            if (wallet == null || isShutDownStarted) return;
+            if (isShutDownStarted || wallet == null || wallet != sourceWallet) return; // skip error handling if shut down or another thread force restarts while polling
             if (HavenoUtils.isUnresponsive(e)) forceRestartMainWallet();
             else if (isWalletConnectedToDaemon()) {
                 if (isExpectedWalletError(e)) {
