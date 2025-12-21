@@ -893,21 +893,24 @@ public abstract class TradeStepView extends AnchorPane {
 
     protected void setSyncStatus(String text) {
         syncStatus = text;
-        if (syncStatus == null || syncStatus.isEmpty()) {
-            setStatus(tradeStatus);
-        } else {
-            setStatus(syncStatus);
-        }
+        updateStatus();
     }
 
     protected void setTradeStatus(String text) {
         tradeStatus = text;
-        if (syncStatus == null || syncStatus.isEmpty()) {
-            setStatus(tradeStatus);
-        }
+        updateStatus();
     }
 
-    private void setStatus(String text) {
-        if (statusLabel != null) statusLabel.setText(text == null ? "" : text);
+    protected void updateStatus() {
+        String text = getStatusText();
+         if (statusLabel != null) statusLabel.setText(text == null ? "" : text);
+    }
+
+    private String getStatusText() {
+        if (syncStatus == null || syncStatus.isEmpty()) {
+            return tradeStatus;
+        } else {
+            return syncStatus;
+        }
     }
 }

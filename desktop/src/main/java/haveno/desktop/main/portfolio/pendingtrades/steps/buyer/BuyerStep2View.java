@@ -134,6 +134,8 @@ public class BuyerStep2View extends TradeStepView {
     private int paymentAccountGridRow = 0;
     private GridPane paymentAccountGridPane;
     private GridPane moreConfirmationsGridPane;
+    private Label paymentDetailsLabel;
+    private Label moreConfirmationsLabel;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, Initialisation
@@ -474,7 +476,7 @@ public class BuyerStep2View extends TradeStepView {
         confirmButton.setDisable(!confirmPaymentSentPermitted());
         confirmButton.setOnAction(e -> onPaymentSent());
         busyAnimation = tuple3.second;
-        statusLabel = tuple3.third;
+        paymentDetailsLabel = tuple3.third;
     }
 
     private void createRecommendationGridPane() {
@@ -493,18 +495,21 @@ public class BuyerStep2View extends TradeStepView {
         GridPane.setMargin(label, new Insets(20, 0, 0, 0));
         moreConfirmationsGridPane.add(label, 0, 1, 2, 1);
 
+        Tuple4<Button, BusyAnimation, Label, HBox> tuple3 = addButtonBusyAnimationLabel(moreConfirmationsGridPane, gridRow, 0,
+                Res.get("portfolio.pending.step2_buyer.showEarly"), 10);
+
         // add button to show payment details
-        Button showPaymentDetailsButton = new Button("Show payment details early");
-        showPaymentDetailsButton.getStyleClass().add("action-button");
-        GridPane.setMargin(showPaymentDetailsButton, new Insets(20, 0, 0, 0));
+        Button showPaymentDetailsButton = tuple3.first;
         showPaymentDetailsButton.setOnAction(e -> {
             model.setShowPaymentDetailsEarly(true);
             gridPane.getChildren().remove(moreConfirmationsGridPane);
             gridPane.getChildren().add(paymentAccountGridPane);
             GridPane.setRowIndex(paymentAccountGridPane, gridRow + 1);
             GridPane.setColumnSpan(paymentAccountGridPane, 2);
+            statusLabel = paymentDetailsLabel;
+            updateStatus();
         });
-        moreConfirmationsGridPane.add(showPaymentDetailsButton, 0, 2);
+        moreConfirmationsLabel = tuple3.third;
     }
 
     private GridPane createGridPane() {
@@ -525,6 +530,8 @@ public class BuyerStep2View extends TradeStepView {
         gridPane.getChildren().add(moreConfirmationsGridPane);
         GridPane.setRowIndex(moreConfirmationsGridPane, gridRow + 1);
         GridPane.setColumnSpan(moreConfirmationsGridPane, 2);
+        statusLabel = moreConfirmationsLabel;
+        updateStatus();
     }
 
     private void attachPaymentDetailsGrid() {
@@ -533,6 +540,8 @@ public class BuyerStep2View extends TradeStepView {
         gridPane.getChildren().add(paymentAccountGridPane);
         GridPane.setRowIndex(paymentAccountGridPane, gridRow + 1);
         GridPane.setColumnSpan(paymentAccountGridPane, 2);
+        statusLabel = paymentDetailsLabel;
+        updateStatus();
     }
 
     private boolean confirmPaymentSentPermitted() {
