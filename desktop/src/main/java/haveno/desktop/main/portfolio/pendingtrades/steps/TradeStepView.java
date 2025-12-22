@@ -285,7 +285,11 @@ public abstract class TradeStepView extends AnchorPane {
             if (trade.blocksRemainingProperty().get() < 0) {
                 setSyncStatus(Res.get("portfolio.pending.syncing", GUIUtil.getRoundedClampedPercent(percent)));
             } else {
-                setSyncStatus(Res.get("portfolio.pending.syncing.blocksRemaining", GUIUtil.getRoundedClampedPercent(percent), blocksRemaining));
+                if (trade.blocksRemainingProperty().get() == 1) {
+                    setSyncStatus(Res.get("portfolio.pending.syncing.blockRemaining", GUIUtil.getRoundedClampedPercent(percent)));
+                } else {
+                    setSyncStatus(Res.get("portfolio.pending.syncing.blocksRemaining", GUIUtil.getRoundedClampedPercent(percent), blocksRemaining));
+                }
             }
         }
     }
