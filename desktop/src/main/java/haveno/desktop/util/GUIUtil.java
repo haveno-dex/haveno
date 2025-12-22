@@ -1401,4 +1401,10 @@ public class GUIUtil {
 
         return new Tuple2<>(qrCodePane, qrCodeImageView);
     }
+
+    public static int getRoundedClampedPercent(double percent) {
+        int rounded = (int) Math.round(percent * 100);
+        if (rounded >= 100 && percent < 1) return 99;
+        return rounded;
+    }
 }

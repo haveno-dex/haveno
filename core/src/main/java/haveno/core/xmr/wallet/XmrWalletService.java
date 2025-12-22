@@ -202,7 +202,7 @@ public class XmrWalletService extends XmrWalletBase {
                 public void onAccountClosed() {
                     log.info("onAccountClosed()");
                     wasWalletSynced = false;
-                    walletSyncListener.progress(-1, -1, null);
+                    syncProgressListener.progress(-1, -1, null);
                     closeMainWallet(true);
                     // TODO: reset more properties?
                 }
@@ -1459,7 +1459,7 @@ public class XmrWalletService extends XmrWalletBase {
                         long time = System.currentTimeMillis();
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
-                            syncWithProgress(!wasWalletSynced); // repeat sync to latest target height until first sync
+                            syncWithProgress();
                         } catch (Exception e) {
                             if (wallet != null) log.warn("Error syncing wallet with progress on startup: " + e.getMessage());
                             forceCloseMainWallet();
@@ -1488,7 +1488,7 @@ public class XmrWalletService extends XmrWalletBase {
                         resetIfWalletChanged();
 
                         // signal that main wallet is synced
-                        walletSyncListener.doneDownload();
+                        syncProgressListener.doneDownload();
 
                         // notify setup that main wallet is initialized
                         // TODO: app fully initializes after this is set to true, even though wallet might not be initialized if unconnected. wallet will be created when connection detected

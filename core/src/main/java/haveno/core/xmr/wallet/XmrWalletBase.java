@@ -12,6 +12,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.easybind.Subscription;
+
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -20,6 +23,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.setup.DownloadListener;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.SimpleLongProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +62,8 @@ public abstract class XmrWalletBase {
     protected CountDownLatch syncProgressLatch;
     protected Exception syncProgressError;
     protected Timer syncProgressTimeout;
-    protected final DownloadListener walletSyncListener = new DownloadListener();
+    @Getter
+    protected final DownloadListener syncProgressListener = new DownloadListener();
     protected final LongProperty walletHeight = new SimpleLongProperty(0);
     @Getter
     protected boolean isShutDownStarted;
@@ -115,12 +120,17 @@ public abstract class XmrWalletBase {
     }
 
     public void syncWithProgress() {
-        syncWithProgress(false);
-    }
-
-    public void syncWithProgress(boolean repeatSyncToLatestHeight) {
         MoneroWallet sourceWallet = wallet;
         synchronized (walletLock) {
+
+            // subscribe to height updates for latest sync progress
+            Subscription connectionUpdateSubscription;
+            synchronized (xmrConnectionService.numUpdatesProperty()) { // prevent subscribing concurrently
+                connectionUpdateSubscription = EasyBind.subscribe(xmrConnectionService.numUpdatesProperty(), newValue -> {
+                    if (newValue != null) updateSyncProgress(null);
+                });
+            }
+
             try {
 
                 // set initial state
@@ -129,9 +139,7 @@ public abstract class XmrWalletBase {
                 isSyncingWithProgress = true;
                 syncStartHeight = null;
                 syncProgressError = null;
-                walletSyncListener.progress(0, -1, null); // reset progress
-                long targetHeightAtStart = xmrConnectionService.getTargetHeight();
-                updateSyncProgress(walletHeight.get(), targetHeightAtStart);
+                updateSyncProgress(wallet.getHeight());
 
                 // test connection changing on startup before wallet synced
                 if (testReconnectOnStartup) {
@@ -149,8 +157,7 @@ public abstract class XmrWalletBase {
                     wallet.sync(new MoneroWalletListener() {
                         @Override
                         public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
-                            long appliedTargetHeight = repeatSyncToLatestHeight ? xmrConnectionService.getTargetHeight() : targetHeightAtStart;
-                            updateSyncProgress(height, appliedTargetHeight);
+                            updateSyncProgress(height);
                         }
                     });
                     onDoneSyncWithProgress();
@@ -184,9 +191,9 @@ public abstract class XmrWalletBase {
                     }
 
                     // update sync progress
-                    long appliedTargetHeight = repeatSyncToLatestHeight ? xmrConnectionService.getTargetHeight() : targetHeightAtStart;
-                    updateSyncProgress(height, appliedTargetHeight);
-                    if (height >= appliedTargetHeight) {
+                    long targetHeight = xmrConnectionService.getTargetHeight();
+                    updateSyncProgress(height);
+                    if (height >= targetHeight) {
                         syncProgressLatch.countDown();
                     }
                 });
@@ -205,6 +212,7 @@ public abstract class XmrWalletBase {
             } finally {
                 isSyncingWithProgress = false;
                 if (syncProgressTimeout != null) syncProgressTimeout.stop();
+                connectionUpdateSubscription.unsubscribe();
             }
         }
     }
@@ -239,7 +247,11 @@ public abstract class XmrWalletBase {
     }
 
     public ReadOnlyDoubleProperty downloadPercentageProperty() {
-        return walletSyncListener.percentageProperty();
+        return syncProgressListener.percentageProperty();
+    }
+
+    public ReadOnlyLongProperty blocksRemainingProperty() {
+        return syncProgressListener.blocksRemainingProperty();
     }
 
     public static boolean isSyncWithProgressTimeout(Throwable e) {
@@ -254,7 +266,10 @@ public abstract class XmrWalletBase {
 
     // ------------------------------ PRIVATE HELPERS -------------------------
 
-    private void updateSyncProgress(long height, long targetHeight) {
+    private void updateSyncProgress(Long height) {
+
+        // use last height if no update
+        if (height == null) height = walletHeight.get();
 
         // reset progress timeout if height advanced
         if (height != walletHeight.get()) {
@@ -264,15 +279,13 @@ public abstract class XmrWalletBase {
         // set wallet height
         walletHeight.set(height);
 
-        // new wallet reports height 0 or 1 before synced
-        if (height <= 1) return;
-
         // set progress
-        long blocksLeft = targetHeight - height;
+        long targetHeight = xmrConnectionService.getTargetHeight();
+        long blocksRemaining = height <= 1 ? -1 : targetHeight - height; // unknown blocks left if height <= 1
         if (syncStartHeight == null) syncStartHeight = height;
         double percent = Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) height - syncStartHeight) / (double) (targetHeight - syncStartHeight));
         if (percent >= 1.0) wasWalletSynced = true; // set synced state before announcing progress
-        walletSyncListener.progress(percent, blocksLeft, null);
+        syncProgressListener.progress(percent, blocksRemaining, null);
     }
 
     private synchronized void resetSyncProgressTimeout() {

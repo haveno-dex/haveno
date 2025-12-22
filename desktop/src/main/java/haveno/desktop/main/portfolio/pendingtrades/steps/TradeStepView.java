@@ -47,6 +47,8 @@ import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
+
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
 import java.util.Optional;
@@ -77,7 +79,7 @@ public abstract class TradeStepView extends AnchorPane {
     protected final Preferences preferences;
     protected final GridPane gridPane;
 
-    private Subscription tradePeriodStateSubscription, tradeStateSubscription, disputeStateSubscription, mediationResultStateSubscription, syncProgressSubscription;
+    private Subscription tradePeriodStateSubscription, tradeStateSubscription, disputeStateSubscription, mediationResultStateSubscription, syncUpdateSubscription;
     protected int gridRow = 0;
     private TextField timeLeftTextField;
     private ProgressBar timeLeftProgressBar;
@@ -261,18 +263,30 @@ public abstract class TradeStepView extends AnchorPane {
             if (newValue) addTradeStateSubscription();
         });
 
-        syncProgressSubscription = EasyBind.subscribe(trade.downloadPercentageProperty(), newValue -> {
-            if (newValue != null) onSyncProgress((double) newValue);
+        syncUpdateSubscription = EasyBind.subscribe(trade.getSyncProgressListener().numUpdates(), newValue -> {
+            if (newValue != null) updateSyncProgress();
         });
-
         UserThread.execute(() -> model.p2PService.removeP2PServiceListener(bootstrapListener));
     }
 
-    protected void onSyncProgress(double percent) {
+    protected void updateSyncProgress() {
+
+        // TODO: don't set sync status when 2 blocks behind or less after synced?
+        long blocksRemaining = trade.blocksRemainingProperty().get();
+        // if (trade.wasWalletSynced() && blocksRemaining <= 2) {
+        //     setSyncStatus("");
+        //     return;
+        // }
+
+        // set status with percentage and blocks remaining if available
+        double percent = trade.downloadPercentageProperty().get();
         if (percent < 0.0 || percent >= 1.0) setSyncStatus("");
         else {
-            long blocksRemaining = HavenoUtils.xmrConnectionService.getTargetHeight() - trade.getHeight();
-            setSyncStatus(Res.get("portfolio.pending.syncing", ((int) Math.round(percent * 100)), blocksRemaining));
+            if (trade.blocksRemainingProperty().get() < 0) {
+                setSyncStatus(Res.get("portfolio.pending.syncing", GUIUtil.getRoundedClampedPercent(percent)));
+            } else {
+                setSyncStatus(Res.get("portfolio.pending.syncing.blocksRemaining", GUIUtil.getRoundedClampedPercent(percent), blocksRemaining));
+            }
         }
     }
 
@@ -316,8 +330,8 @@ public abstract class TradeStepView extends AnchorPane {
         if (mediationResultStateSubscription != null)
             mediationResultStateSubscription.unsubscribe();
 
-        if (syncProgressSubscription != null)
-            syncProgressSubscription.unsubscribe();
+        if (syncUpdateSubscription != null)
+            syncUpdateSubscription.unsubscribe();
 
         if (tradePeriodStateSubscription != null)
             tradePeriodStateSubscription.unsubscribe();
