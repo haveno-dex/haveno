@@ -48,7 +48,6 @@ import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 
-import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
 import java.util.Optional;
@@ -283,12 +282,12 @@ public abstract class TradeStepView extends AnchorPane {
         if (percent < 0.0 || percent >= 1.0) setSyncStatus("");
         else {
             if (trade.blocksRemainingProperty().get() < 0) {
-                setSyncStatus(Res.get("portfolio.pending.syncing", GUIUtil.getRoundedClampedPercent(percent)));
+                setSyncStatus(Res.get("portfolio.pending.syncing"));
             } else {
                 if (trade.blocksRemainingProperty().get() == 1) {
-                    setSyncStatus(Res.get("portfolio.pending.syncing.blockRemaining", GUIUtil.getRoundedClampedPercent(percent)));
+                    setSyncStatus(Res.get("portfolio.pending.syncing.blockRemaining"));
                 } else {
-                    setSyncStatus(Res.get("portfolio.pending.syncing.blocksRemaining", GUIUtil.getRoundedClampedPercent(percent), blocksRemaining));
+                    setSyncStatus(Res.get("portfolio.pending.syncing.blocksRemaining", blocksRemaining));
                 }
             }
         }
