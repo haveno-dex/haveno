@@ -2,18 +2,26 @@ package haveno.core.xmr.setup;
 
 import haveno.common.UserThread;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.LongProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleLongProperty;
 
 import java.util.Date;
 
 public class DownloadListener {
     private final DoubleProperty percentage = new SimpleDoubleProperty(-1);
+    private final LongProperty blocksRemaining = new SimpleLongProperty(-1);
+    private final LongProperty numUpdates = new SimpleLongProperty(0);
 
     // TODO: remove redundant execute?
-    public void progress(double percentage, long blocksLeft, Date date) {
+    public void progress(double percentage, long blocksRemaining, Date date) {
         UserThread.execute(() -> {
-            UserThread.await(() -> this.percentage.set(percentage)); // TODO: these awaits are jenky
+            UserThread.await(() -> {
+                this.percentage.set(percentage);
+                this.blocksRemaining.set(blocksRemaining);
+                this.numUpdates.set(this.numUpdates.get() + 1);
+            }); // TODO: these awaits are jenky
         });
     }
 
@@ -21,7 +29,15 @@ public class DownloadListener {
         UserThread.await(() -> this.percentage.set(1d));
     }
 
+    public LongProperty numUpdates() {
+        return numUpdates;
+    }
+
     public ReadOnlyDoubleProperty percentageProperty() {
         return percentage;
+    }
+
+    public LongProperty blocksRemainingProperty() {
+        return blocksRemaining;
     }
 }

@@ -895,10 +895,10 @@ public final class XmrConnectionService {
                     if (lastInfo.isSynchronized() || isTestnet) doneDownload(); // TODO: skipping synchronized check for testnet because CI tests do not sync 3rd local node, see "Can manage Monero daemon connections"
                     else if (lastInfo.isBusySyncing()) {
                         long targetHeight = lastInfo.getTargetHeight();
-                        long blocksLeft = targetHeight - lastInfo.getHeight();
+                        long blocksRemaining = targetHeight - lastInfo.getHeight();
                         if (syncStartHeight == null) syncStartHeight = lastInfo.getHeight();
                         double percent = Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) Math.max(1, lastInfo.getHeight() - syncStartHeight) / (double) (targetHeight - syncStartHeight))); // grant at least 1 block to show progress
-                        downloadListener.progress(percent, blocksLeft, null);
+                        downloadListener.progress(percent, blocksRemaining, null);
                     }
 
                     // set available connections
