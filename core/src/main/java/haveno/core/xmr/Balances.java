@@ -102,7 +102,7 @@ public class Balances {
         xmrWalletService.addBalanceListener(new XmrBalanceListener() {
             @Override
             public void onBalanceChanged(BigInteger balance) {
-                updateBalances();
+                doUpdateBalances();
             }
         });
         doUpdateBalances();
@@ -124,8 +124,8 @@ public class Balances {
     }
 
     private void doUpdateBalances() {
-        synchronized (this) {
-            synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
+        synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
+            synchronized (this) {
 
                 // get non-trade balance before
                 BigInteger balanceSumBefore = getNonTradeBalanceSum();
