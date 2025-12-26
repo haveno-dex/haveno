@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 class GrpcExceptionHandler {
 
     private final Predicate<Throwable> isExpectedException = (t) ->
-            t instanceof IllegalStateException || t instanceof IllegalArgumentException;
+            t instanceof IllegalStateException || t instanceof IllegalArgumentException || t instanceof RuntimeException;
 
     @Inject
     public GrpcExceptionHandler() {
