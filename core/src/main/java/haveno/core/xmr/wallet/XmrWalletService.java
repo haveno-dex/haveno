@@ -1224,19 +1224,19 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void updateBalanceListeners() {
-        BigInteger availableBalance = getAvailableBalance();
-        synchronized (balanceListeners) {
-            for (XmrBalanceListener balanceListener : balanceListeners) {
-                BigInteger balance;
-                if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
-                else balance = availableBalance;
-                ThreadUtils.submitToPool(() -> {
+        synchronized (walletLock) {
+            BigInteger availableBalance = getAvailableBalance();
+            synchronized (balanceListeners) {
+                for (XmrBalanceListener balanceListener : balanceListeners) {
+                    BigInteger balance;
+                    if (balanceListener.getSubaddressIndex() != null && balanceListener.getSubaddressIndex() != 0) balance = getBalanceForSubaddress(balanceListener.getSubaddressIndex());
+                    else balance = availableBalance;
                     try {
                         balanceListener.onBalanceChanged(balance);
                     } catch (Exception e) {
                         log.warn("Failed to notify balance listener of change: {}\n", e.getMessage(), e);
                     }
-                });
+                }
             }
         }
     }
@@ -2125,6 +2125,6 @@ public class XmrWalletService extends XmrWalletBase {
 
     private void onBalancesChanged(BigInteger newBalance, BigInteger newUnlockedBalance) {
         updateBalanceListeners();
-        for (MoneroWalletListenerI listener : walletListeners) ThreadUtils.submitToPool(() -> listener.onBalancesChanged(newBalance, newUnlockedBalance));
+        for (MoneroWalletListenerI listener : walletListeners) listener.onBalancesChanged(newBalance, newUnlockedBalance);
     }
 }
