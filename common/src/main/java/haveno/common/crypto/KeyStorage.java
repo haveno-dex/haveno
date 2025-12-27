@@ -28,6 +28,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -259,8 +261,13 @@ public class KeyStorage {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
 
             // load from existing file or initialize new
-            try (FileInputStream fileInputStream = new FileInputStream(path)) {
-                keyStore.load(fileInputStream, oldPasswordChars);
+            if (Files.exists(Path.of(path))) {
+                try (FileInputStream fileInputStream = new FileInputStream(path)) {
+                    keyStore.load(fileInputStream, oldPasswordChars);
+                }
+            }
+            else {
+                keyStore.load(null, null);
             }
 
             // store in the keystore
