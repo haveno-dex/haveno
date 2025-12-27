@@ -262,9 +262,6 @@ public class KeyStorage {
             try (FileInputStream fileInputStream = new FileInputStream(path)) {
                 keyStore.load(fileInputStream, oldPasswordChars);
             }
-            catch (Exception e) {
-                keyStore.load(null, null);
-            }
 
             // store in the keystore
             keyStore.setKeyEntry(alias, key, passwordChars, null);
