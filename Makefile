@@ -88,7 +88,6 @@ monerod2-local:
 		--rpc-bind-port 48081 \
 		--zmq-rpc-bind-port 48082 \
 		--log-level 0 \
-		--confirm-external-bind \
 		--add-exclusive-node 127.0.0.1:28080 \
 		--add-exclusive-node 127.0.0.1:58080 \
 		--rpc-access-control-origins http://localhost:8080 \
@@ -109,7 +108,6 @@ monerod3-local:
 		--rpc-bind-port 58081 \
 		--zmq-rpc-bind-port 58082 \
 		--log-level 0 \
-		--confirm-external-bind \
 		--add-exclusive-node 127.0.0.1:28080 \
 		--add-exclusive-node 127.0.0.1:48080 \
 		--rpc-access-control-origins http://localhost:8080 \
