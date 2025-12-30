@@ -1000,6 +1000,8 @@ service Wallets {
     }
     rpc UnlockWallet (UnlockWalletRequest) returns (UnlockWalletReply) {
     }
+    rpc GetHeight (GetWalletHeightRequest) returns (GetWalletHeightReply) {
+    }
 }
 
 message GetBalancesRequest {
@@ -1173,4 +1175,11 @@ message AddressBalanceInfo {
     int64 balance = 2;
     int64 num_confirmations = 3;
     bool is_address_unused = 4;
+}
+
+message GetWalletHeightRequest {
+}
+
+message GetWalletHeightReply {
+    int64 height = 1;
 }
