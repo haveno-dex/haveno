@@ -71,6 +71,8 @@ import haveno.proto.grpc.SetWalletPasswordReply;
 import haveno.proto.grpc.SetWalletPasswordRequest;
 import haveno.proto.grpc.UnlockWalletReply;
 import haveno.proto.grpc.UnlockWalletRequest;
+import haveno.proto.grpc.GetWalletHeightRequest;
+import haveno.proto.grpc.GetWalletHeightReply;
 import haveno.proto.grpc.WalletsGrpc.WalletsImplBase;
 import static haveno.proto.grpc.WalletsGrpc.getGetAddressBalanceMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetBalancesMethod;
@@ -308,6 +310,21 @@ class GrpcWalletsService extends WalletsImplBase {
         try {
             coreApi.unlockWallet(req.getPassword(), req.getTimeout());
             var reply = UnlockWalletReply.newBuilder().build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void getHeight(GetWalletHeightRequest req,
+                          StreamObserver<GetWalletHeightReply> responseObserver) {
+        try {
+            var height = coreApi.getHeight();
+            var reply = GetWalletHeightReply.newBuilder()
+                    .setHeight(height)
+                    .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
