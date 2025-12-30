@@ -62,6 +62,7 @@ import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Objects;
 import javafx.beans.property.LongProperty;
 import javafx.beans.value.ChangeListener;
 import monero.common.MoneroError;
@@ -1247,6 +1248,10 @@ public class XmrWalletService extends XmrWalletBase {
 
     public long getHeight() {
         return walletHeight.get();
+    }
+
+    public long getTargetHeight() {
+        return Objects.requireNonNullElse(xmrConnectionService.getTargetHeight(), 0L);
     }
 
     public List<MoneroTxWallet> getTxs(boolean includeFailed) {

@@ -322,8 +322,10 @@ class GrpcWalletsService extends WalletsImplBase {
                           StreamObserver<GetWalletHeightReply> responseObserver) {
         try {
             var height = coreApi.getHeight();
+            var targetHeight = coreApi.getTargetHeight();
             var reply = GetWalletHeightReply.newBuilder()
                     .setHeight(height)
+                    .setTargetHeight(targetHeight)
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

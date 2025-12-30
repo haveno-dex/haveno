@@ -345,7 +345,11 @@ public class CoreApi {
     }
 
     public long getHeight() {
-        return  walletsService.getHeight();
+        return walletsService.getHeight();
+    }
+
+    public long getTargetHeight() {
+        return walletsService.getTargetHeight();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

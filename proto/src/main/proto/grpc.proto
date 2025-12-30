@@ -1182,4 +1182,5 @@ message GetWalletHeightRequest {
 
 message GetWalletHeightReply {
     int64 height = 1;
+    int64 targetHeight = 2;
 }

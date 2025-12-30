@@ -472,6 +472,10 @@ class CoreWalletsService {
         return xmrWalletService.getHeight();
     }
 
+    public long getTargetHeight() {
+        return xmrWalletService.getTargetHeight();
+    }
+
     /**
      * Memoization stores the results of expensive function calls and returns
      * the cached result when the same input occurs again.
