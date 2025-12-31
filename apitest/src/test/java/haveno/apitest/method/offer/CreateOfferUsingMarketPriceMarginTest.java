@@ -29,8 +29,10 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 
-import static haveno.apitest.config.ApiTestConfig.BTC;
+
 import static haveno.apitest.config.ApiTestConfig.USD;
+import static haveno.apitest.config.ApiTestConfig.BTC;
+import static haveno.apitest.config.ApiTestConfig.XMR;
 import static haveno.common.util.MathUtils.roundDouble;
 import static haveno.common.util.MathUtils.scaleDownByPowerOf10;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
@@ -54,7 +56,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
     private static final double MKT_PRICE_MARGIN_ERROR_TOLERANCE = 0.0050;      // 0.50%
     private static final double MKT_PRICE_MARGIN_WARNING_TOLERANCE = 0.0001;    // 0.01%
 
-    private static final String MAKER_FEE_CURRENCY_CODE = BTC;
+    private static final String MAKER_FEE_CURRENCY_CODE = XMR;
 
     @Test
     @Order(1)
@@ -252,7 +254,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
     @Order(5)
     public void testCreateUSDBTCBuyOfferWithTriggerPrice() {
         PaymentAccount usdAccount = createDummyF2FAccount(aliceClient, "US");
-        double mktPriceAsDouble = aliceClient.getBtcPrice("usd");
+        double mktPriceAsDouble = aliceClient.getXmrPrice("usd");
         String triggerPrice = calcPriceAsString(mktPriceAsDouble, Double.parseDouble("1000.9999"), 4);
         var newOffer = aliceClient.createMarketBasedPricedOffer(BUY.name(),
                 "usd",
@@ -276,7 +278,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
     private void assertCalculatedPriceIsCorrect(OfferInfo offer, double priceMarginPctInput) {
         assertTrue(() -> {
             String counterCurrencyCode = offer.getCounterCurrencyCode();
-            double mktPrice = aliceClient.getBtcPrice(counterCurrencyCode);
+            double mktPrice = aliceClient.getXmrPrice(counterCurrencyCode);
             double priceAsDouble = Double.parseDouble(offer.getPrice());
             double expectedDiffPct = scaleDownByPowerOf10(priceMarginPctInput, 2);
             double actualDiffPct = offer.getDirection().equals(BUY.name())

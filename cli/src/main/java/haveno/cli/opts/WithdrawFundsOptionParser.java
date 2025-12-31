@@ -17,44 +17,32 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
+import static haveno.cli.opts.OptLabel.OPT_TRADE_ID;
 import static haveno.cli.opts.OptLabel.OPT_ADDRESS;
 import static haveno.cli.opts.OptLabel.OPT_MEMO;
-import static haveno.cli.opts.OptLabel.OPT_TRADE_ID;
-import static joptsimple.internal.Strings.EMPTY;
 
-public class WithdrawFundsOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class WithdrawFundsOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> tradeIdOpt = parser.accepts(OPT_TRADE_ID, "id of trade")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> tradeIdOpt = parser.accepts(OPT_TRADE_ID, "Trade ID")
+            .withRequiredArg()
+            .required();
 
-    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "destination btc address")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "Address")
+            .withRequiredArg()
+            .required();
 
-    final OptionSpec<String> memoOpt = parser.accepts(OPT_MEMO, "optional tx memo")
-            .withOptionalArg()
-            .defaultsTo(EMPTY);
+    @Getter
+    private final OptionSpec<String> memoOpt = parser.accepts(OPT_MEMO, "Memo")
+            .withRequiredArg()
+            .defaultsTo("");
 
     public WithdrawFundsOptionParser(String[] args) {
         super(args);
-    }
-
-    public WithdrawFundsOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(tradeIdOpt) || options.valueOf(tradeIdOpt).isEmpty())
-            throw new IllegalArgumentException("no trade id specified");
-
-        if (!options.has(addressOpt) || options.valueOf(addressOpt).isEmpty())
-            throw new IllegalArgumentException("no destination address specified");
-
-        return this;
     }
 
     public String getTradeId() {
@@ -66,6 +54,6 @@ public class WithdrawFundsOptionParser extends AbstractMethodOptionParser implem
     }
 
     public String getMemo() {
-        return options.has(memoOpt) ? options.valueOf(memoOpt) : "";
+        return options.valueOf(memoOpt);
     }
 }

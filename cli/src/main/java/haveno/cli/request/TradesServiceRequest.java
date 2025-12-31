@@ -18,19 +18,29 @@
 package haveno.cli.request;
 
 import haveno.cli.GrpcStubs;
+import protobuf.ChatMessage;
+import haveno.proto.grpc.CompleteTradeRequest;
 import haveno.proto.grpc.ConfirmPaymentReceivedRequest;
 import haveno.proto.grpc.ConfirmPaymentSentRequest;
+import haveno.proto.grpc.GetChatMessagesReply;
+import haveno.proto.grpc.GetChatMessagesRequest;
+import haveno.proto.grpc.GetTradeReply;
 import haveno.proto.grpc.GetTradeRequest;
+import haveno.proto.grpc.GetTradesReply;
 import haveno.proto.grpc.GetTradesRequest;
+
+import haveno.proto.grpc.SendChatMessageRequest;
 import haveno.proto.grpc.TakeOfferReply;
 import haveno.proto.grpc.TakeOfferRequest;
 import haveno.proto.grpc.TradeInfo;
+
 import haveno.proto.grpc.WithdrawFundsRequest;
 
 import java.util.List;
 
 import static haveno.proto.grpc.GetTradesRequest.Category.CLOSED;
 import static haveno.proto.grpc.GetTradesRequest.Category.FAILED;
+import static haveno.proto.grpc.GetTradesRequest.Category.OPEN;
 
 public class TradesServiceRequest {
 
@@ -40,68 +50,96 @@ public class TradesServiceRequest {
         this.grpcStubs = grpcStubs;
     }
 
-    public TakeOfferReply getTakeOfferReply(String offerId, String paymentAccountId) {
-        var request = TakeOfferRequest.newBuilder()
+    public TakeOfferReply getTakeOfferReply(String offerId, String paymentAccountId, long amount, String challenge) {
+        TakeOfferRequest request = TakeOfferRequest.newBuilder()
                 .setOfferId(offerId)
                 .setPaymentAccountId(paymentAccountId)
+                .setAmount(amount)
+                .setChallenge(challenge)
                 .build();
         return grpcStubs.tradesService.takeOffer(request);
     }
 
-    public TradeInfo takeOffer(String offerId, String paymentAccountId) {
-        var reply = getTakeOfferReply(offerId, paymentAccountId);
-        if (reply.hasTrade())
+    public TradeInfo takeOffer(String offerId, String paymentAccountId, long amount, String challenge) {
+        TakeOfferReply reply = getTakeOfferReply(offerId, paymentAccountId, amount, challenge);
+        if (reply.hasTrade()) {
             return reply.getTrade();
-        else
+        } else {
             throw new IllegalStateException(reply.getFailureReason().getDescription());
+        }
     }
 
     public TradeInfo getTrade(String tradeId) {
-        var request = GetTradeRequest.newBuilder()
+        GetTradeRequest request = GetTradeRequest.newBuilder()
                 .setTradeId(tradeId)
                 .build();
-        return grpcStubs.tradesService.getTrade(request).getTrade();
+        GetTradeReply reply = grpcStubs.tradesService.getTrade(request);
+        return reply.getTrade();
     }
 
     public List<TradeInfo> getOpenTrades() {
-        var request = GetTradesRequest.newBuilder()
+        GetTradesRequest request = GetTradesRequest.newBuilder()
+                .setCategory(OPEN)
                 .build();
-        return grpcStubs.tradesService.getTrades(request).getTradesList();
+        GetTradesReply reply = grpcStubs.tradesService.getTrades(request);
+        return reply.getTradesList();
     }
 
     public List<TradeInfo> getTradeHistory(GetTradesRequest.Category category) {
-        if (!category.equals(CLOSED) && !category.equals(FAILED))
-            throw new IllegalStateException("unrecognized gettrades category parameter " + category.name());
+        if (!category.equals(CLOSED) && !category.equals(FAILED) && !category.equals(OPEN)) {
+            throw new IllegalStateException("Unrecognized getTrades category parameter " + category.name());
+        }
 
-        var request = GetTradesRequest.newBuilder()
+        GetTradesRequest request = GetTradesRequest.newBuilder()
                 .setCategory(category)
                 .build();
-        return grpcStubs.tradesService.getTrades(request).getTradesList();
+        GetTradesReply reply = grpcStubs.tradesService.getTrades(request);
+        return reply.getTradesList();
     }
 
     public void confirmPaymentSent(String tradeId) {
-        var request = ConfirmPaymentSentRequest.newBuilder()
+        ConfirmPaymentSentRequest request = ConfirmPaymentSentRequest.newBuilder()
                 .setTradeId(tradeId)
                 .build();
-        //noinspection ResultOfMethodCallIgnored
         grpcStubs.tradesService.confirmPaymentSent(request);
     }
 
     public void confirmPaymentReceived(String tradeId) {
-        var request = ConfirmPaymentReceivedRequest.newBuilder()
+        ConfirmPaymentReceivedRequest request = ConfirmPaymentReceivedRequest.newBuilder()
                 .setTradeId(tradeId)
                 .build();
-        //noinspection ResultOfMethodCallIgnored
         grpcStubs.tradesService.confirmPaymentReceived(request);
     }
 
     public void withdrawFunds(String tradeId, String address, String memo) {
-        var request = WithdrawFundsRequest.newBuilder()
+        WithdrawFundsRequest request = WithdrawFundsRequest.newBuilder()
                 .setTradeId(tradeId)
                 .setAddress(address)
                 .setMemo(memo)
                 .build();
-        //noinspection ResultOfMethodCallIgnored
         grpcStubs.tradesService.withdrawFunds(request);
+    }
+
+    public List<ChatMessage> getChatMessages(String tradeId) {
+        GetChatMessagesRequest request = GetChatMessagesRequest.newBuilder()
+                .setTradeId(tradeId)
+                .build();
+        GetChatMessagesReply reply = grpcStubs.tradesService.getChatMessages(request);
+        return reply.getMessageList();
+    }
+
+    public void sendChatMessage(String tradeId, String message) {
+        SendChatMessageRequest request = SendChatMessageRequest.newBuilder()
+                .setTradeId(tradeId)
+                .setMessage(message)
+                .build();
+        grpcStubs.tradesService.sendChatMessage(request);
+    }
+
+    public void completeTrade(String tradeId) {
+        CompleteTradeRequest request = CompleteTradeRequest.newBuilder()
+                .setTradeId(tradeId)
+                .build();
+        grpcStubs.tradesService.completeTrade(request);
     }
 }

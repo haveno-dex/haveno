@@ -17,31 +17,20 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
 
-public class GetBTCMarketPriceOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetXMRMarketPriceOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "currency-code")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "Currency Code")
+            .withRequiredArg()
+            .required();
 
-    public GetBTCMarketPriceOptionParser(String[] args) {
+    public GetXMRMarketPriceOptionParser(String[] args) {
         super(args);
-    }
-
-    public GetBTCMarketPriceOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(currencyCodeOpt) || options.valueOf(currencyCodeOpt).isEmpty())
-            throw new IllegalArgumentException("no currency code specified");
-
-        return this;
     }
 
     public String getCurrencyCode() {

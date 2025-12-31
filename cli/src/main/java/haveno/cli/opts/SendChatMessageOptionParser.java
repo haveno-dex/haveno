@@ -1,0 +1,49 @@
+/*
+ * This file is part of Bisq.
+ *
+ * Bisq is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package haveno.cli.opts;
+
+import joptsimple.OptionSpec;
+import lombok.Getter;
+
+import static haveno.cli.opts.OptLabel.OPT_TRADE_ID;
+import static haveno.cli.opts.OptLabel.OPT_VALUE;
+
+public class SendChatMessageOptionParser extends AbstractMethodOptionParser {
+
+    @Getter
+    private final OptionSpec<String> tradeIdOpt = parser.accepts(OPT_TRADE_ID, "Trade ID")
+            .withRequiredArg()
+            .required();
+
+    @Getter
+    private final OptionSpec<String> messageOpt = parser.accepts(OPT_VALUE, "Message")
+            .withRequiredArg()
+            .required();
+
+    public SendChatMessageOptionParser(String[] args) {
+        super(args);
+    }
+
+    public String getTradeId() {
+        return options.valueOf(tradeIdOpt);
+    }
+
+    public String getMessage() {
+        return options.valueOf(messageOpt);
+    }
+}

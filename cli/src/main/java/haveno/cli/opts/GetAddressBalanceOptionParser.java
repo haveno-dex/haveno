@@ -17,31 +17,20 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_ADDRESS;
 
-public class GetAddressBalanceOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetAddressBalanceOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "wallet btc address")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "Address")
+            .withRequiredArg()
+            .required();
 
     public GetAddressBalanceOptionParser(String[] args) {
         super(args);
-    }
-
-    public GetAddressBalanceOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(addressOpt) || options.valueOf(addressOpt).isEmpty())
-            throw new IllegalArgumentException("no address specified");
-
-        return this;
     }
 
     public String getAddress() {

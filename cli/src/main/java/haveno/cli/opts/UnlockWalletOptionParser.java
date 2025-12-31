@@ -17,47 +17,34 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_TIMEOUT;
 import static haveno.cli.opts.OptLabel.OPT_WALLET_PASSWORD;
+import static haveno.cli.opts.OptLabel.OPT_TIMEOUT;
 
-public class UnlockWalletOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class UnlockWalletOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> passwordOpt = parser.accepts(OPT_WALLET_PASSWORD, "haveno wallet password")
-            .withRequiredArg();
-
-    final OptionSpec<Long> unlockTimeoutOpt = parser.accepts(OPT_TIMEOUT, "wallet unlock timeout (s)")
+    @Getter
+    private final OptionSpec<String> walletPasswordOpt = parser.accepts(OPT_WALLET_PASSWORD, "Wallet Password")
             .withRequiredArg()
-            .ofType(long.class)
-            .defaultsTo(0L);
+            .required();
+
+    @Getter
+    private final OptionSpec<Long> timeoutOpt = parser.accepts(OPT_TIMEOUT, "Timeout (seconds)")
+            .withRequiredArg()
+            .ofType(Long.class)
+            .defaultsTo(300L);
 
     public UnlockWalletOptionParser(String[] args) {
         super(args);
     }
 
-    public UnlockWalletOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(passwordOpt) || options.valueOf(passwordOpt).isEmpty())
-            throw new IllegalArgumentException("no password specified");
-
-        if (!options.has(unlockTimeoutOpt) || options.valueOf(unlockTimeoutOpt) <= 0)
-            throw new IllegalArgumentException("no unlock timeout specified");
-
-        return this;
-    }
-
     public String getPassword() {
-        return options.valueOf(passwordOpt);
+        return options.valueOf(walletPasswordOpt);
     }
 
     public long getUnlockTimeout() {
-        return options.valueOf(unlockTimeoutOpt);
+        return options.valueOf(timeoutOpt);
     }
 }
