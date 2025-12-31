@@ -66,6 +66,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -345,7 +346,11 @@ public class CoreApi {
     }
 
     public long getHeight() {
-        return  walletsService.getHeight();
+        return walletsService.getHeight();
+    }
+
+    public long getTargetHeight() {
+        return Objects.requireNonNullElse(xmrConnectionService.getTargetHeight(), 0L);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
