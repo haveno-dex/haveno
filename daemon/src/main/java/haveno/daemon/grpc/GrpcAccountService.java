@@ -20,6 +20,8 @@ package haveno.daemon.grpc;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.protobuf.ByteString;
+
+import haveno.common.UserThread;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.core.api.CoreApi;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
@@ -133,13 +135,15 @@ public class GrpcAccountService extends AccountImplBase {
 
     @Override
     public void isAppInitialized(IsAppInitializedRequest req, StreamObserver<IsAppInitializedReply> responseObserver) {
-        try {
-            var reply = IsAppInitializedReply.newBuilder().setIsAppInitialized(coreApi.isAppInitialized()).build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
-        }
+        UserThread.execute(() -> {
+            try {
+                var reply = IsAppInitializedReply.newBuilder().setIsAppInitialized(coreApi.isAppInitialized()).build();
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            } catch (Throwable cause) {
+                exceptionHandler.handleException(log, cause, responseObserver);
+            }
+        });
     }
 
     @Override
