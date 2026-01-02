@@ -26,7 +26,6 @@ import haveno.core.payment.payload.SpecificBanksAccountPayload;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
@@ -50,11 +49,20 @@ public final class SpecificBanksAccount extends CountryBasedPaymentAccount imple
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BANK_ID,
+            PaymentAccountFormField.FieldId.BRANCH_ID,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.ACCOUNT_TYPE,
+            PaymentAccountFormField.FieldId.HOLDER_TAX_ID,
+            PaymentAccountFormField.FieldId.NATIONAL_ACCOUNT_ID,
+            PaymentAccountFormField.FieldId.COUNTRY
+        );
     }
 
-    // TODO change to List
-    public ArrayList<String> getAcceptedBanks() {
+    public List<String> getAcceptedBanks() {
         return ((SpecificBanksAccountPayload) paymentAccountPayload).getAcceptedBanks();
     }
 

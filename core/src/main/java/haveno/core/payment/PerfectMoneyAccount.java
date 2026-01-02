@@ -33,6 +33,12 @@ public final class PerfectMoneyAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public PerfectMoneyAccount() {
         super(PaymentMethod.PERFECT_MONEY);
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
@@ -50,7 +56,7 @@ public final class PerfectMoneyAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountNr(String accountNr) {
