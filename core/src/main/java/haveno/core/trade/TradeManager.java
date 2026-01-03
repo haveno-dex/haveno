@@ -438,7 +438,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void initTrades() {
-        log.info("Initializing trades");
+        ThreadUtils.submitToPool(() -> initTradesAux());
+    }
+    
+    private void initTradesAux() {
 
         // get all trades
         List<Trade> trades = getAllTrades();
