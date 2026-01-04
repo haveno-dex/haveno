@@ -419,17 +419,44 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public MoneroTxWallet createTx(MoneroTxConfig txConfig) {
-        synchronized (walletLock) {
-            synchronized (HavenoUtils.getWalletFunctionLock()) {
-                MoneroTxWallet tx = wallet.createTx(txConfig);
-                if (Boolean.TRUE.equals(txConfig.getRelay())) {
-                    cachedTxs.addFirst(tx);
-                    cacheWalletInfo();
-                    saveWallet();
+        int maxAttempts = 3;
+        MoneroRpcConnection sourceConnection = xmrConnectionService != null ? xmrConnectionService.getConnection() : null;
+        
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                synchronized (walletLock) {
+                    synchronized (HavenoUtils.getWalletFunctionLock()) {
+                        MoneroTxWallet tx = wallet.createTx(txConfig);
+                        if (Boolean.TRUE.equals(txConfig.getRelay())) {
+                            cachedTxs.addFirst(tx);
+                            cacheWalletInfo();
+                            saveWallet();
+                        }
+                        return tx;
+                    }
                 }
-                return tx;
+            } catch (MoneroRpcError e) {
+                log.warn("Failed to create tx on attempt {}/{}: {}", attempt + 1, maxAttempts, e.getMessage());
+                
+                // Request connection switch every N attempts (following pattern from handleWalletError)
+                if (attempt % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0 && sourceConnection != null) {
+                    requestSwitchToNextBestConnection(sourceConnection);
+                }
+                
+                if (attempt == maxAttempts - 1) {
+                    throw e; // rethrow on last attempt
+                }
+                
+                // Exponential backoff between retries
+                try {
+                    Thread.sleep(1000 * (attempt + 1));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
             }
         }
+        throw new IllegalStateException("createTx should have returned or thrown by now");
     }
 
     public List<MoneroTxWallet> createSweepTxs(String address) {
