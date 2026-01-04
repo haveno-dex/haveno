@@ -25,9 +25,10 @@ cd /D "%~dp0"
 
 title Install Java
 
-set jdk_version=21.0.2
-set jdk_filename=openjdk-%jdk_version%_windows-x64_bin
-set jdk_url=https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_windows-x64_bin.zip
+set jdk_version=21.0.9
+set jdk_build=10
+set jdk_filename=OpenJDK21U-jdk_x64_windows_hotspot_%jdk_version%_%jdk_build%
+set jdk_url=https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.9+10/OpenJDK21U-jdk_x64_windows_hotspot_21.0.9_10.zip
 
 if exist "%PROGRAMFILES%\Java\openjdk\jdk-%jdk_version%" (
     echo %PROGRAMFILES%\Java\openjdk\jdk-%jdk_version% already exists, skipping install

@@ -15,9 +15,9 @@ set -e
 unameOut="$(uname -s)"
 case "${unameOut}" in
     Linux*)
-        JAVA_HOME=/usr/lib/jvm/openjdk-21.0.2
-        JDK_FILENAME=openjdk-21.0.2_linux-x64_bin.tar.gz
-        JDK_URL=https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_linux-x64_bin.tar.gz
+        JAVA_HOME=/usr/lib/jvm/openjdk-21.0.9
+        JDK_FILENAME=OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz
+        JDK_URL=https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.9+10/OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz
 
         # Determine which package manager to use depending on the distribution
         declare -A osInfo;
@@ -52,9 +52,9 @@ case "${unameOut}" in
         update-alternatives --set javac $JAVA_HOME/bin/javac
         ;;
     Darwin*)
-        JAVA_HOME=/Library/Java/JavaVirtualMachines/openjdk-21.0.2.jdk/Contents/Home
-        JDK_FILENAME=openjdk-21.0.2_macos-x64_bin.tar.gz
-        JDK_URL=https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_macos-x64_bin.tar.gz
+        JAVA_HOME=/Library/Java/JavaVirtualMachines/openjdk-21.0.9.jdk/Contents/Home
+        JDK_FILENAME=OpenJDK21U-jdk_x64_mac_hotspot_21.0.9_10.tar.gz
+        JDK_URL=https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.9+10/OpenJDK21U-jdk_x64_mac_hotspot_21.0.9_10.tar.gz
         if [ ! -d "$JAVA_HOME" ]; then
             if [[ $(command -v brew) == "" ]]; then
                 echo "Installing Homebrew"
@@ -66,10 +66,10 @@ case "${unameOut}" in
 
             brew install curl
             curl -L -O $JDK_URL
-            sudo mkdir /Library/Java/JavaVirtualMachines/openjdk-21.0.2.jdk | sudo bash
+            sudo mkdir /Library/Java/JavaVirtualMachines/openjdk-21.0.9.jdk | sudo bash
             gunzip -c $JDK_FILENAME | tar xopf -
-            sudo mv jdk-21.0.2.jdk/* /Library/Java/JavaVirtualMachines/openjdk-21.0.2.jdk
-            sudo rmdir jdk-21.0.2.jdk
+            sudo mv jdk-21.0.9+10/* /Library/Java/JavaVirtualMachines/openjdk-21.0.9.jdk
+            sudo rmdir jdk-21.0.9+10
             rm $JDK_FILENAME
         fi
 
