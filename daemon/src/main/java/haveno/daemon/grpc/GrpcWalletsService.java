@@ -73,7 +73,12 @@ import haveno.proto.grpc.UnlockWalletReply;
 import haveno.proto.grpc.UnlockWalletRequest;
 import haveno.proto.grpc.GetWalletHeightRequest;
 import haveno.proto.grpc.GetWalletHeightReply;
+import haveno.proto.grpc.MakeMoneroUriReply;
+import haveno.proto.grpc.MakeMoneroUriRequest;
+import haveno.proto.grpc.ParseMoneroUriReply;
+import haveno.proto.grpc.ParseMoneroUriRequest;
 import haveno.proto.grpc.WalletsGrpc.WalletsImplBase;
+import haveno.core.util.MoneroUriUtils;
 import static haveno.proto.grpc.WalletsGrpc.getGetAddressBalanceMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetBalancesMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetFundingAddressesMethod;
@@ -326,6 +331,41 @@ class GrpcWalletsService extends WalletsImplBase {
             var reply = GetWalletHeightReply.newBuilder()
                     .setHeight(height)
                     .setTargetHeight(targetHeight)
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void makeMoneroUri(MakeMoneroUriRequest req, StreamObserver<MakeMoneroUriReply> responseObserver) {
+        try {
+            List<MoneroDestination> destinations = req.getDestinationsList().stream()
+                    .map(d -> new MoneroDestination(d.getAddress(), d.getAmount().isEmpty() ? null : new BigInteger(d.getAmount())))
+                    .collect(Collectors.toList());
+            String uri = MoneroUriUtils.makeUri(destinations, req.getLabel());
+            var reply = MakeMoneroUriReply.newBuilder().setUri(uri).build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void parseMoneroUri(ParseMoneroUriRequest req, StreamObserver<ParseMoneroUriReply> responseObserver) {
+        try {
+            var txConfig = MoneroUriUtils.parseUri(req.getUri());
+            var reply = ParseMoneroUriReply.newBuilder()
+                    .addAllDestinations(txConfig.getDestinations().stream()
+                            .map(d -> haveno.proto.grpc.XmrDestination.newBuilder()
+                                    .setAddress(d.getAddress())
+                                    .setAmount(d.getAmount() == null ? "" : d.getAmount().toString())
+                                    .build())
+                            .collect(Collectors.toList()))
+                    .setLabel(txConfig.getNote() == null ? "" : txConfig.getNote())
                     .build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

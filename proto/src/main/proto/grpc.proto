@@ -1002,6 +1002,10 @@ service Wallets {
     }
     rpc GetHeight (GetWalletHeightRequest) returns (GetWalletHeightReply) {
     }
+    rpc MakeMoneroUri (MakeMoneroUriRequest) returns (MakeMoneroUriReply) {
+    }
+    rpc ParseMoneroUri (ParseMoneroUriRequest) returns (ParseMoneroUriReply) {
+    }
 }
 
 message GetBalancesRequest {
@@ -1183,4 +1187,22 @@ message GetWalletHeightRequest {
 message GetWalletHeightReply {
     int64 height = 1;
     int64 target_height = 2;
+}
+
+message MakeMoneroUriRequest {
+    repeated XmrDestination destinations = 1;
+    string label = 2;
+}
+
+message MakeMoneroUriReply {
+    string uri = 1;
+}
+
+message ParseMoneroUriRequest {
+    string uri = 1;
+}
+
+message ParseMoneroUriReply {
+    repeated XmrDestination destinations = 1;
+    string label = 2;
 }

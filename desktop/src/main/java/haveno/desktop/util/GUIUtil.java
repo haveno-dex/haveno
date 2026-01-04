@@ -55,8 +55,10 @@ import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
+import haveno.core.util.MoneroUriUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.XmrWalletService;
+import monero.wallet.model.MoneroDestination;
 import haveno.desktop.Navigation;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HavenoTextArea;
@@ -110,9 +112,7 @@ import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroTx;
-import monero.wallet.model.MoneroTxConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Coin;
 import org.jetbrains.annotations.NotNull;
@@ -765,10 +765,14 @@ public class GUIUtil {
     }
 
     public static String getMoneroURI(String address, BigInteger amount, String label) {
-        MoneroTxConfig txConfig = new MoneroTxConfig().setAddress(address);
-        if (amount != null) txConfig.setAmount(amount);
-        if (label != null && !label.isEmpty() && !disablePaymentUriLabel) txConfig.setNote(label);
-        return MoneroUtils.getPaymentUri(txConfig);
+        List<MoneroDestination> destinations = List.of(new MoneroDestination(address, amount));
+        String finalLabel = (label != null && !label.isEmpty() && !disablePaymentUriLabel) ? label : null;
+        return MoneroUriUtils.makeUri(destinations, finalLabel);
+    }
+
+    public static String getMoneroURI(List<MoneroDestination> destinations, String label) {
+        String finalLabel = (label != null && !label.isEmpty() && !disablePaymentUriLabel) ? label : null;
+        return MoneroUriUtils.makeUri(destinations, finalLabel);
     }
 
     public static boolean isBootstrappedOrShowPopup(P2PService p2PService) {

@@ -116,8 +116,15 @@ public class AssetsForm extends PaymentMethodForm {
         addressInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             if (newValue.startsWith("monero:")) {
                 UserThread.execute(() -> {
-                    String addressWithoutPrefix = newValue.replace("monero:", "");
-                    addressInputTextField.setText(addressWithoutPrefix);
+                    try {
+                        monero.wallet.model.MoneroTxConfig config = haveno.core.util.MoneroUriUtils.parseUri(newValue);
+                        if (!config.getDestinations().isEmpty()) {
+                            addressInputTextField.setText(config.getDestinations().get(0).getAddress());
+                        }
+                    } catch (Exception e) {
+                        String addressWithoutPrefix = newValue.replace("monero:", "");
+                        addressInputTextField.setText(addressWithoutPrefix);
+                    }
                 });
                 return;
             }
