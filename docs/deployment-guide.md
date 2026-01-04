@@ -29,7 +29,7 @@ On Linux and macOS, install Java JDK 21:
 
 ```
 curl -s "https://get.sdkman.io" | bash
-sdk install java 21.0.2.fx-librca
+sdk install java 21.0.9.fx-librca
 ```
 
 Alternatively, on Ubuntu 22.04:
@@ -47,7 +47,7 @@ On Windows, install MSYS2 and Java JDK 21:
 
     32-bit: `pacman -S mingw-w64-i686-toolchain make mingw-w64-i686-cmake git`
 6. `curl -s "https://get.sdkman.io" | bash`
-7. `sdk install java 21.0.2.fx-librca`
+7. `sdk install java 21.0.9.fx-librca`
 
 ## Fork and build Haveno
 

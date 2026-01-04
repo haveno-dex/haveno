@@ -56,7 +56,7 @@ configure(subprojects) {
         httpcoreVersion = '4.4.13'
         ioVersion = '2.6'
         jacksonVersion = '2.12.1'
-        javafxVersion = '21.0.2'
+        javafxVersion = '21.0.9'
         javaxAnnotationVersion = '1.2'
         jcsvVersion = '1.4.0'
         jetbrainsAnnotationsVersion = '13.0'
@@ -82,6 +82,10 @@ configure(subprojects) {
         def osName = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
         def osArch = System.getProperty("os.arch").toLowerCase()
         os = (osName == 'mac' && (osArch.contains('aarch64') || osArch.contains('arm'))) ? 'mac-aarch64' : osName
+    }
+
+    configurations {
+        javafxVerification
     }
 
     repositories {
@@ -685,6 +689,32 @@ configure(project(':desktop')) {
         implementation "org.openjfx:javafx-swing:$javafxVersion:$os"
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
+
+        // verification-only dependencies
+        javafxVerification "org.openjfx:javafx-controls:$javafxVersion:mac"
+        javafxVerification "org.openjfx:javafx-controls:$javafxVersion:mac-aarch64"
+        javafxVerification "org.openjfx:javafx-controls:$javafxVersion:win"
+        javafxVerification "org.openjfx:javafx-controls:$javafxVersion:linux"
+
+        javafxVerification "org.openjfx:javafx-fxml:$javafxVersion:mac"
+        javafxVerification "org.openjfx:javafx-fxml:$javafxVersion:mac-aarch64"
+        javafxVerification "org.openjfx:javafx-fxml:$javafxVersion:win"
+        javafxVerification "org.openjfx:javafx-fxml:$javafxVersion:linux"
+
+        javafxVerification "org.openjfx:javafx-swing:$javafxVersion:mac"
+        javafxVerification "org.openjfx:javafx-swing:$javafxVersion:mac-aarch64"
+        javafxVerification "org.openjfx:javafx-swing:$javafxVersion:win"
+        javafxVerification "org.openjfx:javafx-swing:$javafxVersion:linux"
+
+        javafxVerification "org.openjfx:javafx-base:$javafxVersion:mac"
+        javafxVerification "org.openjfx:javafx-base:$javafxVersion:mac-aarch64"
+        javafxVerification "org.openjfx:javafx-base:$javafxVersion:win"
+        javafxVerification "org.openjfx:javafx-base:$javafxVersion:linux"
+
+        javafxVerification "org.openjfx:javafx-graphics:$javafxVersion:mac"
+        javafxVerification "org.openjfx:javafx-graphics:$javafxVersion:mac-aarch64"
+        javafxVerification "org.openjfx:javafx-graphics:$javafxVersion:win"
+        javafxVerification "org.openjfx:javafx-graphics:$javafxVersion:linux"
     }
 
     test {

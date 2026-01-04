@@ -77,18 +77,18 @@ task getJavaBinariesDownloadURLs {
         // -- macOS   ( -> use the tar.gz JDK link)
         // -- windows ( -> use the .zip JDK link)
         Map jdk21Binaries = [
-                'linux'                 : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-linux-amd64-full.tar.gz',
-                'linux-sha256'          : '7eda80851fba1da023e03446c77100f19e7c770491b0d5bc9f893044e1b2b69b',
-                'linux-aarch64'         : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-linux-aarch64-full.tar.gz',
-                'linux-aarch64-sha256'  : 'a477fc72085f30b03bf71fbed47923cea3b6f33b5b6a5a74718623b772a3a043',
-                'mac'                   : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-macos-amd64-full.tar.gz',
-                'mac-sha256'            : '42b528206595e559803b6f9f6bdbbf236ec6d10684058f46bc5261f5498d345c',
-                'mac-aarch64'           : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-macos-aarch64-full.tar.gz',
-                'mac-aarch64-sha256'    : 'eba73a9bff7234220dc9a1da7f44b3d7ed2a562663eadc1c53bd74b355839a55',
-                'windows'               : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-windows-amd64-full.zip',
-                'windows-sha256'        : 'f823eff0234af5bef095e53e5431191dbee8c2e42ca321eda23148a15cbf8d5b',
-                'windows-aarch64'       : 'https://download.bell-sw.com/java/21.0.2+14/bellsoft-jdk21.0.2+14-windows-aarch64-full.zip',
-                'windows-aarch64-sha256': 'a2e9edecaf9637f83ef1cddab3a74f39ac55f8e1a479f10f3584ad939dfadd0a'
+                'linux'                 : 'https://download.bell-sw.com/java/21.0.9+15/bellsoft-jdk21.0.9+15-linux-amd64-full.tar.gz',
+                'linux-sha256'          : 'cada3343156c10dab634a7caca586941665af8f58a680664846adc2a27542968',
+                'linux-aarch64'         : 'https://download.bell-sw.com/java/21.0.9+15/bellsoft-jdk21.0.9+15-linux-aarch64-full.tar.gz',
+                'linux-aarch64-sha256'  : '09081d587a59f48d2900d62f3008f5a786a27932d68d64eeb4938aa715bf1ea8',
+                'mac'                   : 'https://download.bell-sw.com/java/21.0.9+15/bellsoft-jdk21.0.9+15-macos-amd64-full.tar.gz',
+                'mac-sha256'            : 'f7ceb9743fe96da0e3b07f64aa23c6f54c39d134af01ed56869db0864c0cd13d',
+                'mac-aarch64'           : 'https://download.bell-sw.com/java/21.0.9+15/bellsoft-jdk21.0.9+15-macos-aarch64-full.tar.gz',
+                'mac-aarch64-sha256'    : '6af4be6c59c2ac4e2d89ee940e26f19ec09ea86fac0405058bc3d7f1f805b78c',
+                'windows'               : 'https://download.bell-sw.com/java/21.0.9+15/bellsoft-jdk21.0.9+15-windows-amd64-full.zip',
+                'windows-sha256'        : 'ff1260f6c234799cebeb4df08b68da3fd066ad6e4209c67dd3de7bc4fb7e9a35',
+                'windows-aarch64'       : 'https://download.bell-sw.com/java/21.0.9+15/bellsoft-jdk21.0.9+15-windows-aarch64-full.zip',
+                'windows-aarch64-sha256': '5396566e494ebca5119681cb9961f69310b5b315d24ca1b4c897b71ebfc4fbed'
         ]
 
         String osKey
