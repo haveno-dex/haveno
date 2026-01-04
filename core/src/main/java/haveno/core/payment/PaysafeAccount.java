@@ -43,7 +43,6 @@ public final class PaysafeAccount extends PaymentAccount {
             new TraditionalCurrency("AED"),
             new TraditionalCurrency("ARS"),
             new TraditionalCurrency("AUD"),
-            new TraditionalCurrency("BGN"),
             new TraditionalCurrency("BRL"),
             new TraditionalCurrency("CAD"),
             new TraditionalCurrency("CHF"),

@@ -43,7 +43,6 @@ public final class TransferwiseAccount extends PaymentAccount {
             new TraditionalCurrency("AED"),
             new TraditionalCurrency("ARS"),
             new TraditionalCurrency("AUD"),
-            new TraditionalCurrency("BGN"),
             new TraditionalCurrency("CAD"),
             new TraditionalCurrency("CHF"),
             new TraditionalCurrency("CLP"),
