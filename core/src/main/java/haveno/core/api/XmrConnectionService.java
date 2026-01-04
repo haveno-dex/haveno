@@ -78,6 +78,10 @@ public final class XmrConnectionService {
     private static final int MAX_CONSECUTIVE_ERRORS = 3; // max errors before switching connections
     private static int numConsecutiveErrors = 0;
 
+    private int getMaxConsecutiveErrors() {
+        return isProxyApplied(getConnection()) ? 1 : MAX_CONSECUTIVE_ERRORS;
+    }
+
     public enum XmrConnectionFallbackType {
         LOCAL,
         CUSTOM,
@@ -602,7 +606,8 @@ public final class XmrConnectionService {
                         boolean isConnected = false;
                         if (xmrLocalNode.isConnected()) {
                             MoneroRpcConnection conn = connectionManager.getConnectionByUri(connection.getUri());
-                            conn.checkConnection(connectionManager.getTimeout());
+                            long timeout = isProxyApplied(conn) ? 60000 : connectionManager.getTimeout();
+                            conn.checkConnection(timeout);
                             isConnected = Boolean.TRUE.equals(conn.isConnected());
                         }
 
@@ -736,6 +741,13 @@ public final class XmrConnectionService {
                 connectionList.removeConnection(currentConnection.getUri());
                 connectionList.addConnection(currentConnection);
                 connectionList.setCurrentConnectionUri(currentConnection.getUri());
+                
+                // set timeout based on connection type
+                long timeout = isProxyApplied(currentConnection) ? 60000 : REFRESH_PERIOD_HTTP_MS;
+                connectionManager.setTimeout(timeout);
+                if (currentConnection instanceof MoneroRpcConnection) {
+                    currentConnection.setTimeout(timeout);
+                }
             }
 
             // set connection property on user thread
@@ -819,7 +831,7 @@ public final class XmrConnectionService {
 
                     // skip error handling up to max attempts
                     numConsecutiveErrors++;
-                    if (numConsecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
+                    if (numConsecutiveErrors <= getMaxConsecutiveErrors()) {
                         return;
                     } else {
                         numConsecutiveErrors = 0; // reset error count
