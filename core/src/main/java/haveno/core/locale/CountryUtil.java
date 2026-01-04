@@ -199,6 +199,18 @@ public class CountryUtil {
         return getNamesByCodes(countryCodes).stream().collect(Collectors.joining(",\n"));
     }
 
+    public static String getCountriesString(List<String> countryCodes) {
+        if (CountryUtil.containsAllSepaEuroCountries(countryCodes)) {
+            return Res.get("shared.allEuroCountries");
+        } else {
+            if (countryCodes.size() == 1) {
+                return CountryUtil.getNameAndCode(countryCodes.get(0));
+            } else {
+                return CountryUtil.getCodesString(countryCodes);
+            }
+        }
+    }
+
     public static List<Region> getAllRegions() {
         final List<Region> allRegions = new ArrayList<>();
 
