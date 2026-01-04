@@ -18,6 +18,7 @@
 package haveno.core.api.model.builder;
 
 import haveno.core.api.model.OfferInfo;
+import java.util.List;
 import lombok.Getter;
 
 /*
@@ -66,6 +67,8 @@ public final class OfferInfoBuilder {
     private boolean isPrivateOffer;
     private String challenge;
     private String extraInfo;
+    private List<String> acceptedCountryCodes;
+    private String city;
 
     public OfferInfoBuilder withId(String id) {
         this.id = id;
@@ -249,6 +252,16 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withExtraInfo(String extraInfo) {
         this.extraInfo = extraInfo;
+        return this;
+    }
+
+    public OfferInfoBuilder withAcceptedCountryCodes(List<String> acceptedCountryCodes) {
+        this.acceptedCountryCodes = acceptedCountryCodes;
+        return this;
+    }
+
+    public OfferInfoBuilder withCity(String city) {
+        this.city = city;
         return this;
     }
 
