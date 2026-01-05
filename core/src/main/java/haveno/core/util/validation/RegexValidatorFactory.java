@@ -44,7 +44,7 @@ public class RegexValidatorFactory {
                 "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
                 "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])" +           // 2001:db8:3:4::192.0.2.33  64:ff9b::192.0.2.33
                 ")";                                                   // (IPv4-Embedded IPv6 Address)
-        ipv6RegexPattern = String.format("(?:%1$s)|(?:\\[%1$s\\]\\:%2$s)", ipv6RegexPattern, portRegexPattern);
+        ipv6RegexPattern = String.format("(?:%1$s)|(?:\\[%1$s\\](?::%2$s)?)", ipv6RegexPattern, portRegexPattern);
         String fqdnRegexPattern = String.format("(((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.)+(?!onion)[a-zA-Z]{2,63}(?:\\:%1$s)?)", portRegexPattern);
         regexValidator.setPattern(String.format("^(?:(?:(?:%1$s)|(?:%2$s)|(?:%3$s)|(?:%4$s)|(?:%5$s)),\\s*)*(?:(?:%1$s)|(?:%2$s)|(?:%3$s)|(?:%4$s)|(?:%5$s))*$",
                 onionV2RegexPattern, onionV3RegexPattern, ipv4RegexPattern, ipv6RegexPattern, fqdnRegexPattern));
@@ -79,7 +79,7 @@ public class RegexValidatorFactory {
 
         // match ::/64 with optional port at the end, i.e. ::1 or [::1]:8081
         String localhostIpv6RegexPattern = "(:((:[0-9a-fA-F]{1,4}){1,4}|:)|)";
-        localhostIpv6RegexPattern = String.format("(?:%1$s)|(?:\\[%1$s\\]\\:%2$s)", localhostIpv6RegexPattern, portRegexPattern);
+        localhostIpv6RegexPattern = String.format("(?:%1$s)|(?:\\[%1$s\\](?::%2$s)?)", localhostIpv6RegexPattern, portRegexPattern);
 
         // match *.local
         String localhostFqdnRegexPattern = String.format("(localhost(?:\\:%1$s)?)", portRegexPattern);

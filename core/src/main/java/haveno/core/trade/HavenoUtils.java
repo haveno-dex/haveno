@@ -541,8 +541,34 @@ public class HavenoUtils {
      */
     public static boolean isLocalHost(String uriString) {
         try {
-            String host = new URI(uriString).getHost();
-            return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host);
+            String host = uriString;
+            if (host.contains("://")) {
+                host = host.replaceFirst("^.*://", "");
+            }
+            
+            // Handle port stripping
+            int lastColon = host.lastIndexOf(':');
+            int lastBracket = host.lastIndexOf(']');
+            
+            if (lastBracket != -1) {
+                // Bracketed IPv6: only strip port if colon is AFTER ']'
+                if (lastColon > lastBracket) {
+                    host = host.substring(0, lastColon);
+                }
+            } else {
+                // No brackets: could be IPv4 or naked IPv6.
+                // If it's naked IPv6, it has multiple colons. If it's IPv4:port, it has one colon.
+                // We only strip the colon if there is EXACTLY ONE colon (IPv4:port or host:port).
+                // If there are multiple colons and no brackets, it's a naked IPv6 (possibly with port, but that's invalid per RFC).
+                int firstColon = host.indexOf(':');
+                if (firstColon != -1 && firstColon == lastColon) {
+                    host = host.substring(0, lastColon);
+                }
+            }
+            
+            host = host.replace("[", "").replace("]", "");
+            
+            return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host) || "0:0:0:0:0:0:0:1".equals(host) || "::1".equals(host);
         } catch (Exception e) {
             return false;
         }
@@ -558,6 +584,9 @@ public class HavenoUtils {
             // get the host
             URI uri = new URI(uriString);
             String host = uri.getHost();
+            if (host == null && uriString.contains("[") && uriString.contains("]")) {
+                host = uriString.substring(uriString.indexOf("[") + 1, uriString.indexOf("]"));
+            }
 
             // check if private IP address
             if (host == null) return false;

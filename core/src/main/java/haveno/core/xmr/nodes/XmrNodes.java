@@ -209,8 +209,11 @@ public class XmrNodes {
         }
 
         public String getClearNetUri() {
-            if (!hasClearNetAddress()) throw new IllegalStateException("XmrNode does not have clearnet address");
-            return "http://" + getHostNameOrAddress() + ":" + port;
+            String host = getHostNameOrAddress();
+        if (host != null && host.contains(":") && !host.startsWith("[")) {
+            host = "[" + host + "]";
+        }
+        return "http://" + host + ":" + port;
         }
 
         @Override
