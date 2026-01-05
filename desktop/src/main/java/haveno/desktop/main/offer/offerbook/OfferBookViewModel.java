@@ -296,10 +296,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             showAllTradeCurrenciesProperty.set(showAllEntry);
             if (isEditEntry(code))
                 navigation.navigateTo(MainView.class, SettingsView.class, PreferencesView.class);
-            else if (showAllEntry) {
-                this.selectedTradeCurrency = getDefaultTradeCurrency();
-                tradeCurrencyCode.set(selectedTradeCurrency.getCode());
-            } else {
+            else if (!showAllEntry) {
                 this.selectedTradeCurrency = tradeCurrency;
                 tradeCurrencyCode.set(code);
             }
