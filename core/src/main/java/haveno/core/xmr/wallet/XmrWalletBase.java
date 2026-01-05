@@ -69,6 +69,7 @@ public abstract class XmrWalletBase {
     protected boolean isShutDownStarted;
     @Getter
     protected boolean isShutDown;
+    protected Subscription connectionUpdateSubscription;
 
     // private
     private boolean testReconnectOnStartup = false; // test reconnecting on startup while syncing so the wallet is blocked
@@ -124,12 +125,13 @@ public abstract class XmrWalletBase {
         synchronized (walletLock) {
 
             // subscribe to height updates for latest sync progress
-            Subscription connectionUpdateSubscription;
-            synchronized (xmrConnectionService.numUpdatesProperty()) { // prevent subscribing concurrently
+            UserThread.execute(() -> {
                 connectionUpdateSubscription = EasyBind.subscribe(xmrConnectionService.numUpdatesProperty(), newValue -> {
-                    if (newValue != null) updateSyncProgress(null);
+                    UserThread.execute(() -> {
+                        if (newValue != null && connectionUpdateSubscription != null && isSyncingWithProgress) updateSyncProgress(null);
+                    });
                 });
-            }
+            });
 
             try {
 
@@ -212,7 +214,10 @@ public abstract class XmrWalletBase {
             } finally {
                 isSyncingWithProgress = false;
                 if (syncProgressTimeout != null) syncProgressTimeout.stop();
-                connectionUpdateSubscription.unsubscribe();
+                UserThread.execute(() -> {
+                    connectionUpdateSubscription.unsubscribe();
+                    connectionUpdateSubscription = null;
+                });
             }
         }
     }
@@ -269,23 +274,28 @@ public abstract class XmrWalletBase {
     private void updateSyncProgress(Long height) {
 
         // use last height if no update
-        if (height == null) height = walletHeight.get();
+        long appliedHeight = height == null ? walletHeight.get() : height;
 
         // reset progress timeout if height advanced
-        if (height != walletHeight.get()) {
+        if (appliedHeight != walletHeight.get()) {
             resetSyncProgressTimeout();
         }
 
         // set wallet height
-        walletHeight.set(height);
+        walletHeight.set(appliedHeight);
 
-        // set progress
+        // calculate progress
         long targetHeight = xmrConnectionService.getTargetHeight();
-        long blocksRemaining = height <= 1 ? -1 : targetHeight - height; // unknown blocks left if height <= 1
-        if (syncStartHeight == null) syncStartHeight = height;
-        double percent = Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) height - syncStartHeight) / (double) (targetHeight - syncStartHeight));
+        long blocksRemaining = appliedHeight <= 1 ? -1 : targetHeight - appliedHeight; // unknown blocks left if height <= 1
+        if (syncStartHeight == null) syncStartHeight = appliedHeight;
+        double percent = Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) appliedHeight - syncStartHeight) / (double) (targetHeight - syncStartHeight));
         if (percent >= 1.0) wasWalletSynced = true; // set synced state before announcing progress
-        syncProgressListener.progress(percent, blocksRemaining, null);
+
+        // notify progress listener on user thread
+        UserThread.execute(() -> {
+            if (connectionUpdateSubscription == null) return; // unsubscribed
+            syncProgressListener.progress(percent, blocksRemaining);
+        });
     }
 
     private synchronized void resetSyncProgressTimeout() {

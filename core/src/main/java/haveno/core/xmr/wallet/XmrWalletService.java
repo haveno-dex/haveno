@@ -202,8 +202,8 @@ public class XmrWalletService extends XmrWalletBase {
                 public void onAccountClosed() {
                     log.info("onAccountClosed()");
                     wasWalletSynced = false;
-                    syncProgressListener.progress(-1, -1, null);
                     closeMainWallet(true);
+                    UserThread.execute(() -> syncProgressListener.progress(-1, -1));
                     // TODO: reset more properties?
                 }
 
@@ -1487,16 +1487,19 @@ public class XmrWalletService extends XmrWalletBase {
                         // reset internal state if main wallet was swapped
                         resetIfWalletChanged();
 
-                        // signal that main wallet is synced
-                        syncProgressListener.doneDownload();
-
-                        // notify setup that main wallet is initialized
-                        // TODO: app fully initializes after this is set to true, even though wallet might not be initialized if unconnected. wallet will be created when connection detected
-                        // refactor startup to call this and sync off main thread? but the calls to e.g. getBalance() fail with 'wallet and network is not yet initialized'
-                        HavenoUtils.havenoSetup.getWalletInitialized().set(true);
-
                         // save but skip backup on initialization
                         saveWallet(false);
+
+                        UserThread.execute(() -> {
+                            
+                            // signal that main wallet is synced
+                            syncProgressListener.doneDownload();
+
+                            // notify setup that main wallet is initialized
+                            // TODO: app fully initializes after this is set to true, even though wallet might not be initialized if unconnected. wallet will be created when connection detected
+                            // refactor startup to call this and sync off main thread? but the calls to e.g. getBalance() fail with 'wallet and network is not yet initialized'
+                            HavenoUtils.havenoSetup.getWalletInitialized().set(true);
+                        });
                     } catch (Exception e) {
                         if (isClosingWallet || isShutDownStarted || HavenoUtils.havenoSetup.getWalletInitialized().get()) return; // ignore if wallet closing, shut down started, or app already initialized
                         log.warn("Error initially syncing main wallet, numSyncAttemptsRemaining={}", numSyncAttemptsRemaining, e);

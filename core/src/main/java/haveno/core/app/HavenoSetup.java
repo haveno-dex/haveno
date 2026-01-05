@@ -37,6 +37,8 @@ package haveno.core.app;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -334,17 +336,21 @@ public class HavenoSetup {
     }
 
     private void step4() {
-        initDomainServices();
 
-        havenoSetupListeners.forEach(HavenoSetupListener::onSetupComplete);
+        // run off main thread so domain initialization does not block UI
+        ThreadUtils.submitToPool(() -> {
+            initDomainServices();
 
-        // We set that after calling the setupCompleteHandler to not trigger a popup from the dev dummy accounts
-        // in MainViewModel
-        maybeShowSecurityRecommendation();
-        maybeShowLocalhostRunningInfo();
-        maybeShowAccountSigningStateInfo();
-        maybeShowTorAddressUpgradeInformation();
-        checkInboundConnections();
+            havenoSetupListeners.forEach(HavenoSetupListener::onSetupComplete);
+
+            // We set that after calling the setupCompleteHandler to not trigger a popup from the dev dummy accounts
+            // in MainViewModel
+            maybeShowSecurityRecommendation();
+            maybeShowLocalhostRunningInfo();
+            maybeShowAccountSigningStateInfo();
+            maybeShowTorAddressUpgradeInformation();
+            checkInboundConnections();
+        });
     }
 
 
