@@ -2011,6 +2011,14 @@ public class XmrWalletService extends XmrWalletBase {
                 return;
             }
 
+            // skip polling if trades are reserving main wallet
+            List<Trade> tradesReservingMainWallet = tradeManager.getTradesReservingMainWallet();
+            if (!tradesReservingMainWallet.isEmpty()) {
+                List<String> tradeIds = tradesReservingMainWallet.stream().map(Trade::getShortId).collect(Collectors.toList());
+                log.info("Skipping main wallet poll because trades are reserving main wallet: " + tradeIds);
+                return;
+            }
+
             // sync wallet if behind daemon
             if (walletHeight.get() < xmrConnectionService.getTargetHeight()) {
                 synchronized (walletLock) { // avoid long sync from blocking other operations
