@@ -612,6 +612,9 @@ message OfferInfo {
     bool is_private_offer = 32;
     string challenge = 33;
     string extra_info = 34;
+    repeated string accepted_country_codes = 35;
+    string accepted_countries_string = 36;
+    string city = 37;
 }
 
 message AvailabilityResultWithDescription {

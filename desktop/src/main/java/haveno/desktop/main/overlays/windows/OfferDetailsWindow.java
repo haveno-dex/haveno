@@ -303,16 +303,12 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         }
         if (showAcceptedCountryCodes) {
             addSeparator(gridPane, ++rowIndex);
-            String countries;
+            String countries = CountryUtil.getCountriesString(acceptedCountryCodes);
             Tooltip tooltip = null;
-            if (CountryUtil.containsAllSepaEuroCountries(acceptedCountryCodes)) {
-                countries = Res.get("shared.allEuroCountries");
-            } else {
+            if (!CountryUtil.containsAllSepaEuroCountries(acceptedCountryCodes)) {
                 if (acceptedCountryCodes.size() == 1) {
-                    countries = CountryUtil.getNameAndCode(acceptedCountryCodes.get(0));
                     tooltip = new Tooltip(countries);
                 } else {
-                    countries = CountryUtil.getCodesString(acceptedCountryCodes);
                     tooltip = new Tooltip(CountryUtil.getNamesByCodesString(acceptedCountryCodes));
                 }
             }
