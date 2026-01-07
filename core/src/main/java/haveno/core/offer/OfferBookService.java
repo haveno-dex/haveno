@@ -129,7 +129,7 @@ public class OfferBookService {
                                     replaceValidOffer(offer);
                                     announceOfferAdded(offer);
                                 } catch (IllegalArgumentException e) {
-                                    // ignore illegal offers
+                                    log.warn("Ignoring invalid offer {}: {}", offerPayload.getId(), e.getMessage());
                                 } catch (RuntimeException e) {
                                     replaceInvalidOffer(offer); // offer can become valid later
                                 }
@@ -377,6 +377,12 @@ public class OfferBookService {
         boolean isV3NodeAddressCompliant = !OfferRestrictions.requiresNodeAddressUpdate() || Utils.isV3Address(offerPayload.getOwnerNodeAddress().getHostName());
         if (!isV3NodeAddressCompliant) {
             throw new IllegalArgumentException("Offer with non-V3 node address is not allowed with offerId=" + offerPayload.getId());
+        }
+
+        // validate market price margin
+        double marketPriceMarginPct = offerPayload.getMarketPriceMarginPct();
+        if (marketPriceMarginPct <= -1 || marketPriceMarginPct >= 1) {
+            throw new IllegalArgumentException("Market price margin must be greater than -100% and less than 100% but was " + (marketPriceMarginPct * 100) + "% with offerId=" + offerPayload.getId());
         }
 
         // validate against existing offers

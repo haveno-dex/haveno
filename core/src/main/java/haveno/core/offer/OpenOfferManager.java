@@ -1629,6 +1629,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
             }
 
+            // verify market price margin
+            double marketPriceMarginPct = request.getOfferPayload().getMarketPriceMarginPct();
+            if (marketPriceMarginPct <= -1 || marketPriceMarginPct >= 1) {
+                errorMessage = "Market price margin must be greater than -100% and less than 100% but was " + (marketPriceMarginPct * 100) + "%";
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
             // verify maker and taker fees
             boolean hasBuyerAsTakerWithoutDeposit = offer.getDirection() == OfferDirection.SELL && offer.isPrivateOffer() && offer.getChallengeHash() != null && offer.getChallengeHash().length() > 0 && offer.getTakerFeePct() == 0;
             if (hasBuyerAsTakerWithoutDeposit) {
