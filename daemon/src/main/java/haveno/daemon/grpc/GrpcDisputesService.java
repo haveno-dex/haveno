@@ -1,6 +1,9 @@
 package haveno.daemon.grpc;
 
 import com.google.inject.Inject;
+
+import haveno.common.ThreadUtils;
+import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.proto.ProtoUtil;
 import haveno.core.api.CoreApi;
@@ -48,82 +51,102 @@ public class GrpcDisputesService extends DisputesImplBase {
 
     @Override
     public void openDispute(OpenDisputeRequest req, StreamObserver<OpenDisputeReply> responseObserver) {
-        try {
-            coreApi.openDispute(req.getTradeId(),
-                    () -> {
-                        var reply = OpenDisputeReply.newBuilder().build();
-                        responseObserver.onNext(reply);
-                        responseObserver.onCompleted();
-                    },
-                    (errorMessage, throwable) -> {
-                        log.info("Error in openDispute" + errorMessage);
-                        exceptionHandler.handleErrorMessage(log, errorMessage, responseObserver);
-                    });
-        } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
-        }
+        UserThread.execute(() -> {
+            ThreadUtils.submitToPool(() -> {
+                try {
+                    coreApi.openDispute(req.getTradeId(),
+                            () -> {
+                                var reply = OpenDisputeReply.newBuilder().build();
+                                responseObserver.onNext(reply);
+                                responseObserver.onCompleted();
+                            },
+                            (errorMessage, throwable) -> {
+                                log.info("Error in openDispute" + errorMessage);
+                                exceptionHandler.handleErrorMessage(log, errorMessage, responseObserver);
+                            });
+                } catch (Throwable cause) {
+                    exceptionHandler.handleException(log, cause, responseObserver);
+                }
+            });
+        });
     }
 
     @Override
     public void getDispute(GetDisputeRequest req, StreamObserver<GetDisputeReply> responseObserver) {
-        try {
-            var dispute = coreApi.getDispute(req.getTradeId());
-            var reply = GetDisputeReply.newBuilder()
-                    .setDispute(dispute.toProtoMessage())
-                    .build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        } catch (Throwable cause) {
-            exceptionHandler.handleExceptionAsWarning(log, getClass().getName() + ".getDispute", cause, responseObserver);
-        }
+        UserThread.execute(() -> { // offers are updated on user thread
+            ThreadUtils.submitToPool(() -> {
+                try {
+                    var dispute = coreApi.getDispute(req.getTradeId());
+                    var reply = GetDisputeReply.newBuilder()
+                            .setDispute(dispute.toProtoMessage())
+                            .build();
+                    responseObserver.onNext(reply);
+                    responseObserver.onCompleted();
+                } catch (Throwable cause) {
+                    exceptionHandler.handleExceptionAsWarning(log, getClass().getName() + ".getDispute", cause, responseObserver);
+                }
+            });
+        });
     }
 
     @Override
     public void getDisputes(GetDisputesRequest req, StreamObserver<GetDisputesReply> responseObserver) {
-        try {
-            var disputes = coreApi.getDisputes();
-            var disputesProtobuf = disputes.stream()
-                    .map(d -> d.toProtoMessage())
-                    .collect(Collectors.toList());
-            var reply = GetDisputesReply.newBuilder()
-                    .addAllDisputes(disputesProtobuf)
-                    .build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
-        }
+        UserThread.execute(() -> {
+            ThreadUtils.submitToPool(() -> {
+                try {
+                    var disputes = coreApi.getDisputes();
+                    var disputesProtobuf = disputes.stream()
+                            .map(d -> d.toProtoMessage())
+                            .collect(Collectors.toList());
+                    var reply = GetDisputesReply.newBuilder()
+                            .addAllDisputes(disputesProtobuf)
+                            .build();
+                    responseObserver.onNext(reply);
+                    responseObserver.onCompleted();
+                } catch (Throwable cause) {
+                    exceptionHandler.handleException(log, cause, responseObserver);
+                }
+            });
+        });
     }
 
     @Override
     public void resolveDispute(ResolveDisputeRequest req, StreamObserver<ResolveDisputeReply> responseObserver) {
-        try {
-            var winner = ProtoUtil.enumFromProto(DisputeResult.Winner.class, req.getWinner().name());
-            var reason = ProtoUtil.enumFromProto(DisputeResult.Reason.class, req.getReason().name());
-            coreApi.resolveDispute(req.getTradeId(), winner, reason, req.getSummaryNotes(), req.getCustomPayoutAmount());
-            var reply = ResolveDisputeReply.newBuilder().build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        } catch (Throwable cause) {
-            cause.printStackTrace();
-            exceptionHandler.handleExceptionAsWarning(log, getClass().getName() + ".resolveDispute", cause, responseObserver);
-        }
+        UserThread.execute(() -> {
+            ThreadUtils.submitToPool(() -> {
+                try {
+                    var winner = ProtoUtil.enumFromProto(DisputeResult.Winner.class, req.getWinner().name());
+                    var reason = ProtoUtil.enumFromProto(DisputeResult.Reason.class, req.getReason().name());
+                    coreApi.resolveDispute(req.getTradeId(), winner, reason, req.getSummaryNotes(), req.getCustomPayoutAmount());
+                    var reply = ResolveDisputeReply.newBuilder().build();
+                    responseObserver.onNext(reply);
+                    responseObserver.onCompleted();
+                } catch (Throwable cause) {
+                    cause.printStackTrace();
+                    exceptionHandler.handleExceptionAsWarning(log, getClass().getName() + ".resolveDispute", cause, responseObserver);
+                }
+            });
+        });
     }
 
     @Override
     public void sendDisputeChatMessage(SendDisputeChatMessageRequest req,
                                        StreamObserver<SendDisputeChatMessageReply> responseObserver) {
-        try {
-            var attachmentsProto = req.getAttachmentsList();
-            var attachments = attachmentsProto.stream().map(a -> Attachment.fromProto(a))
-                    .collect(Collectors.toList());
-            coreApi.sendDisputeChatMessage(req.getDisputeId(), req.getMessage(), new ArrayList(attachments));
-            var reply = SendDisputeChatMessageReply.newBuilder().build();
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
-        } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
-        }
+        UserThread.execute(() -> {
+            ThreadUtils.submitToPool(() -> {
+                try {
+                    var attachmentsProto = req.getAttachmentsList();
+                    var attachments = attachmentsProto.stream().map(a -> Attachment.fromProto(a))
+                            .collect(Collectors.toList());
+                    coreApi.sendDisputeChatMessage(req.getDisputeId(), req.getMessage(), new ArrayList(attachments));
+                    var reply = SendDisputeChatMessageReply.newBuilder().build();
+                    responseObserver.onNext(reply);
+                    responseObserver.onCompleted();
+                } catch (Throwable cause) {
+                    exceptionHandler.handleException(log, cause, responseObserver);
+                }
+            });
+        });
     }
 
     final ServerInterceptor[] interceptors() {
