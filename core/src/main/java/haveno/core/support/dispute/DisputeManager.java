@@ -420,7 +420,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             if (reOpen) {
                 dispute = storedDisputeOptional.get();
             } else {
-                disputeList.add(dispute);
+                final Dispute finalDispute = dispute;
+                UserThread.execute(() -> {
+                    synchronized (disputeList.getObservableList()) {
+                        disputeList.add(finalDispute);
+                    }
+                });
             }
         }
 
@@ -556,15 +561,17 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     public void removeDisputes(Trade trade) {
-        T disputeList = getDisputeList();
-        synchronized (disputeList.getObservableList()) {
-            for (Dispute dispute : trade.getDisputes()) {
-                disputeList.remove(dispute);
+        UserThread.execute(() -> {
+            T disputeList = getDisputeList();
+            synchronized (disputeList.getObservableList()) {
+                for (Dispute dispute : trade.getDisputes()) {
+                    disputeList.remove(dispute);
+                }
             }
-        }
-        trade.setDisputeState(Trade.DisputeState.NO_DISPUTE);
-        clearPendingMessage();
-        requestPersistence();
+            trade.setDisputeState(Trade.DisputeState.NO_DISPUTE);
+            clearPendingMessage();
+            requestPersistence();
+        });
     }
 
     // arbitrator receives dispute opened message from opener, opener's peer receives from arbitrator
@@ -694,7 +701,11 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                                 if (reOpen) {
                                     trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                                 } else {
-                                    disputeList.add(dispute);
+                                    UserThread.execute(() -> {
+                                        synchronized (disputeList) {
+                                            disputeList.add(dispute);
+                                        }
+                                    });
                                     trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                                 }
 
@@ -822,9 +833,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             dispute = storedDisputeOptional.get();
             dispute.reOpen();
         } else {
-            synchronized (disputeList) {
-                disputeList.add(dispute);
-            }
+            final Dispute finalDispute = dispute;
+            UserThread.execute(() -> {
+                synchronized (disputeList) {
+                    disputeList.add(finalDispute);
+                }
+            });
         }
 
         // get trade
