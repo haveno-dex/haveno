@@ -17,12 +17,14 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.FasterPaymentsAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.validation.AccountNrValidator;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
@@ -83,5 +85,16 @@ public final class FasterPaymentsAccount extends PaymentAccount {
 
     public String getAccountNr() {
         return ((FasterPaymentsAccountPayload) paymentAccountPayload).getAccountNr();
+    }
+    
+        @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+        case ACCOUNT_NR:
+            processValidationResult(new AccountNrValidator("GB").validate(value));
+            break;
+        default:
+            super.validateFormField(form, fieldId, value);
+        }
     }
 }

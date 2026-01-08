@@ -40,6 +40,7 @@ public class WeChatPayForm extends GeneralAccountNumberForm {
         return gridRow;
     }
 
+    // TODO: WeChatPay validator is not used
     public WeChatPayForm(PaymentAccount paymentAccount, AccountAgeWitnessService accountAgeWitnessService, WeChatPayValidator weChatPayValidator, InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
         this.weChatPayAccount = (WeChatPayAccount) paymentAccount;

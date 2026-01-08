@@ -17,10 +17,13 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
+import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.payment.payload.CountryBasedPaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.validation.AccountNrValidator;
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
 
@@ -77,5 +80,19 @@ public abstract class CountryBasedPaymentAccount extends PaymentAccount {
     @Nullable
     public List<Country> getSupportedCountries() {
         return null; // support all countries by default
+    }
+
+    @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+        case ACCOUNT_NR:
+            if (country == null && paymentAccountPayload == null) {
+                throw new IllegalStateException("Country must be set before validating account number");
+            }
+            processValidationResult(new AccountNrValidator(getCountry().code).validate(value));
+            break;
+        default:
+            super.validateFormField(form, fieldId, value);
+        }
     }
 }
