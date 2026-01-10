@@ -441,7 +441,11 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
         case BANK_ACCOUNT_NUMBER:
-            throw new IllegalArgumentException("Not implemented");
+            if (value.length() < 2 || value.length() > 40)
+                throw new IllegalArgumentException("Invalid bank account number length");
+            if (!value.matches("^[A-Za-z0-9\\- ]+$"))
+                throw new IllegalArgumentException("Invalid bank account number");
+            break;
         case BANK_ACCOUNT_TYPE:
             processValidationResult(new LengthValidator(1, 100).validate(value));
             break;
@@ -525,7 +529,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new IBANValidator().validate(value));
             break;
         case IFSC:
-            throw new IllegalArgumentException("Not implemented");
+            if (!value.matches("^[A-Z]{4}0[0-9A-Z]{6}$"))
+                throw new IllegalArgumentException("Invalid IFSC: " + value);
+            break;
         case INTERMEDIARY_COUNTRY_CODE:
             if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
             break;
@@ -588,12 +594,10 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new LengthValidator(10, 150).validate(value)); // TODO: validate crypto address
             break;
         case VIRTUAL_PAYMENT_ADDRESS: {
-            String trimmedAddress = value.trim();
-            if (trimmedAddress.length() < 3 || trimmedAddress.length() > 100)
+            String vpa = value.trim();
+            if (vpa.length() < 3 || vpa.length() > 100)
                 throw new IllegalArgumentException("Virtual Payment Address length must be between 3 and 100");
-            Pattern p = Pattern.compile("^[^@\\s]{1,64}@[^@\\s]{1,64}$");
-            Matcher m = p.matcher(trimmedAddress);
-            if (!m.matches()) 
+            if (!vpa.matches("^[a-zA-Z0-9._\\-]{1,64}@[a-zA-Z0-9][a-zA-Z0-9.\\-]{0,63}$"))
                 throw new IllegalArgumentException("Invalid Virtual Payment Address format");
             break;
         }
@@ -677,6 +681,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         case BANK_CODE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.bankCode")); 
+            break;
         case BANK_COUNTRY_CODE:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel(Res.get("payment.bank.country"));
@@ -726,9 +731,11 @@ public abstract class PaymentAccount implements PersistablePayload {
         case CITY:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.account.city"));
+            break;
         case CONTACT:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.payByMail.contact"));
+            break;
         case COUNTRY:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel(Res.get("shared.country"));
@@ -806,7 +813,13 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel(Res.get("payment.email.mobile"));
             break;
         case PIX_KEY:
-            throw new IllegalArgumentException("Not implemented");
+            String p = value.trim();
+            boolean isEmail = p.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,63}$");
+            boolean isPhone = p.matches("^\\+?[1-9][0-9]{7,14}$");
+            boolean isUuid  = p.matches("^[0-9a-fA-F\\-]{32,36}$");
+            if (!(isEmail || isPhone || isUuid))
+                throw new IllegalArgumentException("Invalid PIX key");
+            break;
         case POSTAL_ADDRESS:
             field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
             field.setLabel(Res.get("payment.postal.address"));
