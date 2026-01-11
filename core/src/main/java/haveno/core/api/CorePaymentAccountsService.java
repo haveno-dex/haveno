@@ -186,11 +186,10 @@ public class CorePaymentAccountsService {
 
     void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
 
-        // get payment method id
-        PaymentAccountForm.FormId formId = form.getId();
+        // deserialize the payment account for context
+        PaymentAccount paymentAccount = PaymentAccount.fromJson(form.toPaymentAccountJsonString());
 
-        // validate field with empty payment account
-        PaymentAccount paymentAccount = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethod(formId.toString()));
+        // validate form field
         paymentAccount.validateFormField(form, fieldId, value);
     }
 

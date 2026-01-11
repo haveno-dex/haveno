@@ -71,4 +71,16 @@ public final class WeChatPayAccount extends PaymentAccount {
     public String getAccountNr() {
         return ((WeChatPayAccountPayload) paymentAccountPayload).getAccountNr();
     }
+
+    // TODO: WeChatPayValidator is not used (see WeChatPayForm)
+    // @Override
+    // public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+    //     switch (fieldId) {
+    //     case ACCOUNT_NR:
+    //         processValidationResult(new WeChatPayValidator().validate(value));
+    //         break;
+    //     default:
+    //         super.validateFormField(form, fieldId, value);
+    //     }
+    // }
 }

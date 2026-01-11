@@ -50,7 +50,6 @@ import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
-import haveno.core.payment.validation.AccountNrValidator;
 import haveno.core.payment.validation.BICValidator;
 import haveno.core.payment.validation.BranchIdValidator;
 import haveno.core.payment.validation.EmailOrMobileNrValidator;
@@ -429,7 +428,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
         case ACCOUNT_NR:
-            processValidationResult(new AccountNrValidator("GB").validate(value));
+            processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
         case ACCOUNT_OWNER:
             processValidationResult(new LengthValidator(2, 100).validate(value));

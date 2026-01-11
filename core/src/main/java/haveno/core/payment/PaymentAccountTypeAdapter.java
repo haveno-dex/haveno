@@ -427,7 +427,14 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
         if (!fieldName.equals("country"))
             return false;
 
+        // read country code
         String countryCode = nextStringOrNull(in);
+        
+        // skip if not defined
+        if (countryCode == null || countryCode.isEmpty())
+            return true;
+        
+        // parse country
         Optional<Country> country = findCountryByCode(countryCode);
         if (country.isPresent()) {
 

@@ -40,6 +40,7 @@ public class AliPayForm extends GeneralAccountNumberForm {
         return gridRow;
     }
 
+    // TODO: AliPay validator is not used
     public AliPayForm(PaymentAccount paymentAccount, AccountAgeWitnessService accountAgeWitnessService, AliPayValidator aliPayValidator, InputValidator inputValidator, GridPane gridPane, int gridRow, CoinFormatter formatter) {
         super(paymentAccount, accountAgeWitnessService, inputValidator, gridPane, gridRow, formatter);
         this.aliPayAccount = (AliPayAccount) paymentAccount;

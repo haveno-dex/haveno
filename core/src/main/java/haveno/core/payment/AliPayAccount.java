@@ -94,4 +94,16 @@ public final class AliPayAccount extends PaymentAccount {
     public String getAccountNr() {
         return ((AliPayAccountPayload) paymentAccountPayload).getAccountNr();
     }
+
+    // TODO: AliPayValidator is not used (see AliPayForm)
+    // @Override
+    // public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+    //     switch (fieldId) {
+    //     case ACCOUNT_NR:
+    //         processValidationResult(new AliPayValidator().validate(value));
+    //         break;
+    //     default:
+    //         super.validateFormField(form, fieldId, value);
+    //     }
+    // }
 }

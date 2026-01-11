@@ -20,6 +20,8 @@ package haveno.core.payment;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.BankUtil;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AchTransferAccountPayload;
 import haveno.core.payment.payload.BankAccountPayload;
@@ -28,7 +30,9 @@ import haveno.core.payment.payload.PaymentMethod;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
+import java.util.Arrays;
 import java.util.List;
+import javax.annotation.Nullable;
 
 @EqualsAndHashCode(callSuper = true)
 public final class AchTransferAccount extends CountryBasedPaymentAccount implements SameCountryRestrictedBankAccount {
@@ -36,13 +40,13 @@ public final class AchTransferAccount extends CountryBasedPaymentAccount impleme
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.COUNTRY,
             PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.HOLDER_ADDRESS,
             PaymentAccountFormField.FieldId.BANK_NAME,
             PaymentAccountFormField.FieldId.BRANCH_ID,
             PaymentAccountFormField.FieldId.ACCOUNT_NR,
             PaymentAccountFormField.FieldId.ACCOUNT_TYPE,
-            PaymentAccountFormField.FieldId.COUNTRY,
             PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.SALT
@@ -94,6 +98,12 @@ public final class AchTransferAccount extends CountryBasedPaymentAccount impleme
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
         return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return Arrays.asList(CountryUtil.findCountryByCode("US").get());
     }
 
     @Override
