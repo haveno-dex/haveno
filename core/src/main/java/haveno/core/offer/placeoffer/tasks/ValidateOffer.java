@@ -109,6 +109,9 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         if (!offer.isUseMarketBasedPrice()) checkArgument(offer.getPrice().isPositive(),
                 "Price must be positive unless using market based price. price=" + offer.getPrice().toFriendlyString());
 
+        checkArgument(offer.getOfferPayload().getMarketPriceMarginPct() > -1 && offer.getOfferPayload().getMarketPriceMarginPct() < 1,
+                "Market price margin must be greater than -100% and less than 100% but was " + (offer.getOfferPayload().getMarketPriceMarginPct() * 100) + "%");
+
         checkArgument(offer.getDate().getTime() > 0,
                 "Date must not be 0. date=" + offer.getDate().toString());
 
