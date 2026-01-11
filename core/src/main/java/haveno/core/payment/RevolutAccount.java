@@ -42,7 +42,6 @@ public final class RevolutAccount extends PaymentAccount {
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
             new TraditionalCurrency("AED"),
             new TraditionalCurrency("AUD"),
-            new TraditionalCurrency("BGN"),
             new TraditionalCurrency("CAD"),
             new TraditionalCurrency("CHF"),
             new TraditionalCurrency("CZK"),

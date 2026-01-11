@@ -34,7 +34,6 @@ public final class PayseraAccount extends PaymentAccount {
     // https://github.com/bisq-network/growth/issues/233
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
             new TraditionalCurrency("AUD"),
-            new TraditionalCurrency("BGN"),
             new TraditionalCurrency("BYN"),
             new TraditionalCurrency("CAD"),
             new TraditionalCurrency("CHF"),
