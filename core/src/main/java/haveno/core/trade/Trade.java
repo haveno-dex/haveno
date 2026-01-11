@@ -2687,6 +2687,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return getState().getPhase().ordinal() == Phase.INIT.ordinal();
     }
 
+    public boolean isReservingMainWallet() {
+        if (isArbitrator()) return false;
+        return getState().ordinal() >= State.PREPARATION.ordinal() && getState().ordinal() < State.CONTRACT_SIGNATURE_REQUESTED.ordinal(); // reserve main wallet during initialization protocol until deposit tx created
+    }
+
     public boolean isFundsLockedIn() {
         return isDepositsPublished() && !isPayoutPublished();
     }

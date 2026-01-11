@@ -1365,6 +1365,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
+    public List<Trade> getTradesReservingMainWallet() {
+        synchronized (tradableList.getList()) {
+            return tradableList.getList().stream()
+                    .filter(trade -> trade.isReservingMainWallet())
+                    .collect(Collectors.toList());
+        }
+    }
+
     public List<Trade> getOpenTrades() {
         synchronized (tradableList.getList()) {
             return ImmutableList.copyOf(getObservableList().stream()
