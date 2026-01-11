@@ -7,26 +7,25 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleLongProperty;
 
-import java.util.Date;
-
 public class DownloadListener {
     private final DoubleProperty percentage = new SimpleDoubleProperty(-1);
     private final LongProperty blocksRemaining = new SimpleLongProperty(-1);
     private final LongProperty numUpdates = new SimpleLongProperty(0);
 
-    // TODO: remove redundant execute?
-    public void progress(double percentage, long blocksRemaining, Date date) {
-        UserThread.execute(() -> {
-            UserThread.await(() -> {
-                this.percentage.set(percentage);
-                this.blocksRemaining.set(blocksRemaining);
-                this.numUpdates.set(this.numUpdates.get() + 1);
-            }); // TODO: these awaits are jenky
-        });
+    public void progress(double percentage, long blocksRemaining) {
+        if (!UserThread.isUserThread(Thread.currentThread())) {
+            throw new IllegalStateException("DownloadListener.progress() must be called on the JavaFX Application Thread");
+        }
+        this.percentage.set(percentage);
+        this.blocksRemaining.set(blocksRemaining);
+        this.numUpdates.set(this.numUpdates.get() + 1);
     }
 
     public void doneDownload() {
-        UserThread.await(() -> this.percentage.set(1d));
+        if (!UserThread.isUserThread(Thread.currentThread())) {
+            throw new IllegalStateException("DownloadListener.doneDownload() must be called on the JavaFX Application Thread");
+        }
+        this.percentage.set(1d);
     }
 
     public LongProperty numUpdates() {
