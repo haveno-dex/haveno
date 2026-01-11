@@ -320,67 +320,73 @@ public class CoreOffersService {
                           Consumer<Offer> resultHandler, 
                           ErrorMessageHandler errorMessageHandler) {
 
-        // collect offer info
-        final OpenOffer openOffer = getMyOffer(offerId); 
-        final Offer offer = openOffer.getOffer();
-        final OfferPayload offerPayload = openOffer.getOffer().getOfferPayload();
+        try {
 
-        // cannot edit reserved offer
-        if (openOffer.isReserved()) {
-            throw new IllegalStateException("Cannot edit offer " + offer.getId() + " because it's reserved");
-        }
+            // collect offer info
+            final OpenOffer openOffer = getMyOffer(offerId); 
+            final Offer offer = openOffer.getOffer();
+            final OfferPayload offerPayload = openOffer.getOffer().getOfferPayload();
 
-        // get currency code
-        if (currencyCode.isEmpty()) currencyCode = offer.getCounterCurrencyCode();
-        String upperCaseCurrencyCode = currencyCode.toUpperCase();
-
-        // get payment account
-        if (paymentAccountId.isEmpty()) paymentAccountId = offer.getOfferPayload().getMakerPaymentAccountId();
-        PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
-        if (paymentAccount == null) throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId)); // TODO: invoke error handler for this and other offer methods
-
-        // get preselected payment account
-        PaymentAccount preselectedPaymentAccount = getPreselectedPaymentAccount(paymentAccount, currencyCode);
-
-        // start edit offer
-        OpenOffer.State initialState = openOffer.getState();
-        openOfferManager.editOpenOfferStart(openOffer, () -> {
-            try {
-
-                // wait for remove offer to propagate
-                // TODO: if offer edit is published too quickly, the remove message can be received after the add message, in which case the offer will be offline until the next offer refresh
-                HavenoUtils.waitFor(WAIT_FOR_EDIT_REMOVAL_MS);
-
-                // create edited offer
-                Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
-                final OfferPayload newOfferPayload = createOfferService.createAndGetOffer(offerId,
-                        offer.getDirection(),
-                        upperCaseCurrencyCode,
-                        offer.getAmount(),
-                        offer.getMinAmount(),
-                        price,
-                        useMarketBasedPrice,
-                        marketPriceMarginPct,
-                        offerPayload.getBuyerSecurityDepositPct(),
-                        preselectedPaymentAccount,
-                        offerPayload.isPrivateOffer(),
-                        offer.hasBuyerAsTakerWithoutDeposit(),
-                        extraInfo).getOfferPayload();
-                Offer editedOffer = getEditedOffer(openOffer, newOfferPayload);
-
-                // publish edited offer
-                long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, upperCaseCurrencyCode);
-                openOfferManager.editOpenOfferPublish(editedOffer, triggerPriceAsLong, initialState, () -> {
-                    Offer updatedEditedOffer = openOfferManager.getOpenOffer(offerId).get().getOffer(); // get latest offer
-                    resultHandler.accept(updatedEditedOffer);
-                }, (errorMsg) -> {
-                    errorMessageHandler.handleErrorMessage(errorMsg);
-                });
-            } catch (Exception e) {
-                errorMessageHandler.handleErrorMessage(format("Error editing offer %s: %s", offerId, e.getMessage()));
-                return;
+            // cannot edit reserved offer
+            if (openOffer.isReserved()) {
+                throw new IllegalStateException("Cannot edit offer " + offer.getId() + " because it's reserved");
             }
-        }, errorMessageHandler);
+
+            // get currency code
+            if (currencyCode.isEmpty()) currencyCode = offer.getCounterCurrencyCode();
+            String upperCaseCurrencyCode = currencyCode.toUpperCase();
+
+            // get payment account
+            if (paymentAccountId.isEmpty()) paymentAccountId = offer.getOfferPayload().getMakerPaymentAccountId();
+            PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
+            if (paymentAccount == null) throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId)); // TODO: invoke error handler for this and other offer methods
+
+            // get preselected payment account
+            PaymentAccount preselectedPaymentAccount = getPreselectedPaymentAccount(paymentAccount, currencyCode);
+
+            // start edit offer
+            OpenOffer.State initialState = openOffer.getState();
+            openOfferManager.editOpenOfferStart(openOffer, () -> {
+                try {
+
+                    // wait for remove offer to propagate
+                    // TODO: if offer edit is published too quickly, the remove message can be received after the add message, in which case the offer will be offline until the next offer refresh
+                    HavenoUtils.waitFor(WAIT_FOR_EDIT_REMOVAL_MS);
+
+                    // create edited offer
+                    Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
+                    final OfferPayload newOfferPayload = createOfferService.createAndGetOffer(offerId,
+                            offer.getDirection(),
+                            upperCaseCurrencyCode,
+                            offer.getAmount(),
+                            offer.getMinAmount(),
+                            price,
+                            useMarketBasedPrice,
+                            marketPriceMarginPct,
+                            offerPayload.getBuyerSecurityDepositPct(),
+                            preselectedPaymentAccount,
+                            offerPayload.isPrivateOffer(),
+                            offer.hasBuyerAsTakerWithoutDeposit(),
+                            extraInfo).getOfferPayload();
+                    Offer editedOffer = getEditedOffer(openOffer, newOfferPayload);
+
+                    // publish edited offer
+                    long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, upperCaseCurrencyCode);
+                    openOfferManager.editOpenOfferPublish(editedOffer, triggerPriceAsLong, initialState, () -> {
+                        Offer updatedEditedOffer = openOfferManager.getOpenOffer(offerId).get().getOffer(); // get latest offer
+                        resultHandler.accept(updatedEditedOffer);
+                    }, (errorMsg) -> {
+                        errorMessageHandler.handleErrorMessage(errorMsg);
+                    });
+                } catch (Exception e) {
+                    errorMessageHandler.handleErrorMessage(format("Error editing offer %s: %s", offerId, e.getMessage()));
+                    return;
+                }
+            }, errorMessageHandler);
+        } catch (Exception e) {
+            errorMessageHandler.handleErrorMessage(format("Error editing offer %s: %s", offerId, e.getMessage()));
+            return;
+        }
     }
 
     private PaymentAccount getPreselectedPaymentAccount(PaymentAccount paymentAccount, String currencyCode) {
