@@ -18,6 +18,8 @@
 package haveno.core.locale;
 
 
+import java.util.Optional;
+
 import com.google.protobuf.Message;
 import lombok.Getter;
 
@@ -53,9 +55,14 @@ public final class CryptoCurrency extends TradeCurrency {
     }
 
     public static CryptoCurrency fromProto(protobuf.TradeCurrency proto) {
-        return new CryptoCurrency(proto.getCode(),
+        Optional<TradeCurrency> currency = CurrencyUtil.getTradeCurrency(proto.getCode());
+        if (currency.isPresent() && currency.get() instanceof CryptoCurrency) {
+            return new CryptoCurrency(proto.getCode(),
                 CurrencyUtil.getNameByCode(proto.getCode()),
                 proto.getCryptoCurrency().getIsAsset());
+        } else {
+            return null;
+        }
     }
 
 
