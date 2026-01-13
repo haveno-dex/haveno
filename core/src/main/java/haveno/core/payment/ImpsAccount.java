@@ -33,6 +33,14 @@ public final class ImpsAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("INR"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.BRANCH_ID,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public ImpsAccount() {
         super(PaymentMethod.IMPS);
     }
@@ -64,6 +72,6 @@ public final class ImpsAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }
