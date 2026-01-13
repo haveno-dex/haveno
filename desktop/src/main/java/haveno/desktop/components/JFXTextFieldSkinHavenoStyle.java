@@ -90,6 +90,11 @@ public class JFXTextFieldSkinHavenoStyle<T extends TextField & IFXLabelFloatCont
 
 
     private void updateTextPos() {
+        // Guard against null textNode (can happen during early initialization)
+        if (textNode == null) {
+            return;
+        }
+        
         double textWidth = textNode.getLayoutBounds().getWidth();
         final double promptWidth = promptText == null ? 0 : promptText.getLayoutBounds().getWidth();
         switch (getSkinnable().getAlignment().getHpos()) {
