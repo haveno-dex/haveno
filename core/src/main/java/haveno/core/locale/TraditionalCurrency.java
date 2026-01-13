@@ -41,6 +41,7 @@ import lombok.ToString;
 
 import java.util.Currency;
 import java.util.Locale;
+import java.util.Optional;
 
 @ToString
 @Getter
@@ -86,7 +87,12 @@ public final class TraditionalCurrency extends TradeCurrency {
     }
 
     public static TraditionalCurrency fromProto(protobuf.TradeCurrency proto) {
-        return new TraditionalCurrency(proto.getCode(), CurrencyUtil.getNameByCode(proto.getCode()));
+        Optional<TradeCurrency> currency = CurrencyUtil.getTradeCurrency(proto.getCode());
+        if (currency.isPresent() && currency.get() instanceof TraditionalCurrency) {
+            return new TraditionalCurrency(proto.getCode(), CurrencyUtil.getNameByCode(proto.getCode()));
+        } else {
+            return null;
+        }
     }
 
 

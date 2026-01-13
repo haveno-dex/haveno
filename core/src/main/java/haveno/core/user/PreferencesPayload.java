@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -245,10 +246,12 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getTraditionalCurrenciesList().isEmpty() ? new ArrayList<>() :
                         new ArrayList<>(proto.getTraditionalCurrenciesList().stream()
                                 .map(TraditionalCurrency::fromProto)
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList())),
                 proto.getCryptoCurrenciesList().isEmpty() ? new ArrayList<>() :
                         new ArrayList<>(proto.getCryptoCurrenciesList().stream()
                                 .map(CryptoCurrency::fromProto)
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList())),
                 BlockChainExplorer.fromProto(proto.getBlockChainExplorerMainNet()),
                 BlockChainExplorer.fromProto(proto.getBlockChainExplorerTestNet()),
