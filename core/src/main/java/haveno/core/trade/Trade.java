@@ -2087,8 +2087,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             stopProtocolTimeout();
             isInitialized = false;
 
-            // save and close
-            if (wallet != null) {
+            // close trade wallet, force close if syncing
+            if (isSyncing()) forceCloseWallet();
+            else if (wallet != null) {
                 try {
                     closeWallet();
                 } catch (Exception e) {
@@ -3339,7 +3340,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 resetPolling(true); // do not poll again until next period
             }
         } catch (Exception e) {
-            if (isShutDownStarted) forceCloseWallet();
             if (wallet == null || wallet != sourceWallet || isShutDownStarted) return; // skip error handling if shut down or another thread force restarts while polling
             if (!(e instanceof IllegalStateException) && !offlinePoll && !wasWalletSyncedAndPolledProperty.get()) { // request connection switch on failure until synced and polled
                 ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
