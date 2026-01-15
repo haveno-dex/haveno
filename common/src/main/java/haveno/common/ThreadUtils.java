@@ -27,12 +27,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class ThreadUtils {
     
     private static final Map<String, ExecutorService> EXECUTORS = new HashMap<>();
     private static final Map<String, Thread> THREADS = new HashMap<>();
     private static final int POOL_SIZE = 10;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
+
 
     /**
      * Execute the given command in a thread with the given id.
@@ -43,6 +47,8 @@ public class ThreadUtils {
     public static Future<?> execute(Runnable command, String threadId) {
         synchronized (EXECUTORS) {
             if (!EXECUTORS.containsKey(threadId)) EXECUTORS.put(threadId, Executors.newFixedThreadPool(1));
+            ExecutorService executor = EXECUTORS.get(threadId);
+            if (executor.isShutdown()) throw new IllegalStateException("Cannot execute thread because it's shut down: " + threadId);
             return EXECUTORS.get(threadId).submit(() -> {
                 synchronized (THREADS) {
                     THREADS.put(threadId, Thread.currentThread());
@@ -76,17 +82,25 @@ public class ThreadUtils {
         ExecutorService pool = null;
         synchronized (EXECUTORS) {
             pool = EXECUTORS.get(threadId);
+            if (pool == null) return; // thread not found
+            if (pool.isShutdown()) throw new IllegalStateException("Cannot shut down thread because it's already shut down: " + threadId);
+            pool.shutdown();
         }
-        if (pool == null) return; // thread not found
-        pool.shutdown();
         try {
             if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) pool.shutdownNow();
         } catch (InterruptedException e) {
             pool.shutdownNow();
             throw new RuntimeException(e);
-        } finally {
-            remove(threadId);
         }
+    }
+
+    /**
+     * Reset the thread with the given id so it's ready for use. Does not shut it down.
+     * 
+     * @param threadId the thread id
+     */
+    public static void reset(String threadId) {
+        remove(threadId);
     }
 
     public static void remove(String threadId) {

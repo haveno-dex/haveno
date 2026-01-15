@@ -15,12 +15,12 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.core.xmr.wallet;
+package haveno.core.api;
 
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroError;
 import monero.common.TaskLooper;
-import monero.daemon.MoneroDaemon;
+import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 
 import java.util.ArrayList;
@@ -41,7 +41,7 @@ import haveno.core.trade.HavenoUtils;
 @Slf4j
 public class XmrKeyImagePoller {
 
-    private MoneroDaemon monerod;
+    private MoneroDaemonRpc monerod;
     private long refreshPeriodMs;
     private Object lock = new Object();
     private Map<String, Set<String>> keyImageGroups = new HashMap<String, Set<String>>();
@@ -66,7 +66,7 @@ public class XmrKeyImagePoller {
      * @param monerod - the Monero daemon to poll
      * @param refreshPeriodMs - refresh period in milliseconds
      */
-    public XmrKeyImagePoller(MoneroDaemon monerod, long refreshPeriodMs) {
+    public XmrKeyImagePoller(MoneroDaemonRpc monerod, long refreshPeriodMs) {
         looper = new TaskLooper(() -> poll());
         setMonerod(monerod);
         setRefreshPeriodMs(refreshPeriodMs);
@@ -102,7 +102,7 @@ public class XmrKeyImagePoller {
      *
      * @param monerod - the daemon to fetch key images from
      */
-    public void setMonerod(MoneroDaemon monerod) {
+    public void setMonerod(MoneroDaemonRpc monerod) {
         this.monerod = monerod;
     }
 
@@ -111,7 +111,7 @@ public class XmrKeyImagePoller {
      *
      * @return the daemon to fetch key images from
      */
-    public MoneroDaemon getMonerod() {
+    public MoneroDaemonRpc getMonerod() {
         return monerod;
     }
 
@@ -252,6 +252,13 @@ public class XmrKeyImagePoller {
         List<MoneroKeyImageSpentStatus> spentStatuses = null;
         List<String> keyImages = new ArrayList<String>(getNextKeyImageBatch());
         try {
+
+            // update connection timeout
+            if (monerod.getRpcConnection() != null) {
+                monerod.getRpcConnection().setTimeout(XmrConnectionService.getTimeoutMs(monerod.getRpcConnection()));
+            }
+
+            // query key images
             spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : monerod.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
         } catch (Exception e) {
 

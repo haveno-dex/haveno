@@ -55,6 +55,8 @@ import haveno.common.util.Tuple2;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
+import haveno.core.api.XmrKeyImageListener;
+import haveno.core.api.XmrKeyImagePoller;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
@@ -83,8 +85,6 @@ import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.Restrictions;
-import haveno.core.xmr.wallet.XmrKeyImageListener;
-import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
@@ -222,7 +222,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.persistenceManager = persistenceManager;
         this.signedOfferPersistenceManager = signedOfferPersistenceManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
+
         HavenoUtils.openOfferManager = this;
+        ThreadUtils.reset(THREAD_ID);
 
         this.persistenceManager.initialize(openOffers, "OpenOffers", PersistenceManager.Source.PRIVATE);
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers

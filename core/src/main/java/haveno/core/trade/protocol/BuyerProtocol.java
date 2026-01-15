@@ -77,8 +77,8 @@ public class BuyerProtocol extends DisputeProtocol {
     private void maybeResendPaymentSentMessage() {
 
         // re-send payment sent message if not acked
+        if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
         ThreadUtils.execute(() -> {
-            if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
             synchronized (trade.getLock()) {
                 if (trade.isShutDownStarted() || trade.isPayoutPublished()) return;
                 if (trade.getState().ordinal() >= Trade.State.BUYER_SENT_PAYMENT_SENT_MSG.ordinal() && trade.getState().ordinal() < Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
