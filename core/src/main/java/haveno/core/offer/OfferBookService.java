@@ -130,7 +130,8 @@ public class OfferBookService {
                                     announceOfferAdded(offer);
                                 } catch (IllegalArgumentException e) {
                                     log.warn("Ignoring invalid offer {}: {}", offerPayload.getId(), e.getMessage());
-                                } catch (RuntimeException e) {
+                                } catch (Exception e) {
+                                    log.warn("Adding offer {} to invalid offers: {}", offerPayload.getId(), e.getMessage());
                                     replaceInvalidOffer(offer); // offer can become valid later
                                 }
                             }
@@ -145,23 +146,13 @@ public class OfferBookService {
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
                             OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                            removeValidOffer(offerPayload.getId());
                             Offer offer = new Offer(offerPayload);
                             offer.setPriceFeedService(priceFeedService);
-                            announceOfferRemoved(offer);
-
-                            // check if invalid offers are now valid
-                            synchronized (invalidOffers) {
-                                for (Offer invalidOffer : new ArrayList<Offer>(invalidOffers)) {
-                                    try {
-                                        validateOfferPayload(invalidOffer.getOfferPayload());
-                                        removeInvalidOffer(invalidOffer.getId());
-                                        replaceValidOffer(invalidOffer);
-                                        announceOfferAdded(invalidOffer);
-                                    } catch (Exception e) {
-                                        // ignore
-                                    }
-                                }
+                            synchronized (validOffers) {
+                                removeValidOffer(offerPayload.getId());
+                                removeInvalidOffer(offerPayload.getId());
+                                announceOfferRemoved(offer);
+                                refreshInvalidOffers();
                             }
                         }
                     });
@@ -327,6 +318,21 @@ public class OfferBookService {
         synchronized (validOffers) {
             removeValidOffer(offer.getId());
             validOffers.add(offer);
+        }
+    }
+
+    private void refreshInvalidOffers() {
+        synchronized (invalidOffers) {
+            for (Offer invalidOffer : new ArrayList<Offer>(invalidOffers)) {
+                try {
+                    validateOfferPayload(invalidOffer.getOfferPayload());
+                    removeInvalidOffer(invalidOffer.getId());
+                    replaceValidOffer(invalidOffer);
+                    announceOfferAdded(invalidOffer);
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
         }
     }
 
