@@ -51,7 +51,7 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
     private ChangeListener<MessageState> listener;
     private Timer timer;
     private static final int MAX_RESEND_ATTEMPTS = 20;
-    private long delayInMin = 15;
+    private long delayInMin = -1;
     private int resendCounter = 0;
     private DisputeOpenedMessage message = null;
 
@@ -146,23 +146,6 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
             return;
         }
 
-        // reset timer
-        if (timer != null) {
-            timer.stop();
-        }
-
-        // increase minimum delay if message is stored to mailbox
-        if (getReceiver().isDisputeOpenedMessageStored()) {
-            delayInMin = Math.max(delayInMin, SendMailboxMessageTask.RESEND_STORED_MESSAGE_INITIAL_DELAY_MINS);
-        }
-
-        // send again after delay
-        log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
-        if (timer != null) {
-            timer.stop();
-        }
-        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-
         // register listeners once
         if (resendCounter == 0) {
             listener = (observable, oldValue, newValue) -> onMessageStateChange(newValue);
@@ -170,8 +153,24 @@ public abstract class ArbitratorSendDisputeOpenedMessage extends SendMailboxMess
             onMessageStateChange(getReceiver().getDisputeOpenedMessageStateProperty().get());
         }
 
-        // increase delay up to message TTL
-        delayInMin = Math.min(TradeMailboxMessage.TTL, delayInMin * 2);
+        // set resend delay
+        if (resendCounter == 0) {
+            delayInMin = SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_FIRST;
+        } else if (resendCounter == 1) {
+            delayInMin = SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_SECOND;
+        } else {
+            delayInMin = Math.min(TimeUnit.MILLISECONDS.toMinutes(TradeMailboxMessage.TTL), delayInMin * SendMailboxMessageTask.RESEND_DELAY_MULTIPLIER);
+        }
+
+        // use minimum delay if stored to mailbox
+        if (getReceiver().isDisputeOpenedMessageStored()) {
+            delayInMin = Math.max(delayInMin, SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_MAILBOX);
+        }
+
+        // send again after delay
+        log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
+        if (timer != null) timer.stop();
+        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
         resendCounter++;
     }
 

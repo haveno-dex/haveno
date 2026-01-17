@@ -31,7 +31,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class SendMailboxMessageTask extends TradeTask {
 
-    public static final long RESEND_STORED_MESSAGE_INITIAL_DELAY_MINS = TimeUnit.HOURS.toMinutes(6);
+    public static final long INITIAL_RESEND_DELAY_MINS_FIRST = 2;
+    public static final long INITIAL_RESEND_DELAY_MINS_SECOND = 15;
+    public static final long INITIAL_RESEND_DELAY_MINS_MAILBOX = TimeUnit.HOURS.toMinutes(6);
+    public static final int RESEND_DELAY_MULTIPLIER = 2;
 
     public SendMailboxMessageTask(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
