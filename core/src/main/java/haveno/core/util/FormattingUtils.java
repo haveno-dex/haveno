@@ -210,6 +210,14 @@ public class FormattingUtils {
         return formatToPercent(value, new DecimalFormat("#")) + "%";
     }
 
+    public static String formatToClampedRoundedPercentWithSymbol(double value) {
+        return formatToPercent(clampPercentTo99(value), new DecimalFormat("#")) + "%";
+    }
+
+    private static double clampPercentTo99(double value) {
+        return value >= 1.0 ? 1.0 : Math.min(value, 0.99);
+    }
+
     public static String formatPercentagePrice(double value) {
         return formatToPercentWithSymbol(value);
     }
