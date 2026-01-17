@@ -140,7 +140,7 @@ public class WalletAppSetup {
                         if (chainDownloadPercentageD < 1) {
                             xmrDaemonSyncProgress.set(chainDownloadPercentageD);
                             if (chainDownloadPercentageD > 0.0) {
-                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith", getXmrDaemonNetworkAsString(), chainHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(chainDownloadPercentageD));
+                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith", getXmrDaemonNetworkAsString(), chainHeightAsString, FormattingUtils.formatToClampedRoundedPercentWithSymbol(chainDownloadPercentageD));
                                 result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
                             } else {
                                 result = Res.get("mainView.footer.xmrInfo",
@@ -161,7 +161,7 @@ public class WalletAppSetup {
                                 getXmrSplashSyncIconId().set("image-connection-synced");
                                 downloadCompleteHandler.run();
                             } else if (walletDownloadPercentageD >= 0) {
-                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWalletWith", getXmrWalletNetworkAsString(), walletHeightAsString, FormattingUtils.formatToRoundedPercentWithSymbol(walletDownloadPercentageD));
+                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWalletWith", getXmrWalletNetworkAsString(), walletHeightAsString, FormattingUtils.formatToClampedRoundedPercentWithSymbol(walletDownloadPercentageD));
                                 result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
                                 getXmrSplashSyncIconId().set(""); // clear synced icon
                             } else {
