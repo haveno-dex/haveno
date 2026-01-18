@@ -325,6 +325,10 @@
     -fx-image: url("../../images/bch_logo.png");
 }
 
+#image-xtm-logo {
+    -fx-image: url("../../images/xtm_logo.png");
+}
+
 #image-dai-erc20-logo {
     -fx-image: url("../../images/dai-erc20_logo.png");
 }
