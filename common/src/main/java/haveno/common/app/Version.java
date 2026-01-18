@@ -26,8 +26,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 public class Version {
-    // The application versions
-    // We use semantic versioning with major, minor and patch
+
+    // The application version.
+    // We use semantic versioning with major, minor and patch.
+    // Optionally supports a fourth digit for fork-specific build versions (e.g. 1.2.3.0).
     public static final String VERSION = "1.2.2";
 
     /**
@@ -49,6 +51,10 @@ public class Version {
         return getSubVersion(version, 2);
     }
 
+    public static int getBuildVersion(String version) {
+        return getSubVersion(version, 3);
+    }
+
     public static boolean isNewVersion(String newVersion) {
         return isNewVersion(newVersion, VERSION);
     }
@@ -67,6 +73,10 @@ public class Version {
         else if (getPatchVersion(newVersion) > getPatchVersion(currentVersion))
             return true;
         else if (getPatchVersion(newVersion) < getPatchVersion(currentVersion))
+            return false;
+        else if (getBuildVersion(newVersion) > getBuildVersion(currentVersion))
+            return true;
+        else if (getBuildVersion(newVersion) < getBuildVersion(currentVersion))
             return false;
         else
             return false;
@@ -87,13 +97,18 @@ public class Version {
             return 1;
         else if (getPatchVersion(version1) < getPatchVersion(version2))
             return -1;
+        else if (getBuildVersion(version1) > getBuildVersion(version2))
+            return 1;
+        else if (getBuildVersion(version1) < getBuildVersion(version2))
+            return -1;
         else
             return 0;
     }
 
     private static int getSubVersion(String version, int index) {
         final String[] split = version.split("\\.");
-        checkArgument(split.length == 3, "Version number must be in semantic version format (contain 2 '.'). version=" + version);
+        checkArgument(split.length == 3 || split.length == 4, "Version number must be in semantic version format (contain 2 '.') with optional fourth digit for fork-specific builds. Version=" + version);
+        if (split.length == 3 && index == 3) return 0; // no build version specified
         return Integer.parseInt(split[index]);
     }
 

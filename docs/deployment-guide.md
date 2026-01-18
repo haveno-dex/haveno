@@ -207,6 +207,12 @@ To avoid interference with other networks, change `P2P_NETWORK_VERSION` in [Vers
 
 For example, change it to `"B"`.
 
+## Set your fork's version
+
+Optionally add a fourth digit to `Version.VERSION` to represent your fork’s build version.
+
+For example, upstream Haveno may use version `1.2.3`, while your fork may use `1.2.3.0` and increment the last version digit as needed.
+
 ## Set the network's release date
 
 Optionally set the network's approximate release date by setting `RELEASE_DATE` in HavenoUtils.java.

@@ -53,6 +53,7 @@ import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.Preferences.UseTorForXmr;
 import haveno.core.user.User;
+import haveno.core.util.FormattingUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.app.HavenoApp;
@@ -526,12 +527,12 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         havenoSetup.setFilterWarningHandler(warning -> new Popup().warning(warning).show());
 
-        this.footerVersionInfo.setValue(Res.get("mainView.footer.version", Version.VERSION));
+        this.footerVersionInfo.setValue(FormattingUtils.formatVersion());
         this.getNewVersionAvailableProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
-                this.footerVersionInfo.setValue(Res.get("mainView.footer.version", Version.VERSION) + " " + Res.get("mainView.version.update"));
+                this.footerVersionInfo.setValue(FormattingUtils.formatVersion() + " " + Res.get("mainView.version.update"));
             } else {
-                this.footerVersionInfo.setValue(Res.get("mainView.footer.version", Version.VERSION));
+                this.footerVersionInfo.setValue(FormattingUtils.formatVersion());
             }
         });
 
