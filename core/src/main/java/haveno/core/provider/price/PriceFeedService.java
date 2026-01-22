@@ -22,6 +22,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
+
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.handlers.FaultHandler;
@@ -90,6 +92,7 @@ public class PriceFeedService {
     @Nullable
     private PriceRequest priceRequest;
     private String requestAllPricesError = null;
+    private static final String THREAD_ID = PriceFeedService.class.getSimpleName();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -239,14 +242,16 @@ public class PriceFeedService {
 
             long delay = PERIOD_SEC + new Random().nextInt(5);
             requestTimer = UserThread.runAfter(() -> {
-                // If we have not received a result from the last request. We try a new provider.
-                if (baseUrlOfRespondingProvider == null) {
-                    final String oldBaseUrl = priceProvider.getBaseUrl();
-                    setNewPriceProvider();
-                    log.warn("We did not receive a response from provider {}. " +
-                            "We select the new provider {} and use that for a new request.", oldBaseUrl, priceProvider.getBaseUrl());
-                }
-                request(true);
+                ThreadUtils.execute(() -> {
+                    // If we have not received a result from the last request. We try a new provider.
+                    if (baseUrlOfRespondingProvider == null) {
+                        final String oldBaseUrl = priceProvider.getBaseUrl();
+                        setNewPriceProvider();
+                        log.warn("We did not receive a response from provider {}. " +
+                                "We select the new provider {} and use that for a new request.", oldBaseUrl, priceProvider.getBaseUrl());
+                    }
+                    request(true);
+                }, THREAD_ID);
             }, delay);
         }
     }
