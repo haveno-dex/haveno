@@ -49,8 +49,11 @@ public class PopupManager {
             displayedPopup = null;
             UserThread.runAfter(() -> { displayNext(); }, 100, TimeUnit.MILLISECONDS);
         } else {
+            boolean removed = popups.remove(popup);
+            if (removed) {
             log.warn("We got a isHidden called with a wrong popup.\n\t" +
                     "popup (argument)=" + popup + "\n\tdisplayedPopup=" + displayedPopup);
+            }
         }
     }
 
