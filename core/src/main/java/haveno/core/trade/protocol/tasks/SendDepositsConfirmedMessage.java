@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTask {
     private Timer timer;
     private static final int MAX_RESEND_ATTEMPTS = 20;
-    private int delayInMin = 10;
+    private long delayInMin = -1;
     private int resendCounter = 0;
 
     private DepositsConfirmedMessage message;
@@ -120,26 +120,26 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
         // skip if already acked or payout published
         if (isAckedByReceiver() || trade.isPayoutPublished()) return;
 
+        // stop after max attempts
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
             cleanup();
             log.warn("We never received an ACK message when sending the DepositsConfirmedMessage to the peer. We stop trying to send the message.");
             return;
         }
 
-        if (timer != null) {
-            timer.stop();
-        }
-        
-        // first re-send is after 2 minutes, then increase the delay exponentially
+        // set resend delay
         if (resendCounter == 0) {
-            int shortDelay = 2;
-            log.info("We will send the message again to the peer after a delay of {} min.", shortDelay);
-            timer = UserThread.runAfter(this::run, shortDelay, TimeUnit.MINUTES);
+            delayInMin = SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_FIRST;
+        } else if (resendCounter == 1) {
+            delayInMin = SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_SECOND;
         } else {
-            log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
-            timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
-            delayInMin = (int) ((double) delayInMin * 1.5);
+            delayInMin = Math.min(TimeUnit.MILLISECONDS.toMinutes(TradeMailboxMessage.TTL), delayInMin * SendMailboxMessageTask.RESEND_DELAY_MULTIPLIER);
         }
+
+        // send again after delay
+        log.info("We will send the message again to the peer after a delay of {} min.", delayInMin);
+        if (timer != null) timer.stop();
+        timer = UserThread.runAfter(this::run, delayInMin, TimeUnit.MINUTES);
         resendCounter++;
     }
 
