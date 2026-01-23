@@ -423,12 +423,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         havenoSetup.setDisplayTorNetworkSettingsHandler(show -> {
             if (show) {
                 torNetworkSettingsWindow.show();
-
-                // bring connection error popup to front if displayed
-                if (moneroConnectionErrorPopup != null && moneroConnectionErrorPopup.isDisplayed()) {
-                    moneroConnectionErrorPopup.hide();
-                    moneroConnectionErrorPopup.show();
-                }
             } else if (torNetworkSettingsWindow.isDisplayed()) {
                 torNetworkSettingsWindow.hide();
             }
