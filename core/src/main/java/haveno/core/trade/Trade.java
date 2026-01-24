@@ -3984,13 +3984,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 .setPayoutState(Trade.PayoutState.toProtoMessage(payoutState))
                 .setDisputeState(Trade.DisputeState.toProtoMessage(disputeState))
                 .setPeriodState(Trade.TradePeriodState.toProtoMessage(periodState))
-                .addAllChatMessage(getChatMessages().stream()
-                        .map(msg -> msg.toProtoNetworkEnvelope().getChatMessage())
-                        .collect(Collectors.toList()))
                 .setLockTime(lockTime)
                 .setStartTime(startTime)
                 .setUid(uid)
                 .setIsCompleted(isCompleted);
+
+        synchronized (getChatMessages()) {
+            builder.addAllChatMessage(getChatMessages().stream()
+                        .map(msg -> msg.toProtoNetworkEnvelope().getChatMessage())
+                        .collect(Collectors.toList()));
+        }
 
         Optional.ofNullable(payoutTxId).ifPresent(builder::setPayoutTxId);
         Optional.ofNullable(contract).ifPresent(e -> builder.setContract(contract.toProtoMessage()));
