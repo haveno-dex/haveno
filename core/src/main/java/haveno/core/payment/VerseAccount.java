@@ -40,6 +40,12 @@ public final class VerseAccount extends PaymentAccount {
             new TraditionalCurrency("SEK")
     );
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public VerseAccount() {
         super(PaymentMethod.VERSE);
     }
@@ -79,6 +85,6 @@ public final class VerseAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }
