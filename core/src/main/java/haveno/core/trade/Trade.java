@@ -952,6 +952,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return MONERO_TRADE_WALLET_PREFIX + getShortId() + "_" + getShortUid();
     }
 
+    public BigInteger getWalletBalance() {
+        synchronized (walletLock) {
+            return getWallet().getBalance();
+        }
+    }
+
     public void verifyDaemonConnection() {
         if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) throw new RuntimeException("Connection service is not connected to a Monero node");
     }
@@ -3302,7 +3308,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 boolean isPayoutExpected = isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
 
                 // rescan spent outputs to detect unconfirmed payout tx
-                if (getPayoutState() == PayoutState.PAYOUT_PUBLISHED || (isPayoutExpected && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) || (isDepositsPublished() && longSync)) {
+                if (getPayoutState() == PayoutState.PAYOUT_PUBLISHED || (isPayoutExpected && wallet != null && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) || (isDepositsPublished() && longSync)) {
                     try {
                         rescanSpent(true);
                     } catch (Exception e) {
@@ -3328,8 +3334,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 }
 
                 // set deposit and payout txs
-                setDepositTxs(txs, checkPool);
-                setPayoutTx(txs, checkPool);
+                if (txs != null) {
+                    setDepositTxs(txs, checkPool);
+                    setPayoutTx(txs, checkPool);
+                }
             }
 
             // update trade period and poll properties
