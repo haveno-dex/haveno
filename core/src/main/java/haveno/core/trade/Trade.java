@@ -2147,8 +2147,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // set error height
         if (processModel.getTradeProtocolErrorHeight() == 0) {
-            log.warn("Scheduling to remove trade if unfunded for {} {} from height {}", getClass().getSimpleName(), getId(), xmrConnectionService.getLastInfo().getHeight());
-            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getLastInfo().getHeight()); // height denotes scheduled error handling
+            log.warn("Scheduling to remove trade if unfunded for {} {} from height {}", getClass().getSimpleName(), getId(), xmrConnectionService.getTargetHeight());
+            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getTargetHeight()); // height denotes scheduled error handling
         }
 
         // move to failed trades
@@ -3887,7 +3887,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 processing = true;
 
                 // skip unless idling or waiting for finalization
-                if (!isInitialized || !isIdling() || (isDepositsFinalized() && (!isPayoutPublished() || isPayoutFinalized())))  {
+                if (!isInitialized || !wasWalletPolledProperty.get() || !isIdling() || (isDepositsFinalized() && (!isPayoutPublished() || isPayoutFinalized())))  {
                     processing = false;
                     return;
                 }
@@ -3902,7 +3902,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     }
 
                     // sync wallet if confirm, unlock, or finalize expected
-                    long currentHeight = xmrWalletService.getMonerod().getHeight();
+                    long currentHeight = xmrConnectionService.getHeight();
                     if (!isPayoutConfirmed() ||
                             (!isDepositsFinalized() && (currentHeight - getDepositsConfirmedHeight() >= NUM_BLOCKS_DEPOSITS_FINALIZED)) ||
                             (payoutHeight != null && 
