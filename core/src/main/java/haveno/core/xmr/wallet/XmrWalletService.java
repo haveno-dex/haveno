@@ -2003,9 +2003,10 @@ public class XmrWalletService extends XmrWalletBase {
                 return;
             }
 
-            // skip polling if trades are reserving main wallet
+            // skip polling if trades are reserving main wallet (disable if testnet or too long since last poll)
             List<Trade> tradesReservingMainWallet = tradeManager.getTradesReservingMainWallet();
-            if (!tradesReservingMainWallet.isEmpty()) {
+            boolean lastPollWithinTolerance = System.currentTimeMillis() - lastPollTxsTimestamp <= POLL_TXS_TOLERANCE_MS;
+            if (!tradesReservingMainWallet.isEmpty() && lastPollWithinTolerance && !Config.baseCurrencyNetwork().isTestnet()) {
                 List<String> tradeIds = tradesReservingMainWallet.stream().map(Trade::getShortId).collect(Collectors.toList());
                 log.info("Skipping main wallet poll because trades are reserving main wallet: " + tradeIds);
                 return;
