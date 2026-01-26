@@ -146,7 +146,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
                 sender.setDepositTxHex(request.getDepositTxHex());
                 sender.setDepositTxKey(request.getDepositTxKey());
             } catch (Exception e) {
-                throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + sender.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage());
+                throw new RuntimeException("Error processing deposit tx from " + (isFromTaker ? "taker " : "maker ") + sender.getNodeAddress() + ", offerId=" + offer.getId() + ": " + e.getMessage(), e);
             }
         }
 
