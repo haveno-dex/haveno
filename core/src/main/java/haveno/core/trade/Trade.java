@@ -2638,31 +2638,36 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public void maybeUpdateTradePeriod() {
+
+        // skip if possible
+        if (startTime > 0) return; // already set
+        if (getTakeOfferDate() == null) return; // trade not started yet
+        if (!isDepositsFinalized()) return; // deposits not finalized yet
+
+        // get last finalized height of deposit txs
+        Long finalizedHeight = null;
+        synchronized (walletLock) {
+            if (getWallet() == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because cannot get its wallet");
+            finalizedHeight = getDepositsFinalizedHeight();
+            if (finalizedHeight == null || finalizedHeight > xmrConnectionService.getTargetHeight() - 1) return; // TODO: isDepositsFinalized() can assume true, so skip if finalized height not reached
+        }
+
+        // set start time
         synchronized (startTimeLock) {
             if (startTime > 0) return; // already set
-            if (getTakeOfferDate() == null) return; // trade not started yet
-            if (!isDepositsFinalized()) return; // deposits not finalized yet
 
+            // get finalized time from block timestamp
             long now = System.currentTimeMillis();
             long tradeTime = getTakeOfferDate().getTime();
             MoneroDaemon monerod = xmrWalletService.getMonerod();
             if (monerod == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because it has no connection to monerod");
+            long finalizedTime = monerod.getBlockByHeight(finalizedHeight).getTimestamp() * 1000;
 
-            // get finalize time of last deposit tx
-            if (getWallet() == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because cannot get its wallet");
-            Long finalizeHeight = getDepositsFinalizedHeight();
-            if (finalizeHeight == null || finalizeHeight > xmrConnectionService.getTargetHeight() - 1) return; // TODO: isDepositsFinalized() can assume true, so skip if finalized height not reached
-            long finalizeTime = monerod.getBlockByHeight(finalizeHeight).getTimestamp() * 1000;
-
-            // If block date is in future (Date in blocks can be off by +/- 2 hours) we use our current date.
-            // If block date is earlier than our trade date we use our trade date.
-            if (finalizeTime > now)
-                startTime = now;
-            else
-                startTime = Math.max(finalizeTime, tradeTime);
+            // use current date if block timestamp is in future (date can be off by +/- 2 hours), otherwise use trade date
+            startTime = finalizedTime > now ? now : Math.max(finalizedTime, tradeTime);
 
             log.debug("We set the start for the trade period to {}. Trade started at: {}. Block got mined at: {}",
-                    new Date(startTime), new Date(tradeTime), new Date(finalizeTime));
+                    new Date(startTime), new Date(tradeTime), new Date(finalizedTime));
         }
     }
 
@@ -3342,7 +3347,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }
 
             // update trade period and poll properties
-            if (!offlinePoll) maybeUpdateTradePeriod(); // no update possible if offline poll (also avoids deadlock because setting trade period state depends on locking wallet within another lock)
+            if (!offlinePoll) maybeUpdateTradePeriod(); // no update possible if offline poll
             wasWalletPolledProperty.set(true);
             if (!offlinePoll) {
                 wasWalletSyncedAndPolledProperty.set(true);
