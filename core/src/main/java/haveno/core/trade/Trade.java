@@ -133,6 +133,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -172,7 +173,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
     private Long firstDepositTxMissingHeight; // height when we first saw missing deposit txs (to wait for a confirmation before reverting state)
     private Long firstPayoutTxMissingHeight; // height when we first saw missing payout tx (to wait for a confirmation before reverting state)
-    private boolean skipNextPollLoop = false;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -726,7 +726,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         HavenoUtils.waitFor(1000);
                         if (isPayoutConfirmed()) return;
                         if (isShutDownStarted) return;
-                        if (xmrConnectionService.isConnected()) xmrWalletService.doPollWallet(true);
+                        if (xmrConnectionService.isConnected()) {
+                            try {
+                                xmrWalletService.doPollWallet(true);
+                            } catch (Exception e) {
+                                // use default logging
+                            }
+                        }
                     });
 
                     // complete disputed trade
@@ -1879,7 +1885,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // poll the main wallet
         log.warn("Processing payout tx for {} {} by polling main wallet", getClass().getSimpleName(), getShortId());
-        xmrWalletService.doPollWallet(true);
+        try {
+            xmrWalletService.doPollWallet(true);
+        } catch (Exception e) {
+            // use default logging
+        }
 
         // fetch payout tx from main wallet
         MoneroTxWallet payoutTx = xmrWalletService.getWallet().getTx(payoutTxId);
@@ -3170,11 +3180,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         synchronized (pollLock) {
             if (isShutDownStarted || isPolling()) return;
             updatePollPeriod();
-            skipNextPollLoop = skipFirstPoll;
-            if (!skipFirstPoll) log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId());
+            AtomicReference<Boolean> skipNextPoll = new AtomicReference<>(skipFirstPoll);
+            if (!skipFirstPoll) log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId()); // TODO: why only logging this if not skipping?
             pollLooper = new TaskLooper(() -> new Thread(() -> {
-                if (skipNextPollLoop) {
-                    skipNextPollLoop = false;
+                if (skipNextPoll.get()) {
+                    skipNextPoll.set(false);
                     return;
                 }
                 pollWallet();

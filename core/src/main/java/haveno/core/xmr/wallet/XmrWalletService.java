@@ -60,6 +60,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javafx.beans.property.LongProperty;
@@ -150,6 +151,7 @@ public class XmrWalletService extends XmrWalletBase {
     private List<MoneroSubaddress> cachedSubaddresses;
     private List<MoneroOutputWallet> cachedOutputs;
     private List<MoneroTxWallet> cachedTxs;
+    private boolean isInitializingWallet;
 
     @SuppressWarnings("unused")
     @Inject
@@ -1361,18 +1363,9 @@ public class XmrWalletService extends XmrWalletBase {
         if (useNativeXmrWallet && !isNativeLibraryApplied()) log.warn(appliedMsg);
         else log.info(appliedMsg);
 
-        // start polling main wallet when all domain services are initialized
-        HavenoUtils.havenoSetup.getAppStartupState().allDomainServicesInitializedProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal) {
-                ThreadUtils.execute(() -> {
-                    startPolling();
-                }, THREAD_ID);
-            }
-        });
-
         // listen for connection changes
         xmrConnectionService.addConnectionListener(connection -> {
-            if (wasWalletSynced && !isSyncingWithProgress) {
+            if (wasWalletSynced && !isSyncing()) {
                 ThreadUtils.execute(() -> {
                     onConnectionChanged(connection);
                  }, THREAD_ID);
@@ -1386,8 +1379,10 @@ public class XmrWalletService extends XmrWalletBase {
                 }
 
                 // force restart main wallet if connection changed while syncing
-                log.warn("Force restarting main wallet because connection changed while syncing");
-                forceRestartMainWallet();
+                if (isSyncing()) {
+                    log.warn("Force restarting main wallet because connection changed while syncing");
+                    forceRestartMainWallet();
+                }
             }
         });
 
@@ -1417,22 +1412,23 @@ public class XmrWalletService extends XmrWalletBase {
                 // open or create main wallet
                 openOrCreateMainWallet();
 
-                // attempt to sync wallet on startup or open application without syncing
-                if (!isWalletServiceInitialized()) {
+                // stop recursion if already initializing
+                if (isInitializingWallet) return;
+                isInitializingWallet = true;
+
+                // start polling if wallet service initialized
+                if (isWalletServiceInitialized()) {
+                    startPolling();
+                } else {
+
+                    // attempt to sync wallet on startup or open application without syncing
                     for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
                         try {
-                            log.info("Syncing main wallet on startup, attempt={}/{}", i + 1, MAX_SYNC_ATTEMPTS);
-                            long startTime = System.currentTimeMillis();
-                            syncWithProgress();
-                            log.info("Done syncing main wallet on startup in " + (System.currentTimeMillis() - startTime) + " ms");
-                            onFirstSync();
+                            doPollWallet(true);
                             break;
                         } catch (Exception e) {
                             if (isShutDownStarted) return;
-                            log.warn("Error syncing main wallet on startup, attempt={}/{}: {}", i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
-                            if (HavenoUtils.isUnresponsive(e)) forceCloseMainWallet(); // wallet can be stuck a while
-                            xmrConnectionService.requestSwitchToNextBestConnection();
-                            openOrCreateMainWallet();
+                            log.warn("Error polling main wallet on startup, attempt={}/{}: {}", i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
                             if (i + 1 >= MAX_SYNC_ATTEMPTS) {
                                 log.warn("Opening application without syncing main wallet");
                                 HavenoUtils.setTopError("Could not sync main wallet on startup.\n\nError: " + e.getMessage());
@@ -1440,14 +1436,15 @@ public class XmrWalletService extends XmrWalletBase {
                             }
                         }
                     }
-                }
 
-                // start polling wallet
-                startPolling();
+                    // start polling wallet
+                    startPolling(true); // skip first poll because we already polled
+                }
             } catch (Exception e) {
-                log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
                 HavenoUtils.setTopError(e.getMessage());
                 throw e;
+            } finally {
+                isInitializingWallet = false;
             }
         }
     }
@@ -1815,27 +1812,32 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (walletLock) {
             if (isShutDownStarted) throw new IllegalStateException("Cannot open or create main wallet because shut down has started");
             if (wallet == null) {
-                
-                // open or create wallet
-                MoneroDaemonRpc monerod = xmrConnectionService.getMonerod();
-                log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()));
-                if (walletExists(MONERO_WALLET_NAME)) {
-                    wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(wasWalletSynced));
-                } else if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
-                    wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort);
+                try {
 
-                    // set wallet creation date to yesterday to guarantee complete restore
-                    LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
-                    long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
-                    user.setWalletCreationDate(date);
-                }
+                    // open or create wallet
+                    MoneroDaemonRpc monerod = xmrConnectionService.getMonerod();
+                    log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()));
+                    if (walletExists(MONERO_WALLET_NAME)) {
+                        wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(wasWalletSynced));
+                    } else if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
+                        wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort);
 
-                // set state from wallet
-                isClosingWallet = false;
-                if (wallet != null) {
-                    walletHeight.set(wallet.getHeight());
-                    cacheWalletInfo();
-                    resetIfWalletChanged();
+                        // set wallet creation date to yesterday to guarantee complete restore
+                        LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
+                        long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
+                        user.setWalletCreationDate(date);
+                    }
+
+                    // set state from wallet
+                    isClosingWallet = false;
+                    if (wallet != null) {
+                        walletHeight.set(wallet.getHeight());
+                        cacheWalletInfo();
+                        resetIfWalletChanged();
+                    }
+                } catch (Exception e) {
+                    log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
+                    throw e;
                 }
             }
             return wallet;
@@ -1882,10 +1884,21 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void startPolling() {
+        startPolling(false);
+    }
+
+    private void startPolling(boolean skipFirstPoll) {
         synchronized (walletLock) {
             if (isShutDownStarted || isPolling()) return;
             updatePollPeriod();
-            pollLooper = new TaskLooper(() -> new Thread(() -> pollWallet()).start());
+            AtomicReference<Boolean> skipNextPoll = new AtomicReference<>(skipFirstPoll);
+            pollLooper = new TaskLooper(() -> new Thread(() -> {
+                if (skipNextPoll.get()) {
+                    skipNextPoll.set(false);
+                    return;
+                }
+                pollWallet();
+            }).start());
             pollLooper.start(pollPeriodMs);
         }
     }
@@ -1931,8 +1944,8 @@ public class XmrWalletService extends XmrWalletBase {
 
     public void doPollWallet(boolean updateTxs) {
 
-        // skip until all services initialized
-        if (!HavenoUtils.havenoSetup.getAppStartupState().isAllDomainServicesInitialized()) {
+        // skip polling after wallet service initialized until all domain services are initialized
+        if (isWalletServiceInitialized() && !HavenoUtils.isAllDomainServicesInitialized()) {
             return;
         }
 
@@ -2019,7 +2032,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // handle unresponsive wallet
             if (HavenoUtils.isUnresponsive(e)) {
-                forceRestartMainWallet();
+                forceCloseMainWallet();
             } else if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
                 if (isExpectedWalletError(e)) {
                     log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection());
@@ -2027,6 +2040,9 @@ public class XmrWalletService extends XmrWalletBase {
                     log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection(), e); // include stack trace for unexpected errors
                 }
             }
+            if (!isWalletServiceInitialized()) requestSwitchToNextBestConnection(sourceConnection); // TODO: handle switch within poll, always switch if service not yet initialized?
+            initMainWallet();
+            throw e;
         } finally {
             if (pollInProgressSet) {
                 synchronized (pollLock) {
@@ -2093,6 +2109,10 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void cacheWalletInfo() {
+        if (wallet == null) {
+            log.warn("Cannot cache wallet info because wallet is null");
+            return;
+        }
         
         // get basic wallet info
         long height = wallet.getHeight();
