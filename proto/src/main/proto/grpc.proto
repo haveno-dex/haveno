@@ -313,12 +313,6 @@ service XmrConnections {
     }
     rpc CheckConnection(CheckConnectionRequest) returns (CheckConnectionReply) {
     }
-    rpc CheckConnections(CheckConnectionsRequest) returns (CheckConnectionsReply) {
-    }
-    rpc StartCheckingConnection(StartCheckingConnectionRequest) returns (StartCheckingConnectionReply) {
-    }
-    rpc StopCheckingConnection(StopCheckingConnectionRequest) returns (StopCheckingConnectionReply) {
-    }
     rpc GetBestConnection(GetBestConnectionRequest) returns (GetBestConnectionReply) {
     }
     rpc SetAutoSwitch(SetAutoSwitchRequest) returns (SetAutoSwitchReply) {
@@ -383,22 +377,6 @@ message CheckConnectionRequest {}
 message CheckConnectionReply {
     UrlConnection connection = 1;
 }
-
-message CheckConnectionsRequest {}
-
-message CheckConnectionsReply {
-    repeated UrlConnection connections = 1;
-}
-
-message StartCheckingConnectionRequest {
-    int32 refresh_period = 1; // milliseconds
-}
-
-message StartCheckingConnectionReply {}
-
-message StopCheckingConnectionRequest {}
-
-message StopCheckingConnectionReply {}
 
 message GetBestConnectionRequest {}
 
