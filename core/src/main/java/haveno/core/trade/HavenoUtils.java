@@ -160,6 +160,10 @@ public class HavenoUtils {
         return havenoSetup.getCoreContext().isApiUser();
     }
 
+    public static boolean isAllDomainServicesInitialized() {
+        return havenoSetup != null && havenoSetup.getAppStartupState() != null && havenoSetup.getAppStartupState().isAllDomainServicesInitialized();
+    }
+
     @SuppressWarnings("unused")
     public static Date getReleaseDate() {
         if (RELEASE_DATE == null) return null;

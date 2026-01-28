@@ -245,7 +245,7 @@ public class XmrKeyImagePoller {
     public void poll() {
 
         // skip until all services initialized
-        if (!HavenoUtils.havenoSetup.getAppStartupState().isAllDomainServicesInitialized()) {
+        if (!HavenoUtils.isAllDomainServicesInitialized()) {
             return;
         }
 
