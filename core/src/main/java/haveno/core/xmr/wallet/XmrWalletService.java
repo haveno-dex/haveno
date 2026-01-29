@@ -2028,19 +2028,31 @@ public class XmrWalletService extends XmrWalletBase {
             // handle first wallet sync
             if (isFirstSync) onFirstSync();
         } catch (Exception e) {
-            if (isShutDownStarted || wallet == null || wallet != sourceWallet) return; // skip error handling if shut down or another thread force restarts while polling
 
-            // handle unresponsive wallet
-            if (HavenoUtils.isUnresponsive(e)) {
-                forceCloseMainWallet();
-            } else if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
+            // skip error handling if shut down or another thread force restarts while polling
+            if (isShutDownStarted || wallet == null || wallet != sourceWallet) return;
+
+            // log expected vs unexpected errors
+            if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
                 if (isExpectedWalletError(e)) {
                     log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection());
                 } else {
                     log.warn("Error polling main wallet, errorMessage={}. Monerod={}", e.getMessage(), getXmrConnectionService().getConnection(), e); // include stack trace for unexpected errors
                 }
             }
-            if (!isWalletServiceInitialized()) requestSwitchToNextBestConnection(sourceConnection); // TODO: handle switch within poll, always switch if service not yet initialized?
+
+            // handle unresponsive wallet
+            if (HavenoUtils.isUnresponsive(e)) {
+                forceCloseMainWallet();
+            }
+
+            // request connection switch
+            // TODO: switch every n attempts?
+            if (!isWalletServiceInitialized()) {
+                requestSwitchToNextBestConnection(sourceConnection);
+            }
+
+            // reinitialize main wallet if applicable
             initMainWallet();
             throw e;
         } finally {
