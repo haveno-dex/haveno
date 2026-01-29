@@ -616,7 +616,7 @@ configure(project(':desktop')) {
     apply plugin: 'com.github.johnrengelman.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.2.2-SNAPSHOT'
+    version = '1.2.3-SNAPSHOT'
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,
