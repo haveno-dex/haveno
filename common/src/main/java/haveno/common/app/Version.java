@@ -30,7 +30,7 @@ public class Version {
     // The application version.
     // We use semantic versioning with major, minor and patch.
     // Optionally supports a fourth digit for fork-specific build versions (e.g. 1.2.3.0).
-    public static final String VERSION = "1.2.2";
+    public static final String VERSION = "1.2.3";
 
     /**
      * Holds a list of the tagged resource files for optimizing the getData requests.
