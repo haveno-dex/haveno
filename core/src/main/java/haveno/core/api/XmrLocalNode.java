@@ -34,9 +34,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroConnectionManager;
 import monero.common.MoneroUtils;
+import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
+import monero.daemon.model.MoneroDaemonInfo;
 
 
 /**
@@ -54,11 +55,11 @@ public class XmrLocalNode {
 
     // instance fields
     private MoneroDaemonRpc daemon;
-    private MoneroConnectionManager connectionManager;
     private final Config config;
     private final Preferences preferences;
     private final XmrNodes xmrNodes;
     private final List<XmrLocalNodeListener> listeners = new ArrayList<>();
+    private TaskLooper monerodPoller;
 
     // required arguments
     private static final List<String> MONEROD_ARGS = new ArrayList<String>();
@@ -79,14 +80,38 @@ public class XmrLocalNode {
         this.preferences = preferences;
         this.xmrNodes = xmrNodes;
         this.daemon = new MoneroDaemonRpc(getUri());
+        startPolling();
+    }
 
-        // initialize connection manager to listen to local connection
-        this.connectionManager = new MoneroConnectionManager().setConnection(daemon.getRpcConnection());
-        this.connectionManager.setTimeout(REFRESH_PERIOD_LOCAL_MS);
-        this.connectionManager.addListener((connection) -> {
-            for (var listener : listeners) listener.onConnectionChanged(connection); // notify of connection changes
-        });
-        this.connectionManager.startPolling(REFRESH_PERIOD_LOCAL_MS);
+    private void startPolling() {
+        monerodPoller = new TaskLooper(() -> pollMonerod());
+        monerodPoller.start(REFRESH_PERIOD_LOCAL_MS);
+    }
+
+    private void pollMonerod() {
+        
+        // collect state before check
+        Boolean onlineBefore = daemon.getRpcConnection().isOnline();
+        Boolean authenticatedBefore = daemon.getRpcConnection().isAuthenticated();
+        Boolean syncedWithinToleranceBefore = null;
+        MoneroDaemonInfo lastInfo = XmrConnectionService.getCachedDaemonInfo(daemon.getRpcConnection());
+        if (lastInfo != null) syncedWithinToleranceBefore = XmrConnectionService.isSyncedWithinTolerance(lastInfo);
+
+        // check connection
+        checkConnection();
+        Boolean onlineAfter = daemon.getRpcConnection().isOnline();
+        Boolean authenticatedAfter = daemon.getRpcConnection().isAuthenticated();
+        Boolean syncedWithinToleranceAfter = null;
+        lastInfo = XmrConnectionService.getCachedDaemonInfo(daemon.getRpcConnection());
+        if (lastInfo != null) syncedWithinToleranceAfter = XmrConnectionService.isSyncedWithinTolerance(lastInfo);
+
+        // announce if connection changed
+        boolean change = onlineBefore != onlineAfter;
+        change = change || authenticatedBefore != authenticatedAfter;
+        change = change || syncedWithinToleranceBefore != syncedWithinToleranceAfter;
+        if (change) {
+            for (var listener : listeners) listener.onConnectionChanged(daemon.getRpcConnection());
+        }
     }
 
     public String getUri() {
@@ -151,19 +176,18 @@ public class XmrLocalNode {
      */
     public boolean isDetected() {
         checkConnection();
-        return Boolean.TRUE.equals(connectionManager.getConnection().isOnline());
+        return Boolean.TRUE.equals(daemon.getRpcConnection().isOnline());
     }
 
     /**
      * Check if connected to local Monero node.
      */
     public boolean isConnected() {
-        checkConnection();
-        return Boolean.TRUE.equals(connectionManager.isConnected());
+        return Boolean.TRUE.equals(daemon.getRpcConnection().isConnected());
     }
 
     private void checkConnection() {
-        connectionManager.checkConnection();
+        XmrConnectionService.checkConnection(daemon.getRpcConnection());
     }
 
     public XmrNodeSettings getNodeSettings() {

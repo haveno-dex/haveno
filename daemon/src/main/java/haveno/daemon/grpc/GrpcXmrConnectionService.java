@@ -43,8 +43,6 @@ import haveno.proto.grpc.AddConnectionReply;
 import haveno.proto.grpc.AddConnectionRequest;
 import haveno.proto.grpc.CheckConnectionReply;
 import haveno.proto.grpc.CheckConnectionRequest;
-import haveno.proto.grpc.CheckConnectionsReply;
-import haveno.proto.grpc.CheckConnectionsRequest;
 import haveno.proto.grpc.GetAutoSwitchReply;
 import haveno.proto.grpc.GetAutoSwitchRequest;
 import haveno.proto.grpc.GetBestConnectionReply;
@@ -59,23 +57,16 @@ import haveno.proto.grpc.SetAutoSwitchReply;
 import haveno.proto.grpc.SetAutoSwitchRequest;
 import haveno.proto.grpc.SetConnectionReply;
 import haveno.proto.grpc.SetConnectionRequest;
-import haveno.proto.grpc.StartCheckingConnectionReply;
-import haveno.proto.grpc.StartCheckingConnectionRequest;
-import haveno.proto.grpc.StopCheckingConnectionReply;
-import haveno.proto.grpc.StopCheckingConnectionRequest;
 import haveno.proto.grpc.UrlConnection;
 import static haveno.proto.grpc.XmrConnectionsGrpc.XmrConnectionsImplBase;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getAddConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getCheckConnectionMethod;
-import static haveno.proto.grpc.XmrConnectionsGrpc.getCheckConnectionsMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getGetBestConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getGetConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getGetConnectionsMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getRemoveConnectionMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getSetAutoSwitchMethod;
 import static haveno.proto.grpc.XmrConnectionsGrpc.getSetConnectionMethod;
-import static haveno.proto.grpc.XmrConnectionsGrpc.getStartCheckingConnectionMethod;
-import static haveno.proto.grpc.XmrConnectionsGrpc.getStopCheckingConnectionMethod;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 import java.net.MalformedURLException;
@@ -166,37 +157,6 @@ class GrpcXmrConnectionService extends XmrConnectionsImplBase {
                 builder.setConnection(replyConnection);
             }
             return builder.build();
-        });
-    }
-
-    @Override
-    public void checkConnections(CheckConnectionsRequest request,
-                                 StreamObserver<CheckConnectionsReply> responseObserver) {
-        handleRequest(responseObserver, () -> {
-            List<MoneroRpcConnection> connections = coreApi.checkXmrConnections();
-            List<UrlConnection> replyConnections = connections.stream()
-                    .map(GrpcXmrConnectionService::toUrlConnection).collect(Collectors.toList());
-            return CheckConnectionsReply.newBuilder().addAllConnections(replyConnections).build();
-        });
-    }
-
-    @Override
-    public void startCheckingConnection(StartCheckingConnectionRequest request,
-                                         StreamObserver<StartCheckingConnectionReply> responseObserver) {
-        handleRequest(responseObserver, () -> {
-            int refreshMillis = request.getRefreshPeriod();
-            Long refreshPeriod = refreshMillis == 0 ? null : (long) refreshMillis;
-            coreApi.startCheckingXmrConnection(refreshPeriod);
-            return StartCheckingConnectionReply.newBuilder().build();
-        });
-    }
-
-    @Override
-    public void stopCheckingConnection(StopCheckingConnectionRequest request,
-                                        StreamObserver<StopCheckingConnectionReply> responseObserver) {
-        handleRequest(responseObserver, () -> {
-            coreApi.stopCheckingXmrConnection();
-            return StopCheckingConnectionReply.newBuilder().build();
         });
     }
 
@@ -311,9 +271,6 @@ class GrpcXmrConnectionService extends XmrConnectionsImplBase {
                             put(getGetConnectionsMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getSetConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getCheckConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
-                            put(getCheckConnectionsMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
-                            put(getStartCheckingConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
-                            put(getStopCheckingConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getGetBestConnectionMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                             put(getSetAutoSwitchMethod().getFullMethodName(), new GrpcCallRateMeter(allowedCallsPerTimeWindow, SECONDS));
                         }}

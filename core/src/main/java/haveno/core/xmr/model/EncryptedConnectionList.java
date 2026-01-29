@@ -215,7 +215,11 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
             writeLock.unlock();
         }
         if (changed) {
-            requestPersistence();
+            if (!PersistenceManager.allServicesInitialized.get()) {
+                persistenceManager.forcePersistNow(); // connection can be changed before all services initialized
+            } else {
+                requestPersistence();
+            }
         }
     }
 

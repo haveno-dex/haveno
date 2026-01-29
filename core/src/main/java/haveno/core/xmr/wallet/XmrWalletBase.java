@@ -12,9 +12,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -62,6 +59,7 @@ public abstract class XmrWalletBase {
     protected CountDownLatch syncProgressLatch;
     protected Exception syncProgressError;
     protected Timer syncProgressTimeout;
+    protected long syncProgressTargetHeight;
     @Getter
     protected final DownloadListener syncProgressListener = new DownloadListener();
     protected final LongProperty walletHeight = new SimpleLongProperty(0);
@@ -69,7 +67,6 @@ public abstract class XmrWalletBase {
     protected boolean isShutDownStarted;
     @Getter
     protected boolean isShutDown;
-    protected Subscription connectionUpdateSubscription;
 
     // private
     private boolean testReconnectOnStartup = false; // test reconnecting on startup while syncing so the wallet is blocked
@@ -91,6 +88,7 @@ public abstract class XmrWalletBase {
 
                 Callable<MoneroSyncResult> task = () -> {
                     if (isSyncing()) log.warn("Syncing without progress while already syncing. That should never happen.");
+                    if (isShutDownStarted) throw new RuntimeException("Cannot sync wallet because shut down is started");
                     isSyncingWithoutProgress = true;
                     walletHeight.set(wallet.getHeight());
                     MoneroSyncResult result = wallet.sync();
@@ -124,14 +122,8 @@ public abstract class XmrWalletBase {
         MoneroWallet sourceWallet = wallet;
         synchronized (walletLock) {
 
-            // subscribe to height updates for latest sync progress
-            UserThread.execute(() -> {
-                connectionUpdateSubscription = EasyBind.subscribe(xmrConnectionService.numUpdatesProperty(), newValue -> {
-                    UserThread.execute(() -> {
-                        if (newValue != null && connectionUpdateSubscription != null && isSyncingWithProgress) updateSyncProgress(null);
-                    });
-                });
-            });
+            // check that shut down is not started
+            if (isShutDownStarted) throw new RuntimeException("Cannot sync wallet with progress because shut down is started");
 
             try {
 
@@ -141,7 +133,8 @@ public abstract class XmrWalletBase {
                 isSyncingWithProgress = true;
                 syncStartHeight = null;
                 syncProgressError = null;
-                updateSyncProgress(wallet.getHeight());
+                syncProgressTargetHeight = xmrConnectionService.getTargetHeight();
+                updateSyncProgress(wallet.getHeight(), syncProgressTargetHeight);
 
                 // test connection changing on startup before wallet synced
                 if (testReconnectOnStartup) {
@@ -159,7 +152,7 @@ public abstract class XmrWalletBase {
                     wallet.sync(new MoneroWalletListener() {
                         @Override
                         public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
-                            updateSyncProgress(height);
+                            updateSyncProgress(height, endHeight);
                         }
                     });
                     onDoneSyncWithProgress();
@@ -193,11 +186,13 @@ public abstract class XmrWalletBase {
                     }
 
                     // update sync progress
-                    long targetHeight = xmrConnectionService.getTargetHeight();
-                    updateSyncProgress(height);
-                    if (height >= targetHeight) {
+                    updateSyncProgress(height, syncProgressTargetHeight);
+                    if (height >= syncProgressTargetHeight) {
                         syncProgressLatch.countDown();
                     }
+
+                    // update target height after each update to prevent stalling on new blocks
+                    syncProgressTargetHeight = xmrConnectionService.getTargetHeight();
                 });
                 wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                 syncProgressLooper.start(1000);
@@ -214,10 +209,6 @@ public abstract class XmrWalletBase {
             } finally {
                 isSyncingWithProgress = false;
                 if (syncProgressTimeout != null) syncProgressTimeout.stop();
-                UserThread.execute(() -> {
-                    connectionUpdateSubscription.unsubscribe();
-                    connectionUpdateSubscription = null;
-                });
             }
         }
     }
@@ -271,7 +262,7 @@ public abstract class XmrWalletBase {
 
     // ------------------------------ PRIVATE HELPERS -------------------------
 
-    private void updateSyncProgress(Long height) {
+    private void updateSyncProgress(Long height, long targetHeight) {
 
         // use last height if no update
         long appliedHeight = height == null ? walletHeight.get() : height;
@@ -285,7 +276,6 @@ public abstract class XmrWalletBase {
         walletHeight.set(appliedHeight);
 
         // calculate progress
-        long targetHeight = xmrConnectionService.getTargetHeight();
         long blocksRemaining = appliedHeight <= 1 ? -1 : targetHeight - appliedHeight; // unknown blocks left if height <= 1
         if (syncStartHeight == null) syncStartHeight = appliedHeight;
         double percent = Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) appliedHeight - syncStartHeight) / (double) (targetHeight - syncStartHeight));
@@ -293,7 +283,6 @@ public abstract class XmrWalletBase {
 
         // notify progress listener on user thread
         UserThread.execute(() -> {
-            if (connectionUpdateSubscription == null) return; // unsubscribed
             syncProgressListener.progress(percent, blocksRemaining);
         });
     }

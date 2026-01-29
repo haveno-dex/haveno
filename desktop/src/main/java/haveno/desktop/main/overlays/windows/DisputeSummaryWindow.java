@@ -372,7 +372,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 .add(trade.getBuyer().getSecurityDeposit())
                 .add(trade.getSeller().getSecurityDeposit());
         BigInteger totalAmount = buyerAmount.add(sellerAmount);
-        return totalAmount.compareTo(expected) == 0 || totalAmount.compareTo(trade.getWallet().getBalance()) == 0; // allow spending the expected amount or full wallet balance in case a deposit transaction was dropped
+        return totalAmount.compareTo(expected) == 0 || totalAmount.compareTo(trade.getWalletBalance()) == 0; // allow spending the expected amount or full wallet balance in case a deposit transaction was dropped
     }
 
     private void applyCustomAmounts(InputTextField inputTextField, boolean oldFocusValue, boolean newFocusValue) {
@@ -382,7 +382,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             return;
         }
 
-        BigInteger available = trade.getWallet().getBalance();
+        BigInteger available = trade.getWalletBalance();
         BigInteger enteredAmount = HavenoUtils.parseXmr(inputTextField.getText());
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;
