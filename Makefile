@@ -181,6 +181,7 @@ arbitrator-daemon-local:
 		--apiPort=9998 \
 		--passwordRequired=false \
 		--useNativeXmrWallet=false \
+	    --xmrNode=http://127.0.0.1:48081 \
 
 arbitrator-desktop-local:
 	# Arbitrator needs to be registered before making trades
@@ -193,6 +194,7 @@ arbitrator-desktop-local:
 		--apiPassword=apitest \
 		--apiPort=9998 \
 		--useNativeXmrWallet=false \
+	    --xmrNode=http://127.0.0.1:48081 \
 
 arbitrator2-daemon-local:
 	# Arbitrator needs to be registered before making trades
@@ -205,6 +207,7 @@ arbitrator2-daemon-local:
 		--apiPassword=apitest \
 		--apiPort=10001 \
 		--useNativeXmrWallet=false \
+	    --xmrNode=http://127.0.0.1:48081 \
 
 arbitrator2-desktop-local:
 	# Arbitrator needs to be registered before making trades
@@ -217,6 +220,7 @@ arbitrator2-desktop-local:
 		--apiPassword=apitest \
 		--apiPort=10001 \
 		--useNativeXmrWallet=false \
+	    --xmrNode=http://127.0.0.1:48081 \
 
 user1-daemon-local:
 	./haveno-daemon$(APP_EXT) \
