@@ -1,8 +1,5 @@
 package haveno.core.xmr.wallet;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -26,7 +23,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
-import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletFull;
 import monero.wallet.model.MoneroSyncResult;
@@ -50,7 +46,6 @@ public abstract class XmrWalletBase {
     @Getter
     protected XmrConnectionService xmrConnectionService;
     protected boolean wasWalletSynced;
-    protected final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
     protected boolean isClosingWallet;
     protected boolean isSyncingWithoutProgress;
     protected boolean isSyncingWithProgress;
