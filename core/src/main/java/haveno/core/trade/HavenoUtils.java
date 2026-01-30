@@ -95,7 +95,7 @@ import org.bitcoinj.core.Coin;
 public class HavenoUtils {
 
     // configure release date
-    private static final String RELEASE_DATE = "25-05-2024 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "25-05-2024 00:00:00"
+    private static final String RELEASE_DATE = "31-01-2026 00:00:00"; // optionally set to release date of the network in format dd-mm-yyyy to impose temporary limits, etc. e.g. "25-05-2024 00:00:00"
     public static final int RELEASE_LIMIT_DAYS = 60; // number of days to limit sell offers to max buy limit for new accounts
     public static final int WARN_ON_OFFER_EXCEEDS_UNSIGNED_BUY_LIMIT_DAYS = 182; // number of days to warn if sell offer exceeds unsigned buy limit
     public static final int ARBITRATOR_ACK_TIMEOUT_SECONDS = 60;
@@ -103,10 +103,10 @@ public class HavenoUtils {
     // configure fees
     public static final boolean ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS = true;
     public static final double PENALTY_FEE_PCT = 0.25; // charge 25% of security deposit for penalty
-    private static final double MAKER_FEE_PCT_CRYPTO = 0.0015;
-    private static final double TAKER_FEE_PCT_CRYPTO = 0.005;
-    private static final double MAKER_FEE_PCT_TRADITIONAL = 0.0015; // NOTE: cloned offers will only work across crypto and traditional currencies if they use the same maker fee
-    private static final double TAKER_FEE_PCT_TRADITIONAL = 0.0075;
+    private static final double MAKER_FEE_PCT_CRYPTO = 0.001;
+    private static final double TAKER_FEE_PCT_CRYPTO = 0.0025;
+    private static final double MAKER_FEE_PCT_TRADITIONAL = 0.001; // NOTE: cloned offers will only work across crypto and traditional currencies if they use the same maker fee
+    private static final double TAKER_FEE_PCT_TRADITIONAL = 0.01;
     private static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_CRYPTO = MAKER_FEE_PCT_CRYPTO + TAKER_FEE_PCT_CRYPTO; // can customize maker's fee when no deposit from taker
     private static final double MAKER_FEE_FOR_TAKER_WITHOUT_DEPOSIT_PCT_TRADITIONAL = MAKER_FEE_PCT_TRADITIONAL + TAKER_FEE_PCT_TRADITIONAL;
     public static final double MINER_FEE_TOLERANCE_FACTOR = 5.0; // miner fees must be within 5x of each other
