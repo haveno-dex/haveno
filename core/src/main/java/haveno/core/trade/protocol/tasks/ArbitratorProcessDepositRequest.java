@@ -68,7 +68,7 @@ public class ArbitratorProcessDepositRequest extends TradeTask {
             complete();
         } catch (Throwable t) {
             trade.getProcessModel().error = t;
-            log.error("Error processing deposit request for trade {}: {}\n", trade.getId(), t.getMessage(), t);
+            log.error("Error processing deposit request for {} {}: {}\n", trade.getClass().getSimpleName(), trade.getId(), t.getMessage(), t);
             trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
             failed(t);
         }

@@ -55,6 +55,8 @@ import haveno.common.util.Tuple2;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
+import haveno.core.api.XmrKeyImageListener;
+import haveno.core.api.XmrKeyImagePoller;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
@@ -83,8 +85,6 @@ import haveno.core.util.Validator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.Restrictions;
-import haveno.core.xmr.wallet.XmrKeyImageListener;
-import haveno.core.xmr.wallet.XmrKeyImagePoller;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
@@ -222,7 +222,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         this.persistenceManager = persistenceManager;
         this.signedOfferPersistenceManager = signedOfferPersistenceManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
+
         HavenoUtils.openOfferManager = this;
+        ThreadUtils.reset(THREAD_ID);
 
         this.persistenceManager.initialize(openOffers, "OpenOffers", PersistenceManager.Source.PRIVATE);
         this.signedOfferPersistenceManager.initialize(signedOffers, "SignedOffers", PersistenceManager.Source.PRIVATE); // arbitrator stores reserve tx for signed offers
@@ -1397,7 +1399,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     } catch (Exception e) {
                         if (e.getMessage().contains("not enough")) throw e; // do not retry if not enough funds
                         log.warn("Error creating split output tx to fund offer, offerId={}, subaddress={}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                        xmrWalletService.handleWalletError(e, sourceConnection, i + 1);
+                        xmrWalletService.handleMainWalletError(e, sourceConnection, i + 1);
                         if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
@@ -2269,36 +2271,37 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // refresh sufficiently before offer would expire
         if (periodicRefreshOffersTimer == null)
             periodicRefreshOffersTimer = UserThread.runPeriodically(() -> {
-                        if (!stopped) {
-                            log.info("Refreshing my open offers");
-                            synchronized (openOffers.getList()) {
-                                int size = openOffers.size();
-                                //we clone our list as openOffers might change during our delayed call
-                                final ArrayList<OpenOffer> openOffersList = new ArrayList<>(openOffers.getList());
-                                for (int i = 0; i < size; i++) {
-                                    // we delay to avoid reaching throttle limits
-                                    // roughly 4 offers per second
-    
-                                    long delay = 300;
-                                    final long minDelay = (i + 1) * delay;
-                                    final long maxDelay = (i + 2) * delay;
-                                    final OpenOffer openOffer = openOffersList.get(i);
-                                    UserThread.runAfterRandomDelay(() -> {
-                                        // we need to check if in the meantime the offer has been removed
-                                        boolean contained = false;
-                                        synchronized (openOffers.getList()) {
-                                            contained = openOffers.contains(openOffer);
-                                        }
-                                        if (contained) maybeRefreshOffer(openOffer, 0, 1);
-                                    }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
+                // TODO: this runs on user thread so can block
+                if (!stopped) {
+                    log.info("Refreshing my open offers");
+                    synchronized (openOffers.getList()) {
+                        int size = openOffers.size();
+                        //we clone our list as openOffers might change during our delayed call
+                        final ArrayList<OpenOffer> openOffersList = new ArrayList<>(openOffers.getList());
+                        for (int i = 0; i < size; i++) {
+                            // we delay to avoid reaching throttle limits
+                            // roughly 4 offers per second
+
+                            long delay = 300;
+                            final long minDelay = (i + 1) * delay;
+                            final long maxDelay = (i + 2) * delay;
+                            final OpenOffer openOffer = openOffersList.get(i);
+                            UserThread.runAfterRandomDelay(() -> {
+                                // we need to check if in the meantime the offer has been removed
+                                boolean contained = false;
+                                synchronized (openOffers.getList()) {
+                                    contained = openOffers.contains(openOffer);
                                 }
-                            }
-                        } else {
-                            log.debug("We have stopped already. We ignore that periodicRefreshOffersTimer.run call.");
+                                if (contained) maybeRefreshOffer(openOffer, 0, 1);
+                            }, minDelay, maxDelay, TimeUnit.MILLISECONDS);
                         }
-                    },
-                    REFRESH_INTERVAL_MS,
-                    TimeUnit.MILLISECONDS);
+                    }
+                } else {
+                    log.debug("We have stopped already. We ignore that periodicRefreshOffersTimer.run call.");
+                }
+            },
+            REFRESH_INTERVAL_MS,
+            TimeUnit.MILLISECONDS);
         else
             log.trace("periodicRefreshOffersTimer already stated");
     }

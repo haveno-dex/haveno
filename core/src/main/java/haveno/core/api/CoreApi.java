@@ -225,18 +225,6 @@ public class CoreApi {
         return xmrConnectionService.checkConnection();
     }
 
-    public List<MoneroRpcConnection> checkXmrConnections() {
-        return xmrConnectionService.checkConnections();
-    }
-
-    public void startCheckingXmrConnection(Long refreshPeriod) {
-        xmrConnectionService.startCheckingConnection(refreshPeriod);
-    }
-
-    public void stopCheckingXmrConnection() {
-        xmrConnectionService.stopCheckingConnection();
-    }
-
     public MoneroRpcConnection getBestXmrConnection() {
         return xmrConnectionService.getBestConnection();
     }

@@ -91,6 +91,7 @@ public abstract class XmrWalletBase {
 
                 Callable<MoneroSyncResult> task = () -> {
                     if (isSyncing()) log.warn("Syncing without progress while already syncing. That should never happen.");
+                    if (isShutDownStarted) throw new RuntimeException("Cannot sync wallet because shut down is started");
                     isSyncingWithoutProgress = true;
                     walletHeight.set(wallet.getHeight());
                     MoneroSyncResult result = wallet.sync();
@@ -123,6 +124,9 @@ public abstract class XmrWalletBase {
     public void syncWithProgress() {
         MoneroWallet sourceWallet = wallet;
         synchronized (walletLock) {
+
+            // check that shut down is not started
+            if (isShutDownStarted) throw new RuntimeException("Cannot sync wallet with progress because shut down is started");
 
             // subscribe to height updates for latest sync progress
             UserThread.execute(() -> {
@@ -319,6 +323,6 @@ public abstract class XmrWalletBase {
     }
 
     protected boolean isExpectedWalletError(Exception e) {
-        return e.getMessage() != null && e.getMessage().contains(RECEIVED_ERROR_RESPONSE_MSG); // TODO: why does this error happen "normally"?
+        return e.getMessage() != null && (HavenoUtils.isUnresponsive(e) || e.getMessage().contains(RECEIVED_ERROR_RESPONSE_MSG)); // TODO: why does this error happen "normally"?
     }
 }

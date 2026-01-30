@@ -73,8 +73,8 @@ public class SellerProtocol extends DisputeProtocol {
     private void maybeResendPaymentReceivedMessage() {
 
         // re-send payment received message if not acked
+        if (!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
         ThreadUtils.execute(() -> {
-            if (!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
             synchronized (trade.getLock()) {
                 if (!((SellerTrade) trade).needsToResendPaymentReceivedMessages()) return;
                 latchTrade();

@@ -247,6 +247,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onInitialized() {
 
+        // reset pools for trade ids
+        ThreadUtils.reset(getInitId());
+        ThreadUtils.reset(trade.getId());
+
         // listen for direct messages unless finished (assumes this is called before mailbox message service is intialized)
         MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
         if (!trade.isFinished()) {
@@ -275,8 +279,9 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     protected void onInitializeAfterMailboxMessages() {
 
         // run on initialization thread to preserve ordering processing messages
+        if (ignoreMailboxMessages()) return;
         ThreadUtils.execute(() -> {
-            if (!trade.isDepositRequested() || trade.isPayoutFinalized() || trade.isCompleted()) return;
+            if (ignoreMailboxMessages()) return;
 
             // reprocess messages if applicable
             maybeReprocessPaymentSentMessage(false);
@@ -286,6 +291,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // initialize trade after startup mailbox messages processed
             trade.initializeAfterMailboxMessages();
         }, getInitId());
+    }
+
+    private boolean ignoreMailboxMessages() {
+        return !trade.isDepositRequested() || trade.isPayoutFinalized() || trade.isCompleted() || trade.isShutDownStarted();
     }
 
     public String getInitId() {
@@ -356,7 +365,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             synchronized (trade.getLock()) {
 
                 // skip if no need to reprocess
-                if (trade.isArbitrator() || trade.getArbitrator().getDisputeClosedMessage() == null || trade.getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex() == null || trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_CLOSED.ordinal()) {
+                if (trade.isShutDownStarted() || trade.isArbitrator() || trade.getArbitrator().getDisputeClosedMessage() == null || trade.getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex() == null || trade.getDisputeState().ordinal() >= Trade.DisputeState.DISPUTE_CLOSED.ordinal()) {
                     return;
                 }
 

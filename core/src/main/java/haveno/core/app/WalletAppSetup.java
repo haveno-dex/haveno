@@ -137,7 +137,7 @@ public class WalletAppSetup {
                         double chainDownloadPercentageD = xmrConnectionService.downloadPercentageProperty().doubleValue();
                         Long bestChainHeight = xmrConnectionService.chainHeightProperty().get();
                         String chainHeightAsString = bestChainHeight != null && bestChainHeight > 0 ? String.valueOf(bestChainHeight) : "";
-                        if (chainDownloadPercentageD < 1) {
+                        if (chainDownloadPercentageD < 1 && !xmrWalletService.wasWalletSynced()) {
                             xmrDaemonSyncProgress.set(chainDownloadPercentageD);
                             if (chainDownloadPercentageD > 0.0) {
                                 String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWith", getXmrDaemonNetworkAsString(), chainHeightAsString, FormattingUtils.formatToClampedRoundedPercentWithSymbol(chainDownloadPercentageD));
