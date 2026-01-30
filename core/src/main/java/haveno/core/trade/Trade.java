@@ -2446,12 +2446,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public MoneroTx getPayoutTx() {
         if (payoutTx == null && payoutTxId != null) {
             if (this instanceof ArbitratorTrade) {
-                payoutTx = xmrWalletService.getDaemonTxWithCache(payoutTxId);
+                payoutTx = xmrConnectionService.getTxWithCache(payoutTxId);
             } else {
                 payoutTx = xmrWalletService.getTx(payoutTxId);
                 if (payoutTx == null) {
                     log.warn("Main wallet is missing payout tx for {} {}, fetching from daemon", getClass().getSimpleName(), getShortId());
-                    payoutTx = xmrWalletService.getDaemonTxWithCache(payoutTxId);
+                    payoutTx = xmrConnectionService.getTxWithCache(payoutTxId);
                 }
             }
         }

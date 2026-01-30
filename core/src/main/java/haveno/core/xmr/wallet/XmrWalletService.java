@@ -868,56 +868,6 @@ public class XmrWalletService extends XmrWalletBase {
         return feeEstimate;
     }
 
-    public MoneroTx getDaemonTx(String txHash) {
-        List<MoneroTx> txs = getDaemonTxs(Arrays.asList(txHash));
-        return txs.isEmpty() ? null : txs.get(0);
-    }
-
-    public List<MoneroTx> getDaemonTxs(List<String> txHashes) {
-        synchronized (txCache) {
-
-            // fetch txs
-            if (getMonerod() == null) xmrConnectionService.verifyConnection(); // will throw
-            List<MoneroTx> txs = getMonerod().getTxs(txHashes, true);
-
-            // store to cache
-            for (MoneroTx tx : txs) txCache.put(tx.getHash(), Optional.of(tx));
-
-            // schedule txs to be removed from cache
-            UserThread.runAfter(() -> {
-                synchronized (txCache) {
-                    for (MoneroTx tx : txs) txCache.remove(tx.getHash());
-                }
-            }, xmrConnectionService.getRefreshPeriodMs() / 1000);
-            return txs;
-        }
-    }
-
-    public MoneroTx getDaemonTxWithCache(String txHash) {
-        List<MoneroTx> cachedTxs = getDaemonTxsWithCache(Arrays.asList(txHash));
-        return cachedTxs.isEmpty() ? null : cachedTxs.get(0);
-    }
-
-    public List<MoneroTx> getDaemonTxsWithCache(List<String> txHashes) {
-        synchronized (txCache) {
-            try {
-                // get cached txs
-                List<MoneroTx> cachedTxs = new ArrayList<MoneroTx>();
-                List<String> uncachedTxHashes = new ArrayList<String>();
-                for (int i = 0; i < txHashes.size(); i++) {
-                    if (txCache.containsKey(txHashes.get(i))) cachedTxs.add(txCache.get(txHashes.get(i)).orElse(null));
-                    else uncachedTxHashes.add(txHashes.get(i));
-                }
-
-                // return txs from cache if available, otherwise fetch
-                return uncachedTxHashes.isEmpty() ? cachedTxs : getDaemonTxs(txHashes);
-            } catch (Exception e) {
-                if (!isShutDownStarted) throw e;
-                return null;
-            }
-        }
-    }
-
     public void onShutDownStarted() {
         log.info("XmrWalletService.onShutDownStarted()");
         this.isShutDownStarted = true;

@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,7 @@ import monero.common.MoneroRpcError;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroDaemonInfo;
+import monero.daemon.model.MoneroTx;
 
 @Slf4j
 @Singleton
@@ -140,6 +142,7 @@ public final class XmrConnectionService {
     private boolean isShutDownStarted;
     private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
     private XmrKeyImagePoller keyImagePoller;
+    private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
 
     // connection switching
     private static final int EXCLUDE_CONNECTION_SECONDS = 180;
@@ -694,6 +697,56 @@ public final class XmrConnectionService {
             if (getConnection() == null) {
                 log.warn("No provided nodes available, falling back to public nodes");
                 fallbackToBestConnection();
+            }
+        }
+    }
+
+    public MoneroTx getTx(String txHash) {
+        List<MoneroTx> txs = getTxs(Arrays.asList(txHash));
+        return txs.isEmpty() ? null : txs.get(0);
+    }
+
+    public List<MoneroTx> getTxs(List<String> txHashes) {
+        synchronized (txCache) {
+
+            // fetch txs
+            if (getMonerod() == null) verifyConnection(); // will throw
+            List<MoneroTx> txs = getMonerod().getTxs(txHashes, true);
+
+            // store to cache
+            for (MoneroTx tx : txs) txCache.put(tx.getHash(), Optional.of(tx));
+
+            // schedule txs to be removed from cache
+            UserThread.runAfter(() -> {
+                synchronized (txCache) {
+                    for (MoneroTx tx : txs) txCache.remove(tx.getHash());
+                }
+            }, getRefreshPeriodMs() / 1000);
+            return txs;
+        }
+    }
+
+    public MoneroTx getTxWithCache(String txHash) {
+        List<MoneroTx> cachedTxs = getTxsWithCache(Arrays.asList(txHash));
+        return cachedTxs.isEmpty() ? null : cachedTxs.get(0);
+    }
+
+    public List<MoneroTx> getTxsWithCache(List<String> txHashes) {
+        synchronized (txCache) {
+            try {
+                // get cached txs
+                List<MoneroTx> cachedTxs = new ArrayList<MoneroTx>();
+                List<String> uncachedTxHashes = new ArrayList<String>();
+                for (int i = 0; i < txHashes.size(); i++) {
+                    if (txCache.containsKey(txHashes.get(i))) cachedTxs.add(txCache.get(txHashes.get(i)).orElse(null));
+                    else uncachedTxHashes.add(txHashes.get(i));
+                }
+
+                // return txs from cache if available, otherwise fetch
+                return uncachedTxHashes.isEmpty() ? cachedTxs : getTxs(txHashes);
+            } catch (Exception e) {
+                if (!isShutDownStarted) throw e;
+                return null;
             }
         }
     }
