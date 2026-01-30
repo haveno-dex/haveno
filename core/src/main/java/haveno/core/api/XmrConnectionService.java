@@ -1175,10 +1175,9 @@ public final class XmrConnectionService {
 
             // update sync progress
             if (lastInfo != null) {
-                boolean isTestnet = Config.baseCurrencyNetwork().isTestnet();
                 long height = getHeight();
                 long targetHeight = getTargetHeight();
-                if (height >= targetHeight || isTestnet) doneDownload(); // TODO: skipping synchronized check for testnet because CI tests do not sync 3rd local node, see "Can manage Monero daemon connections"
+                if (height >= targetHeight) doneDownload();
                 else {
                     long blocksRemaining = targetHeight - height;
                     if (syncStartHeight == null) syncStartHeight = height;
