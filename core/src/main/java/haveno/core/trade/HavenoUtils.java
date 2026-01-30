@@ -66,6 +66,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.regex.Pattern;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -132,6 +133,7 @@ public class HavenoUtils {
     public static int XMR_SMALLEST_UNIT_EXPONENT = 12;
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
+    private static final Pattern IPV4 = Pattern.compile("^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)$");
     private static final long CENTINEROS_AU_MULTIPLIER = 10000;
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
@@ -156,6 +158,10 @@ public class HavenoUtils {
     public static boolean isDaemon() {
         if (isSeedNode()) return true;
         return havenoSetup.getCoreContext().isApiUser();
+    }
+
+    public static boolean isAllDomainServicesInitialized() {
+        return havenoSetup != null && havenoSetup.getAppStartupState() != null && havenoSetup.getAppStartupState().isAllDomainServicesInitialized();
     }
 
     @SuppressWarnings("unused")
@@ -552,20 +558,32 @@ public class HavenoUtils {
      * Check if the given URI is local or a private IP address.
      */
     public static boolean isPrivateIp(String uriString) {
+        if (uriString == null || uriString.isEmpty()) return false;
         if (isLocalHost(uriString)) return true;
         try {
-
-            // get the host
             URI uri = new URI(uriString);
             String host = uri.getHost();
+            if (host == null) return false;
+
+            // strip IPv6 brackets
+            if (host.startsWith("[") && host.endsWith("]")) {
+                host = host.substring(1, host.length() - 1);
+            }
 
             // check if private IP address
-            if (host == null) return false;
-            InetAddress inetAddress = InetAddress.getByName(host);
-            return inetAddress.isAnyLocalAddress() || inetAddress.isLoopbackAddress() || inetAddress.isSiteLocalAddress();
+            if (!isLiteralIp(host)) return false;
+            InetAddress addr = InetAddress.getByName(host); // does not perform DNS check if using literal IP
+            return addr.isAnyLocalAddress()
+                        || addr.isLoopbackAddress()
+                        || addr.isLinkLocalAddress()
+                        || addr.isSiteLocalAddress();
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private static boolean isLiteralIp(String host) {
+        return IPV4.matcher(host).matches() || host.indexOf(':') >= 0;
     }
 
     /**

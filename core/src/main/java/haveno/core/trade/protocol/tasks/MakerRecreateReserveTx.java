@@ -70,7 +70,7 @@ public class MakerRecreateReserveTx extends TradeTask {
                 trade.startProtocolTimeout();
 
                 // thaw reserved key images
-                log.info("Thawing reserve tx key images for tradeId={}", trade.getShortId());
+                log.info("Thawing offer payload tx key images for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
                 HavenoUtils.xmrWalletService.thawOutputs(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
 
                 // check for timeout
@@ -98,7 +98,7 @@ public class MakerRecreateReserveTx extends TradeTask {
                                 throw e;
                             } catch (Exception e) {
                                 log.warn("Error creating reserve tx, tradeId={}, attempt={}/{}, error={}", trade.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                                trade.getXmrWalletService().handleWalletError(e, sourceConnection, i + 1);
+                                trade.getXmrWalletService().handleMainWalletError(e, sourceConnection, i + 1);
                                 if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while creating reserve tx, tradeId=" + trade.getShortId());
                                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
@@ -126,7 +126,6 @@ public class MakerRecreateReserveTx extends TradeTask {
                 trade.getSelf().setReserveTxHex(reserveTx.getFullHex());
                 trade.getSelf().setReserveTxKey(reserveTx.getKey());
                 trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(reserveTx));
-                trade.getXmrWalletService().freezeOutputs(HavenoUtils.getInputKeyImages(reserveTx));
             }
 
             // save process state

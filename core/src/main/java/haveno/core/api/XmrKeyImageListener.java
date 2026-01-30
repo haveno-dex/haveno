@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.core.xmr.wallet;
+package haveno.core.api;
 
 import monero.daemon.model.MoneroKeyImageSpentStatus;
 
