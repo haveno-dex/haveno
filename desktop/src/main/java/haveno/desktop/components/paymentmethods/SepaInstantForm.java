@@ -50,7 +50,7 @@ public class SepaInstantForm extends GeneralSepaForm {
                                       PaymentAccountPayload paymentAccountPayload) {
         SepaInstantAccountPayload sepaInstantAccountPayload = (SepaInstantAccountPayload) paymentAccountPayload;
 
-        final String title = Res.get("payment.account.owner");
+        final String title = Res.get("payment.account.owner.fullname");
         final String value = sepaInstantAccountPayload.getHolderName();
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, title, value);
 
@@ -85,7 +85,7 @@ public class SepaInstantForm extends GeneralSepaForm {
         gridRowFrom = gridRow + 1;
 
         InputTextField holderNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow,
-                Res.get("payment.account.owner"));
+                Res.get("payment.account.owner.fullname"));
         holderNameInputTextField.setValidator(inputValidator);
         holderNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             sepaInstantAccount.setHolderName(newValue);
@@ -163,7 +163,7 @@ public class SepaInstantForm extends GeneralSepaForm {
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(sepaInstantAccount.getPaymentMethod().getId()));
-        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"), sepaInstantAccount.getHolderName());
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"), sepaInstantAccount.getHolderName());
         addCompactTopLabelTextField(gridPane, ++gridRow, IBAN, sepaInstantAccount.getIban()).second.setMouseTransparent(false);
         addCompactTopLabelTextField(gridPane, ++gridRow, BIC, sepaInstantAccount.getBic()).second.setMouseTransparent(false);
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.bank.country"),
