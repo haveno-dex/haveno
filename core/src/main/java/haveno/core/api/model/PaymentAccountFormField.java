@@ -100,7 +100,8 @@ public final class PaymentAccountFormField implements PersistablePayload {
         TRADE_CURRENCIES,
         USERNAME,
         EMAIL_OR_MOBILE_NR_OR_USERNAME,
-        EMAIL_OR_MOBILE_NR_OR_CASHTAG;
+        EMAIL_OR_MOBILE_NR_OR_CASHTAG,
+        VIRTUAL_PAYMENT_ADDRESS;
 
         public static PaymentAccountFormField.FieldId fromProto(protobuf.PaymentAccountFormField.FieldId fieldId) {
             return ProtoUtil.enumFromProto(PaymentAccountFormField.FieldId.class, fieldId.name());

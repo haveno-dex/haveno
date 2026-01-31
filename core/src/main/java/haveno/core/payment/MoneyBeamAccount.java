@@ -34,6 +34,12 @@ public final class MoneyBeamAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("EUR"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_ID,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public MoneyBeamAccount() {
         super(PaymentMethod.MONEY_BEAM);
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
@@ -51,7 +57,7 @@ public final class MoneyBeamAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setAccountId(String accountId) {
