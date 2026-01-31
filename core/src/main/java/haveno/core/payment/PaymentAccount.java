@@ -622,7 +622,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             break;
         case ACCOUNT_OWNER:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel(Res.get("payment.account.owner"));
+            field.setLabel(Res.get("payment.account.owner.fullname"));
             break;
         case ACCOUNT_TYPE:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
@@ -634,7 +634,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             break;
         case BANK_ACCOUNT_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel(Res.get("payment.account.owner"));
+            field.setLabel(Res.get("payment.account.owner.fullname"));
             field.setMinLength(2);
             field.setMaxLength(100);
             break;
@@ -686,7 +686,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             break;
         case BENEFICIARY_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel(Res.get("payment.account.owner"));
+            field.setLabel(Res.get("payment.account.owner.fullname"));
             break;
         case BENEFICIARY_PHONE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
@@ -732,7 +732,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             throw new IllegalArgumentException("Not implemented");
         case HOLDER_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
-            field.setLabel(Res.get("payment.account.owner"));
+            field.setLabel(Res.get("payment.account.owner.fullname"));
             field.setMinLength(2);
             field.setMaxLength(100);
             break;

@@ -41,7 +41,7 @@ public class InteracETransferForm extends PaymentMethodForm {
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
-        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"),
                 ((InteracETransferAccountPayload) paymentAccountPayload).getHolderName());
         addCompactTopLabelTextField(gridPane, gridRow, 1, Res.get("payment.emailOrMobile"),
                 ((InteracETransferAccountPayload) paymentAccountPayload).getEmailOrMobileNr());
@@ -64,7 +64,7 @@ public class InteracETransferForm extends PaymentMethodForm {
         gridRowFrom = gridRow + 1;
 
         InputTextField holderNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow,
-                Res.get("payment.account.owner"));
+                Res.get("payment.account.owner.fullname"));
         holderNameInputTextField.setValidator(inputValidator);
         holderNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             interacETransferAccount.setHolderName(newValue);
@@ -110,7 +110,7 @@ public class InteracETransferForm extends PaymentMethodForm {
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(interacETransferAccount.getPaymentMethod().getId()));
-        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"),
                 interacETransferAccount.getHolderName());
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.email"),
                 interacETransferAccount.getEmail()).second.setMouseTransparent(false);

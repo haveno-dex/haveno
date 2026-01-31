@@ -45,7 +45,7 @@ public class AustraliaPayidForm extends PaymentMethodForm {
     private final AustraliaPayidValidator australiaPayidValidator;
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow, PaymentAccountPayload paymentAccountPayload) {
-        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"),
                 ((AustraliaPayidAccountPayload) paymentAccountPayload).getBankAccountName());
 
         addCompactTopLabelTextField(gridPane, gridRow, 1, Res.get("payment.payid"),
@@ -76,7 +76,7 @@ public class AustraliaPayidForm extends PaymentMethodForm {
         gridRowFrom = gridRow + 1;
 
         InputTextField holderNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow,
-                Res.get("payment.account.owner"));
+                Res.get("payment.account.owner.fullname"));
         holderNameInputTextField.setValidator(inputValidator);
         holderNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             australiaPayidAccount.setBankAccountName(newValue);
@@ -121,7 +121,7 @@ public class AustraliaPayidForm extends PaymentMethodForm {
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.payid"),
                 australiaPayidAccount.getPayid());
 
-        TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
+        TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"),
                 australiaPayidAccount.getBankAccountName()).second;
         field.setMouseTransparent(false);
 

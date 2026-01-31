@@ -45,7 +45,7 @@ public class UpholdForm extends PaymentMethodForm {
         if (accountOwner.isEmpty()) {
             accountOwner = Res.get("payment.ask");
         }
-        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.account.owner"),
+        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"),
                 accountOwner);
 
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.uphold.accountId"),
@@ -67,7 +67,7 @@ public class UpholdForm extends PaymentMethodForm {
         gridRowFrom = gridRow + 1;
 
         InputTextField holderNameInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow,
-                Res.get("payment.account.owner"));
+                Res.get("payment.account.owner.fullname"));
         holderNameInputTextField.setValidator(inputValidator);
         holderNameInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             upholdAccount.setAccountOwner(newValue);
@@ -111,7 +111,7 @@ public class UpholdForm extends PaymentMethodForm {
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(upholdAccount.getPaymentMethod().getId()));
-        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"),
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"),
                 upholdAccount.getAccountOwner());
         TextField field = addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.uphold.accountId"),
                 upholdAccount.getAccountId()).second;

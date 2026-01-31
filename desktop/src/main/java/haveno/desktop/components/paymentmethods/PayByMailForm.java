@@ -48,7 +48,7 @@ public class PayByMailForm extends PaymentMethodForm {
                                       PaymentAccountPayload paymentAccountPayload) {
         PayByMailAccountPayload cbm = (PayByMailAccountPayload) paymentAccountPayload;
         addTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1,
-                Res.get("payment.account.owner"),
+                Res.get("payment.account.owner.fullname"),
                 cbm.getHolderName(),
                 Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
 

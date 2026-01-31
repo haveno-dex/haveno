@@ -102,7 +102,7 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
     public String getPaymentDetailsForTradePopup() {
         return
                 Res.get("payment.australia.payid") + ": " + payid + "\n" +
-                        Res.get("payment.account.owner") + ": " + bankAccountName + "\n" +
+                        Res.get("payment.account.owner.fullname") + ": " + bankAccountName + "\n" +
                         Res.get("payment.shared.extraInfo") + ": " + extraInfo;
     }
 

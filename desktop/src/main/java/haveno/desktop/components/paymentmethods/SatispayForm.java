@@ -39,7 +39,7 @@ public class SatispayForm extends PaymentMethodForm {
 
     public static int addFormForBuyer(GridPane gridPane, int gridRow,
                                       PaymentAccountPayload paymentAccountPayload) {
-        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, 0, Res.get("payment.account.owner"),
+        addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, 0, Res.get("payment.account.owner.fullname"),
                 ((SatispayAccountPayload) paymentAccountPayload).getHolderName());
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.mobile"),
                 ((SatispayAccountPayload) paymentAccountPayload).getMobileNr());
@@ -61,7 +61,7 @@ public class SatispayForm extends PaymentMethodForm {
 
         gridRowFrom = gridRow + 1;
 
-        InputTextField holderNameField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.account.owner"));
+        InputTextField holderNameField = FormBuilder.addInputTextField(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"));
         holderNameField.setValidator(inputValidator);
         holderNameField.textProperty().addListener((ov, oldValue, newValue) -> {
             account.setHolderName(newValue.trim());
@@ -92,7 +92,7 @@ public class SatispayForm extends PaymentMethodForm {
         addAccountNameTextFieldWithAutoFillToggleButton();
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("shared.paymentMethod"),
                 Res.get(account.getPaymentMethod().getId()));
-        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner"), account.getHolderName())
+        addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.owner.fullname"), account.getHolderName())
                 .second.setMouseTransparent(false);
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.mobile"), account.getMobileNr())
                 .second.setMouseTransparent(false);
