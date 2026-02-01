@@ -33,6 +33,7 @@ public final class TransferwiseAccount extends PaymentAccount {
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.SALT
@@ -43,22 +44,32 @@ public final class TransferwiseAccount extends PaymentAccount {
             new TraditionalCurrency("AED"),
             new TraditionalCurrency("ARS"),
             new TraditionalCurrency("AUD"),
+            new TraditionalCurrency("BDT"),
+            new TraditionalCurrency("BRL"),
+            new TraditionalCurrency("BWP"),
             new TraditionalCurrency("CAD"),
             new TraditionalCurrency("CHF"),
             new TraditionalCurrency("CLP"),
+            new TraditionalCurrency("CNY"),
+            new TraditionalCurrency("COP"),
+            new TraditionalCurrency("CRC"),
             new TraditionalCurrency("CZK"),
             new TraditionalCurrency("DKK"),
             new TraditionalCurrency("EGP"),
             new TraditionalCurrency("EUR"),
+            new TraditionalCurrency("FJD"),
             new TraditionalCurrency("GBP"),
             new TraditionalCurrency("GEL"),
+            new TraditionalCurrency("GHS"),
             new TraditionalCurrency("HKD"),
             new TraditionalCurrency("HUF"),
             new TraditionalCurrency("IDR"),
             new TraditionalCurrency("ILS"),
+            new TraditionalCurrency("INR"),
             new TraditionalCurrency("JPY"),
             new TraditionalCurrency("KES"),
             new TraditionalCurrency("KRW"),
+            new TraditionalCurrency("LKR"),
             new TraditionalCurrency("MAD"),
             new TraditionalCurrency("MXN"),
             new TraditionalCurrency("MYR"),
@@ -75,7 +86,9 @@ public final class TransferwiseAccount extends PaymentAccount {
             new TraditionalCurrency("SGD"),
             new TraditionalCurrency("THB"),
             new TraditionalCurrency("TRY"),
+            new TraditionalCurrency("UAH"),
             new TraditionalCurrency("UGX"),
+            new TraditionalCurrency("UYU"),
             new TraditionalCurrency("VND"),
             new TraditionalCurrency("XOF"),
             new TraditionalCurrency("ZAR"),
@@ -107,6 +120,14 @@ public final class TransferwiseAccount extends PaymentAccount {
 
     public String getEmail() {
         return ((TransferwiseAccountPayload) paymentAccountPayload).getEmail();
+    }
+
+    public void setHolderName(String value) {
+        ((TransferwiseAccountPayload) paymentAccountPayload).setHolderName(value);
+    }
+
+    public String getHolderName() {
+        return ((TransferwiseAccountPayload) paymentAccountPayload).getHolderName();
     }
 
     @Override

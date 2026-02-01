@@ -18,6 +18,8 @@
 package haveno.core.payment.payload;
 
 import com.google.protobuf.Message;
+
+import haveno.common.util.JsonExclude;
 import haveno.core.locale.Res;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,6 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 @EqualsAndHashCode(callSuper = true)
 @ToString
 @Setter
@@ -36,6 +40,9 @@ import java.util.Map;
 @Slf4j
 public final class MoneyBeamAccountPayload extends PaymentAccountPayload {
     private String accountId = "";
+    // This field is excluded for backward compatibility and to allow changes.
+    @JsonExclude
+    private String holderName = "";
 
     public MoneyBeamAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -49,6 +56,7 @@ public final class MoneyBeamAccountPayload extends PaymentAccountPayload {
     private MoneyBeamAccountPayload(String paymentMethod,
                                     String id,
                                     String accountId,
+                                    String holderName,
                                     long maxTradePeriod,
                                     Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -57,13 +65,15 @@ public final class MoneyBeamAccountPayload extends PaymentAccountPayload {
                 excludeFromJsonDataMap);
 
         this.accountId = accountId;
+        this.holderName = holderName;
     }
 
     @Override
     public Message toProtoMessage() {
         return getPaymentAccountPayloadBuilder()
                 .setMoneyBeamAccountPayload(protobuf.MoneyBeamAccountPayload.newBuilder()
-                        .setAccountId(accountId))
+                        .setAccountId(accountId)
+                        .setHolderName(holderName))
                 .build();
     }
 
@@ -71,6 +81,7 @@ public final class MoneyBeamAccountPayload extends PaymentAccountPayload {
         return new MoneyBeamAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 proto.getMoneyBeamAccountPayload().getAccountId(),
+                proto.getMoneyBeamAccountPayload().getHolderName(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -82,16 +93,21 @@ public final class MoneyBeamAccountPayload extends PaymentAccountPayload {
 
     @Override
     public String getPaymentDetails() {
-        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.account") + " " + accountId;
+        return Res.get(paymentMethodId) + " - " + getPaymentDetailsForTradePopup().replace("\n", ", ");
     }
 
     @Override
     public String getPaymentDetailsForTradePopup() {
-        return getPaymentDetails();
+        return Res.getWithCol("payment.account") + " " + accountId + "\n" +
+                Res.getWithCol("payment.account.owner.fullname") + " " + PaymentAccountPayload.getHolderNameOrPromptIfEmpty(getHolderName());
     }
 
     @Override
     public byte[] getAgeWitnessInputData() {
-        return super.getAgeWitnessInputData(accountId.getBytes(StandardCharsets.UTF_8));
+        // holderName will be included as part of the witness data.
+        // older accounts that don't have holderName still retain their existing witness.
+        return super.getAgeWitnessInputData(ArrayUtils.addAll(
+                accountId.getBytes(StandardCharsets.UTF_8),
+                getHolderName().getBytes(StandardCharsets.UTF_8)));
     }
 }

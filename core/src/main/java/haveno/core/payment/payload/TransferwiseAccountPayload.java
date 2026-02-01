@@ -18,6 +18,8 @@
 package haveno.core.payment.payload;
 
 import com.google.protobuf.Message;
+
+import haveno.common.util.JsonExclude;
 import haveno.core.locale.Res;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,6 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 @EqualsAndHashCode(callSuper = true)
 @ToString
 @Setter
@@ -36,6 +40,9 @@ import java.util.Map;
 @Slf4j
 public final class TransferwiseAccountPayload extends PaymentAccountPayload {
     private String email = "";
+    // This field is excluded for backward compatibility and to allow changes.
+    @JsonExclude
+    private String holderName = "";
 
     public TransferwiseAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -49,6 +56,7 @@ public final class TransferwiseAccountPayload extends PaymentAccountPayload {
     private TransferwiseAccountPayload(String paymentMethod,
                                        String id,
                                        String email,
+                                       String holderName,
                                        long maxTradePeriod,
                                        Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -57,12 +65,16 @@ public final class TransferwiseAccountPayload extends PaymentAccountPayload {
                 excludeFromJsonDataMap);
 
         this.email = email;
+        this.holderName = holderName;
     }
 
     @Override
     public Message toProtoMessage() {
+        protobuf.TransferwiseAccountPayload.Builder builder = protobuf.TransferwiseAccountPayload.newBuilder()
+                .setEmail(email)
+                .setHolderName(holderName);
         return getPaymentAccountPayloadBuilder()
-                .setTransferwiseAccountPayload(protobuf.TransferwiseAccountPayload.newBuilder().setEmail(email))
+                .setTransferwiseAccountPayload(builder)
                 .build();
     }
 
@@ -70,6 +82,7 @@ public final class TransferwiseAccountPayload extends PaymentAccountPayload {
         return new TransferwiseAccountPayload(proto.getPaymentMethodId(),
                 proto.getId(),
                 proto.getTransferwiseAccountPayload().getEmail(),
+                proto.getTransferwiseAccountPayload().getHolderName(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
@@ -81,16 +94,21 @@ public final class TransferwiseAccountPayload extends PaymentAccountPayload {
 
     @Override
     public String getPaymentDetails() {
-        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.email") + " " + email;
+        return Res.get(paymentMethodId) + " - " + getPaymentDetailsForTradePopup().replace("\n", ", ");
     }
 
     @Override
     public String getPaymentDetailsForTradePopup() {
-        return getPaymentDetails();
+        return Res.getWithCol("payment.email") + " " + email + "\n" +
+                Res.getWithCol("payment.account.owner.fullname") + " " + PaymentAccountPayload.getHolderNameOrPromptIfEmpty(getHolderName());
     }
 
     @Override
     public byte[] getAgeWitnessInputData() {
-        return super.getAgeWitnessInputData(email.getBytes(StandardCharsets.UTF_8));
+        // holderName will be included as part of the witness data.
+        // older accounts that don't have holderName still retain their existing witness.
+        return super.getAgeWitnessInputData(ArrayUtils.addAll(
+                email.getBytes(StandardCharsets.UTF_8),
+                getHolderName().getBytes(StandardCharsets.UTF_8)));
     }
 }

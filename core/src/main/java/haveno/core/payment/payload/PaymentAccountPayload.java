@@ -24,6 +24,7 @@ import haveno.common.crypto.Hash;
 import haveno.common.proto.network.NetworkPayload;
 import haveno.common.util.JsonExclude;
 import haveno.common.util.Utilities;
+import haveno.core.locale.Res;
 import haveno.core.proto.CoreProtoResolver;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -129,7 +130,7 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
     public abstract String getPaymentDetailsForTradePopup();
 
     public byte[] getHash() {
-        return Hash.getRipemd160hash(this.toProtoMessage().toByteArray());
+        return Hash.getRipemd160hash(this.toProtoMessage().toByteArray()); // TODO: adopt serializeForHash() from Bisq?
     }
 
     public byte[] getSalt() {
@@ -152,5 +153,9 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
 
     public String getOwnerId() {
         return null;
+    }
+
+    public static String getHolderNameOrPromptIfEmpty(String holderName) {
+        return holderName.isEmpty() ? Res.get("payment.account.owner.ask") : holderName;
     }
 }

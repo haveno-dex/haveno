@@ -50,6 +50,14 @@ public final class PixAccount extends CountryBasedPaymentAccount {
         return ((PixAccountPayload) paymentAccountPayload).getPixKey();
     }
 
+    public void setHolderName(String value) {
+        ((PixAccountPayload) paymentAccountPayload).setHolderName(value);
+    }
+
+    public String getHolderName() {
+        return ((PixAccountPayload) paymentAccountPayload).getHolderName();
+    }
+
     @Override
     public String getMessageForBuyer() {
         return "payment.pix.info.buyer";

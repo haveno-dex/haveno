@@ -18,6 +18,8 @@
 package haveno.core.payment.payload;
 
 import com.google.protobuf.Message;
+
+import haveno.common.util.JsonExclude;
 import haveno.core.locale.Res;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,6 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 @EqualsAndHashCode(callSuper = true)
 @ToString
 @Setter
@@ -38,6 +42,9 @@ import java.util.Map;
 @Slf4j
 public final class PixAccountPayload extends CountryBasedPaymentAccountPayload {
     private String pixKey = "";
+    // This field is excluded for backward compatibility and to allow changes.
+    @JsonExclude
+    private String holderName = "";
 
     public PixAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
@@ -48,6 +55,7 @@ public final class PixAccountPayload extends CountryBasedPaymentAccountPayload {
                                 String countryCode,
                                 List<String> acceptedCountryCodes,
                                 String pixKey,
+                                String holderName,
                                 long maxTradePeriod,
                                 Map<String, String> excludeFromJsonDataMap) {
         super(paymentMethod,
@@ -58,12 +66,14 @@ public final class PixAccountPayload extends CountryBasedPaymentAccountPayload {
                 excludeFromJsonDataMap);
 
         this.pixKey = pixKey;
+        this.holderName = holderName;
     }
 
     @Override
     public Message toProtoMessage() {
         protobuf.PixAccountPayload.Builder builder = protobuf.PixAccountPayload.newBuilder()
-                .setPixKey(pixKey);
+                .setPixKey(pixKey)
+                .setHolderName(holderName);
         final protobuf.CountryBasedPaymentAccountPayload.Builder countryBasedPaymentAccountPayload = getPaymentAccountPayloadBuilder()
                 .getCountryBasedPaymentAccountPayloadBuilder()
                 .setPixAccountPayload(builder);
@@ -80,22 +90,28 @@ public final class PixAccountPayload extends CountryBasedPaymentAccountPayload {
                 countryBasedPaymentAccountPayload.getCountryCode(),
                 new ArrayList<>(countryBasedPaymentAccountPayload.getAcceptedCountryCodesList()),
                 paytmAccountPayloadPB.getPixKey(),
+                paytmAccountPayloadPB.getHolderName(),
                 proto.getMaxTradePeriod(),
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
 
     @Override
     public String getPaymentDetails() {
-        return Res.get(paymentMethodId) + " - " + Res.getWithCol("payment.pix.key") + " " + pixKey;
+        return Res.get(paymentMethodId) + " - " + getPaymentDetailsForTradePopup().replace("\n", ", ");
     }
 
     @Override
     public String getPaymentDetailsForTradePopup() {
-        return getPaymentDetails();
+        return Res.getWithCol("payment.pix.key") + " " + pixKey + "\n" +
+                Res.getWithCol("payment.account.owner.fullname") + " " + PaymentAccountPayload.getHolderNameOrPromptIfEmpty(getHolderName());
     }
 
     @Override
     public byte[] getAgeWitnessInputData() {
-        return super.getAgeWitnessInputData(pixKey.getBytes(StandardCharsets.UTF_8));
+        // holderName will be included as part of the witness data.
+        // older accounts that don't have holderName still retain their existing witness.
+        return super.getAgeWitnessInputData(ArrayUtils.addAll(
+                pixKey.getBytes(StandardCharsets.UTF_8),
+                getHolderName().getBytes(StandardCharsets.UTF_8)));
     }
 }
