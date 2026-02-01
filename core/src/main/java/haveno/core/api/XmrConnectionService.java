@@ -929,7 +929,7 @@ public final class XmrConnectionService {
 
             // set if last node was locally syncing
             if (!isInitialized) {
-                usedSyncingLocalNodeBeforeStartup = connectionList.getCurrentConnectionUri().isPresent() && xmrLocalNode.equalsUri(connectionList.getCurrentConnectionUri().get()) && preferences.getXmrNodeSettings().getSyncBlockchain();
+                usedSyncingLocalNodeBeforeStartup = connectionList.getCurrentConnectionUri().isPresent() && xmrLocalNode.equalsUri(connectionList.getCurrentConnectionUri().get()) && Boolean.TRUE.equals(preferences.getXmrNodeSettings().getSyncBlockchain());
             }
 
             // restore connections
