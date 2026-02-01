@@ -181,6 +181,9 @@ public abstract class PaymentAccount implements PersistablePayload {
                 .map(TradeCurrency::fromProto)
                 .collect(Collectors.toList());
 
+        // Remove deprecated currencies which are nullified
+        tradeCurrencies.removeIf(currency -> currency == null);
+
         // We need to remove NGN for Transferwise
         Optional<TradeCurrency> ngnTwOptional = tradeCurrencies.stream()
                 .filter(e -> paymentMethodId.equals(TRANSFERWISE_ID))
@@ -190,6 +193,9 @@ public abstract class PaymentAccount implements PersistablePayload {
         ngnTwOptional.ifPresent(tradeCurrencies::remove);
 
         try {
+            if (tradeCurrencies.isEmpty()) {
+                throw new RuntimeException("No trade currencies found for account: " + proto.getAccountName() + ", payment method id: " + paymentMethodId + ", account id: " + proto.getId());
+            }
             PaymentAccount account = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getPaymentMethodOrNA(paymentMethodId));
             account.getTradeCurrencies().clear();
             account.setId(proto.getId());
