@@ -317,9 +317,9 @@ public final class XmrConnectionService {
             log.warn("Setting monerod connection to null", new Throwable("Stack trace"));
         }
 
-        // update internals if connection config changes
+        // update internals if applicable
         boolean isInitializing = monerod == null && connection != null;
-        if (isInitializing || !HavenoUtils.connectionConfigsEqual(connection, getConnection())) {
+        if (isInitializing || !HavenoUtils.connectionConfigsEqual(connection, getConnection()) || !isPolling() || lastRefreshPeriodMs != getRefreshPeriodMs()) {
             synchronized (lock) {
                 if (connection == null) {
                     monerod = null;
@@ -347,6 +347,7 @@ public final class XmrConnectionService {
             keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
 
             // restart polling
+            lastRefreshPeriodMs = getRefreshPeriodMs();
             if (wasMonerodSynced) {
                 updatePolling(info); // restart polling off thread after connection established
             } else {
@@ -489,7 +490,7 @@ public final class XmrConnectionService {
     }
 
     private MoneroRpcConnection switchToBestConnection() {
-        return switchToBestConnection(null, false);
+        return switchToBestConnection(null, true);
     }
 
     private MoneroRpcConnection switchToBestConnection(Collection<MoneroRpcConnection> ignoredConnections, boolean logWarning) {
@@ -684,6 +685,7 @@ public final class XmrConnectionService {
     }
 
     public void fallbackToBestConnection() {
+        stopPolling();
         if (isShutDownStarted) return;
         fallbackApplied = true;
         if (isProvidedConnections() || xmrNodes.getProvidedXmrNodes().isEmpty()) {
@@ -1056,6 +1058,12 @@ public final class XmrConnectionService {
         }
     }
 
+    private boolean isPolling() {
+        synchronized (lock) {
+            return monerodPoller != null;
+        }
+    }
+
     private void tryPollMonerod(MoneroDaemonInfo applyInfo) {
         try {
             doPollMonerod(applyInfo);
@@ -1107,7 +1115,11 @@ public final class XmrConnectionService {
                     // skip error handling up to max attempts
                     numConsecutiveErrors++;
                     if (numConsecutiveErrors < getMaxConsecutiveErrors()) {
-                        if (!wasMonerodSynced) switchToBestConnection(); // attempt to switch if not yet synced
+
+                        // attempt to switch if never synced unless polling stopped
+                        if (!wasMonerodSynced && canSwitchToBestConnection() && isPolling()) {
+                            switchToBestConnection();
+                        }
                         return;
                     } else {
                         numConsecutiveErrors = 0; // reset error count
@@ -1143,10 +1155,14 @@ public final class XmrConnectionService {
                     // skip further error handling if awaiting prompt
                     if (connectionServiceFallbackType.get() != null) return;
 
-                    // try switching to next best connection
-                    MoneroRpcConnection newConnection = switchToBestConnection(Arrays.asList(connection), lastWarningOutsidePeriod);
-                    if (newConnection == null) throw e;
-                    return;
+                    // try switching to next best connection unless polling stopped
+                    if (canSwitchToBestConnection() && isPolling()) {
+                        MoneroRpcConnection newConnection = switchToBestConnection(Arrays.asList(connection), lastWarningOutsidePeriod);
+                        if (newConnection == null) throw e;
+                        return;
+                    } else {
+                        throw e;
+                    }
                 }
 
                 // connected to monerod
@@ -1168,7 +1184,6 @@ public final class XmrConnectionService {
 
                 // announce connection change if refresh period changes
                 if (getRefreshPeriodMs() != lastRefreshPeriodMs) {
-                    lastRefreshPeriodMs = getRefreshPeriodMs();
                     pollInProgress = false;
                     setConnection(getConnection(), lastInfo); // resets polling
                     return;

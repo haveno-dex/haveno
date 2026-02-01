@@ -60,6 +60,9 @@ public class XmrLocalNode {
     private final XmrNodes xmrNodes;
     private final List<XmrLocalNodeListener> listeners = new ArrayList<>();
     private TaskLooper monerodPoller;
+    private Boolean lastOnline = null;
+    private Boolean lastAuthenticated = null;
+    private Boolean lastSyncedWithinTolerance = null;
 
     // required arguments
     private static final List<String> MONEROD_ARGS = new ArrayList<String>();
@@ -89,26 +92,24 @@ public class XmrLocalNode {
     }
 
     private void pollMonerod() {
-        
-        // collect state before check
-        Boolean onlineBefore = daemon.getRpcConnection().isOnline();
-        Boolean authenticatedBefore = daemon.getRpcConnection().isAuthenticated();
-        Boolean syncedWithinToleranceBefore = null;
-        MoneroDaemonInfo lastInfo = XmrConnectionService.getCachedDaemonInfo(daemon.getRpcConnection());
-        if (lastInfo != null) syncedWithinToleranceBefore = XmrConnectionService.isSyncedWithinTolerance(lastInfo);
 
         // check connection
         checkConnection();
-        Boolean onlineAfter = daemon.getRpcConnection().isOnline();
-        Boolean authenticatedAfter = daemon.getRpcConnection().isAuthenticated();
-        Boolean syncedWithinToleranceAfter = null;
-        lastInfo = XmrConnectionService.getCachedDaemonInfo(daemon.getRpcConnection());
-        if (lastInfo != null) syncedWithinToleranceAfter = XmrConnectionService.isSyncedWithinTolerance(lastInfo);
+        Boolean isOnline = daemon.getRpcConnection().isOnline();
+        Boolean isAuthenticated = daemon.getRpcConnection().isAuthenticated();
+        MoneroDaemonInfo lastInfo = XmrConnectionService.getCachedDaemonInfo(daemon.getRpcConnection());
+        Boolean isSyncedWithinTolerance = null;
+        if (lastInfo != null) isSyncedWithinTolerance = XmrConnectionService.isSyncedWithinTolerance(lastInfo);
+
+        // determine if connection changed
+        boolean change = lastOnline != isOnline || lastAuthenticated != isAuthenticated || lastSyncedWithinTolerance != isSyncedWithinTolerance;
+
+        // update cached state
+        lastOnline = isOnline;
+        lastAuthenticated = isAuthenticated;
+        lastSyncedWithinTolerance = isSyncedWithinTolerance;
 
         // announce if connection changed
-        boolean change = onlineBefore != onlineAfter;
-        change = change || authenticatedBefore != authenticatedAfter;
-        change = change || syncedWithinToleranceBefore != syncedWithinToleranceAfter;
         if (change) {
             for (var listener : listeners) listener.onConnectionChanged(daemon.getRpcConnection());
         }
