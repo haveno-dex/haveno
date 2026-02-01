@@ -302,7 +302,7 @@ public class CreateOfferService {
                 sourceOfferPayload.getAmount(),
                 sourceOfferPayload.getMinAmount(),
                 sourceOfferPayload.getMakerFeePct(),
-                sourceOfferPayload.getTakerFeePct(),
+                HavenoUtils.getTakerFeePct(currencyCode, sourceOfferPayload.isBuyerAsTakerWithoutDeposit()),
                 sourceOfferPayload.getPenaltyFeePct(),
                 sourceOfferPayload.getBuyerSecurityDepositPct(),
                 sourceOfferPayload.getSellerSecurityDepositPct(),
