@@ -1351,7 +1351,14 @@ public class XmrWalletService extends XmrWalletBase {
 
     private void requestInitMainWallet() {
         ThreadUtils.execute(() -> {
-            initMainWallet();
+            try {
+                initMainWallet();
+            } catch (Exception e) {
+                if (isShutDownStarted) return;
+                log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
+                HavenoUtils.setTopError(e.getMessage());
+                throw e;
+            }
         }, THREAD_ID);
     }
 
@@ -1392,9 +1399,6 @@ public class XmrWalletService extends XmrWalletBase {
                     // start polling wallet
                     startPolling(true); // skip first poll because we already polled
                 }
-            } catch (Exception e) {
-                HavenoUtils.setTopError(e.getMessage());
-                throw e;
             } finally {
                 isInitializingWallet = false;
             }
