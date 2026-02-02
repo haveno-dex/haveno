@@ -182,24 +182,30 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
                             connection.getStatistic().getLastActivityAge() > LAST_ACTIVITY_AGE_MS)
                     .forEach(connection -> {
                         final String uid = connection.getUid();
-                        if (!handlerMap.containsKey(uid)) {
-                            KeepAliveHandler keepAliveHandler = new KeepAliveHandler(networkNode, peerManager, new KeepAliveHandler.Listener() {
-                                @Override
-                                public void onComplete() {
-                                    handlerMap.remove(uid);
-                                }
+                        synchronized (handlerMap) {
+                            if (!handlerMap.containsKey(uid)) {
+                                KeepAliveHandler keepAliveHandler = new KeepAliveHandler(networkNode, peerManager, new KeepAliveHandler.Listener() {
+                                    @Override
+                                    public void onComplete() {
+                                        synchronized (handlerMap) {
+                                            handlerMap.remove(uid);
+                                        }
+                                    }
 
-                                @Override
-                                public void onFault(String errorMessage) {
-                                    handlerMap.remove(uid);
-                                }
-                            });
-                            handlerMap.put(uid, keepAliveHandler);
-                            keepAliveHandler.sendPingAfterRandomDelay(connection);
-                        } else {
-                            // TODO check if this situation causes any issues
-                            log.debug("Connection with id {} has not completed and is still in our map. " +
-                                    "We will try to ping that peer at the next schedule.", uid);
+                                    @Override
+                                    public void onFault(String errorMessage) {
+                                        synchronized (handlerMap) {
+                                            handlerMap.remove(uid);
+                                        }
+                                    }
+                                });
+                                handlerMap.put(uid, keepAliveHandler);
+                                keepAliveHandler.sendPingAfterRandomDelay(connection);
+                            } else {
+                                // TODO check if this situation causes any issues
+                                log.debug("Connection with id {} has not completed and is still in our map. " +
+                                        "We will try to ping that peer at the next schedule.", uid);
+                            }
                         }
                     });
 
@@ -222,16 +228,19 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     }
 
     private void closeHandler(Connection connection) {
-        String uid = connection.getUid();
-        if (handlerMap.containsKey(uid)) {
-            handlerMap.get(uid).cancel();
-            handlerMap.remove(uid);
+        synchronized (handlerMap) {
+            String uid = connection.getUid();
+            if (handlerMap.containsKey(uid)) {
+                handlerMap.get(uid).cancel();
+                handlerMap.remove(uid);
+            }
         }
     }
 
     private void closeAllHandlers() {
-        handlerMap.values().stream().forEach(KeepAliveHandler::cancel);
-        handlerMap.clear();
+        synchronized (handlerMap) {
+            handlerMap.values().stream().forEach(KeepAliveHandler::cancel);
+            handlerMap.clear();
+        }
     }
-
 }
