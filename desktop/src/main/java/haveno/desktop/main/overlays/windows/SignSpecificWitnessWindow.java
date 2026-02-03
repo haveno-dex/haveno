@@ -18,6 +18,10 @@
 package haveno.desktop.main.overlays.windows;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
+
+import haveno.common.app.DevEnv;
+import haveno.common.config.Config;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitness;
@@ -50,13 +54,16 @@ public class SignSpecificWitnessWindow extends Overlay<SignSpecificWitnessWindow
     private InputTextField privateKey;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final ArbitratorManager arbitratorManager;
+    private final boolean useDevPrivilegeKeys;
 
 
     @Inject
     public SignSpecificWitnessWindow(AccountAgeWitnessService accountAgeWitnessService,
-                                     ArbitratorManager arbitratorManager) {
+                                     ArbitratorManager arbitratorManager,
+                                     @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.arbitratorManager = arbitratorManager;
+        this.useDevPrivilegeKeys = useDevPrivilegeKeys;
     }
 
     @Override
@@ -111,6 +118,7 @@ public class SignSpecificWitnessWindow extends Overlay<SignSpecificWitnessWindow
             }
             actionButton.setDisable(false);
         });
+        if (useDevPrivilegeKeys) privateKey.setText(DevEnv.DEV_PRIVILEGE_PRIV_KEY);
     }
 
     private void removeContent() {
