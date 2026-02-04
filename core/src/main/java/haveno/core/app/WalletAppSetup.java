@@ -152,8 +152,8 @@ public class WalletAppSetup {
                             // update wallet sync progress
                             double walletDownloadPercentageD = (double) walletDownloadPercentage;
                             xmrWalletSyncProgress.set(walletDownloadPercentageD);
-                            Long bestWalletHeight = walletHeight == null ? null : (Long) walletHeight;
-                            String walletHeightAsString = bestWalletHeight != null && bestWalletHeight > 0 ? String.valueOf(bestWalletHeight) : "";
+                            Long appliedWalletHeight = walletHeight == null || ((Long) walletHeight) <= 1 ? 0 : (Long) walletHeight;
+                            String walletHeightAsString = String.valueOf(appliedWalletHeight);
                             if (walletDownloadPercentageD >= 1 || xmrWalletService.wasWalletSynced()) {
                                 String synchronizedWith = Res.get("mainView.footer.xmrInfo.syncedWith", getXmrWalletNetworkAsString(), walletHeightAsString);
                                 String feeInfo = ""; // TODO: feeService.isFeeAvailable() returns true, disable
