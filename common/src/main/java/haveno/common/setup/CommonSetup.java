@@ -69,7 +69,9 @@ public class CommonSetup {
                     "The system tray is not supported on the current platform.".equals(throwable.getMessage())) {
                 log.warn(throwable.getMessage());
             } else {
-                log.error("Uncaught Exception from thread {}, error={}\n", Thread.currentThread().getName(), throwable.getMessage(), throwable);
+                log.error("Uncaught Exception from thread {}, throwableClass={}, throwableMessage={}", Thread.currentThread().getName(), throwable.getClass(), throwable.getMessage());
+                log.error("Stack trace:\n" + ExceptionUtils.getStackTrace(throwable));
+                throwable.printStackTrace();
                 UserThread.execute(() -> uncaughtExceptionHandler.handleUncaughtException(throwable, false));
             }
         };
