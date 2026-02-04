@@ -401,7 +401,6 @@ public abstract class PaymentAccount implements PersistablePayload {
     @NonNull
     public abstract List<PaymentAccountFormField.FieldId> getInputFieldIds();
 
-    @SuppressWarnings("unchecked")
     public PaymentAccountForm toForm() {
 
         // convert to json map
@@ -550,7 +549,8 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
         case PIX_KEY:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new LengthValidator(2, 100).validate(value));
+            break;
         case POSTAL_ADDRESS:
             processValidationResult(new InputValidator().validate(value));
             break;
@@ -608,9 +608,10 @@ public abstract class PaymentAccount implements PersistablePayload {
         PaymentAccountFormField field = new PaymentAccountFormField(fieldId);
         switch (fieldId) {
         case ACCEPTED_COUNTRY_CODES:
-            field.setComponent(PaymentAccountFormField.Component.SELECT_MULTIPLE);
             field.setLabel(Res.get("payment.accepted.countries"));
-            field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
+            List<Country> supportedCountries = ((CountryBasedPaymentAccount) this).getSupportedCountries();
+            field.setSupportedCountries(supportedCountries);
+            field.setComponent(supportedCountries.size() == 1 ? PaymentAccountFormField.Component.SELECT_ONE : PaymentAccountFormField.Component.SELECT_MULTIPLE);
             break;
         case ACCOUNT_ID:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
@@ -781,7 +782,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel(Res.get("payment.email.mobile"));
             break;
         case PIX_KEY:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.pix.key"));
+            break;
         case POSTAL_ADDRESS:
             field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
             field.setLabel(Res.get("payment.postal.address"));
