@@ -42,7 +42,9 @@ public class PeerList implements PersistableEnvelope {
     }
 
     public int size() {
-        return set.size();
+        synchronized (set) {
+            return set.size();
+        }
     }
 
     @Override
@@ -60,8 +62,10 @@ public class PeerList implements PersistableEnvelope {
     }
 
     public void setAll(Collection<Peer> collection) {
-        this.set.clear();
-        this.set.addAll(collection);
+        synchronized (set) {
+            this.set.clear();
+            this.set.addAll(collection);
+        }
     }
 
     @Override
