@@ -3,10 +3,10 @@ Description=Private mainnet node
 After=network.target
 
 [Service]
-User=monero-stagenet
-Group=monero-stagenet
+User=monero-mainnet
+Group=monero-mainnet
 Type=simple
-ExecStart=/home/monero-stagenet/monerod --config-file /home/monero-stagenet/private-mainnet.conf --non-interactive
+ExecStart=/home/monero-mainnet/monerod --config-file /home/monero-mainnet/private-mainnet.conf --non-interactive
 SyslogIdentifier=private-mainnet-node
 Restart=always
 
