@@ -65,6 +65,12 @@ public final class PayseraAccount extends PaymentAccount {
             new TraditionalCurrency("ZAR")
     );
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public PayseraAccount() {
         super(PaymentMethod.PAYSERA);
     }
@@ -81,7 +87,7 @@ public final class PayseraAccount extends PaymentAccount {
 
     @Override
     public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     public void setEmail(String accountId) {

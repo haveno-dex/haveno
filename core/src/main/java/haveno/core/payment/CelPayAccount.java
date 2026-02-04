@@ -40,6 +40,12 @@ public final class CelPayAccount extends PaymentAccount {
             new TraditionalCurrency("USD")
     );
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public CelPayAccount() {
         super(PaymentMethod.CELPAY);
     }
@@ -79,6 +85,6 @@ public final class CelPayAccount extends PaymentAccount {
 
     @Override
     public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }

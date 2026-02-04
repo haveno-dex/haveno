@@ -31,6 +31,18 @@ public final class JapanBankAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("JPY"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BANK_CODE,
+            PaymentAccountFormField.FieldId.BANK_BRANCH_NAME,
+            PaymentAccountFormField.FieldId.BANK_BRANCH_CODE,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_TYPE,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_NUMBER,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public JapanBankAccount() {
         super(PaymentMethod.JAPAN_BANK);
         setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
@@ -48,7 +60,7 @@ public final class JapanBankAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     // bank code

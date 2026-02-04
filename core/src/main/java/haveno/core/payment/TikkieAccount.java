@@ -32,6 +32,12 @@ import java.util.List;
 public final class TikkieAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("EUR"));
+    
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.IBAN,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public TikkieAccount() {
         super(PaymentMethod.TIKKIE);
@@ -74,6 +80,6 @@ public final class TikkieAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NotNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }
