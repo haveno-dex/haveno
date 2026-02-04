@@ -6,7 +6,7 @@ After=network.target
 User=monero-mainnet
 Group=monero-mainnet
 Type=simple
-ExecStart=/home/monero-mainnet/monerod --config-file /home/monero-mainnet/private-mainnet.conf --non-interactive
+ExecStart=/home/monero-mainnet/monerod --config-file /home/monero-mainnet/private-mainnet.conf --non-interactive --prune-blockchain
 SyslogIdentifier=private-mainnet-node
 Restart=always
 
