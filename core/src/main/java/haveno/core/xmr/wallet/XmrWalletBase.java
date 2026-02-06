@@ -272,8 +272,8 @@ public abstract class XmrWalletBase {
 
         // calculate progress
         long blocksRemaining = appliedHeight <= 1 ? -1 : targetHeight - appliedHeight; // unknown blocks left if height <= 1
-        if (syncStartHeight == null) syncStartHeight = appliedHeight;
-        double percent = Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) appliedHeight - syncStartHeight) / (double) (targetHeight - syncStartHeight));
+        if (syncStartHeight == null && appliedHeight > 1) syncStartHeight = appliedHeight;
+        double percent = syncStartHeight == null ? 0.0 : Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) appliedHeight - syncStartHeight) / (double) (targetHeight - syncStartHeight));
         if (percent >= 1.0) wasWalletSynced = true; // set synced state before announcing progress
 
         // notify progress listener on user thread
