@@ -66,11 +66,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class Offer implements NetworkPayload, PersistablePayload {
 
-    // We allow max. 1 % difference between own offerPayload price calculation and takers calculation.
+    // We allow max. difference between own offerPayload price calculation and takers calculation.
     // Market price might be different at maker's and takers side so we need a bit of tolerance.
     // The tolerance will get smaller once we have multiple price feeds avoiding fast price fluctuations
     // from one provider.
-    private final static double PRICE_TOLERANCE = 0.01;
+    private final static double PRICE_TOLERANCE = 0.006;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -229,11 +229,6 @@ public class Offer implements NetworkPayload, PersistablePayload {
         checkArgument(price > 0, "takersTradePrice must be positive");
 
         double relation = (double) price / (double) offerPrice.getValue();
-        // We allow max. 2 % difference between own offerPayload price calculation and takers calculation.
-        // Market price might be different at maker's and takers side so we need a bit of tolerance.
-        // The tolerance will get smaller once we have multiple price feeds avoiding fast price fluctuations
-        // from one provider.
-
         double deviation = Math.abs(1 - relation);
         log.info("Price at take-offer time: id={}, currency={}, takersPrice={}, makersPrice={}, deviation={}",
                 getShortId(), getCounterCurrencyCode(), price, offerPrice.getValue(),
