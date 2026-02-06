@@ -67,6 +67,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private Navigation.Listener navigationListener;
     private ChangeListener<Tab> tabChangeListener;
     private OfferView.OfferActionHandler offerActionHandler;
+    private boolean creatingOrTakingOffer;
 
     protected OfferView(ViewLoader viewLoader,
                         Navigation navigation,
@@ -86,6 +87,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     protected void initialize() {
         navigationListener = (viewPath, data) -> {
             UserThread.execute(() -> {
+                if (creatingOrTakingOffer) return;
                 if (viewPath.size() == 3 && viewPath.indexOf(this.getClass()) == 1) {
                     loadView(viewPath.tip(), null, data);
                 } else if (viewPath.size() == 4 && viewPath.indexOf(this.getClass()) == 1) {
@@ -273,7 +275,9 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
         ((SelectableView) view).onTabSelected(true);
 
+        creatingOrTakingOffer = true;
         ((ClosableView) view).setCloseHandler(() -> {
+            creatingOrTakingOffer = false;
             offerBookView.enableCreateOfferButton();
             ((SelectableView) view).onTabSelected(false);
             //reset tab
@@ -299,7 +303,9 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         ((SelectableView) view).onTabSelected(true);
 
         // close handler from close on take offer action
+        creatingOrTakingOffer = true;
         ((ClosableView) view).setCloseHandler(() -> {
+            creatingOrTakingOffer = false;
             ((SelectableView) view).onTabSelected(false);
             navigation.navigateTo(MainView.class, this.getClass(), viewClass);
         });
