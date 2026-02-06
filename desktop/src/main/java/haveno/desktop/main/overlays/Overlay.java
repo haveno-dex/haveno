@@ -145,7 +145,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     private static int numCenterOverlays = 0;
     private static int numBlurEffects = 0;
 
-    protected final static double DEFAULT_WIDTH = 668;
+    protected final static double DEFAULT_WIDTH = 800;
     protected Stage stage;
     protected GridPane gridPane;
     protected Pane owner;
