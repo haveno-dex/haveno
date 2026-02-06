@@ -19,6 +19,8 @@ package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -29,10 +31,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 @EqualsAndHashCode(callSuper = true)
 public final class TransferwiseUsdAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
+    public static final List<Country> SUPPORTED_COUNTRIES = CountryUtil.getCountries(List.of("US"));
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.EMAIL,
@@ -108,5 +113,11 @@ public final class TransferwiseUsdAccount extends CountryBasedPaymentAccount {
         var field = super.getEmptyFormField(fieldId);
         if (field.getId() == PaymentAccountFormField.FieldId.HOLDER_ADDRESS) field.setLabel(field.getLabel() + " " + Res.get("payment.transferwiseUsd.address"));
         return field;
+    }
+
+    @Override
+    @Nullable
+    public @NotNull List<Country> getSupportedCountries() {
+        return SUPPORTED_COUNTRIES;
     }
 }

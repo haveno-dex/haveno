@@ -19,6 +19,8 @@ package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
@@ -28,13 +30,27 @@ import lombok.NonNull;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
+import org.jetbrains.annotations.NotNull;
+
 @EqualsAndHashCode(callSuper = true)
 public final class PixAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("BRL"));
+    public static final List<Country> SUPPORTED_COUNTRIES = CountryUtil.getCountries(List.of("BR"));
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.PIX_KEY,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public PixAccount() {
         super(PaymentMethod.PIX);
+        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
     }
 
     @Override
@@ -80,6 +96,12 @@ public final class PixAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    @Nullable
+    public @NotNull List<Country> getSupportedCountries() {
+        return SUPPORTED_COUNTRIES;
     }
 }
