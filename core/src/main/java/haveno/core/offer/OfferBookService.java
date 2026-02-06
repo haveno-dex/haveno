@@ -397,9 +397,9 @@ public class OfferBookService {
             for (Offer offer : validOffers) {
 
                 // validate that no offer has overlapping but different key images
-                if (!offer.getOfferPayload().getReserveTxKeyImages().equals(offerPayload.getReserveTxKeyImages()) && 
+                if (!new HashSet<>(offer.getOfferPayload().getReserveTxKeyImages()).equals(new HashSet<>(offerPayload.getReserveTxKeyImages())) && 
                         !Collections.disjoint(offer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) {
-                    throw new RuntimeException("Offer with overlapping key images already exists with offerId=" + offer.getId());
+                    throw new RuntimeException("Offer with overlapping but different key images already exists with offerId=" + offer.getId());
                 }
     
                 // validate that no offer has same key images, payment method, and currency
