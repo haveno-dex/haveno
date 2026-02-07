@@ -1113,12 +1113,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public void onMoveFailedTradeToPendingTrades(Trade trade) {
+        log.warn("Moving {} {} from failed trades to pending trades", trade.getClass().getSimpleName(), trade.getShortId());
         addTradeToPendingTrades(trade);
         failedTradesManager.removeTrade(trade);
         xmrWalletService.fixReservedOutputs();
     }
 
-    public void onMoveClosedTradeToPendingTrades(Trade trade) {
+    public void onMoveClosedTradeToPendingTrades(Trade trade) { 
+        log.warn("Moving {} {} from closed trades to pending trades", trade.getClass().getSimpleName(), trade.getShortId());
         trade.setCompleted(false);
         addTradeToPendingTrades(trade);
         closedTradableManager.removeTrade(trade);
