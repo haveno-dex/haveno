@@ -359,7 +359,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
-        log.info("Closing wallet with path={}, save={}", wallet.getPath(), save);
+        log.debug("Closing wallet with path={}, save={}", wallet.getPath(), save);
         MoneroError err = null;
         String path = wallet.getPath();
         try {
@@ -1459,7 +1459,7 @@ public class XmrWalletService extends XmrWalletBase {
             // try opening wallet
             config.setNetworkType(getMoneroNetworkType());
             config.setServer(connection);
-            log.info("Opening full wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
+            log.debug("Opening full wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
             try {
                 walletFull = MoneroWalletFull.openWallet(config);
             } catch (Exception e) {
@@ -1596,7 +1596,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // try opening wallet
             if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' because shutdown is started");
-            log.info("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
+            log.debug("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
             config.setServer(connection);
             try {
                 walletRpc.openWallet(config);
@@ -1667,7 +1667,7 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
             if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
-            log.info("Done opening RPC wallet " + config.getPath());
+            log.debug("Done opening RPC wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
@@ -1772,9 +1772,10 @@ public class XmrWalletService extends XmrWalletBase {
 
                     // open or create wallet
                     MoneroDaemonRpc monerod = xmrConnectionService.getMonerod();
-                    log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()));
+                    boolean isProxyApplied = isProxyApplied(wasWalletSynced);
+                    log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()) + ", proxyUri=" + (monerod == null || !isProxyApplied ? "null" : monerod.getRpcConnection().getProxyUri()));
                     if (walletExists(MONERO_WALLET_NAME)) {
-                        wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(wasWalletSynced));
+                        wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
                     } else if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
                         wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort);
 
@@ -1806,7 +1807,7 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 if (wallet != null) {
                     isClosingWallet = true;
-                    log.debug("Closing main wallet");
+                    log.info("Closing main wallet");
                     if (shouldBackup(wallet)) backupWallet(MONERO_WALLET_NAME);
                     closeWallet(wallet, true);
                     wallet = null;

@@ -937,8 +937,22 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (wallet != null) return wallet;
             if (!walletExists()) return null;
             if (isShutDownStarted) throw new RuntimeException("Cannot open wallet for " + getClass().getSimpleName() + " " + getId() + " because shut down is started");
-            log.debug("Opening wallet for {} {}", getClass().getSimpleName(), getId());
+
+            // log opening wallet
+            String startOpenLogMsg = "Opening wallet for " + getClass().getSimpleName() + " " + getId();
+            boolean logInfoLevel = logWalletFunctionsAtInfoLevel();
+            if (logInfoLevel) log.info(startOpenLogMsg);
+            else log.debug(startOpenLogMsg);
+            
+            // open wallet
             wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
+
+            // log done opening wallet
+            String doneOpenLogMsg = "Done opening wallet for " + getClass().getSimpleName() + " " + getId();
+            if (logInfoLevel) log.info(doneOpenLogMsg);
+            else log.debug(doneOpenLogMsg);
+
+            // poll wallet
             walletHeight.set(wallet.getHeight());
             doPollWallet(true); // poll wallet without network calls
             return wallet;
@@ -1088,7 +1102,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 pollPeriodMs = null;
             }
             if (wallet == null) return; // already closed
-            log.debug("Closing wallet for {} {}", getClass().getSimpleName(), getId());
+            String closeLogMsg = "Closing wallet for " + getClass().getSimpleName() + " " + getId();
+            boolean logInfoLevel = logWalletFunctionsAtInfoLevel();
+            if (logInfoLevel) log.info(closeLogMsg);
+            else log.debug(closeLogMsg);
             maybeBackupWallet();
             xmrWalletService.closeWallet(wallet, true);
             wallet = null;
@@ -3024,6 +3041,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private boolean logWalletFunctionsAtInfoLevel() {
+        return !isArbitrator() || !isIdling() || !isInitialized;
+    }
     
     private boolean tradeAmountTransferred() {
         return isPayoutPublished() && (isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER));
@@ -3124,10 +3145,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot sync trade wallet because it's not connected to a Monero daemon for " + getClass().getSimpleName() + " " + getId());
                 if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + " " + getId());
                 if (isWalletBehind()) {
-                    log.info("Syncing wallet for {} {} from height {}", getShortId(), getClass().getSimpleName(), walletHeight.get());
+                    String startSyncLogMsg = "Syncing wallet for " + getShortId() + " " + getClass().getSimpleName() + " from height " + walletHeight.get();
+                    boolean logInfoLevel = logWalletFunctionsAtInfoLevel();
+                    if (logInfoLevel) log.info(startSyncLogMsg);
+                    else log.debug(startSyncLogMsg);
                     long startTime = System.currentTimeMillis();
                     syncWalletIfBehind();
-                    log.info("Done syncing wallet for {} {} in {} ms", getShortId(), getClass().getSimpleName(), System.currentTimeMillis() - startTime);
+                    String doneSyncLogMsg = "Done syncing wallet for " + getShortId() + " " + getClass().getSimpleName() + " in " + (System.currentTimeMillis() - startTime) + " ms";
+                    if (logInfoLevel) log.info(doneSyncLogMsg);
+                    else log.debug(doneSyncLogMsg);
                 }
         
                 // apply tor after wallet synced depending on configuration
