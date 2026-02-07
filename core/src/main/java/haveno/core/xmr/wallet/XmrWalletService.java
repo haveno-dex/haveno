@@ -1848,7 +1848,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (isShutDownStarted || isPolling()) return;
             updatePollPeriod();
             AtomicReference<Boolean> skipNextPoll = new AtomicReference<>(skipFirstPoll);
-            pollLooper = new TaskLooper(() -> new Thread(() -> {
+            pollLooper = new TaskLooper(() -> {
                 if (skipNextPoll.get()) {
                     skipNextPoll.set(false);
                     return;
@@ -1858,7 +1858,7 @@ public class XmrWalletService extends XmrWalletBase {
                 } catch (Exception e) {
                     // use default error handling
                 }
-            }).start());
+            });
             pollLooper.start(pollPeriodMs);
         }
     }
@@ -1902,6 +1902,7 @@ public class XmrWalletService extends XmrWalletBase {
         doPollWallet(true);
     }
 
+    @SuppressWarnings("unused")
     public void doPollWallet(boolean updateTxs) {
 
         // skip polling after wallet service initialized until all domain services are initialized
