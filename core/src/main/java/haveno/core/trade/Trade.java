@@ -1023,7 +1023,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         pollNormalStartTimeMs = System.currentTimeMillis();
 
         // override wallet poll period
-        setPollPeriod(xmrConnectionService.getRefreshPeriodMs());
+        setPollPeriod(xmrConnectionService.getRefreshPeriodMs(), false);
 
         // reset wallet poll period after duration 
         new Thread(() -> {
@@ -3180,17 +3180,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    public void updatePollPeriod() {
-        if (isShutDownStarted) return;
-        setPollPeriod(getPollPeriod());
+    private void updatePollPeriod() {
+        updatePollPeriod(false);
     }
 
-    private void setPollPeriod(long pollPeriodMs) {
+    private void updatePollPeriod(boolean skipFirstPoll) {
+        if (isShutDownStarted) return;
+        setPollPeriod(getPollPeriod(), skipFirstPoll);
+    }
+
+    private void setPollPeriod(long pollPeriodMs, boolean skipFirstPoll) {
         synchronized (pollLock) {
             if (this.isShutDownStarted) return;
             if (this.pollPeriodMs != null && this.pollPeriodMs == pollPeriodMs) return;
             this.pollPeriodMs = pollPeriodMs;
-            if (isPolling()) resetPolling(false);
+            resetPolling(false);
         }
     }
 
@@ -3209,13 +3213,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             updatePollPeriod();
             AtomicReference<Boolean> skipNextPoll = new AtomicReference<>(skipFirstPoll);
             if (!skipFirstPoll) log.info("Starting to poll wallet for {} {}", getClass().getSimpleName(), getId()); // TODO: why only logging this if not skipping?
-            pollLooper = new TaskLooper(() -> new Thread(() -> {
+            pollLooper = new TaskLooper(() -> {
                 if (skipNextPoll.get()) {
                     skipNextPoll.set(false);
                     return;
                 }
                 pollWallet();
-            }).start());
+            });
             pollLooper.start(pollPeriodMs);
         }
     }
@@ -3231,7 +3235,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private void resetPolling(boolean skipFirstPoll) {
         synchronized (pollLock) {
-            if (isShutDownStarted) return;
+            if (isShutDownStarted || !isPolling()) return;
             stopPolling();
             startPolling(skipFirstPoll);
         }
