@@ -826,6 +826,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         p2PNetworkStatusIcon.setCursor(Cursor.HAND);
         p2PNetworkStatusIcon.setFitWidth(networkIconSize);
         p2PNetworkStatusIcon.setFitHeight(networkIconSize);
+        p2PNetworkStatusIcon.setId(model.getP2PNetworkStatusIconId().get());
         setRightAnchor(p2PNetworkStatusIcon, networkIconRightAnchor + 22);
         setBottomAnchor(p2PNetworkStatusIcon, 6d);
         Tooltip p2pNetworkStatusToolTip = new Tooltip();
