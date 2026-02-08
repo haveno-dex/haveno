@@ -78,7 +78,9 @@ public class ArbitratorManager extends DisputeAgentManager<Arbitrator> {
                     "02a1a458df5acf4ab08fdca748e28f33a955a30854c8c1a831ee733dca7f0d2fcd",
                     "0374dd70f3fa6e47ec5ab97932e1cec6233e98e6ae3129036b17118650c44fd3de");
         case XMR_MAINNET:
-            return List.of();
+            return List.of(
+		    "021c40c2e6e4c883aefa1048f7b4ccd11dfeb40778713f925192887f60d5448992",
+		    "035bc814589870e2ae85b7795e8008461277bfca28036da9cc0c8d69613fd89087");
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }

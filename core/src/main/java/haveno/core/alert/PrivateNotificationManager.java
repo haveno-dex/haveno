@@ -108,7 +108,9 @@ public class PrivateNotificationManager implements MessageListener {
                     "02d3beb1293ca2ca14e6d42ca8bd18089a62aac62fd6bb23923ee6ead46ac60fba",
                     "0374dd70f3fa6e47ec5ab97932e1cec6233e98e6ae3129036b17118650c44fd3de");
         case XMR_MAINNET:
-            return List.of();
+            return List.of(
+		    "03460eac6ee06e4966587c15fa58191d885a5668bb47b3c0e326ea7799cd42584c",
+		    "02e5ebbed4be307d3ebca6e1f66244caee9cf9524a256b2b84dce216956c78b59a");
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }

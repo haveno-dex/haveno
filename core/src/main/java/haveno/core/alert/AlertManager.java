@@ -109,7 +109,9 @@ public class AlertManager {
                     "02d3beb1293ca2ca14e6d42ca8bd18089a62aac62fd6bb23923ee6ead46ac60fba",
                     "0374dd70f3fa6e47ec5ab97932e1cec6233e98e6ae3129036b17118650c44fd3de");
         case XMR_MAINNET:
-            return List.of();
+            return List.of(
+		    "023b01b277b281d578f474764a82c3fe6e4186d87220b034f4cd946b612716688b",
+		    "020b7485dd383e497a6eb9bd147996a2b91886f5ab65d342d6715e94823ba02248");
         default:
             throw new RuntimeException("Unhandled base currency network: " + Config.baseCurrencyNetwork());
         }
