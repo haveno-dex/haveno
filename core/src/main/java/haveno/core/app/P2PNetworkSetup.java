@@ -129,6 +129,8 @@ public class P2PNetworkSetup {
             }
         });
 
+        updateNetworkStatusIndicator();
+
         final BooleanProperty p2pNetworkInitialized = new SimpleBooleanProperty();
         p2PService.start(new P2PServiceListener() {
             @Override
