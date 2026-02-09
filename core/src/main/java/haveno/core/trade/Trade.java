@@ -1023,7 +1023,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         pollNormalStartTimeMs = System.currentTimeMillis();
 
         // override wallet poll period
-        setPollPeriod(xmrConnectionService.getRefreshPeriodMs(), false);
+        setPollPeriodMs(xmrConnectionService.getRefreshPeriodMs(), false);
 
         // reset wallet poll period after duration 
         new Thread(() -> {
@@ -3108,15 +3108,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
         // start polling
         if (isArbitrator() && isIdling()) {
-            long startSyncingInSec = Math.max(1, ThreadLocalRandom.current().nextLong(0, getPollPeriod()) / 1000l); // random seconds to start polling
+            long syncDelayInMs = Math.max(1, ThreadLocalRandom.current().nextLong(0, getPollPeriodMs())); // random delay to start polling
             UserThread.runAfter(() -> {
                 if (isShutDownStarted) return;
                 ThreadUtils.execute(() -> {
                     if (!isShutDownStarted) doTryInitSyncing();
                 }, getId());
-            }, startSyncingInSec);
+            }, syncDelayInMs, TimeUnit.MILLISECONDS);
         } else {
-            doTryInitSyncing(); // traders start syncing immediately
+
+            // add random delay to avoid syncing trades at same time on startup
+            if (processModel.getTradeManager().getOpenTrades().size() > 1) {
+                long syncDelayInMs = Math.max(1, ThreadLocalRandom.current().nextLong(0, xmrConnectionService.getRefreshPeriodMs()));
+                HavenoUtils.waitFor(syncDelayInMs);
+            }
+            doTryInitSyncing();
         }
     }
     
@@ -3186,10 +3192,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private void updatePollPeriod(boolean skipFirstPoll) {
         if (isShutDownStarted) return;
-        setPollPeriod(getPollPeriod(), skipFirstPoll);
+        setPollPeriodMs(getPollPeriodMs(), skipFirstPoll);
     }
 
-    private void setPollPeriod(long pollPeriodMs, boolean skipFirstPoll) {
+    private void setPollPeriodMs(long pollPeriodMs, boolean skipFirstPoll) {
         synchronized (pollLock) {
             if (this.isShutDownStarted) return;
             if (this.pollPeriodMs != null && this.pollPeriodMs == pollPeriodMs) return;
@@ -3198,7 +3204,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
     }
 
-    private long getPollPeriod() {
+    private long getPollPeriodMs() {
         if (isIdling()) return IDLE_SYNC_PERIOD_MS;
         return xmrConnectionService.getRefreshPeriodMs();
     }
