@@ -161,7 +161,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 75000 : 28 * 60 * 1000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
     private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 2;
-    private static final Object IDLE_POLLER_LOCK = new Object(); // global lock to serialize idle trade polling
+    private static final Object IDLE_BLOCK_POLLER_LOCK = new Object(); // global lock to serialize idle trade polling
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
     private boolean pollInProgress;
@@ -511,7 +511,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private String payoutTxKey;
     private long payoutTxFee;
     private Long payoutHeight;
-    private IdlePoller idlePoller;
+    private IdleBlockPoller idleBlockPoller;
     @Getter
     private boolean isCompleted;
     @Getter
@@ -772,8 +772,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         });
 
         // listen to wallet events to sync while idling
-        idlePoller = new IdlePoller();
-        xmrWalletService.addWalletListener(idlePoller);
+        idleBlockPoller = new IdleBlockPoller();
+        xmrWalletService.addWalletListener(idleBlockPoller);
 
         // TODO: buyer's payment sent message state property became unsynced if shut down while awaiting ack from seller. fixed mismatch in v1.0.19, but can this check be removed?
         if (isBuyer()) {
@@ -2134,9 +2134,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // de-initialize
-        if (idlePoller != null) {
-            xmrWalletService.removeWalletListener(idlePoller);
-            idlePoller = null;
+        if (idleBlockPoller != null) {
+            xmrWalletService.removeWalletListener(idleBlockPoller);
+            idleBlockPoller = null;
         }
         UserThread.execute(() -> {
             if (tradeStateSubscription != null) tradeStateSubscription.unsubscribe();
@@ -3919,7 +3919,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
      * Listen to block notifications from the main wallet in order to sync
      * idling trade wallets if necessary.
      */
-    private class IdlePoller extends MoneroWalletListener {
+    private class IdleBlockPoller extends MoneroWalletListener {
 
         boolean processing = false;
 
@@ -3943,7 +3943,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                     // get payout height if unknown
                     if (payoutHeight == null && getPayoutTxId() != null && isPayoutPublished()) {
-                        synchronized (IDLE_POLLER_LOCK) {
+                        synchronized (IDLE_BLOCK_POLLER_LOCK) {
                             MoneroTx tx = xmrConnectionService.getTx(getPayoutTxId());
                             if (tx == null) log.warn("Payout tx not found for {} {}, txId={}", getTrade().getClass().getSimpleName(), getId(), getPayoutTxId());
                             else if (tx.isConfirmed()) payoutHeight = tx.getHeight();
