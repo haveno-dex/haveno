@@ -394,25 +394,25 @@ public class OfferBookService {
         // validate against existing offers
         synchronized (validOffers) {
             int numOffersWithSharedKeyImages = 0;
-            for (Offer offer : validOffers) {
+            for (Offer validOffer : validOffers) {
 
                 // validate that no offer has overlapping but different key images
-                if (!new HashSet<>(offer.getOfferPayload().getReserveTxKeyImages()).equals(new HashSet<>(offerPayload.getReserveTxKeyImages())) && 
-                        !Collections.disjoint(offer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) {
-                    throw new RuntimeException("Offer with overlapping but different key images already exists with offerId=" + offer.getId());
+                if (!new HashSet<>(validOffer.getOfferPayload().getReserveTxKeyImages()).equals(new HashSet<>(offerPayload.getReserveTxKeyImages())) && 
+                        !Collections.disjoint(validOffer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) {
+                    throw new RuntimeException("Offer with overlapping but different key images already exists with offerId=" + validOffer.getId());
                 }
     
                 // validate that no offer has same key images, payment method, and currency
-                if (!offer.getId().equals(offerPayload.getId()) && 
-                        offer.getOfferPayload().getReserveTxKeyImages().equals(offerPayload.getReserveTxKeyImages()) &&
-                        offer.getOfferPayload().getPaymentMethodId().equals(offerPayload.getPaymentMethodId()) &&
-                        offer.getOfferPayload().getBaseCurrencyCode().equals(offerPayload.getBaseCurrencyCode()) &&
-                        offer.getOfferPayload().getCounterCurrencyCode().equals(offerPayload.getCounterCurrencyCode())) {
-                    throw new RuntimeException("Offer with same key images, payment method, and currency already exists with offerId=" + offer.getId());
+                if (!validOffer.getId().equals(offerPayload.getId()) && 
+                        validOffer.getOfferPayload().getReserveTxKeyImages().equals(offerPayload.getReserveTxKeyImages()) &&
+                        validOffer.getOfferPayload().getPaymentMethodId().equals(offerPayload.getPaymentMethodId()) &&
+                        validOffer.getOfferPayload().getBaseCurrencyCode().equals(offerPayload.getBaseCurrencyCode()) &&
+                        validOffer.getOfferPayload().getCounterCurrencyCode().equals(offerPayload.getCounterCurrencyCode())) {
+                    throw new RuntimeException("Offer with same key images, payment method, and currency already exists with offerId=" + validOffer.getId());
                 }
     
                 // count offers with same key images
-                if (!offer.getId().equals(offerPayload.getId()) && !Collections.disjoint(offer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) numOffersWithSharedKeyImages = Math.max(2, numOffersWithSharedKeyImages + 1);
+                if (!validOffer.getId().equals(offerPayload.getId()) && !Collections.disjoint(validOffer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) numOffersWithSharedKeyImages = Math.max(2, numOffersWithSharedKeyImages + 1);
             }
     
             // validate max offers with same key images
