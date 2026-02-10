@@ -1073,8 +1073,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 log.warn("Cannot save wallet for {} {} because it does not exist", getClass().getSimpleName(), getShortId());
                 return;
             }
-            if (wallet == null) throw new RuntimeException("Trade wallet is not open for trade " + getShortId());
-            xmrWalletService.saveWallet(wallet);
+            if (wallet == null) throw new IllegalStateException("Cannot save trade wallet because it's not open for " + getClass().getSimpleName() + " " + getShortId());
+            wallet.save();
             lastSaveTimeMs = System.currentTimeMillis();
             maybeBackupWallet();
         }
@@ -1106,9 +1106,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             boolean logInfoLevel = logWalletFunctionsAtInfoLevel();
             if (logInfoLevel) log.info(closeLogMsg);
             else log.debug(closeLogMsg);
-            maybeBackupWallet();
             xmrWalletService.closeWallet(wallet, true);
             wallet = null;
+            maybeBackupWallet();
         }
     }
 
@@ -3284,7 +3284,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private void doPollWallet(boolean offlinePoll) {
         MoneroWallet sourceWallet = wallet;
 
-        // skip if shut down started
+        // skip if shut down started or wallet is null
         if (isShutDownStarted || sourceWallet == null) return;
 
         // set poll in progress
