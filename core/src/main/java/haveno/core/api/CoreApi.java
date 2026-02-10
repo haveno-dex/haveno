@@ -58,7 +58,6 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
-import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.XmrNodeSettings;
 import haveno.proto.grpc.NotificationMessage;
@@ -323,10 +322,6 @@ public class CoreApi {
 
     public void removeWalletPassword(String password) {
         walletsService.removeWalletPassword(password);
-    }
-
-    public List<TradeStatistics3> getTradeStatistics() {
-        return new ArrayList<>(tradeStatisticsManager.getObservableTradeStatisticsList());
     }
 
     public int getNumConfirmationsForMostRecentTransaction(String addressString) {

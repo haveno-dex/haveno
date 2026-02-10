@@ -59,6 +59,7 @@ import java.util.Comparator;
 import static java.util.Comparator.comparing;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -347,11 +348,14 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             // Get average historic prices over for the prior trade period equaling the lock time
             var blocksRange = Restrictions.getLockTime(paymentAccount.getPaymentMethod().isBlockchain());
             var startDate = new Date(System.currentTimeMillis() - blocksRange * 10L * 60000);
-            var sortedRangeData = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
-                    .filter(e -> e.getCurrency().equals(getTradeCurrency().getCode()))
-                    .filter(e -> e.getDate().compareTo(startDate) >= 0)
-                    .sorted(Comparator.comparing(TradeStatistics3::getDate))
-                    .collect(Collectors.toList());
+            List<TradeStatistics3> sortedRangeData;
+            synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
+                sortedRangeData = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
+                        .filter(e -> e.getCurrency().equals(getTradeCurrency().getCode()))
+                        .filter(e -> e.getDate().compareTo(startDate) >= 0)
+                        .sorted(Comparator.comparing(TradeStatistics3::getDate))
+                        .collect(Collectors.toList());
+            }
             var movingAverage = new MathUtils.MovingAverage(10, 0.2);
             double[] extremes = {Double.MAX_VALUE, Double.MIN_VALUE};
             sortedRangeData.forEach(e -> {
