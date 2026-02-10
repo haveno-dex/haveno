@@ -1271,10 +1271,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         }
                     }
                     if (isAvailable || isReservedByOffer(openOffer, splitOutputTx)) return splitOutputTx;
-                    else log.warn("Split output tx {} is no longer available for offer {}", openOffer.getSplitOutputTxHash(), openOffer.getId());
+                    else log.warn("Split output tx is no longer available for offerId={}, txId={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
                 }
             } else {
-                log.warn("Split output tx {} no longer exists for offer {}", openOffer.getSplitOutputTxHash(), openOffer.getId());
+                log.warn("Split output tx no longer exists for offerId={}, txId=", openOffer.getId(), openOffer.getSplitOutputTxHash());
             }
         }
 
@@ -1341,7 +1341,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void splitOrSchedule(MoneroTxWallet splitOutputTx, List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger amountNeeded, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         if (splitOutputTx == null) {
             if (openOffer.getSplitOutputTxHash() != null) {
-                log.warn("Split output tx unexpectedly unavailable for offer, offerId={}, split output tx={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
+                log.warn("Split output tx unexpectedly unavailable for offerId={}, txId={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
                 setSplitOutputTx(openOffer, null);
             }
             try {
