@@ -18,6 +18,8 @@
 package haveno.desktop.main.portfolio.closedtrades;
 
 import com.google.inject.Inject;
+
+import haveno.common.UserThread;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
@@ -86,7 +88,9 @@ class ClosedTradesDataModel extends ActivatableDataModel {
     }
 
     List<Tradable> getListAsTradables() {
-        return list.stream().map(ClosedTradesListItem::getTradable).collect(Collectors.toList());
+        synchronized (list) {
+            return list.stream().map(ClosedTradesListItem::getTradable).collect(Collectors.toList());
+        }
     }
 
     BigInteger getTotalAmount() {
@@ -120,14 +124,18 @@ class ClosedTradesDataModel extends ActivatableDataModel {
     }
 
     private void applyList() {
-        list.clear();
-        list.addAll(
-                closedTradableManager.getObservableList().stream()
-                        .map(tradable -> new ClosedTradesListItem(tradable, closedTradableFormatter, closedTradableManager))
-                        .collect(Collectors.toList())
-        );
-        // We sort by date, the earliest first
-        list.sort((o1, o2) -> o2.getTradable().getDate().compareTo(o1.getTradable().getDate()));
+        UserThread.execute(() -> {
+            synchronized (list) {
+                list.clear();
+                list.addAll(
+                        closedTradableManager.getObservableList().stream()
+                                .map(tradable -> new ClosedTradesListItem(tradable, closedTradableFormatter, closedTradableManager))
+                                .collect(Collectors.toList())
+                );
+                // We sort by date, the earliest first
+                list.sort((o1, o2) -> o2.getTradable().getDate().compareTo(o1.getTradable().getDate()));
+            }
+        });
     }
 
     public void onMoveTradeToPendingTrades(Trade trade) {
