@@ -18,6 +18,8 @@
 package haveno.desktop.main.portfolio.failedtrades;
 
 import com.google.inject.Inject;
+
+import haveno.common.UserThread;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.trade.Trade;
@@ -66,16 +68,19 @@ class FailedTradesDataModel extends ActivatableDataModel {
     }
 
     private void applyList() {
-        list.clear();
+        UserThread.execute(() -> {
+            synchronized (list) {
+                list.clear();
+                list.addAll(
+                        failedTradesManager.getObservableList().stream()
+                                .map(trade -> new FailedTradesListItem(trade, failedTradesManager))
+                                .collect(Collectors.toList())
+                );
 
-        list.addAll(
-                failedTradesManager.getObservableList().stream()
-                        .map(trade -> new FailedTradesListItem(trade, failedTradesManager))
-                        .collect(Collectors.toList())
-        );
-
-        // we sort by date, earliest first
-        list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
+                // we sort by date, earliest first
+                list.sort((o1, o2) -> o2.getTrade().getDate().compareTo(o1.getTrade().getDate()));
+            }
+        });
     }
 
     public void onMoveTradeToPendingTrades(Trade trade) {
