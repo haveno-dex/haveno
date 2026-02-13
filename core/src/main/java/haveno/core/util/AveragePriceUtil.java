@@ -42,18 +42,25 @@ public class AveragePriceUtil {
                                                             int days) {
         double percentToTrim = Math.max(0, Math.min(49, preferences.getBsqAverageTrimThreshold() * 100));
         Date pastXDays = getPastDate(days);
-        List<TradeStatistics3> bsqAllTradePastXDays = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
-                .filter(e -> e.getCurrency().equals("BSQ"))
-                .filter(e -> e.getDate().after(pastXDays))
-                .collect(Collectors.toList());
+
+        List<TradeStatistics3> bsqAllTradePastXDays; // TODO: remove BSQ
+        List<TradeStatistics3> usdAllTradePastXDays;
+        synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
+            bsqAllTradePastXDays = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
+                    .filter(e -> e.getCurrency().equals("BSQ"))
+                    .filter(e -> e.getDate().after(pastXDays))
+                    .collect(Collectors.toList());
+
+            usdAllTradePastXDays = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
+                    .filter(e -> e.getCurrency().equals("USD"))
+                    .filter(e -> e.getDate().after(pastXDays))
+                    .collect(Collectors.toList());
+        }
+
         List<TradeStatistics3> bsqTradePastXDays = percentToTrim > 0 ?
                 removeOutliers(bsqAllTradePastXDays, percentToTrim) :
                 bsqAllTradePastXDays;
 
-        List<TradeStatistics3> usdAllTradePastXDays = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
-                .filter(e -> e.getCurrency().equals("USD"))
-                .filter(e -> e.getDate().after(pastXDays))
-                .collect(Collectors.toList());
         List<TradeStatistics3> usdTradePastXDays = percentToTrim > 0 ?
                 removeOutliers(usdAllTradePastXDays, percentToTrim) :
                 usdAllTradePastXDays;

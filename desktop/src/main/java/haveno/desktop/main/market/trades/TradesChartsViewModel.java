@@ -141,7 +141,9 @@ class TradesChartsViewModel extends ActivatableViewModel {
         long ts = System.currentTimeMillis();
         deactivateCalled = false;
 
-        tradeStatisticsManager.getObservableTradeStatisticsList().addListener(listChangeListener);
+        synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
+            tradeStatisticsManager.getObservableTradeStatisticsList().addListener(listChangeListener);
+        }
         if (!fillTradeCurrenciesOnActivateCalled) {
             fillTradeCurrencies();
             fillTradeCurrenciesOnActivateCalled = true;
@@ -179,7 +181,9 @@ class TradesChartsViewModel extends ActivatableViewModel {
     @Override
     protected void deactivate() {
         deactivateCalled = true;
-        tradeStatisticsManager.getObservableTradeStatisticsList().removeListener(listChangeListener);
+        synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
+            tradeStatisticsManager.getObservableTradeStatisticsList().removeListener(listChangeListener);
+        }
 
         // We want to avoid to trigger listeners in the view so we delay a bit. Deactivate on model is called before
         // deactivate on view.
@@ -359,9 +363,12 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     private void fillTradeCurrencies() {
         // Don't use a set as we need all entries
-        List<TradeCurrency> tradeCurrencyList = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
-                .flatMap(e -> CurrencyUtil.getTradeCurrency(e.getCurrency()).stream())
-                .collect(Collectors.toList());
+        List<TradeCurrency> tradeCurrencyList;
+        synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
+            tradeCurrencyList = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
+                    .flatMap(e -> CurrencyUtil.getTradeCurrency(e.getCurrency()).stream())
+                    .collect(Collectors.toList());
+        }
         currencyListItems.updateWithCurrencies(tradeCurrencyList, showAllCurrencyListItem);
     }
 

@@ -3,6 +3,7 @@ package haveno.daemon.grpc;
 import com.google.inject.Inject;
 import haveno.core.api.CoreApi;
 import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
@@ -13,6 +14,7 @@ import haveno.proto.grpc.GetTradeStatisticsRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.stream.Collectors;
@@ -22,11 +24,13 @@ import lombok.extern.slf4j.Slf4j;
 class GrpcGetTradeStatisticsService extends GetTradeStatisticsImplBase {
 
     private final CoreApi coreApi;
+    private final TradeStatisticsManager tradeStatisticsManager;
     private final GrpcExceptionHandler exceptionHandler;
 
     @Inject
-    public GrpcGetTradeStatisticsService(CoreApi coreApi, GrpcExceptionHandler exceptionHandler) {
+    public GrpcGetTradeStatisticsService(CoreApi coreApi, TradeStatisticsManager tradeStatisticsManager, GrpcExceptionHandler exceptionHandler) {
         this.coreApi = coreApi;
+        this.tradeStatisticsManager = tradeStatisticsManager;
         this.exceptionHandler = exceptionHandler;
     }
 
@@ -34,9 +38,12 @@ class GrpcGetTradeStatisticsService extends GetTradeStatisticsImplBase {
     public void getTradeStatistics(GetTradeStatisticsRequest req,
                                    StreamObserver<GetTradeStatisticsReply> responseObserver) {
         try {
-            var tradeStatistics = coreApi.getTradeStatistics().stream()
-                    .map(TradeStatistics3::toProtoTradeStatistics3)
-                    .collect(Collectors.toList());
+            List<protobuf.TradeStatistics3> tradeStatistics;
+            synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
+                tradeStatistics = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
+                        .map(TradeStatistics3::toProtoTradeStatistics3)
+                        .collect(Collectors.toList());
+            }
 
             var reply = GetTradeStatisticsReply.newBuilder().addAllTradeStatistics(tradeStatistics).build();
             responseObserver.onNext(reply);

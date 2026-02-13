@@ -67,16 +67,18 @@ public class ChartCalculations {
                 dateMapsPerTickUnit.put(tick, new HashMap<>());
             }
 
-            tradeStatisticsList.stream()
-                    .filter(e -> e.getCurrency().equals("USD"))
-                    .forEach(tradeStatistics -> {
-                        for (TradesChartsViewModel.TickUnit tick : TradesChartsViewModel.TickUnit.values()) {
-                            long time = roundToTick(tradeStatistics.getLocalDateTime(), tick).getTime();
-                            Map<Long, List<TradeStatistics3>> map = dateMapsPerTickUnit.get(tick);
-                            map.putIfAbsent(time, new ArrayList<>());
-                            map.get(time).add(tradeStatistics);
-                        }
-                    });
+            synchronized (tradeStatisticsList) {
+                tradeStatisticsList.stream()
+                        .filter(e -> e.getCurrency().equals("USD"))
+                        .forEach(tradeStatistics -> {
+                            for (TradesChartsViewModel.TickUnit tick : TradesChartsViewModel.TickUnit.values()) {
+                                long time = roundToTick(tradeStatistics.getLocalDateTime(), tick).getTime();
+                                Map<Long, List<TradeStatistics3>> map = dateMapsPerTickUnit.get(tick);
+                                map.putIfAbsent(time, new ArrayList<>());
+                                map.get(time).add(tradeStatistics);
+                            }
+                        });
+            }
 
             dateMapsPerTickUnit.forEach((tick, map) -> {
                 HashMap<Long, Long> priceMap = new HashMap<>();
@@ -91,9 +93,11 @@ public class ChartCalculations {
                                                                                    String currencyCode,
                                                                                    boolean showAllTradeCurrencies) {
         return CompletableFuture.supplyAsync(() -> {
-            return tradeStatisticsList.stream()
-                    .filter(e -> showAllTradeCurrencies || e.getCurrency().equals(currencyCode))
-                    .collect(Collectors.toList());
+            synchronized (tradeStatisticsList) {
+                return tradeStatisticsList.stream()
+                        .filter(e -> showAllTradeCurrencies || e.getCurrency().equals(currencyCode))
+                        .collect(Collectors.toList());
+            }
         });
     }
 

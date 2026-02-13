@@ -199,6 +199,12 @@ public class TradeStatisticsManager {
         return observableTradeStatisticsList;
     }
 
+    public List<TradeStatistics3> getTradeStatisticsListCopy() {
+        synchronized (observableTradeStatisticsList) {
+            return new ArrayList<>(observableTradeStatisticsList);
+        }
+    }
+
     private void maybeDumpStatistics() {
         if (!dumpStatistics) {
             return;
@@ -220,10 +226,13 @@ public class TradeStatisticsManager {
             jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(cryptoCurrencyList), "crypto_currency_list");
 
             Instant yearAgo = Instant.ofEpochSecond(Instant.now().getEpochSecond() - TimeUnit.DAYS.toSeconds(365));
-            Set<String> activeCurrencies = observableTradeStatisticsList.stream()
-                    .filter(e -> e.getDate().toInstant().isAfter(yearAgo))
-                    .map(p -> p.getCurrency())
-                    .collect(Collectors.toSet());
+            Set<String> activeCurrencies;
+            synchronized (observableTradeStatisticsList) {
+                activeCurrencies = observableTradeStatisticsList.stream()
+                        .filter(e -> e.getDate().toInstant().isAfter(yearAgo))
+                        .map(p -> p.getCurrency())
+                        .collect(Collectors.toSet());
+            }
 
             ArrayList<CurrencyTuple> activeTraditionalCurrencyList = traditionalCurrencyList.stream()
                     .filter(e -> activeCurrencies.contains(e.code))
@@ -238,10 +247,13 @@ public class TradeStatisticsManager {
             jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(activeCryptoCurrencyList), "active_crypto_currency_list");
         }
 
-        List<TradeStatisticsForJson> list = observableTradeStatisticsList.stream()
-                .map(TradeStatisticsForJson::new)
-                .sorted((o1, o2) -> (Long.compare(o2.tradeDate, o1.tradeDate)))
-                .collect(Collectors.toList());
+        List<TradeStatisticsForJson> list;
+        synchronized (observableTradeStatisticsList) {
+            list = observableTradeStatisticsList.stream()
+                    .map(TradeStatisticsForJson::new)
+                    .sorted((o1, o2) -> (Long.compare(o2.tradeDate, o1.tradeDate)))
+                    .collect(Collectors.toList());
+        }
         TradeStatisticsForJson[] array = new TradeStatisticsForJson[list.size()];
         list.toArray(array);
         jsonFileManager.writeToDiscThreaded(JsonUtil.objectToJson(array), "trade_statistics");
