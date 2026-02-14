@@ -25,6 +25,7 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.core.alert.Alert;
 import haveno.core.filter.Filter;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.LanguageUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.notifications.alerts.market.MarketAlertFilter;
@@ -189,6 +190,42 @@ public class User implements PersistedDataHost {
 
     public boolean hasPaymentAccountForCurrency(TradeCurrency tradeCurrency) {
         return findFirstPaymentAccountWithCurrency(tradeCurrency) != null;
+    }
+
+    public boolean hasFiatPaymentAccount() {
+        if (userPayload.getPaymentAccounts() != null) {
+            for (PaymentAccount paymentAccount : userPayload.getPaymentAccounts()) {
+                List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
+                if (tradeCurrencies.isEmpty()) continue;
+                if (CurrencyUtil.isFiatCurrency(tradeCurrencies.get(0).getCode())) return true;
+                else continue;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasCryptoPaymentAccount() {
+        if (userPayload.getPaymentAccounts() != null) {
+            for (PaymentAccount paymentAccount : userPayload.getPaymentAccounts()) {
+                List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
+                if (tradeCurrencies.isEmpty()) continue;
+                if (CurrencyUtil.isCryptoCurrency(tradeCurrencies.get(0).getCode())) return true;
+                else continue;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasTraditionalNonFiatAccount() {
+        if (userPayload.getPaymentAccounts() != null) {
+            for (PaymentAccount paymentAccount : userPayload.getPaymentAccounts()) {
+                List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
+                if (tradeCurrencies.isEmpty()) continue;
+                if (CurrencyUtil.isTraditionalNonFiatCurrency(tradeCurrencies.get(0).getCode())) return true;
+                else continue;
+            }
+        }
+        return false;
     }
 
 

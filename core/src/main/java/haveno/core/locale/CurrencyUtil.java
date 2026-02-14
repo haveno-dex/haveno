@@ -161,7 +161,7 @@ public class CurrencyUtil {
         return list;
     }
 
-    private static boolean isTraditionalNonFiatCurrency(String currencyCode) {
+    public static boolean isTraditionalNonFiatCurrency(String currencyCode) {
         return getTraditionalNonFiatCurrencies().stream().anyMatch(c -> c.getCode().equals(currencyCode));
     }
 
