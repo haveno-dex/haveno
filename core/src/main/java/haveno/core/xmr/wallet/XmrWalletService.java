@@ -208,7 +208,7 @@ public class XmrWalletService extends XmrWalletBase {
                 public void onAccountClosed() {
                     log.info("onAccountClosed()");
                     wasWalletSynced = false;
-                    closeMainWallet(true);
+                    closeMainWallet();
                     UserThread.execute(() -> syncProgressListener.progress(-1, -1));
                     // TODO: reset more properties?
                 }
@@ -247,18 +247,10 @@ public class XmrWalletService extends XmrWalletBase {
     @Override
     public void saveWallet() {
         synchronized (walletLock) {
-            saveWallet(shouldBackup(wallet));
+            if (wallet == null) throw new IllegalStateException("Cannot save main wallet because it's not open");
+            wallet.save();
+            if (!Utilities.isWindows()) backupWallet(MONERO_WALLET_NAME); // windows cannot copy files while open
             lastSaveTimeMs = System.currentTimeMillis();
-        }
-    }
-
-    private boolean shouldBackup(MoneroWallet wallet) {
-        return wallet != null && !Utilities.isWindows(); // TODO: cannot backup on windows because file is locked
-    }
-
-    public void saveWallet(boolean backup) {
-        synchronized (walletLock) {
-            saveWallet(getWallet(), backup);
         }
     }
 
@@ -349,15 +341,6 @@ public class XmrWalletService extends XmrWalletBase {
         return useNativeXmrWallet && MoneroUtils.isNativeLibraryLoaded();
     }
 
-    public void saveWallet(MoneroWallet wallet) {
-        saveWallet(wallet, false);
-    }
-
-    public void saveWallet(MoneroWallet wallet, boolean backup) {
-        if (backup) backupWallet(getWalletName(wallet.getPath()));
-        wallet.save();
-    }
-
     public void closeWallet(MoneroWallet wallet, boolean save) {
         log.debug("Closing wallet with path={}, save={}", wallet.getPath(), save);
         MoneroError err = null;
@@ -366,8 +349,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (save && wallet instanceof MoneroWalletRpc) {
                 ((MoneroWalletRpc) wallet).stop(); // saves wallet and stops rpc server
             } else {
-                if (save) saveWallet(wallet);
-                wallet.close();
+                wallet.close(save);
             }
         } catch (MoneroError e) {
             err = e;
@@ -890,7 +872,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (isSyncing()) forceCloseMainWallet();
             else if (wallet != null) {
                 try {
-                    closeMainWallet(true);
+                    closeMainWallet();
                 } catch (Exception e) {
                     log.warn("Error closing main wallet: {}. Was Haveno stopped manually with ctrl+c?", e.getMessage());
                 }
@@ -1785,6 +1767,15 @@ public class XmrWalletService extends XmrWalletBase {
                         user.setWalletCreationDate(date);
                     }
 
+                    // create backup when wallet successfully opened or created
+                    if (Utilities.isWindows()) {
+                        closeMainWallet(); // creates backup
+                        log.info("Reopening main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()) + ", proxyUri=" + (monerod == null || !isProxyApplied ? "null" : monerod.getRpcConnection().getProxyUri()));
+                        wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
+                    } else {
+                        backupWallet(MONERO_WALLET_NAME);
+                    }
+
                     // set state from wallet
                     isClosingWallet = false;
                     if (wallet != null) {
@@ -1801,15 +1792,15 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
-    private void closeMainWallet(boolean save) {
+    private void closeMainWallet() {
         stopPolling();
         synchronized (walletLock) {
             try {
                 if (wallet != null) {
                     isClosingWallet = true;
                     log.info("Closing main wallet");
-                    if (shouldBackup(wallet)) backupWallet(MONERO_WALLET_NAME);
                     closeWallet(wallet, true);
+                    backupWallet(MONERO_WALLET_NAME);
                     wallet = null;
                 }
             } catch (Exception e) {
