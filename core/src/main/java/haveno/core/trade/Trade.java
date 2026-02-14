@@ -996,11 +996,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (isArbitrator() && isDepositsConfirmed()) return true;
         if (!isDepositsUnlocked()) return false;
         if (isPaymentReceived() || isDisputeClosed()) return false;
-        if (isBuyer()) return isPaymentSent();
-        if (isSeller()) {
-            if (!isPaymentSent()) return true;
-            if (isPaymentSent() && !isPaymentReceived()) return false;
-        }
         if (!isArbitrator() && (isPaymentReceived() || isDisputeClosed())) return false;
         return true;
     }
@@ -3215,6 +3210,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     private void startPolling(boolean skipFirstPoll) {
         synchronized (pollLock) {
+            // try {
+            //     throw new RuntimeException("Calling startPolling for " + getClass().getSimpleName() + " " + getId() + " with poll period " + pollPeriodMs + " ms and skipFirstPoll=" + skipFirstPoll);
+            // } catch (Exception e) {
+            //     log.warn("Who starts polling?", e);
+            // }
             if (isShutDownStarted || isPolling()) return;
             updatePollPeriod();
             AtomicReference<Boolean> skipNextPoll = new AtomicReference<>(skipFirstPoll);

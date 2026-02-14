@@ -40,6 +40,9 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
             // check connection
             trade.verifyDaemonConnection();
 
+            // sync and poll trade wallet
+            trade.syncAndPollWallet();
+
             // prepare payout info for payment received message
             if (!trade.isPayoutPublished() || (!trade.isPayoutFinalized() && trade.getPayoutTxHex() == null)) {
 
