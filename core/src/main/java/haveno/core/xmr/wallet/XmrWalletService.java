@@ -913,11 +913,13 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private XmrAddressEntry getNewAddressEntryAux(String offerId, XmrAddressEntry.Context context) {
-        MoneroSubaddress subaddress = wallet.createSubaddress(0);
-        XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, offerId, null);
-        log.info("Add new XmrAddressEntry {}", entry);
-        xmrAddressEntryList.addAddressEntry(entry);
-        return entry;
+        synchronized (walletLock) {
+            MoneroSubaddress subaddress = wallet.createSubaddress(0);
+            XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, offerId, null);
+            log.info("Add new XmrAddressEntry {}", entry);
+            xmrAddressEntryList.addAddressEntry(entry);
+            return entry;
+        }
     }
 
     public synchronized XmrAddressEntry getFreshAddressEntry() {
@@ -1094,7 +1096,9 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public BigInteger getBalanceForAddress(String address) {
-        return getBalanceForSubaddress(wallet.getAddressIndex(address).getIndex());
+        synchronized (walletLock) {
+            return getBalanceForSubaddress(wallet.getAddressIndex(address).getIndex());
+        }
     }
 
     public BigInteger getBalanceForSubaddress(int subaddressIndex) {
@@ -1191,7 +1195,9 @@ public class XmrWalletService extends XmrWalletBase {
     public List<MoneroTxWallet> getTxs(MoneroTxQuery query) {
         if (cachedTxs == null) {
             log.warn("Transactions not cached, fetching from wallet");
-            cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)); // fetches from pool
+            synchronized (walletLock) {
+                cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true)); // fetches from pool
+            }
         }
         return cachedTxs.stream().filter(tx -> query.meetsCriteria(tx)).collect(Collectors.toList());
     }
@@ -1390,17 +1396,19 @@ public class XmrWalletService extends XmrWalletBase {
     private void resetIfWalletChanged() {
         getAddressEntryListAsImmutableList(); // TODO: using getter to create base address if necessary
         List<XmrAddressEntry> baseAddresses = getAddressEntries(XmrAddressEntry.Context.BASE_ADDRESS);
-        if (baseAddresses.size() > 1 || (baseAddresses.size() == 1 && !baseAddresses.get(0).getAddressString().equals(wallet.getPrimaryAddress()))) {
-            String warningMsg = "New Monero wallet detected. Resetting internal state.";
-            if (!tradeManager.getOpenTrades().isEmpty()) warningMsg += "\n\nWARNING: Your open trades will settle to the payout address in the OLD wallet!"; // TODO: allow payout address to be updated in PaymentSentMessage, PaymentReceivedMessage, and DisputeOpenedMessage?
-            HavenoUtils.setTopError(warningMsg);
+        synchronized (walletLock) {
+            if (baseAddresses.size() > 1 || (baseAddresses.size() == 1 && !baseAddresses.get(0).getAddressString().equals(wallet.getPrimaryAddress()))) {
+                String warningMsg = "New Monero wallet detected. Resetting internal state.";
+                if (!tradeManager.getOpenTrades().isEmpty()) warningMsg += "\n\nWARNING: Your open trades will settle to the payout address in the OLD wallet!"; // TODO: allow payout address to be updated in PaymentSentMessage, PaymentReceivedMessage, and DisputeOpenedMessage?
+                HavenoUtils.setTopError(warningMsg);
 
-            // reset address entries
-            xmrAddressEntryList.clear();
-            getAddressEntryListAsImmutableList(); // recreate base address
+                // reset address entries
+                xmrAddressEntryList.clear();
+                getAddressEntryListAsImmutableList(); // recreate base address
 
-            // cancel offers
-            tradeManager.getOpenOfferManager().removeAllOpenOffers(null);
+                // cancel offers
+                tradeManager.getOpenOfferManager().removeAllOpenOffers(null);
+            }
         }
     }
 
