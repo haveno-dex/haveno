@@ -1366,7 +1366,7 @@ public class XmrWalletService extends XmrWalletBase {
                     // attempt to sync wallet on startup or open application without syncing
                     for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
                         try {
-                            doPollWallet(true);
+                            doPollWallet(false);
                             break;
                         } catch (Exception e) {
                             if (isShutDownStarted) return;
@@ -1790,6 +1790,14 @@ public class XmrWalletService extends XmrWalletBase {
                         user.setWalletCreationDate(date);
                     }
 
+                    // set state from wallet
+                    isClosingWallet = false;
+                    if (wallet != null) {
+                        walletHeight.set(wallet.getHeight());
+                        cacheWalletInfo();
+                        resetIfWalletChanged();
+                    }
+
                     // create backup when wallet successfully opened or created
                     if (Utilities.isWindows()) {
                         closeMainWallet(); // creates backup
@@ -1797,14 +1805,6 @@ public class XmrWalletService extends XmrWalletBase {
                         wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
                     } else {
                         backupWallet(MONERO_WALLET_NAME);
-                    }
-
-                    // set state from wallet
-                    isClosingWallet = false;
-                    if (wallet != null) {
-                        walletHeight.set(wallet.getHeight());
-                        cacheWalletInfo();
-                        resetIfWalletChanged();
                     }
                 } catch (Exception e) {
                     log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
@@ -1918,7 +1918,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     @SuppressWarnings("unused")
-    public void doPollWallet(boolean updateTxs) {
+    public void doPollWallet(boolean getPoolTxs) {
 
         // skip polling after wallet service initialized until all domain services are initialized
         if (isWalletServiceInitialized() && !HavenoUtils.isAllDomainServicesInitialized()) {
@@ -1982,25 +1982,23 @@ public class XmrWalletService extends XmrWalletBase {
                 if (isFirstSync) log.info("Done syncing main wallet in " + (System.currentTimeMillis() - startTime) + " ms");
             }
 
-            // fetch transactions from pool and store to cache
+            // fetch transactions and store to cache
             // TODO: ideally wallet should sync every poll and then avoid updating from pool on fetching txs?
-            if (updateTxs) {
-                synchronized (walletLock) { // avoid long fetch from blocking other operations
-                    synchronized (HavenoUtils.getDaemonLock()) {
-                        if (lastPollTxsTimestamp == 0) lastPollTxsTimestamp = System.currentTimeMillis(); // set initial timestamp
-                        try {
-                            cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
-                            lastPollTxsTimestamp = System.currentTimeMillis();
-                        } catch (Exception e) { // fetch from pool can fail
-                            if (!isShutDownStarted && wallet != sourceWallet) {
+            synchronized (HavenoUtils.getDaemonLock()) {
+                if (lastPollTxsTimestamp == 0) lastPollTxsTimestamp = System.currentTimeMillis(); // set initial timestamp
+                try {
+                    MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
+                    if (!getPoolTxs) query.setInTxPool(false);
+                    cachedTxs = wallet.getTxs(query);
+                    lastPollTxsTimestamp = System.currentTimeMillis();
+                } catch (Exception e) { // fetch from pool can fail
+                    if (!isShutDownStarted && wallet == sourceWallet) {
 
-                                // throttle error handling
-                                if (System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
-                                    log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
-                                    lastLogPollErrorTimestamp = System.currentTimeMillis();
-                                    if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection));
-                                }
-                            }
+                        // throttle error handling
+                        if (System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
+                            log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
+                            lastLogPollErrorTimestamp = System.currentTimeMillis();
+                            if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection));
                         }
                     }
                 }
