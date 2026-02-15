@@ -597,6 +597,15 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     boolean hasPaymentAccountForCurrency() {
+        if (showAllTradeCurrenciesProperty.get()) {
+            if (this instanceof CryptoOfferBookViewModel) {
+                return user.hasCryptoPaymentAccount();
+            } else if (this instanceof FiatOfferBookViewModel) {
+                return user.hasFiatPaymentAccount();
+            } else if (this instanceof OtherOfferBookViewModel) {
+                return user.hasTraditionalNonFiatAccount();
+            }
+        }
         return hasPaymentAccountForCurrency(selectedTradeCurrency);
     }
 
