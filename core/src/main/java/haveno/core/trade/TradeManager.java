@@ -363,7 +363,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         log.info("{}.onShutDownStarted()", getClass().getSimpleName());
         isShutDownStarted = true;
 
-        // collect trades to prepare
+        // skip trade shut down if not initialized
+        if (!tradesInitialized.get()) {
+            log.warn("Skipping trade shut down because trades were not initialized");
+            return;
+        }
+
+        // collect trades to prepare for shut down
         List<Trade> trades = getAllTrades();
 
         // prepare to shut down trades in parallel
