@@ -922,7 +922,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         synchronized (walletLock) {
             if (walletExists()) throw new RuntimeException("Cannot create trade wallet because it already exists");
             long time = System.currentTimeMillis();
-            wallet = xmrWalletService.createWallet(getWalletName());
+            wallet = xmrWalletService.createWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
             log.info("{} {} created multisig wallet in {} ms", getClass().getSimpleName(), getId(), System.currentTimeMillis() - time);
             return wallet;
         }
@@ -3076,10 +3076,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     protected void onConnectionChanged(MoneroRpcConnection connection) {
         synchronized (walletLock) {
 
-            // use current connection
+            // configure wallet connection
             connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
-
-            // apply proxy config
             if (!xmrWalletService.isProxyApplied(wasWalletSynced)) connection.setProxyUri(null);
 
             // ignore if no change
@@ -3094,7 +3092,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             String newProxyUri = connection == null ? null : connection.getProxyUri();
             log.info("Setting daemon connection for {} {}: uri={}, proxyUri={}", getClass().getSimpleName(), getId() , connection == null ? null : connection.getUri(), newProxyUri);
             if (wallet instanceof MoneroWalletRpc && !StringUtils.equals(oldProxyUri, newProxyUri)) {
-                log.info("Restarting trade wallet {} because proxy URI has changed, old={}, new={}", getId(), oldProxyUri, newProxyUri);
+                log.info("Restarting trade wallet {} because proxy URI has changed, old={}, new={}", getId(), oldProxyUri, newProxyUri); // TODO: remove this when wallet server is not started with proxy uri
                 closeWallet();
                 wallet = getWallet();
             } else {
