@@ -996,10 +996,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         if (isArbitrator() && isDepositsConfirmed()) return true;
         if (!isDepositsUnlocked()) return false;
         if (isPaymentReceived() || isDisputeClosed()) return false;
-        if (isBuyer()) return isPaymentSent();
+        if (isBuyer() && !isDepositsFinalized()) return false;
         if (isSeller()) {
             if (!isPaymentSent()) return true;
-            if (isPaymentSent() && !isPaymentReceived()) return false;
+            if (!isDepositsFinalized()) return false;
         }
         if (!isArbitrator() && (isPaymentReceived() || isDisputeClosed())) return false;
         return true;
@@ -3351,6 +3351,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 boolean isPayoutExpected = isPaymentReceived() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
 
                 // rescan spent outputs to detect unconfirmed payout tx
+                // TODO: can this be removed after https://github.com/monero-project/monero/pull/10255 in monero-project v0.18.4.5?
                 if (getPayoutState() == PayoutState.PAYOUT_PUBLISHED || (isPayoutExpected && wallet != null && wallet.getBalance().compareTo(BigInteger.ZERO) > 0) || (isDepositsPublished() && longSync)) {
                     try {
                         rescanSpent(true);
