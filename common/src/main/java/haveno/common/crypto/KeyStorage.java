@@ -133,7 +133,7 @@ public class KeyStorage {
      * @param secretKey  The symmetric key that protects the key entry file
      */
     public KeyPair loadKeyPair(KeyEntry keyEntry, SecretKey secretKey) {
-        FileUtil.rollingBackup(storageDir, keyEntry.getFileName() + ".key", 20);
+        FileUtil.rollingBackup(storageDir, keyEntry.getFileName(), 20);
         try {
             KeyFactory keyFactory = KeyFactory.getInstance(keyEntry.getAlgorithm());
             byte[] encodedPrivateKey = loadKeyBytes(keyEntry, secretKey);
@@ -170,6 +170,7 @@ public class KeyStorage {
      * @param password Optional password that protects the key
      */
     public SecretKey loadSecretKey(KeyEntry keyEntry, String password) throws IncorrectPasswordException {
+        FileUtil.rollingBackup(storageDir, keyEntry.getFileName(), 20);
         char[] passwordChars = password == null ? new char[0] : password.toCharArray();
         try {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
