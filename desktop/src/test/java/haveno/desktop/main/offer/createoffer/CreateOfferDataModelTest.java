@@ -7,6 +7,7 @@ import haveno.core.locale.Res;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.RevolutAccount;
@@ -42,6 +43,7 @@ public class CreateOfferDataModelTest {
         GlobalSettings.setDefaultTradeCurrency(xmr);
         Res.setup();
 
+        OpenOfferManager openOfferManager = mock(OpenOfferManager.class);
         XmrAddressEntry addressEntry = mock(XmrAddressEntry.class);
         XmrWalletService xmrWalletService = mock(XmrWalletService.class);
         PriceFeedService priceFeedService = mock(PriceFeedService.class);
@@ -58,7 +60,7 @@ public class CreateOfferDataModelTest {
         when(tradeStats.getObservableTradeStatisticsList()).thenReturn(FXCollections.observableArrayList());
 
         model = new CreateOfferDataModel(createOfferService,
-                null,
+                openOfferManager,
                 offerUtil,
                 xmrWalletService,
                 preferences,

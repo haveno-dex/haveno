@@ -149,7 +149,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                                  TradeStatisticsManager tradeStatisticsManager,
                                  Navigation navigation) {
-        super(xmrWalletService, offerUtil);
+        super(xmrWalletService, openOfferManager, offerUtil);
 
         this.xmrWalletService = xmrWalletService;
         this.createOfferService = createOfferService;
@@ -286,8 +286,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
         // update remaining balance
         UserThread.await(() -> {
-            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
-            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), balance.get()));
+            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), unallocatedBalance.get()));
+            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), unallocatedBalance.get()));
             if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
                 showWalletFundedNotification.set(true);
             }

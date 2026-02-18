@@ -31,6 +31,7 @@ import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.PaymentMethod;
@@ -109,6 +110,7 @@ class TakeOfferDataModel extends OfferDataModel {
                        OfferBook offerBook,
                        OfferUtil offerUtil,
                        XmrWalletService xmrWalletService,
+                       OpenOfferManager openOfferManager,
                        User user,
                        FilterManager filterManager,
                        Preferences preferences,
@@ -117,7 +119,7 @@ class TakeOfferDataModel extends OfferDataModel {
                        Navigation navigation,
                        P2PService p2PService
     ) {
-        super(xmrWalletService, offerUtil);
+        super(xmrWalletService, openOfferManager, offerUtil);
 
         this.tradeManager = tradeManager;
         this.offerBook = offerBook;
@@ -238,7 +240,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
         // update remaining balance
         UserThread.await(() -> {
-            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), balance.get()));
+            missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), unallocatedBalance.get()));
             isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
             if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
                 showWalletFundedNotification.set(true);

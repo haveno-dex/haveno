@@ -346,7 +346,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     // called from parent as the view does not get notified when the tab is closed
     public void onClose() {
         // we use model.placeOfferCompleted to not react on close which was triggered by a successful placeOffer
-        if (model.getDataModel().getBalance().get().compareTo(BigInteger.ZERO) > 0 && !model.placeOfferCompleted.get()) {
+        if (model.getDataModel().getUnallocatedBalance().get().compareTo(BigInteger.ZERO) > 0 && !model.placeOfferCompleted.get()) {
             model.getDataModel().swapTradeToSavings();
         }
     }
@@ -679,7 +679,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             waitingForFundsLabel.setManaged(isWaitingForFunds);
         });
 
-        balanceSubscription = EasyBind.subscribe(model.getDataModel().getBalance(), balanceTextField::setBalance);
+        balanceSubscription = EasyBind.subscribe(model.getDataModel().getUnallocatedBalance(), balanceTextField::setBalance);
     }
 
     private void removeSubscriptions() {
