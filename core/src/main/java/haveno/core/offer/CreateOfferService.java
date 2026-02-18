@@ -252,13 +252,16 @@ public class CreateOfferService {
                             double marketPriceMargin,
                             PaymentAccount paymentAccount,
                             String extraInfo) {
+        String newOfferId = OfferUtil.getRandomOfferId();
         log.info("Cloning offer with sourceId={}, " +
+                        "newOfferId={}, " +
                         "currencyCode={}, " +
                         "fixedPrice={}, " +
                         "useMarketBasedPrice={}, " +
                         "marketPriceMargin={}, " +
                         "extraInfo={}",
                 sourceOffer.getId(),
+                newOfferId,
                 currencyCode,
                 fixedPrice == null ? null : fixedPrice.getValue(),
                 useMarketBasedPrice,
@@ -266,7 +269,6 @@ public class CreateOfferService {
                 extraInfo);
 
         OfferPayload sourceOfferPayload = sourceOffer.getOfferPayload();
-        String newOfferId = OfferUtil.getRandomOfferId();
         Offer editedOffer = createAndGetOffer(newOfferId,
                 sourceOfferPayload.getDirection(),
                 currencyCode,
