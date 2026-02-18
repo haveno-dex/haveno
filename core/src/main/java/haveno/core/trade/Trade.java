@@ -730,7 +730,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         if (isShutDownStarted) return;
                         if (xmrConnectionService.isConnected()) {
                             try {
-                                xmrWalletService.doPollWallet(true);
+                                xmrWalletService.doPollWallet();
                             } catch (Exception e) {
                                 // use default error handling
                             }
@@ -1905,7 +1905,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // poll the main wallet
         log.warn("Processing payout tx for {} {} by polling main wallet", getClass().getSimpleName(), getShortId());
         try {
-            xmrWalletService.doPollWallet(true);
+            xmrWalletService.doPollWallet();
         } catch (Exception e) {
             // use default error handling
         }
