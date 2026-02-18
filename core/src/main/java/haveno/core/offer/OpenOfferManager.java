@@ -905,6 +905,24 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return offer.isMyOffer(keyRing);
     }
 
+    /**
+     * Get the wallet balance which is not scheduled or reserved for offers.
+     * 
+     * @return the unallocated balance as BigInteger
+     */
+    public BigInteger getUnallocatedBalance() {
+        BigInteger unallocatedBalance = xmrWalletService.getBalance();
+        for (OpenOffer openOffer : getOpenOffersWithoutClones()) {
+            if (openOffer.getState() == OpenOffer.State.AVAILABLE) continue;
+            if (openOffer.isReserveExactAmount()) {
+                unallocatedBalance = unallocatedBalance.subtract(openOffer.getOffer().getAmountNeeded());
+            } else if (openOffer.getScheduledAmount() != null && !openOffer.getScheduledAmount().isEmpty()) {
+                unallocatedBalance = unallocatedBalance.subtract(new BigInteger(openOffer.getScheduledAmount()));
+            }
+        }
+        return unallocatedBalance;
+    }
+
     public boolean hasAvailableOpenOffers() {
         for (OpenOffer openOffer : getOpenOffers()) {
             if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
@@ -918,6 +936,20 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         synchronized (openOffers.getList()) {
             return ImmutableList.copyOf(getObservableList());
         }
+    }
+
+    public List<OpenOffer> getOpenOffersWithoutClones() {
+        List<OpenOffer> fundedOffers = new ArrayList<>();
+        synchronized (openOffers.getList()) {
+            for (OpenOffer openOffer : getObservableList()) {
+                if (openOffer.getGroupId() == null) fundedOffers.add(openOffer);
+                else {
+                    List<OpenOffer> openOfferGroup = getOpenOfferGroup(getObservableList(), openOffer.getGroupId());
+                    if (!fundedOffers.contains(openOfferGroup.get(0))) fundedOffers.add(openOfferGroup.get(0));
+                }
+            }
+        }
+        return fundedOffers;
     }
 
     public List<OpenOffer> getOpenOfferGroup(String groupId) {

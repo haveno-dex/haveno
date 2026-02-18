@@ -710,7 +710,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         } else {
             new Popup().warning(Res.get("shared.notEnoughFunds",
                             HavenoUtils.formatXmr(dataModel.totalToPayAsProperty().get(), true),
-                            HavenoUtils.formatXmr(dataModel.getTotalBalance(), true)))
+                            HavenoUtils.formatXmr(dataModel.getTotalUnallocatedBalance(), true)))
                     .actionButtonTextWithGoTo("funds.tab.deposit")
                     .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class))
                     .show();

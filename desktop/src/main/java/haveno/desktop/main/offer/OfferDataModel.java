@@ -19,6 +19,7 @@ package haveno.desktop.main.offer;
 
 import haveno.common.UserThread;
 import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.model.ActivatableDataModel;
@@ -39,6 +40,7 @@ import java.math.BigInteger;
 public abstract class OfferDataModel extends ActivatableDataModel {
     @Getter
     protected final XmrWalletService xmrWalletService;
+    protected final OpenOfferManager openOfferManager;
     protected final OfferUtil offerUtil;
 
     @Getter
@@ -46,7 +48,7 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     @Getter
     protected final ObjectProperty<BigInteger> totalToPay = new SimpleObjectProperty<>();
     @Getter
-    protected final ObjectProperty<BigInteger> balance = new SimpleObjectProperty<>();
+    protected final ObjectProperty<BigInteger> unallocatedBalance = new SimpleObjectProperty<>();
     @Getter
     protected final ObjectProperty<BigInteger> availableBalance = new SimpleObjectProperty<>();
     @Getter
@@ -54,34 +56,35 @@ public abstract class OfferDataModel extends ActivatableDataModel {
     @Getter
     protected final BooleanProperty showWalletFundedNotification = new SimpleBooleanProperty();
     @Getter
-    protected BigInteger totalBalance;
+    protected BigInteger totalUnallocatedBalance;
     @Getter
     protected BigInteger totalAvailableBalance;
     protected XmrAddressEntry addressEntry;
     protected boolean useSavingsWallet;
 
-    public OfferDataModel(XmrWalletService xmrWalletService, OfferUtil offerUtil) {
+    public OfferDataModel(XmrWalletService xmrWalletService, OpenOfferManager openOfferManager, OfferUtil offerUtil) {
         this.xmrWalletService = xmrWalletService;
+        this.openOfferManager = openOfferManager;
         this.offerUtil = offerUtil;
     }
 
     protected void updateBalances() {
         BigInteger tradeWalletBalance = xmrWalletService.getBalanceForSubaddress(addressEntry.getSubaddressIndex());
         BigInteger tradeWalletAvailableBalance = xmrWalletService.getAvailableBalanceForSubaddress(addressEntry.getSubaddressIndex());
-        BigInteger walletBalance = xmrWalletService.getBalance();
+        BigInteger walletUnallocatedBalance = openOfferManager.getUnallocatedBalance();
         BigInteger walletAvailableBalance = xmrWalletService.getAvailableBalance();
         UserThread.await(() -> {
             if (useSavingsWallet) {
-                totalBalance = walletBalance;
+                totalUnallocatedBalance = walletUnallocatedBalance;
                 totalAvailableBalance = walletAvailableBalance;
                 if (totalToPay.get() != null) {
-                    balance.set(totalToPay.get().min(totalBalance));
+                    unallocatedBalance.set(totalToPay.get().min(totalUnallocatedBalance));
                     availableBalance.set(totalToPay.get().min(totalAvailableBalance));
                 }
             } else {
-                totalBalance = tradeWalletBalance;
+                totalUnallocatedBalance = tradeWalletBalance;
                 totalAvailableBalance = tradeWalletAvailableBalance;
-                balance.set(tradeWalletBalance);
+                unallocatedBalance.set(tradeWalletBalance);
                 availableBalance.set(tradeWalletAvailableBalance);
             }
         });
