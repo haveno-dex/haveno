@@ -1172,7 +1172,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     return;
                 }
 
-                // cancel offer if scheduled txs unavailable
+                // reset state if scheduled txs become unavailable
                 if (openOffer.getScheduledTxHashes() != null) {
                     boolean scheduledTxsAvailable = true;
                     for (MoneroTxWallet tx : xmrWalletService.getTxs(openOffer.getScheduledTxHashes())) {
@@ -1182,10 +1182,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         }
                     }
                     if (!scheduledTxsAvailable) {
-                        log.warn("Canceling offer {} because scheduled txs are no longer available", openOffer.getId());
-                        doCancelOffer(openOffer);
-                        resultHandler.handleResult(null);
-                        return;
+                        log.warn("Scheduled txs are no longer available for offer {}, rescheduling", openOffer.getId());
+                        openOffer.setScheduledAmount(null);
+                        openOffer.setScheduledTxHashes(null);
                     }
                 }
 
@@ -1274,7 +1273,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     else log.warn("Split output tx is no longer available for offerId={}, txId={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
                 }
             } else {
-                log.warn("Split output tx no longer exists for offerId={}, txId=", openOffer.getId(), openOffer.getSplitOutputTxHash());
+                log.warn("Split output tx no longer exists for offerId={}, txId={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
             }
         }
 
@@ -1442,7 +1441,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // break if sufficient funds
             if (scheduledAmount.compareTo(offerReserveAmount) >= 0) break;
         }
-        if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to create offer");
+        if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to create offer " + openOffer.getId());
 
         // schedule txs
         openOffer.setScheduledTxHashes(scheduledTxs.stream().map(tx -> tx.getHash()).collect(Collectors.toList()));

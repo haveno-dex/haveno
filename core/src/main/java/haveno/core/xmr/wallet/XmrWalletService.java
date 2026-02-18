@@ -1198,11 +1198,11 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public List<MoneroTxWallet> getTxs(List<String> txIds) {
-        return getTxs(new MoneroTxQuery().setHashes(txIds));
+        return getTxs(new MoneroTxQuery().setIncludeOutputs(true).setHashes(txIds));
     }
 
     public MoneroTxWallet getTx(String txId) {
-        List<MoneroTxWallet> txs = getTxs(new MoneroTxQuery().setHash(txId));
+        List<MoneroTxWallet> txs = getTxs(new MoneroTxQuery().setIncludeOutputs(true).setHash(txId));
         return txs.isEmpty() ? null : txs.get(0);
     }
 
