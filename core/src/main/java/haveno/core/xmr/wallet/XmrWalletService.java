@@ -1366,7 +1366,7 @@ public class XmrWalletService extends XmrWalletBase {
                     // attempt to sync wallet on startup or open application without syncing
                     for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
                         try {
-                            doPollWallet(false);
+                            doPollWallet();
                             break;
                         } catch (Exception e) {
                             if (isShutDownStarted) return;
@@ -1922,11 +1922,11 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (pollLock) {
             if (pollInProgress) return;
         }
-        doPollWallet(true);
+        doPollWallet();
     }
 
     @SuppressWarnings("unused")
-    public void doPollWallet(boolean getPoolTxs) {
+    public void doPollWallet() {
 
         // skip polling after wallet service initialized until all domain services are initialized
         if (isWalletServiceInitialized() && !HavenoUtils.isAllDomainServicesInitialized()) {
@@ -1995,9 +1995,7 @@ public class XmrWalletService extends XmrWalletBase {
             synchronized (HavenoUtils.getDaemonLock()) {
                 if (lastPollTxsTimestamp == 0) lastPollTxsTimestamp = System.currentTimeMillis(); // set initial timestamp
                 try {
-                    MoneroTxQuery query = new MoneroTxQuery().setIncludeOutputs(true);
-                    if (!getPoolTxs) query.setInTxPool(false);
-                    cachedTxs = wallet.getTxs(query);
+                    cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
                     lastPollTxsTimestamp = System.currentTimeMillis();
                 } catch (Exception e) { // fetch from pool can fail
                     if (!isShutDownStarted && wallet == sourceWallet) {
