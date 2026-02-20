@@ -150,6 +150,7 @@ public class OfferInfo implements Payload {
                 .withSplitOutputTxHash(openOffer.getSplitOutputTxHash())
                 .withSplitOutputTxFee(openOffer.getSplitOutputTxFee())
                 .withChallenge(openOffer.getChallenge())
+                .withIsMyOffer(true)
                 .build();
     }
 
