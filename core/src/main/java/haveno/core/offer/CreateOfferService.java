@@ -143,7 +143,7 @@ public class CreateOfferService {
 
         // verify payment account supports trade currency
         if (paymentAccount.getTradeCurrencies().stream().noneMatch(tradeCurrency -> tradeCurrency.getCode().equals(currencyCode))) {
-            throw new IllegalArgumentException("Payment account does not support trade currency");
+            throw new IllegalArgumentException("Payment account does not support trade currency: " + currencyCode);
         }
 
         // verify fixed price xor market price with margin
@@ -253,12 +253,13 @@ public class CreateOfferService {
                             PaymentAccount paymentAccount,
                             String extraInfo) {
         String newOfferId = OfferUtil.getRandomOfferId();
-        log.info("Cloning offer with sourceId={}, " +
+        log.info("Creating cloned offer with sourceId={}, " +
                         "newOfferId={}, " +
                         "currencyCode={}, " +
                         "fixedPrice={}, " +
                         "useMarketBasedPrice={}, " +
                         "marketPriceMargin={}, " +
+                        "paymentAccountId={}, " +
                         "extraInfo={}",
                 sourceOffer.getId(),
                 newOfferId,
@@ -266,6 +267,7 @@ public class CreateOfferService {
                 fixedPrice == null ? null : fixedPrice.getValue(),
                 useMarketBasedPrice,
                 marketPriceMargin,
+                paymentAccount.getId(),
                 extraInfo);
 
         OfferPayload sourceOfferPayload = sourceOffer.getOfferPayload();
@@ -282,6 +284,12 @@ public class CreateOfferService {
                 sourceOfferPayload.isPrivateOffer(),
                 sourceOfferPayload.isBuyerAsTakerWithoutDeposit(),
                 extraInfo);
+
+        // maker fee cannot change
+        double newMakerFee = HavenoUtils.getMakerFeePct(currencyCode, sourceOfferPayload.isBuyerAsTakerWithoutDeposit());
+        if (sourceOfferPayload.getMakerFeePct() != newMakerFee) {
+            throw new IllegalArgumentException("Cannot clone offer with different maker fee, source maker fee: " + sourceOfferPayload.getMakerFeePct() + ", new maker fee: " + newMakerFee);
+        }
 
         // generate one-time challenge for private offer
         String challenge = null;
