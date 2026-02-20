@@ -845,29 +845,31 @@ public final class XmrConnectionService {
             keyImagePoller.poll(); // TODO: keep or remove first poll?s
         }).start();
 
+        // listen for account to be opened or password changed
+        if (!isInitialized) {
+            accountService.addListener(new AccountServiceListener() {
+
+                @Override
+                public void onAccountOpened() {
+                    try {
+                        log.info(getClass() + ".onAccountOpened() called");
+                        initialize();
+                    } catch (Exception e) {
+                        log.error("Error initializing connection service after account opened, error={}\n", e.getMessage(), e);
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                @Override
+                public void onPasswordChanged(String oldPassword, String newPassword) {
+                    log.info(getClass() + ".onPasswordChanged({}, {}) called", oldPassword == null ? null : "***", newPassword == null ? null : "***");
+                    connectionList.changePassword(oldPassword, newPassword);
+                }
+            });
+        }
+
         // initialize connections
         initializeConnections();
-
-        // listen for account to be opened or password changed
-        accountService.addListener(new AccountServiceListener() {
-
-            @Override
-            public void onAccountOpened() {
-                try {
-                    log.info(getClass() + ".onAccountOpened() called");
-                    initialize();
-                } catch (Exception e) {
-                    log.error("Error initializing connection service after account opened, error={}\n", e.getMessage(), e);
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public void onPasswordChanged(String oldPassword, String newPassword) {
-                log.info(getClass() + ".onPasswordChanged({}, {}) called", oldPassword == null ? null : "***", newPassword == null ? null : "***");
-                connectionList.changePassword(oldPassword, newPassword);
-            }
-        });
     }
 
     private void initializeConnections() {
