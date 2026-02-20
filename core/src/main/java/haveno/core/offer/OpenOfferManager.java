@@ -623,6 +623,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // activate offer on offer book
                 Offer offer = openOffer.getOffer();
+                log.info("Activating open offer: {}", openOffer.getId());
                 offerBookService.activateOffer(offer,
                         () -> {
                             openOffer.setState(OpenOffer.State.AVAILABLE);
@@ -652,6 +653,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                     ErrorMessageHandler errorMessageHandler) {
         Offer offer = openOffer.getOffer();
         if (openOffer.isAvailable()) {
+            log.info("Deactivating open offer: {}", openOffer.getId());
             offerBookService.deactivateOffer(offer.getOfferPayload(),
                     () -> {
                         openOffer.deactivate(deactivatedByTrigger);

@@ -42,7 +42,6 @@ import haveno.common.handlers.ResultHandler;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
@@ -205,9 +204,6 @@ public class CoreOffersService {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
 
-        PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
-        if (paymentAccount == null) throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId));
-
         // clone offer if sourceOfferId given
         if (!sourceOfferId.isEmpty()) {
             cloneOffer(sourceOfferId,
@@ -221,6 +217,15 @@ public class CoreOffersService {
                     resultHandler,
                     errorMessageHandler);
             return;
+        }
+
+        // get payment account
+        PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
+        if (paymentAccount == null) throw new IllegalArgumentException(format("Payment account with id %s not found", paymentAccountId));
+
+        // get trade currency (default to payment account's single trade currency)
+        if (currencyCode.isEmpty() && paymentAccount.getSingleTradeCurrency() != null) {
+            currencyCode = paymentAccount.getSingleTradeCurrency().getCode();
         }
 
         // create new offer
@@ -270,19 +275,25 @@ public class CoreOffersService {
         OpenOffer sourceOpenOffer = getMyOffer(sourceOfferId);
         Offer sourceOffer = sourceOpenOffer.getOffer();
 
-        // get trade currency (default source currency)
-        if (currencyCode.isEmpty()) currencyCode = sourceOffer.getOfferPayload().getBaseCurrencyCode();
-        if (currencyCode.equalsIgnoreCase(Res.getBaseCurrencyCode())) currencyCode = sourceOffer.getOfferPayload().getCounterCurrencyCode();
-        String upperCaseCurrencyCode = currencyCode.toUpperCase();
-
-        // get price (default source price)
-        Price price = useMarketBasedPrice ? null : priceAsString.isEmpty() ? sourceOffer.isUseMarketBasedPrice() ? null : sourceOffer.getPrice() : Price.parse(upperCaseCurrencyCode, priceAsString);
-        if (price == null) useMarketBasedPrice = true;
-
         // get payment account
         if (paymentAccountId.isEmpty()) paymentAccountId = sourceOffer.getOfferPayload().getMakerPaymentAccountId();
         PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
-        if (paymentAccount == null) throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId));
+        if (paymentAccount == null) throw new IllegalArgumentException(format("Payment account with id %s not found", paymentAccountId));
+
+        // get trade currency
+        if (currencyCode.isEmpty()) {
+            if (paymentAccountId.equals(sourceOffer.getOfferPayload().getMakerPaymentAccountId())) {
+                currencyCode = sourceOffer.getOfferPayload().getCurrencyCode();
+            } else if (paymentAccount.getSingleTradeCurrency() != null) {
+                currencyCode = paymentAccount.getSingleTradeCurrency().getCode();
+            }
+        }
+        if (currencyCode.isEmpty()) throw new IllegalArgumentException("Must provide currency code");
+        String upperCaseCurrencyCode = currencyCode.toUpperCase();
+
+        // get price (default to source price)
+        Price price = useMarketBasedPrice ? null : priceAsString.isEmpty() ? sourceOffer.isUseMarketBasedPrice() ? null : sourceOffer.getPrice() : Price.parse(upperCaseCurrencyCode, priceAsString);
+        if (price == null) useMarketBasedPrice = true;
 
         // get extra info
         if (extraInfo.isEmpty()) extraInfo = sourceOffer.getOfferPayload().getExtraInfo();
@@ -331,18 +342,21 @@ public class CoreOffersService {
             if (openOffer.isReserved()) {
                 throw new IllegalStateException("Cannot edit offer " + offer.getId() + " because it's reserved");
             }
-
-            // get currency code
-            if (currencyCode.isEmpty()) currencyCode = offer.getCounterCurrencyCode();
-            String upperCaseCurrencyCode = currencyCode.toUpperCase();
-
             // get payment account
             if (paymentAccountId.isEmpty()) paymentAccountId = offer.getOfferPayload().getMakerPaymentAccountId();
             PaymentAccount paymentAccount = user.getPaymentAccount(paymentAccountId);
             if (paymentAccount == null) throw new IllegalArgumentException(format("payment account with id %s not found", paymentAccountId)); // TODO: invoke error handler for this and other offer methods
 
-            // get preselected payment account
-            PaymentAccount preselectedPaymentAccount = getPreselectedPaymentAccount(paymentAccount, currencyCode);
+            // get trade currency
+            if (currencyCode.isEmpty()) {
+                if (paymentAccountId.equals(offer.getOfferPayload().getMakerPaymentAccountId())) {
+                    currencyCode = offer.getOfferPayload().getCurrencyCode();
+                } else if (paymentAccount.getSingleTradeCurrency() != null) {
+                    currencyCode = paymentAccount.getSingleTradeCurrency().getCode();
+                }
+            }
+            if (currencyCode.isEmpty()) throw new IllegalArgumentException("Must provide currency code");
+            String upperCaseCurrencyCode = currencyCode.toUpperCase();
 
             // start edit offer
             OpenOffer.State initialState = openOffer.getState();
@@ -364,7 +378,7 @@ public class CoreOffersService {
                             useMarketBasedPrice,
                             marketPriceMarginPct,
                             offerPayload.getBuyerSecurityDepositPct(),
-                            preselectedPaymentAccount,
+                            paymentAccount,
                             offerPayload.isPrivateOffer(),
                             offer.hasBuyerAsTakerWithoutDeposit(),
                             extraInfo).getOfferPayload();
@@ -408,6 +422,13 @@ public class CoreOffersService {
         // fields which are editable are merged in from newOfferPayload (such as payment account details)
         // fields which cannot change (most importantly XMR amount) are sourced from the original offerPayload
         final OfferPayload offerPayload = openOffer.getOffer().getOfferPayload();
+
+        // maker fee cannot change
+        double newMakerFee = HavenoUtils.getMakerFeePct(newOfferPayload.getCurrencyCode(), newOfferPayload.isBuyerAsTakerWithoutDeposit());
+        if (openOffer.getOffer().getOfferPayload().getMakerFeePct() != newMakerFee) {
+            throw new IllegalArgumentException("Cannot edit offer with different maker fee, original maker fee: " + openOffer.getOffer().getOfferPayload().getMakerFeePct() + ", new maker fee: " + newMakerFee);
+        }
+
         final OfferPayload editedPayload = new OfferPayload(offerPayload.getId(),
                 offerPayload.getDate(),
                 offerPayload.getOwnerNodeAddress(),
@@ -419,7 +440,7 @@ public class CoreOffersService {
                 offerPayload.getAmount(),
                 offerPayload.getMinAmount(),
                 offerPayload.getMakerFeePct(),
-                offerPayload.getTakerFeePct(),
+                HavenoUtils.getTakerFeePct(newOfferPayload.getCurrencyCode(), newOfferPayload.isBuyerAsTakerWithoutDeposit()),
                 offerPayload.getPenaltyFeePct(),
                 offerPayload.getBuyerSecurityDepositPct(),
                 offerPayload.getSellerSecurityDepositPct(),
