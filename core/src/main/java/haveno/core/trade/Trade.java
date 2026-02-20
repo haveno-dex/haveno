@@ -2659,11 +2659,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public void maybeUpdateTradePeriod() {
 
         // skip if possible
-        if (startTime > 0) return; // already set
-        if (getTakeOfferDate() == null) return; // trade not started yet
-        if (!isDepositsFinalized()) return; // deposits not finalized yet
+        synchronized (startTimeLock) {
+            if (startTime > 0) return; // already set
+            if (getTakeOfferDate() == null) return; // trade not started yet
+            if (!isDepositsFinalized()) return; // deposits not finalized yet
+        }
 
-        // get last finalized height of deposit txs
+        // get last finalized height of deposit txs (do not keep lock to prevent deadlock)
         Long finalizedHeight = null;
         synchronized (walletLock) {
             if (getWallet() == null) throw new RuntimeException("Cannot set start time for trade " + getId() + " because cannot get its wallet");
