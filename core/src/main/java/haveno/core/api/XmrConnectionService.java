@@ -178,6 +178,7 @@ public final class XmrConnectionService {
         this.socks5ProxyProvider = socks5ProxyProvider;
 
         // set static references in HavenoUtils // TODO: better way?
+        HavenoUtils.xmrConnectionService = this;
         HavenoUtils.preferences = preferences;
 
         // initialize when connected to p2p network
@@ -947,7 +948,7 @@ public final class XmrConnectionService {
                     // add default connections
                     for (XmrNode node : xmrNodes.getAllXmrNodes()) {
                         if (node.hasClearNetAddress()) {
-                            if (!xmrLocalNode.shouldBeIgnored() || !xmrLocalNode.equalsUri(node.getClearNetUri())) {
+                            if (!(xmrLocalNode.equalsUri(node.getClearNetUri()) && xmrLocalNode.shouldBeIgnored())) {
                                 MoneroRpcConnection connection = new MoneroRpcConnection(node.getHostNameOrAddress() + ":" + node.getPort()).setPriority(node.getPriority());
                                 if (!connectionList.hasConnection(connection.getUri())) addConnection(connection);
                             }
@@ -962,7 +963,7 @@ public final class XmrConnectionService {
                     // add default connections
                     for (XmrNode node : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
                         if (node.hasClearNetAddress()) {
-                            if (!xmrLocalNode.shouldBeIgnored() || !xmrLocalNode.equalsUri(node.getClearNetUri())) {
+                            if (!(xmrLocalNode.equalsUri(node.getClearNetUri()) && xmrLocalNode.shouldBeIgnored())) {
                                 MoneroRpcConnection connection = new MoneroRpcConnection(node.getHostNameOrAddress() + ":" + node.getPort()).setPriority(node.getPriority());
                                 addConnection(connection);
                             }
@@ -976,7 +977,7 @@ public final class XmrConnectionService {
 
                 // restore last connection
                 if (connectionList.getCurrentConnectionUri().isPresent() && hasConnection(connectionList.getCurrentConnectionUri().get())) {
-                    if (!xmrLocalNode.shouldBeIgnored() || !xmrLocalNode.equalsUri(connectionList.getCurrentConnectionUri().get())) {
+                    if (!(xmrLocalNode.equalsUri(connectionList.getCurrentConnectionUri().get()) && xmrLocalNode.shouldBeIgnored())) {
                         initialConnection = getConnection(connectionList.getCurrentConnectionUri().get());
                     }
                 }
@@ -1010,6 +1011,9 @@ public final class XmrConnectionService {
         // notify initial connection
         lastRefreshPeriodMs = getRefreshPeriodMs();
         setConnection(initialConnection, initialInfo);
+
+        // start background polling local node manager
+        xmrLocalNode.startPolling();
     }
 
     public boolean isAutoSwitch() {

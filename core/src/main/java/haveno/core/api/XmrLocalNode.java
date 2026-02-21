@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroRpcConnection;
 import monero.common.MoneroUtils;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
@@ -83,25 +84,31 @@ public class XmrLocalNode {
         this.preferences = preferences;
         this.xmrNodes = xmrNodes;
         this.daemon = new MoneroDaemonRpc(getUri());
-        startPolling();
     }
 
-    private void startPolling() {
+    public void startPolling() {
+        if (monerodPoller != null) monerodPoller.stop();
         monerodPoller = new TaskLooper(() -> pollMonerod());
         monerodPoller.start(REFRESH_PERIOD_LOCAL_MS);
     }
 
     private void pollMonerod() {
 
+        // skip if connection manager is already polling default local connection
+        MoneroRpcConnection connection = HavenoUtils.xmrConnectionService.getConnection();
+        if (connection != null && equalsUri(connection.getUri())) {
+            return;
+        }
+
         // check connection
         checkConnection();
+
+        // determine if connection changed
         Boolean isOnline = daemon.getRpcConnection().isOnline();
         Boolean isAuthenticated = daemon.getRpcConnection().isAuthenticated();
         MoneroDaemonInfo lastInfo = XmrConnectionService.getCachedDaemonInfo(daemon.getRpcConnection());
         Boolean isSyncedWithinTolerance = null;
         if (lastInfo != null) isSyncedWithinTolerance = XmrConnectionService.isSyncedWithinTolerance(lastInfo);
-
-        // determine if connection changed
         boolean change = lastOnline != isOnline || lastAuthenticated != isAuthenticated || lastSyncedWithinTolerance != isSyncedWithinTolerance;
 
         // update cached state
