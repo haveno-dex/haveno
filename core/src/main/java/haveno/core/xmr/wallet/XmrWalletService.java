@@ -174,9 +174,8 @@ public class XmrWalletService extends XmrWalletBase {
         this.walletDir = walletDir;
         this.rpcBindPort = rpcBindPort;
         this.useNativeXmrWallet = useNativeXmrWallet;
-        HavenoUtils.xmrWalletService = this;
-        HavenoUtils.xmrConnectionService = xmrConnectionService;
         this.xmrConnectionService = xmrConnectionService; // TODO: super's is null unless set here from injection
+        HavenoUtils.xmrWalletService = this;
 
         // reset thread pool
         ThreadUtils.reset(THREAD_ID);
