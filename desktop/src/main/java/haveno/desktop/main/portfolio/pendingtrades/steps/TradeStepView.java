@@ -35,6 +35,7 @@ import haveno.core.trade.MakerTrade;
 import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.user.Preferences;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.InfoTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.TxIdTextField;
@@ -97,6 +98,7 @@ public abstract class TradeStepView extends AnchorPane {
     protected Label statusLabel;
     protected String syncStatus;
     protected String tradeStatus;
+    private ChangeListener<Number> depositsListener;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -237,6 +239,13 @@ public abstract class TradeStepView extends AnchorPane {
             };
             initialized.addListener(pendingTradesInitializedListener);
         }
+
+        depositsListener = (observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                UserThread.execute(() -> onDepositTxsUpdate());
+            }
+        };
+        trade.getDepositTxsUpdateCounter().addListener(depositsListener);
     }
 
     protected void onPendingTradesInitialized() {
@@ -352,6 +361,21 @@ public abstract class TradeStepView extends AnchorPane {
             acceptMediationResultPopup.hide();
             acceptMediationResultPopup = null;
         }
+
+        if (depositsListener != null) {
+            trade.getDepositTxsUpdateCounter().removeListener(depositsListener);
+            depositsListener = null;
+        }
+    }
+
+    protected void onDepositTxsUpdate() {
+        // no default action
+    }
+
+    protected long getNumMinutesToUnlock() {
+        long numDepositConfirmations = trade.getNumDepositConfirmations() == null ? 0 : trade.getNumDepositConfirmations();
+        long numMinutesToUnlock = (Math.max(0, XmrWalletService.NUM_BLOCKS_UNLOCK - numDepositConfirmations)) * 2;
+        return numMinutesToUnlock;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
