@@ -163,6 +163,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
     private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 2;
     private static final Object IDLE_BLOCK_POLLER_LOCK = new Object(); // global lock to serialize idle trade polling
+    private static final Object SYNC_DELAY_LOCK = new Object();
+    private static final long SYNC_DELAY_MS = 3000;
+    private static final long MAX_SYNC_DELAY_MS = 30000;
+    private static Long firstSyncDelay = null;
     protected final Object pollLock = new Object();
     private final Object removeTradeOnErrorLock = new Object();
     private boolean pollInProgress;
@@ -3124,10 +3128,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             }, syncDelayInMs, TimeUnit.MILLISECONDS);
         } else {
 
-            // add random delay to avoid syncing trades at same time on startup
-            if (processModel.getTradeManager().getOpenTrades().size() > 1) {
-                long syncDelayInMs = Math.max(1, ThreadLocalRandom.current().nextLong(0, xmrConnectionService.getRefreshPeriodMs()));
-                HavenoUtils.waitFor(syncDelayInMs);
+            // stagger wallet syncs on startup up to 30s
+            if (!isArbitrator() && !xmrConnectionService.isConnectionLocalHost()) {
+                synchronized (SYNC_DELAY_LOCK) {
+                    if (firstSyncDelay == null) firstSyncDelay = System.currentTimeMillis();
+                    if (System.currentTimeMillis() - firstSyncDelay < MAX_SYNC_DELAY_MS) {
+                        HavenoUtils.waitFor(SYNC_DELAY_MS);
+                    }
+                }
             }
             doTryInitSyncing();
         }
