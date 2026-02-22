@@ -903,6 +903,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         // check offer availability and create trade if available
         checkOfferAvailability(offer, isTakerApiUser, paymentAccountId, tradeAmount, () -> {
             if (offer.getState() == Offer.State.AVAILABLE) {
+                if (ThreadUtils.isShutDown(offer.getId())) ThreadUtils.reset(offer.getId());
                 ThreadUtils.execute(() -> {
                     try {
 

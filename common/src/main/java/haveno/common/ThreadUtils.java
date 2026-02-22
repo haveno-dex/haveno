@@ -111,6 +111,14 @@ public class ThreadUtils {
         }
     }
 
+    public static boolean isShutDown(String threadId) {
+        synchronized (EXECUTORS) {
+            if (!EXECUTORS.containsKey(threadId)) return false;
+            ExecutorService executor = EXECUTORS.get(threadId);
+            return executor.isShutdown();
+        }
+    }
+
     // TODO: consolidate and cleanup apis
 
     public static Future<?> submitToPool(Runnable task) {
