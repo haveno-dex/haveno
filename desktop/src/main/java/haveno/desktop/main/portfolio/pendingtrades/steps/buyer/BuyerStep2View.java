@@ -491,7 +491,7 @@ public class BuyerStep2View extends TradeStepView {
 
         // add text
         Label label = new Label(Res.get("portfolio.pending.step2_buyer.additionalConf", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
-        label.setFont(new Font(16));
+        label.setFont(new Font(15));
         GridPane.setMargin(label, new Insets(20, 0, 0, 0));
         moreConfirmationsGridPane.add(label, 0, 1, 2, 1);
 
