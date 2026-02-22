@@ -40,4 +40,7 @@ Default value is `yes`.
 
   <!-- NEW GUID for fork -->
   <?define JpProductUpgradeCode = "2ee3b260-192b-4938-aac7-9ab318918bc6"?>
+
+  <!-- Also use new product code -->
+  <?define JpProductCode = "*"?>
 </Include>
