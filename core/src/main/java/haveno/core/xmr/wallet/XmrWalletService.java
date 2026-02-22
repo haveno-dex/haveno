@@ -123,6 +123,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
     private static final long POLL_TXS_TOLERANCE_MS = 1000 * 60 * 3; // request connection switch if txs not updated within 3 minutes
     private static final boolean TEST_STARTUP_SYNC_ERROR = false;
+    private static final long STARTUP_SYNC_DELAY_MS = 5000;
 
     private final User user;
     private final Preferences preferences;
@@ -1366,6 +1367,12 @@ public class XmrWalletService extends XmrWalletBase {
                     // attempt to sync wallet on startup or open application without syncing
                     for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
                         try {
+
+                            // wait before first poll to avoid rate limiting
+                            if (i == 0 && !xmrConnectionService.isConnectionLocalHost()) {
+                                HavenoUtils.waitFor(STARTUP_SYNC_DELAY_MS);
+                            }
+
                             doPollWallet();
                             break;
                         } catch (Exception e) {
