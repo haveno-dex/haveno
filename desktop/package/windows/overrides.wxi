@@ -30,4 +30,14 @@ Should be defined to enable upgrades and undefined to disable upgrades.
 Default value is `yes`.
 -->
 <Include>
+  <!-- Fork-specific identity to allow side-by-side installs with other networks -->
+
+  <!-- Used as Product Name and also the exe name in this template (see main.wxs) -->
+  <?define JpAppName = "HavenoNova"?>
+
+  <!-- Shows in Apps & Features -->
+  <?define JpAppVendor = "Haveno Nova"?>
+
+  <!-- NEW GUID for fork -->
+  <?define JpProductUpgradeCode = "2ee3b260-192b-4938-aac7-9ab318918bc6"?>
 </Include>
