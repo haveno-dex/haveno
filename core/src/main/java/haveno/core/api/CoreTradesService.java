@@ -125,7 +125,7 @@ class CoreTradesService {
             // adjust amount for fixed-price offer (based on TakeOfferViewModel)
             String currencyCode = offer.getCounterCurrencyCode();
             OfferDirection direction = offer.getOfferPayload().getDirection();
-            BigInteger maxAmount = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
+            BigInteger maxAmount = offer.getAmount().min(offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit()));
             if (offer.getPrice() != null) {
                 if (PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId())) {
                     amount = CoinUtil.getRoundedAtmCashAmount(amount, offer.getPrice(), offer.getMinAmount(), maxAmount);

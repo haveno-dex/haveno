@@ -83,7 +83,7 @@ public class CoinUtil {
                 return getRoundedAmountUnit(amount, price, minAmount, maxAmount);
             }
         }
-        return getRoundedAmount4Decimals(amount);
+        return getRoundedAmount4Decimals(amount, maxAmount);
     }
 
     public static BigInteger getRoundedAtmCashAmount(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount) {
@@ -104,10 +104,19 @@ public class CoinUtil {
         return getAdjustedAmount(amount, price, minAmount, maxAmount, 1);
     }
     
-    public static BigInteger getRoundedAmount4Decimals(BigInteger amount) {
+    public static BigInteger getRoundedAmount4Decimals(BigInteger amount, BigInteger maxAmount) {
+
+        // get rounded amount
         DecimalFormat decimalFormat = new DecimalFormat("#.####", HavenoUtils.DECIMAL_FORMAT_SYMBOLS);
-        double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
-        return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);
+        double roundedAmountDouble = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
+        BigInteger roundedAmount = HavenoUtils.xmrToAtomicUnits(roundedAmountDouble);
+
+        // get rounded down max amount
+        BigInteger factor = BigInteger.TEN.pow(8); // 12 - 4
+        BigInteger roundedMaxAmount = maxAmount.divide(factor).multiply(factor);
+
+        // return minimum
+        return roundedAmount.min(roundedMaxAmount);
     }
 
     /**
