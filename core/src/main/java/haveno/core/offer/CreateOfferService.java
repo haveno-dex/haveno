@@ -128,7 +128,7 @@ public class CreateOfferService {
                 securityDepositPct,
                 isPrivateOffer,
                 buyerAsTakerWithoutDeposit,
-                extraInfo);
+                extraInfo == null ? null : "\"" + extraInfo + "\"");
 
         // must nullify empty string so contracts match
         if ("".equals(extraInfo)) extraInfo = null;
@@ -161,10 +161,16 @@ public class CreateOfferService {
             throw new IllegalArgumentException("Must provide fixed price");
         }
 
-        // adjust amount and min amount
+        // verify offer amounts
         BigInteger maxTradeLimit = offerUtil.getMaxTradeLimitForRelease(paymentAccount, currencyCode, direction, buyerAsTakerWithoutDeposit);
-        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, Restrictions.getMinTradeAmount(), maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
-        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, Restrictions.getMinTradeAmount(), maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
+        BigInteger minTradeLimit = Restrictions.getMinTradeAmount();
+        if (amount.compareTo(maxTradeLimit) > 0) throw new IllegalArgumentException("Amount must be below maximum amount of " + HavenoUtils.atomicUnitsToXmr(maxTradeLimit) + " XMR");
+        if (minAmount.compareTo(minTradeLimit) < 0) throw new IllegalArgumentException("Amount must be above minimum amount of " + HavenoUtils.atomicUnitsToXmr(minTradeLimit) + " XMR");
+        if (amount.compareTo(minAmount) < 0) throw new IllegalArgumentException("Minimum amount is larger than amount");
+
+        // adjust amount and min amount
+        amount = CoinUtil.getRoundedAmount(amount, fixedPrice, minTradeLimit, maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
+        minAmount = CoinUtil.getRoundedAmount(minAmount, fixedPrice, minTradeLimit, maxTradeLimit, currencyCode, paymentAccount.getPaymentMethod().getId());
 
         // generate one-time challenge for private offer
         String challenge = null;

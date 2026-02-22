@@ -30,7 +30,6 @@ import org.bitcoinj.core.Coin;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.core.util.VolumeUtil.getAdjustedVolumeUnit;
@@ -83,7 +82,7 @@ public class CoinUtil {
                 return getRoundedAmountUnit(amount, price, minAmount, maxAmount);
             }
         }
-        return getRoundedAmount4Decimals(amount);
+        return getRoundedAmount4Decimals(amount, minAmount, maxAmount);
     }
 
     public static BigInteger getRoundedAtmCashAmount(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount) {
@@ -103,12 +102,6 @@ public class CoinUtil {
     public static BigInteger getRoundedAmountUnit(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount) {
         return getAdjustedAmount(amount, price, minAmount, maxAmount, 1);
     }
-    
-    public static BigInteger getRoundedAmount4Decimals(BigInteger amount) {
-        DecimalFormat decimalFormat = new DecimalFormat("#.####", HavenoUtils.DECIMAL_FORMAT_SYMBOLS);
-        double roundedXmrAmount = Double.parseDouble(decimalFormat.format(HavenoUtils.atomicUnitsToXmr(amount)));
-        return HavenoUtils.xmrToAtomicUnits(roundedXmrAmount);
-    }
 
     /**
      * Calculate the possibly adjusted amount for {@code amount}, taking into account the
@@ -124,26 +117,8 @@ public class CoinUtil {
      */
     @VisibleForTesting
     static BigInteger getAdjustedAmount(BigInteger amount, Price price, BigInteger minAmount, BigInteger maxAmount, int factor) {
-        checkArgument(
-                amount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
-                "amount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(amount) + " xmr"
-        );
         if (minAmount == null) minAmount = Restrictions.getMinTradeAmount();
-        checkArgument(
-                minAmount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
-                "minAmount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(minAmount) + " xmr"
-        );
-        if (maxAmount != null) {
-            checkArgument(
-                amount.longValueExact() <= maxAmount.longValueExact(),
-                "amount must be below maximum of " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(amount) + " xmr"
-            );
-            checkArgument(
-                maxAmount.longValueExact() >= minAmount.longValueExact(),
-                "maxAmount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " xmr"
-            );
-        }
-
+        checkOfferAmountRange(amount, minAmount, maxAmount);
         checkArgument(
                 factor > 0,
                 "factor must be positive"
@@ -163,7 +138,7 @@ public class CoinUtil {
         if (volume.getValue() <= 0) return BigInteger.ZERO;
 
         // From that adjusted volume we calculate back the amount. It might be a bit different as
-        // the amount used as input before due rounding.
+        // the amount used as input before due to rounding.
         BigInteger amountByVolume = price.getAmountByVolume(volume);
 
         // For the amount we allow only 4 decimal places
@@ -187,5 +162,60 @@ public class CoinUtil {
         adjustedAmount = Math.max(minAmount.longValueExact(), adjustedAmount);
         if (maxAmount != null) adjustedAmount = Math.min(maxAmount.longValueExact(), adjustedAmount);
         return BigInteger.valueOf(adjustedAmount);
+    }
+
+    public static BigInteger getRoundedAmount4Decimals(BigInteger amount, BigInteger minAmount, BigInteger maxAmount) {
+        if (minAmount == null) minAmount = Restrictions.getMinTradeAmount();
+        checkOfferAmountRange(amount, minAmount, maxAmount);
+
+        // round to nearest 4 decimals
+        BigInteger factor = BigInteger.TEN.pow(8); // 4 decimals in XMR (12 total) = 10^(12-4) = 10^8
+        BigInteger roundedAmount = amount.add(factor.divide(BigInteger.valueOf(2)))
+                .divide(factor)
+                .multiply(factor);
+
+        // round up to nearest 4 decimal increment if below min amount
+        if (roundedAmount.compareTo(minAmount) < 0) {
+            roundedAmount = amount.add(factor.subtract(BigInteger.ONE))
+                    .divide(factor)
+                    .multiply(factor);
+            
+            // step up one more factor if still below min amount (e.g. min isn't a multiple of factor)
+            if (roundedAmount.compareTo(minAmount) < 0) {
+                roundedAmount = roundedAmount.add(factor);
+            }
+        }
+
+        // round down to nearest 4 decimal increment if above max amount
+        if (maxAmount != null) {
+            BigInteger roundedMaxAmount = maxAmount.divide(factor).multiply(factor);
+            roundedAmount = roundedAmount.min(roundedMaxAmount);
+        }
+
+        // verify rounding
+        if (minAmount != null && roundedAmount.compareTo(minAmount) < 0) throw new IllegalStateException("Rounded amount " + HavenoUtils.atomicUnitsToXmr(roundedAmount) + " XMR is below minimum of " + HavenoUtils.atomicUnitsToXmr(minAmount) + " XMR. That should never happen.");
+        if (maxAmount != null && roundedAmount.compareTo(maxAmount) > 0) throw new IllegalStateException("Rounded amount " + HavenoUtils.atomicUnitsToXmr(roundedAmount) + " XMR is above maximum of " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " XMR. That should never happen.");
+        return roundedAmount;
+    }
+
+    private static void checkOfferAmountRange(BigInteger amount, BigInteger minAmount, BigInteger maxAmount) {
+        checkArgument(
+                amount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
+                "amount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(amount) + " xmr"
+        );
+        checkArgument(
+                minAmount.longValueExact() >= Restrictions.getMinTradeAmount().longValueExact(),
+                "minAmount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(minAmount) + " xmr"
+        );
+        if (maxAmount != null) {
+            checkArgument(
+                amount.longValueExact() <= maxAmount.longValueExact(),
+                "amount must be below maximum of " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(amount) + " xmr"
+            );
+            checkArgument(
+                maxAmount.longValueExact() >= minAmount.longValueExact(),
+                "maxAmount must be above minimum of " + HavenoUtils.atomicUnitsToXmr(Restrictions.getMinTradeAmount()) + " xmr but was " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " xmr"
+            );
+        }
     }
 }
