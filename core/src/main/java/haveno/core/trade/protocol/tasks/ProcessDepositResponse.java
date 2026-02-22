@@ -38,6 +38,12 @@ public class ProcessDepositResponse extends TradeTask {
         try {
           runInterceptHook();
 
+          // ignore if deposits confirmed
+          if (trade.isDepositsConfirmed()) {
+            complete();
+            return;
+          }
+
           // handle error
           DepositResponse message = (DepositResponse) processModel.getTradeMessage();
           if (message.getErrorMessage() != null) {
