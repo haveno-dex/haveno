@@ -891,7 +891,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     // First we check if offer is still available then we create the trade with the protocol
-    public void onTakeOffer(BigInteger amount,
+    public void onTakeOffer(BigInteger tradeAmount,
                             BigInteger fundsNeededForTrade,
                             Offer offer,
                             String paymentAccountId,
@@ -899,74 +899,86 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             boolean isTakerApiUser,
                             TradeResultHandler tradeResultHandler,
                             ErrorMessageHandler errorMessageHandler) {
-        ThreadUtils.execute(() -> {
-            checkArgument(!wasOfferAlreadyUsedInTrade(offer.getId()));
 
-            // validate inputs
-            if (amount.compareTo(offer.getAmount()) > 0) throw new RuntimeException("Trade amount exceeds offer amount");
-            if (amount.compareTo(offer.getMinAmount()) < 0) throw new RuntimeException("Trade amount is less than minimum offer amount");
-    
-            // ensure trade is not already open
-            Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
-            if (tradeOptional.isPresent()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + offer.getId() + " is already open");
+        // check offer availability and create trade if available
+        checkOfferAvailability(offer, isTakerApiUser, paymentAccountId, tradeAmount, () -> {
+            if (offer.getState() == Offer.State.AVAILABLE) {
+                ThreadUtils.execute(() -> {
+                    try {
 
-            // ensure failed trade is not processing
-            tradeOptional = getFailedTrade(offer.getId());
-            if (tradeOptional.isPresent() && tradeOptional.get().walletExists()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + offer.getId() + " has failed but is not processed");
-    
-            // create trade
-            Trade trade;
-            if (offer.isBuyOffer()) {
-                trade = new SellerAsTakerTrade(offer,
-                        amount,
-                        offer.getPrice().getValue(),
-                        xmrWalletService,
-                        getNewProcessModel(offer),
-                        UUID.randomUUID().toString(),
-                        offer.getMakerNodeAddress(),
-                        P2PService.getMyNodeAddress(),
-                        null,
-                        offer.getChallenge());
+                        // check that offer is not already used in a trade
+                        checkArgument(!wasOfferAlreadyUsedInTrade(offer.getId()));
+
+                        // check that trade is not already open
+                        Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
+                        if (tradeOptional.isPresent()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + offer.getId() + " is already open");
+
+                        // check that failed trade is not processing
+                        tradeOptional = getFailedTrade(offer.getId());
+                        if (tradeOptional.isPresent() && tradeOptional.get().walletExists()) throw new RuntimeException("Cannot create trade protocol because trade with ID " + offer.getId() + " has failed but is not processed");
+
+                        // create trade
+                        Trade trade;
+                        if (offer.isBuyOffer()) {
+                            trade = new SellerAsTakerTrade(offer,
+                                    tradeAmount,
+                                    offer.getPrice().getValue(),
+                                    xmrWalletService,
+                                    getNewProcessModel(offer),
+                                    UUID.randomUUID().toString(),
+                                    offer.getMakerNodeAddress(),
+                                    P2PService.getMyNodeAddress(),
+                                    null,
+                                    offer.getChallenge());
+                        } else {
+                            trade = new BuyerAsTakerTrade(offer,
+                                    tradeAmount,
+                                    offer.getPrice().getValue(),
+                                    xmrWalletService,
+                                    getNewProcessModel(offer),
+                                    UUID.randomUUID().toString(),
+                                    offer.getMakerNodeAddress(),
+                                    P2PService.getMyNodeAddress(),
+                                    null,
+                                    offer.getChallenge());
+                        }
+                        trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
+                        trade.getProcessModel().setFundsNeededForTrade(fundsNeededForTrade.longValueExact());
+                        trade.getMaker().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
+                        trade.getMaker().setPubKeyRing(offer.getPubKeyRing());
+                        trade.getSelf().setPubKeyRing(keyRing.getPubKeyRing());
+                        trade.getSelf().setPaymentAccountId(paymentAccountId);
+                        trade.getSelf().setPaymentMethodId(user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId());
+                
+                        // initialize trade protocol
+                        TradeProtocol tradeProtocol = createTradeProtocol(trade);
+                        addTrade(trade);
+                        initTradeAndProtocol(trade, tradeProtocol);
+                        trade.addInitProgressStep();
+
+                        // process with protocol
+                        ((TakerProtocol) tradeProtocol).onTakeOffer(result -> {
+                            tradeResultHandler.handleResult(trade);
+                            requestPersistence();
+                        }, errorMessage -> {
+                            log.warn("Taker error during trade initialization: " + errorMessage);
+                            trade.onProtocolInitializationError();
+                            xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move this into protocol error handling
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                        });
+
+                        requestPersistence();
+                    } catch (Throwable t) {
+                        log.warn("Error taking offer: " + t.getMessage(), t);
+                        errorMessageHandler.handleErrorMessage(t.getMessage());
+                    }
+                }, offer.getId());
             } else {
-                trade = new BuyerAsTakerTrade(offer,
-                        amount,
-                        offer.getPrice().getValue(),
-                        xmrWalletService,
-                        getNewProcessModel(offer),
-                        UUID.randomUUID().toString(),
-                        offer.getMakerNodeAddress(),
-                        P2PService.getMyNodeAddress(),
-                        null,
-                        offer.getChallenge());
-            }
-            trade.getProcessModel().setUseSavingsWallet(useSavingsWallet);
-            trade.getProcessModel().setFundsNeededForTrade(fundsNeededForTrade.longValueExact());
-            trade.getMaker().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
-            trade.getMaker().setPubKeyRing(offer.getPubKeyRing());
-            trade.getSelf().setPubKeyRing(keyRing.getPubKeyRing());
-            trade.getSelf().setPaymentAccountId(paymentAccountId);
-            trade.getSelf().setPaymentMethodId(user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId());
-    
-            // initialize trade protocol
-            TradeProtocol tradeProtocol = createTradeProtocol(trade);
-            addTrade(trade);
-    
-            initTradeAndProtocol(trade, tradeProtocol);
-            trade.addInitProgressStep();
-    
-            // process with protocol
-            ((TakerProtocol) tradeProtocol).onTakeOffer(result -> {
-                tradeResultHandler.handleResult(trade);
-                requestPersistence();
-            }, errorMessage -> {
-                log.warn("Taker error during trade initialization: " + errorMessage);
-                trade.onProtocolInitializationError();
-                xmrWalletService.resetAddressEntriesForOpenOffer(trade.getId()); // TODO: move this into protocol error handling
+                String errorMessage = "Cannot take offer " + offer.getId() + " because it's not available, state=" + offer.getState();
+                log.warn(errorMessage);
                 errorMessageHandler.handleErrorMessage(errorMessage);
-            });
-    
-            requestPersistence();
-        }, offer.getId());
+            }
+        }, errorMessageHandler);
     }
 
     private ProcessModel getNewProcessModel(Offer offer) {

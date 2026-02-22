@@ -106,7 +106,7 @@ class CoreTradesService {
 
     void takeOffer(Offer offer,
                    String paymentAccountId,
-                   long amountAsLong,
+                   long tradeAmountAsLong,
                    Consumer<Trade> resultHandler,
                    ErrorMessageHandler errorMessageHandler) {
         try {
@@ -120,30 +120,34 @@ class CoreTradesService {
             var useSavingsWallet = true;
 
             // default to offer amount
-            BigInteger amount = amountAsLong == 0 ? offer.getAmount() : BigInteger.valueOf(amountAsLong);
+            BigInteger tradeAmount = tradeAmountAsLong == 0 ? offer.getAmount() : BigInteger.valueOf(tradeAmountAsLong);
 
-            // adjust amount for fixed-price offer (based on TakeOfferViewModel)
+            // validate trade amount
+            if (tradeAmount.compareTo(offer.getAmount()) > 0) throw new RuntimeException("Trade amount exceeds offer amount");
+            if (tradeAmount.compareTo(offer.getMinAmount()) < 0) throw new RuntimeException("Trade amount is less than minimum offer amount");
+
+            // apply rounding (based on TakeOfferViewModel)
             String currencyCode = offer.getCounterCurrencyCode();
             OfferDirection direction = offer.getOfferPayload().getDirection();
-            BigInteger maxAmount = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit());
+            BigInteger maxAmount = offer.getAmount().min(offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, offer.hasBuyerAsTakerWithoutDeposit()));
             if (offer.getPrice() != null) {
                 if (PaymentMethod.isRoundedForAtmCash(paymentAccount.getPaymentMethod().getId())) {
-                    amount = CoinUtil.getRoundedAtmCashAmount(amount, offer.getPrice(), offer.getMinAmount(), maxAmount);
+                    tradeAmount = CoinUtil.getRoundedAtmCashAmount(tradeAmount, offer.getPrice(), offer.getMinAmount(), maxAmount);
                 } else if (offer.isTraditionalOffer() && offer.isRange()) {
-                    amount = CoinUtil.getRoundedAmount(amount, offer.getPrice(), offer.getMinAmount(), maxAmount, offer.getCounterCurrencyCode(), offer.getPaymentMethodId());
+                    tradeAmount = CoinUtil.getRoundedAmount(tradeAmount, offer.getPrice(), offer.getMinAmount(), maxAmount, offer.getCounterCurrencyCode(), offer.getPaymentMethodId());
                 }
             }
 
             // synchronize access to take offer model // TODO (woodser): to avoid synchronizing, don't use stateful model
             BigInteger fundsNeededForTrade;
             synchronized (takeOfferModel) {
-                takeOfferModel.initModel(offer, paymentAccount, amount, useSavingsWallet);
+                takeOfferModel.initModel(offer, paymentAccount, tradeAmount, useSavingsWallet);
                 fundsNeededForTrade = takeOfferModel.getFundsNeededForTrade();
                 log.debug("Initiating take {} offer, {}", offer.isBuyOffer() ? "buy" : "sell", takeOfferModel);
             }
 
             // take offer
-            tradeManager.onTakeOffer(amount,
+            tradeManager.onTakeOffer(tradeAmount,
                     fundsNeededForTrade,
                     offer,
                     paymentAccountId,

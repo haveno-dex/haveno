@@ -27,6 +27,7 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.user.User;
+import haveno.core.xmr.wallet.Restrictions;
 import org.bitcoinj.core.Coin;
 
 import java.math.BigInteger;
@@ -102,8 +103,11 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
 
         long maxAmount = accountAgeWitnessService.getMyTradeLimit(user.getPaymentAccount(offer.getMakerPaymentAccountId()), offer.getCounterCurrencyCode(), offer.getDirection(), offer.hasBuyerAsTakerWithoutDeposit());
         checkArgument(offer.getAmount().longValueExact() <= maxAmount,
-                "Amount is larger than " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " XMR");
-        checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "MinAmount is larger than Amount");
+                "Amount must be below maximum amount of " + HavenoUtils.atomicUnitsToXmr(maxAmount) + " XMR");
+        long minAmount = Restrictions.getMinTradeAmount().longValue();
+        checkArgument(offer.getMinAmount().longValueExact() >= minAmount,
+                "Amount must be above minimum amount of " + HavenoUtils.atomicUnitsToXmr(minAmount) + " XMR");
+        checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "Minimum amount is larger than amount");
 
         checkNotNull(offer.getPrice(), "Price is null");
         if (!offer.isUseMarketBasedPrice()) checkArgument(offer.getPrice().isPositive(),
