@@ -51,7 +51,12 @@ public class BuyerStep1View extends TradeStepView {
 
     @Override
     protected String getInfoText() {
-        return Res.get("portfolio.pending.step1.info.you");
+        return Res.get("portfolio.pending.step1.info.you", getNumMinutesToUnlock());
+    }
+
+    @Override
+    public void onDepositTxsUpdate() {
+        infoLabel.setText(getInfoText());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
