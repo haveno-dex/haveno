@@ -128,10 +128,15 @@ jobs:
             mkdir ${{ github.workspace }}/release-linux-deb
             mkdir ${{ github.workspace }}/release-linux-flatpak
             mkdir ${{ github.workspace }}/release-linux-appimage
-            mv desktop/build/temp-*/binaries/haveno-*.rpm ${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}-installer.rpm
-            mv desktop/build/temp-*/binaries/haveno_*.deb ${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}-installer.deb
-            mv desktop/build/temp-*/binaries/*.flatpak ${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}.flatpak
-            mv desktop/build/temp-*/binaries/haveno_*.AppImage ${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}.AppImage
+            rpm=$(ls -1 desktop/build/temp-*/binaries/*.rpm | head -n 1)
+            deb=$(ls -1 desktop/build/temp-*/binaries/*.deb | head -n 1)
+            flatpak=$(ls -1 desktop/build/temp-*/binaries/*.flatpak | head -n 1)
+            appimage=$(ls -1 desktop/build/temp-*/binaries/*.AppImage | head -n 1)
+
+            mv "$rpm"      "${{ github.workspace }}/release-linux-rpm/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}-installer.rpm"
+            mv "$deb"      "${{ github.workspace }}/release-linux-deb/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}-installer.deb"
+            mv "$flatpak"  "${{ github.workspace }}/release-linux-flatpak/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}.flatpak"
+            mv "$appimage" "${{ github.workspace }}/release-linux-appimage/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}.AppImage"
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-deb
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-rpm
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-linux-appimage
@@ -142,7 +147,7 @@ jobs:
         if: runner.os == 'MacOS'
         run: |
             mkdir ${{ github.workspace }}/release-macos-${{ matrix.arch }}
-            mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release-macos-${{ matrix.arch }}/haveno-v${{ env.VERSION }}-macos-${{ matrix.arch }}-installer.dmg
+            mv desktop/build/temp-*/binaries/HavenoNova-*.dmg ${{ github.workspace }}/release-macos-${{ matrix.arch }}/haveno-v${{ env.VERSION }}-macos-${{ matrix.arch }}-installer.dmg
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/release-macos-${{ matrix.arch }}
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-v${{ env.VERSION }}-macos-${{ matrix.arch }}-SNAPSHOT-all.jar.SHA-256
         shell: bash
@@ -150,7 +155,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           mkdir ${{ github.workspace }}/release-windows
-          Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-${{ matrix.arch }}-installer.exe
+          Move-Item -Path desktop\build\temp-*/binaries\HavenoNova-*.exe -Destination ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-${{ matrix.arch }}-installer.exe
           Copy-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release-windows
           Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/haveno-v${{ env.VERSION }}-windows-SNAPSHOT-all.jar.SHA-256
         shell: powershell
