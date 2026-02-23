@@ -27,7 +27,7 @@ modules:
       - ls
       - pwd
       # TODO: consider switching from reading from a deb to reading from jpackage's image
-      - mv temp-*/binaries/haveno_*.deb haveno.deb
+      - mv temp-*/binaries/haveno-nova_*.deb haveno.deb
       - ar x haveno.deb
       - tar xf data.tar.*
       - cp -r opt/haveno-nova/lib /app/lib
