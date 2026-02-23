@@ -14,10 +14,10 @@
         <string>Haveno</string>
 
         <key>CFBundleName</key>
-        <string>Haveno</string>
+        <string>Haveno Nova</string>
 
         <key>CFBundleIdentifier</key>
-        <string>io.haveno.CAT</string>
+        <string>io.haveno.Nova</string>
 
         <key>CFBundleIconFile</key>
         <string>Haveno.icns</string>
