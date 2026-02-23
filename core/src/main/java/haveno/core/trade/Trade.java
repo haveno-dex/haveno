@@ -975,6 +975,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 if (logInfoLevel) log.info("Closing wallet for {} {} to create a backup on Windows", getClass().getSimpleName(), getShortId());
                 closeWallet();
                 doBackupWallet();
+                if (isShutDownStarted) throw new IllegalStateException("Cannot reopen wallet for " + getClass().getSimpleName() + " " + getId() + " after backup because shut down is started");
                 if (logInfoLevel) log.info("Reopening wallet for {} {} after backup on Windows", getClass().getSimpleName(), getShortId());
                 wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
             } else {
@@ -2136,7 +2137,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // close trade wallet, force close if syncing
             if (isSyncing()) forceCloseWallet();
-            else if (wallet != null) {
+            else {
                 try {
                     closeWallet();
                 } catch (Exception e) {
