@@ -24,6 +24,7 @@ import com.google.inject.name.Named;
 
 import common.utils.JsonUtils;
 import haveno.common.ThreadUtils;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
@@ -155,6 +156,11 @@ public class XmrWalletService extends XmrWalletBase {
     private List<MoneroOutputWallet> cachedOutputs;
     private List<MoneroTxWallet> cachedTxs;
     private boolean isInitializingWallet;
+
+    private static final Object WALLET_HEIGHT_MONITOR_LOCK = new Object();
+    private static final long WALLET_HEIGHT_MONITOR_PERIOD_SEC = 1200; // request connection change if wallet height is not updated within 20 minutes
+    private long lastWalletHeightUpdate;
+    private Timer walletHeightMonitorTimer;
 
     @SuppressWarnings("unused")
     @Inject
@@ -1324,6 +1330,27 @@ public class XmrWalletService extends XmrWalletBase {
         walletInitListener = (obs, oldVal, newVal) -> initMainWalletIfConnected();
         xmrConnectionService.downloadPercentageProperty().addListener(walletInitListener);
         initMainWalletIfConnected();
+
+        // monitor wallet height updates to request connection change
+        walletHeight.addListener((obs, oldVal, newVal) -> {
+            lastWalletHeightUpdate = System.currentTimeMillis();
+            startWalletHeightMonitor();
+        });
+        startWalletHeightMonitor();
+    }
+
+    private void startWalletHeightMonitor() {
+        synchronized (WALLET_HEIGHT_MONITOR_LOCK) {
+            if (walletHeightMonitorTimer != null) walletHeightMonitorTimer.stop();
+            walletHeightMonitorTimer = UserThread.runPeriodically(() -> {
+                ThreadUtils.submitToPool(() -> {
+                    if (System.currentTimeMillis() - lastWalletHeightUpdate > WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
+                        log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", WALLET_HEIGHT_MONITOR_PERIOD_SEC / 60);
+                        requestSwitchToNextBestConnection();
+                    }
+                });
+            }, WALLET_HEIGHT_MONITOR_PERIOD_SEC);
+        }
     }
 
     private void initMainWalletIfConnected() {
