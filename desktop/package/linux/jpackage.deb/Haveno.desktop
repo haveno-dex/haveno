@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=Haveno
+Name=Haveno Nova
 GenericName=Monero Exchange
 Comment=A decentralized monero exchange network.
-Exec=/opt/haveno/bin/Haveno
-Icon=/opt/haveno/lib/Haveno.png
+Exec=/opt/haveno-nova/bin/HavenoNova
+Icon=/opt/haveno-nova/lib/Haveno.png
 Terminal=false
 Type=Application
 Categories=Network

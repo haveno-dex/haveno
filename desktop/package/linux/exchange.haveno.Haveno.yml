@@ -1,10 +1,10 @@
-id: exchange.haveno.Haveno
+id: exchange.haveno.Nova
 runtime: org.freedesktop.Platform
 runtime-version: "24.08"
 sdk: org.freedesktop.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.openjdk21
-command: /app/bin/Haveno
+command: /app/bin/HavenoNova
 modules:
   - name: openjdk
     buildsystem: simple
@@ -30,14 +30,14 @@ modules:
       - mv temp-*/binaries/haveno_*.deb haveno.deb
       - ar x haveno.deb
       - tar xf data.tar.*
-      - cp -r opt/haveno/lib /app/lib
-      - install -D opt/haveno/bin/Haveno /app/bin/Haveno
+      - cp -r opt/haveno-nova/lib /app/lib
+      - install -D opt/haveno-nova/bin/HavenoNova /app/bin/HavenoNova
       - mkdir -p /app/share/icons/hicolor/128x128/apps/
       - mkdir -p /app/share/applications/
       - mkdir -p /app/share/metainfo/
-      - mv icon.png /app/share/icons/hicolor/128x128/apps/exchange.haveno.Haveno.png
-      - mv Haveno.desktop /app/share/applications/exchange.haveno.Haveno.desktop
-      - mv exchange.haveno.Haveno.metainfo.xml /app/share/metainfo/
+      - mv icon.png /app/share/icons/hicolor/128x128/apps/exchange.haveno.Nova.png
+      - mv Haveno.desktop /app/share/applications/exchange.haveno.Nova.desktop
+      - mv exchange.haveno.Haveno.metainfo.xml /app/share/metainfo/exchange.haveno.Nova.metainfo.xml
 
 # TODO: xdg-open fails
 finish-args:

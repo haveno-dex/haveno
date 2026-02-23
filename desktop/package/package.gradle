@@ -309,7 +309,7 @@ task packageInstallers {
                     " --icon ${project(':desktop').projectDir}/package/linux/icon.png" +
                             // This defines the first part of the resulting packages (the application name)
                             // deb requires lowercase letters, therefore the application name is written in lowercase
-                            " --linux-package-name haveno" +
+                            " --linux-package-name haveno-nova" +
 
                             // This represents the linux package version (revision)
                             // By convention, this is part of the deb/rpm package names, in addition to the software version
@@ -347,7 +347,7 @@ task packageInstallers {
 
             String osKey = getJavaBinariesDownloadURLs.property('osKey')
 
-            File appDir = new File("${jpackageTempDir}/Haveno")
+            File appDir = new File("${jpackageTempDir}/HavenoNova")
             File templateAppDir = new File("${project(':desktop').projectDir}/package/linux/Haveno.AppDir")
             File jpackDir = appDir
 
@@ -374,7 +374,7 @@ task packageInstallers {
 
                 project.exec {
                     workingDir appDir
-                    commandLine 'ln', '-s', 'bin/Haveno', 'AppRun'
+                    commandLine 'ln', '-s', 'bin/HavenoNova', 'AppRun'
                 }
 
                 project.exec {
@@ -433,7 +433,7 @@ task packageInstallers {
 
             // Command to create the Flatpak bundle
             exec {
-                commandLine 'flatpak', 'build-bundle', flatpakExportDir, flatpakBundleFile, 'exchange.haveno.Haveno', '--runtime-repo=https://flathub.org/repo/flathub.flatpakrepo'
+                commandLine 'flatpak', 'build-bundle', flatpakExportDir, flatpakBundleFile, 'exchange.haveno.Nova', '--runtime-repo=https://flathub.org/repo/flathub.flatpakrepo'
             }
 
             // delete the flatpak build directory
