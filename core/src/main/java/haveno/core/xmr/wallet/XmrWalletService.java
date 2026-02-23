@@ -256,7 +256,6 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (walletLock) {
             if (wallet == null) throw new IllegalStateException("Cannot save main wallet because it's not open");
             wallet.save();
-            if (!Utilities.isWindows()) backupWallet(MONERO_WALLET_NAME); // windows cannot copy files while open
             lastSaveTimeMs = System.currentTimeMillis();
         }
     }
@@ -1811,60 +1810,68 @@ public class XmrWalletService extends XmrWalletBase {
 
     private MoneroWallet openOrCreateMainWallet() {
         synchronized (walletLock) {
+            if (wallet != null) return wallet;
             if (isShutDownStarted) throw new IllegalStateException("Cannot open or create main wallet because shut down has started");
-            if (wallet == null) {
-                try {
+            try {
 
-                    // open or create wallet
-                    MoneroDaemonRpc monerod = xmrConnectionService.getMonerod();
-                    boolean isProxyApplied = isProxyApplied(wasWalletSynced);
-                    log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()) + ", proxyUri=" + (monerod == null || !isProxyApplied ? "null" : monerod.getRpcConnection().getProxyUri()));
-                    if (walletExists(MONERO_WALLET_NAME)) {
-                        wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
-                    } else if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
-                        wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
+                // open or create wallet
+                MoneroDaemonRpc monerod = xmrConnectionService.getMonerod();
+                boolean isProxyApplied = isProxyApplied(wasWalletSynced);
+                log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()) + ", proxyUri=" + (monerod == null || !isProxyApplied ? "null" : monerod.getRpcConnection().getProxyUri()));
+                if (walletExists(MONERO_WALLET_NAME)) {
+                    wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
+                } else {
+                    if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) throw new RuntimeException("Cannot create main wallet because there is no connection to Monero daemon");
+                    wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
 
-                        // set wallet creation date to yesterday to guarantee complete restore
-                        LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
-                        long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
-                        user.setWalletCreationDate(date);
-                    }
-
-                    // set state from wallet
-                    isClosingWallet = false;
-                    if (wallet != null) {
-                        walletHeight.set(wallet.getHeight());
-                        cacheWalletInfo();
-                        resetIfWalletChanged();
-                    }
-
-                    // create backup when wallet successfully opened or created
-                    if (Utilities.isWindows()) {
-                        log.info("Closing main wallet to create a backup on Windows");
-                        closeMainWallet(); // creates backup
-                        log.info("Reopening main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()) + ", proxyUri=" + (monerod == null || !isProxyApplied ? "null" : monerod.getRpcConnection().getProxyUri()));
-                        wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
-                    } else {
-                        backupWallet(MONERO_WALLET_NAME);
-                    }
-                } catch (Exception e) {
-                    log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
-                    throw e;
+                    // set wallet creation date to yesterday to guarantee complete restore
+                    LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
+                    long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
+                    user.setWalletCreationDate(date);
                 }
+
+                // set state from wallet
+                isClosingWallet = false;
+                walletHeight.set(wallet.getHeight());
+                cacheWalletInfo();
+                resetIfWalletChanged();
+
+                // backup wallet on successful open or create
+                if (Utilities.isWindows()) {
+                    log.info("Closing main wallet to create a backup on Windows");
+                    closeMainWallet();
+                    doBackupWallet();
+                    log.info("Reopening main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()) + ", proxyUri=" + (monerod == null || !isProxyApplied ? "null" : monerod.getRpcConnection().getProxyUri()));
+                    wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied);
+                } else {
+                    doBackupWallet();
+                }
+            } catch (Exception e) {
+                log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
+                throw e;
             }
             return wallet;
         }
     }
 
-    private void closeMainWallet() {
-        stopPolling();
+    private void doBackupWallet() {
         synchronized (walletLock) {
+            backupWallet(MONERO_WALLET_NAME);
+        }
+    }
+
+    private void closeMainWallet() {
+        closeMainWallet(true);
+    }
+
+    private void closeMainWallet(boolean stopPolling) {
+        synchronized (walletLock) {
+            if (stopPolling) stopPolling();
             try {
                 if (wallet != null) {
                     isClosingWallet = true;
                     log.info("Closing main wallet");
                     closeWallet(wallet, true);
-                    backupWallet(MONERO_WALLET_NAME);
                     wallet = null;
                 }
             } catch (Exception e) {

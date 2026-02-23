@@ -952,6 +952,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             // open wallet
             wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
 
+            // backup wallet on successful open
+            maybeBackupWallet();
+
             // log done opening wallet
             String doneOpenLogMsg = "Done opening wallet for " + getClass().getSimpleName() + " " + getId();
             if (logInfoLevel) log.info(doneOpenLogMsg);
@@ -961,6 +964,28 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             walletHeight.set(wallet.getHeight());
             doPollWallet(true); // poll wallet without network calls
             return wallet;
+        }
+    }
+
+    private void maybeBackupWallet() {
+        if (isArbitrator()) return; // arbitrator does not create backup of trade wallets
+        synchronized (walletLock) {
+            if (Utilities.isWindows() && isWalletOpen()) {
+                boolean logInfoLevel = logWalletFunctionsAtInfoLevel();
+                if (logInfoLevel) log.info("Closing wallet for {} {} to create a backup on Windows", getClass().getSimpleName(), getShortId());
+                closeWallet();
+                doBackupWallet();
+                if (logInfoLevel) log.info("Reopening wallet for {} {} after backup on Windows", getClass().getSimpleName(), getShortId());
+                wallet = xmrWalletService.openWallet(getWalletName(), xmrWalletService.isProxyApplied(wasWalletSynced));
+            } else {
+                doBackupWallet();
+            }
+        }
+    }
+
+    private void doBackupWallet() {
+        synchronized (walletLock) {
+            xmrWalletService.backupWallet(getWalletName());
         }
     }
 
@@ -1081,13 +1106,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             if (wallet == null) throw new IllegalStateException("Cannot save trade wallet because it's not open for " + getClass().getSimpleName() + " " + getShortId());
             wallet.save();
             lastSaveTimeMs = System.currentTimeMillis();
-            maybeBackupWallet();
         }
-    }
-
-    private void maybeBackupWallet() {
-        boolean createBackup = !isArbitrator() && !(Utilities.isWindows() && isWalletOpen()); // create backup unless arbitrator or windows and wallet is open (cannot copy file while open on windows)
-        if (createBackup) xmrWalletService.backupWallet(getWalletName());
     }
 
     private boolean isWalletOpen() {
@@ -1113,7 +1132,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             else log.debug(closeLogMsg);
             xmrWalletService.closeWallet(wallet, true);
             wallet = null;
-            maybeBackupWallet();
         }
     }
 
@@ -3999,6 +4017,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void onDepositsPublished() {
+
+        // backup trade wallet after creation
+        maybeBackupWallet();
 
         // arbitrator starts polling after deposits published
         if (isArbitrator()) {
