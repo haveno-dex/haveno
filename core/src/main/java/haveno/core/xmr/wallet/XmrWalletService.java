@@ -119,12 +119,11 @@ public class XmrWalletService extends XmrWalletBase {
     private static final int NUM_WALLET_BACKUPS = 3;
     private static final int MAX_SYNC_ATTEMPTS = 3;
     private static final boolean PRINT_RPC_STACK_TRACE = false;
-    private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
     private static final long POLL_TXS_TOLERANCE_MS = 1000 * 60 * 3; // request connection switch if txs not updated within 3 minutes
     private static final boolean TEST_STARTUP_SYNC_ERROR = false;
-    private static final long STARTUP_SYNC_DELAY_MS = 5000;
+    private static final long INIT_WALLET_DELAY_MS = 5000;
 
     private final User user;
     private final Preferences preferences;
@@ -183,9 +182,6 @@ public class XmrWalletService extends XmrWalletBase {
         this.useNativeXmrWallet = useNativeXmrWallet;
         this.xmrConnectionService = xmrConnectionService; // TODO: super's is null unless set here from injection
         HavenoUtils.xmrWalletService = this;
-
-        // reset thread pool
-        ThreadUtils.reset(THREAD_ID);
 
         // set monero logging
         if (MONERO_LOG_LEVEL >= 0) MoneroUtils.setLogLevel(MONERO_LOG_LEVEL);
@@ -324,7 +320,7 @@ public class XmrWalletService extends XmrWalletBase {
 
     public MoneroWallet openWallet(String walletName, Integer walletRpcPort, boolean applyProxyUri) {
         log.debug("{}.openWallet({})", getClass().getSimpleName(), walletName);
-        if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet because shutting down");
+        if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet '" + walletName + "' because shutting down");
         MoneroWalletConfig config = getWalletConfig(walletName);
         return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri);
     }
@@ -867,16 +863,9 @@ public class XmrWalletService extends XmrWalletBase {
         // create task to shut down
         Runnable shutDownTask = () -> {
 
-            // shut down threads
-            synchronized (lock) {
-                List<Runnable> shutDownThreads = new ArrayList<>();
-                shutDownThreads.add(() -> ThreadUtils.shutDown(THREAD_ID));
-                ThreadUtils.awaitTasks(shutDownThreads);
-            }
-
             // close main wallet, force close if syncing
             if (isSyncing()) forceCloseMainWallet();
-            else if (wallet != null) {
+            else {
                 try {
                     closeMainWallet();
                 } catch (Exception e) {
@@ -1305,9 +1294,9 @@ public class XmrWalletService extends XmrWalletBase {
         // listen for connection changes
         xmrConnectionService.addConnectionListener(connection -> {
             if (wasWalletSynced && !isSyncing()) {
-                ThreadUtils.execute(() -> {
+                ThreadUtils.submitToPool(() -> {
                     onConnectionChanged(connection);
-                 }, THREAD_ID);
+                });
             } else {
 
                 // check if ignored
@@ -1359,7 +1348,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void requestInitMainWallet() {
-        ThreadUtils.execute(() -> {
+        ThreadUtils.submitToPool(() -> {
             try {
                 initMainWallet();
             } catch (Exception e) {
@@ -1368,7 +1357,7 @@ public class XmrWalletService extends XmrWalletBase {
                 HavenoUtils.setTopError(e.getMessage());
                 throw e;
             }
-        }, THREAD_ID);
+        });
     }
 
     private void initMainWallet() {
@@ -1382,22 +1371,15 @@ public class XmrWalletService extends XmrWalletBase {
             if (isInitializingWallet) return;
             isInitializingWallet = true;
 
+            // try to sync wallet on startup, otherwise start polling
             try {
-
-                // start polling if wallet service initialized
                 if (isWalletServiceInitialized()) {
                     startPolling();
                 } else {
 
-                    // attempt to sync wallet on startup or open application without syncing
+                    // repeatedly attempt to sync wallet on startup, otherwise open application
                     for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
                         try {
-
-                            // wait before first poll to avoid rate limiting
-                            if (i == 0 && !xmrConnectionService.isConnectionLocalHost()) {
-                                HavenoUtils.waitFor(STARTUP_SYNC_DELAY_MS);
-                            }
-
                             doPollWallet();
                             break;
                         } catch (Exception e) {
@@ -1831,7 +1813,6 @@ public class XmrWalletService extends XmrWalletBase {
                 }
 
                 // set state from wallet
-                isClosingWallet = false;
                 walletHeight.set(wallet.getHeight());
                 cacheWalletInfo();
                 resetIfWalletChanged();
@@ -1850,6 +1831,12 @@ public class XmrWalletService extends XmrWalletBase {
                 log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
                 throw e;
             }
+            
+            // wait before returning wallet to avoid rate limiting
+            if (!xmrConnectionService.isConnectionLocalHost()) {
+                HavenoUtils.waitFor(INIT_WALLET_DELAY_MS);
+            }
+
             return wallet;
         }
     }
@@ -1869,7 +1856,6 @@ public class XmrWalletService extends XmrWalletBase {
             if (stopPolling) stopPolling();
             try {
                 if (wallet != null) {
-                    isClosingWallet = true;
                     log.info("Closing main wallet");
                     closeWallet(wallet, true);
                     wallet = null;
@@ -1882,7 +1868,7 @@ public class XmrWalletService extends XmrWalletBase {
 
     private void forceCloseMainWallet() {
         stopPolling();
-        if (wallet != null && !isClosingWallet) {
+        if (wallet != null) {
             MoneroWallet walletRef = wallet;
             wallet = null; // nullify wallet before force closing so state is updated for error handling
             forceCloseWallet(walletRef, getWalletPath(MONERO_WALLET_NAME));
@@ -1891,7 +1877,6 @@ public class XmrWalletService extends XmrWalletBase {
 
     public void forceRestartMainWallet() {
         log.warn("Force restarting main wallet");
-        if (isClosingWallet) return;
         forceCloseMainWallet();
         initMainWallet();
     }
@@ -2072,7 +2057,6 @@ public class XmrWalletService extends XmrWalletBase {
             }
 
             // request connection switch
-            // TODO: switch every n attempts?
             if (!isWalletServiceInitialized()) {
                 requestSwitchToNextBestConnection(sourceConnection);
             }

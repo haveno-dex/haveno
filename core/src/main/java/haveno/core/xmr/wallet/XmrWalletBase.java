@@ -47,7 +47,6 @@ public abstract class XmrWalletBase {
     @Getter
     protected XmrConnectionService xmrConnectionService;
     protected boolean wasWalletSynced;
-    protected boolean isClosingWallet;
     protected boolean isSyncingWithoutProgress;
     protected boolean isSyncingWithProgress;
     protected Long syncStartHeight;
@@ -126,6 +125,12 @@ public abstract class XmrWalletBase {
                 syncProgressError = null;
                 syncProgressTargetHeight = xmrConnectionService.getTargetHeight();
                 updateSyncProgress(wallet.getHeight(), syncProgressTargetHeight);
+
+                // done if already synced
+                if (wallet.getHeight() >= syncProgressTargetHeight) {
+                    onDoneSyncWithProgress();
+                    return;
+                }
 
                 // test connection changing on startup before wallet synced
                 if (testReconnectOnStartup) {
