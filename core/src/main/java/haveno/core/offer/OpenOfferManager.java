@@ -1835,9 +1835,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         }
                     });
             result = true;
-        } catch (Exception e) {
-            errorMessage = "Exception at handleSignOfferRequest " + e.getMessage();
-            log.error(errorMessage + "\n", e);
+        } catch (Throwable t) {
+            errorMessage = "Exception at handleSignOfferRequest " + t.getMessage();
+            log.error(errorMessage + "\n", t);
         } finally {
             if (result == false && errorMessage == null) {
                 log.warn("Arbitrator is NACKing SignOfferRequest for unknown reason with offerId={}. That should never happen", request.getOfferId());
