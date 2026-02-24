@@ -1,6 +1,6 @@
 ---
 - apparmor-profiles:
-    - '/opt/haveno/bin/Haveno'
+    - '/opt/haveno-nova/bin/HavenoNova'
   users:
     - 'amnesia'
   commands:

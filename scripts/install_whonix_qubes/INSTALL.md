@@ -221,7 +221,7 @@ $ printf 'haveno-Haveno.desktop' | qvm-appmenus --set-whitelist – haveno
 
 ###### Verify Jar
 ```shell
-# if [[ $(cat /tmp/haveno-jar.SHA-256) =~ $(sha256sum /opt/haveno/lib/app/desktop*.jar | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && printf 'Happy trading!\n'; else printf $'WARNING: Bad Hash!\n' && exit; fi
+# if [[ $(cat /tmp/haveno-jar.SHA-256) =~ $(sha256sum /opt/haveno-nova/lib/app/desktop*.jar | awk '{ print $1 }') ]] ; then printf $'SHA Hash IS valid!\n' && printf 'Happy trading!\n'; else printf $'WARNING: Bad Hash!\n' && exit; fi
 ```
 
 #### *TemplateVM Building From Source via `git` Repository (Scripted)*
@@ -327,7 +327,7 @@ $ qvm-copy haveno/scripts/install_qubes/scripts/3-AppVM/3.0-haveno-appvm.sh
 ###### Create `haveno-Haveno.desktop`
 ```shell
 # mkdir -p /home/$(ls /home)/\.local/share/applications
-# sed 's|/opt/haveno/bin/Haveno|/opt/haveno/bin/Haveno --torControlPort=9051 --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on|g' /opt/haveno/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
+# sed 's|/opt/haveno-nova/bin/HavenoNova|/opt/haveno-nova/bin/HavenoNova --torControlPort=9051 --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on|g' /opt/haveno-nova/lib/haveno-Haveno.desktop > /home/$(ls /home)/.local/share/applications/haveno-Haveno.desktop
 # chown -R $(ls /home):$(ls /home) /home/$(ls /home)/.local/share/applications
 ```
 
@@ -341,8 +341,8 @@ $ qvm-copy haveno/scripts/install_qubes/scripts/3-AppVM/3.0-haveno-appvm.sh
 >		[Desktop Entry]
 >		Name=Haveno
 >		Comment=Haveno
->		Exec=/opt/haveno/bin/Haveno --torControlPort=9051 --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on
->		Icon=/opt/haveno/lib/Haveno.png
+>		Exec=/opt/haveno-nova/bin/HavenoNova --torControlPort=9051 --socks5ProxyXmrAddress=127.0.0.1:9050 --useTorForXmr=on
+>		Icon=/opt/haveno-nova/lib/Haveno.png
 >		Terminal=false
 >		Type=Application
 >		Categories=Network

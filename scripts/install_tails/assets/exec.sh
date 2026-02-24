@@ -21,7 +21,7 @@ echo_blue() {
     echo -e "\033[1;34m$1\033[0m"
   else
     # If stdout is not a terminal, send a desktop notification
-    notify-send -i "/home/amnesia/Persistent/haveno/App/utils/icon.png" "Starting Haveno" "$1"
+    notify-send -i "/home/amnesia/Persistent/haveno-nova/App/utils/icon.png" "Starting Haveno" "$1"
   fi
 }
 
@@ -40,7 +40,7 @@ echo_red() {
 
 # Define file locations
 persistence_dir="/home/amnesia/Persistent"
-data_dir="${persistence_dir}/haveno/Data"
+data_dir="${persistence_dir}/haveno-nova/Data"
 
 
 # Create data dir
@@ -48,15 +48,15 @@ mkdir -p "${data_dir}"
 
 
 # Check if Haveno is already installed and configured
-if [ ! -f "/opt/haveno/bin/Haveno" ] || [ ! -f "/etc/onion-grater.d/haveno.yml" ]; then
+if [ ! -f "/opt/haveno-nova/bin/HavenoNova" ] || [ ! -f "/etc/onion-grater.d/haveno.yml" ]; then
   echo_blue "Installing Haveno and configuring system..."
-  pkexec "${persistence_dir}/haveno/App/utils/install.sh"
+  pkexec "${persistence_dir}/haveno-nova/App/utils/install.sh"
   # Redirect user data to Tails Persistent Storage
-  ln -s "${data_dir}" /home/amnesia/.local/share/Haveno
+  ln -s "${data_dir}" /home/amnesia/.local/share/HavenoNova
 else
   echo_blue "Haveno is already installed and configured."
 fi
 
 
 echo_blue "Starting Haveno..."
-/opt/haveno/bin/Haveno --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --userDataDir=${data_dir} --useTorForXmr=on --socks5ProxyXmrAddress=127.0.0.1:9062
+/opt/haveno-nova/bin/HavenoNova --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --userDataDir=${data_dir} --useTorForXmr=on --socks5ProxyXmrAddress=127.0.0.1:9062

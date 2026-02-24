@@ -4,13 +4,13 @@
 # Written by BrandyJson, with heavy inspiration from bisq.wiki tails script #
 #############################################################################
 echo "Installing dpkg from persistent, (1.07-1, if this is out of date change the deb path in the script or manually install after running"
-dpkg -i "/home/amnesia/Persistent/haveno_1.0.7-1_amd64.deb"
+dpkg -i "/home/amnesia/Persistent/haveno-nova_1.0.7-1_amd64.deb"
 echo -e "Allowing amnesia to read tor control port cookie, only run this script when you actually want to use haveno\n\n!!! not secure !!!\n"
 chmod o+r /var/run/tor/control.authcookie
 echo "Updating apparmor-profile"
 echo "---
 - apparmor-profiles:
-    - '/opt/haveno/bin/Haveno'
+    - '/opt/haveno-nova/bin/HavenoNova'
   users:
     - 'amnesia'
   commands:
@@ -73,5 +73,5 @@ echo "Restarting onion-grater service"
 
 systemctl restart onion-grater.service
 
-echo "alias haveno-tails='torsocks /opt/haveno/bin/Haveno --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --useTorForXmr=ON --userDataDir=/home/amnesia/Persistent/'" >> /home/amnesia/.bashrc
+echo "alias haveno-tails='torsocks /opt/haveno-nova/bin/HavenoNova --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --useTorForXmr=ON --userDataDir=/home/amnesia/Persistent/'" >> /home/amnesia/.bashrc
 echo -e "Everything is set up just run\n\nsource ~/.bashrc\n\nThen you can start haveno using haveno-tails"
