@@ -713,7 +713,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         }
                     });
                 }
-            }, getId());
+            }, getTradeEventThreadId());
         });
 
         // handle payout events
@@ -766,7 +766,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     if (isInitialized && isFinished()) clearAndShutDown();
                     else ThreadUtils.execute(() -> deleteWallet(), getId());
                 }
-            }, getId());
+            }, getTradeEventThreadId());
         });
 
         // handle dispute events
@@ -2133,6 +2133,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
             isShutDown = true;
             List<Runnable> shutDownThreads = new ArrayList<>();
             shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
+            shutDownThreads.add(() -> ThreadUtils.shutDown(getTradeEventThreadId()));
             ThreadUtils.awaitTasks(shutDownThreads);
             stopProtocolTimeout();
             isInitialized = false;
@@ -2940,6 +2941,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         return offer.getId();
     }
 
+    private String getTradeEventThreadId() {
+        return getId() + "_events";
+    }
+
     @Override
     public String getShortId() {
         return offer.getShortId();
@@ -3213,7 +3218,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId());
                 }
                 if (HavenoUtils.isUnresponsive(e)) { // wallet can be stuck a while
-                    log.warn("Cannot sync wallet for {} {} because wallet is unresponsive", getClass().getSimpleName(), getId());
+                    log.warn("Cannot sync wallet for {} {} because wallet is unresponsive: {}", getClass().getSimpleName(), getId(), e.getMessage());
                     if (isShutDownStarted) forceCloseWallet();
                     else forceRestartTradeWallet();
                 }
