@@ -20,7 +20,7 @@
         <string>io.haveno.Nova</string>
 
         <key>CFBundleIconFile</key>
-        <string>Haveno.icns</string>
+        <string>HavenoNova.icns</string>
 
         <key>LSApplicationCategoryType</key>
         <string>public.app-category.finance</string>

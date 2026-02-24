@@ -300,6 +300,7 @@ task packageInstallers {
             // for details of "--resource-dir"
 
             String macOpts = new String(
+                    " --icon \"${project(':desktop').projectDir}/package/macosx/Haveno.icns\"" +
                     " --resource-dir \"${project(':desktop').projectDir}/package/macosx\""
             )
 
