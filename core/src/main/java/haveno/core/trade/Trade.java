@@ -696,7 +696,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // handle trade phase events
         tradePhaseSubscription = EasyBind.subscribe(phaseProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
-            ThreadUtils.submitToPool(() -> {
+            ThreadUtils.execute(() -> {
                 awaitInitialized();
                 if (newValue == Trade.Phase.DEPOSIT_REQUESTED) onDepositRequested();
                 if (newValue == Trade.Phase.DEPOSITS_PUBLISHED) onDepositsPublished();
@@ -713,13 +713,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                         }
                     });
                 }
-            });
+            }, getId());
         });
 
         // handle payout events
         payoutStateSubscription = EasyBind.subscribe(payoutStateProperty, newValue -> {
             if (!isInitialized || isShutDownStarted) return;
-            ThreadUtils.submitToPool(() -> {
+            ThreadUtils.execute(() -> {
                 awaitInitialized();
                 updatePollPeriod();
 
@@ -754,7 +754,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     maybePublishTradeStatistics();
 
                     // reset address entries
-                    processModel.getXmrWalletService().swapPayoutAddressEntryToAvailable(getId());
+                    ThreadUtils.submitToPool(() -> {
+                        processModel.getXmrWalletService().swapPayoutAddressEntryToAvailable(getId());
+                    });
                 }
 
                 // handle when payout finalized
@@ -764,7 +766,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     if (isInitialized && isFinished()) clearAndShutDown();
                     else ThreadUtils.execute(() -> deleteWallet(), getId());
                 }
-            });
+            }, getId());
         });
 
         // handle dispute events
