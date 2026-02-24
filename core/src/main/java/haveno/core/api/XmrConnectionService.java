@@ -511,11 +511,7 @@ public final class XmrConnectionService {
     public synchronized boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
         log.warn("Requesting switch to next best monerod, source monerod={}, proxyUri={}", sourceConnection == null ? null : sourceConnection.getUri(), sourceConnection == null ? null : sourceConnection.getProxyUri());
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL) {
-            try {
-                throw new RuntimeException("Requesting connection switch on testnet");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            log.warn("Requesting connection switch on testnet", new RuntimeException("Stack trace"));
         }
 
         // skip if shut down started
