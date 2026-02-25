@@ -35,7 +35,7 @@ import java.util.Map;
 public class MoneroWalletRpcManager {
 
     private static final String RPC_BIND_PORT_ARGUMENT = "--rpc-bind-port";
-    private static int NUM_ALLOWED_ATTEMPTS = 2; // allow this many attempts to bind to an assigned port
+    private static int NUM_ALLOWED_ATTEMPTS = 3; // allow this many attempts to bind to an assigned port
     private Integer startPort;
     private final Map<Integer, MoneroWalletRpc> registeredPorts = new HashMap<>();
 
@@ -83,16 +83,16 @@ public class MoneroWalletRpcManager {
             else {
                 int numAttempts = 0;
                 while (numAttempts < NUM_ALLOWED_ATTEMPTS) {
-                    int port;
+                    int port = -1;
                     try {
                         numAttempts++;
 
                         // get port
+                        ServerSocket socket = null;
                         if (startPort != null) port = registerNextPort();
                         else {
-                            ServerSocket socket = new ServerSocket(0);
+                            socket = new ServerSocket(0);
                             port = socket.getLocalPort();
-                            socket.close();
                             synchronized (registeredPorts) {
                                 registeredPorts.put(port, null);
                             }
@@ -102,19 +102,18 @@ public class MoneroWalletRpcManager {
                         List<String> cmdCopy = new ArrayList<>(cmd); // preserve original cmd
                         cmdCopy.add(RPC_BIND_PORT_ARGUMENT);
                         cmdCopy.add("" + port);
+                        if (socket != null) socket.close(); // TODO: port can be taken by another process before monero-wallet-rpc starts. we could synchronize on a lock until monero-wallet-rpc is started, but that would interfere with stress testing
                         MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmdCopy); // start monero-wallet-rpc process
                         synchronized (registeredPorts) {
                             registeredPorts.put(port, walletRpc);
                         }
                         return walletRpc;
                     } catch (Exception e) {
-                        if (numAttempts >= NUM_ALLOWED_ATTEMPTS) {
-                            log.error("Unable to start monero-wallet-rpc instance after {} attempts", NUM_ALLOWED_ATTEMPTS);
-                            throw e;
-                        }
+                        log.warn("Unable to start monero-wallet-rpc instance on attempt {}/{} with port {}: {}", numAttempts, NUM_ALLOWED_ATTEMPTS, port, e.getMessage());
+                        if (numAttempts >= NUM_ALLOWED_ATTEMPTS) throw e;
                     }
                 }
-                throw new MoneroError("Failed to start monero-wallet-rpc instance after " + NUM_ALLOWED_ATTEMPTS + " attempts"); // should never reach here
+                throw new MoneroError("Failed to start monero-wallet-rpc instance after " + NUM_ALLOWED_ATTEMPTS + " attempts. This should never happen"); // should never reach here
             }
         } catch (IOException e) {
             throw new MoneroError(e);
