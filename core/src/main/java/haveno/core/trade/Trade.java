@@ -161,7 +161,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public static final long POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS = 120000; // 2 minutes
     private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 75000 : 28 * 60 * 1000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
-    private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 2;
+    private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 3;
     private static final Object IDLE_BLOCK_POLLER_LOCK = new Object(); // global lock to serialize idle trade polling
     private static final Object SYNC_DELAY_LOCK = new Object();
     private static final long SYNC_DELAY_MS = 3000;
@@ -3375,7 +3375,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                     // txs may not be fetched if confirmed after last sync
                     if (isDepositsSeen() && !hasDepositTxs(txs)) {
-                        log.info("Deposits are missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
+                        log.warn("Deposits are missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
                         HavenoUtils.waitFor(MISSING_TXS_DELAY_MS);
                         sync();
                         txs = getTxs(true);
@@ -3411,7 +3411,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
                 // txs may not be fetched if confirmed after last sync
                 if (!offlinePoll && isPayoutPublished() && getPayoutTxId() != null && !hasPayoutTx(txs)) {
-                    log.info("Payout is missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
+                    log.warn("Payout is missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
                     HavenoUtils.waitFor(MISSING_TXS_DELAY_MS);
                     sync();
                     txs = getTxs(true);
