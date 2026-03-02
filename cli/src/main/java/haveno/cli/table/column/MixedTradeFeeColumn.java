@@ -17,12 +17,11 @@
 
 package haveno.cli.table.column;
 
-import static haveno.cli.CurrencyFormat.formatBsq;
-import static haveno.cli.CurrencyFormat.formatSatoshis;
+import static haveno.cli.CurrencyFormat.formatPiconeros;
 import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 
 /**
- * For displaying a mix of BSQ and BTC trade fees with appropriate precision.
+ * For displaying Monero trade fees with appropriate precision.
  */
 public class MixedTradeFeeColumn extends LongColumn {
 
@@ -32,15 +31,9 @@ public class MixedTradeFeeColumn extends LongColumn {
 
     @Override
     public void addRow(Long value) {
-        throw new UnsupportedOperationException("use public void addRow(Long value, boolean isBsq) instead");
-    }
-
-    public void addRow(Long value, boolean isBsq) {
         rows.add(value);
 
-        String s = isBsq
-                ? formatBsq(value) + " BSQ"
-                : formatSatoshis(value) + " BTC";
+        String s = formatPiconeros(value) + " XMR";
         stringColumn.addRow(s);
 
         if (isNewMaxWidth.test(s))

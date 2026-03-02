@@ -17,45 +17,23 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import lombok.Getter;
 
 import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_FORM;
-import static java.lang.String.format;
 
-public class CreatePaymentAcctOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class CreatePaymentAcctOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> paymentAcctFormPathOpt = parser.accepts(OPT_PAYMENT_ACCOUNT_FORM,
-                    "path to json payment account form")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> paymentAccountFormOpt = parser.accepts(OPT_PAYMENT_ACCOUNT_FORM, "Payment Account Form")
+            .withRequiredArg()
+            .required();
 
     public CreatePaymentAcctOptionParser(String[] args) {
         super(args);
     }
 
-    public CreatePaymentAcctOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(paymentAcctFormPathOpt) || options.valueOf(paymentAcctFormPathOpt).isEmpty())
-            throw new IllegalArgumentException("no path to json payment account form specified");
-
-        Path path = Paths.get(options.valueOf(paymentAcctFormPathOpt));
-        if (!path.toFile().exists())
-            throw new IllegalStateException(
-                    format("json payment account form '%s' could not be found",
-                            path));
-
-        return this;
-    }
-
-    public Path getPaymentAcctForm() {
-        return Paths.get(options.valueOf(paymentAcctFormPathOpt));
+    public String getPaymentAccountForm() {
+        return options.valueOf(paymentAccountFormOpt);
     }
 }

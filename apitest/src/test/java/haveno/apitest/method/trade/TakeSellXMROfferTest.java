@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static haveno.apitest.config.ApiTestConfig.BTC;
+
 import static haveno.apitest.config.ApiTestConfig.XMR;
 import static haveno.cli.table.builder.TableType.OFFER_TBL;
 import static haveno.core.trade.Trade.Phase.PAYMENT_RECEIVED;
@@ -46,7 +46,7 @@ public class TakeSellXMROfferTest extends AbstractTradeTest {
     // Alice is maker / xmr seller (btc buyer), Bob is taker / xmr buyer (btc seller).
 
     // Maker and Taker fees are in BTC.
-    private static final String TRADE_FEE_CURRENCY_CODE = BTC;
+    private static final String TRADE_FEE_CURRENCY_CODE = XMR;
 
     private static final String WITHDRAWAL_TX_MEMO = "Bob's trade withdrawal";
 

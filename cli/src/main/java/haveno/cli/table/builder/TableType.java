@@ -23,7 +23,7 @@ package haveno.cli.table.builder;
  */
 public enum TableType {
     ADDRESS_BALANCE_TBL,
-    BTC_BALANCE_TBL,
+    XMR_BALANCE_TBL,
     CLOSED_TRADES_TBL,
     FAILED_TRADES_TBL,
     OFFER_TBL,

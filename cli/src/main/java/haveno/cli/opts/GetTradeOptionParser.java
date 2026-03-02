@@ -17,37 +17,27 @@
 
 package haveno.cli.opts;
 
-
 import joptsimple.OptionSpec;
+import lombok.Getter;
 
-import static haveno.cli.opts.OptLabel.OPT_SHOW_CONTRACT;
 import static haveno.cli.opts.OptLabel.OPT_TRADE_ID;
+import static haveno.cli.opts.OptLabel.OPT_SHOW_CONTRACT;
 
-public class GetTradeOptionParser extends AbstractMethodOptionParser implements MethodOpts {
+public class GetTradeOptionParser extends AbstractMethodOptionParser {
 
-    final OptionSpec<String> tradeIdOpt = parser.accepts(OPT_TRADE_ID, "id of trade")
-            .withRequiredArg();
+    @Getter
+    private final OptionSpec<String> tradeIdOpt = parser.accepts(OPT_TRADE_ID, "Trade ID")
+            .withRequiredArg()
+            .required();
 
-    final OptionSpec<Boolean> showContractOpt = parser.accepts(OPT_SHOW_CONTRACT, "show trade's json contract")
-            .withOptionalArg()
-            .ofType(boolean.class)
-            .defaultsTo(Boolean.FALSE);
+    @Getter
+    private final OptionSpec<Boolean> showContractOpt = parser.accepts(OPT_SHOW_CONTRACT, "Show Contract")
+            .withRequiredArg()
+            .ofType(Boolean.class)
+            .defaultsTo(false);
 
     public GetTradeOptionParser(String[] args) {
         super(args);
-    }
-
-    public GetTradeOptionParser parse() {
-        super.parse();
-
-        // Short circuit opt validation if user just wants help.
-        if (options.has(helpOpt))
-            return this;
-
-        if (!options.has(tradeIdOpt) || options.valueOf(tradeIdOpt).isEmpty())
-            throw new IllegalArgumentException("no trade id specified");
-
-        return this;
     }
 
     public String getTradeId() {
@@ -55,6 +45,6 @@ public class GetTradeOptionParser extends AbstractMethodOptionParser implements 
     }
 
     public boolean getShowContract() {
-        return options.has(showContractOpt) ? options.valueOf(showContractOpt) : false;
+        return options.valueOf(showContractOpt);
     }
 }

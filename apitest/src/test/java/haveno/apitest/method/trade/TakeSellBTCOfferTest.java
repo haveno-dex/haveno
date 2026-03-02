@@ -27,8 +27,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import static haveno.apitest.config.ApiTestConfig.BTC;
+
 import static haveno.apitest.config.ApiTestConfig.USD;
+import static haveno.apitest.config.ApiTestConfig.XMR;
 import static haveno.core.trade.Trade.Phase.PAYMENT_RECEIVED;
 import static haveno.core.trade.Trade.State.SELLER_SAW_ARRIVED_PAYMENT_RECEIVED_MSG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,7 +45,7 @@ public class TakeSellBTCOfferTest extends AbstractTradeTest {
     // Alice is maker/seller, Bob is taker/buyer.
 
     // Maker and Taker fees are in BTC.
-    private static final String TRADE_FEE_CURRENCY_CODE = BTC;
+    private static final String TRADE_FEE_CURRENCY_CODE = XMR;
 
     private static final String WITHDRAWAL_TX_MEMO = "Bob's trade withdrawal";
 

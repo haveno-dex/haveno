@@ -28,8 +28,9 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
 
-import static haveno.apitest.config.ApiTestConfig.BTC;
+
 import static haveno.apitest.config.ApiTestConfig.XMR;
+import static haveno.apitest.config.ApiTestConfig.BTC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -43,7 +44,7 @@ import static protobuf.OfferDirection.SELL;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class CreateXMROffersTest extends AbstractOfferTest {
 
-    private static final String MAKER_FEE_CURRENCY_CODE = BTC;
+    private static final String MAKER_FEE_CURRENCY_CODE = XMR;
 
     @BeforeAll
     public static void setUp() {
@@ -149,7 +150,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
     @Order(3)
     public void testCreatePriceMarginBasedBuy1BTCOfferWithTriggerPrice() {
         double priceMarginPctInput = 1.00;
-        double mktPriceAsDouble = aliceClient.getBtcPrice(XMR);
+        double mktPriceAsDouble = aliceClient.getXmrPrice(XMR);
         String triggerPrice = calcPriceAsString(mktPriceAsDouble, Double.parseDouble("-0.001"), 8);
         var newOffer = aliceClient.createMarketBasedPricedOffer(BUY.name(),
                 XMR,
