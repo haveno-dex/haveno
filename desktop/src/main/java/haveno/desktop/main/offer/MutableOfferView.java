@@ -514,6 +514,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
             model.onPaymentAccountSelected(paymentAccount);
             model.onCurrencySelected(model.getTradeCurrency());
+            updatePlaceOfferButton();
 
             if (paymentAccount.hasMultipleCurrencies()) {
                 final List<TradeCurrency> tradeCurrencies = paymentAccount.getTradeCurrencies();
@@ -540,10 +541,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private void onCurrencyComboBoxSelected() {
         TradeCurrency currency = currencyComboBox.getSelectionModel().getSelectedItem();
         model.onCurrencySelected(currency);
+        updatePlaceOfferButton();
+    }
 
-        // update the place offer button text
+    // TODO: this should be called automatically on model.onCurrencySelected() ?
+    private void updatePlaceOfferButton() {
+        TradeCurrency currency = model.getTradeCurrency();
         if (OfferViewUtil.isShownAsBuyOffer(model.getDataModel().getDirection(), currency)) {
-            placeOfferButton.updateText( Res.get("createOffer.placeOfferButton.buy", currency.getCode()));
+            placeOfferButton.updateText(Res.get("createOffer.placeOfferButton.buy", currency.getCode()));
         } else {
             placeOfferButton.updateText(Res.get("createOffer.placeOfferButton.sell", currency.getCode()));
         }
