@@ -347,9 +347,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // Copy list as we remove in the loop
             List<OpenOffer> openOffersList = new ArrayList<>(openOffers);
             openOffersList.forEach(openOffer -> cancelOpenOffer(openOffer, () -> {
-            }, errorMessage -> {
-                log.warn("Error removing open offer: " + errorMessage);
-            }));
+                    }, errorMessage -> {
+                        log.warn("Error removing open offer: " + errorMessage);
+                    }));
             if (completeHandler != null)
                 UserThread.runAfter(completeHandler, size * 200 + 500, TimeUnit.MILLISECONDS);
         }
@@ -671,30 +671,36 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 ResultHandler resultHandler,
                                 ErrorMessageHandler errorMessageHandler) {
         log.info("Canceling open offer: {}", openOffer.getId());
-        if (!offersToBeEdited.containsKey(openOffer.getId())) {
-            if (isOnOfferBook(openOffer)) {
-                openOffer.setState(OpenOffer.State.CANCELED);
-                offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
-                        () -> {
-                            ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
-                                doCancelOffer(openOffer);
-                                if (resultHandler != null) resultHandler.handleResult();
-                            });
-                        },
-                        errorMessageHandler);
+        try {
+            if (!offersToBeEdited.containsKey(openOffer.getId())) {
+                if (isOnOfferBook(openOffer)) {
+                    openOffer.setState(OpenOffer.State.CANCELED);
+                    offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
+                            () -> {
+                                ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
+                                    doCancelOffer(openOffer);
+                                    if (resultHandler != null) resultHandler.handleResult();
+                                });
+                            },
+                            errorMessageHandler);
+                } else {
+                    openOffer.setState(OpenOffer.State.CANCELED);
+                    ThreadUtils.submitToPool(() -> {
+                        doCancelOffer(openOffer);
+                        if (resultHandler != null) resultHandler.handleResult();
+                    });
+                }
             } else {
-                openOffer.setState(OpenOffer.State.CANCELED);
-                ThreadUtils.submitToPool(() -> {
-                    doCancelOffer(openOffer);
-                    if (resultHandler != null) resultHandler.handleResult();
-                });
+                if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("You can't cancel an offer that is currently edited.");
             }
-        } else {
-            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("You can't cancel an offer that is currently edited.");
+        } catch (Throwable t) {
+            log.warn("Error canceling open offer " + openOffer.getId() + ": " + t.getMessage(), t);
+            if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("Error canceling open offer " + openOffer.getId() + ": " + t.getMessage());
         }
     }
 
     private boolean isOnOfferBook(OpenOffer openOffer) {
+        if (!p2PService.isBootstrapped()) return false;
         return openOffer.isAvailable() || openOffer.isReserved();
     }
 
