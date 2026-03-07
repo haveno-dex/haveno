@@ -49,6 +49,7 @@ public abstract class XmrWalletBase {
     protected boolean wasWalletSynced;
     protected boolean isSyncingWithoutProgress;
     protected boolean isSyncingWithProgress;
+    private final Object syncWithProgressLock = new Object();
     protected Long syncStartHeight;
     protected TaskLooper syncProgressLooper;
     protected CountDownLatch syncProgressLatch;
@@ -113,8 +114,8 @@ public abstract class XmrWalletBase {
     }
 
     public void syncWithProgress() {
-        MoneroWallet sourceWallet = wallet;
-        synchronized (walletLock) {
+        synchronized (syncWithProgressLock) {
+            MoneroWallet sourceWallet = wallet;
             try {
 
                 // set initial state
