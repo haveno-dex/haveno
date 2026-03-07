@@ -908,11 +908,13 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private XmrAddressEntry getNewAddressEntryAux(String offerId, XmrAddressEntry.Context context) {
-        MoneroSubaddress subaddress = wallet.createSubaddress(0);
-        XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, offerId, null);
-        log.info("Add new XmrAddressEntry {}", entry);
-        xmrAddressEntryList.addAddressEntry(entry);
-        return entry;
+        synchronized (walletLock) {
+            MoneroSubaddress subaddress = wallet.createSubaddress(0);
+            XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, offerId, null);
+            log.info("Add new XmrAddressEntry {}", entry);
+            xmrAddressEntryList.addAddressEntry(entry);
+            return entry;
+        }
     }
 
     public synchronized XmrAddressEntry getFreshAddressEntry() {

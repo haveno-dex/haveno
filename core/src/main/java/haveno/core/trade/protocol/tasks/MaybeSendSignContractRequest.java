@@ -140,23 +140,23 @@ public class MaybeSendSignContractRequest extends TradeTask {
 
                 // reset protocol timeout
                 trade.addInitProgressStep();
+            }
 
-                // update trade state
-                trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString()); // TODO (woodser): allow custom payout address?
-                trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
-                trade.getSelf().setPaymentAccountPayloadHash(trade.getSelf().getPaymentAccountPayload().getHash());
-                BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
-                if (depositTx == null) {
-                    trade.getSelf().setSecurityDeposit(securityDeposit);
-                } else {
-                    trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
-                    trade.getSelf().setDepositTx(depositTx);
-                    trade.getSelf().setDepositTxHash(depositTx.getHash());
-                    trade.getSelf().setDepositTxFee(depositTx.getFee());
-                    trade.getSelf().setDepositTxHex(depositTx.getFullHex());
-                    trade.getSelf().setDepositTxKey(depositTx.getKey());
-                    trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
-                }
+            // update trade state
+            trade.getSelf().setPayoutAddressString(trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString()); // TODO (woodser): allow custom payout address?
+            trade.getSelf().setPaymentAccountPayload(trade.getProcessModel().getPaymentAccountPayload(trade.getSelf().getPaymentAccountId()));
+            trade.getSelf().setPaymentAccountPayloadHash(trade.getSelf().getPaymentAccountPayload().getHash());
+            BigInteger securityDeposit = trade instanceof BuyerTrade ? trade.getBuyerSecurityDepositBeforeMiningFee() : trade.getSellerSecurityDepositBeforeMiningFee();
+            if (depositTx == null) {
+                trade.getSelf().setSecurityDeposit(securityDeposit);
+            } else {
+                trade.getSelf().setSecurityDeposit(securityDeposit.subtract(depositTx.getFee()));
+                trade.getSelf().setDepositTx(depositTx);
+                trade.getSelf().setDepositTxHash(depositTx.getHash());
+                trade.getSelf().setDepositTxFee(depositTx.getFee());
+                trade.getSelf().setDepositTxHex(depositTx.getFullHex());
+                trade.getSelf().setDepositTxKey(depositTx.getKey());
+                trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
             }
 
             // maker signs deposit hash nonce to avoid challenge protocol
