@@ -50,18 +50,19 @@ public class TakerReserveTradeFunds extends TradeTask {
             // create reserve tx unless deposit not required from buyer as taker
             MoneroTxWallet reserveTx = null;
             if (!trade.isBuyerAsTakerWithoutDeposit()) {
+
+                // collect relevant info
+                BigInteger takerFee = trade.getTakerFee();
+                BigInteger sendAmount = trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getAmount() : BigInteger.ZERO;
+                BigInteger securityDeposit = trade.getSecurityDepositBeforeMiningFee();
+                BigInteger penaltyFee = HavenoUtils.multiply(securityDeposit, trade.getOffer().getPenaltyFeePct());
+                String returnAddress = trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+
                 synchronized (HavenoUtils.xmrWalletService.getWalletLock()) {
 
                     // check for timeout
                     if (isTimedOut()) throw new RuntimeException("Trade protocol has timed out while getting lock to create reserve tx, tradeId=" + trade.getShortId());
                     trade.startProtocolTimeout();
-
-                    // collect relevant info
-                    BigInteger takerFee = trade.getTakerFee();
-                    BigInteger sendAmount = trade.getOffer().getDirection() == OfferDirection.BUY ? trade.getAmount() : BigInteger.ZERO;
-                    BigInteger securityDeposit = trade.getSecurityDepositBeforeMiningFee();
-                    BigInteger penaltyFee = HavenoUtils.multiply(securityDeposit, trade.getOffer().getPenaltyFeePct());
-                    String returnAddress = trade.getXmrWalletService().getOrCreateAddressEntry(trade.getOffer().getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
 
                     // attempt creating reserve tx
                     try {
