@@ -158,11 +158,10 @@ public class OfferInfo implements Payload {
         // OfferInfo protos are passed to API client, and some field
         // values are converted to displayable, unambiguous form.
         var currencyCode = offer.getCounterCurrencyCode();
-        var preciseOfferPrice = reformatMarketPrice(
-                requireNonNull(offer.getPrice()).toPlainString(),
-                currencyCode);
-        var roundedVolume = formatVolume(requireNonNull(offer.getVolume()));
-        var roundedMinVolume = formatVolume(requireNonNull(offer.getMinVolume()));
+        Price price = offer.getPrice();
+        var preciseOfferPrice = price == null ? "0" : reformatMarketPrice(requireNonNull(price).toPlainString(), currencyCode);
+        var roundedVolume = price == null ? "0" : formatVolume(requireNonNull(offer.getVolume()));
+        var roundedMinVolume = price == null ? "0" : formatVolume(requireNonNull(offer.getMinVolume()));
         boolean hasAcceptedCountries = offer.getAcceptedCountryCodes() != null && !offer.getAcceptedCountryCodes().isEmpty();
         String city = offer.getF2FCity();
         return new OfferInfoBuilder()
