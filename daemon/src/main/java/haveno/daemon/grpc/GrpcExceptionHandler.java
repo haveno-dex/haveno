@@ -100,6 +100,7 @@ class GrpcExceptionHandler {
         // to support RESTful clients, we will need to have more specific mappings
         // to support correct HTTP 1.1. status codes.
         //noinspection SwitchStatementWithTooFewBranches
+        if (description == null) description = "null";
         switch (t.getClass().getSimpleName()) {
             // We go ahead and use a switch statement instead of if, in anticipation
             // of more, specific exception mappings.
