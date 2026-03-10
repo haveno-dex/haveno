@@ -20,11 +20,11 @@ Otherwise follow [instructions](import-haveno.md) to import Haveno into a Eclips
 
 ## Run end-to-end API tests
 
-Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run end-to-end API tests in the UI project.
+Follow [instructions](https://github.com/haveno-dex/haveno-ts/blob/master/docs/run-api-tests.md) to run end-to-end API tests in the UI project.
 
 ## Add new API functions and tests
 
-1. Follow [instructions](https://github.com/haveno-dex/haveno-ts#run-tests) to run Haveno's existing API tests successfully.
+1. Follow [instructions](https://github.com/haveno-dex/haveno-ts/blob/master/docs/run-api-tests.md) to run Haveno's existing API tests successfully.
 2. Define the new service or message in Haveno's [protobuf definition](../proto/src/main/proto/grpc.proto).
 3. Clean and build Haveno after modifying the protobuf definition: `make clean && make`
 4. Implement the new service in Haveno's backend, following existing patterns.<br>
