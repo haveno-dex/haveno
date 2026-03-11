@@ -1436,7 +1436,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
                         break;
                     } catch (Exception e) {
-                        if (e.getMessage().contains("not enough")) throw e; // do not retry if not enough funds
+                        if (HavenoUtils.isInvalidTx(e)) throw e; // do not retry if tx is invalid
                         log.warn("Error creating split output tx to fund offer, offerId={}, subaddress={}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         xmrWalletService.handleMainWalletError(e, sourceConnection, i + 1);
                         if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
