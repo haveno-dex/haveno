@@ -182,7 +182,7 @@ class GrpcOffersService extends OffersImplBase {
                         if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
@@ -213,7 +213,7 @@ class GrpcOffersService extends OffersImplBase {
                         if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled() )exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
@@ -230,7 +230,7 @@ class GrpcOffersService extends OffersImplBase {
                 if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
             });
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
@@ -247,7 +247,7 @@ class GrpcOffersService extends OffersImplBase {
                 if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
             });
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
@@ -264,7 +264,7 @@ class GrpcOffersService extends OffersImplBase {
                 if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
             });
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
