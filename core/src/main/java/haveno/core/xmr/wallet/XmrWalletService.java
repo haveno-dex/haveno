@@ -1182,6 +1182,18 @@ public class XmrWalletService extends XmrWalletBase {
         return walletHeight.get();
     }
 
+    public String getSeed() {
+        synchronized (walletLock) {
+            return wallet.getSeed();
+        }
+    }
+
+    public String getPrimaryAddress() {
+        synchronized (walletLock) {
+            return wallet.getPrimaryAddress();
+        }
+    }
+
     public List<MoneroTxWallet> getTxs(boolean includeFailed) {
         List<MoneroTxWallet> txs = getTxs();
         if (includeFailed) return txs;

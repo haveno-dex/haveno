@@ -144,11 +144,11 @@ class CoreWalletsService {
     }
 
     String getXmrSeed() {
-        return xmrWalletService.getWallet().getSeed();
+        return xmrWalletService.getSeed();
     }
 
     String getXmrPrimaryAddress() {
-        return xmrWalletService.getWallet().getPrimaryAddress();
+        return xmrWalletService.getPrimaryAddress();
     }
 
     String getXmrNewSubaddress() {

@@ -205,13 +205,13 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
                         .actionButtonText(Res.get("account.seed.warn.noPw.yes"))
                         .onAction(() -> {
                             DontShowAgainLookup.dontShowAgain(key, true);
-                            initSeedWords(xmrWalletService.getWallet().getSeed());
+                            initSeedWords(xmrWalletService.getSeed());
                             showSeedScreen();
                         })
                         .closeButtonText(Res.get("shared.no"))
                         .show();
             } else {
-                initSeedWords(xmrWalletService.getWallet().getSeed());
+                initSeedWords(xmrWalletService.getSeed());
                 showSeedScreen();
             }
         }
@@ -237,7 +237,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
     private void askForPassword() {
         walletPasswordWindow.headLine(Res.get("account.seed.enterPw")).onSuccess(() -> {
-            initSeedWords(xmrWalletService.getWallet().getSeed());
+            initSeedWords(xmrWalletService.getSeed());
             showSeedScreen();
         }).hideForgotPasswordButton().show();
     }

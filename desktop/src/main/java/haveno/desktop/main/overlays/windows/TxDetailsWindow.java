@@ -67,7 +67,9 @@ public class TxDetailsWindow extends Overlay<TxDetailsWindow> {
         boolean isOutgoing = tx.getOutgoingTransfer() != null;
         if (isOutgoing) {
             try {
-                txKey = xmrWalletService.getWallet().getTxKey(tx.getHash());
+                synchronized (xmrWalletService.getWalletLock()) {
+                    txKey = xmrWalletService.getWallet().getTxKey(tx.getHash());
+                }
             } catch (Exception e) {
                 // TODO (monero-java): wallet.getTxKey() should return null if key does not exist instead of throwing exception
             }
