@@ -272,8 +272,8 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                         log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
                         break;
                     } catch (Exception e) {
-                        if (isNotEnoughMoney(e.getMessage())) throw e;
-                        log.warn("Error creating creating withdraw tx, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                        if (HavenoUtils.isInvalidTx(e)) throw e;
+                        log.warn("Error creating withdraw tx, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         if (xmrWalletService.getXmrConnectionService().isConnected()) xmrWalletService.requestSwitchToNextBestConnection(sourceConnection);
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
@@ -283,16 +283,13 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                 // popup confirmation message
                 popupConfirmationMessage(tx);
             } catch (Throwable e) {
-                e.printStackTrace();
-                if (isNotEnoughMoney(e.getMessage())) new Popup().warning(Res.get("funds.withdrawal.notEnoughFunds")).show();
-                else new Popup().warning(e.getMessage()).show();
+                log.warn("Error creating withdraw tx", e);
+                if (HavenoUtils.isNotEnoughMoney(e)) new Popup().warning(Res.get("funds.withdrawal.notEnoughFunds")).show();
+                else new Popup().warning(HavenoUtils.capitalizeFirstLetter(e.getMessage())).show();
             }
         }
     }
 
-    private static boolean isNotEnoughMoney(String errorMsg) {
-        return errorMsg.contains("not enough");
-    }
 
     private void popupConfirmationMessage(MoneroTxWallet tx) {
 

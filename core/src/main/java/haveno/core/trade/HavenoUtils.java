@@ -611,6 +611,23 @@ public class HavenoUtils {
         return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, underscore);
     }
 
+    public static String capitalizeFirstLetter(String input) {
+        if (input == null || input.isEmpty()) return input;
+        return Character.toUpperCase(input.charAt(0)) + input.substring(1);
+    }
+
+    public static String formatSentence(String input) {
+        if (input == null || input.isEmpty()) return input;
+
+        // capitalize first letter
+        String formatted = capitalizeFirstLetter(input);
+
+        // add period if necessary
+        char lastChar = formatted.charAt(formatted.length() - 1);
+        if (lastChar != '.' && lastChar != '!' && lastChar != '?') formatted += ".";
+        return formatted;
+    }
+
     public static boolean connectionConfigsEqual(MoneroRpcConnection c1, MoneroRpcConnection c2) {
         if (c1 == c2) return true;
         if (c1 == null) return false;
@@ -642,49 +659,61 @@ public class HavenoUtils {
         havenoSetup.getTopErrorMsg().set(msg);
     }
 
-    public static boolean isConnectionRefused(Throwable e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains("Connection refused");
+    public static boolean isConnectionRefused(Throwable t) {
+        return t != null && t.getMessage() != null && t.getMessage().contains("Connection refused");
     }
 
-    public static boolean isReadTimeout(Throwable e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains("Read timed out");
+    public static boolean isReadTimeout(Throwable t) {
+        return t != null && t.getMessage() != null && t.getMessage().contains("Read timed out");
     }
 
-    public static boolean isUnresponsive(Throwable e) {
-        return isConnectionRefused(e) || isReadTimeout(e) || XmrWalletBase.isSyncWithProgressTimeout(e);
+    public static boolean isUnresponsive(Throwable t) {
+        return isConnectionRefused(t) || isReadTimeout(t) || XmrWalletBase.isSyncWithProgressTimeout(t);
     }
 
-    private static boolean isNotEnoughSigners(Throwable e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains("Not enough signers");
+    private static boolean isNotEnoughSigners(Throwable t) {
+        return t != null && t.getMessage() != null && t.getMessage().contains("Not enough signers");
     }
 
-    private static boolean isFailedToParse(Throwable e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains("Failed to parse");
+    private static boolean isFailedToParse(Throwable t) {
+        return t != null && t.getMessage() != null && t.getMessage().contains("Failed to parse");
     }
 
-    private static boolean isStaleData(Throwable e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains("stale data");
+    private static boolean isStaleData(Throwable t) {
+        return t != null && t.getMessage() != null && t.getMessage().contains("stale data");
     }
 
-    private static boolean isNoTransactionCreated(Throwable e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains("No transaction created");
+    private static boolean isNoTransactionCreated(Throwable t) {
+        return t != null && t.getMessage() != null && t.getMessage().contains("No transaction created");
     }
 
-    private static boolean isLRNotFound(Throwable e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains("LR not found for enough participants");
+    private static boolean isLRNotFound(Throwable t) {
+        return t != null && t.getMessage() != null && t.getMessage().contains("LR not found for enough participants");
     }
 
     // TODO: handling specific error messages is brittle, inverse so all errors are illegal except known local issues?
-    public static boolean isMultisigError(Throwable e) {
-        return isLRNotFound(e) || isNotEnoughSigners(e) || isNoTransactionCreated(e) || isFailedToParse(e) || isStaleData(e);
+    public static boolean isMultisigError(Throwable t) {
+        return isLRNotFound(t) || isNotEnoughSigners(t) || isNoTransactionCreated(t) || isFailedToParse(t) || isStaleData(t);
     }
 
-    public static boolean isTransactionRejected(Throwable e) {
-        return e != null && e.getMessage() != null && e.getMessage().contains("was rejected");
+    public static boolean isInvalidTx(Throwable t) {
+        return isNotEnoughMoney(t) || isTxNotPossible(t) || isMultisigError(t);
     }
 
-    public static boolean isIllegal(Throwable e) {
-        return e instanceof IllegalArgumentException || e instanceof IllegalStateException;
+    public static boolean isNotEnoughMoney(Throwable t) {
+        return t.getMessage() != null && t.getMessage().toLowerCase().contains("not enough");
+    }
+
+    public static boolean isTxNotPossible(Throwable t) {
+        return t.getMessage() != null && t.getMessage().toLowerCase().contains("tx not possible");
+    }
+
+    public static boolean isTransactionRejected(Throwable t) {
+        return t != null && t.getMessage() != null && t.getMessage().contains("was rejected");
+    }
+
+    public static boolean isIllegal(Throwable t) {
+        return t instanceof IllegalArgumentException || t instanceof IllegalStateException;
     }
     
     public static void playChimeSound() {
