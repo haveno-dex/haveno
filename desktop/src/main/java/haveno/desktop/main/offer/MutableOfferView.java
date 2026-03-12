@@ -558,7 +558,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     // Navigation
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    protected void close() {
+    @Override
+    public void close() {
         if (closeHandler != null)
             closeHandler.close();
     }

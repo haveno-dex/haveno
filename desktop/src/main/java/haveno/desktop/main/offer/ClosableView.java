@@ -19,4 +19,5 @@ package haveno.desktop.main.offer;
 
 public interface ClosableView {
     public void setCloseHandler(OfferView.CloseHandler closeHandler);
+    public void close();
 }

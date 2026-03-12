@@ -54,6 +54,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private OfferBookView<?, ?> fiatOfferBookView, cryptoOfferBookView, otherOfferBookView;
 
     private Tab labelTab, fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab;
+    private View fiatOfferView, cryptoOfferView, otherOfferView;
 
     private final ViewLoader viewLoader;
     private final Navigation navigation;
@@ -67,7 +68,6 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private Navigation.Listener navigationListener;
     private ChangeListener<Tab> tabChangeListener;
     private OfferView.OfferActionHandler offerActionHandler;
-    private boolean creatingOrTakingOffer;
 
     protected OfferView(ViewLoader viewLoader,
                         Navigation navigation,
@@ -87,7 +87,6 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     protected void initialize() {
         navigationListener = (viewPath, data) -> {
             UserThread.execute(() -> {
-                if (creatingOrTakingOffer) return;
                 if (viewPath.size() == 3 && viewPath.indexOf(this.getClass()) == 1) {
                     loadView(viewPath.tip(), null, data);
                 } else if (viewPath.size() == 4 && viewPath.indexOf(this.getClass()) == 1) {
@@ -180,6 +179,10 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
             if (viewClass == FiatOfferBookView.class && fiatOfferBookTab != null && fiatOfferBookView != null) {
                 if (childViewClass == null) {
+                    if (fiatOfferView != null) { // TODO: do not close existing offer view if navigating from same market view currency? (applies to other views too)
+                        ((ClosableView) fiatOfferView).close();
+                        fiatOfferView = null;
+                    }
                     fiatOfferBookTab.setContent(fiatOfferBookView.getRoot());
                 } else if (childViewClass == TakeOfferView.class) {
                     loadTakeViewClass(viewClass, childViewClass, fiatOfferBookTab);
@@ -189,6 +192,10 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                 tabPane.getSelectionModel().select(fiatOfferBookTab);
             } else if (viewClass == CryptoOfferBookView.class && cryptoOfferBookTab != null && cryptoOfferBookView != null) {
                 if (childViewClass == null) {
+                    if (cryptoOfferView != null) {
+                        ((ClosableView) cryptoOfferView).close();
+                        cryptoOfferView = null;
+                    }
                     cryptoOfferBookTab.setContent(cryptoOfferBookView.getRoot());
                 } else if (childViewClass == TakeOfferView.class) {
                     loadTakeViewClass(viewClass, childViewClass, cryptoOfferBookTab);
@@ -203,6 +210,10 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                 tabPane.getSelectionModel().select(cryptoOfferBookTab);
             } else if (viewClass == OtherOfferBookView.class && otherOfferBookTab != null && otherOfferBookView != null) {
                 if (childViewClass == null) {
+                    if (otherOfferView != null) {
+                        ((ClosableView) otherOfferView).close();
+                        otherOfferView = null;
+                    }
                     otherOfferBookTab.setContent(otherOfferBookView.getRoot());
                 } else if (childViewClass == TakeOfferView.class) {
                     loadTakeViewClass(viewClass, childViewClass, otherOfferBookTab);
@@ -275,9 +286,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
         ((SelectableView) view).onTabSelected(true);
 
-        creatingOrTakingOffer = true;
         ((ClosableView) view).setCloseHandler(() -> {
-            creatingOrTakingOffer = false;
             offerBookView.enableCreateOfferButton();
             ((SelectableView) view).onTabSelected(false);
             //reset tab
@@ -286,6 +295,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
         // close handler from close on create offer action
         marketOfferBookTab.setContent(view.getRoot());
+        assignOfferView(viewClass, view);
     }
 
     private void loadTakeViewClass(Class<? extends View> viewClass,
@@ -303,13 +313,24 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         ((SelectableView) view).onTabSelected(true);
 
         // close handler from close on take offer action
-        creatingOrTakingOffer = true;
         ((ClosableView) view).setCloseHandler(() -> {
-            creatingOrTakingOffer = false;
             ((SelectableView) view).onTabSelected(false);
             navigation.navigateTo(MainView.class, this.getClass(), viewClass);
         });
         marketOfferBookTab.setContent(view.getRoot());
+        assignOfferView(viewClass, view);
+    }
+
+    private void assignOfferView(Class<? extends View> viewClass, View view) {
+        if (viewClass == FiatOfferBookView.class) {
+            fiatOfferView = view;
+        } else if (viewClass == CryptoOfferBookView.class) {
+            cryptoOfferView = view;
+        } else if (viewClass == OtherOfferBookView.class) {
+            otherOfferView = view;
+        } else {
+            throw new IllegalStateException("Unsupported view class: " + viewClass);
+        }
     }
 
     protected boolean canCreateOrTakeOffer(TradeCurrency tradeCurrency) {

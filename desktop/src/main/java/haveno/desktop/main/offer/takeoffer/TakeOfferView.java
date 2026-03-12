@@ -570,7 +570,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     // Navigation
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void close() {
+    @Override
+    public void close() {
         close(true);
     }
 
