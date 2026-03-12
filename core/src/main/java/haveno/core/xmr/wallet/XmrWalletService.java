@@ -238,6 +238,13 @@ public class XmrWalletService extends XmrWalletBase {
         return wallet;
     }
 
+    private MoneroWallet getInitializedWallet() {
+        synchronized (walletLock) {
+            if (wallet == null || !isPolling()) initMainWallet();
+            return wallet;
+        }
+    }
+
     /**
      * Get the wallet creation date in seconds since epoch.
      *
@@ -534,7 +541,7 @@ public class XmrWalletService extends XmrWalletBase {
             unfrozenKeyImages.retainAll(keyImages);
 
             // freeze outputs
-            for (String keyImage : unfrozenKeyImages) wallet.freezeOutput(keyImage);
+            for (String keyImage : unfrozenKeyImages) getInitializedWallet().freezeOutput(keyImage);
             cacheNonPoolTxs();
             cacheWalletInfo();
             saveWallet();
@@ -557,7 +564,7 @@ public class XmrWalletService extends XmrWalletBase {
             frozenKeyImages.retainAll(keyImages);
 
             // thaw outputs
-            for (String keyImage : frozenKeyImages) wallet.thawOutput(keyImage);
+            for (String keyImage : frozenKeyImages) getInitializedWallet().thawOutput(keyImage);
             cacheNonPoolTxs();
             cacheWalletInfo();
             saveWallet();
@@ -1365,6 +1372,7 @@ public class XmrWalletService extends XmrWalletBase {
     private void initMainWallet() {
         synchronized (walletLock) {
             if (isShutDownStarted) return;
+            if (wallet != null && isPolling()) return;
 
             // open or create main wallet
             openOrCreateMainWallet();
