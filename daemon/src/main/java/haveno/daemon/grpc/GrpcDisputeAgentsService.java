@@ -34,8 +34,8 @@ class GrpcDisputeAgentsService extends DisputeAgentsImplBase {
     @Override
     public void registerDisputeAgent(RegisterDisputeAgentRequest req,
                                      StreamObserver<RegisterDisputeAgentReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getRegisterDisputeAgentMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
-            GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getRegisterDisputeAgentMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
             coreApi.registerDisputeAgent(
                     req.getDisputeAgentType(),
                     req.getRegistrationKey(),
@@ -49,15 +49,15 @@ class GrpcDisputeAgentsService extends DisputeAgentsImplBase {
                     });
 
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
     @Override
     public void unregisterDisputeAgent(UnregisterDisputeAgentRequest req,
                                      StreamObserver<UnregisterDisputeAgentReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getUnregisterDisputeAgentMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
         try {
-            GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getUnregisterDisputeAgentMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
             coreApi.unregisterDisputeAgent(
                     req.getDisputeAgentType(),
                     () -> {
@@ -69,7 +69,7 @@ class GrpcDisputeAgentsService extends DisputeAgentsImplBase {
                         if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 

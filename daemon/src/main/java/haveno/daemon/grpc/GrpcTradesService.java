@@ -151,8 +151,7 @@ class GrpcTradesService extends TradesImplBase {
                         if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
-            cause.printStackTrace();
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
@@ -171,8 +170,7 @@ class GrpcTradesService extends TradesImplBase {
                         if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
-            cause.printStackTrace();
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
@@ -191,8 +189,7 @@ class GrpcTradesService extends TradesImplBase {
                         if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
-            cause.printStackTrace();
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
