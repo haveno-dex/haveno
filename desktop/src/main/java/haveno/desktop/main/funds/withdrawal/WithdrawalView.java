@@ -324,11 +324,13 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
 
     private void relayTx(MoneroTxWallet tx, String withdrawToAddress, BigInteger receiverAmount, BigInteger fee) {
         try {
-            xmrWalletService.getWallet().relayTx(tx);
-            xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
-            new TxWithdrawWindow(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
-                    .show();
-            log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
+            synchronized (xmrWalletService.getWalletLock()) {
+                xmrWalletService.getWallet().relayTx(tx);
+                xmrWalletService.getWallet().setTxNote(tx.getHash(), withdrawMemoTextField.getText()); // TODO (monero-java): tx note does not persist when tx created then relayed
+                new TxWithdrawWindow(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
+                        .show();
+                log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
+            }
         } catch (Exception e) {
             e.printStackTrace();
             new Popup().warning(e.getMessage()).show();

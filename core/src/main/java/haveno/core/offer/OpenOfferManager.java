@@ -1163,8 +1163,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         new Thread(() -> {
             try {
 
-                // done processing if canceled or wallet not initialized
-                if (openOffer.isCanceled() || xmrWalletService.getWallet() == null) {
+                // done processing if canceled
+                if (openOffer.isCanceled()) {
                     resultHandler.handleResult(null);
                     return;
                 }

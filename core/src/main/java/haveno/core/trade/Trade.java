@@ -1936,7 +1936,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         }
 
         // fetch payout tx from main wallet
-        MoneroTxWallet payoutTx = xmrWalletService.getWallet().getTx(payoutTxId);
+        MoneroTxWallet payoutTx = xmrWalletService.getTx(payoutTxId);
         if (payoutTx == null) throw new IllegalStateException("Payout tx id " + payoutTxId + " not found for " + getClass().getSimpleName() + " " + getId());
         if (payoutTx.isFailed()) throw new IllegalStateException("Payout tx " + payoutTxId + " is failed for " + getClass().getSimpleName() + " " + getId());
 
