@@ -223,12 +223,17 @@ public abstract class XmrWalletBase {
     }
 
     public void saveWalletIfElapsedTime() {
+        if (!isTimeElapsedForSave()) return; // skip if possible
         synchronized (walletLock) {
-            if (System.currentTimeMillis() - lastSaveTimeMs >= SAVE_AFTER_ELAPSED_SECONDS * 1000) {
+            if (isTimeElapsedForSave()) {
                 saveWallet();
                 lastSaveTimeMs = System.currentTimeMillis();
             }
         }
+    }
+
+    protected boolean isTimeElapsedForSave() {
+        return System.currentTimeMillis() - lastSaveTimeMs >= SAVE_AFTER_ELAPSED_SECONDS * 1000;
     }
 
     public void requestSaveWalletIfElapsedTime() {
