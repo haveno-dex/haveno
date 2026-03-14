@@ -1084,7 +1084,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     @Override
     public void requestSaveWalletIfElapsedTime() {
-        ThreadUtils.submitToPool(() -> {
+        if (!isTimeElapsedForSave()) return;
+        ThreadUtils.submitToPool(() -> { // TODO: do not submit save request if one is already submitted
             synchronized (walletLock) {
                 if (walletExists()) saveWalletIfElapsedTime();
             }
