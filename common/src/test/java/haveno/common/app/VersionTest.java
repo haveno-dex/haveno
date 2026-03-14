@@ -33,8 +33,8 @@ public class VersionTest {
         assertEquals(0, Version.getMinorVersion("0.0.0"));
         assertEquals(5, Version.getMinorVersion("0.5.0"));
 
-        assertEquals(0, Version.getPatchVersion("0.0.0"));
-        assertEquals(5, Version.getPatchVersion("0.0.5"));
+        assertEquals(0, Version.getNetworkVersion("0.0.0"));
+        assertEquals(5, Version.getNetworkVersion("0.0.5"));
     }
 
     @Test
