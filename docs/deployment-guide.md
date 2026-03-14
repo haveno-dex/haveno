@@ -209,9 +209,20 @@ For example, change it to `"B"`.
 
 ## Set your fork's version
 
-Optionally add a fourth digit to `Version.VERSION` to represent your fork’s build version.
+Haveno uses a three-digit versioning scheme to distinguish between upstream changes and network-specific builds:
 
-For example, upstream Haveno may use version `1.2.3`, while your fork may use `1.2.3.0` and increment the last version digit as needed.
+- 1st digit: Mandatory protocol or consensus changes from upstream.
+- 2nd digit: Non-mandatory updates, patches, or minor improvements from upstream.
+- 3rd digit: Network-specific builds. This is reserved for forks and is never set by upstream.
+
+For example, if upstream Haveno is at 1.3.0, a fork may increment the third digit for its own mandatory or optional updates as needed.
+
+Update your fork's version number in the following locations:
+
+- Version.java: The `VERSION` constant.
+- build.gradle: The `version` attribute under `:desktop`.
+- exchange.haveno.Haveno.metainfo.xml: The `release` attribute.
+- Info.plist: The `CFBundleVersion` and `CFBundleShortVersionString` attributes.
 
 ## Set the network's release date
 
