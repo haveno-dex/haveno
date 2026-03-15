@@ -117,7 +117,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     private static final int NUM_WALLET_BACKUPS = 3;
-    private static final int MAX_SYNC_ATTEMPTS = 3;
+    private static final int MAX_STARTUP_SYNC_ATTEMPTS = 5;
     private static final boolean PRINT_RPC_STACK_TRACE = false;
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
@@ -1400,17 +1400,21 @@ public class XmrWalletService extends XmrWalletBase {
                 } else {
 
                     // repeatedly attempt to sync wallet on startup, otherwise open application
-                    for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+                    long syncTimeoutSec = xmrConnectionService.getRefreshPeriodMs(isProxyApplied()) / 1000;
+                    for (int i = 0; i < MAX_STARTUP_SYNC_ATTEMPTS; i++) {
                         try {
-                            doPollWallet();
+                            doPollWallet(syncTimeoutSec);
                             break;
                         } catch (Exception e) {
                             if (isShutDownStarted) return;
-                            log.warn("Error polling main wallet on startup, attempt={}/{}: {}", i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
-                            if (i + 1 >= MAX_SYNC_ATTEMPTS) {
+                            log.warn("Error polling main wallet on startup, attempt={}/{}: {}", i + 1, MAX_STARTUP_SYNC_ATTEMPTS, e.getMessage());
+                            if (i + 1 >= MAX_STARTUP_SYNC_ATTEMPTS) {
                                 log.warn("Opening application without syncing main wallet");
                                 HavenoUtils.setTopError("Could not sync main wallet on startup.\n\nError: " + e.getMessage());
                                 UserThread.execute(() -> onWalletServiceInitialized());
+                            } else {
+                                syncTimeoutSec *= 2;
+                                syncTimeoutSec = Math.min(XmrWalletBase.SYNC_TIMEOUT_SECONDS, syncTimeoutSec);
                             }
                         }
                     }
@@ -1972,8 +1976,12 @@ public class XmrWalletService extends XmrWalletBase {
         doPollWallet();
     }
 
-    @SuppressWarnings("unused")
     public void doPollWallet() {
+        doPollWallet(null);
+    }
+
+    @SuppressWarnings("unused")
+    public void doPollWallet(Long syncTimeoutMs) {
 
         // skip polling after wallet service initialized until all domain services are initialized
         if (isWalletServiceInitialized() && !HavenoUtils.isAllDomainServicesInitialized()) {
@@ -2033,7 +2041,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (isFirstSync || walletHeight.get() < xmrConnectionService.getTargetHeight()) {
                 if (isFirstSync) log.info("Syncing main wallet from height " + walletHeight.get());
                 long startTime = System.currentTimeMillis();
-                syncWithProgress();
+                syncWithProgress(syncTimeoutMs);
                 if (isFirstSync) log.info("Done syncing main wallet in " + (System.currentTimeMillis() - startTime) + " ms");
             }
 
