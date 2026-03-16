@@ -34,7 +34,7 @@ public class ThreadUtils {
     
     private static final Map<String, ExecutorService> EXECUTORS = new HashMap<>();
     private static final Map<String, Thread> THREADS = new HashMap<>();
-    private static final int POOL_SIZE = 10;
+    private static final int POOL_SIZE = 1000;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
     /**
