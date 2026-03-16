@@ -591,11 +591,15 @@ public final class XmrConnectionService {
     }
 
     public long getRefreshPeriodMs() {
-        return connectionList.getRefreshPeriod() > 0 ? connectionList.getRefreshPeriod() : getDefaultRefreshPeriodMs(false);
+        return getRefreshPeriodMs(null);
+    }
+
+    public long getRefreshPeriodMs(Boolean isProxyApplied) {
+        return connectionList.getRefreshPeriod() > 0 ? connectionList.getRefreshPeriod() : getDefaultRefreshPeriodMs(false, isProxyApplied);
     }
 
     private long getInternalRefreshPeriodMs() {
-        return connectionList.getRefreshPeriod() > 0 ? connectionList.getRefreshPeriod() : getDefaultRefreshPeriodMs(true);
+        return connectionList.getRefreshPeriod() > 0 ? connectionList.getRefreshPeriod() : getDefaultRefreshPeriodMs(true, null);
     }
 
     public void verifyConnection() {
@@ -816,8 +820,9 @@ public final class XmrConnectionService {
         return connection != null && HavenoUtils.isLocalHost(connection.getUri());
     }
 
-    private long getDefaultRefreshPeriodMs(boolean internal) {
+    private long getDefaultRefreshPeriodMs(boolean internal, Boolean isProxyApplied) {
         MoneroRpcConnection connection = getConnection();
+        if (isProxyApplied == null) isProxyApplied = isProxyApplied(connection);
         if (connection == null) return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS;
         if (isConnectionLocalHost(connection)) {
             if (internal) return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS;
@@ -826,7 +831,7 @@ public final class XmrConnectionService {
             } else {
                 return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS; // TODO: announce faster refresh after done syncing
             }
-        } else if (isProxyApplied(connection)) {
+        } else if (isProxyApplied) {
             return REFRESH_PERIOD_ONION_MS;
         } else {
             return REFRESH_PERIOD_HTTP_MS;
