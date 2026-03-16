@@ -28,9 +28,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class Version {
 
     // The application version.
-    // We use semantic versioning with major, minor and patch.
-    // Optionally supports a fourth digit for fork-specific build versions (e.g. 1.2.3.0).
-    public static final String VERSION = "1.2.3";
+    // We use a three-digit versioning scheme to distinguish between upstream changes and network-specific builds:
+    // 1st digit: Mandatory protocol or consensus changes from upstream.
+    // 2nd digit: Non-mandatory updates, patches, or minor improvements from upstream.
+    // 3rd digit: Network-specific builds. This is reserved for forks and is never set by upstream.
+    public static final String VERSION = "1.2.3"; // TODO: this will become 1.3.0 for the next version
 
     /**
      * Holds a list of the tagged resource files for optimizing the getData requests.
@@ -47,10 +49,12 @@ public class Version {
         return getSubVersion(version, 1);
     }
 
-    public static int getPatchVersion(String version) {
+    public static int getNetworkVersion(String version) {
         return getSubVersion(version, 2);
     }
 
+    // Optional 4th digit if needed for fork-specific builds. The 4th digit is not supported by jpackage for macOS installers.
+    @Deprecated
     public static int getBuildVersion(String version) {
         return getSubVersion(version, 3);
     }
@@ -70,9 +74,9 @@ public class Version {
             return true;
         else if (getMinorVersion(newVersion) < getMinorVersion(currentVersion))
             return false;
-        else if (getPatchVersion(newVersion) > getPatchVersion(currentVersion))
+        else if (getNetworkVersion(newVersion) > getNetworkVersion(currentVersion))
             return true;
-        else if (getPatchVersion(newVersion) < getPatchVersion(currentVersion))
+        else if (getNetworkVersion(newVersion) < getNetworkVersion(currentVersion))
             return false;
         else if (getBuildVersion(newVersion) > getBuildVersion(currentVersion))
             return true;
@@ -93,9 +97,9 @@ public class Version {
             return 1;
         else if (getMinorVersion(version1) < getMinorVersion(version2))
             return -1;
-        else if (getPatchVersion(version1) > getPatchVersion(version2))
+        else if (getNetworkVersion(version1) > getNetworkVersion(version2))
             return 1;
-        else if (getPatchVersion(version1) < getPatchVersion(version2))
+        else if (getNetworkVersion(version1) < getNetworkVersion(version2))
             return -1;
         else if (getBuildVersion(version1) > getBuildVersion(version2))
             return 1;
