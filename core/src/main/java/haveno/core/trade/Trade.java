@@ -38,6 +38,7 @@ import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 import haveno.common.ThreadUtils;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.Encryption;
@@ -152,14 +153,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long SHUTDOWN_TIMEOUT_MS = Config.baseCurrencyNetwork().isTestnet() ? 20000 : 60000;
     private static final long SYNC_EVERY_NUM_BLOCKS = Config.baseCurrencyNetwork().isTestnet() ? 40 : 360; // ~1/2 day
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
-    private static final long EXTENDED_RPC_TIMEOUT = 600000; // 10 minutes
+    private static final long EXTENDED_RPC_TIMEOUT_MS = 600000; // 10 minutes
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
     private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 5;
     public static final int NUM_BLOCKS_DEPOSITS_FINALIZED = 30; // ~1 hour before deposits are considered finalized
     public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized and multisig wallet deleted
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
     public static final long POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS = 120000; // 2 minutes
-    private static final long IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 75000 : 28 * 60 * 1000; // 28 minutes (monero's default connection timeout is 30 minutes on a local connection, so beyond this the wallets will disconnect)
+    private static final long KEEP_ALIVE_PERIOD_MINS = 28; // connection to monerod times out after 30 mins of inactivity
+    private static final long TRADER_IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 75000 : KEEP_ALIVE_PERIOD_MINS * 60 * 1000;
     private static final long MAX_REPROCESS_DELAY_SECONDS = 7200; // max delay to reprocess messages (once per 2 hours)
     private static final long REVERT_AFTER_NUM_CONFIRMATIONS = 3;
     private static final Object IDLE_BLOCK_POLLER_LOCK = new Object(); // global lock to serialize idle trade polling
@@ -179,6 +181,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
     private Long firstDepositTxMissingHeight; // height when we first saw missing deposit txs (to wait for a confirmation before reverting state)
     private Long firstPayoutTxMissingHeight; // height when we first saw missing payout tx (to wait for a confirmation before reverting state)
+    private Object closeWalletTimerLock = new Object();
+    private Timer closeWalletTimer;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -833,6 +837,28 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         // init syncing if deposit requested
         maybeInitSyncing();
         isFullyInitialized = true;
+    }
+
+    // close idle wallet periodically to prevent connection timeout with monerod
+    private void startCloseWalletTimer() {
+        if (getIdlePeriodMs() * 1000 * 60 <= KEEP_ALIVE_PERIOD_MINS) return; // no need to close wallet if idle period is less than close period
+        synchronized (closeWalletTimerLock) {
+            if (closeWalletTimer != null) closeWalletTimer.stop();
+            closeWalletTimer = UserThread.runPeriodically(() -> {
+                if (isShutDownStarted()) {
+                    synchronized (closeWalletTimerLock) {
+                        closeWalletTimer.stop();
+                        closeWalletTimer = null;
+                    }
+                    return;
+                }
+                ThreadUtils.execute(() -> {
+                    if (isIdling() && !isPayoutFinalized()) {
+                        closeWallet(false);
+                    }
+                }, getId());
+            }, KEEP_ALIVE_PERIOD_MINS * 60);
+        }
     }
 
     // Note that this function is overriden by subclasses.
@@ -3171,6 +3197,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
         getWallet(); // ensure wallet is initialized
         updatePollPeriod();
         startPolling();
+        startCloseWalletTimer();
     }
 
     private void trySyncWallet(boolean pollWallet) {
@@ -3246,8 +3273,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private long getPollPeriodMs() {
-        if (isIdling()) return IDLE_SYNC_PERIOD_MS;
+        if (isIdling()) return getIdlePeriodMs();
         return xmrConnectionService.getRefreshPeriodMs();
+    }
+
+    private long getIdlePeriodMs() {
+        return isArbitrator() ? HavenoUtils.ARBITRATOR_IDLE_SYNC_PERIOD_MS : TRADER_IDLE_SYNC_PERIOD_MS;
     }
 
     private void startPolling() {
@@ -3836,7 +3867,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                     // extend rpc timeout for rescan
                     if (wallet instanceof MoneroWalletRpc) {
                         timeout = ((MoneroWalletRpc) wallet).getRpcConnection().getTimeout();
-                        ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT);
+                        ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT_MS);
                     }
 
                     // rescan blockchain
@@ -3867,7 +3898,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
                 // extend rpc timeout for rescan
                 if (wallet instanceof MoneroWalletRpc) {
                     timeout = ((MoneroWalletRpc) wallet).getRpcConnection().getTimeout();
-                    ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT);
+                    ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT_MS);
                 }
 
                 // rescan spent outputs
