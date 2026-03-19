@@ -870,7 +870,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         }
 
                         if (!(networkEnvelope instanceof SendersNodeAddressMessage) && peersNodeAddressOptional.isEmpty()) {
-                            log.info("We got a {} from a peer with yet unknown address on connection with uid={}", networkEnvelope.getClass().getSimpleName(), uid);
+                            throttleInfo("We got a " + networkEnvelope.getClass().getSimpleName() + " from a peer with yet unknown address on connection with uid=" + uid);
                         }
 
                         onMessage(networkEnvelope, this);
