@@ -174,13 +174,13 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private final Capabilities capabilities = new Capabilities();
 
     // throttle logs of reported invalid requests
-    private static final long LOG_THROTTLE_INTERVAL_MS = 30000; // throttle logging rule violations and warnings to once every 30 seconds
+    public static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging rule violations and warnings to once every 60 seconds
     private static long lastLoggedInvalidRequestReportTs = 0;
-    private static int numThrottledInvalidRequestReports = 0;
+    private static long numThrottledInvalidRequestReports = 0;
     private static long lastLoggedWarningTs = 0;
-    private static int numThrottledWarnings = 0;
+    private static long numThrottledWarnings = 0;
     private static long lastLoggedInfoTs = 0;
-    private static int numThrottledInfos = 0;
+    private static long numThrottledInfos = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
