@@ -2797,6 +2797,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     public boolean isDepositTxMissing() {
+        if (!wasWalletPolledProperty.get()) getWallet(); // open and poll the wallet if needed
         if (!wasWalletPolledProperty.get()) throw new IllegalStateException("Cannot determine if deposit tx is missing because wallet has not been polled");
         MoneroTxWallet makerDepositTx = getMakerDepositTx();
         MoneroTxWallet takerDepositTx = getTakerDepositTx();
