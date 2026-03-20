@@ -1994,7 +1994,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // verify hash of payment account payload
             byte[] peerPaymentAccountPayloadHash = this instanceof MakerTrade ? getContract().getTakerPaymentAccountPayloadHash() : getContract().getMakerPaymentAccountPayloadHash();
-            if (!Arrays.equals(paymentAccountPayload.getHash(), peerPaymentAccountPayloadHash)) throw new RuntimeException("Hash of peer's payment account payload does not match contract, expected=" + Utilities.bytesAsHexString(peerPaymentAccountPayloadHash) + ", actual=" + Utilities.bytesAsHexString(paymentAccountPayload.getHash()));
+            if (!Arrays.equals(paymentAccountPayload.getHash(), peerPaymentAccountPayloadHash)) throw new IllegalArgumentException("Hash of peer's payment account payload does not match contract, expected=" + Utilities.bytesAsHexString(peerPaymentAccountPayloadHash) + ", actual=" + Utilities.bytesAsHexString(paymentAccountPayload.getHash()));
 
             // set payment account payload
             getTradePeer().setPaymentAccountPayload(paymentAccountPayload);
