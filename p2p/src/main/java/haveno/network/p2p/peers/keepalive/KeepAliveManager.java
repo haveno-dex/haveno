@@ -24,6 +24,7 @@ import com.google.inject.Inject;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
@@ -34,9 +35,11 @@ import haveno.network.p2p.network.OutboundConnection;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
+import haveno.network.utils.EventThrottler;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +56,9 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     private boolean stopped;
     private Timer keepAliveTimer;
 
+    private static EventThrottler throttler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    private static long lastLoggedWarningTs = 0;
+    private static long numThrottledWarnings = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -101,6 +107,12 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
                 // We get from peer last measured rrt
                 connection.getStatistic().setRoundTripTime(ping.getLastRoundTripTime());
 
+                // ignore ping from unknown address
+                if (!connection.getPeersNodeAddressOptional().isPresent()) {
+                    throttleWarn("Ignoring ping from unknown peer address, connectionUid=" + connection.getUid() + ", last round trip time=" + ping.getLastRoundTripTime() + " ms");
+                    return;
+                }
+
                 Pong pong = new Pong(ping.getNonce());
                 SettableFuture<Connection> future = networkNode.sendMessage(connection, pong);
                 Futures.addCallback(future, Utilities.failureCallback(throwable -> {
@@ -120,6 +132,13 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
         }
     }
 
+    private void throttleWarn(String msg) {
+        Tuple2<Boolean, Long> throttlerResult = throttler.onEvent();
+        if (!throttlerResult.first) {
+            log.warn(msg);
+            if (throttlerResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttlerResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
+        }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // ConnectionListener implementation

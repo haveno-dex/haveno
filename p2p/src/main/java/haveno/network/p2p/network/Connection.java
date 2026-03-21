@@ -49,6 +49,7 @@ import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.util.SingleThreadExecutorUtils;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.CloseConnectionMessage;
@@ -63,6 +64,7 @@ import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.messages.RemoveDataMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.utils.EventThrottler;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -118,6 +120,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static final int SHUTDOWN_TIMEOUT = 100;
     private static final String THREAD_ID = Connection.class.getSimpleName();
     public static final int POSSIBLE_DOS_THRESHOLD = 5;
+    public static final String POSSIBLE_DOS_MESSAGE = "Possible DoS attack detected";
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -174,13 +177,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private final Capabilities capabilities = new Capabilities();
 
     // throttle logs of reported invalid requests
-    private static final long LOG_THROTTLE_INTERVAL_MS = 30000; // throttle logging rule violations and warnings to once every 30 seconds
-    private static long lastLoggedInvalidRequestReportTs = 0;
-    private static int numThrottledInvalidRequestReports = 0;
-    private static long lastLoggedWarningTs = 0;
-    private static int numThrottledWarnings = 0;
-    private static long lastLoggedInfoTs = 0;
-    private static int numThrottledInfos = 0;
+    public static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging rule violations and warnings to once every 60 seconds
+    private static EventThrottler invalidRequestThrottler = new EventThrottler(LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    private static EventThrottler logWarningThrottler = new EventThrottler(LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    private static EventThrottler logInfoThrottler = new EventThrottler(LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -448,9 +448,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 envelopesToProcess.add(networkEnvelope);
             }
         }
-        envelopesToProcess.forEach(envelope -> ThreadUtils.execute(() -> {
+        ThreadUtils.execute(() -> {
+            envelopesToProcess.forEach(envelope -> {
                 messageListeners.forEach(listener -> listener.onMessage(envelope, connection));
-        }, THREAD_ID));
+            });
+        }, THREAD_ID);
     }
 
 
@@ -620,47 +622,41 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static synchronized boolean reportInvalidRequest(Connection connection, RuleViolation ruleViolation, String errorMessage) {
 
         // determine if report should be logged to avoid spamming the logs
-        boolean logReport = System.currentTimeMillis() - lastLoggedInvalidRequestReportTs > LOG_THROTTLE_INTERVAL_MS;
-
-        // count the number of unlogged reports since last log entry
-        if (!logReport) numThrottledInvalidRequestReports++;
+        Tuple2<Boolean, Long> throttlerResult = invalidRequestThrottler.onEvent();
+        boolean throttleLogs = throttlerResult.first;
 
         // handle report
-        if (logReport) log.warn("We got reported the ruleViolation {} at connection with address={}, uid={}, errorMessage={}", ruleViolation, connection.getPeersNodeAddressProperty(), connection.getUid(), errorMessage);
+        if (!throttleLogs) log.warn("We got reported the ruleViolation {} at connection with address={}, uid={}, errorMessage={}", ruleViolation, connection.getPeersNodeAddressProperty(), connection.getUid(), errorMessage);
         int numRuleViolations;
         numRuleViolations = connection.ruleViolations.getOrDefault(ruleViolation, 0);
         numRuleViolations++;
         connection.ruleViolations.put(ruleViolation, numRuleViolations);
         if (numRuleViolations >= ruleViolation.maxTolerance) {
-            if (logReport) log.warn("We close connection as we received too many corrupt requests. " +
+            if (!throttleLogs) log.warn("We close connection as we received too many corrupt requests. " +
                     "ruleViolations={} " +
                     "connection with address {} and uid {}", connection.ruleViolations, connection.peersNodeAddressProperty, connection.uid);
             connection.ruleViolation = ruleViolation;
             if (ruleViolation == RuleViolation.PEER_BANNED) {
-                if (logReport) log.debug("We close connection due RuleViolation.PEER_BANNED. peersNodeAddress={}", connection.getPeersNodeAddressOptional());
+                if (!throttleLogs) log.debug("We close connection due RuleViolation.PEER_BANNED. peersNodeAddress={}", connection.getPeersNodeAddressOptional());
                 connection.shutDown(CloseConnectionReason.PEER_BANNED);
             } else if (ruleViolation == RuleViolation.INVALID_CLASS) {
-                if (logReport) log.warn("We close connection due RuleViolation.INVALID_CLASS");
+                if (!throttleLogs) log.warn("We close connection due RuleViolation.INVALID_CLASS");
                 connection.shutDown(CloseConnectionReason.INVALID_CLASS_RECEIVED);
             } else {
-                if (logReport) log.warn("We close connection due RuleViolation.RULE_VIOLATION");
+                if (!throttleLogs) log.warn("We close connection due RuleViolation.RULE_VIOLATION");
                 connection.shutDown(CloseConnectionReason.RULE_VIOLATION);
             }
 
-            resetReportedInvalidRequestsThrottle(logReport);
+            if (!throttleLogs) logThrottledInvalidRequests(throttlerResult.second);
             return true;
         } else {
-            resetReportedInvalidRequestsThrottle(logReport);
+            if (!throttleLogs) logThrottledInvalidRequests(throttlerResult.second);
             return false;
         }
     }
 
-    private static synchronized void resetReportedInvalidRequestsThrottle(boolean logReport) {
-        if (logReport) {
-            if (numThrottledInvalidRequestReports > 0) log.warn("We received {} throttled reports of invalid requests since the last log entry" + (numThrottledInvalidRequestReports >= POSSIBLE_DOS_THRESHOLD ? ". Possible DoS attack detected" : ""), numThrottledInvalidRequestReports);
-            numThrottledInvalidRequestReports = 0;
-            lastLoggedInvalidRequestReportTs = System.currentTimeMillis();
-        }
+    private static void logThrottledInvalidRequests(long numThrottled) {
+        if (numThrottled > 0) log.warn("We throttled {} reports of invalid requests since the last log entry" + (numThrottled >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), numThrottled);
     }
 
     private void handleException(Throwable e) {
@@ -870,7 +866,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         }
 
                         if (!(networkEnvelope instanceof SendersNodeAddressMessage) && peersNodeAddressOptional.isEmpty()) {
-                            log.info("We got a {} from a peer with yet unknown address on connection with uid={}", networkEnvelope.getClass().getSimpleName(), uid);
+                            throttleInfo("We got a " + networkEnvelope.getClass().getSimpleName() + " from a peer with yet unknown address on connection with uid=" + uid);
                         }
 
                         onMessage(networkEnvelope, this);
@@ -939,27 +935,21 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         return nodeAddress == null ? "null" : nodeAddress.getFullAddress();
     }
 
-    private synchronized void throttleWarn(String msg) {
-        boolean doLog = System.currentTimeMillis() - lastLoggedWarningTs > LOG_THROTTLE_INTERVAL_MS;
-        if (doLog) {
+    private void throttleWarn(String msg) {
+        Tuple2<Boolean, Long> throttlerResult = logWarningThrottler.onEvent();
+        boolean throttleLogs = throttlerResult.first;
+        if (!throttleLogs) {
             log.warn(msg);
-            if (numThrottledWarnings > 0) log.warn("We received {} throttled warnings since the last log entry" + (numThrottledWarnings >= POSSIBLE_DOS_THRESHOLD ? ". Possible DoS attack detected" : ""), numThrottledWarnings);
-            numThrottledWarnings = 0;
-            lastLoggedWarningTs = System.currentTimeMillis();
-        } else {
-            numThrottledWarnings++;
+            if (throttlerResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttlerResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
         }
     }
 
-    private synchronized void throttleInfo(String msg) {
-        boolean doLog = System.currentTimeMillis() - lastLoggedInfoTs > LOG_THROTTLE_INTERVAL_MS;
-        if (doLog) {
+    private void throttleInfo(String msg) {
+        Tuple2<Boolean, Long> throttlerResult = logInfoThrottler.onEvent();
+        boolean throttleLogs = throttlerResult.first;
+        if (!throttleLogs) {
             log.info(msg);
-            if (numThrottledInfos > 0) log.warn("We received {} throttled info logs since the last log entry" + (numThrottledInfos >= POSSIBLE_DOS_THRESHOLD ? ". Possible DoS attack detected" : ""), numThrottledInfos);
-            numThrottledInfos = 0;
-            lastLoggedInfoTs = System.currentTimeMillis();
-        } else {
-            numThrottledInfos++;
+            if (throttlerResult.second > 0) log.info("We received {} throttled info logs since the last log entry" + (throttlerResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
         }
     }
 }
