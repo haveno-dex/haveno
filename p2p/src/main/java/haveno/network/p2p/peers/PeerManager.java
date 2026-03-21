@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.ClockWatcher;
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.Capabilities;
@@ -81,6 +82,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     private boolean shutDownRequested;
     private int numOnConnections;
     private EventThrottler checkMaxConnectionsThrottler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    private static final String THREAD_ID = PeerManager.class.getSimpleName();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -494,7 +496,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     private void doHouseKeeping() {
         if (checkMaxConnectionsTimer == null) {
             printConnectedPeers();
-            checkMaxConnectionsTimer = UserThread.runAfter(() -> {
+            checkMaxConnectionsTimer = UserThread.runAfter(() -> ThreadUtils.execute(() -> {
                 stopCheckMaxConnectionsTimer();
                 if (!stopped) {
                     Set<Connection> allConnections = new HashSet<>(networkNode.getAllConnections());
@@ -508,7 +510,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
                 } else {
                     log.debug("We have stopped already. We ignore that checkMaxConnectionsTimer.run call.");
                 }
-            }, CHECK_MAX_CONN_DELAY_SEC);
+            }, THREAD_ID), CHECK_MAX_CONN_DELAY_SEC);
         }
     }
 
@@ -596,7 +598,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
             }
             if (!connection.isStopped()) {
                 connection.shutDown(CloseConnectionReason.TOO_MANY_CONNECTIONS_OPEN,
-                        () -> UserThread.runAfter(this::checkMaxConnections, 100, TimeUnit.MILLISECONDS));
+                        () -> UserThread.runAfter(() -> ThreadUtils.execute(this::checkMaxConnections, THREAD_ID), 100, TimeUnit.MILLISECONDS));
                 return true;
             }
         }
@@ -612,7 +614,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         networkNode.getAllConnections().stream()
                 .filter(connection -> !connection.hasPeersNodeAddress())
                 .filter(connection -> connection.getConnectionState().getPeerType() == PeerType.PEER)
-                .forEach(connection -> UserThread.runAfter(() -> { // todo we keep a potentially dead connection in memory for too long...
+                .forEach(connection -> UserThread.runAfter(() -> ThreadUtils.execute(() -> { // todo we keep a potentially dead connection in memory for too long...
                     // We give 240 seconds delay and check again if still no address is set
                     // Keep the delay long as we don't want to disconnect a peer in case we are a seed node just
                     // because he needs longer for the HS publishing
@@ -621,7 +623,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
                                 "Peer: {}", connection.getPeersNodeAddressOptional());
                         connection.shutDown(CloseConnectionReason.UNKNOWN_PEER_ADDRESS);
                     }
-                }, REMOVE_ANONYMOUS_PEER_SEC));
+                }, THREAD_ID), REMOVE_ANONYMOUS_PEER_SEC));
     }
 
 
