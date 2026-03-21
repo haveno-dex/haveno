@@ -20,6 +20,7 @@ package haveno.core.app;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.UserThread;
+import haveno.common.util.Tuple2;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
@@ -29,6 +30,8 @@ import haveno.network.p2p.P2PServiceListener;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
+import haveno.network.utils.EventThrottler;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -68,6 +71,8 @@ public class P2PNetworkSetup {
     @Getter
     final BooleanProperty p2pNetworkFailed = new SimpleBooleanProperty();
 
+    private static EventThrottler p2pNetworkInfoThrottler = new EventThrottler(1000, TimeUnit.MILLISECONDS);
+
     @Inject
     public P2PNetworkSetup(PriceFeedService priceFeedService,
                            P2PService p2PService,
@@ -105,6 +110,8 @@ public class P2PNetworkSetup {
                     return result;
                 });
         p2PNetworkInfoBinding.subscribe((observable, oldValue, newValue) -> {
+            Tuple2<Boolean, Long> throttlerResult = p2pNetworkInfoThrottler.onEvent();
+            if (throttlerResult.first) return; // update is throttled (avoids dos with many peer connections)
             UserThread.execute(() -> p2PNetworkInfo.set(newValue));
         });
 
