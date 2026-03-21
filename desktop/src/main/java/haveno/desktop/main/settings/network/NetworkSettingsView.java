@@ -19,7 +19,9 @@ package haveno.desktop.main.settings.network;
 
 import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
+import haveno.common.util.Tuple2;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.filter.Filter;
@@ -44,6 +46,8 @@ import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.Statistic;
+import haveno.network.utils.EventThrottler;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import static javafx.beans.binding.Bindings.createStringBinding;
@@ -124,6 +128,9 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private ChangeListener<Toggle> useTorForXmrToggleGroupListener;
     private ChangeListener<Toggle> moneroPeersToggleGroupListener;
     private ChangeListener<Filter> filterPropertyListener;
+
+    private static EventThrottler p2pTableUpdateThrottler = new EventThrottler(1000, TimeUnit.MILLISECONDS);
+    private static final String THREAD_ID = NetworkSettingsView.class.getSimpleName();
 
     @Inject
     public NetworkSettingsView(WalletsSetup walletsSetup,
@@ -515,14 +522,19 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void updateP2PTable() {
-        UserThread.execute(() -> {
-            if (connectionService.isShutDownStarted()) return; // ignore if shutting down
-            p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
-            p2pNetworkListItems.clear();
-            p2pNetworkListItems.setAll(p2PService.getNetworkNode().getAllConnections().stream()
+        Tuple2<Boolean, Long> throttlerResult = p2pTableUpdateThrottler.onEvent();
+        if (throttlerResult.first) return; // update is throttled (avoids dos with many peer connections)
+        ThreadUtils.execute(() -> {
+            List<P2pNetworkListItem> list = p2PService.getNetworkNode().getAllConnections().stream()
                     .map(connection -> new P2pNetworkListItem(connection, clockWatcher))
-                    .collect(Collectors.toList()));
-        });
+                    .collect(Collectors.toList());
+            UserThread.execute(() -> {
+                if (connectionService.isShutDownStarted()) return; // ignore if shutting down
+                p2pPeersTableView.getItems().forEach(P2pNetworkListItem::cleanup);
+                p2pNetworkListItems.clear();
+                p2pNetworkListItems.setAll(list);
+            });
+        }, THREAD_ID);
     }
 
     private void updateMoneroConnectionsTable() {
