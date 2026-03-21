@@ -29,6 +29,7 @@ import haveno.common.app.Capability;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
+import haveno.common.util.Tuple2;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
@@ -40,6 +41,7 @@ import haveno.network.p2p.network.RuleViolation;
 import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.peers.peerexchange.PeerList;
 import haveno.network.p2p.seed.SeedNodeRepository;
+import haveno.network.utils.EventThrottler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -78,6 +80,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     private Timer printStatisticsTimer;
     private boolean shutDownRequested;
     private int numOnConnections;
+    private EventThrottler checkMaxConnectionsThrottler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -513,7 +516,14 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     boolean checkMaxConnections() {
         Set<Connection> allConnections = new HashSet<>(networkNode.getAllConnections());
         int size = allConnections.size();
-        log.info("We have {} connections open. Our limit is {}", size, maxConnections);
+        Tuple2<Boolean, Long> throttlerResult = checkMaxConnectionsThrottler.onEvent();
+        boolean throttleLogs = throttlerResult.first;
+
+        if (!throttleLogs && throttlerResult.second > 0) {
+            log.warn("We have throttled {} other checkMaxConnections calls" + (throttlerResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
+        }
+
+        if (!throttleLogs) log.info("We have {} connections open. Our limit is {}", size, maxConnections);
 
         if (size <= maxConnections) {
             log.debug("We have not exceeded the maxConnections limit of {} " +
@@ -521,8 +531,9 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
             return false;
         }
 
-        log.info("We have too many connections open. " +
-                "Lets try first to remove the inbound connections of type PEER.");
+        if (!throttleLogs) {
+            log.info("We have too many connections open. Lets try first to remove the inbound connections of type PEER.");
+        }
         List<Connection> candidates = allConnections.stream()
                 .filter(e -> e instanceof InboundConnection)
                 .filter(e -> e.getConnectionState().getPeerType() == PeerType.PEER)
@@ -580,8 +591,9 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
         if (!candidates.isEmpty()) {
             Connection connection = candidates.remove(0);
-            log.info("checkMaxConnections: Num candidates (inbound/peer) for shut down={}. We close oldest connection to peer {}",
-                    candidates.size(), connection.getPeersNodeAddressOptional());
+            if (!throttleLogs) {
+                log.info("checkMaxConnections: Num candidates (inbound/peer) for shut down={}. We close oldest connection to peer {}", candidates.size(), connection.getPeersNodeAddressOptional());
+            }
             if (!connection.isStopped()) {
                 connection.shutDown(CloseConnectionReason.TOO_MANY_CONNECTIONS_OPEN,
                         () -> UserThread.runAfter(this::checkMaxConnections, 100, TimeUnit.MILLISECONDS));
@@ -589,8 +601,10 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
             }
         }
 
-        log.info("No candidates found to remove. " +
-                "size={}, allConnections={}", size, allConnections);
+        if (!throttleLogs) {
+            log.info("No candidates found to remove. size={}", size);
+        }
+
         return false;
     }
 
