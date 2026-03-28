@@ -49,10 +49,12 @@ public class PeerList implements PersistableEnvelope {
 
     @Override
     public Message toProtoMessage() {
-        return protobuf.PersistableEnvelope.newBuilder()
-                .setPeerList(protobuf.PeerList.newBuilder()
-                        .addAllPeer(set.stream().map(Peer::toProtoMessage).collect(Collectors.toList())))
-                .build();
+        synchronized (set) {
+            return protobuf.PersistableEnvelope.newBuilder()
+                    .setPeerList(protobuf.PeerList.newBuilder()
+                            .addAllPeer(set.stream().map(Peer::toProtoMessage).collect(Collectors.toList())))
+                    .build();
+        }
     }
 
     public static PeerList fromProto(protobuf.PeerList proto) {
@@ -70,8 +72,10 @@ public class PeerList implements PersistableEnvelope {
 
     @Override
     public String toString() {
-        return "PeerList{" +
-                "\n     set=" + set +
-                "\n}";
+        synchronized (set) {
+            return "PeerList{" +
+                    "\n     set=" + set +
+                    "\n}";
+        }
     }
 }
