@@ -38,6 +38,7 @@ class Server implements Runnable {
 
     private final MessageListener messageListener;
     private final ConnectionListener connectionListener;
+    private final ConnectionListener internalListener;
     @Nullable
     private final BanFilter banFilter;
 
@@ -58,6 +59,20 @@ class Server implements Runnable {
         this.messageListener = messageListener;
         this.connectionListener = connectionListener;
         this.banFilter = banFilter;
+
+        // create internal listener to process connection events
+        internalListener = new ConnectionListener() {
+            @Override
+            public void onConnection(Connection connection) {
+                connectionListener.onConnection(connection);
+            }
+
+            @Override
+            public void onDisconnect(CloseConnectionReason closeConnectionReason, Connection connection) {
+                connectionListener.onDisconnect(closeConnectionReason, connection);
+                connections.remove(connection);
+            }
+        };
     }
 
     public void start() {
@@ -78,7 +93,7 @@ class Server implements Runnable {
                                 + socket.getPort());
                         InboundConnection connection = new InboundConnection(socket,
                                 messageListener,
-                                connectionListener,
+                                internalListener,
                                 networkProtoResolver,
                                 banFilter);
 
