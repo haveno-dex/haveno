@@ -448,9 +448,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 envelopesToProcess.add(networkEnvelope);
             }
         }
-        envelopesToProcess.forEach(envelope -> ThreadUtils.execute(() -> {
+        ThreadUtils.execute(() -> {
+            envelopesToProcess.forEach(envelope -> {
                 messageListeners.forEach(listener -> listener.onMessage(envelope, connection));
-        }, THREAD_ID));
+            });
+        }, THREAD_ID);
     }
 
 
