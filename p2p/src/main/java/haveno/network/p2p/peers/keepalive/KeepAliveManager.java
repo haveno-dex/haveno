@@ -21,6 +21,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
+
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
@@ -57,8 +59,7 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     private Timer keepAliveTimer;
 
     private static EventThrottler throttler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
-    private static long lastLoggedWarningTs = 0;
-    private static long numThrottledWarnings = 0;
+    private static final String THREAD_ID = KeepAliveManager.class.getSimpleName();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -189,8 +190,10 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     private void restart() {
         if (keepAliveTimer == null)
             keepAliveTimer = UserThread.runPeriodically(() -> {
-                stopped = false;
-                keepAlive();
+                ThreadUtils.execute(() -> {
+                    stopped = false;
+                    keepAlive();
+                }, THREAD_ID);
             }, INTERVAL_SEC);
     }
 
