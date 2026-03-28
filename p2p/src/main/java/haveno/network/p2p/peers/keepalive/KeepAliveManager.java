@@ -24,6 +24,7 @@ import com.google.inject.Inject;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
@@ -34,9 +35,11 @@ import haveno.network.p2p.network.OutboundConnection;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
+import haveno.network.utils.EventThrottler;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +56,7 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     private boolean stopped;
     private Timer keepAliveTimer;
 
+    private static EventThrottler throttler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     private static long lastLoggedWarningTs = 0;
     private static long numThrottledWarnings = 0;
 
@@ -128,15 +132,11 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
         }
     }
 
-    private synchronized void throttleWarn(String msg) {
-        boolean doLog = System.currentTimeMillis() - lastLoggedWarningTs > Connection.LOG_THROTTLE_INTERVAL_MS;
-        if (doLog) {
+    private void throttleWarn(String msg) {
+        Tuple2<Boolean, Long> throttlerResult = throttler.onEvent();
+        if (!throttlerResult.first) {
             log.warn(msg);
-            if (numThrottledWarnings > 0) log.warn("We received {} throttled warnings since the last log entry" + (numThrottledWarnings >= Connection.POSSIBLE_DOS_THRESHOLD ? ". Possible DoS attack detected" : ""), numThrottledWarnings);
-            numThrottledWarnings = 0;
-            lastLoggedWarningTs = System.currentTimeMillis();
-        } else {
-            numThrottledWarnings++;
+            if (throttlerResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttlerResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
         }
     }
 
