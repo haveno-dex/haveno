@@ -395,7 +395,7 @@ public abstract class NetworkNode implements MessageListener {
             allConnections.forEach(c -> c.shutDown(CloseConnectionReason.APP_SHUT_DOWN,
                     () -> {
                         shutdownCompleted.getAndIncrement();
-                        log.info("Shutdown of node {} completed", c.getPeersNodeAddressOptional());
+                        if (c.getPeersNodeAddressOptional().isPresent()) log.info("Shutdown of node {} completed", c.getPeersNodeAddressOptional().get());
                         if (shutdownCompleted.get() == numConnections) {
                             log.info("Shutdown completed with all connections closed");
                             timeoutHandler.stop();
