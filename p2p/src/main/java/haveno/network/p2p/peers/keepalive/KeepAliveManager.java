@@ -53,6 +53,8 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     private boolean stopped;
     private Timer keepAliveTimer;
 
+    private static long lastLoggedWarningTs = 0;
+    private static long numThrottledWarnings = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -101,6 +103,12 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
                 // We get from peer last measured rrt
                 connection.getStatistic().setRoundTripTime(ping.getLastRoundTripTime());
 
+                // ignore ping from unknown address
+                if (!connection.getPeersNodeAddressOptional().isPresent()) {
+                    throttleWarn("Ignoring ping from unknown peer address, connectionUid=" + connection.getUid() + ", last round trip time=" + ping.getLastRoundTripTime() + " ms");
+                    return;
+                }
+
                 Pong pong = new Pong(ping.getNonce());
                 SettableFuture<Connection> future = networkNode.sendMessage(connection, pong);
                 Futures.addCallback(future, Utilities.failureCallback(throwable -> {
@@ -120,6 +128,17 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
         }
     }
 
+    private synchronized void throttleWarn(String msg) {
+        boolean doLog = System.currentTimeMillis() - lastLoggedWarningTs > Connection.LOG_THROTTLE_INTERVAL_MS;
+        if (doLog) {
+            log.warn(msg);
+            if (numThrottledWarnings > 0) log.warn("We received {} throttled warnings since the last log entry" + (numThrottledWarnings >= Connection.POSSIBLE_DOS_THRESHOLD ? ". Possible DoS attack detected" : ""), numThrottledWarnings);
+            numThrottledWarnings = 0;
+            lastLoggedWarningTs = System.currentTimeMillis();
+        } else {
+            numThrottledWarnings++;
+        }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // ConnectionListener implementation
