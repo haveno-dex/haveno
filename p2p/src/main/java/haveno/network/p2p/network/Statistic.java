@@ -19,7 +19,9 @@ package haveno.network.p2p.network;
 
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
+import haveno.network.utils.EventThrottler;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
@@ -32,6 +34,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Network statistics per connection. As we are also interested in total network statistics
@@ -46,16 +49,19 @@ public class Statistic {
 
 
     private final static long startTime = System.currentTimeMillis();
-    private final static LongProperty totalSentBytes = new SimpleLongProperty(0);
-    private final static DoubleProperty totalSentBytesPerSec = new SimpleDoubleProperty(0);
-    private final static LongProperty totalReceivedBytes = new SimpleLongProperty(0);
-    private final static DoubleProperty totalReceivedBytesPerSec = new SimpleDoubleProperty(0);
+    private final static AtomicLong totalSentBytes = new AtomicLong(0);
+    private final static LongProperty totalSentBytesProperty = new SimpleLongProperty(0);
+    private final static DoubleProperty totalSentBytesPerSecProperty = new SimpleDoubleProperty(0);
+    private final static AtomicLong totalReceivedBytes = new AtomicLong(0);
+    private final static LongProperty totalReceivedBytesProperty = new SimpleLongProperty(0);
+    private final static DoubleProperty totalReceivedBytesPerSecProperty = new SimpleDoubleProperty(0);
     private final static Map<String, Integer> totalReceivedMessages = new ConcurrentHashMap<>();
     private final static Map<String, Integer> totalSentMessages = new ConcurrentHashMap<>();
     private final static LongProperty numTotalSentMessages = new SimpleLongProperty(0);
     private final static DoubleProperty numTotalSentMessagesPerSec = new SimpleDoubleProperty(0);
     private final static LongProperty numTotalReceivedMessages = new SimpleLongProperty(0);
     private final static DoubleProperty numTotalReceivedMessagesPerSec = new SimpleDoubleProperty(0);
+    private final static EventThrottler statisticThrottler = new EventThrottler(1000, TimeUnit.MILLISECONDS);
 
     static {
         UserThread.runPeriodically(() -> {
@@ -66,8 +72,8 @@ public class Statistic {
             numTotalSentMessagesPerSec.set(((double) numTotalSentMessages.get()) / passed);
             numTotalReceivedMessagesPerSec.set(((double) numTotalReceivedMessages.get()) / passed);
 
-            totalSentBytesPerSec.set(((double) totalSentBytes.get()) / passed);
-            totalReceivedBytesPerSec.set(((double) totalReceivedBytes.get()) / passed);
+            totalSentBytesPerSecProperty.set(((double) totalSentBytesProperty.get()) / passed);
+            totalReceivedBytesPerSecProperty.set(((double) totalReceivedBytesProperty.get()) / passed);
         }, 1);
 
         // We log statistics every 60 minutes
@@ -80,29 +86,29 @@ public class Statistic {
                             "Bytes received: {}" + ls +
                             "Number of received messages/Received messages: {} / {};" + ls +
                             "Number of received messages per sec: {}" + ls,
-                    Utilities.readableFileSize(totalSentBytes.get()),
+                    Utilities.readableFileSize(totalSentBytesProperty.get()),
                     numTotalSentMessages.get(), totalSentMessages,
                     numTotalSentMessagesPerSec.get(),
-                    Utilities.readableFileSize(totalReceivedBytes.get()),
+                    Utilities.readableFileSize(totalReceivedBytesProperty.get()),
                     numTotalReceivedMessages.get(), totalReceivedMessages,
                     numTotalReceivedMessagesPerSec.get());
         }, TimeUnit.MINUTES.toSeconds(60));
     }
 
     public static LongProperty totalSentBytesProperty() {
-        return totalSentBytes;
+        return totalSentBytesProperty;
     }
 
     public static DoubleProperty totalSentBytesPerSecProperty() {
-        return totalSentBytesPerSec;
+        return totalSentBytesPerSecProperty;
     }
 
     public static LongProperty totalReceivedBytesProperty() {
-        return totalReceivedBytes;
+        return totalReceivedBytesProperty;
     }
 
     public static DoubleProperty totalReceivedBytesPerSecProperty() {
-        return totalReceivedBytesPerSec;
+        return totalReceivedBytesPerSecProperty;
     }
 
     public static LongProperty numTotalSentMessagesProperty() {
@@ -128,8 +134,10 @@ public class Statistic {
 
     private final Date creationDate;
     private long lastActivityTimestamp = System.currentTimeMillis();
-    private final LongProperty sentBytes = new SimpleLongProperty(0);
-    private final LongProperty receivedBytes = new SimpleLongProperty(0);
+    private final AtomicLong sentBytes = new AtomicLong(0);
+    private final LongProperty sentBytesProperty = new SimpleLongProperty(0);
+    private final AtomicLong receivedBytes = new AtomicLong(0);
+    private final LongProperty receivedBytesProperty = new SimpleLongProperty(0);
     private final Map<String, Integer> receivedMessages = new ConcurrentHashMap<>();
     private final Map<String, Integer> sentMessages = new ConcurrentHashMap<>();
     private final IntegerProperty roundTripTime = new SimpleIntegerProperty(0);
@@ -148,21 +156,36 @@ public class Statistic {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     void updateLastActivityTimestamp() {
-        UserThread.execute(() -> lastActivityTimestamp = System.currentTimeMillis());
+        Tuple2<Boolean, Long> throttlerResult = statisticThrottler.onEvent();
+        if (!throttlerResult.first) {
+            UserThread.execute(() -> lastActivityTimestamp = System.currentTimeMillis());
+        } else {
+            lastActivityTimestamp = System.currentTimeMillis();
+        }
     }
 
     void addSentBytes(int value) {
-        UserThread.execute(() -> {
-            sentBytes.set(sentBytes.get() + value);
-            totalSentBytes.set(totalSentBytes.get() + value);
-        });
+        sentBytes.addAndGet(value);
+        totalSentBytes.addAndGet(value);
+        Tuple2<Boolean, Long> throttlerResult = statisticThrottler.onEvent();
+        if (!throttlerResult.first) {
+            UserThread.execute(() -> {
+                sentBytesProperty.set(sentBytes.get());
+                totalSentBytesProperty.set(totalSentBytes.get());
+            });
+        }
     }
 
     void addReceivedBytes(int value) {
-        UserThread.execute(() -> {
-            receivedBytes.set(receivedBytes.get() + value);
-            totalReceivedBytes.set(totalReceivedBytes.get() + value);
-        });
+        receivedBytes.addAndGet(value);
+        totalReceivedBytes.addAndGet(value);
+        Tuple2<Boolean, Long> throttlerResult = statisticThrottler.onEvent();
+        if (!throttlerResult.first) {
+            UserThread.execute(() -> {
+                receivedBytesProperty.set(receivedBytes.get());
+                totalReceivedBytesProperty.set(totalReceivedBytes.get());
+            });
+        }
     }
 
     // TODO would need msg inspection to get useful information...
@@ -212,20 +235,20 @@ public class Statistic {
         return System.currentTimeMillis() - lastActivityTimestamp;
     }
 
-    public long getSentBytes() {
-        return sentBytes.get();
+    public long getSentBytesProperty() {
+        return sentBytesProperty.get();
     }
 
     public LongProperty sentBytesProperty() {
-        return sentBytes;
+        return sentBytesProperty;
     }
 
-    public long getReceivedBytes() {
-        return receivedBytes.get();
+    public long getReceivedBytesProperty() {
+        return receivedBytesProperty.get();
     }
 
     public LongProperty receivedBytesProperty() {
-        return receivedBytes;
+        return receivedBytesProperty;
     }
 
     public Date getCreationDate() {
@@ -237,19 +260,19 @@ public class Statistic {
     }
 
     public static long getTotalSentBytes() {
-        return totalSentBytes.get();
+        return totalSentBytesProperty.get();
     }
 
     public static double getTotalSentBytesPerSec() {
-        return totalSentBytesPerSec.get();
+        return totalSentBytesPerSecProperty.get();
     }
 
     public static long getTotalReceivedBytes() {
-        return totalReceivedBytes.get();
+        return totalReceivedBytesProperty.get();
     }
 
     public static double getTotalReceivedBytesPerSec() {
-        return totalReceivedBytesPerSec.get();
+        return totalReceivedBytesPerSecProperty.get();
     }
 
     public static double numTotalReceivedMessagesPerSec() {
@@ -265,8 +288,8 @@ public class Statistic {
         return "Statistic{" +
                 "\n     creationDate=" + creationDate +
                 ",\n     lastActivityTimestamp=" + lastActivityTimestamp +
-                ",\n     sentBytes=" + sentBytes +
-                ",\n     receivedBytes=" + receivedBytes +
+                ",\n     sentBytes=" + sentBytesProperty +
+                ",\n     receivedBytes=" + receivedBytesProperty +
                 ",\n     receivedMessages=" + receivedMessages +
                 ",\n     sentMessages=" + sentMessages +
                 ",\n     roundTripTime=" + roundTripTime +
