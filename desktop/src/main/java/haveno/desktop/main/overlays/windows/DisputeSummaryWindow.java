@@ -225,7 +225,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         } else if (trade.isPayoutPublished()) {
             log.info("Payout is already published for {} {}, disabling payout controls", trade.getClass().getSimpleName(), trade.getId());
             disableTradeAmountPayoutControls();
-        } else if (trade.isDepositTxMissing()) {
+        } else if (trade.isDepositTxMissing()) { // TODO: this can cause arbitrator to hang when they click the close ticket button (while opening the wallet if needed), so load it off main thread and add spinny wheel to ui?
             log.warn("Missing deposit tx for {} {}, disabling some payout controls", trade.getClass().getSimpleName(), trade.getId());
             disableTradeAmountPayoutControlsWhenDepositMissing();
         }
