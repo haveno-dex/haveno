@@ -24,9 +24,9 @@ import java.net.Socket;
 import java.net.SocketException;
 
 import java.io.IOException;
-
+import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +43,7 @@ class Server implements Runnable {
 
     private final ServerSocket serverSocket;
     private final int localPort;
-    private final Set<Connection> connections = new CopyOnWriteArraySet<>();
+    private final Set<Connection> connections = Collections.newSetFromMap(new ConcurrentHashMap<Connection, Boolean>());
     private final NetworkProtoResolver networkProtoResolver;
     private final Thread serverThread = new Thread(this);
 
