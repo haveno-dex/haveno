@@ -62,6 +62,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
@@ -207,7 +210,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         moneroConnectionsTableView.getSortOrder().add(moneroConnectionConnectedColumn);
 
         p2pPeersTableView.setMinHeight(180);
-        p2pPeersTableView.setPrefHeight(180);
+        p2pPeersTableView.setPrefHeight(250);
+        VBox.setVgrow(p2pPeersTableView, Priority.SOMETIMES);
         p2pPeersTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         p2pPeersTableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noData")));
         p2pPeersTableView.getSortOrder().add(creationDateColumn);
