@@ -37,6 +37,10 @@ import haveno.core.app.HavenoSetup;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
+import haveno.core.payment.payload.MoneyBeamAccountPayload;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PixAccountPayload;
+import haveno.core.payment.payload.TransferwiseAccountPayload;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.messages.PaymentReceivedMessage;
@@ -61,6 +65,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -782,6 +787,25 @@ public class HavenoUtils {
         double factor = divide(max, min);
         if (factor > MINER_FEE_TOLERANCE_FACTOR) {
             throw new IllegalArgumentException("Miner fees are not within " + MINER_FEE_TOLERANCE_FACTOR + "x of each other. Expected=" + expected + ", actual=" + actual + ", factor=" + factor);
+        }
+    }
+
+    public static void verifyPaymentAccountPayloadHash(PaymentAccountPayload payload, byte[] contractHash, String owner) {
+        if (!Arrays.equals(payload.getHash(), contractHash)) {
+
+            // TODO: Due to a bug in v1.2.3, the hash of some payloads may not match the hash in the contract.
+            // We verify against the legacy uncorrected hash to maintain compatibility.
+            // This can be removed once all trades have transitioned to the fixed version.
+            boolean isLegacyHash = false;
+            if (payload instanceof TransferwiseAccountPayload && Arrays.equals(((TransferwiseAccountPayload) payload).getLegacyHash(), contractHash)) isLegacyHash = true;
+            if (payload instanceof PixAccountPayload && Arrays.equals(((PixAccountPayload) payload).getLegacyHash(), contractHash)) isLegacyHash = true;
+            if (payload instanceof MoneyBeamAccountPayload && Arrays.equals(((MoneyBeamAccountPayload) payload).getLegacyHash(), contractHash)) isLegacyHash = true;
+
+            if (isLegacyHash) {
+                log.warn("Hash of {}'s payment account payload does not match contract but matches legacy hash", owner);
+            } else {
+                throw new IllegalArgumentException("Hash of " + owner + "'s payment account payload does not match contract, expected=" + Utilities.bytesAsHexString(contractHash) + ", actual=" + Utilities.bytesAsHexString(payload.getHash()));
+            }
         }
     }
 }

@@ -129,7 +129,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -1994,7 +1993,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
             // verify hash of payment account payload
             byte[] peerPaymentAccountPayloadHash = this instanceof MakerTrade ? getContract().getTakerPaymentAccountPayloadHash() : getContract().getMakerPaymentAccountPayloadHash();
-            if (!Arrays.equals(paymentAccountPayload.getHash(), peerPaymentAccountPayloadHash)) throw new IllegalArgumentException("Hash of peer's payment account payload does not match contract, expected=" + Utilities.bytesAsHexString(peerPaymentAccountPayloadHash) + ", actual=" + Utilities.bytesAsHexString(paymentAccountPayload.getHash()));
+            HavenoUtils.verifyPaymentAccountPayloadHash(paymentAccountPayload, peerPaymentAccountPayloadHash, "peer");
 
             // set payment account payload
             getTradePeer().setPaymentAccountPayload(paymentAccountPayload);

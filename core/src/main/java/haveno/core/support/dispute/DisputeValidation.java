@@ -43,14 +43,10 @@ public class DisputeValidation {
 
     public static void validatePaymentAccountPayloads(Dispute dispute) throws ValidationException {
         if (dispute.getSellerPaymentAccountPayload() != null) {
-            if (!Arrays.equals(dispute.getSellerPaymentAccountPayload().getHash(), dispute.getContract().getSellerPaymentAccountPayloadHash())) {
-                throw new ValidationException(dispute, "Hash of seller's payment account payload does not match contract");
-            }
+            HavenoUtils.verifyPaymentAccountPayloadHash(dispute.getSellerPaymentAccountPayload(), dispute.getContract().getSellerPaymentAccountPayloadHash(), "seller");
         }
         if (dispute.getBuyerPaymentAccountPayload() != null) {
-            if (!Arrays.equals(dispute.getBuyerPaymentAccountPayload().getHash(), dispute.getContract().getBuyerPaymentAccountPayloadHash())) {
-                throw new ValidationException(dispute, "Hash of buyer's payment account payload does not match contract");
-            }
+            HavenoUtils.verifyPaymentAccountPayloadHash(dispute.getBuyerPaymentAccountPayload(), dispute.getContract().getBuyerPaymentAccountPayloadHash(), "buyer");
         }
     }
 
