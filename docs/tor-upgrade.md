@@ -57,7 +57,9 @@ Create a PR for the `master` branch of [tor-binary][2] with the following change
    - `tor-binary-geoip/pom.xml`
    - `tor-binary-linux32/pom.xml`
    - `tor-binary-linux64/pom.xml`
-   - `tor-binary-macos/pom.xml`
+   - `tor-binary-linuxaarch64/pom.xml`
+   - `tor-binary-macos64/pom.xml`
+   - `tor-binary-macosaarch64/pom.xml`
    - `tor-binary-windows/pom.xml`
    - `tor-binary-resources/pom.xml`
  - Run `mvn install`

@@ -72,10 +72,7 @@ You can also start the Monero node in your current terminal session by running `
 
 ## Add seed nodes
 
-### Seed nodes without Proof of Work (PoW)
-
-> [!note]
-> Using PoW is suggested. See next section for PoW setup.
+### Seed nodes with inbuilt Tor and Proof of Work (PoW)
 
 For each seed node:
 
@@ -88,7 +85,7 @@ For each seed node:
 7. Add the `.onion` address to `core/src/main/resources/xmr_<network>.seednodes` along with the port specified in the haveno-seednode.service file(s) `(ex: example.onion:1002)`. Be careful to record full addresses correctly.
 8. Update all seed nodes, arbitrators, and user applications for the change to take effect.
 
-### Seed nodes with Proof of Work (PoW)
+### Seed nodes with external Tor and Proof of Work (PoW)
 
 > [!note]
 > These instructions were written for Ubuntu with an Intel/AMD 64-bit CPU so changes may be needed for your distribution.
