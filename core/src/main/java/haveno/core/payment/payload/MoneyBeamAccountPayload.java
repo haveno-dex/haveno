@@ -93,7 +93,8 @@ public final class MoneyBeamAccountPayload extends PaymentAccountPayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public byte[] getHash() {
-        protobuf.MoneyBeamAccountPayload.Builder hashBuilder = (protobuf.MoneyBeamAccountPayload.Builder) this.toProtoMessage().toBuilder();
+        protobuf.PaymentAccountPayload payload = (protobuf.PaymentAccountPayload) this.toProtoMessage();
+        protobuf.MoneyBeamAccountPayload.Builder hashBuilder = payload.getMoneyBeamAccountPayload().toBuilder();
         hashBuilder.clearHolderName(); // ignore holder name
         return Hash.getRipemd160hash(hashBuilder.build().toByteArray());
     }

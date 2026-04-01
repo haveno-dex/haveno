@@ -97,7 +97,8 @@ public final class PixAccountPayload extends CountryBasedPaymentAccountPayload {
     }
 
     public byte[] getHash() {
-        protobuf.PixAccountPayload.Builder hashBuilder = (protobuf.PixAccountPayload.Builder) this.toProtoMessage().toBuilder();
+        protobuf.PaymentAccountPayload payload = (protobuf.PaymentAccountPayload) this.toProtoMessage();
+        protobuf.PixAccountPayload.Builder hashBuilder = payload.getCountryBasedPaymentAccountPayload().getPixAccountPayload().toBuilder();
         hashBuilder.clearHolderName(); // ignore holder name
         return Hash.getRipemd160hash(hashBuilder.build().toByteArray());
     }

@@ -94,7 +94,8 @@ public final class TransferwiseAccountPayload extends PaymentAccountPayload {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public byte[] getHash() {
-        protobuf.TransferwiseAccountPayload.Builder hashBuilder = (protobuf.TransferwiseAccountPayload.Builder) this.toProtoMessage().toBuilder();
+        protobuf.PaymentAccountPayload payload = (protobuf.PaymentAccountPayload) this.toProtoMessage();
+        protobuf.TransferwiseAccountPayload.Builder hashBuilder = payload.getTransferwiseAccountPayload().toBuilder();
         hashBuilder.clearHolderName(); // ignore holder name
         return Hash.getRipemd160hash(hashBuilder.build().toByteArray());
     }
