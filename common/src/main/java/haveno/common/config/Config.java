@@ -80,6 +80,12 @@ public class Config {
     public static final String HIDDEN_SERVICE_ADDRESS = "hiddenServiceAddress";
     public static final String USE_LOCALHOST_FOR_P2P = "useLocalhostForP2P";
     public static final String MAX_CONNECTIONS = "maxConnections";
+    public static final String UNKNOWN_PEER_ENVELOPE_RATE = "unknownPeerEnvelopeRate";
+    public static final String UNKNOWN_PEER_ENVELOPE_BURST = "unknownPeerEnvelopeBurst";
+    public static final String UNKNOWN_PEER_ENVELOPE_STRIKES = "unknownPeerEnvelopeStrikes";
+    public static final String KNOWN_PEER_ENVELOPE_RATE = "knownPeerEnvelopeRate";
+    public static final String KNOWN_PEER_ENVELOPE_BURST = "knownPeerEnvelopeBurst";
+    public static final String KNOWN_PEER_ENVELOPE_STRIKES = "knownPeerEnvelopeStrikes";
     public static final String SOCKS_5_PROXY_XMR_ADDRESS = "socks5ProxyXmrAddress";
     public static final String SOCKS_5_PROXY_HTTP_ADDRESS = "socks5ProxyHttpAddress";
     public static final String USE_TOR_FOR_XMR = "useTorForXmr";
@@ -176,6 +182,12 @@ public class Config {
     public final List<String> banList;
     public final boolean useLocalhostForP2P;
     public final int maxConnections;
+    public final int unknownPeerEnvelopeRate;
+    public final int unknownPeerEnvelopeBurst;
+    public final int unknownPeerEnvelopeStrikes;
+    public final int knownPeerEnvelopeRate;
+    public final int knownPeerEnvelopeBurst;
+    public final int knownPeerEnvelopeStrikes;
     public final String socks5ProxyXmrAddress;
     public final String socks5ProxyHttpAddress;
     public final File torrcFile;
@@ -435,6 +447,42 @@ public class Config {
                         .withRequiredArg()
                         .ofType(int.class)
                         .defaultsTo(12);
+
+        ArgumentAcceptingOptionSpec<Integer> unknownPeerEnvelopeRateOpt =
+                parser.accepts(UNKNOWN_PEER_ENVELOPE_RATE, "Sustained number of network envelopes allowed per second per unknown peer")
+                        .withRequiredArg()
+                        .ofType(int.class)
+                        .defaultsTo(50);
+
+        ArgumentAcceptingOptionSpec<Integer> unknownPeerEnvelopeBurstOpt =
+                parser.accepts(UNKNOWN_PEER_ENVELOPE_BURST, "Maximum number of network envelopes allowed in a single burst (e.g. for sync) for unknown peers")
+                        .withRequiredArg()
+                        .ofType(int.class)
+                        .defaultsTo(10000);
+                        
+        ArgumentAcceptingOptionSpec<Integer> unknownPeerEnvelopeStrikesOpt =
+                parser.accepts(UNKNOWN_PEER_ENVELOPE_STRIKES, "Number of times an unknown peer can exceed the burst limit before being disconnected")
+                        .withRequiredArg()
+                        .ofType(int.class)
+                        .defaultsTo(2);
+
+        ArgumentAcceptingOptionSpec<Integer> knownPeerEnvelopeRateOpt =
+                parser.accepts(KNOWN_PEER_ENVELOPE_RATE, "Sustained number of network envelopes allowed per second per known peer")
+                        .withRequiredArg()
+                        .ofType(int.class)
+                        .defaultsTo(150);
+
+        ArgumentAcceptingOptionSpec<Integer> knownPeerEnvelopeBurstOpt =
+                parser.accepts(KNOWN_PEER_ENVELOPE_BURST, "Maximum number of network envelopes allowed in a single burst (e.g. for sync) from known peers")
+                        .withRequiredArg()
+                        .ofType(int.class)
+                        .defaultsTo(50000);
+                        
+        ArgumentAcceptingOptionSpec<Integer> knownPeerEnvelopeStrikesOpt =
+                parser.accepts(KNOWN_PEER_ENVELOPE_STRIKES, "Number of times a known peer can exceed the burst limit before being disconnected")
+                        .withRequiredArg()
+                        .ofType(int.class)
+                        .defaultsTo(2);
 
         ArgumentAcceptingOptionSpec<String> socks5ProxyXmrAddressOpt =
                 parser.accepts(SOCKS_5_PROXY_XMR_ADDRESS, "A proxy address to be used for Bitcoin network.")
@@ -736,6 +784,12 @@ public class Config {
             this.banList = options.valuesOf(banListOpt);
             this.useLocalhostForP2P = !this.baseCurrencyNetwork.isMainnet() && options.valueOf(useLocalhostForP2POpt);
             this.maxConnections = options.valueOf(maxConnectionsOpt);
+            this.unknownPeerEnvelopeRate = options.valueOf(unknownPeerEnvelopeRateOpt);
+            this.unknownPeerEnvelopeBurst = options.valueOf(unknownPeerEnvelopeBurstOpt);
+            this.unknownPeerEnvelopeStrikes = options.valueOf(unknownPeerEnvelopeStrikesOpt);
+            this.knownPeerEnvelopeRate = options.valueOf(knownPeerEnvelopeRateOpt);
+            this.knownPeerEnvelopeBurst = options.valueOf(knownPeerEnvelopeBurstOpt);
+            this.knownPeerEnvelopeStrikes = options.valueOf(knownPeerEnvelopeStrikesOpt);
             this.socks5ProxyXmrAddress = options.valueOf(socks5ProxyXmrAddressOpt);
             this.socks5ProxyHttpAddress = options.valueOf(socks5ProxyHttpAddressOpt);
             this.msgThrottlePerSec = options.valueOf(msgThrottlePerSecOpt);

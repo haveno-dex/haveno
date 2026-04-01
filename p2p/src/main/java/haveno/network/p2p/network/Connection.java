@@ -118,8 +118,13 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
     private static final String THREAD_ID = Connection.class.getSimpleName();
-    public static final int POSSIBLE_DOS_THRESHOLD = 5;
+    public static final int POSSIBLE_DOS_THRESHOLD = 10;
     public static final String POSSIBLE_DOS_MESSAGE = "Possible DoS attack detected";
+
+    // Throttle network envelopes for incoming connections
+    private LeakyBucket unknownPeerEnvelopeRateBucket = new LeakyBucket(config.unknownPeerEnvelopeRate, config.unknownPeerEnvelopeBurst, config.unknownPeerEnvelopeStrikes);
+    private LeakyBucket knownPeerEnvelopeRateBucket = new LeakyBucket(config.knownPeerEnvelopeRate, config.knownPeerEnvelopeBurst, config.knownPeerEnvelopeStrikes);
+    private static final EventThrottler closeConnectionLogThrottler = new EventThrottler(60, TimeUnit.SECONDS);
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -409,13 +414,13 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
         checkArgument(connection.equals(this));
         if (networkEnvelope instanceof BundleOfEnvelopes) {
-            onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope, connection);
+            onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope);
         } else {
-            ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessage(networkEnvelope, connection)), THREAD_ID);
+            processIncomingEnvelopes(Set.of(networkEnvelope));
         }
     }
 
-    private void onBundleOfEnvelopes(BundleOfEnvelopes bundleOfEnvelopes, Connection connection) {
+    private void onBundleOfEnvelopes(BundleOfEnvelopes bundleOfEnvelopes) {
         Map<P2PDataStorage.ByteArray, Set<NetworkEnvelope>> itemsByHash = new HashMap<>();
         Set<NetworkEnvelope> envelopesToProcess = new HashSet<>();
         List<NetworkEnvelope> networkEnvelopes = bundleOfEnvelopes.getEnvelopes();
@@ -447,11 +452,37 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 envelopesToProcess.add(networkEnvelope);
             }
         }
+
+        processIncomingEnvelopes(envelopesToProcess);
+    }
+
+    private void processIncomingEnvelopes(Set<NetworkEnvelope> networkEnvelopes) {
+
+        // throttle envelope spam
+        boolean isSeedNode = getConnectionState().isSeedNode();
+        boolean isKnownAddress = !getPeersNodeAddressOptional().isEmpty();
+        if (!isSeedNode) {
+            LeakyBucket envelopeRateBucket = isKnownAddress ? knownPeerEnvelopeRateBucket : unknownPeerEnvelopeRateBucket;
+            if (envelopeRateBucket.isSpamming(networkEnvelopes.size())) {
+                Tuple2<Boolean, Long> throttleResult = closeConnectionLogThrottler.onEvent();
+                if (!throttleResult.first) {
+                    log.warn("Closing connection with too many envelopes: numEnvelopes={}, peer={}, uid={}", networkEnvelopes.size(), getPeersNodeAddressOptional().map(NodeAddress::getFullAddress).orElse("null"), uid);
+                    if (throttleResult.second > 0) log.warn("We throttled {} warnings about closing connections since the last log entry" + (throttleResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
+                }
+                ruleViolation = RuleViolation.THROTTLE_LIMIT_EXCEEDED;
+                shutDown(CloseConnectionReason.RULE_VIOLATION);
+                return;
+            }
+        }
+
+        // announce the envelopes
         ThreadUtils.execute(() -> {
-            envelopesToProcess.forEach(envelope -> {
-                messageListeners.forEach(listener -> listener.onMessage(envelope, connection));
-            });
+            networkEnvelopes.forEach(envelope -> announceEnvelope(envelope));
         }, THREAD_ID);
+    }
+
+    private void announceEnvelope(NetworkEnvelope networkEnvelope) {
+        messageListeners.forEach(e -> e.onMessage(networkEnvelope, this));
     }
 
 
