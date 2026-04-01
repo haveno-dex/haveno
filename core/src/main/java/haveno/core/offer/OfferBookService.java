@@ -129,10 +129,16 @@ public class OfferBookService {
                                     replaceValidOffer(offer);
                                     announceOfferAdded(offer);
                                 } catch (IllegalArgumentException e) {
-                                    log.warn("Ignoring invalid offer {}: {}", offerPayload.getId(), e.getMessage());
+                                    log.warn("Ignoring illegal offer {}: {}", offerPayload.getId(), e.getMessage());
                                 } catch (Exception e) {
-                                    log.warn("Adding offer {} to invalid offers: {}", offerPayload.getId(), e.getMessage());
                                     replaceInvalidOffer(offer); // offer can become valid later
+
+                                    // wait to log invalid offer in case it becomes valid shortly after
+                                    ThreadUtils.runAfter(() -> {
+                                        if (hasInvalidOffer(offerPayload.getId())) {
+                                            log.warn("Invalid offer added, offerId={}: ", offerPayload.getId(), e.getMessage());
+                                        }
+                                    }, 5);
                                 }
                             }
                         }
@@ -306,9 +312,22 @@ public class OfferBookService {
     }
 
     private boolean hasValidOffer(String offerId) {
-        for (Offer offer : getOffers()) {
-            if (offer.getId().equals(offerId)) {
-                return true;
+        synchronized (validOffers) {
+            for (Offer offer : validOffers) {
+                if (offer.getId().equals(offerId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    private boolean hasInvalidOffer(String offerId) {
+        synchronized (invalidOffers) {
+            for (Offer offer : invalidOffers) {
+                if (offer.getId().equals(offerId)) {
+                    return true;
+                }
             }
         }
         return false;
