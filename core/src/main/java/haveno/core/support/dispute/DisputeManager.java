@@ -197,7 +197,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     @Override
     public List<ChatMessage> getAllChatMessages(String tradeId) {
-        synchronized (getDisputeList().getObservableList()) {
+        synchronized (getDisputeList().getList()) {
             return getDisputeList().stream()
                     .filter(dispute -> dispute.getTradeId().equals(tradeId))
                     .flatMap(dispute -> dispute.getChatMessages().stream())
@@ -251,7 +251,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     public ObservableList<Dispute> getDisputesAsObservableList() {
-        synchronized(disputeListService.getDisputeList().getObservableList()) {
+        synchronized(disputeListService.getDisputeList().getList()) {
             return disputeListService.getObservableList();
         }
     }
@@ -261,7 +261,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     protected T getDisputeList() {
-        synchronized(disputeListService.getDisputeList().getObservableList()) {
+        synchronized(disputeListService.getDisputeList().getList()) {
             return disputeListService.getDisputeList();
         }
     }
@@ -314,7 +314,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     public Optional<Dispute> findOwnDispute(String tradeId) {
-        synchronized (getDisputeList()) {
+        synchronized (getDisputeList().getList()) {
             T disputeList = getDisputeList();
             if (disputeList == null) {
                 log.warn("disputes is null");
@@ -405,7 +405,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
         // set dispute
         T disputeList = getDisputeList();
-        synchronized (disputeList.getObservableList()) {
+        synchronized (disputeList.getList()) {
             if (disputeList.contains(dispute)) {
                 String msg = "We got a dispute msg that we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
                 log.warn(msg);
@@ -422,7 +422,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             } else {
                 final Dispute finalDispute = dispute;
                 UserThread.execute(() -> {
-                    synchronized (disputeList.getObservableList()) {
+                    synchronized (disputeList.getList()) {
                         disputeList.add(finalDispute);
                     }
                 });
@@ -563,7 +563,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     public void removeDisputes(Trade trade) {
         UserThread.execute(() -> {
             T disputeList = getDisputeList();
-            synchronized (disputeList.getObservableList()) {
+            synchronized (disputeList.getList()) {
                 for (Dispute dispute : trade.getDisputes()) {
                     disputeList.remove(dispute);
                 }
@@ -1020,45 +1020,53 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     public Optional<Dispute> findDispute(String tradeId, int traderId) {
-        T disputeList = getDisputeList();
-        if (disputeList == null) {
-            log.warn("disputes is null");
-            return Optional.empty();
+        synchronized (getDisputeList().getList()) {
+            T disputeList = getDisputeList();
+            if (disputeList == null) {
+                log.warn("disputes is null");
+                return Optional.empty();
+            }
+            return disputeList.stream()
+                    .filter(e -> e.getTradeId().equals(tradeId) && e.getTraderId() == traderId)
+                    .findAny();
         }
-        return disputeList.stream()
-                .filter(e -> e.getTradeId().equals(tradeId) && e.getTraderId() == traderId)
-                .findAny();
     }
 
     // TODO: throw if more than one dispute found? should not be called then
     public Optional<Dispute> findDispute(String tradeId) {
-        T disputeList = getDisputeList();
-        if (disputeList == null) {
-            log.warn("disputes is null");
-            return Optional.empty();
+        synchronized (getDisputeList().getList()) {
+            T disputeList = getDisputeList();
+            if (disputeList == null) {
+                log.warn("disputes is null");
+                return Optional.empty();
+            }
+            return disputeList.stream()
+                    .filter(e -> e.getTradeId().equals(tradeId))
+                    .findAny();
         }
-        return disputeList.stream()
-                .filter(e -> e.getTradeId().equals(tradeId))
-                .findAny();
     }
 
     public List<Dispute> findDisputes(String tradeId) {
-        T disputeList = getDisputeList();
-        if (disputeList == null) return new ArrayList<Dispute>();
-        return disputeList.stream()
-                .filter(e -> e.getTradeId().equals(tradeId))
-                .collect(Collectors.toList());
+        synchronized (getDisputeList().getList()) {
+            T disputeList = getDisputeList();
+            if (disputeList == null) return new ArrayList<Dispute>();
+            return disputeList.stream()
+                    .filter(e -> e.getTradeId().equals(tradeId))
+                    .collect(Collectors.toList());
+        }
     }
 
     public Optional<Dispute> findDisputeById(String disputeId) {
-        T disputeList = getDisputeList();
-        if (disputeList == null) {
-            log.warn("disputes is null");
-            return Optional.empty();
+        synchronized (getDisputeList().getList()) {
+            T disputeList = getDisputeList();
+            if (disputeList == null) {
+                log.warn("disputes is null");
+                return Optional.empty();
+            }
+            return disputeList.stream()
+                    .filter(e -> e.getId().equals(disputeId))
+                    .findAny();
         }
-        return disputeList.stream()
-                .filter(e -> e.getId().equals(disputeId))
-                .findAny();
     }
 
     public Optional<Trade> findTrade(Dispute dispute) {
