@@ -107,6 +107,7 @@ public final class PixAccountPayload extends CountryBasedPaymentAccountPayload {
      * @deprecated Legacy hash used to maintain compatibility with a bug in v1.2.3.
      * TODO: Remove once the network has transitioned.
      */
+    @Deprecated
     public byte[] getLegacyHash() {
         return super.getHash();
     }
