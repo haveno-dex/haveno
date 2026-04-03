@@ -19,9 +19,8 @@ package haveno.common;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -31,31 +30,24 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ThreadUtils {
-    
-    private static final Map<String, ExecutorService> EXECUTORS = new HashMap<>();
-    private static final Map<String, Thread> THREADS = new HashMap<>();
+
+    private static final ConcurrentHashMap<String, ExecutorService> EXECUTORS = new ConcurrentHashMap<>();
     private static final int POOL_SIZE = 1000;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
 
-    /**
-     * Execute the given command in a thread with the given id.
-     * 
-     * @param command the command to execute
-     * @param threadId the thread id
-     */
     public static Future<?> execute(Runnable command, String threadId) {
-        synchronized (EXECUTORS) {
-            if (!EXECUTORS.containsKey(threadId)) EXECUTORS.put(threadId, Executors.newFixedThreadPool(1));
-            ExecutorService executor = EXECUTORS.get(threadId);
-            if (executor.isShutdown()) throw new IllegalStateException("Cannot execute thread because it's shut down: " + threadId);
-            return EXECUTORS.get(threadId).submit(() -> {
-                synchronized (THREADS) {
-                    THREADS.put(threadId, Thread.currentThread());
-                }
-                Thread.currentThread().setName(threadId);
-                command.run();
-            });
+        ExecutorService executor = EXECUTORS.get(threadId);
+        if (executor == null) {
+            executor = EXECUTORS.computeIfAbsent(threadId, id -> 
+                Executors.newSingleThreadExecutor(r -> {
+                    Thread t = new Thread(r);
+                    t.setName(id); // Set name ONCE when thread starts
+                    return t;
+                })
+            );
         }
+        if (executor.isShutdown()) throw new IllegalStateException("Cannot execute thread because it's shut down: " + threadId);
+        return executor.submit(command);
     }
 
     /**
@@ -78,18 +70,18 @@ public class ThreadUtils {
 
     public static void shutDown(String threadId, Long timeoutMs) {
         if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
-        ExecutorService pool = null;
-        synchronized (EXECUTORS) {
-            pool = EXECUTORS.get(threadId);
-            if (pool == null) return; // thread not found
-            if (pool.isShutdown()) return; // already shut down
-            pool.shutdown();
-        }
+        ExecutorService pool = EXECUTORS.get(threadId);
+        if (pool == null || pool.isShutdown()) return;
+        pool.shutdown();
         try {
-            if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) pool.shutdownNow();
+            if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) {
+                log.warn("Thread {} did not terminate in time, forcing shutdown", threadId);
+                pool.shutdownNow();
+            }
         } catch (InterruptedException e) {
             pool.shutdownNow();
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Shutdown interrupted for: " + threadId, e);
         }
     }
 
@@ -99,24 +91,13 @@ public class ThreadUtils {
      * @param threadId the thread id
      */
     public static void reset(String threadId) {
-        remove(threadId);
-    }
-
-    public static void remove(String threadId) {
-        synchronized (EXECUTORS) {
-            EXECUTORS.remove(threadId);
-        }
-        synchronized (THREADS) {
-            THREADS.remove(threadId);
-        }
+        EXECUTORS.remove(threadId);
     }
 
     public static boolean isShutDown(String threadId) {
-        synchronized (EXECUTORS) {
-            if (!EXECUTORS.containsKey(threadId)) return false;
-            ExecutorService executor = EXECUTORS.get(threadId);
-            return executor.isShutdown();
-        }
+        ExecutorService executor = EXECUTORS.get(threadId);
+        if (executor == null) return false;
+        return executor.isShutdown();
     }
 
     // TODO: consolidate and cleanup apis
@@ -160,13 +141,6 @@ public class ThreadUtils {
             throw new RuntimeException(e);
         } finally {
             executorService.shutdownNow();
-        }
-    }
-
-    private static boolean isCurrentThread(Thread thread, String threadId) {
-        synchronized (THREADS) {
-            if (!THREADS.containsKey(threadId)) return false;
-            return thread == THREADS.get(threadId);
         }
     }
 }
