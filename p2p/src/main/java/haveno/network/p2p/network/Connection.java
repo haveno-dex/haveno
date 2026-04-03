@@ -99,7 +99,6 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Connection is created by the server thread or by sendMessage from NetworkNode.
- * All handlers are called on User thread.
  */
 @Slf4j
 public class Connection implements HasCapabilities, Runnable, MessageListener {
