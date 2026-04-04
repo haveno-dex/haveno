@@ -24,9 +24,9 @@ import java.net.Socket;
 import java.net.SocketException;
 
 import java.io.IOException;
-
+import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,12 +38,13 @@ class Server implements Runnable {
 
     private final MessageListener messageListener;
     private final ConnectionListener connectionListener;
+    private final ConnectionListener internalListener;
     @Nullable
     private final BanFilter banFilter;
 
     private final ServerSocket serverSocket;
     private final int localPort;
-    private final Set<Connection> connections = new CopyOnWriteArraySet<>();
+    private final Set<Connection> connections = Collections.newSetFromMap(new ConcurrentHashMap<Connection, Boolean>());
     private final NetworkProtoResolver networkProtoResolver;
     private final Thread serverThread = new Thread(this);
 
@@ -58,6 +59,20 @@ class Server implements Runnable {
         this.messageListener = messageListener;
         this.connectionListener = connectionListener;
         this.banFilter = banFilter;
+
+        // create internal listener to process connection events
+        internalListener = new ConnectionListener() {
+            @Override
+            public void onConnection(Connection connection) {
+                connectionListener.onConnection(connection);
+            }
+
+            @Override
+            public void onDisconnect(CloseConnectionReason closeConnectionReason, Connection connection) {
+                connectionListener.onDisconnect(closeConnectionReason, connection);
+                connections.remove(connection);
+            }
+        };
     }
 
     public void start() {
@@ -78,7 +93,7 @@ class Server implements Runnable {
                                 + socket.getPort());
                         InboundConnection connection = new InboundConnection(socket,
                                 messageListener,
-                                connectionListener,
+                                internalListener,
                                 networkProtoResolver,
                                 banFilter);
 

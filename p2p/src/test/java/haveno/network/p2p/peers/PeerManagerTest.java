@@ -80,6 +80,7 @@ public class PeerManagerTest {
         List<Connection> inboundSortedPeerConnections = node.getNetworkNode().getAllConnections().stream()
                 .filter(e -> e instanceof InboundConnection)
                 .filter(e -> e.getConnectionState().getPeerType() == PeerType.PEER)
+                .filter(e -> !e.isStopped())
                 .sorted(Comparator.comparingLong(o -> o.getStatistic().getLastActivityTimestamp()))
                 .collect(Collectors.toList());
         Connection oldestConnection = inboundSortedPeerConnections.remove(0);
@@ -119,6 +120,7 @@ public class PeerManagerTest {
         assertEquals(maxConnectionsPeer + 1, node.getNetworkNode().getAllConnections().size());
         List<Connection> sortedPeerConnections = node.getNetworkNode().getAllConnections().stream()
                 .filter(e -> e.getConnectionState().getPeerType() == PeerType.PEER)
+                .filter(e -> !e.isStopped())
                 .sorted(Comparator.comparingLong(o -> o.getStatistic().getLastActivityTimestamp()))
                 .collect(Collectors.toList());
         Connection oldestConnection = sortedPeerConnections.remove(0);

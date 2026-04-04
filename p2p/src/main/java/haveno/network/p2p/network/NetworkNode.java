@@ -44,13 +44,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import java.io.IOException;
-
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -75,10 +75,10 @@ public abstract class NetworkNode implements MessageListener {
     @Nullable
     private final BanFilter banFilter;
 
-    private final CopyOnWriteArraySet<InboundConnection> inBoundConnections = new CopyOnWriteArraySet<>();
-    private final CopyOnWriteArraySet<MessageListener> messageListeners = new CopyOnWriteArraySet<>();
-    private final CopyOnWriteArraySet<ConnectionListener> connectionListeners = new CopyOnWriteArraySet<>();
-    final CopyOnWriteArraySet<SetupListener> setupListeners = new CopyOnWriteArraySet<>();
+    private final Set<InboundConnection> inBoundConnections = Collections.newSetFromMap(new ConcurrentHashMap<InboundConnection, Boolean>());
+    private final Set<MessageListener> messageListeners = Collections.newSetFromMap(new ConcurrentHashMap<MessageListener, Boolean>());
+    private final Set<ConnectionListener> connectionListeners = Collections.newSetFromMap(new ConcurrentHashMap<ConnectionListener, Boolean>());
+    final Set<SetupListener> setupListeners = Collections.newSetFromMap(new ConcurrentHashMap<SetupListener, Boolean>());
     private final ListeningExecutorService connectionExecutor;
     private final ListeningExecutorService sendMessageExecutor;
     private Server server;
@@ -86,7 +86,7 @@ public abstract class NetworkNode implements MessageListener {
     @Getter
     private volatile boolean isShutDownStarted;
     // accessed from different threads
-    private final CopyOnWriteArraySet<OutboundConnection> outBoundConnections = new CopyOnWriteArraySet<>();
+    private final Set<OutboundConnection> outBoundConnections = Collections.newSetFromMap(new ConcurrentHashMap<OutboundConnection, Boolean>());
     protected final ObjectProperty<NodeAddress> nodeAddressProperty = new SimpleObjectProperty<>();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +109,7 @@ public abstract class NetworkNode implements MessageListener {
         sendMessageExecutor = Utilities.getListeningExecutorService("NetworkNode.sendMessage",
                 maxConnections * 2,
                 maxConnections * 3,
-                30,
+                250,
                 30);
     }
 
@@ -395,7 +395,7 @@ public abstract class NetworkNode implements MessageListener {
             allConnections.forEach(c -> c.shutDown(CloseConnectionReason.APP_SHUT_DOWN,
                     () -> {
                         shutdownCompleted.getAndIncrement();
-                        log.info("Shutdown of node {} completed", c.getPeersNodeAddressOptional());
+                        if (c.getPeersNodeAddressOptional().isPresent()) log.info("Shutdown of node {} completed", c.getPeersNodeAddressOptional().get());
                         if (shutdownCompleted.get() == numConnections) {
                             log.info("Shutdown completed with all connections closed");
                             timeoutHandler.stop();
