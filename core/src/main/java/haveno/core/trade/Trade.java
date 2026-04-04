@@ -1525,11 +1525,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     public MoneroTxWallet createDisputePayoutTx(Contract contract, DisputeResult disputeResult, boolean updateState) {
         synchronized (walletLock) {
 
-            // sync and poll
-            syncAndPollWallet();
-
             // import multisig hex
             importMultisigHex();
+
+            // sync and poll
+            syncAndPollWallet();
 
             // recover if missing wallet data
             recoverIfMissingWalletData();
