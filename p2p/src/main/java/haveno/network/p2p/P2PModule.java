@@ -32,6 +32,8 @@ import static haveno.common.config.Config.SOCKS_5_PROXY_HTTP_ADDRESS;
 import static haveno.common.config.Config.SOCKS_5_PROXY_XMR_ADDRESS;
 import static haveno.common.config.Config.TORRC_FILE;
 import static haveno.common.config.Config.TORRC_OPTIONS;
+import static haveno.common.config.Config.HIDDEN_SERVICE_FLAGS;
+import static haveno.common.config.Config.HIDDEN_SERVICE_PARAMS;
 import static haveno.common.config.Config.TOR_CONTROL_COOKIE_FILE;
 import static haveno.common.config.Config.TOR_CONTROL_HOST;
 import static haveno.common.config.Config.TOR_CONTROL_PASSWORD;
@@ -97,6 +99,8 @@ public class P2PModule extends AppModule {
         bindConstant().annotatedWith(named(SOCKS_5_PROXY_HTTP_ADDRESS)).to(config.socks5ProxyHttpAddress);
         bind(File.class).annotatedWith(named(TORRC_FILE)).toProvider(of(config.torrcFile)); // allow null value
         bindConstant().annotatedWith(named(TORRC_OPTIONS)).to(config.torrcOptions);
+        bindConstant().annotatedWith(named(HIDDEN_SERVICE_FLAGS)).to(config.hiddenServiceFlags);
+        bindConstant().annotatedWith(named(HIDDEN_SERVICE_PARAMS)).to(config.hiddenServiceParams);
         bindConstant().annotatedWith(named(TOR_CONTROL_HOST)).to(config.torControlHost);
         bindConstant().annotatedWith(named(TOR_CONTROL_PORT)).to(config.torControlPort);
         bindConstant().annotatedWith(named(TOR_CONTROL_PASSWORD)).to(config.torControlPassword);
