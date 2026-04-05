@@ -220,10 +220,10 @@ class PeerExchangeHandler implements MessageListener {
     }
 
     private void throttleWarn(String msg) {
-        Tuple2<Boolean, Long> throttlerResult = throttler.onEvent();
-        if (!throttlerResult.first) {
+        Tuple2<Boolean, Long> throttleResult = throttler.onEvent();
+        if (!throttleResult.first) {
             log.warn(msg);
-            if (throttlerResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttlerResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
+            if (throttleResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
         }
     }
 }

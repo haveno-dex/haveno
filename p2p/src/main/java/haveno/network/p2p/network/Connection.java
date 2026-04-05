@@ -652,8 +652,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static synchronized boolean reportInvalidRequest(Connection connection, RuleViolation ruleViolation, String errorMessage) {
 
         // determine if report should be logged to avoid spamming the logs
-        Tuple2<Boolean, Long> throttlerResult = invalidRequestThrottler.onEvent();
-        boolean throttleLogs = throttlerResult.first;
+        Tuple2<Boolean, Long> throttleResult = invalidRequestThrottler.onEvent();
+        boolean throttleLogs = throttleResult.first;
 
         // handle report
         if (!throttleLogs) log.warn("We got reported the ruleViolation {} at connection with address={}, uid={}, errorMessage={}", ruleViolation, connection.getPeersNodeAddressProperty(), connection.getUid(), errorMessage);
@@ -677,10 +677,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 connection.shutDown(CloseConnectionReason.RULE_VIOLATION);
             }
 
-            if (!throttleLogs) logThrottledInvalidRequests(throttlerResult.second);
+            if (!throttleLogs) logThrottledInvalidRequests(throttleResult.second);
             return true;
         } else {
-            if (!throttleLogs) logThrottledInvalidRequests(throttlerResult.second);
+            if (!throttleLogs) logThrottledInvalidRequests(throttleResult.second);
             return false;
         }
     }
@@ -966,20 +966,20 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     }
 
     private void throttleWarn(String msg) {
-        Tuple2<Boolean, Long> throttlerResult = logWarningThrottler.onEvent();
-        boolean throttleLogs = throttlerResult.first;
+        Tuple2<Boolean, Long> throttleResult = logWarningThrottler.onEvent();
+        boolean throttleLogs = throttleResult.first;
         if (!throttleLogs) {
             log.warn(msg);
-            if (throttlerResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttlerResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
+            if (throttleResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
         }
     }
 
     private void throttleInfo(String msg) {
-        Tuple2<Boolean, Long> throttlerResult = logInfoThrottler.onEvent();
-        boolean throttleLogs = throttlerResult.first;
+        Tuple2<Boolean, Long> throttleResult = logInfoThrottler.onEvent();
+        boolean throttleLogs = throttleResult.first;
         if (!throttleLogs) {
             log.info(msg);
-            if (throttlerResult.second > 0) log.warn("We received {} throttled info logs since the last log entry" + (throttlerResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
+            if (throttleResult.second > 0) log.warn("We received {} throttled info logs since the last log entry" + (throttleResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
         }
     }
 }

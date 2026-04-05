@@ -527,11 +527,11 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     boolean checkMaxConnections() {
         Set<Connection> allConnections = new HashSet<>(networkNode.getAllConnections());
         int size = allConnections.size();
-        Tuple2<Boolean, Long> throttlerResult = checkMaxConnectionsThrottler.onEvent();
-        boolean throttleLogs = throttlerResult.first;
+        Tuple2<Boolean, Long> throttleResult = checkMaxConnectionsThrottler.onEvent();
+        boolean throttleLogs = throttleResult.first;
 
-        if (!throttleLogs && throttlerResult.second > 0) {
-            long count = throttlerResult.second;
+        if (!throttleLogs && throttleResult.second > 0) {
+            long count = throttleResult.second;
             if (count > maxConnections + Connection.POSSIBLE_DOS_THRESHOLD) {
                 log.warn("We have throttled logs for {} checkMaxConnections calls. {}", count, Connection.POSSIBLE_DOS_MESSAGE);
             } else {
