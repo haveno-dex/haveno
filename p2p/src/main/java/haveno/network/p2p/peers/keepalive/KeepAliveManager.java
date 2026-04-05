@@ -38,6 +38,7 @@ import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
 import haveno.network.utils.EventThrottler;
+import haveno.network.utils.EventThrottlerManager;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -58,7 +59,8 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     private boolean stopped;
     private Timer keepAliveTimer;
 
-    private static EventThrottler throttler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    private static final EventThrottlerManager pingThrottler = new EventThrottlerManager(5000, TimeUnit.MILLISECONDS);
+    private static final EventThrottler logThrottler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     private static final String THREAD_ID = KeepAliveManager.class.getSimpleName();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -108,6 +110,14 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
                 // We get from peer last measured rrt
                 connection.getStatistic().setRoundTripTime(ping.getLastRoundTripTime());
 
+                // throttle pings per connection
+                // TODO: close connection on ping spam?
+                Tuple2<Boolean, Long> throttleResult = pingThrottler.onEvent(connection.getUid());
+                if (throttleResult.first) {
+                    throttleWarn("Ignoring ping from " + connection.getUid() + " because too many pings received in a short time. " + Connection.POSSIBLE_DOS_MESSAGE + ". Throttled pings: " + throttleResult.second);
+                    return;
+                }
+
                 Pong pong = new Pong(ping.getNonce());
                 SettableFuture<Connection> future = networkNode.sendMessage(connection, pong);
                 Futures.addCallback(future, Utilities.failureCallback(throwable -> {
@@ -128,10 +138,10 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     }
 
     private void throttleWarn(String msg) {
-        Tuple2<Boolean, Long> throttlerResult = throttler.onEvent();
-        if (!throttlerResult.first) {
+        Tuple2<Boolean, Long> throttleResult = logThrottler.onEvent();
+        if (!throttleResult.first) {
             log.warn(msg);
-            if (throttlerResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttlerResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttlerResult.second);
+            if (throttleResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
         }
     }
 
@@ -244,6 +254,7 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     }
 
     private void closeHandler(Connection connection) {
+        pingThrottler.remove(connection.getUid());
         synchronized (handlerMap) {
             String uid = connection.getUid();
             if (handlerMap.containsKey(uid)) {
@@ -254,6 +265,7 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     }
 
     private void closeAllHandlers() {
+        pingThrottler.clear();
         synchronized (handlerMap) {
             handlerMap.values().stream().forEach(KeepAliveHandler::cancel);
             handlerMap.clear();
