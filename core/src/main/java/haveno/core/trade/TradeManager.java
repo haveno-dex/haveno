@@ -1120,9 +1120,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             ThreadUtils.submitToPool(() -> {
                 try {
                     trade.shutDown();
-                    unregisterTradeProtocol(trade);
                 } catch (Exception e) {
                     log.warn("Error shutting down {} {} on move to failed trades", trade.getClass().getSimpleName(), trade.getShortId(), e);
+                } finally {
+                    unregisterTradeProtocol(trade);
                 }
             });
         }
