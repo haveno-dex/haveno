@@ -526,8 +526,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void updateP2PTable() {
-        Tuple2<Boolean, Long> throttlerResult = p2pTableUpdateThrottler.onEvent();
-        if (throttlerResult.first) return; // update is throttled (avoids dos with many peer connections)
+        Tuple2<Boolean, Long> throttleResult = p2pTableUpdateThrottler.onEvent();
+        if (throttleResult.first) return; // update is throttled (avoids dos with many peer connections)
         ThreadUtils.execute(() -> {
             List<P2pNetworkListItem> list = p2PService.getNetworkNode().getAllConnections().stream()
                     .map(connection -> new P2pNetworkListItem(connection, clockWatcher))

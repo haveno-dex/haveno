@@ -156,8 +156,8 @@ public class Statistic {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     void updateLastActivityTimestamp() {
-        Tuple2<Boolean, Long> throttlerResult = statisticThrottler.onEvent();
-        if (!throttlerResult.first) {
+        Tuple2<Boolean, Long> throttleResult = statisticThrottler.onEvent();
+        if (!throttleResult.first) {
             UserThread.execute(() -> lastActivityTimestamp = System.currentTimeMillis());
         } else {
             lastActivityTimestamp = System.currentTimeMillis();
@@ -167,8 +167,8 @@ public class Statistic {
     void addSentBytes(int value) {
         sentBytes.addAndGet(value);
         totalSentBytes.addAndGet(value);
-        Tuple2<Boolean, Long> throttlerResult = statisticThrottler.onEvent();
-        if (!throttlerResult.first) {
+        Tuple2<Boolean, Long> throttleResult = statisticThrottler.onEvent();
+        if (!throttleResult.first) {
             UserThread.execute(() -> {
                 sentBytesProperty.set(sentBytes.get());
                 totalSentBytesProperty.set(totalSentBytes.get());
@@ -179,8 +179,8 @@ public class Statistic {
     void addReceivedBytes(int value) {
         receivedBytes.addAndGet(value);
         totalReceivedBytes.addAndGet(value);
-        Tuple2<Boolean, Long> throttlerResult = statisticThrottler.onEvent();
-        if (!throttlerResult.first) {
+        Tuple2<Boolean, Long> throttleResult = statisticThrottler.onEvent();
+        if (!throttleResult.first) {
             UserThread.execute(() -> {
                 receivedBytesProperty.set(receivedBytes.get());
                 totalReceivedBytesProperty.set(totalReceivedBytes.get());
