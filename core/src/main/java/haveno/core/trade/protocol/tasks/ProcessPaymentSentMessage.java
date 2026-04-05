@@ -50,7 +50,7 @@ public class ProcessPaymentSentMessage extends TradeTask {
 
             // cannot process until wallet sees deposits confirmed
             if (!trade.isDepositsConfirmed()) {
-                trade.syncAndPollWallet();
+                trade.updateWallet();
                 if (!trade.isDepositsConfirmed()) {
                     throw new RuntimeException("Cannot process PaymentSentMessage until the trade wallet sees that the deposits are confirmed for " + trade.getClass().getSimpleName() + " " + trade.getId());
                 }

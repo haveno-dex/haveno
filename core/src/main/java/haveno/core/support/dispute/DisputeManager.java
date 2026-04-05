@@ -678,9 +678,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     // TODO: DisputeOpenedMessage should include arbitrator's updated multisig hex too
                     // TODO: arbitrator needs to import multisig info then scan for updated state?
 
-                    // sync and poll wallet unless finalized
+                    // update wallet unless finalized
                     if (!trade.isPayoutFinalized()) {
-                        trade.syncAndPollWallet();
+                        trade.updateWallet();
                         trade.recoverIfMissingWalletData();
                     }
 
