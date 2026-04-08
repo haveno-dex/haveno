@@ -840,7 +840,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
 
     // close idle wallet periodically to prevent connection timeout with monerod
     private void startCloseWalletTimer() {
-        if (getIdlePeriodMs() * 1000 * 60 <= KEEP_ALIVE_PERIOD_MINS) return; // no need to close wallet if idle period is less than close period
+        if (getIdlePeriodMs() <= KEEP_ALIVE_PERIOD_MINS * 1000 * 60) return; // no need to close wallet if idle period is less than close period
         synchronized (closeWalletTimerLock) {
             if (closeWalletTimer != null) closeWalletTimer.stop();
             closeWalletTimer = UserThread.runPeriodically(() -> {
@@ -3355,16 +3355,22 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model {
     }
 
     private void doPollWallet(boolean offlinePoll) {
-        MoneroWallet sourceWallet = wallet;
 
-        // skip if shut down started or wallet is null
-        if (isShutDownStarted || sourceWallet == null) return;
+        // skip if shut down started
+        if (isShutDownStarted) return;
 
         // set poll in progress
         boolean pollInProgressSet = false;
         synchronized (pollLock) {
             if (!pollInProgress) pollInProgressSet = true;
             pollInProgress = true;
+        }
+
+        // get source wallet which might be null if idling
+        MoneroWallet sourceWallet = null;
+        synchronized (walletLock) {
+            if (isShutDownStarted) return;
+            sourceWallet = wallet;
         }
 
         // poll wallet
