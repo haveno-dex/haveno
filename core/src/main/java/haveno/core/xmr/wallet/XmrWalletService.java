@@ -124,6 +124,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final long POLL_TXS_TOLERANCE_MS = 1000 * 60 * 3; // request connection switch if txs not updated within 3 minutes
     private static final boolean TEST_STARTUP_SYNC_ERROR = false;
     private static final long INIT_WALLET_DELAY_MS = 5000;
+    private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
 
     private final User user;
     private final Preferences preferences;
@@ -158,7 +159,7 @@ public class XmrWalletService extends XmrWalletBase {
 
     private static final Object WALLET_HEIGHT_MONITOR_LOCK = new Object();
     private static final long WALLET_HEIGHT_MONITOR_PERIOD_SEC = 1200; // request connection change if wallet height is not updated within 20 minutes
-    private long lastWalletHeightUpdate;
+    private long lastWalletHeightMonitorUpdate;
     private Timer walletHeightMonitorTimer;
 
     @SuppressWarnings("unused")
@@ -1342,7 +1343,7 @@ public class XmrWalletService extends XmrWalletBase {
 
         // monitor wallet height updates to request connection change
         walletHeight.addListener((obs, oldVal, newVal) -> {
-            lastWalletHeightUpdate = System.currentTimeMillis();
+            lastWalletHeightMonitorUpdate = System.currentTimeMillis();
             startWalletHeightMonitor();
         });
         startWalletHeightMonitor();
@@ -1352,12 +1353,13 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (WALLET_HEIGHT_MONITOR_LOCK) {
             if (walletHeightMonitorTimer != null) walletHeightMonitorTimer.stop();
             walletHeightMonitorTimer = UserThread.runPeriodically(() -> {
-                ThreadUtils.submitToPool(() -> {
-                    if (System.currentTimeMillis() - lastWalletHeightUpdate > WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
+                ThreadUtils.execute(() -> {
+                    if (System.currentTimeMillis() - lastWalletHeightMonitorUpdate >= WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
                         log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", WALLET_HEIGHT_MONITOR_PERIOD_SEC / 60);
                         requestSwitchToNextBestConnection();
+                        lastWalletHeightMonitorUpdate = System.currentTimeMillis();
                     }
-                });
+                }, THREAD_ID);
             }, WALLET_HEIGHT_MONITOR_PERIOD_SEC);
         }
     }
