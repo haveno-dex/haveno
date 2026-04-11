@@ -118,6 +118,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
     private static final String THREAD_ID = Connection.class.getSimpleName();
+    public static final long LOG_THROTTLE_INTERVAL_MS = 30000; // throttle logging rule violations and warnings to once every 30s
     public static final int POSSIBLE_DOS_THRESHOLD = 10;
     public static final String POSSIBLE_DOS_MESSAGE = "Possible DoS attack detected";
 
@@ -181,7 +182,6 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private final Capabilities capabilities = new Capabilities();
 
     // throttle logs of reported invalid requests
-    public static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging rule violations and warnings to once every 60 seconds
     private static EventThrottler invalidRequestThrottler = new EventThrottler(LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     private static EventThrottler logWarningThrottler = new EventThrottler(LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     private static EventThrottler logInfoThrottler = new EventThrottler(LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
@@ -979,7 +979,13 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         boolean throttleLogs = throttleResult.first;
         if (!throttleLogs) {
             log.info(msg);
-            if (throttleResult.second > 0) log.warn("We received {} throttled info logs since the last log entry" + (throttleResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
+            if (throttleResult.second > 0) {
+                if (throttleResult.second >= POSSIBLE_DOS_THRESHOLD) {
+                    log.warn("We received {} throttled info logs since the last log entry. {}", throttleResult.second, POSSIBLE_DOS_MESSAGE);
+                } else {
+                    log.info("We received {} throttled info logs since the last log entry", throttleResult.second);
+                }
+            }
         }
     }
 }
