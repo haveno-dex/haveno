@@ -17,6 +17,7 @@
 
 package haveno.desktop.components;
 
+import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.desktop.util.GUIUtil;
@@ -24,6 +25,7 @@ import haveno.desktop.util.Layout;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.AnchorPane;
@@ -61,6 +63,12 @@ public class FundsTextField extends InfoTextField {
                     copyText = text;
 
                 Utilities.copyToClipboard(copyText);
+
+                // show copied tooltip
+                Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
+                Node node = (Node) e.getSource();
+                UserThread.runAfter(() -> tp.hide(), 1);
+                tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
             }
         });
 
