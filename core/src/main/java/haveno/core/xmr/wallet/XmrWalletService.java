@@ -117,7 +117,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     private static final int NUM_WALLET_BACKUPS = 3;
-    private static final int MAX_STARTUP_SYNC_ATTEMPTS = 6;
+    private static final int MAX_STARTUP_SYNC_ATTEMPTS = 5;
     private static final boolean PRINT_RPC_STACK_TRACE = false;
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
@@ -1400,7 +1400,7 @@ public class XmrWalletService extends XmrWalletBase {
                 } else {
 
                     // repeatedly attempt to sync wallet on startup, otherwise open application
-                    long syncTimeoutSec = (xmrConnectionService.getRefreshPeriodMs(isProxyApplied()) / 1000) / 2;
+                    long syncTimeoutSec = (xmrConnectionService.getRefreshPeriodMs(isProxyApplied()) / 1000);
                     for (int i = 0; i < MAX_STARTUP_SYNC_ATTEMPTS; i++) {
                         try {
                             doPollWallet(syncTimeoutSec);
@@ -1415,6 +1415,7 @@ public class XmrWalletService extends XmrWalletBase {
                             } else {
                                 syncTimeoutSec *= 2;
                                 syncTimeoutSec = Math.min(XmrWalletBase.SYNC_TIMEOUT_SECONDS, syncTimeoutSec);
+                                HavenoUtils.waitFor(INIT_WALLET_DELAY_MS);
                             }
                         }
                     }
