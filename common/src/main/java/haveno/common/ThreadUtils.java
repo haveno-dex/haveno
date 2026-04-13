@@ -1,27 +1,29 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.common;
+import java.lang.reflect.InvocationTargetException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -31,31 +33,25 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ThreadUtils {
-    
-    private static final Map<String, ExecutorService> EXECUTORS = new HashMap<>();
-    private static final Map<String, Thread> THREADS = new HashMap<>();
+
+    private static final ConcurrentHashMap<String, ExecutorService> EXECUTORS = new ConcurrentHashMap<>();
     private static final int POOL_SIZE = 1000;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
+    private static Class<? extends Timer> timerClass = BackgroundTimer.class;
 
-    /**
-     * Execute the given command in a thread with the given id.
-     * 
-     * @param command the command to execute
-     * @param threadId the thread id
-     */
     public static Future<?> execute(Runnable command, String threadId) {
-        synchronized (EXECUTORS) {
-            if (!EXECUTORS.containsKey(threadId)) EXECUTORS.put(threadId, Executors.newFixedThreadPool(1));
-            ExecutorService executor = EXECUTORS.get(threadId);
-            if (executor.isShutdown()) throw new IllegalStateException("Cannot execute thread because it's shut down: " + threadId);
-            return EXECUTORS.get(threadId).submit(() -> {
-                synchronized (THREADS) {
-                    THREADS.put(threadId, Thread.currentThread());
-                }
-                Thread.currentThread().setName(threadId);
-                command.run();
-            });
+        ExecutorService executor = EXECUTORS.get(threadId);
+        if (executor == null) {
+            executor = EXECUTORS.computeIfAbsent(threadId, id -> 
+                Executors.newSingleThreadExecutor(r -> {
+                    Thread t = new Thread(r);
+                    t.setName(id); // Set name ONCE when thread starts
+                    return t;
+                })
+            );
         }
+        if (executor.isShutdown()) throw new IllegalStateException("Cannot execute thread because it's shut down: " + threadId);
+        return executor.submit(command);
     }
 
     /**
@@ -78,18 +74,18 @@ public class ThreadUtils {
 
     public static void shutDown(String threadId, Long timeoutMs) {
         if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
-        ExecutorService pool = null;
-        synchronized (EXECUTORS) {
-            pool = EXECUTORS.get(threadId);
-            if (pool == null) return; // thread not found
-            if (pool.isShutdown()) return; // already shut down
-            pool.shutdown();
-        }
+        ExecutorService pool = EXECUTORS.get(threadId);
+        if (pool == null || pool.isShutdown()) return;
+        pool.shutdown();
         try {
-            if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) pool.shutdownNow();
+            if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) {
+                log.warn("Thread {} did not terminate in time, forcing shutdown", threadId);
+                pool.shutdownNow();
+            }
         } catch (InterruptedException e) {
             pool.shutdownNow();
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Shutdown interrupted for: " + threadId, e);
         }
     }
 
@@ -99,24 +95,13 @@ public class ThreadUtils {
      * @param threadId the thread id
      */
     public static void reset(String threadId) {
-        remove(threadId);
-    }
-
-    public static void remove(String threadId) {
-        synchronized (EXECUTORS) {
-            EXECUTORS.remove(threadId);
-        }
-        synchronized (THREADS) {
-            THREADS.remove(threadId);
-        }
+        EXECUTORS.remove(threadId);
     }
 
     public static boolean isShutDown(String threadId) {
-        synchronized (EXECUTORS) {
-            if (!EXECUTORS.containsKey(threadId)) return false;
-            ExecutorService executor = EXECUTORS.get(threadId);
-            return executor.isShutdown();
-        }
+        ExecutorService executor = EXECUTORS.get(threadId);
+        if (executor == null) return false;
+        return executor.isShutdown();
     }
 
     // TODO: consolidate and cleanup apis
@@ -163,10 +148,38 @@ public class ThreadUtils {
         }
     }
 
-    private static boolean isCurrentThread(Thread thread, String threadId) {
-        synchronized (THREADS) {
-            if (!THREADS.containsKey(threadId)) return false;
-            return thread == THREADS.get(threadId);
+    public static Timer runAfterRandomDelay(Runnable runnable, long minDelayInSec, long maxDelayInSec) {
+        return ThreadUtils.runAfterRandomDelay(runnable, minDelayInSec, maxDelayInSec, TimeUnit.SECONDS);
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public static Timer runAfterRandomDelay(Runnable runnable, long minDelay, long maxDelay, TimeUnit timeUnit) {
+        return ThreadUtils.runAfter(runnable, new Random().nextInt((int) (maxDelay - minDelay)) + minDelay, timeUnit);
+    }
+
+    public static Timer runAfter(Runnable runnable, long delayInSec) {
+        return ThreadUtils.runAfter(runnable, delayInSec, TimeUnit.SECONDS);
+    }
+
+    public static Timer runAfter(Runnable runnable, long delay, TimeUnit timeUnit) {
+        return getTimer().runLater(Duration.ofMillis(timeUnit.toMillis(delay)), () -> runnable.run());
+    }
+
+    public static Timer runPeriodically(Runnable runnable, long intervalInSec) {
+        return ThreadUtils.runPeriodically(runnable, intervalInSec, TimeUnit.SECONDS);
+    }
+
+    public static Timer runPeriodically(Runnable runnable, long interval, TimeUnit timeUnit) {
+        return getTimer().runPeriodically(Duration.ofMillis(timeUnit.toMillis(interval)), () -> runnable.run());
+    }
+
+    private static Timer getTimer() {
+        try {
+            return timerClass.getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            String message = "Could not instantiate timer timeClass=" + timerClass;
+            log.error(message, e);
+            throw new RuntimeException(message);
         }
     }
 }

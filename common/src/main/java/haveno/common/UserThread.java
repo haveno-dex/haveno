@@ -59,10 +59,8 @@ public class UserThread {
 
     public static void execute(Runnable command) {
         executor.execute(() -> {
-            synchronized (executor) {
-                USER_THREAD = Thread.currentThread();
-                command.run();
-            }
+            USER_THREAD = Thread.currentThread();
+            command.run();
         });
     }
 

@@ -21,9 +21,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
+
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
@@ -34,9 +37,12 @@ import haveno.network.p2p.network.OutboundConnection;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
+import haveno.network.utils.EventThrottler;
+import haveno.network.utils.EventThrottlerManager;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +59,9 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     private boolean stopped;
     private Timer keepAliveTimer;
 
+    private static final EventThrottlerManager pingThrottler = new EventThrottlerManager(5000, TimeUnit.MILLISECONDS);
+    private static final EventThrottler logThrottler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    private static final String THREAD_ID = KeepAliveManager.class.getSimpleName();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -101,6 +110,14 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
                 // We get from peer last measured rrt
                 connection.getStatistic().setRoundTripTime(ping.getLastRoundTripTime());
 
+                // throttle pings per connection
+                // TODO: close connection on ping spam?
+                Tuple2<Boolean, Long> throttleResult = pingThrottler.onEvent(connection.getUid());
+                if (throttleResult.first) {
+                    throttleWarn("Ignoring ping from " + connection.getUid() + " because too many pings received in a short time. " + Connection.POSSIBLE_DOS_MESSAGE + ". Throttled pings: " + throttleResult.second);
+                    return;
+                }
+
                 Pong pong = new Pong(ping.getNonce());
                 SettableFuture<Connection> future = networkNode.sendMessage(connection, pong);
                 Futures.addCallback(future, Utilities.failureCallback(throwable -> {
@@ -120,6 +137,13 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
         }
     }
 
+    private void throttleWarn(String msg) {
+        Tuple2<Boolean, Long> throttleResult = logThrottler.onEvent();
+        if (!throttleResult.first) {
+            log.warn(msg);
+            if (throttleResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
+        }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // ConnectionListener implementation
@@ -170,8 +194,10 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     private void restart() {
         if (keepAliveTimer == null)
             keepAliveTimer = UserThread.runPeriodically(() -> {
-                stopped = false;
-                keepAlive();
+                ThreadUtils.execute(() -> {
+                    stopped = false;
+                    keepAlive();
+                }, THREAD_ID);
             }, INTERVAL_SEC);
     }
 
@@ -228,6 +254,7 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     }
 
     private void closeHandler(Connection connection) {
+        pingThrottler.remove(connection.getUid());
         synchronized (handlerMap) {
             String uid = connection.getUid();
             if (handlerMap.containsKey(uid)) {
@@ -238,6 +265,7 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     }
 
     private void closeAllHandlers() {
+        pingThrottler.clear();
         synchronized (handlerMap) {
             handlerMap.values().stream().forEach(KeepAliveHandler::cancel);
             handlerMap.clear();

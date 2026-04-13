@@ -79,7 +79,8 @@ import monero.daemon.model.MoneroKeyImageSpentStatus;
 @Slf4j
 public class OfferBookService {
 
-    private final static long INVALID_OFFERS_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+    private final static long INVALID_OFFERS_TIMEOUT_MINS = 5 * 60 * 1000; // 5 minutes
+    private final static int DELAY_LOG_INVALID_OFFER_SEC = 10;
 
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;
@@ -129,10 +130,16 @@ public class OfferBookService {
                                     replaceValidOffer(offer);
                                     announceOfferAdded(offer);
                                 } catch (IllegalArgumentException e) {
-                                    log.warn("Ignoring invalid offer {}: {}", offerPayload.getId(), e.getMessage());
+                                    log.warn("Ignoring illegal offer {}: {}", offerPayload.getId(), e.getMessage());
                                 } catch (Exception e) {
-                                    log.warn("Adding offer {} to invalid offers: {}", offerPayload.getId(), e.getMessage());
                                     replaceInvalidOffer(offer); // offer can become valid later
+
+                                    // wait to log invalid offer in case it becomes valid shortly after
+                                    ThreadUtils.runAfter(() -> {
+                                        if (hasInvalidOffer(offerPayload.getId())) {
+                                            log.warn("Invalid offer added, offerId={}: {}", offerPayload.getId(), e.getMessage());
+                                        }
+                                    }, DELAY_LOG_INVALID_OFFER_SEC);
                                 }
                             }
                         }
@@ -306,9 +313,22 @@ public class OfferBookService {
     }
 
     private boolean hasValidOffer(String offerId) {
-        for (Offer offer : getOffers()) {
-            if (offer.getId().equals(offerId)) {
-                return true;
+        synchronized (validOffers) {
+            for (Offer offer : validOffers) {
+                if (offer.getId().equals(offerId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    private boolean hasInvalidOffer(String offerId) {
+        synchronized (invalidOffers) {
+            for (Offer offer : invalidOffers) {
+                if (offer.getId().equals(offerId)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -347,7 +367,7 @@ public class OfferBookService {
                 if (timer != null) timer.stop();
                 timer = UserThread.runAfter(() -> {
                     removeInvalidOffer(offer.getId());
-                }, INVALID_OFFERS_TIMEOUT);
+                }, INVALID_OFFERS_TIMEOUT_MINS);
                 invalidOfferTimers.put(offer.getId(), timer);
             }
         }

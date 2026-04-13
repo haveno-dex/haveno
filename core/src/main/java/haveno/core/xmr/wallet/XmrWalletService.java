@@ -46,6 +46,7 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.model.XmrAddressEntryList;
 import haveno.core.xmr.setup.MoneroWalletRpcManager;
 import haveno.core.xmr.setup.WalletsSetup;
+import haveno.network.utils.EventThrottler;
 import java.io.File;
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -61,6 +62,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -145,8 +147,8 @@ public class XmrWalletService extends XmrWalletBase {
     private TaskLooper pollLooper;
     private boolean pollInProgress;
     private Long pollPeriodMs;
-    private long lastLogDaemonNotSyncedTimestamp;
-    private long lastLogPollErrorTimestamp;
+    private EventThrottler logMonerodNotSyncedThrottler = new EventThrottler(HavenoUtils.LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS, TimeUnit.MILLISECONDS);
+    private EventThrottler logPollErrorRateThrottler = new EventThrottler(HavenoUtils.LOG_POLL_ERROR_PERIOD_MS, TimeUnit.MILLISECONDS);
     private long lastPollTxsTimestamp; 
     private final Object pollLock = new Object();
     private Long cachedHeight;
@@ -2022,9 +2024,8 @@ public class XmrWalletService extends XmrWalletBase {
             if (!xmrConnectionService.isSyncedWithinTolerance()) {
 
                 // throttle warnings
-                if (System.currentTimeMillis() - lastLogDaemonNotSyncedTimestamp > HavenoUtils.LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS) {
+                if (!logMonerodNotSyncedThrottler.onEvent().first) {
                     log.warn("Monero daemon is not synced within tolerance, height={}, targetHeight={}, monerod={}", xmrConnectionService.chainHeightProperty().get(), xmrConnectionService.getTargetHeight(), xmrConnectionService.getConnection() == null ? null : xmrConnectionService.getConnection().getUri());
-                    lastLogDaemonNotSyncedTimestamp = System.currentTimeMillis();
                 }
                 return;
             }
@@ -2058,9 +2059,8 @@ public class XmrWalletService extends XmrWalletBase {
                     if (!isShutDownStarted && wallet == sourceWallet) {
 
                         // throttle error handling
-                        if (System.currentTimeMillis() - lastLogPollErrorTimestamp > HavenoUtils.LOG_POLL_ERROR_PERIOD_MS) {
+                        if (!logPollErrorRateThrottler.onEvent().first) {
                             log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
-                            lastLogPollErrorTimestamp = System.currentTimeMillis();
                             if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection));
                         }
                     }
