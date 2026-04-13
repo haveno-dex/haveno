@@ -553,8 +553,8 @@ public class HavenoUtils {
      */
     public static boolean isLocalHost(String uriString) {
         try {
-            String host = new URI(uriString).getHost();
-            return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host);
+            String host = MoneroUtils.parseUri(uriString).getHost();
+            return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host) || (isLiteralIp(host) && InetAddress.getByName(host).isLoopbackAddress());
         } catch (Exception e) {
             return false;
         }
@@ -567,7 +567,7 @@ public class HavenoUtils {
         if (uriString == null || uriString.isEmpty()) return false;
         if (isLocalHost(uriString)) return true;
         try {
-            URI uri = new URI(uriString);
+            URI uri = MoneroUtils.parseUri(uriString);
             String host = uri.getHost();
             if (host == null) return false;
 
