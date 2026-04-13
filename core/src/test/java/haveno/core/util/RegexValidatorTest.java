@@ -83,7 +83,13 @@ public class RegexValidatorTest {
         assertTrue(regexValidator.validate("[FE80::0202:B3FF:FE1E:8329]:8333").isValid);
         assertTrue(regexValidator.validate("[2001:db8::1]:80").isValid);
         assertTrue(regexValidator.validate("[aaaa::bbbb]:8333").isValid);
+        assertTrue(regexValidator.validate("2a0b:f4c2:2::63:18081").isValid);
+        assertTrue(regexValidator.validate("2a0b:f4c2:2:1::223:18081").isValid);
+        assertTrue(regexValidator.validate("2001:4ba0:ffff:c4::2:18081").isValid);
+        assertTrue(regexValidator.validate("2605:6400:30:f91d::2:38081").isValid);
+        assertTrue(regexValidator.validate("feder8.me:18089,[2607:3c40:1900:33e0::1]:18089").isValid);
         assertFalse(regexValidator.validate("1200:0000:AB00:1234:O000:2552:7777:1313").isValid);
+        assertFalse(regexValidator.validate("[2607:3c40:1900:33e0::1]:65536").isValid);
 
         // fqdn addresses
         assertTrue(regexValidator.validate("example.com").isValid);

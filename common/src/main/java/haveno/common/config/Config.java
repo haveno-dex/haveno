@@ -437,16 +437,16 @@ public class Config {
                         .defaultsTo(12);
 
         ArgumentAcceptingOptionSpec<String> socks5ProxyXmrAddressOpt =
-                parser.accepts(SOCKS_5_PROXY_XMR_ADDRESS, "A proxy address to be used for Bitcoin network.")
+                parser.accepts(SOCKS_5_PROXY_XMR_ADDRESS, "A proxy address to be used for Monero network.")
                         .withRequiredArg()
-                        .describedAs("host:port")
+                        .describedAs("host:port or [ipv6]:port")
                         .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<String> socks5ProxyHttpAddressOpt =
                 parser.accepts(SOCKS_5_PROXY_HTTP_ADDRESS,
                         "A proxy address to be used for Http requests (should be non-Tor)")
                         .withRequiredArg()
-                        .describedAs("host:port")
+                        .describedAs("host:port or [ipv6]:port")
                         .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<Path> torrcFileOpt =

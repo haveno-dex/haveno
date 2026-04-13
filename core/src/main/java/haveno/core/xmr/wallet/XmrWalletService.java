@@ -125,6 +125,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final boolean TEST_STARTUP_SYNC_ERROR = false;
     private static final long INIT_WALLET_DELAY_MS = 5000;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
+    private static Boolean walletRpcSupportsSocks5ProxyScheme;
 
     private final User user;
     private final Preferences preferences;
@@ -1731,8 +1732,12 @@ public class XmrWalletService extends XmrWalletBase {
             cmd.add("--daemon-address");
             cmd.add(connection.getUri());
             if (connection.getProxyUri() != null) { // TODO: remove this when wallet server is not started with proxy uri
+                boolean supportsSocks5ProxyScheme = walletRpcSupportsSocks5ProxyScheme();
                 cmd.add("--proxy");
-                cmd.add(connection.getProxyUri());
+                cmd.add(XmrWalletRpcUtils.getProxyUri(connection.getProxyUri(), supportsSocks5ProxyScheme));
+                if (!supportsSocks5ProxyScheme && XmrWalletRpcUtils.isIpv6Uri(connection.getUri())) {
+                    log.warn("monero-wallet-rpc does not advertise SOCKS5 proxy URI support; IPv6 monerod connections through proxy may fail: monerod={}", connection.getUri());
+                }
                 if (!connection.isOnion()) cmd.add("--daemon-ssl-allow-any-cert"); // necessary to use proxy with clearnet monerod
             }
             if (connection.getUsername() != null) {
@@ -1785,6 +1790,13 @@ public class XmrWalletService extends XmrWalletBase {
 
             log.info("Done setting daemon connection for main wallet, monerod=" + (wallet.getDaemonConnection() == null ? null : wallet.getDaemonConnection().getUri()));
         }
+    }
+
+    private static synchronized boolean walletRpcSupportsSocks5ProxyScheme() {
+        if (walletRpcSupportsSocks5ProxyScheme == null) {
+            walletRpcSupportsSocks5ProxyScheme = XmrWalletRpcUtils.detectSocks5ProxySchemeSupport(MONERO_WALLET_RPC_PATH);
+        }
+        return walletRpcSupportsSocks5ProxyScheme;
     }
 
     private void changeWalletPasswords(String oldPassword, String newPassword) {
