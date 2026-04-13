@@ -983,4 +983,3 @@ configure(project(':apitest')) {
         testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     }
 }
-

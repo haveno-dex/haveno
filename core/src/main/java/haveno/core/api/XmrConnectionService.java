@@ -225,7 +225,10 @@ public final class XmrConnectionService {
     }
 
     public String getProxyUri() {
-        return socks5ProxyProvider.getSocks5Proxy() == null ? null : socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress() + ":" + socks5ProxyProvider.getSocks5Proxy().getPort();
+        if (socks5ProxyProvider.getSocks5Proxy() == null) return null;
+        String host = socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress();
+        if (host.contains(":")) host = "[" + host + "]";
+        return host + ":" + socks5ProxyProvider.getSocks5Proxy().getPort();
     }
 
     public void addConnectionListener(XmrConnectionListener listener) {
@@ -961,12 +964,12 @@ public final class XmrConnectionService {
                     for (XmrNode node : xmrNodes.getAllXmrNodes()) {
                         if (node.hasClearNetAddress()) {
                             if (!(xmrLocalNode.equalsUri(node.getClearNetUri()) && xmrLocalNode.shouldBeIgnored())) {
-                                MoneroRpcConnection connection = new MoneroRpcConnection(node.getHostNameOrAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                                MoneroRpcConnection connection = new MoneroRpcConnection(node.getClearNetUri()).setPriority(node.getPriority());
                                 if (!connectionList.hasConnection(connection.getUri())) addConnection(connection);
                             }
                         }
                         if (node.hasOnionAddress()) {
-                            MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                            MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddressWithPort()).setPriority(node.getPriority());
                             if (!connectionList.hasConnection(connection.getUri())) addConnection(connection);
                         }
                     }
@@ -976,12 +979,12 @@ public final class XmrConnectionService {
                     for (XmrNode node : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
                         if (node.hasClearNetAddress()) {
                             if (!(xmrLocalNode.equalsUri(node.getClearNetUri()) && xmrLocalNode.shouldBeIgnored())) {
-                                MoneroRpcConnection connection = new MoneroRpcConnection(node.getHostNameOrAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                                MoneroRpcConnection connection = new MoneroRpcConnection(node.getClearNetUri()).setPriority(node.getPriority());
                                 addConnection(connection);
                             }
                         }
                         if (node.hasOnionAddress()) {
-                            MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                            MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddressWithPort()).setPriority(node.getPriority());
                             addConnection(connection);
                         }
                     }

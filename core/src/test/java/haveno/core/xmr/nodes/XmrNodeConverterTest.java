@@ -24,9 +24,11 @@ import haveno.network.DnsLookupException;
 import org.bitcoinj.core.PeerAddress;
 import org.junit.jupiter.api.Test;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -59,6 +61,16 @@ public class XmrNodeConverterTest {
         // noinspection ConstantConditions
         InetAddress inetAddress = peerAddress.getAddr();
         assertEquals(ip, inetAddress.getHostAddress());
+    }
+
+    @Test
+    public void testConvertClearNodeWithBracketedIpv6() {
+        XmrNode node = XmrNode.fromFullAddress("[2607:3c40:1900:33e0::1]:18089");
+
+        PeerAddress peerAddress = new XmrNodeConverter().convertClearNode(node);
+
+        // noinspection ConstantConditions
+        assertTrue(peerAddress.getAddr() instanceof Inet6Address);
     }
 
     @Test
