@@ -50,6 +50,8 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             @Named(Config.TOR_DIR) File torDir,
             @Nullable @Named(Config.TORRC_FILE) File torrcFile,
             @Named(Config.TORRC_OPTIONS) String torrcOptions,
+            @Named(Config.HIDDEN_SERVICE_FLAGS) String hiddenServiceFlags,
+            @Named(Config.HIDDEN_SERVICE_PARAMS) String hiddenServiceParams,
             @Named(Config.TOR_CONTROL_HOST) String controlHost,
             @Named(Config.TOR_CONTROL_PORT) int controlPort,
             @Named(Config.TOR_CONTROL_PASSWORD) String password,
@@ -70,7 +72,7 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
                     cookieFile,
                     useSafeCookieAuthentication);
             if (torMode instanceof NewTor || torMode instanceof RunningTor) {
-                networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, controlHost);
+                networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, hiddenServiceFlags, hiddenServiceParams, controlHost);
             } else {
                 networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress);
             }

@@ -19,8 +19,11 @@ import java.security.SecureRandom;
 import java.net.Socket;
 
 import java.io.IOException;
-
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,12 +35,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class TorNetworkNodeNetlayer extends TorNetworkNode {
 
     private static final long SHUT_DOWN_TIMEOUT = 2;
+    private final static boolean POW_ENABLED_DEFAULT = true;
+    private final static int POW_QUEUE_RATE_DEFAULT = 5;
+    private final static int POW_QUEUE_BURST_DEFAULT = 25;
 
     private HiddenServiceSocket hiddenServiceSocket;
     private boolean streamIsolation;
     private Socks5Proxy socksProxy;
     protected TorMode torMode;
     private Tor tor;
+    private final String hiddenServiceFlags;
+    private final String hiddenServiceParams;
     private final String torControlHost;
     private Timer shutDownTimeoutTimer;
     private boolean isShutDownStarted;
@@ -49,8 +57,12 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                                   @Nullable BanFilter banFilter,
                                   int maxConnections,
                                   boolean useStreamIsolation,
+                                  String hiddenServiceFlags,
+                                  String hiddenServiceParams,
                                   String torControlHost) {
         super(servicePort, networkProtoResolver, banFilter, maxConnections);
+        this.hiddenServiceFlags = hiddenServiceFlags;
+        this.hiddenServiceParams = hiddenServiceParams;
         this.torControlHost = torControlHost;
         this.streamIsolation = useStreamIsolation;
         this.torMode = torMode;
@@ -136,9 +148,38 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
         int localPort = Utils.findFreeSystemPort();
         executor.submit(() -> {
             try {
+
+                // use hidden service flags as given
+                List<String> hiddenServiceFlagsList = hiddenServiceFlags == null || hiddenServiceFlags.isEmpty() ? null : Arrays.asList(hiddenServiceFlags.split(","));
+
+                // set hidden service default parameter map
+                Map<String, String> hiddenServiceParamsMap = new HashMap<String, String>();
+                hiddenServiceParamsMap.put("PoWDefensesEnabled", POW_ENABLED_DEFAULT ? "1" : "0");
+                hiddenServiceParamsMap.put("PoWQueueRate", String.valueOf(POW_QUEUE_RATE_DEFAULT));
+                hiddenServiceParamsMap.put("PoWQueueBurst", String.valueOf(POW_QUEUE_BURST_DEFAULT));
+
+                // override configured parameters
+                if (hiddenServiceParams != null && !hiddenServiceParams.isEmpty()) {
+                    List<String> paramsList = Arrays.asList(hiddenServiceParams.split(","));
+                    for (String param : paramsList) {
+                        String[] keyValue = param.split("=");
+                        if (keyValue.length == 2) {
+                            hiddenServiceParamsMap.put(keyValue[0], keyValue[1]);
+                        } else {
+                            hiddenServiceParamsMap.put(keyValue[0], null);
+                        }
+                    }
+                }
+
+                // convert map to List<String> with format "key=value" or "key" if value is null
+                List<String> hiddenServiceParamsList = hiddenServiceParamsMap.isEmpty() ? null : hiddenServiceParamsMap.entrySet().stream()
+                        .map(entry -> entry.getValue() != null ? entry.getKey() + "=" + entry.getValue() : entry.getKey())
+                        .toList();
+
                 Tor.setDefault(torMode.getTor());
                 long ts = System.currentTimeMillis();
-                hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort);
+                log.info("Starting tor hidden service with flags={}, params={}", hiddenServiceFlagsList, hiddenServiceParamsList);
+                hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort, null, hiddenServiceFlagsList, hiddenServiceParamsList);
                 nodeAddressProperty.set(new NodeAddress(hiddenServiceSocket.getServiceName() + ":" + hiddenServiceSocket.getHiddenServicePort()));
                 UserThread.execute(() -> setupListeners.forEach(SetupListener::onTorNodeReady));
                 hiddenServiceSocket.addReadyListener(socket -> {
