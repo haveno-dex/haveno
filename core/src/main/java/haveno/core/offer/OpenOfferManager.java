@@ -677,8 +677,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         log.info("Canceling open offer: {}", openOffer.getId());
         try {
             if (!offersToBeEdited.containsKey(openOffer.getId())) {
+                openOffer.setState(OpenOffer.State.CANCELED);
                 if (isOnOfferBook(openOffer)) {
-                    openOffer.setState(OpenOffer.State.CANCELED);
                     offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                             () -> {
                                 ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
@@ -688,7 +688,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             },
                             errorMessageHandler);
                 } else {
-                    openOffer.setState(OpenOffer.State.CANCELED);
                     ThreadUtils.submitToPool(() -> {
                         doCancelOffer(openOffer);
                         if (resultHandler != null) resultHandler.handleResult();
@@ -1060,7 +1059,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private void cancelOpenOffersOnSpent(String keyImage) {
         synchronized (openOffers.getList()) {
             for (OpenOffer openOffer : openOffers.getList()) {
-                if (openOffer.getState() != OpenOffer.State.RESERVED && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
+                if (openOffer.getState() != OpenOffer.State.CANCELED && openOffer.getState() != OpenOffer.State.RESERVED && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
                     log.warn("Canceling open offer because reserved funds have been spent unexpectedly, offerId={}, state={}", openOffer.getId(), openOffer.getState());
                     cancelOpenOffer(openOffer, null, null);
                 }
