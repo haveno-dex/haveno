@@ -21,7 +21,6 @@ import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.SimpleLongProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletFull;
@@ -32,11 +31,11 @@ import monero.wallet.model.MoneroWalletListener;
 public abstract class XmrWalletBase {
 
     // constants
-    protected static final long SYNC_TIMEOUT_SECONDS = 180;
+    protected static final int MAX_SYNC_ATTEMPTS = 5;
+    protected static final long SYNC_TIMEOUT_SEC = 180;
     private static final String SYNC_TIMEOUT_MSG = "Sync timeout called";
     private static final String RECEIVED_ERROR_RESPONSE_MSG = "Received error response from RPC request";
     private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
-    protected long lastSaveTimeMs = 0;
 
     // inherited
     protected MoneroWallet wallet;
@@ -47,6 +46,7 @@ public abstract class XmrWalletBase {
     @Getter
     protected XmrConnectionService xmrConnectionService;
     protected boolean wasWalletSynced;
+    protected long lastSaveTimeMs = 0;
     protected boolean isSyncingWithoutProgress;
     protected boolean isSyncingWithProgress;
     private final Object syncWithProgressLock = new Object();
@@ -74,7 +74,7 @@ public abstract class XmrWalletBase {
     }
 
     public MoneroSyncResult sync() {
-        return syncWithTimeout(SYNC_TIMEOUT_SECONDS);
+        return syncWithTimeout(SYNC_TIMEOUT_SEC);
     }
 
     public MoneroSyncResult syncWithTimeout(Long syncTimeoutSec) {
@@ -86,24 +86,29 @@ public abstract class XmrWalletBase {
                     if (isSyncing()) log.warn("Syncing without progress while already syncing. That should never happen.");
                     isSyncingWithoutProgress = true;
                     walletHeight.set(wallet.getHeight());
-                    MoneroSyncResult result = wallet.sync();
-                    walletHeight.set(wallet.getHeight());
-                    wasWalletSynced = true;
-                    return result;
+                    setUnknownSyncProgress();
+                    try {
+                        MoneroSyncResult result = wallet.sync();
+                        walletHeight.set(wallet.getHeight());
+                        wasWalletSynced = true;
+                        return result;
+                    } finally { 
+                        clearSyncProgress();
+                    }
                 };
 
                 Future<MoneroSyncResult> future = executor.submit(task);
 
                 try {
-                    return future.get(syncTimeoutSec == null ? SYNC_TIMEOUT_SECONDS : syncTimeoutSec, TimeUnit.SECONDS);
+                    return future.get(syncTimeoutSec == null ? SYNC_TIMEOUT_SEC : syncTimeoutSec, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     future.cancel(true);
                     throw new RuntimeException(SYNC_TIMEOUT_MSG, e);
                 } catch (ExecutionException e) {
-                    throw new RuntimeException("Sync failed", e);
+                    throw new RuntimeException("Sync failed: " + e.getMessage(), e);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt(); // restore interrupt status
-                    throw new RuntimeException("Sync was interrupted", e);
+                    throw new RuntimeException("Sync was interrupted: " + e.getMessage(), e);
                 } finally {
                     isSyncingWithoutProgress = false;
                     saveWalletIfElapsedTime();
@@ -111,6 +116,14 @@ public abstract class XmrWalletBase {
                 }
             }
         }
+    }
+
+    protected void setUnknownSyncProgress() {
+        UserThread.execute(() -> syncProgressListener.progress(0, -1));
+    }
+
+    protected void clearSyncProgress() {
+        UserThread.execute(() -> syncProgressListener.progress(-1, -1));
     }
 
     public void syncWithProgress() {
@@ -210,20 +223,13 @@ public abstract class XmrWalletBase {
             } finally {
                 isSyncingWithProgress = false;
                 if (syncProgressTimeout != null) syncProgressTimeout.stop();
+                clearSyncProgress();
             }
         }
     }
 
     public boolean wasWalletSynced() {
         return wasWalletSynced;
-    }
-
-    public boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
-        if (xmrConnectionService.requestSwitchToNextBestConnection(sourceConnection)) {
-            onConnectionChanged(xmrConnectionService.getConnection()); // change connection on same thread
-            return true;
-        }
-        return false;
     }
 
     public void saveWalletIfElapsedTime() {
@@ -264,8 +270,6 @@ public abstract class XmrWalletBase {
 
     public abstract void saveWallet();
 
-    protected abstract void onConnectionChanged(MoneroRpcConnection connection);
-
     // ------------------------------ PRIVATE HELPERS -------------------------
 
     private void updateSyncProgress(Long height, long targetHeight) {
@@ -275,7 +279,7 @@ public abstract class XmrWalletBase {
 
         // reset progress timeout if height advanced
         if (appliedHeight != walletHeight.get()) {
-            resetSyncProgressTimeout(SYNC_TIMEOUT_SECONDS); // revert to default timeout after any change
+            resetSyncProgressTimeout(SYNC_TIMEOUT_SEC); // revert to default timeout after any change
         }
 
         // set wallet height
@@ -284,7 +288,7 @@ public abstract class XmrWalletBase {
         // calculate progress
         long blocksRemaining = appliedHeight <= 1 ? -1 : targetHeight - appliedHeight; // unknown blocks left if height <= 1
         if (syncStartHeight == null && appliedHeight > 1) syncStartHeight = appliedHeight;
-        double percent = syncStartHeight == null ? 0.0 : Math.min(1.0, targetHeight <= syncStartHeight ? 1.0 : ((double) appliedHeight - syncStartHeight) / (double) (targetHeight - syncStartHeight));
+        double percent = syncStartHeight == null || appliedHeight <= 1 ? 0.0 : Math.min(1.0, targetHeight <= syncStartHeight ? 1.0 : ((double) appliedHeight - syncStartHeight) / (double) (targetHeight - syncStartHeight));
         if (percent >= 1.0) wasWalletSynced = true; // set synced state before announcing progress
 
         // notify progress listener on user thread
@@ -300,7 +304,7 @@ public abstract class XmrWalletBase {
                 if (isShutDownStarted) return;
                 syncProgressError = new RuntimeException(SYNC_TIMEOUT_MSG);
                 syncProgressLatch.countDown();
-            }, syncTimeoutSec == null ? SYNC_TIMEOUT_SECONDS : syncTimeoutSec, TimeUnit.SECONDS);
+            }, syncTimeoutSec == null ? SYNC_TIMEOUT_SEC : syncTimeoutSec, TimeUnit.SECONDS);
         }
     }
 

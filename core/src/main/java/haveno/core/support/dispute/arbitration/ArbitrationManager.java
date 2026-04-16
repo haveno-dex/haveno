@@ -375,12 +375,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             }
                             dispute.setDisputeResult(disputeResult);
 
-                            // update multisig hex
+                            // set updated multisig info
                             if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
-                            if (trade.walletExists()) trade.importMultisigHex();
-
-                            // sync and save wallet
-                            if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
+                            
+                            // update wallet
+                            if (trade.walletExists() || !trade.isPayoutPublished()) trade.updateWallet();
 
                             // attempt to sign and publish dispute payout tx if given and not already published
                             if (!trade.isPayoutPublished() && disputeClosedMessage.getUnsignedPayoutTxHex() != null) {
@@ -393,7 +392,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                         if (trade.isPayoutPublished()) break;
                                         HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
                                     }
-                                    if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
+                                    if (!trade.isPayoutPublished()) trade.updateWallet();
                                 }
 
                                 // sign and publish dispute payout tx if peer still has not published
@@ -406,7 +405,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                     } catch (Exception e) {
 
                                         // check if payout published again
-                                        trade.syncAndPollWallet();
+                                        trade.updateWallet();
                                         if (trade.isPayoutPublished()) {
                                             log.warn("Payout tx already published for {} {}, skipping dispute processing", trade.getClass().getSimpleName(), trade.getId());
                                         } else {

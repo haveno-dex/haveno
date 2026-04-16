@@ -84,7 +84,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // cannot process until wallet sees deposits unlocked
             if (!trade.isDepositsUnlocked()) {
-                trade.syncAndPollWallet();
+                trade.updateWallet();
                 if (!trade.isDepositsUnlocked()) {
                     throw new RuntimeException("Cannot process PaymentReceivedMessage until the trade wallet sees that the deposits are unlocked for " + trade.getClass().getSimpleName() + " " + trade.getId());
                 }
@@ -136,8 +136,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
     private void processPayoutTx(PaymentReceivedMessage message) {
 
         // update wallet
-        trade.importMultisigHex();
-        trade.syncAndPollWallet();
+        trade.updateWallet();
 
         // handle if payout tx not published
         if (!trade.isPayoutPublished()) {
@@ -155,7 +154,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     if (trade.isPayoutPublished()) break;
                     HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
                 }
-                if (!trade.isPayoutPublished()) trade.syncAndPollWallet();
+                if (!trade.isPayoutPublished()) trade.updateWallet();
             }
 
             // verify and publish payout tx
@@ -179,7 +178,7 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
                     }
                 } catch (Exception e) {
                     HavenoUtils.waitFor(trade.getXmrConnectionService().getRefreshPeriodMs()); // wait to see published tx
-                    trade.syncAndPollWallet();
+                    trade.updateWallet();
                     if (trade.isPayoutPublished()) log.info("Payout tx already published for {} {}", trade.getClass().getName(), trade.getId());
                     else throw e;
                 }
