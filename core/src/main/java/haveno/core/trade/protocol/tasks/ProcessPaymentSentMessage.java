@@ -17,6 +17,7 @@
 
 package haveno.core.trade.protocol.tasks;
 
+import haveno.common.ThreadUtils;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -48,14 +49,6 @@ public class ProcessPaymentSentMessage extends TradeTask {
             trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
             trade.requestPersistence();
 
-            // cannot process until wallet sees deposits confirmed
-            if (!trade.isDepositsConfirmed()) {
-                trade.updateWallet();
-                if (!trade.isDepositsConfirmed()) {
-                    throw new RuntimeException("Cannot process PaymentSentMessage until the trade wallet sees that the deposits are confirmed for " + trade.getClass().getSimpleName() + " " + trade.getId());
-                }
-            }
-
             // update state from message
             trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
             trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());
@@ -66,6 +59,16 @@ public class ProcessPaymentSentMessage extends TradeTask {
 
             // if seller, decrypt buyer's payment account payload
             if (trade.isSeller()) trade.decryptPeerPaymentAccountPayload(message.getPaymentAccountKey());
+
+            // deposits must be confirmed to advance state
+            if (trade.isDepositsConfirmed()) {
+                ThreadUtils.execute(() -> trade.updateWallet(), trade.getId()); // update wallet off thread
+            } else {
+                trade.updateWallet();
+                if (!trade.isDepositsConfirmed()) {
+                    throw new RuntimeException("Cannot process PaymentSentMessage until the trade wallet sees that the deposits are confirmed for " + trade.getClass().getSimpleName() + " " + trade.getId());
+                }
+            }
 
             // update state
             trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);

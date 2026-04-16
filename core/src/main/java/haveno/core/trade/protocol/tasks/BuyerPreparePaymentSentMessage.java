@@ -75,23 +75,25 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
                 return;
             }
 
-            // validate state
-            Preconditions.checkNotNull(trade.getSeller().getPaymentAccountPayload(), "Seller's payment account payload is null");
-            Preconditions.checkNotNull(trade.getAmount(), "trade.getTradeAmount() must not be null");
-            Preconditions.checkNotNull(trade.getMakerDepositTx(), "trade.getMakerDepositTx() must not be null");
-            if (!trade.hasBuyerAsTakerWithoutDeposit()) Preconditions.checkNotNull(trade.getTakerDepositTx(), "trade.getTakerDepositTx() must not be null");
-            checkNotNull(trade.getOffer(), "offer must not be null");
+            // sycnhronize on wallet state
+            synchronized (trade.getWalletLock()) {
 
-            // create payout tx if we have seller's updated multisig hex
-            if (trade.getSeller().getUpdatedMultisigHex() != null) {
+                // validate state
+                Preconditions.checkNotNull(trade.getSeller().getPaymentAccountPayload(), "Seller's payment account payload is null");
+                Preconditions.checkNotNull(trade.getAmount(), "trade.getTradeAmount() must not be null");
+                Preconditions.checkNotNull(trade.getMakerDepositTx(), "trade.getMakerDepositTx() must not be null");
+                if (!trade.hasBuyerAsTakerWithoutDeposit()) Preconditions.checkNotNull(trade.getTakerDepositTx(), "trade.getTakerDepositTx() must not be null");
+                checkNotNull(trade.getOffer(), "offer must not be null");
 
-                // synchronize on lock for wallet operations
-                synchronized (trade.getWalletLock()) {
+                // create payout tx if we have seller's updated multisig hex
+                if (trade.getSeller().getUpdatedMultisigHex() != null) {
+
+                    // synchronize on lock for wallet operations
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
                         try {
 
-                            // import multisig hex
-                            trade.importMultisigHex();
+                            // update wallet state
+                            trade.updateWallet();
 
                             // create payout tx
                             log.info("Buyer creating unsigned payout tx for {} {} ", trade.getClass().getSimpleName(), trade.getShortId());

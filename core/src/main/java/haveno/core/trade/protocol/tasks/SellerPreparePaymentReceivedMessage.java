@@ -47,9 +47,9 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                 synchronized (trade.getWalletLock()) {
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
 
-                        // import multisig hex unless already signed
+                        // update wallet unless already signed
                         if (trade.getPayoutTxHex() == null) {
-                            trade.importMultisigHex();
+                            trade.updateWallet();
                         }
 
                         // verify, sign, and publish payout tx if given
@@ -88,7 +88,7 @@ public class SellerPreparePaymentReceivedMessage extends TradeTask {
                 synchronized (trade.getWalletLock()) {
                     if (trade.walletExists()) {
                         synchronized (HavenoUtils.getWalletFunctionLock()) {
-                            trade.importMultisigHex();
+                            trade.updateWallet();
                             trade.exportMultisigHex();
                         }
                     }

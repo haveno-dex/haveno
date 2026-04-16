@@ -390,7 +390,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         }
 
         // verify deposits unlocked or one is missing
-        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal() && !trade.isDepositTxMissing()) {
+        if (trade.getPhase().ordinal() < Trade.Phase.DEPOSITS_UNLOCKED.ordinal() && !trade.isMissingUnlockedDepositTx()) {
             String errorMsg = Res.get("portfolio.pending.error.depositTxNotConfirmed");
             faultHandler.handleFault(errorMsg, new IllegalStateException(errorMsg));
             return;
@@ -451,9 +451,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         }
         ChatMessage chatMessage = dispute.getChatMessages().get(dispute.getChatMessages().size() - 1); // last message // TODO: why can't this be assigned to local variable above?
 
-        // try to import latest multisig info
+        // update wallet
         try {
-            trade.importMultisigHex();
+            trade.updateWallet();
         } catch (Exception e) {
             if (!trade.isShutDownStarted()) log.error("Failed to import multisig hex", e);
         }
