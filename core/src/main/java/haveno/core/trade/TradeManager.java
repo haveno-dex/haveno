@@ -297,21 +297,26 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         TradeMessage tradeMessage = (TradeMessage) networkEnvelope;
         String tradeId = tradeMessage.getOfferId();
         log.info("TradeManager received {} for tradeId={}, sender={}, uid={}", networkEnvelope.getClass().getSimpleName(), tradeId, sender, tradeMessage.getUid());
-        ThreadUtils.execute(() -> {
-            if (networkEnvelope instanceof InitTradeRequest) {
-                handleInitTradeRequest((InitTradeRequest) networkEnvelope, sender);
-            } else if (networkEnvelope instanceof InitMultisigRequest) {
-                handleInitMultisigRequest((InitMultisigRequest) networkEnvelope, sender);
-            } else if (networkEnvelope instanceof SignContractRequest) {
-                handleSignContractRequest((SignContractRequest) networkEnvelope, sender);
-            } else if (networkEnvelope instanceof SignContractResponse) {
-                handleSignContractResponse((SignContractResponse) networkEnvelope, sender);
-            } else if (networkEnvelope instanceof DepositRequest) {
-                handleDepositRequest((DepositRequest) networkEnvelope, sender);
-            } else if (networkEnvelope instanceof DepositResponse) {
-                handleDepositResponse((DepositResponse) networkEnvelope, sender);
-            }
-        }, tradeId);
+        try {
+            ThreadUtils.execute(() -> {
+                if (networkEnvelope instanceof InitTradeRequest) {
+                    handleInitTradeRequest((InitTradeRequest) networkEnvelope, sender);
+                } else if (networkEnvelope instanceof InitMultisigRequest) {
+                    handleInitMultisigRequest((InitMultisigRequest) networkEnvelope, sender);
+                } else if (networkEnvelope instanceof SignContractRequest) {
+                    handleSignContractRequest((SignContractRequest) networkEnvelope, sender);
+                } else if (networkEnvelope instanceof SignContractResponse) {
+                    handleSignContractResponse((SignContractResponse) networkEnvelope, sender);
+                } else if (networkEnvelope instanceof DepositRequest) {
+                    handleDepositRequest((DepositRequest) networkEnvelope, sender);
+                } else if (networkEnvelope instanceof DepositResponse) {
+                    handleDepositResponse((DepositResponse) networkEnvelope, sender);
+                }
+            }, tradeId);
+        } catch (Throwable t) {
+            log.warn("Error handling direct message on trade thread. That should never happen. tradeId=" + tradeId + ", error: " + t.getMessage(), t);
+            return;
+        }
     }
 
 
@@ -903,7 +908,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         // check offer availability and create trade if available
         checkOfferAvailability(offer, isTakerApiUser, paymentAccountId, tradeAmount, () -> {
             if (offer.getState() == Offer.State.AVAILABLE) {
-                if (ThreadUtils.isShutDown(offer.getId())) ThreadUtils.reset(offer.getId());
                 ThreadUtils.execute(() -> {
                     try {
 

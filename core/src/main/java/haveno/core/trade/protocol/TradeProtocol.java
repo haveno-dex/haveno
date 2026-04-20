@@ -247,10 +247,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     protected void onInitialized() {
 
-        // reset pools for trade ids
-        ThreadUtils.reset(getInitId());
-        ThreadUtils.reset(trade.getId());
-
         // listen for direct messages unless finished (assumes this is called before mailbox message service is intialized)
         MailboxMessageService mailboxMessageService = processModel.getP2PService().getMailboxMessageService();
         if (!trade.isFinished()) {
