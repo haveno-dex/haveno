@@ -40,17 +40,16 @@ public class ThreadUtils {
     private static Class<? extends Timer> timerClass = BackgroundTimer.class;
 
     public static Future<?> execute(Runnable command, String threadId) {
-        ExecutorService executor = EXECUTORS.get(threadId);
-        if (executor == null) {
-            executor = EXECUTORS.computeIfAbsent(threadId, id -> 
-                Executors.newSingleThreadExecutor(r -> {
+        ExecutorService executor = EXECUTORS.compute(threadId, (id, existing) -> { // only use one active executor per thread id
+            if (existing == null || existing.isShutdown()) {
+                return Executors.newSingleThreadExecutor(r -> {
                     Thread t = new Thread(r);
-                    t.setName(id); // Set name ONCE when thread starts
+                    t.setName(id);
                     return t;
-                })
-            );
-        }
-        if (executor.isShutdown()) throw new IllegalStateException("Cannot execute thread because it's shut down: " + threadId);
+                });
+            }
+            return existing;
+        });
         return executor.submit(command);
     }
 
@@ -75,35 +74,19 @@ public class ThreadUtils {
     public static void shutDown(String threadId, Long timeoutMs) {
         if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
         ExecutorService pool = EXECUTORS.get(threadId);
-        if (pool == null || pool.isShutdown()) return;
+        if (pool == null) return;
         pool.shutdown();
         try {
             if (!pool.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS)) {
-                log.warn("Thread {} did not terminate in time, forcing shutdown", threadId);
                 pool.shutdownNow();
             }
         } catch (InterruptedException e) {
             pool.shutdownNow();
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Shutdown interrupted for: " + threadId, e);
+        } finally {
+            EXECUTORS.remove(threadId, pool); 
         }
     }
-
-    /**
-     * Reset the thread with the given id so it's ready for use. Does not shut it down.
-     * 
-     * @param threadId the thread id
-     */
-    public static void reset(String threadId) {
-        EXECUTORS.remove(threadId);
-    }
-
-    public static boolean isShutDown(String threadId) {
-        ExecutorService executor = EXECUTORS.get(threadId);
-        if (executor == null) return false;
-        return executor.isShutdown();
-    }
-
     // TODO: consolidate and cleanup apis
 
     public static Future<?> submitToPool(Runnable task) {
