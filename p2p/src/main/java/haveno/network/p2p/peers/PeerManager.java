@@ -29,7 +29,6 @@ import haveno.common.app.Capability;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
-import haveno.common.util.Tuple2;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
@@ -42,6 +41,7 @@ import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.peers.peerexchange.PeerList;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import haveno.network.utils.EventThrottler;
+import haveno.network.utils.EventThrottler.ThrottleResult;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -441,10 +441,10 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
             if (oldNumLatestLivePeers != latestLivePeers.size()) {
 
                 // throttle logging of latest live peers
-                Tuple2<Boolean, Long> throttleResult = getLivePeersThrottler.onEvent();
-                if (!throttleResult.first) {
+                ThrottleResult throttleResult = getLivePeersThrottler.onEvent();
+                if (!throttleResult.throttled) {
                     log.info("Num of latestLivePeers={}", latestLivePeers.size());
-                    long count = throttleResult.second;
+                    long count = throttleResult.throttledCount;
                     if (count > Connection.POSSIBLE_DOS_THRESHOLD) {
                         log.warn("We have throttled logs for {} getLivePeers calls. {}", count, Connection.POSSIBLE_DOS_MESSAGE);
                     } else {
@@ -541,11 +541,11 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     boolean checkMaxConnections() {
         Set<Connection> allConnections = new HashSet<>(networkNode.getAllConnections());
         int size = allConnections.size();
-        Tuple2<Boolean, Long> throttleResult = checkMaxConnectionsThrottler.onEvent();
-        boolean throttleLogs = throttleResult.first;
+        ThrottleResult throttleResult = checkMaxConnectionsThrottler.onEvent();
+        boolean throttleLogs = throttleResult.throttled;
 
-        if (!throttleLogs && throttleResult.second > 0) {
-            long count = throttleResult.second;
+        if (!throttleLogs && throttleResult.throttledCount > 0) {
+            long count = throttleResult.throttledCount;
             if (count > maxConnections + Connection.POSSIBLE_DOS_THRESHOLD) {
                 log.warn("We have throttled logs for {} checkMaxConnections calls. {}", count, Connection.POSSIBLE_DOS_MESSAGE);
             } else {
@@ -657,12 +657,12 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
                 if (!connection.isStopped() && !connection.hasPeersNodeAddress()) {
 
                     // throttle logging
-                    Tuple2<Boolean, Long> throttleResult = removeAnonymousThrottler.onEvent();
-                    if (!throttleResult.first) {
+                    ThrottleResult throttleResult = removeAnonymousThrottler.onEvent();
+                    if (!throttleResult.throttled) {
                         log.info("removeAnonymousPeers: We close the connection as the peer address is still unknown. " +
                                 "Peer: {}", connection.getPeersNodeAddressOptional());
-                        if (throttleResult.second > 0) {
-                            log.warn("We have throttled logs for {} removeAnonymousPeers calls. {}", throttleResult.second, Connection.POSSIBLE_DOS_MESSAGE);
+                        if (throttleResult.throttledCount > 0) {
+                            log.warn("We have throttled logs for {} removeAnonymousPeers calls. {}", throttleResult.throttledCount, Connection.POSSIBLE_DOS_MESSAGE);
                         }
                     }
 

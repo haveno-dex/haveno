@@ -15,7 +15,7 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package haveno.network.p2p.network;
+package haveno.network.utils;
 
 import java.util.concurrent.ConcurrentHashMap;
 

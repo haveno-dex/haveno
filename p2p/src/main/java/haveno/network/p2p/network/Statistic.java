@@ -19,9 +19,9 @@ package haveno.network.p2p.network;
 
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
-import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.network.utils.EventThrottler;
+import haveno.network.utils.EventThrottler.ThrottleResult;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.LongProperty;
@@ -156,8 +156,8 @@ public class Statistic {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     void updateLastActivityTimestamp() {
-        Tuple2<Boolean, Long> throttleResult = statisticThrottler.onEvent();
-        if (!throttleResult.first) {
+        ThrottleResult throttleResult = statisticThrottler.onEvent();
+        if (!throttleResult.throttled) {
             UserThread.execute(() -> lastActivityTimestamp = System.currentTimeMillis());
         } else {
             lastActivityTimestamp = System.currentTimeMillis();
@@ -167,8 +167,8 @@ public class Statistic {
     void addSentBytes(int value) {
         sentBytes.addAndGet(value);
         totalSentBytes.addAndGet(value);
-        Tuple2<Boolean, Long> throttleResult = statisticThrottler.onEvent();
-        if (!throttleResult.first) {
+        ThrottleResult throttleResult = statisticThrottler.onEvent();
+        if (!throttleResult.throttled) {
             UserThread.execute(() -> {
                 sentBytesProperty.set(sentBytes.get());
                 totalSentBytesProperty.set(totalSentBytes.get());
@@ -179,8 +179,8 @@ public class Statistic {
     void addReceivedBytes(int value) {
         receivedBytes.addAndGet(value);
         totalReceivedBytes.addAndGet(value);
-        Tuple2<Boolean, Long> throttleResult = statisticThrottler.onEvent();
-        if (!throttleResult.first) {
+        ThrottleResult throttleResult = statisticThrottler.onEvent();
+        if (!throttleResult.throttled) {
             UserThread.execute(() -> {
                 receivedBytesProperty.set(receivedBytes.get());
                 totalReceivedBytesProperty.set(totalReceivedBytes.get());

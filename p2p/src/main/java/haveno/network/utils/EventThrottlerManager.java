@@ -19,7 +19,7 @@ package haveno.network.utils;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import haveno.common.util.Tuple2;
+import haveno.network.utils.EventThrottler.ThrottleResult;
 
 public final class EventThrottlerManager {
     private final ConcurrentHashMap<String, EventThrottler> throttlers = new ConcurrentHashMap<>();
@@ -35,9 +35,9 @@ public final class EventThrottlerManager {
      * Throttles an event based on a specific ID.
      * 
      * @param id the unique identifier for the event source
-     * @return Tuple2 where first is throttled status, second is count of throttled events
+     * @return the result of the throttling check
      */
-    public Tuple2<Boolean, Long> onEvent(String id) {
+    public ThrottleResult onEvent(String id) {
         EventThrottler throttler = throttlers.computeIfAbsent(id, 
             k -> new EventThrottler(interval, unit));
         

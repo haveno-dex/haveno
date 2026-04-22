@@ -49,7 +49,6 @@ import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.util.SingleThreadExecutorUtils;
-import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.CloseConnectionMessage;
@@ -68,6 +67,9 @@ import haveno.network.p2p.storage.messages.RemoveDataMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.utils.EventThrottler;
+import haveno.network.utils.LeakyBucket;
+import haveno.network.utils.LeakyBucketManager;
+import haveno.network.utils.EventThrottler.ThrottleResult;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -558,10 +560,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         boolean isKnownAddress = !getPeersNodeAddressOptional().isEmpty();
         if (!isKnownAddress) {
             if (envelopeLimitsGlobalUnknownPeers.isSpamming(networkEnvelopes.size())) {
-                Tuple2<Boolean, Long> throttleResult = closeConnectionLogThrottler.onEvent();
-                if (!throttleResult.first) {
+                ThrottleResult throttleResult = closeConnectionLogThrottler.onEvent();
+                if (!throttleResult.throttled) {
                     log.warn("Closing connection with too many envelopes: numEnvelopes={}, peer={}, uid={}", networkEnvelopes.size(), getPeersNodeAddressOptional().map(NodeAddress::getFullAddress).orElse("null"), uid);
-                    if (throttleResult.second > 0) log.warn("We throttled {} warnings about closing connections since the last log entry" + (throttleResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
+                    if (throttleResult.throttledCount > 0) log.warn("We throttled {} warnings about closing connections since the last log entry" + (throttleResult.throttledCount >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttleResult.throttledCount);
                 }
                 ruleViolation = RuleViolation.THROTTLE_LIMIT_EXCEEDED;
                 shutDown(CloseConnectionReason.RULE_VIOLATION);
@@ -792,8 +794,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static synchronized boolean reportInvalidRequest(Connection connection, RuleViolation ruleViolation, String errorMessage) {
 
         // determine if report should be logged to avoid spamming the logs
-        Tuple2<Boolean, Long> throttleResult = invalidRequestThrottler.onEvent();
-        boolean throttleLogs = throttleResult.first;
+        ThrottleResult throttleResult = invalidRequestThrottler.onEvent();
+        boolean throttleLogs = throttleResult.throttled;
 
         // handle report
         if (!throttleLogs) log.warn("We got reported the ruleViolation {} at connection with address={}, uid={}, errorMessage={}", ruleViolation, connection.getPeersNodeAddressProperty(), connection.getUid(), errorMessage);
@@ -817,10 +819,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 connection.shutDown(CloseConnectionReason.RULE_VIOLATION);
             }
 
-            if (!throttleLogs) logNumThrottledInvalidRequests(throttleResult.second);
+            if (!throttleLogs) logNumThrottledInvalidRequests(throttleResult.throttledCount);
             return true;
         } else {
-            if (!throttleLogs) logNumThrottledInvalidRequests(throttleResult.second);
+            if (!throttleLogs) logNumThrottledInvalidRequests(throttleResult.throttledCount);
             return false;
         }
     }
@@ -1106,24 +1108,24 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     }
 
     private void throttleWarn(String msg) {
-        Tuple2<Boolean, Long> throttleResult = logWarningThrottler.onEvent();
-        boolean throttleLogs = throttleResult.first;
+        ThrottleResult throttleResult = logWarningThrottler.onEvent();
+        boolean throttleLogs = throttleResult.throttled;
         if (!throttleLogs) {
             log.warn(msg);
-            if (throttleResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.second >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
+            if (throttleResult.throttledCount > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.throttledCount >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), throttleResult.throttledCount);
         }
     }
 
     private void throttleInfo(String msg) {
-        Tuple2<Boolean, Long> throttleResult = logInfoThrottler.onEvent();
-        boolean throttleLogs = throttleResult.first;
+        ThrottleResult throttleResult = logInfoThrottler.onEvent();
+        boolean throttleLogs = throttleResult.throttled;
         if (!throttleLogs) {
             log.info(msg);
-            if (throttleResult.second > 0) {
-                if (throttleResult.second >= POSSIBLE_DOS_THRESHOLD) {
-                    log.warn("We received {} throttled info logs since the last log entry. {}", throttleResult.second, POSSIBLE_DOS_MESSAGE);
+            if (throttleResult.throttledCount > 0) {
+                if (throttleResult.throttledCount >= POSSIBLE_DOS_THRESHOLD) {
+                    log.warn("We received {} throttled info logs since the last log entry. {}", throttleResult.throttledCount, POSSIBLE_DOS_MESSAGE);
                 } else {
-                    log.info("We received {} throttled info logs since the last log entry", throttleResult.second);
+                    log.info("We received {} throttled info logs since the last log entry", throttleResult.throttledCount);
                 }
             }
         }

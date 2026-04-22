@@ -24,7 +24,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
-import haveno.common.util.Tuple2;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.MessageListener;
 import haveno.network.p2p.network.NetworkNode;
@@ -32,6 +31,7 @@ import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
 import haveno.network.utils.EventThrottler;
+import haveno.network.utils.EventThrottler.ThrottleResult;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -171,10 +171,10 @@ class KeepAliveHandler implements MessageListener {
     }
 
     private void throttleWarn(String msg) {
-        Tuple2<Boolean, Long> throttleResult = throttler.onEvent();
-        if (!throttleResult.first) {
+        ThrottleResult throttleResult = throttler.onEvent();
+        if (!throttleResult.throttled) {
             log.warn(msg);
-            if (throttleResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
+            if (throttleResult.throttledCount > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.throttledCount >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.throttledCount);
         }
     }
 }
