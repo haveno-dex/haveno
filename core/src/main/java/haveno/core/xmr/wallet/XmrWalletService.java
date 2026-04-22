@@ -158,7 +158,7 @@ public class XmrWalletService extends XmrWalletBase {
     private boolean isInitializingWallet;
 
     private static final Object WALLET_HEIGHT_MONITOR_LOCK = new Object();
-    private static final long WALLET_HEIGHT_MONITOR_PERIOD_SEC = 1200; // request connection change if wallet height is not updated within 20 minutes
+    private static final long WALLET_HEIGHT_MONITOR_PERIOD_SEC = 1200; // request connection change if wallet height is not updated within this period
     private long lastWalletHeightMonitorUpdate;
     private Timer walletHeightMonitorTimer;
 
@@ -1340,13 +1340,6 @@ public class XmrWalletService extends XmrWalletBase {
         walletInitListener = (obs, oldVal, newVal) -> initMainWalletIfConnected();
         xmrConnectionService.downloadPercentageProperty().addListener(walletInitListener);
         initMainWalletIfConnected();
-
-        // monitor wallet height updates to request connection change
-        walletHeight.addListener((obs, oldVal, newVal) -> {
-            lastWalletHeightMonitorUpdate = System.currentTimeMillis();
-            startWalletHeightMonitor();
-        });
-        startWalletHeightMonitor();
     }
 
     private void startWalletHeightMonitor() {
@@ -1355,7 +1348,7 @@ public class XmrWalletService extends XmrWalletBase {
             walletHeightMonitorTimer = UserThread.runPeriodically(() -> {
                 ThreadUtils.execute(() -> {
                     if (System.currentTimeMillis() - lastWalletHeightMonitorUpdate >= WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
-                        log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", WALLET_HEIGHT_MONITOR_PERIOD_SEC / 60);
+                        log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", (double) WALLET_HEIGHT_MONITOR_PERIOD_SEC / (double) 60);
                         requestSwitchToNextBestConnection();
                         lastWalletHeightMonitorUpdate = System.currentTimeMillis();
                     }
@@ -2143,6 +2136,17 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void onWalletServiceInitialized() {
+
+        // monitor wallet height updates to request connection change
+        walletHeight.addListener((obs, oldVal, newVal) -> {
+            lastWalletHeightMonitorUpdate = System.currentTimeMillis();
+            startWalletHeightMonitor();
+        });
+
+        // start the wallet height monitor to request connection changes periodically if needed
+        startWalletHeightMonitor();
+        
+        // update external state
         HavenoUtils.havenoSetup.getWalletInitialized().set(true);
     }
 
