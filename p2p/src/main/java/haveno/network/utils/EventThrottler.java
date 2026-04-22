@@ -20,8 +20,6 @@ package haveno.network.utils;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import haveno.common.util.Tuple2;
-
 public final class EventThrottler {
     private final long intervalMs;
     private final AtomicLong lastSuccessTs = new AtomicLong(0);
@@ -31,21 +29,39 @@ public final class EventThrottler {
         this.intervalMs = unit.toMillis(interval);
     }
 
+    public static class ThrottleResult {
+
+        /**
+         * Indicates if the event was throttled (true) or allowed (false).
+         */
+        public final boolean throttled;
+
+        /**
+         * The number of events that have been throttled since the last successful (non-throttled) event. This count resets to zero after a successful event.
+         */
+        public final long throttledCount;
+
+        ThrottleResult(boolean throttled, long throttledCount) {
+            this.throttled = throttled;
+            this.throttledCount = throttledCount;
+        }
+    }
+
     /**
      * Registers an event and returns status.
      * 
-     * @return a pair where the first value is true iff the event is throttled, and the second value is the number of throttled events since last success
+     * @return the result of the throttling check
      */
-    public Tuple2<Boolean, Long> onEvent() {
+    public ThrottleResult onEvent() {
         final long now = System.currentTimeMillis();
         final long last = lastSuccessTs.get();
 
         if (now - last > intervalMs) {
             if (lastSuccessTs.compareAndSet(last, now)) {
-                return new Tuple2<>(false, throttledCount.getAndSet(0));
+                return new ThrottleResult(false, throttledCount.getAndSet(0));
             }
         }
 
-        return new Tuple2<>(true, throttledCount.incrementAndGet());
+        return new ThrottleResult(true, throttledCount.incrementAndGet());
     }
 }

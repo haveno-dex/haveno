@@ -24,7 +24,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
-import haveno.common.util.Tuple2;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
@@ -34,6 +33,7 @@ import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersResponse;
 import haveno.network.utils.EventThrottler;
+import haveno.network.utils.EventThrottler.ThrottleResult;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -219,10 +219,10 @@ class PeerExchangeHandler implements MessageListener {
     }
 
     private void throttleWarn(String msg) {
-        Tuple2<Boolean, Long> throttleResult = throttler.onEvent();
-        if (!throttleResult.first) {
+        ThrottleResult throttleResult = throttler.onEvent();
+        if (!throttleResult.throttled) {
             log.warn(msg);
-            if (throttleResult.second > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.second >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.second);
+            if (throttleResult.throttledCount > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.throttledCount >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.throttledCount);
         }
     }
 }

@@ -2017,7 +2017,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (!xmrConnectionService.isSyncedWithinTolerance()) {
 
                 // throttle warnings
-                if (!logMonerodNotSyncedThrottler.onEvent().first) {
+                if (!logMonerodNotSyncedThrottler.onEvent().throttled) {
                     log.warn("Monero daemon is not synced within tolerance, height={}, targetHeight={}, monerod={}", xmrConnectionService.chainHeightProperty().get(), xmrConnectionService.getTargetHeight(), xmrConnectionService.getConnection() == null ? null : xmrConnectionService.getConnection().getUri());
                 }
                 return;
@@ -2052,7 +2052,7 @@ public class XmrWalletService extends XmrWalletBase {
                     if (!isShutDownStarted && wallet == sourceWallet) {
 
                         // throttle error handling
-                        if (!logPollErrorRateThrottler.onEvent().first) {
+                        if (!logPollErrorRateThrottler.onEvent().throttled) {
                             log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
                             if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection));
                         }

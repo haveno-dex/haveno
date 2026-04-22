@@ -21,7 +21,6 @@ import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
-import haveno.common.util.Tuple2;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.filter.Filter;
@@ -47,6 +46,7 @@ import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.Statistic;
 import haveno.network.utils.EventThrottler;
+import haveno.network.utils.EventThrottler.ThrottleResult;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -526,8 +526,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void updateP2PTable() {
-        Tuple2<Boolean, Long> throttleResult = p2pTableUpdateThrottler.onEvent();
-        if (throttleResult.first) return; // update is throttled (avoids dos with many peer connections)
+        ThrottleResult throttleResult = p2pTableUpdateThrottler.onEvent();
+        if (throttleResult.throttled) return; // update is throttled (avoids dos with many peer connections)
         ThreadUtils.execute(() -> {
             List<P2pNetworkListItem> list = p2PService.getNetworkNode().getAllConnections().stream()
                     .map(connection -> new P2pNetworkListItem(connection, clockWatcher))
