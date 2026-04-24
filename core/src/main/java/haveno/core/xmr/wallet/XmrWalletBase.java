@@ -202,9 +202,11 @@ public abstract class XmrWalletBase {
                 HavenoUtils.awaitLatch(syncProgressLatch);
                 syncProgressLooper.stop();
 
-                // set synced or throw error
-                if (syncProgressError == null) onDoneSyncWithProgress();
-                else throw new RuntimeException(syncProgressError);
+                // throw error if applicable
+                if (syncProgressError != null) throw new RuntimeException(syncProgressError);
+
+                // finish sync
+                onDoneSyncWithProgress();
             } catch (Exception e) {
                 throw e;
             } finally {
