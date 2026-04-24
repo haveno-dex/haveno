@@ -20,10 +20,10 @@ package haveno.network.p2p.network;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.berndpruenster.netlayer.tor.NativeTor;
@@ -49,6 +49,11 @@ import javax.annotation.Nullable;
 @Slf4j
 public class NewTor extends TorMode {
 
+    // default torrc options (user can override with --torrcOptions)
+    private static final Map<String, String> TORRC_OPTIONS_DEFAULT = new LinkedHashMap<>() {{
+        put("NumCPUs", "0");
+    }};
+
     private final File torrcFile;
     private final String torrcOptions;
     private final BridgeAddressProvider bridgeAddressProvider;
@@ -68,43 +73,45 @@ public class NewTor extends TorMode {
         if (bridgeEntries != null)
             log.info("Using bridges: {}", bridgeEntries.stream().collect(Collectors.joining(",")));
 
-        Torrc override = null;
-
-        // check if the user wants to provide his own torrc file
-        if (torrcFile != null) {
-            try {
-                override = new Torrc(new FileInputStream(torrcFile));
-            } catch (IOException e) {
-                log.error("custom torrc file not found ('{}'). Proceeding with defaults.", torrcFile);
-            }
-        }
-
-        // check if the user wants to temporarily add to the default torrc file
-        LinkedHashMap<String, String> torrcOptionsMap = new LinkedHashMap<>();
-        if (!"".equals(torrcOptions)) {
-            Arrays.asList(torrcOptions.split(",")).forEach(line -> {
+        // build map with torrc cli options
+        LinkedHashMap<String, String> torrcOptionsCli = new LinkedHashMap<>();
+        if (torrcOptions != null && !torrcOptions.isEmpty()) {
+            boolean parseError = false;
+            for (String line : torrcOptions.split(",")) {
                 line = line.trim();
+                if (line.isEmpty()) continue;
                 if (line.matches("^[^\\s]+\\s.+")) {
                     String[] tmp = line.split("\\s", 2);
-                    torrcOptionsMap.put(tmp[0].trim(), tmp[1].trim());
+                    torrcOptionsCli.put(tmp[0].trim(), tmp[1].trim());
                 } else {
-                    log.error("custom torrc override parse error ('{}'). Proceeding without custom overrides.", line);
-                    torrcOptionsMap.clear();
+                    log.error("Custom torrc override parse error ('{}'). Discarding all CLI overrides.", line);
+                    parseError = true;
+                    break; 
                 }
-            });
+            }
+            if (parseError) torrcOptionsCli.clear();
         }
 
-        // assemble final override options
-        if (!torrcOptionsMap.isEmpty())
-            // check for custom torrcFile
-            if (override != null)
-                // and merge the contents
-                override = new Torrc(override.getInputStream$tor_native(), torrcOptionsMap);
-            else
-                override = new Torrc(torrcOptionsMap);
+        // build map with all torrc overrides
+        LinkedHashMap<String, String> torrcOptionsOverride = new LinkedHashMap<>(TORRC_OPTIONS_DEFAULT);
+        torrcOptionsOverride.putAll(torrcOptionsCli);
+
+        // build the final torrc object
+        Torrc torrcOverride;
+        if (torrcFile != null && torrcFile.exists()) {
+            try (FileInputStream fis = new FileInputStream(torrcFile)) {
+                torrcOverride = new Torrc(fis, torrcOptionsOverride);
+            } catch (IOException e) {
+                log.error("Error reading custom torrc file ('{}'). Proceeding with defaults.", torrcFile.getAbsolutePath());
+                torrcOverride = new Torrc(torrcOptionsOverride);
+            }
+        } else {
+            // Falls here if torrcFile is null or doesn't exist
+            torrcOverride = new Torrc(torrcOptionsOverride);
+        }
 
         log.info("Starting tor");
-        NativeTor result = new NativeTor(torDir, bridgeEntries, override);
+        NativeTor result = new NativeTor(torDir, bridgeEntries, torrcOverride);
         log.info(
                 "\n################################################################\n"
                         + "Tor started after {} ms. Start publishing hidden service.\n"
