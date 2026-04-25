@@ -677,8 +677,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         log.info("Canceling open offer: {}", openOffer.getId());
         try {
             if (!offersToBeEdited.containsKey(openOffer.getId())) {
-                openOffer.setState(OpenOffer.State.CANCELED);
                 if (isOnOfferBook(openOffer)) {
+                    openOffer.setState(OpenOffer.State.CANCELED);
                     offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
                             () -> {
                                 ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
@@ -688,6 +688,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             },
                             errorMessageHandler);
                 } else {
+                    openOffer.setState(OpenOffer.State.CANCELED);
                     ThreadUtils.submitToPool(() -> {
                         doCancelOffer(openOffer);
                         if (resultHandler != null) resultHandler.handleResult();
@@ -696,7 +697,6 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             } else {
                 log.warn("Canceling offer {} which is currently in edit mode.", openOffer.getId());
                 offersToBeEdited.remove(openOffer.getId());
-                openOffer.setState(OpenOffer.State.CANCELED);
                 doCancelOffer(openOffer);
                 if (resultHandler != null) resultHandler.handleResult();
             }
