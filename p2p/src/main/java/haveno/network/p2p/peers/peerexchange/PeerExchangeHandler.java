@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
@@ -46,8 +47,8 @@ class PeerExchangeHandler implements MessageListener {
     // We want to keep timeout short here
     private static final long TIMEOUT = 90;
     private static final int DELAY_MS = 500;
-    private static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging warnings to once every 60 seconds
-    private static EventThrottler throttler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    private static EventThrottler warningThrottler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    private static EventThrottler failedGetPeersRequestThrottler = new EventThrottler(300000, TimeUnit.MILLISECONDS);
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -96,7 +97,21 @@ class PeerExchangeHandler implements MessageListener {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void sendGetPeersRequestAfterRandomDelay(NodeAddress nodeAddress) {
-        delayTimer = UserThread.runAfterRandomDelay(() -> sendGetPeersRequest(nodeAddress), 1, DELAY_MS, TimeUnit.MILLISECONDS);
+
+        // run off main thread so errors are only logged
+        delayTimer = ThreadUtils.runAfterRandomDelay(() -> {
+            try {
+                sendGetPeersRequest(nodeAddress); // this can backup the queue and fail with dos and/or poor internet
+            } catch (Exception e) {
+
+                // throttle errors to avoid log spam on failures
+                EventThrottler.ThrottleResult throttleResult = failedGetPeersRequestThrottler.onEvent();
+                if (!throttleResult.throttled) {
+                    if (throttleResult.throttledCount > 0) log.warn("We have throttled {} log entries for failed GetPeersRequest" + (throttleResult.throttledCount >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.throttledCount);
+                    throw e;
+                }
+            }
+        }, 1, DELAY_MS, TimeUnit.MILLISECONDS);
     }
 
     private void sendGetPeersRequest(NodeAddress nodeAddress) {
@@ -219,7 +234,7 @@ class PeerExchangeHandler implements MessageListener {
     }
 
     private void throttleWarn(String msg) {
-        ThrottleResult throttleResult = throttler.onEvent();
+        ThrottleResult throttleResult = warningThrottler.onEvent();
         if (!throttleResult.throttled) {
             log.warn(msg);
             if (throttleResult.throttledCount > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.throttledCount >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.throttledCount);

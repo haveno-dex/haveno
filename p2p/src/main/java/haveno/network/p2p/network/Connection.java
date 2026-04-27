@@ -242,7 +242,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
             // global connection limit overrides
             envelopeLimitsGlobalOverrides = new HashMap<>();
-            envelopeLimitsGlobalOverrides.put(GetPeersRequest.class.getSimpleName(), new LeakyBucket(1, 5, 0));
+            envelopeLimitsGlobalOverrides.put(GetPeersRequest.class.getSimpleName(), new LeakyBucket(0.5, 5, 0));
             envelopeLimitsGlobalOverrides.put(Ping.class.getSimpleName(), new LeakyBucket(2, 5, 0));
             envelopeLimitsGlobalOverrides.put(RefreshOfferMessage.class.getSimpleName(), null); // unlimited
 
