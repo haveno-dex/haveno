@@ -46,9 +46,21 @@ public final class JapanBankAccount extends PaymentAccount {
         return SUPPORTED_CURRENCIES;
     }
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BANK_CODE,
+            PaymentAccountFormField.FieldId.BANK_BRANCH_NAME,
+            PaymentAccountFormField.FieldId.BANK_BRANCH_CODE,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_TYPE,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.BANK_ACCOUNT_NUMBER,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     // bank code
