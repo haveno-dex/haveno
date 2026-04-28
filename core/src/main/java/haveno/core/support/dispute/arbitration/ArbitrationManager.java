@@ -375,12 +375,11 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             }
                             dispute.setDisputeResult(disputeResult);
 
-                            // update multisig hex
+                            // set updated multisig info
                             if (disputeClosedMessage.getUpdatedMultisigHex() != null) trade.getArbitrator().setUpdatedMultisigHex(disputeClosedMessage.getUpdatedMultisigHex());
-                            if (trade.walletExists()) trade.importMultisigHex();
-
+                            
                             // update wallet
-                            if (!trade.isPayoutPublished()) trade.updateWallet();
+                            if (trade.walletExists() || !trade.isPayoutPublished()) trade.updateWallet();
 
                             // attempt to sign and publish dispute payout tx if given and not already published
                             if (!trade.isPayoutPublished() && disputeClosedMessage.getUnsignedPayoutTxHex() != null) {

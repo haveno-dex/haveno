@@ -193,7 +193,7 @@ public abstract class TradeStepView extends AnchorPane {
         trade.errorMessageProperty().addListener(errorMessageListener);
 
         tradeStepInfo.setOnAction(e -> {
-            if (!isArbitrationOpenedState() && (this.isTradePeriodOver() || trade.isDepositTxMissing())) {
+            if (!isArbitrationOpenedState() && (this.isTradePeriodOver() || trade.isMissingUnlockedDepositTx())) {
                 openSupportTicket();
             } else {
                 openChat();
@@ -861,7 +861,7 @@ public abstract class TradeStepView extends AnchorPane {
 
     private void updateTradeState(Trade.State tradeState) {
         updateTimeLeft();
-        if (!trade.getDisputeState().isOpen() && trade.isDepositTxMissing()) {
+        if (!trade.getDisputeState().isOpen() && trade.isMissingUnlockedDepositTx()) {
             tradeStepInfo.setState(TradeStepInfo.State.DEPOSIT_MISSING);
         }
     }

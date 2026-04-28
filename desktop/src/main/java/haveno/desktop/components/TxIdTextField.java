@@ -148,13 +148,13 @@ public class TxIdTextField extends AnchorPane {
             walletListener = new MoneroWalletListener() {
                 @Override
                 public void onNewBlock(long height) {
-                    updateConfidence(txId, trade, false, height);
+                    updateConfidence(txId, trade, false);
                 }
             };
             xmrWalletService.addWalletListener(walletListener); // TODO: this only listens for new blocks, listen for double spend
         } else {
             tradeListener = (observable, oldValue, newValue) -> {
-                updateConfidence(txId, trade, null, null);
+                updateConfidence(txId, trade, null);
             };
             trade.getDepositTxsUpdateCounter().addListener(tradeListener);
         }
@@ -172,7 +172,7 @@ public class TxIdTextField extends AnchorPane {
         txConfidenceIndicator.setVisible(true);
 
         // update off main thread
-        new Thread(() -> updateConfidence(txId, trade, true, null)).start();
+        new Thread(() -> updateConfidence(txId, trade, true)).start();
     }
 
     public void cleanup() {
@@ -202,12 +202,20 @@ public class TxIdTextField extends AnchorPane {
         }
     }
 
-    private synchronized void updateConfidence(String txId, Trade trade, Boolean useCache, Long height) {
+    private synchronized void updateConfidence(String txId, Trade trade, Boolean useCache) {
         MoneroTx tx = null;
         try {
             if (trade == null) {
                 tx = useCache ? xmrWalletService.getXmrConnectionService().getTxWithCache(txId) : xmrWalletService.getXmrConnectionService().getTx(txId);
-                tx.setNumConfirmations(tx.isConfirmed() ? (height == null ? xmrWalletService.getXmrConnectionService().getLastInfo().getHeight() : height) - tx.getHeight(): 0l); // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
+
+                // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
+                if (tx.getNumConfirmations() == null) {
+                    if (tx.isConfirmed()) {
+                        tx.setNumConfirmations(xmrWalletService.getXmrConnectionService().getLastInfo().getHeight() - tx.getHeight());
+                    } else {
+                        tx.setNumConfirmations(0L);
+                    }
+                }
             } else {
                 if (txId.equals(trade.getMaker().getDepositTxHash())) tx = trade.getMakerDepositTx();
                 else if (txId.equals(trade.getTaker().getDepositTxHash())) tx = trade.getTakerDepositTx();

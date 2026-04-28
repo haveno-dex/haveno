@@ -653,6 +653,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                         (errorMessage) -> {
                                             log.warn("Error processing payment sent message: " + errorMessage);
                                             processModel.getTradeManager().requestPersistence();
+                                            if (trade.isShutDownStarted()) {
+                                                log.warn("Skipping error handling for PaymentSentMessage for {} {} because trade is shutting down", trade.getClass().getSimpleName(), trade.getId());
+                                                unlatchTrade();
+                                                return;
+                                            }
             
                                             // schedule to reprocess message unless deleted
                                             if (trade.getBuyer().getPaymentSentMessage() != null) {
@@ -765,6 +770,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     errorMessage -> {
                                         log.warn("Error processing payment received message: " + errorMessage);
                                         processModel.getTradeManager().requestPersistence();
+                                        if (trade.isShutDownStarted()) {
+                                            log.warn("Skipping error handling for PaymentReceivedMessage for {} {} because trade is shutting down", trade.getClass().getSimpleName(), trade.getId());
+                                            unlatchTrade();
+                                            return;
+                                        }
 
                                         // schedule to reprocess message or nack
                                         if (trade.getSeller().getPaymentReceivedMessage() != null) {

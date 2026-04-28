@@ -118,7 +118,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                        String sourceId,
                        boolean success,
                        @Nullable String errorMessage,
-                       String updatedMultisigInfo,
+                       String updatedMultisigHex,
                        String messageVersion) {
         super(messageVersion);
         this.uid = uid;
@@ -129,7 +129,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
         this.sourceId = sourceId;
         this.success = success;
         this.errorMessage = errorMessage;
-        this.updatedMultisigHex = updatedMultisigInfo;
+        this.updatedMultisigHex = updatedMultisigHex;
     }
 
     public protobuf.AckMessage toProtoMessage() {
@@ -190,7 +190,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                 ",\n     sourceId='" + sourceId + '\'' +
                 ",\n     success=" + success +
                 ",\n     errorMessage='" + errorMessage + '\'' +
-                ",\n     updatedMultisigInfo='" + updatedMultisigHex + '\'' +
+                ",\n     updatedMultisigHex='" + updatedMultisigHex + '\'' +
                 "\n} " + super.toString();
     }
 }
