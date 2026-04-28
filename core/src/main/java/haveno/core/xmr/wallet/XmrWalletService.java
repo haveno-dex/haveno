@@ -37,7 +37,6 @@ import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
-import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
@@ -139,7 +138,6 @@ public class XmrWalletService extends XmrWalletBase {
     protected final CopyOnWriteArraySet<MoneroWalletListenerI> walletListeners = new CopyOnWriteArraySet<>();
 
     private ChangeListener<? super Number> walletInitListener;
-    private TradeManager tradeManager;
 
     private final Object lock = new Object();
     private TaskLooper pollLooper;
@@ -226,11 +224,6 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             });
         });
-    }
-
-    // TODO (woodser): need trade manager to get trade ids to change all wallet passwords?
-    public void setTradeManager(TradeManager tradeManager) {
-        this.tradeManager = tradeManager;
     }
 
     public MoneroWallet getWallet() {
@@ -464,11 +457,11 @@ public class XmrWalletService extends XmrWalletBase {
 
             // collect reserved outputs
             Set<String> reservedKeyImages = new HashSet<String>();
-            for (Trade trade : tradeManager.getOpenTrades()) {
+            for (Trade trade : HavenoUtils.tradeManager.getOpenTrades()) {
                 if (trade.getSelf().getReserveTxKeyImages() == null) continue;
                 reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
             }
-            for (OpenOffer openOffer : tradeManager.getOpenOfferManager().getOpenOffers()) {
+            for (OpenOffer openOffer : HavenoUtils.tradeManager.getOpenOfferManager().getOpenOffers()) {
                 if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
                 reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
             }
@@ -971,7 +964,7 @@ public class XmrWalletService extends XmrWalletBase {
         log.info("resetAddressEntriesForOpenOffer offerId={}", offerId);
 
         // skip if failed trade is scheduled for processing // TODO: do not call this function in this case?
-        if (tradeManager.hasFailedScheduledTrade(offerId)) {
+        if (HavenoUtils.tradeManager.hasFailedScheduledTrade(offerId)) {
             log.warn("Refusing to reset address entries because trade is scheduled for deletion with offerId={}", offerId);
             return;
         }
@@ -979,8 +972,8 @@ public class XmrWalletService extends XmrWalletBase {
         swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
 
         // swap trade payout to available if applicable
-        if (tradeManager == null) return;
-        Trade trade = tradeManager.getTrade(offerId);
+        if (HavenoUtils.tradeManager == null) return;
+        Trade trade = HavenoUtils.tradeManager.getTrade(offerId);
         if (trade == null || trade.isPayoutFinalized()) swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
     }
 
@@ -1124,8 +1117,8 @@ public class XmrWalletService extends XmrWalletBase {
     public Stream<XmrAddressEntry> getAddressEntriesForAvailableBalanceStream() {
         Stream<XmrAddressEntry> available = getFundedAvailableAddressEntries().stream();
         available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.ARBITRATOR).stream());
-        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !tradeManager.getOpenOfferManager().getOpenOffer(entry.getOfferId()).isPresent()));
-        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> tradeManager.getTrade(entry.getOfferId()) == null || tradeManager.getTrade(entry.getOfferId()).isPayoutFinalized()));
+        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.OFFER_FUNDING).stream().filter(entry -> !HavenoUtils.tradeManager.getOpenOfferManager().getOpenOffer(entry.getOfferId()).isPresent()));
+        available = Stream.concat(available, getAddressEntries(XmrAddressEntry.Context.TRADE_PAYOUT).stream().filter(entry -> HavenoUtils.tradeManager.getTrade(entry.getOfferId()) == null || HavenoUtils.tradeManager.getTrade(entry.getOfferId()).isPayoutFinalized()));
         return available.filter(addressEntry -> getBalanceForSubaddress(addressEntry.getSubaddressIndex()).compareTo(BigInteger.ZERO) > 0);
     }
 
@@ -1428,7 +1421,7 @@ public class XmrWalletService extends XmrWalletBase {
         List<XmrAddressEntry> baseAddresses = getAddressEntries(XmrAddressEntry.Context.BASE_ADDRESS);
         if (baseAddresses.size() > 1 || (baseAddresses.size() == 1 && !baseAddresses.get(0).getAddressString().equals(wallet.getPrimaryAddress()))) {
             String warningMsg = "New Monero wallet detected. Resetting internal state.";
-            if (!tradeManager.getOpenTrades().isEmpty()) warningMsg += "\n\nWARNING: Your open trades will settle to the payout address in the OLD wallet!"; // TODO: allow payout address to be updated in PaymentSentMessage, PaymentReceivedMessage, and DisputeOpenedMessage?
+            if (!HavenoUtils.tradeManager.getOpenTrades().isEmpty()) warningMsg += "\n\nWARNING: Your open trades will settle to the payout address in the OLD wallet!"; // TODO: allow payout address to be updated in PaymentSentMessage, PaymentReceivedMessage, and DisputeOpenedMessage?
             HavenoUtils.setTopError(warningMsg);
 
             // reset address entries
@@ -1436,7 +1429,7 @@ public class XmrWalletService extends XmrWalletBase {
             getAddressEntryListAsImmutableList(); // recreate base address
 
             // cancel offers
-            tradeManager.getOpenOfferManager().removeAllOpenOffers(null);
+            HavenoUtils.tradeManager.getOpenOfferManager().removeAllOpenOffers(null);
         }
     }
 
@@ -1795,7 +1788,7 @@ public class XmrWalletService extends XmrWalletBase {
         });
 
         // create tasks to change trade wallet passwords
-        List<Trade> trades = tradeManager.getAllTrades();
+        List<Trade> trades = HavenoUtils.tradeManager.getAllTrades();
         for (Trade trade : trades) {
             tasks.add(() -> {
                 synchronized (trade.getWalletLock()) {
@@ -2023,7 +2016,7 @@ public class XmrWalletService extends XmrWalletBase {
             }
 
             // skip polling if trades are reserving main wallet (disable if testnet or too long since last poll)
-            List<Trade> tradesReservingMainWallet = tradeManager.getTradesReservingMainWallet();
+            List<Trade> tradesReservingMainWallet = HavenoUtils.tradeManager.getTradesReservingMainWallet();
             boolean lastPollWithinTolerance = System.currentTimeMillis() - lastPollTxsTimestamp <= POLL_TXS_TOLERANCE_MS;
             if (!tradesReservingMainWallet.isEmpty() && lastPollWithinTolerance && !Config.baseCurrencyNetwork().isTestnet()) {
                 List<String> tradeIds = tradesReservingMainWallet.stream().map(Trade::getShortId).collect(Collectors.toList());

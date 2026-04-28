@@ -261,8 +261,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
         failedTradesManager.setUnFailTradeCallback(this::unFailTrade);
 
-        // TODO: better way to set references
-        xmrWalletService.setTradeManager(this); // TODO: set reference in HavenoUtils for consistency
+        HavenoUtils.tradeManager = this; // TODO: better way to share references?
         HavenoUtils.notificationService = notificationService;
     }
 
@@ -602,7 +601,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
   
             // ensure trade does not already exist
-            Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
+            Optional<Trade> tradeOptional = getOpenOrClosedTrade(request.getOfferId());
             if (tradeOptional.isPresent()) {
                 log.warn("Ignoring InitTradeRequest to maker because trade already exists with id " + request.getOfferId() + ". This should never happen.");
                 return;
@@ -695,7 +694,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // handle trade
             Trade trade;
-            Optional<Trade> tradeOptional = getOpenTrade(offer.getId());
+            Optional<Trade> tradeOptional = getOpenOrClosedTrade(offer.getId());
             if (tradeOptional.isPresent()) {
                 trade = tradeOptional.get();
 
@@ -1414,6 +1413,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public Optional<Trade> getClosedTrade(String tradeId) {
+        return closedTradableManager.getTradeById(tradeId);
+    }
+
+    public Optional<Trade> getOpenOrClosedTrade(String tradeId) {
+        Optional<Trade> tradeOptional = getOpenTrade(tradeId);
+        if (tradeOptional.isPresent()) return tradeOptional;
         return closedTradableManager.getTradeById(tradeId);
     }
 
