@@ -604,7 +604,11 @@ public class GUIUtil {
                                         TxConfidenceIndicator txConfidenceIndicator) {
         if (tx == null || tx.getNumConfirmations() == null || !tx.isRelayed()) {
             if (trade != null && trade.isDepositsUnlocked()) {
-                tooltip.setText(Res.get("confidence.confirmed", ">=10"));
+                if (tx == null) {
+                    tooltip.setText(Res.get("confidence.confirmed", ">=10"));
+                } else {
+                    tooltip.setText(Res.get("confidence.confirmed", tx.getNumConfirmations()));
+                }
                 txConfidenceIndicator.setProgress(1.0);
             } else {
                 tooltip.setText(Res.get("confidence.unknown"));

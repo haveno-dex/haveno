@@ -150,8 +150,12 @@ public class SellerProtocol extends DisputeProtocol {
                                 handleTaskRunnerSuccess(event);
                                 resultHandler.handleResult();
                             }, (errorMessage) -> {
-                                log.warn("Error confirming payment received, reverting state to {}, error={}", Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, errorMessage);
-                                if (!trade.isPayoutPublished()) trade.resetToPaymentSentState();
+                                if (trade.isPayoutPublished()) {
+                                    log.warn("Error confirming payment received, payout already published, error={}", errorMessage);
+                                } else {
+                                    log.warn("Error confirming payment received, reverting state to {}, error={}", Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, errorMessage);
+                                    trade.resetToPaymentSentState();
+                                }
                                 handleTaskRunnerFault(event, errorMessage);
                             })))
                             .executeTasks(true);

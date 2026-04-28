@@ -70,8 +70,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import monero.common.MoneroConnectionManager;
-import monero.common.MoneroConnectionManagerListener;
 import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.MoneroRpcError;
@@ -140,14 +138,14 @@ public final class XmrConnectionService {
     private boolean wasMonerodSynced;
     @Getter
     private boolean isShutDownStarted;
-    private List<MoneroConnectionManagerListener> listeners = new ArrayList<>();
+    private List<XmrConnectionListener> listeners = new ArrayList<>();
     private XmrKeyImagePoller keyImagePoller;
     private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
 
     // connection switching
     private static final int EXCLUDE_CONNECTION_SECONDS = 180;
     private static final int MAX_SWITCH_REQUESTS_PER_MINUTE = 2;
-    private static final int SKIP_SWITCH_WITHIN_MS = 10000;
+    private static final int SKIP_SWITCH_WITHIN_MS = 20000;
     private int numRequestsLastMinute;
     private long lastSwitchTimestamp;
     private Set<MoneroRpcConnection> excludedConnections = new HashSet<>();
@@ -165,7 +163,6 @@ public final class XmrConnectionService {
                                         CoreAccountService accountService,
                                         XmrNodes xmrNodes,
                                         XmrLocalNode xmrLocalNode,
-                                        MoneroConnectionManager connectionManager,
                                         EncryptedConnectionList connectionList,
                                         Socks5ProxyProvider socks5ProxyProvider) {
         this.config = config;
@@ -231,9 +228,15 @@ public final class XmrConnectionService {
         return socks5ProxyProvider.getSocks5Proxy() == null ? null : socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress() + ":" + socks5ProxyProvider.getSocks5Proxy().getPort();
     }
 
-    public void addConnectionListener(MoneroConnectionManagerListener listener) {
+    public void addConnectionListener(XmrConnectionListener listener) {
         synchronized (listenerLock) {
             listeners.add(listener);
+        }
+    }
+
+    public void removeConnectionListener(XmrConnectionListener listener) {
+        synchronized (listenerLock) {
+            listeners.remove(listener);
         }
     }
 
@@ -358,10 +361,14 @@ public final class XmrConnectionService {
             }
         }
 
-        // notify listeners in parallel
+        // notify listeners
         synchronized (listenerLock) {
-            for (MoneroConnectionManagerListener listener : listeners) {
-                ThreadUtils.submitToPool(() -> listener.onConnectionChanged(connection));
+            for (XmrConnectionListener listener : listeners) {
+                try {
+                    listener.onConnectionChanged(connection);
+                } catch (Throwable t) {
+                    log.warn("Error notifying listener of connection change, error={}\n", t.getMessage(), t);
+                }
             }
         }
     }
@@ -516,13 +523,13 @@ public final class XmrConnectionService {
 
         // skip if shut down started
         if (isShutDownStarted) {
-            log.warn("Skipping switch to next best Monero connection because shut down has started");
+            log.info("Skipping switch to next best Monero connection because shut down has started");
             return false;
         }
 
         // skip if connection is already switched
         if (sourceConnection != null && sourceConnection != getConnection()) {
-            log.warn("Skipping switch to next best Monero connection because source connection is not current connection");
+            log.info("Skipping switch to next best Monero connection because source connection is not current connection");
             return false;
         }
 
@@ -584,6 +591,10 @@ public final class XmrConnectionService {
 
     public boolean isConnectionLocalHost() {
         return isConnectionLocalHost(getConnection());
+    }
+
+    public boolean isTrustedDaemon() {
+        return isConnectionLocalHost(); // TODO: allow user to set daemon as trusted?
     }
 
     public boolean isProxyApplied() {
