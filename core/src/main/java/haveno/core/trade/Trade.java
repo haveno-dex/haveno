@@ -3292,8 +3292,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 }
 
                 // txs may not be fetched if confirmed after last sync
-                if (!offlinePoll && isPayoutPublished() && getPayoutTxId() != null && !hasPayoutTx(txs)) {
-                    log.warn("Payout is missing for {} {} after being published, resyncing", getClass().getSimpleName(), getId());
+                if (!offlinePoll && isPayoutExpected && isPayoutPublished() && getPayoutTxId() != null && !hasPayoutTx(txs)) {
+                    log.warn("Payout is missing for {} {} after being published, resyncing. checkedPool={}", getClass().getSimpleName(), getId(), checkPool);
                     HavenoUtils.waitFor(MISSING_TXS_DELAY_MS);
                     sync();
                     txs = getTxs(true);
