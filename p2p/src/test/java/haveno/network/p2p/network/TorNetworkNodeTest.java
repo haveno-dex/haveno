@@ -56,6 +56,8 @@ public class TorNetworkNodeTest {
                 null,
                 12,
                 false,
+                null,
+                null,
                 "127.0.0.1");
         node1.start(new SetupListener() {
             @Override
@@ -88,6 +90,8 @@ public class TorNetworkNodeTest {
                 null,
                 12,
                 false,
+                null,
+                null,
                 "127.0.0.1");
         node2.start(new SetupListener() {
             @Override
@@ -151,6 +155,8 @@ public class TorNetworkNodeTest {
                 null,
                 12,
                 false,
+                null,
+                null,
                 "127.0.0.1");
         node1.start(new SetupListener() {
             @Override
@@ -181,6 +187,8 @@ public class TorNetworkNodeTest {
                 null,
                 12,
                 false,
+                null,
+                null,
                 "127.0.0.1");
         node2.start(new SetupListener() {
             @Override

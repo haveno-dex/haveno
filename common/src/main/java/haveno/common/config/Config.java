@@ -85,6 +85,8 @@ public class Config {
     public static final String USE_TOR_FOR_XMR = "useTorForXmr";
     public static final String TORRC_FILE = "torrcFile";
     public static final String TORRC_OPTIONS = "torrcOptions";
+    public static final String HIDDEN_SERVICE_FLAGS = "hiddenServiceFlags";
+    public static final String HIDDEN_SERVICE_PARAMS = "hiddenServiceParams";
     public static final String TOR_CONTROL_HOST = "torControlHost";
     public static final String TOR_CONTROL_PORT = "torControlPort";
     public static final String TOR_CONTROL_PASSWORD = "torControlPassword";
@@ -180,6 +182,8 @@ public class Config {
     public final String socks5ProxyHttpAddress;
     public final File torrcFile;
     public final String torrcOptions;
+    public final String hiddenServiceFlags;
+    public final String hiddenServiceParams;
     public final String torControlHost;
     public final int torControlPort;
     public final String torControlPassword;
@@ -464,6 +468,16 @@ public class Config {
                         .withValuesConvertedBy(RegexMatcher.regex("^([^\\s,]+\\s[^,]+,?\\s*)+$"))
                         .defaultsTo("");
 
+        ArgumentAcceptingOptionSpec<String> hiddenServiceFlagsOpt =
+                parser.accepts(HIDDEN_SERVICE_FLAGS, "Flags for the dynamic Tor hidden service (added via ADD_ONION).")
+                        .withRequiredArg()
+                        .defaultsTo("");
+
+        ArgumentAcceptingOptionSpec<String> hiddenServiceParamsOpt =
+                parser.accepts(HIDDEN_SERVICE_PARAMS, "Parameters for the dynamic Tor hidden service (added via ADD_ONION).")
+                        .withRequiredArg()
+                        .defaultsTo("");
+
         ArgumentAcceptingOptionSpec<String> torControlHostOpt =
                 parser.accepts(TOR_CONTROL_HOST, "The control hostname of an already running Tor service to be used by Haveno.")
                         .withRequiredArg()
@@ -718,6 +732,8 @@ public class Config {
             this.bitcoinRegtestHost = options.valueOf(bitcoinRegtestHostOpt);
             this.torrcFile = options.has(torrcFileOpt) ? options.valueOf(torrcFileOpt).toFile() : null;
             this.torrcOptions = options.valueOf(torrcOptionsOpt);
+            this.hiddenServiceFlags = options.valueOf(hiddenServiceFlagsOpt);
+            this.hiddenServiceParams = options.valueOf(hiddenServiceParamsOpt);
             this.torControlHost = options.valueOf(torControlHostOpt);
             this.torControlPort = options.valueOf(torControlPortOpt);
             this.torControlPassword = options.valueOf(torControlPasswordOpt);

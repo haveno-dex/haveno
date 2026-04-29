@@ -71,7 +71,7 @@ configure(subprojects) {
         loggingVersion = '1.2'
         lombokVersion = '1.18.30'
         mockitoVersion = '5.10.0'
-        netlayerVersion = 'd9c60be46d' // Tor browser version 14.0.7 and tor binary version: 0.4.8.14
+        netlayerVersion = '0cb0d329ff' // Tor browser version 15.0.8 and tor binary version: 0.4.9.5
         protobufVersion = '3.19.1'
         protocVersion = protobufVersion
         pushyVersion = '0.13.2'
@@ -323,8 +323,8 @@ configure(project(':common')) {
             exclude(module: 'animal-sniffer-annotations')
         }
 
-        // override transitive dependency and use latest version from bisq
-        implementation(group: 'com.github.bisq-network', name: 'jtorctl') { version { strictly "[b2a172f44edcd8deaa5ed75d936dcbb007f0d774]" } }
+        // override transitive dependency and use latest version from haveno
+        implementation(group: 'com.github.haveno-dex', name: 'jtorctl') { version { strictly "[c2f57fa22e502d68143492746a66fcecdabb0fd9]" } }
         implementation "org.openjfx:javafx-base:$javafxVersion:$os"
         implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
     }
