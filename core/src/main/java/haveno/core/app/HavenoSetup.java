@@ -475,7 +475,7 @@ public class HavenoSetup {
     }
 
     private void initDomainServices() {
-        log.info("initDomainServices");
+        log.info("Initializing domain services");
 
         domainInitialisation.initDomainServices(rejectedTxErrorMessageHandler,
                 displayPrivateNotificationHandler,
@@ -489,6 +489,7 @@ public class HavenoSetup {
 
         allBasicServicesInitialized = true;
 
+        log.info("Done initializing domain services");
         appStartupState.onDomainServicesInitialized();
     }
 
