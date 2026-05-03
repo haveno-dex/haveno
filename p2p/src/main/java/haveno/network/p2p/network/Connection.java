@@ -58,9 +58,12 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendersNodeAddressMessage;
 import haveno.network.p2p.SupportedCapabilitiesMessage;
 import haveno.network.p2p.peers.keepalive.messages.KeepAliveMessage;
+import haveno.network.p2p.peers.keepalive.messages.Ping;
+import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.messages.AddDataMessage;
 import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
+import haveno.network.p2p.storage.messages.RefreshOfferMessage;
 import haveno.network.p2p.storage.messages.RemoveDataMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
@@ -118,14 +121,18 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
     private static final String THREAD_ID = Connection.class.getSimpleName();
-    public static final long LOG_THROTTLE_INTERVAL_MS = 30000; // throttle logging rule violations and warnings to once every 30s
-    public static final int POSSIBLE_DOS_THRESHOLD = 10;
+    public static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging rule violations and warnings to once every 60s
+    public static final int POSSIBLE_DOS_THRESHOLD = 20;
     public static final String POSSIBLE_DOS_MESSAGE = "Possible DoS attack detected";
 
-    // Throttle network envelopes for incoming connections
-    private LeakyBucket unknownPeerEnvelopeRateBucket = new LeakyBucket(config.unknownPeerEnvelopeRate, config.unknownPeerEnvelopeBurst, config.unknownPeerEnvelopeStrikes);
-    private LeakyBucket knownPeerEnvelopeRateBucket = new LeakyBucket(config.knownPeerEnvelopeRate, config.knownPeerEnvelopeBurst, config.knownPeerEnvelopeStrikes);
     private static final EventThrottler closeConnectionLogThrottler = new EventThrottler(60, TimeUnit.SECONDS);
+
+    // connection throttlers
+    private static LeakyBucketManager envelopeLimitsGlobalDefaultManager; // default global throttler for all connection types
+    private static LeakyBucket envelopeLimitsGlobalUnknownPeers;
+    private static Map<String, LeakyBucket> envelopeLimitsGlobalOverrides;
+    private LeakyBucketManager envelopeLimitsConnectionDefaultManager; // default connection throttler for all connection types
+    private Map<String, LeakyBucket> envelopeLimitsConnectionOverrides;
 
     public static int getPermittedMessageSize() {
         return PERMITTED_MESSAGE_SIZE;
@@ -210,7 +217,92 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         this.networkProtoResolver = networkProtoResolver;
         connectionState = new ConnectionState(this);
         connectionStatistics = new ConnectionStatistics(this, connectionState);
+        initThrottlers();
         init(peersNodeAddress);
+    }
+
+    private void initThrottlers() {
+        initGlobalThrottlers();
+        initConnectionThrottlers();
+    }
+
+    private static void initGlobalThrottlers() {
+        if (envelopeLimitsGlobalOverrides != null) return;
+        synchronized (Connection.class) {
+            if (envelopeLimitsGlobalOverrides != null) return;
+
+            // global connection limit defaults
+            LeakyBucket globalDefault = parseBucket(config.envelopeLimitsGlobalDefault);
+            envelopeLimitsGlobalDefaultManager = new LeakyBucketManager(globalDefault.leakRatePerSec, globalDefault.burstCapacity, globalDefault.maxStrikes);
+            
+            // global connection limits for unknown peers
+            envelopeLimitsGlobalUnknownPeers = parseBucket(config.envelopeLimitsGlobalUnknownPeers);
+
+            // global connection limit overrides
+            envelopeLimitsGlobalOverrides = new HashMap<>();
+            envelopeLimitsGlobalOverrides.put(GetPeersRequest.class.getSimpleName(), new LeakyBucket(1, 5, 0));
+            envelopeLimitsGlobalOverrides.put(Ping.class.getSimpleName(), new LeakyBucket(2, 5, 0));
+            envelopeLimitsGlobalOverrides.put(RefreshOfferMessage.class.getSimpleName(), null); // unlimited
+
+            // merge with cli overrides: format "EnvelopeName:Rate,Burst,Strikes;..."
+            String overrides = config.envelopeLimitsGlobalOverrides;
+            if (overrides != null && !overrides.isBlank()) {
+                for (String entry : overrides.split(";")) {
+                    String[] parts = entry.split("="); 
+                    if (parts.length == 2) {
+                        String className = parts[0].trim();
+                        String limitData = parts[1].trim();
+                        envelopeLimitsGlobalOverrides.put(className, parseBucket(limitData));
+                    }
+                }
+            }
+        }
+    }
+
+    private void initConnectionThrottlers() {
+
+        // connection limit defaults
+        LeakyBucket connectionDefault = parseBucket(config.envelopeLimitsConnectionDefault);
+        envelopeLimitsConnectionDefaultManager = new LeakyBucketManager(connectionDefault.leakRatePerSec, connectionDefault.burstCapacity, connectionDefault.maxStrikes);
+
+        // connection limit overrides
+        envelopeLimitsConnectionOverrides = new HashMap<>();
+        envelopeLimitsConnectionOverrides.put(GetPeersRequest.class.getSimpleName(), new LeakyBucket(0.01666667, 2, 0));
+        envelopeLimitsConnectionOverrides.put(Ping.class.getSimpleName(), new LeakyBucket(0.0333333, 2, 0));
+        envelopeLimitsConnectionOverrides.put(RefreshOfferMessage.class.getSimpleName(), null); // unlimited
+
+        // merge with cli overrides: format "EnvelopeName:Rate,Burst,Strikes;..."
+        String overrides = config.envelopeLimitsConnectionOverrides;
+        if (overrides != null && !overrides.isBlank()) {
+            for (String entry : overrides.split(";")) {
+                String[] parts = entry.split("="); 
+                if (parts.length == 2) {
+                    String className = parts[0].trim();
+                    String limitData = parts[1].trim();
+                    envelopeLimitsConnectionOverrides.put(className, parseBucket(limitData));
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper to turn "rate,burst,strikes" or "0" into a LeakyBucket
+     */
+    private static LeakyBucket parseBucket(String csv) {
+        if (csv == null || "0".equals(csv)) {
+            return new LeakyBucket(Double.MAX_VALUE, Double.MAX_VALUE, Integer.MAX_VALUE);
+        }
+        
+        try {
+            String[] v = csv.split(",");
+            double rate = Double.parseDouble(v[0]);
+            double burst = Double.parseDouble(v[1]);
+            long strikes = Long.parseLong(v[2]);
+            return new LeakyBucket(rate, burst, strikes);
+        } catch (Exception e) {
+            log.error("Failed to parse leaky bucket config: {}. Falling back to unlimited.", csv);
+            return new LeakyBucket(Double.MAX_VALUE, Double.MAX_VALUE, Long.MAX_VALUE);
+        }
     }
 
     private void init(@Nullable NodeAddress peersNodeAddress) {
@@ -412,7 +504,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     // Only receive non - CloseConnectionMessage network_messages
     @Override
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
+        if (connection != this) throw new IllegalArgumentException("Received message for a different connection than this. That should never happen.");
         checkArgument(connection.equals(this));
+        if (Thread.currentThread().isInterrupted()) return; // skip if thread is interrupted
         if (networkEnvelope instanceof BundleOfEnvelopes) {
             onBundleOfEnvelopes((BundleOfEnvelopes) networkEnvelope);
         } else {
@@ -425,6 +519,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         Set<NetworkEnvelope> envelopesToProcess = new HashSet<>();
         List<NetworkEnvelope> networkEnvelopes = bundleOfEnvelopes.getEnvelopes();
         for (NetworkEnvelope networkEnvelope : networkEnvelopes) {
+            if (Thread.currentThread().isInterrupted()) return; // skip if thread is interrupted
+
             // If SendersNodeAddressMessage we do some verifications and apply if successful, otherwise we return false.
             if (networkEnvelope instanceof SendersNodeAddressMessage) {
                 boolean isValid = processSendersNodeAddressMessage((SendersNodeAddressMessage) networkEnvelope);
@@ -458,12 +554,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     private void processIncomingEnvelopes(Set<NetworkEnvelope> networkEnvelopes) {
 
-        // throttle envelope spam
-        boolean isSeedNode = getConnectionState().isSeedNode();
+        // throttle envelopes from unknown peer
         boolean isKnownAddress = !getPeersNodeAddressOptional().isEmpty();
-        if (!isSeedNode) {
-            LeakyBucket envelopeRateBucket = isKnownAddress ? knownPeerEnvelopeRateBucket : unknownPeerEnvelopeRateBucket;
-            if (envelopeRateBucket.isSpamming(networkEnvelopes.size())) {
+        if (!isKnownAddress) {
+            if (envelopeLimitsGlobalUnknownPeers.isSpamming(networkEnvelopes.size())) {
                 Tuple2<Boolean, Long> throttleResult = closeConnectionLogThrottler.onEvent();
                 if (!throttleResult.first) {
                     log.warn("Closing connection with too many envelopes: numEnvelopes={}, peer={}, uid={}", networkEnvelopes.size(), getPeersNodeAddressOptional().map(NodeAddress::getFullAddress).orElse("null"), uid);
@@ -476,9 +570,52 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         }
 
         // announce the envelopes
+        Thread currentThread = Thread.currentThread();
         ThreadUtils.execute(() -> {
-            networkEnvelopes.forEach(envelope -> announceEnvelope(envelope));
+            for (NetworkEnvelope envelope : networkEnvelopes) {
+                if (currentThread.isInterrupted()) return; // skip if thread is interrupted
+
+                // announce envelope if not rate limited
+                if (!isRateLimited()) {
+                    announceEnvelope(envelope);
+                    continue;
+                }
+
+                // check if envelope is throttled globally
+                LeakyBucket globalThrottler = getGlobalThrottler(envelope);
+                boolean exceedsGlobalLimit = globalThrottler != null && globalThrottler.isSpamming(1);
+                if (exceedsGlobalLimit) {
+                    throttleWarn("Ignoring envelope of type " + envelope.getClass().getSimpleName() + " because of global envelope spam. peer=" + getPeersNodeAddressOptional().map(NodeAddress::getFullAddress).orElse("null"));
+                    continue;
+                }
+
+                // check if envelope is throttled on the connection
+                LeakyBucket connectionThrottler = getConnectionThrottler(envelope);
+                boolean exceedsConnectionLimit = connectionThrottler != null && connectionThrottler.isSpamming(1);
+                if (exceedsConnectionLimit) {
+                    throttleWarn("Shutting down connection because of envelope spam of type " + envelope.getClass().getSimpleName() + " on connection throttler. peer=" + getPeersNodeAddressOptional().map(NodeAddress::getFullAddress).orElse("null"));
+                    ruleViolation = RuleViolation.THROTTLE_LIMIT_EXCEEDED;
+                    envelopeLimitsConnectionOverrides.remove(envelope.getClass().getSimpleName());
+                    shutDown(CloseConnectionReason.RULE_VIOLATION);
+                    return;
+                }
+
+                // announce the envelope
+                announceEnvelope(envelope);
+            }
         }, THREAD_ID);
+    }
+
+    private boolean isRateLimited() {
+        return !getConnectionState().isSeedNode() && !(this instanceof OutboundConnection);
+    }
+
+    private LeakyBucket getGlobalThrottler(NetworkEnvelope envelope) {
+        return envelopeLimitsGlobalOverrides.getOrDefault(envelope.getClass().getSimpleName(), envelopeLimitsGlobalDefaultManager.getOrCreate(envelope.getClass().getSimpleName()));
+    }
+
+    private LeakyBucket getConnectionThrottler(NetworkEnvelope envelope) {
+        return envelopeLimitsConnectionOverrides.getOrDefault(envelope.getClass().getSimpleName(), envelopeLimitsConnectionDefaultManager.getOrCreate(envelope.getClass().getSimpleName()));
     }
 
     private void announceEnvelope(NetworkEnvelope networkEnvelope) {
@@ -583,11 +720,14 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 log.error(ExceptionUtils.getStackTrace(e));
             }
 
-            Utilities.shutdownAndAwaitTermination(executorService, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
+            // terminate the executor service off thread
+            ThreadUtils.submitToPool(() -> {
+                Utilities.shutdownAndAwaitTermination(executorService, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
 
-            log.debug("Connection shutdown complete {}", this);
-            if (shutDownCompleteHandler != null)
-                ThreadUtils.execute(shutDownCompleteHandler, THREAD_ID);
+                log.debug("Connection shutdown complete {}", this);
+                if (shutDownCompleteHandler != null)
+                    ThreadUtils.execute(shutDownCompleteHandler, THREAD_ID);
+            });
         }
     }
 
@@ -677,15 +817,15 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 connection.shutDown(CloseConnectionReason.RULE_VIOLATION);
             }
 
-            if (!throttleLogs) logThrottledInvalidRequests(throttleResult.second);
+            if (!throttleLogs) logNumThrottledInvalidRequests(throttleResult.second);
             return true;
         } else {
-            if (!throttleLogs) logThrottledInvalidRequests(throttleResult.second);
+            if (!throttleLogs) logNumThrottledInvalidRequests(throttleResult.second);
             return false;
         }
     }
 
-    private static void logThrottledInvalidRequests(long numThrottled) {
+    private static void logNumThrottledInvalidRequests(long numThrottled) {
         if (numThrottled > 0) log.warn("We throttled {} reports of invalid requests since the last log entry" + (numThrottled >= POSSIBLE_DOS_THRESHOLD ? ". " + POSSIBLE_DOS_MESSAGE : ""), numThrottled);
     }
 
@@ -793,7 +933,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             return;
                         }
                         if (protoInputStream.read() == -1) {
-                            throttleWarn("proto is null because protoInputStream.read()=-1 (EOF). That is expected if client got stopped without proper shutdown.");
+                            //throttleWarn("proto is null because protoInputStream.read()=-1 (EOF). That is expected if client got stopped without proper shutdown.");
                         } else {
                             throttleWarn("proto is null. protoInputStream.read()=" + protoInputStream.read());
                         }

@@ -94,4 +94,26 @@ public final class GetPeersResponse extends NetworkEnvelope implements PeerExcha
                 Capabilities.fromIntList(proto.getSupportedCapabilitiesList()),
                 messageVersion);
     }
+
+    @Override
+    public String toString() {
+        String peersString;
+        int maxPeersToShow = 3;
+        if (reportedPeers == null) {
+                peersString = "null";
+        } else if (reportedPeers.size() <= maxPeersToShow) {
+                peersString = reportedPeers.toString();
+        } else {
+                peersString = reportedPeers.stream()
+                        .limit(maxPeersToShow)
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", ", "[", ", ... and " + (reportedPeers.size() - maxPeersToShow) + " more]"));
+        }
+
+        return "GetPeersResponse{" +
+                "requestNonce=" + requestNonce +
+                ", reportedPeers=" + peersString +
+                ", supportedCapabilities=" + supportedCapabilities +
+                '}';
+    }
 }

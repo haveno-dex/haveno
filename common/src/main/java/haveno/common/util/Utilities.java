@@ -137,7 +137,7 @@ public class Utilities {
                 .build();
         ThreadPoolExecutor executor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTimeInSec,
                 TimeUnit.SECONDS, workQueue, threadFactory);
-        executor.allowCoreThreadTimeOut(true);
+        if (keepAliveTimeInSec > 0) executor.allowCoreThreadTimeOut(true);
         return executor;
     }
 

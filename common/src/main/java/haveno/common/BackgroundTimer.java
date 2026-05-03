@@ -18,8 +18,11 @@
 package haveno.common;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -28,21 +31,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class BackgroundTimer implements Timer {
 
-    private final ScheduledExecutorService executor;
-    private final AtomicBoolean stopped = new AtomicBoolean(false);
-
-    public BackgroundTimer() {
-        this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "BackgroundTimer");
+    private static final ScheduledExecutorService SHARED_SCHEDULER = 
+        Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "BackgroundThread-Scheduler");
             t.setDaemon(true);
             return t;
         });
-    }
+
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
+    private final List<ScheduledFuture<?>> tasks = new CopyOnWriteArrayList<>();
 
     @Override
     public Timer runLater(Duration delay, Runnable action) {
         if (stopped.get()) return this;
-        executor.schedule(wrap(action), delay.toMillis(), TimeUnit.MILLISECONDS);
+
+        ScheduledFuture<?> future = SHARED_SCHEDULER.schedule(() -> {
+            ThreadUtils.execute(wrap(action), "BackgroundThread");
+        }, delay.toMillis(), TimeUnit.MILLISECONDS);
+        
+        tasks.add(future);
         return this;
     }
 
@@ -50,19 +57,19 @@ public class BackgroundTimer implements Timer {
     public Timer runPeriodically(Duration interval, Runnable runnable) {
         if (stopped.get()) return this;
 
-        executor.scheduleAtFixedRate(
-                wrap(runnable),
-                interval.toMillis(),
-                interval.toMillis(),
-                TimeUnit.MILLISECONDS
-        );
+        ScheduledFuture<?> future = SHARED_SCHEDULER.scheduleAtFixedRate(() -> {
+            ThreadUtils.execute(wrap(runnable), "BackgroundThread");
+        }, interval.toMillis(), interval.toMillis(), TimeUnit.MILLISECONDS);
+
+        tasks.add(future);
         return this;
     }
 
     @Override
     public void stop() {
         if (stopped.compareAndSet(false, true)) {
-            executor.shutdownNow();
+            tasks.forEach(f -> f.cancel(false));
+            tasks.clear();
         }
     }
 
@@ -72,7 +79,7 @@ public class BackgroundTimer implements Timer {
             try {
                 r.run();
             } catch (Throwable t) {
-                t.printStackTrace();
+                log.error("Error in BackgroundThread task", t);
             }
         };
     }

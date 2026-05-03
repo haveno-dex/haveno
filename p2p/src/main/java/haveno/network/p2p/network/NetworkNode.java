@@ -517,10 +517,14 @@ public abstract class NetworkNode implements MessageListener {
     }
 
     private void printInboundConnections() {
-        StringBuilder sb = new StringBuilder("inBoundConnections size()=")
-                .append(inBoundConnections.size()).append("\n\tinBoundConnections=");
-        inBoundConnections.stream().forEach(e -> sb.append(e).append("\n\t"));
-        log.debug(sb.toString());
+
+        // this is high cpu and spam with DoS attack, so it's only enabled for debug level
+        if (log.isDebugEnabled()) {
+            StringBuilder sb = new StringBuilder("inBoundConnections size()=")
+                    .append(inBoundConnections.size()).append("\n\tinBoundConnections=");
+            inBoundConnections.stream().forEach(e -> sb.append(e).append("\n\t"));
+            log.debug(sb.toString());
+        }
     }
 
     protected abstract Socket createSocket(NodeAddress peersNodeAddress) throws IOException;

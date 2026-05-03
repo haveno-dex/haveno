@@ -32,7 +32,6 @@ import haveno.network.p2p.peers.peerexchange.messages.GetPeersResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -84,7 +83,7 @@ class GetPeersRequestHandler {
         checkArgument(connection.getPeersNodeAddressOptional().isPresent(),
                 "The peers address must have been already set at the moment");
         GetPeersResponse getPeersResponse = new GetPeersResponse(getPeersRequest.getNonce(),
-                new HashSet<>(peerManager.getLivePeers(connection.getPeersNodeAddressOptional().get())));
+                peerManager.getLivePeers(connection.getPeersNodeAddressOptional().get()));
 
         checkArgument(timeoutTimer == null, "onGetPeersRequest must not be called twice.");
         timeoutTimer = UserThread.runAfter(() -> {  // setup before sending to avoid race conditions
@@ -118,7 +117,7 @@ class GetPeersRequestHandler {
             public void onFailure(@NotNull Throwable throwable) {
                 if (!stopped) {
                     String errorMessage = "Sending getPeersResponse to " + connection +
-                            " failed. That is expected if the peer is offline. getPeersResponse=" + getPeersResponse + "." +
+                            " failed. That is expected if the peer is offline. getPeersResponse=" + getPeersResponse + ". " +
                             "Exception: " + throwable.getMessage();
                     log.info(errorMessage);
                     handleFault(errorMessage, CloseConnectionReason.SEND_MSG_FAILURE, connection);
