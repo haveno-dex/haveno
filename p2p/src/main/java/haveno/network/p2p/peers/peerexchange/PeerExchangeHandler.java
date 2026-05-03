@@ -38,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -106,7 +105,7 @@ class PeerExchangeHandler implements MessageListener {
             if (networkNode.getNodeAddress() != null) {
                 GetPeersRequest getPeersRequest = new GetPeersRequest(networkNode.getNodeAddress(),
                         nonce,
-                        new HashSet<>(peerManager.getLivePeers(nodeAddress)));
+                        peerManager.getLivePeers(nodeAddress));
                 if (timeoutTimer == null) {
                     timeoutTimer = UserThread.runAfter(() -> {  // setup before sending to avoid race conditions
                                 if (!stopped) {

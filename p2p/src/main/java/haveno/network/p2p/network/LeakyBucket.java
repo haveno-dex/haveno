@@ -24,9 +24,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * A leaky bucket implementation for rate limiting.
  */
 public class LeakyBucket {
-    private final double capacity;
-    private final double leakRatePerSec;
-    private final int maxStrikes;
+    public final double leakRatePerSec;
+    public final double burstCapacity;
+    public final long maxStrikes;
     private final AtomicInteger strikes = new AtomicInteger(0);
     private final AtomicReference<State> state;
 
@@ -39,14 +39,14 @@ public class LeakyBucket {
         }
     }
 
-    public LeakyBucket(int capacity, int leakRatePerSec, int maxStrikes) {
-        this.capacity = capacity;
+    public LeakyBucket(double leakRatePerSec, double burstCapacity, long maxStrikes) {
         this.leakRatePerSec = leakRatePerSec;
+        this.burstCapacity = burstCapacity;
         this.maxStrikes = maxStrikes;
         this.state = new AtomicReference<>(new State(0.0, System.currentTimeMillis()));
     }
 
-    public boolean isSpamming(int amount) {
+    public boolean isSpamming(double amount) {
         while (true) {
             State oldState = state.get();
             long now = System.currentTimeMillis();
@@ -57,8 +57,8 @@ public class LeakyBucket {
             double nextLevel = leakedLevel + amount;
 
             // check for overflow
-            if (nextLevel > capacity) {
-                if (state.compareAndSet(oldState, new State(capacity, now))) {
+            if (nextLevel > burstCapacity) {
+                if (state.compareAndSet(oldState, new State(burstCapacity, now))) {
                     return strikes.incrementAndGet() >= maxStrikes;
                 }
                 continue; // collision, retry
@@ -71,11 +71,16 @@ public class LeakyBucket {
         }
     }
 
-    public int getStrikes() {
+    public long getStrikes() {
         return strikes.get();
     }
 
     public double getLevel() {
         return state.get().level;
+    }
+
+    public String toString() {
+        return String.format("LeakyBucket(rate=%g/sec, burst=%.1f, strikes=%d/%d, level=%.4f)", 
+                leakRatePerSec, burstCapacity, strikes.get(), maxStrikes, getLevel());
     }
 }

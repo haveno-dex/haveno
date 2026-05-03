@@ -2103,7 +2103,7 @@ public class XmrWalletService extends XmrWalletBase {
                     try {
                         cacheWalletInfo();
                     } catch (Exception e) {
-                        log.warn("Error caching wallet info: " + e.getMessage() + "\n", e);
+                        log.warn("Error caching wallet info: " + e.getMessage());
                     }
                 }
             }
