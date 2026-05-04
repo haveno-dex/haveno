@@ -156,6 +156,7 @@ public class HavenoUtils {
     public static CorePaymentAccountsService corePaymentAccountService;
     public static TradeStatisticsManager tradeStatisticsManager;
     public static Preferences preferences;
+    public static TradeManager tradeManager;
 
     public static boolean isSeedNode() {
         return havenoSetup == null;

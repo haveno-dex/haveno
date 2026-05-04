@@ -25,12 +25,14 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.Trade;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.user.User;
 import haveno.core.xmr.wallet.Restrictions;
 import org.bitcoinj.core.Coin;
 
 import java.math.BigInteger;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -81,6 +83,14 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             if (offer.getSellerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Seller security deposit percent must be positive but was " + offer.getSellerSecurityDepositPct());
         }
 
+        // validate there is no confirmed trade with same id
+        if (HavenoUtils.tradeManager.getClosedTrade(offer.getId()).isPresent()) {
+            throw new IllegalArgumentException("Closed trade already exists with id " + offer.getId());
+        }
+        Optional<Trade> openTrade = HavenoUtils.tradeManager.getOpenTrade(offer.getId());
+        if (openTrade.isPresent() && openTrade.get().isDepositsConfirmed()) {
+            throw new IllegalArgumentException("Open trade with confirmed deposits already exists with id " + offer.getId());
+        }
 
         // We remove those checks to be more flexible with future changes.
         /*checkArgument(offer.getMakerFee().value >= FeeService.getMinMakerFee(offer.isCurrencyForMakerFeeBtc()).value,
