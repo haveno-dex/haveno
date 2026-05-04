@@ -662,7 +662,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         // skip initialization if trade is complete
         // starting in v1.0.19, seller resends payment received message until acked or stored in mailbox
         if (isFinished()) {
-            clearAndShutDown();
+            clearAndShutDownBeforeInitialized();
             return;
         }
 
@@ -1950,8 +1950,29 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         ThreadUtils.execute(() -> {
             clearProcessData();
             onShutDownStarted();
-            ThreadUtils.submitToPool(() -> shutDown()); // run off trade thread
+            ThreadUtils.submitToPool(() -> { // run off trade thread
+                try {
+                    shutDown();
+                } catch (Throwable t) {
+                    log.warn("Error shutting down trade {} {}: {}\n", getClass().getSimpleName(), getId(), t.getMessage(), t);
+                    throw t;
+                }
+            });
         }, getId());
+    }
+
+    // TODO: The full clear and shut down routine is heavy for active trades. This avoids that overhead and avoids submitting tasks per trade if not initialized.
+    private void clearAndShutDownBeforeInitialized() {
+        if (isShutDown) return; // ignore if already shut down
+        onShutDownStarted();
+        clearProcessData();
+        onShutDownStarted();
+        removeDecryptedDirectMessageListener();
+        xmrConnectionService.removeConnectionListener(this);
+        ThreadUtils.shutDown(getId());
+        ThreadUtils.shutDown(getTradeEventThreadId());
+        stopProtocolTimeout();
+        isShutDown = true;
     }
 
     private void clearProcessData() {

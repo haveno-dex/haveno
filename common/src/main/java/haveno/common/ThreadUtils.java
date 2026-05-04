@@ -35,10 +35,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ThreadUtils {
 
     private static final ConcurrentHashMap<String, ExecutorService> EXECUTORS = new ConcurrentHashMap<>();
-    private static final int POOL_SIZE = 1000;
+    private static final int POOL_SIZE = 500;
     private static final ExecutorService POOL = Executors.newFixedThreadPool(POOL_SIZE);
     private static Class<? extends Timer> timerClass = BackgroundTimer.class;
-
+    
     public static Future<?> execute(Runnable command, String threadId) {
         ExecutorService executor = EXECUTORS.compute(threadId, (id, existing) -> { // only use one active executor per thread id
             if (existing == null || existing.isShutdown()) {
@@ -104,21 +104,21 @@ public class ThreadUtils {
     }
 
     public static Future<?> awaitTask(Runnable task, Long timeoutMs) {
-        return awaitTasks(Arrays.asList(task), 1, timeoutMs).get(0);
+        return awaitTasks(Arrays.asList(task), null, timeoutMs).get(0);
     }
 
     public static List<Future<?>> awaitTasks(Collection<Runnable> tasks) {
-        return awaitTasks(tasks, tasks.size());
+        return awaitTasks(tasks, null);
     }
 
-    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency) {
+    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, Integer maxConcurrency) {
         return awaitTasks(tasks, maxConcurrency, null);
     }
 
-    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, int maxConcurrency, Long timeoutMs) {
+    public static List<Future<?>> awaitTasks(Collection<Runnable> tasks, Integer maxConcurrency, Long timeoutMs) {
         if (timeoutMs == null) timeoutMs = Long.MAX_VALUE;
         if (tasks.isEmpty()) return new ArrayList<>();
-        ExecutorService executorService = Executors.newFixedThreadPool(tasks.size());
+        ExecutorService executorService = Executors.newFixedThreadPool(maxConcurrency == null ? Math.min(tasks.size(), POOL_SIZE) : maxConcurrency);
         try {
             List<Future<?>> futures = new ArrayList<>();
             for (Runnable task : tasks) futures.add(executorService.submit(task, null));

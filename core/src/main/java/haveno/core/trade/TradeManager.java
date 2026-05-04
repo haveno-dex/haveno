@@ -142,7 +142,6 @@ import org.slf4j.LoggerFactory;
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
 
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
-    private static final int INIT_TRADE_RANDOM_DELAY_MS = 10000; // random delay to initialize trades
 
     private boolean isShutDownStarted;
     private boolean isShutDown;
@@ -370,7 +369,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
         // skip trade shut down if not initialized
         if (!HavenoUtils.isSeedNode() && !tradesInitialized.get()) {
-            log.warn("Skipping trade shut down because trades were not initialized");
+            log.warn("Skipping start trade shut down because trades were not initialized");
             return;
         }
 
@@ -402,6 +401,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void closeAllTrades() {
+
+        // skip trade shut down if not initialized
+        if (!HavenoUtils.isSeedNode() && !tradesInitialized.get()) {
+            log.warn("Skipping trade shut down because trades were not initialized");
+            return;
+        }
 
         // collect trades to shutdown
         List<Trade> trades = getAllTrades();
