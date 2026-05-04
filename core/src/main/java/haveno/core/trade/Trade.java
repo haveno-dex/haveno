@@ -1783,7 +1783,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 if (HavenoUtils.isMultisigError(e)) throw new IllegalArgumentException(e);
                 log.warn("Failed to submit dispute payout tx, tradeId={}, attempt={}/{}, error={}", getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                 if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                if (getXmrConnectionService().isConnected()) requestSwitchToNextBestConnection(sourceConnection);
+                if (getXmrConnectionService().isConnected()) requestConnectionSwitchSynchronous(sourceConnection);
                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
             }
         }
@@ -3015,9 +3015,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return tradeVolumeProperty;
     }
 
-    private boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
+    private boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
         boolean wasPolling = isPolling();
-        if (xmrConnectionService.requestSwitchToNextBestConnection(sourceConnection)) {
+        if (xmrConnectionService.requestConnectionSwitch(sourceConnection)) {
             onConnectionChanged(xmrConnectionService.getConnection(), wasPolling); // change connection on same thread
             return true;
         }
@@ -3280,7 +3280,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                         rescanSpent(!wasWalletSynced);
                     } catch (Exception e) {
                         // TODO: rescan error is common, e.g. "no connection to daemon"
-                        //ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection)); // do not block polling thread
+                        //ThreadUtils.submitToPool(() -> requestConnectionSwitchSynchronous(sourceConnection)); // do not block polling thread
                     }
                 }
 
@@ -3415,7 +3415,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 }
                 if (wallet == null) throw e;
                 if (!(e instanceof IllegalStateException)) {
-                    ThreadUtils.execute(() -> requestSwitchToNextBestConnection(sourceConnection), getId()); // TODO: why do this on separate thread?
+                    ThreadUtils.execute(() -> requestConnectionSwitchSynchronous(sourceConnection), getId()); // TODO: why do this on separate thread?
                 }
                 throw e;
             }
@@ -3590,7 +3590,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             boolean doRestartPolling = restartPolling && isPolling();
             if (doRestartPolling) stopPolling();
             if (HavenoUtils.isUnresponsive(t)) forceCloseWallet(false); // wallet can be stuck a while
-            if (requestConnectionSwitch) requestSwitchToNextBestConnection(sourceConnection);
+            if (requestConnectionSwitch) requestConnectionSwitchSynchronous(sourceConnection);
             getWallet(); // re-open wallet if necessary
             if (doRestartPolling) {
                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // delay polling to avoid immediate repeat

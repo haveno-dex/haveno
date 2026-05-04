@@ -162,6 +162,8 @@ public class XmrWalletService extends XmrWalletBase {
     private static final long WALLET_HEIGHT_MONITOR_PERIOD_SEC = 1200; // request connection change if wallet height is not updated within this period
     private long lastWalletHeightMonitorUpdate;
     private Timer walletHeightMonitorTimer;
+    private static final Object requestConnectionSwitchSynchronousLock = new Object();
+    private boolean isProcessingRequestConnectionSwitchSynchronous;
 
     @SuppressWarnings("unused")
     @Inject
@@ -1305,25 +1307,32 @@ public class XmrWalletService extends XmrWalletBase {
         else log.info(appliedMsg);
 
         // listen for connection changes
-        xmrConnectionService.addConnectionListener(connection -> ThreadUtils.submitToPool(() -> {
-            if (wasWalletSynced && !isSyncing()) {
-                onConnectionChanged(connection);
-            } else {
+        xmrConnectionService.addConnectionListener(connection -> {
 
-                // check if ignored
-                if (wallet == null || isShutDownStarted) return;
-                if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) {
-                    updatePollPeriod();
-                    return;
-                }
+            // skip default handling if processing a synchronous connection switch (this is assumed to be called on same thread as requester)
+            if (isProcessingRequestConnectionSwitchSynchronous) return;
+            
+            // process off thread
+            ThreadUtils.submitToPool(() -> {
+                if (wasWalletSynced && !isSyncing()) {
+                    onConnectionChanged(connection);
+                } else {
 
-                // force restart main wallet if connection changed while syncing
-                if (isSyncing()) {
-                    log.warn("Force restarting main wallet because connection changed while syncing");
-                    forceRestartMainWallet();
+                    // check if ignored
+                    if (wallet == null || isShutDownStarted) return;
+                    if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) {
+                        updatePollPeriod();
+                        return;
+                    }
+
+                    // force restart main wallet if connection changed while syncing
+                    if (isSyncing()) {
+                        log.warn("Force restarting main wallet because connection changed while syncing");
+                        forceRestartMainWallet();
+                    }
                 }
-            }
-        }));
+            });
+        });
 
         // initialize main wallet when daemon synced
         walletInitListener = (obs, oldVal, newVal) -> initMainWalletIfConnected();
@@ -1338,7 +1347,7 @@ public class XmrWalletService extends XmrWalletBase {
                 ThreadUtils.execute(() -> {
                     if (System.currentTimeMillis() - lastWalletHeightMonitorUpdate >= WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
                         log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", (double) WALLET_HEIGHT_MONITOR_PERIOD_SEC / (double) 60);
-                        requestSwitchToNextBestConnection();
+                        requestConnectionSwitchSynchronous(null);
                         lastWalletHeightMonitorUpdate = System.currentTimeMillis();
                     }
                 }, THREAD_ID);
@@ -1892,7 +1901,7 @@ public class XmrWalletService extends XmrWalletBase {
 
     public void handleMainWalletError(Exception e, MoneroRpcConnection sourceConnection, int numAttempts) {
         if (HavenoUtils.isUnresponsive(e)) forceCloseMainWallet(); // wallet can be stuck a while
-        if (numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0) requestSwitchToNextBestConnection(sourceConnection); // request connection switch every n attempts
+        if (numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0) requestConnectionSwitchSynchronous(sourceConnection); // request connection switch every n attempts
         initMainWallet();
     }
 
@@ -2040,7 +2049,7 @@ public class XmrWalletService extends XmrWalletBase {
                         // throttle error handling
                         if (!logPollErrorRateThrottler.onEvent().throttled) {
                             log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
-                            if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestSwitchToNextBestConnection(sourceConnection));
+                            if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestConnectionSwitchSynchronous(sourceConnection));
                         }
                     }
                 }
@@ -2069,7 +2078,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // request connection switch
             if (!isWalletServiceInitialized() || HavenoUtils.isUnresponsive(e)) {
-                requestSwitchToNextBestConnection(sourceConnection);
+                requestConnectionSwitchSynchronous(sourceConnection);
             }
 
             // reinitialize main wallet if applicable
@@ -2140,16 +2149,19 @@ public class XmrWalletService extends XmrWalletBase {
         return HavenoUtils.havenoSetup.getWalletInitialized().get();
     }
 
-    public boolean requestSwitchToNextBestConnection(MoneroRpcConnection sourceConnection) {
-        if (xmrConnectionService.requestSwitchToNextBestConnection(sourceConnection)) {
-            onConnectionChanged(xmrConnectionService.getConnection()); // change connection on same thread
-            return true;
+    public boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
+        synchronized (requestConnectionSwitchSynchronousLock) {
+            isProcessingRequestConnectionSwitchSynchronous = true;
+            try {
+                if (xmrConnectionService.requestConnectionSwitch(sourceConnection)) {
+                    onConnectionChanged(xmrConnectionService.getConnection()); // handle connection change on same thread
+                    return true;
+                }
+                return false;
+            } finally {
+                isProcessingRequestConnectionSwitchSynchronous = false;
+            }
         }
-        return false;
-    }
-
-    private boolean requestSwitchToNextBestConnection() {
-        return requestSwitchToNextBestConnection(null);
     }
 
     private void onNewBlock(long height) {

@@ -275,7 +275,7 @@ public class WithdrawalView extends ActivatableView<VBox, Void> {
                         if (HavenoUtils.isInvalidTx(e)) throw e;
                         log.warn("Error creating withdraw tx, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
                         if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        if (xmrWalletService.getXmrConnectionService().isConnected()) xmrWalletService.requestSwitchToNextBestConnection(sourceConnection);
+                        if (xmrWalletService.getXmrConnectionService().isConnected()) xmrWalletService.requestConnectionSwitchSynchronous(sourceConnection); // TODO: use xmrWalletService.handleMainWalletError instead and make this private?
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
