@@ -171,6 +171,11 @@ public class DomainInitialisation {
         mediatorManager.onAllServicesInitialized();
         refundAgentManager.onAllServicesInitialized();
 
+        tradeStatisticsManager.onAllServicesInitialized();
+
+        accountAgeWitnessService.onAllServicesInitialized();
+        signedWitnessService.onAllServicesInitialized();
+
         tradeManager.onAllServicesInitialized();
         arbitrationManager.onAllServicesInitialized();
         mediationManager.onAllServicesInitialized();
@@ -193,11 +198,6 @@ public class DomainInitialisation {
             if (displayPrivateNotificationHandler != null)
                 displayPrivateNotificationHandler.accept(newValue);
         });
-
-        tradeStatisticsManager.onAllServicesInitialized();
-
-        accountAgeWitnessService.onAllServicesInitialized();
-        signedWitnessService.onAllServicesInitialized();
 
         priceFeedService.setCurrencyCodeOnInit();
         priceFeedService.startRequestingPrices();
