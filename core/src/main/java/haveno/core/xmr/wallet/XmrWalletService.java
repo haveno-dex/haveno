@@ -2082,7 +2082,7 @@ public class XmrWalletService extends XmrWalletBase {
             }
 
             // request connection switch
-            if (!isWalletServiceInitialized()) {
+            if (!isWalletServiceInitialized() || HavenoUtils.isUnresponsive(e)) {
                 requestSwitchToNextBestConnection(sourceConnection);
             }
 
