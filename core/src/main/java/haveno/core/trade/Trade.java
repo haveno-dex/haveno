@@ -4167,9 +4167,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private void onDepositsPublished() {
 
-        // backup trade wallet after creation
-        maybeBackupWallet();
-
         // arbitrator starts polling after deposits published
         if (isArbitrator()) {
             startPolling();
@@ -4186,11 +4183,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         } else {
             getXmrWalletService().resetAddressEntriesForOpenOffer(getId());
         }
+        
+        // process off thread
+        ThreadUtils.submitToPool(() -> {
 
-        // freeze outputs until spent
-        if (!isArbitrator()) {
-            ThreadUtils.submitToPool(() -> xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages()));
-        }
+            // freeze outputs until spent
+            xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages());
+            
+            // backup trade wallet after creation
+            maybeBackupWallet();
+        });
     }
 
     private void onDepositsConfirmed() {
