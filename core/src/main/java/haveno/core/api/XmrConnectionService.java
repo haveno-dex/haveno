@@ -635,7 +635,7 @@ public final class XmrConnectionService {
 
     private static Long getTargetHeight(MoneroDaemonInfo info) {
         if (info == null) return null;
-        return info.getTargetHeight() == 0 ? info.getHeight() : info.getTargetHeight();
+        return info.getTargetHeight() == 0 ? info.getHeight() + 1 : info.getTargetHeight();
     }
 
     private static int getNumOutgoingConnections(MoneroDaemonInfo info) {
@@ -816,7 +816,7 @@ public final class XmrConnectionService {
     protected static boolean isSyncedWithinTolerance(MoneroDaemonInfo info) {
         Long targetHeight = getTargetHeight(info);
         if (targetHeight == null) return false;
-        if (targetHeight - getHeight(info) <= SYNC_TOLERANCE_NUM_BLOCKS) return true; // synced if within 3 blocks of target height
+        if (targetHeight - 1 - getHeight(info) <= SYNC_TOLERANCE_NUM_BLOCKS) return true; // synced if within 3 blocks of target height
         return false;
     }
 
@@ -1196,7 +1196,7 @@ public final class XmrConnectionService {
 
                 // throttle warnings if monerod not synced
                 if (!isSyncedWithinTolerance() && System.currentTimeMillis() - lastLogMonerodNotSyncedTimestamp > HavenoUtils.LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS) {
-                    log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", getHeight(), getTargetHeight());
+                    log.warn("Our chain height: {} is out of sync with peer nodes chain height: {}", getHeight(), getTargetHeight() - 1);
                     lastLogMonerodNotSyncedTimestamp = System.currentTimeMillis();
                 }
 
@@ -1263,11 +1263,11 @@ public final class XmrConnectionService {
             if (lastInfo != null) {
                 long height = getHeight();
                 long targetHeight = getTargetHeight();
-                if (height >= targetHeight) doneDownload();
+                if (height >= targetHeight - 1) doneDownload();
                 else {
-                    long blocksRemaining = targetHeight - height;
+                    long blocksRemaining = targetHeight - 1 - height;
                     if (syncStartHeight == null) syncStartHeight = height;
-                    double percent = Math.min(1.0, targetHeight == syncStartHeight ? 1.0 : ((double) Math.max(1, height - syncStartHeight) / (double) (targetHeight - syncStartHeight))); // grant at least 1 block to show progress
+                    double percent = Math.min(1.0, syncStartHeight >= targetHeight - 1 ? 1.0 : ((double) Math.max(1, height - syncStartHeight) / (double) (targetHeight - 1 - syncStartHeight))); // grant at least 1 block to show progress
                     downloadListener.progress(percent, blocksRemaining);
                 }
             }

@@ -1071,7 +1071,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (!xmrConnectionService.isSyncedWithinTolerance()) return false;
             Long targetHeight = xmrConnectionService.getTargetHeight();
             if (targetHeight == null) return false;
-            if (targetHeight - walletHeight.get() <= 3) return true; // synced if within 3 blocks of target height
+            if (targetHeight - 1 - walletHeight.get() <= 3) return true; // synced if within 3 blocks of target height
             return false;
         }
     }
@@ -2103,7 +2103,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         // set error height
         if (processModel.getTradeProtocolErrorHeight() == 0) {
             log.warn("Scheduling to remove trade if unfunded for {} {} from height {}", getClass().getSimpleName(), getId(), xmrConnectionService.getTargetHeight());
-            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getTargetHeight()); // height denotes scheduled error handling
+            processModel.setTradeProtocolErrorHeight(xmrConnectionService.getTargetHeight() - 1); // height denotes scheduled error handling
         }
 
         // move to failed trades
@@ -3024,10 +3024,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return false;
     }
 
-    private boolean isProxyApplied() {
-        return xmrWalletService.isProxyApplied(wasWalletSynced);
-    }
-
     protected void onConnectionChanged(MoneroRpcConnection connection, boolean wasPolling) {
         synchronized (walletLock) {
             if (wallet == null || isShutDownStarted) return;
@@ -3234,7 +3230,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             // sync wallet
             boolean longSync = false;
             if (!offlinePoll) {
-                if (!wasWalletSynced || walletHeight.get() < xmrConnectionService.getTargetHeight() - SYNC_EVERY_NUM_BLOCKS) {
+                if (!wasWalletSynced || walletHeight.get() < xmrConnectionService.getTargetHeight() - 1 - SYNC_EVERY_NUM_BLOCKS) {
                     longSync = true;
                 }
                 synchronized (walletLock) {
@@ -3384,11 +3380,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                     // attempt sync multiple times if behind
                     if (isWalletBehind()) {
-                        long initialSyncTimeoutSec = xmrConnectionService.getRefreshPeriodMs(isProxyApplied()) / 1000;
+                        long initialSyncTimeoutMs = getInitialSyncTimeoutMs();
                         for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
                             try {
                                 if (isShutDownStarted) throw new RuntimeException("Aborting wallet sync for " + getClass().getSimpleName() + " " + getShortId() + " because shut down is started");
-                                doSyncWithProgress(logInfoLevel, initialSyncTimeoutSec);
+                                doSyncWithProgress(logInfoLevel, initialSyncTimeoutMs);
                                 break;
                             } catch (Exception e) {
                                 if (isShutDownStarted) throw e;
@@ -3397,7 +3393,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                                 else log.warn(errorMsg);
                                 handleWalletError(e, false, false, sourceConnection, i + 1);
                                 if (i == MAX_SYNC_ATTEMPTS - 1) throw e;
-                                initialSyncTimeoutSec = Math.min(XmrWalletBase.SYNC_TIMEOUT_SEC, initialSyncTimeoutSec * 2);
+                                initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS * 1000, initialSyncTimeoutMs * 2);
                                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                             }
                         }
@@ -3426,12 +3422,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         }
     }
 
-    private void doSyncWithProgress(boolean logInfoLevel, Long initialSyncTimeoutSec) {
+    private void doSyncWithProgress(boolean logInfoLevel, Long initialSyncTimeoutMs) {
         String startSyncLogMsg = "Syncing wallet for " + getShortId() + " " + getClass().getSimpleName() + " from height " + wallet.getHeight();
         if (logInfoLevel) log.info(startSyncLogMsg);
         else log.debug(startSyncLogMsg);
         long startTime = System.currentTimeMillis();
-        syncWithProgress(initialSyncTimeoutSec);
+        syncWithProgress(initialSyncTimeoutMs);
         String doneSyncLogMsg = "Done syncing wallet for " + getShortId() + " " + getClass().getSimpleName() + " in " + (System.currentTimeMillis() - startTime) + " ms";
         if (logInfoLevel) log.info(doneSyncLogMsg);
         else log.debug(doneSyncLogMsg);
@@ -3447,12 +3443,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     saveWallet();
 
                     // attempt import multiple times
-                    long initialSyncTimeoutSec = xmrConnectionService.getRefreshPeriodMs(isProxyApplied()) / 1000;
+                    long initialSyncTimeoutMs = getInitialSyncTimeoutMs();
                     for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
                         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
                             if (isShutDownStarted) throw new RuntimeException("Aborting import of multisig hex for " + getClass().getSimpleName() + " " + getShortId() + " because shut down is started");
-                            doImportMultisigHex(logInfoLevel, initialSyncTimeoutSec);
+                            doImportMultisigHex(logInfoLevel, initialSyncTimeoutMs);
                             break;
                         } catch (IllegalArgumentException | IllegalStateException e) {
                             log.warn("Illegal error importing multisig hex for {} {} on attempt {}/{}: {}", getClass().getSimpleName(), getShortId(), i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
@@ -3465,7 +3461,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                             handleWalletError(e, false, false, sourceConnection, i + 1);
                             if (isPayoutPublished()) break; // TODO: continue importing if payout published?
                             if (i == MAX_SYNC_ATTEMPTS - 1) throw e;
-                            initialSyncTimeoutSec = Math.min(XmrWalletBase.SYNC_TIMEOUT_SEC, initialSyncTimeoutSec * 2);
+                            initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS, initialSyncTimeoutMs * 2);
                             HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                         }
                     }
@@ -3605,7 +3601,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     private boolean isWalletBehind() {
-        return walletHeight.get() < xmrConnectionService.getTargetHeight();
+        return walletHeight.get() < xmrConnectionService.getTargetHeight() - 1;
     }
 
     public MoneroSyncResult sync() {
@@ -4123,7 +4119,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     }
 
                     // update if idling wallet is expected to change state
-                    long currentHeight = xmrConnectionService.getTargetHeight();
+                    long currentHeight = xmrConnectionService.getTargetHeight() - 1;
                     boolean depositsFinalizeExpected = !isDepositsFinalized() && (currentHeight - getDepositsConfirmedHeight() >= NUM_BLOCKS_DEPOSITS_FINALIZED);
                     boolean payoutConfirmExpected = payoutHeight != null && !isPayoutConfirmed() && currentHeight >= payoutHeight;
                     boolean payoutUnlockExpected = payoutHeight != null && !isPayoutUnlocked() && currentHeight >= payoutHeight + XmrWalletService.NUM_BLOCKS_UNLOCK;
