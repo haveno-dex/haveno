@@ -121,7 +121,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());
                 tasks.add(() -> injector.getInstance(XmrConnectionService.class).onShutDownStarted());
                 try {
-                    ThreadUtils.awaitTasks(tasks, tasks.size(), 120000l); // run in parallel with timeout
+                    ThreadUtils.awaitTasks(tasks, null, 120000l); // run in parallel with timeout
                 } catch (Exception e) {
                     log.error("Error awaiting tasks to complete: {}\n", e.getMessage(), e);
                 }
