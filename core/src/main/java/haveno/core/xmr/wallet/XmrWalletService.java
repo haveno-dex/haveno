@@ -213,7 +213,7 @@ public class XmrWalletService extends XmrWalletBase {
                 public void onAccountClosed() {
                     log.info("onAccountClosed()");
                     wasWalletSynced = false;
-                    closeMainWallet();
+                    closeMainWallet(true);
                     clearSyncProgress();
                     // TODO: reset more properties?
                 }
@@ -861,7 +861,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (isSyncing()) forceCloseMainWallet();
             else {
                 try {
-                    closeMainWallet();
+                    closeMainWallet(true);
                 } catch (Exception e) {
                     log.warn("Error closing main wallet: {}. Was Haveno stopped manually with ctrl+c?", e.getMessage());
                 }
@@ -1338,10 +1338,14 @@ public class XmrWalletService extends XmrWalletBase {
             if (walletHeightMonitorTimer != null) walletHeightMonitorTimer.stop();
             walletHeightMonitorTimer = UserThread.runPeriodically(() -> {
                 ThreadUtils.execute(() -> {
-                    if (System.currentTimeMillis() - lastWalletHeightMonitorUpdate >= WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
-                        log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", (double) WALLET_HEIGHT_MONITOR_PERIOD_SEC / (double) 60);
-                        requestConnectionSwitchSynchronous(null);
-                        lastWalletHeightMonitorUpdate = System.currentTimeMillis();
+                    try {
+                        if (System.currentTimeMillis() - lastWalletHeightMonitorUpdate >= WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
+                            log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", (double) WALLET_HEIGHT_MONITOR_PERIOD_SEC / (double) 60);
+                            requestConnectionSwitchSynchronous(null);
+                            lastWalletHeightMonitorUpdate = System.currentTimeMillis();
+                        }
+                    } catch (Throwable t) {
+                        log.warn("Error in wallet height monitor: {}\n", t.getMessage(), t);
                     }
                 }, THREAD_ID);
             }, WALLET_HEIGHT_MONITOR_PERIOD_SEC);
@@ -1373,6 +1377,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (wallet != null && isPolling()) return;
 
             // open or create main wallet
+            // TODO: repeat try to open or create?
             openOrCreateMainWallet();
 
             // stop recursion if already initializing
@@ -1859,7 +1864,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void closeMainWallet() {
-        closeMainWallet(true);
+        closeMainWallet(false);
     }
 
     private void closeMainWallet(boolean stopPolling) {
@@ -1974,7 +1979,7 @@ public class XmrWalletService extends XmrWalletBase {
         }
 
         // skip if shut down started
-        MoneroWallet sourceWallet = wallet;
+        MoneroWallet sourceWallet = getInitializedWallet();
         if (isShutDownStarted || sourceWallet == null) return;
         MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
 
