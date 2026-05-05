@@ -200,7 +200,7 @@ For example, change "Haveno" to "HavenoX", which will use this application folde
 
 ## Change the P2P network version
 
-To avoid interference with other networks, change `P2P_NETWORK_VERSION` in [Version.java](https://github.com/haveno-dex/haveno/blob/a7e90395d24ec3d33262dd5d09c5faec61651a51/common/src/main/java/haveno/common/app/Version.java#L83).
+To avoid interference with other networks, change `P2P_NETWORK_VERSION` in [Version.java](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/common/src/main/java/haveno/common/app/Version.java#L121).
 
 For example, change it to `"B"`.
 
@@ -216,10 +216,10 @@ For example, if upstream Haveno is at 1.3.0, a fork may increment the third digi
 
 Update your fork's version number in the following locations:
 
-- Version.java: The `VERSION` constant.
-- build.gradle: The `version` attribute under `:desktop`.
-- exchange.haveno.Haveno.metainfo.xml: The `release` attribute.
-- Info.plist: The `CFBundleVersion` and `CFBundleShortVersionString` attributes.
+- [Version.java](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/common/src/main/java/haveno/common/app/Version.java#L35): The `VERSION` constant.
+- [build.gradle](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/build.gradle#L619): The `version` attribute under `:desktop`.
+- [exchange.haveno.Haveno.metainfo.xml](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/desktop/package/linux/exchange.haveno.Haveno.metainfo.xml#L63): The `release` attribute.
+- [Info.plist](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/desktop/package/macosx/Info.plist#L7): The `CFBundleVersion` and `CFBundleShortVersionString` attributes.
 
 ## Set the network's release date
 
