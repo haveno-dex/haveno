@@ -51,7 +51,7 @@ public class NewTor extends TorMode {
 
     // default torrc options (user can override with --torrcOptions)
     private static final Map<String, String> TORRC_OPTIONS_DEFAULT = new LinkedHashMap<>() {{
-        put("NumCPUs", "0");
+        //put("NumCPUs", "0");
     }};
 
     private final File torrcFile;
