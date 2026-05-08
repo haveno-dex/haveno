@@ -69,7 +69,7 @@ class GrpcExceptionHandler {
                                    StreamObserver<?> responseObserver) {
         // This is used to wrap Task errors from the ErrorMessageHandler
         // interface, an interface that is not allowed to throw exceptions.
-        log.error(errorMessage);
+        log.error("[GrpcExceptionHandler] " + errorMessage);
         var grpcStatusRuntimeException = new StatusRuntimeException(
                 UNKNOWN.withDescription(errorMessage));
         responseObserver.onError(grpcStatusRuntimeException);

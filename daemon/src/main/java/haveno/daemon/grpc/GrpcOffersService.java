@@ -213,7 +213,7 @@ class GrpcOffersService extends OffersImplBase {
                         if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
                     });
         } catch (Throwable cause) {
-            if (!errorMessageHandler.isErrorHandled() )exceptionHandler.handleException(log, cause, responseObserver);
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
         }
     }
 
