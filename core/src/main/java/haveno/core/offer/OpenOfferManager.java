@@ -714,7 +714,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                    ResultHandler resultHandler,
                                    ErrorMessageHandler errorMessageHandler) {
         if (offersToBeEdited.containsKey(openOffer.getId())) {
-            log.warn("editOpenOfferStart called for an offer which is already in edit mode.");
+            log.warn("editOpenOfferStart called for offer " + openOffer.getId() + " which is already in edit mode.");
             resultHandler.handleResult();
             return;
         }

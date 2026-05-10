@@ -173,6 +173,8 @@ class EditOfferDataModel extends MutableOfferDataModel {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
         setTriggerPrice(openOffer.getTriggerPrice());
+        setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
+        setSecurityDepositPct(getSecurityAsPercent(offer));
         setExtraInfo(offer.getOfferExtraInfo());
     }
 
@@ -184,7 +186,13 @@ class EditOfferDataModel extends MutableOfferDataModel {
     public void onPublishOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
 
         // get edited offer
-        editedOffer = coreOffersService.getEditedOffer(openOffer, createAndGetOffer().getOfferPayload());
+        try {
+            editedOffer = coreOffersService.getEditedOffer(openOffer, createAndGetOffer().getOfferPayload());
+        } catch (Throwable t) {
+            log.warn("Error getting edited offer {}: {}", openOffer.getId(), t.getMessage(), t);
+            errorMessageHandler.handleErrorMessage(t.getMessage());
+            return;
+        }
 
         // publish edited offer
         openOfferManager.editOpenOfferPublish(editedOffer, triggerPrice, initialState, () -> {

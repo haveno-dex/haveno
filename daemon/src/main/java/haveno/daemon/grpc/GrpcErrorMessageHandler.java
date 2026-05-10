@@ -71,7 +71,7 @@ public class GrpcErrorMessageHandler implements ErrorMessageHandler {
         // grpc stream is closed
         if (!isErrorHandled) {
             this.isErrorHandled = true;
-            log.error(errorMessage);
+            log.error("[GrpcErrorMessagHandler] " + errorMessage);
 
             if (takeOfferWasCalled()) {
                 handleTakeOfferError(errorMessage);

@@ -42,7 +42,6 @@ import haveno.common.handlers.ResultHandler;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.TradeCurrency;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
@@ -71,7 +70,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -358,6 +356,23 @@ public class CoreOffersService {
             if (currencyCode.isEmpty()) throw new IllegalArgumentException("Must provide currency code");
             String upperCaseCurrencyCode = currencyCode.toUpperCase();
 
+            // create edited offer
+            Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
+            final OfferPayload newOfferPayload = createOfferService.createAndGetOffer(offerId,
+                    offer.getDirection(),
+                    upperCaseCurrencyCode,
+                    offer.getAmount(),
+                    offer.getMinAmount(),
+                    price,
+                    useMarketBasedPrice,
+                    marketPriceMarginPct,
+                    offerPayload.getSellerSecurityDepositPct(),
+                    paymentAccount,
+                    offerPayload.isPrivateOffer(),
+                    offer.hasBuyerAsTakerWithoutDeposit(),
+                    extraInfo).getOfferPayload();
+            Offer editedOffer = getEditedOffer(openOffer, newOfferPayload);
+
             // start edit offer
             OpenOffer.State initialState = openOffer.getState();
             openOfferManager.editOpenOfferStart(openOffer, () -> {
@@ -366,23 +381,6 @@ public class CoreOffersService {
                     // wait for remove offer to propagate
                     // TODO: if offer edit is published too quickly, the remove message can be received after the add message, in which case the offer will be offline until the next offer refresh
                     HavenoUtils.waitFor(WAIT_FOR_EDIT_REMOVAL_MS);
-
-                    // create edited offer
-                    Price price = priceAsString.isEmpty() ? null : Price.valueOf(upperCaseCurrencyCode, priceStringToLong(priceAsString, upperCaseCurrencyCode));
-                    final OfferPayload newOfferPayload = createOfferService.createAndGetOffer(offerId,
-                            offer.getDirection(),
-                            upperCaseCurrencyCode,
-                            offer.getAmount(),
-                            offer.getMinAmount(),
-                            price,
-                            useMarketBasedPrice,
-                            marketPriceMarginPct,
-                            offerPayload.getBuyerSecurityDepositPct(),
-                            paymentAccount,
-                            offerPayload.isPrivateOffer(),
-                            offer.hasBuyerAsTakerWithoutDeposit(),
-                            extraInfo).getOfferPayload();
-                    Offer editedOffer = getEditedOffer(openOffer, newOfferPayload);
 
                     // publish edited offer
                     long triggerPriceAsLong = PriceUtil.getMarketPriceAsLong(triggerPriceAsString, upperCaseCurrencyCode);
@@ -393,7 +391,7 @@ public class CoreOffersService {
                         errorMessageHandler.handleErrorMessage(errorMsg);
                     });
                 } catch (Exception e) {
-                    errorMessageHandler.handleErrorMessage(format("Error editing offer %s: %s", offerId, e.getMessage()));
+                    errorMessageHandler.handleErrorMessage(format("Error editing offer %s after start: %s", offerId, e.getMessage()));
                     return;
                 }
             }, errorMessageHandler);
@@ -401,20 +399,6 @@ public class CoreOffersService {
             errorMessageHandler.handleErrorMessage(format("Error editing offer %s: %s", offerId, e.getMessage()));
             return;
         }
-    }
-
-    private PaymentAccount getPreselectedPaymentAccount(PaymentAccount paymentAccount, String currencyCode) {
-        if (paymentAccount == null) throw new IllegalArgumentException("payment account cannot be null");
-        if (currencyCode == null || currencyCode.isEmpty()) throw new IllegalArgumentException("currency code cannot be null or empty");
-        Optional<TradeCurrency> optionalTradeCurrency = CurrencyUtil.getTradeCurrency(currencyCode);
-        if (!optionalTradeCurrency.isPresent()) throw new IllegalArgumentException(format("cannot get trade currency for currency code %s", currencyCode));
-        TradeCurrency selectedTradeCurrency = optionalTradeCurrency.get();
-        PaymentAccount preselectedPaymentAccount = PaymentAccount.fromProto(paymentAccount.toProtoMessage(), corePersistenceProtoResolver);
-        if (paymentAccount.getSingleTradeCurrency() != null)
-            preselectedPaymentAccount.setSingleTradeCurrency(selectedTradeCurrency);
-        else
-            preselectedPaymentAccount.setSelectedTradeCurrency(selectedTradeCurrency);
-        return preselectedPaymentAccount;
     }
 
     public Offer getEditedOffer(OpenOffer openOffer, OfferPayload newOfferPayload) {
