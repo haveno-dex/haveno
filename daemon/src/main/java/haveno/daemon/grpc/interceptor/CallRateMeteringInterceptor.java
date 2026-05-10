@@ -67,7 +67,7 @@ public final class CallRateMeteringInterceptor implements ServerInterceptor {
         if (!rateMeter.checkAndIncrement())
             handlePermissionDeniedWarningAndCloseCall(methodName, rateMeter, serverCall);
         else
-            log.info(rateMeter.getCallsCountProgress(methodName));
+            log.debug(rateMeter.getCallsCountProgress(methodName));
     }
 
     private void handleMissingRateMeterConfiguration(ServerCall<?, ?> serverCall)
