@@ -19,6 +19,7 @@ package haveno.core.app;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
@@ -29,6 +30,8 @@ import haveno.network.p2p.P2PServiceListener;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -68,6 +71,9 @@ public class P2PNetworkSetup {
     @Getter
     final BooleanProperty p2pNetworkFailed = new SimpleBooleanProperty();
 
+    private final AtomicReference<String> p2PNetworkInfoField = new AtomicReference<>("");
+    private final AtomicReference<String> p2PNetworkStatusIconIdField = new AtomicReference<>("");
+
     @Inject
     public P2PNetworkSetup(PriceFeedService priceFeedService,
                            P2PService p2PService,
@@ -104,9 +110,30 @@ public class P2PNetworkSetup {
                     }
                     return result;
                 });
+
         p2PNetworkInfoBinding.subscribe((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> p2PNetworkInfo.set(newValue));
+            p2PNetworkInfoField.set(newValue);
         });
+
+        // batch update ui elements periodically to avoid spamming the ui thread under ddos
+        ThreadUtils.runPeriodically(() -> {
+            
+            // collect latest values
+            String latestInfo = p2PNetworkInfoField.get();
+            String latestIcon = p2PNetworkStatusIconIdField.get();
+
+            // determine if update is needed
+            boolean infoChanged = latestInfo != null && !latestInfo.equals(p2PNetworkInfo.get());
+            boolean iconChanged = latestIcon != null && !latestIcon.equals(p2PNetworkStatusIconId.get());
+
+            // batch update ui
+            if (infoChanged || iconChanged) {
+                UserThread.execute(() -> {
+                    if (infoChanged) p2PNetworkInfo.set(latestInfo);
+                    if (iconChanged) p2PNetworkStatusIconId.set(latestIcon);
+                });
+            }
+        }, 100, TimeUnit.MILLISECONDS);
 
         bootstrapState.set(Res.get("mainView.bootstrapState.connectionToTorNetwork"));
 
@@ -223,11 +250,11 @@ public class P2PNetworkSetup {
 
     private void updateNetworkStatusIndicator() {
         if (p2PService.getNetworkNode().getInboundConnectionCount() > 0) {
-            p2PNetworkStatusIconId.set("image-green_circle");
+            p2PNetworkStatusIconIdField.set("image-green_circle");
         } else if (p2PService.getNetworkNode().getOutboundConnectionCount() > 0) {
-            p2PNetworkStatusIconId.set("image-yellow_circle");
+            p2PNetworkStatusIconIdField.set("image-yellow_circle");
         } else {
-            p2PNetworkStatusIconId.set("image-alert-round");
+            p2PNetworkStatusIconIdField.set("image-alert-round");
         }
     }
 }
