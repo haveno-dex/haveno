@@ -1401,8 +1401,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 resultHandler.handleResult(null);
                 return;
             } catch (Exception e) {
-                log.warn("Unable to split or schedule funds for offer {}: {}", openOffer.getId(), e.getMessage());
-                openOffer.getOffer().setState(Offer.State.INVALID);
+                if (openOffer.isCanceled()) {
+                    log.info("Offer {} was canceled during split or schedule", openOffer.getId());
+                } else {
+                    log.warn("Error splitting or scheduling funds for offer {}: {}", openOffer.getId(), e.getMessage());
+                    openOffer.getOffer().setState(Offer.State.INVALID);
+                }
                 errorMessageHandler.handleErrorMessage(e.getMessage());
                 return;
             }
@@ -1447,10 +1451,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 .setAmount(reserveAmount)
                                 .setRelay(true)
                                 .setPriority(XmrWalletService.PROTOCOL_FEE_PRIORITY));
+                        if (openOffer.isCanceled()) throw new RuntimeException("Offer " + openOffer.getShortId() + " was canceled during split output creation");
                         break;
                     } catch (Exception e) {
-                        if (HavenoUtils.isInvalidTx(e)) throw e; // do not retry if tx is invalid
                         log.warn("Error creating split output tx to fund offer, offerId={}, subaddress={}, attempt={}/{}, error={}", openOffer.getShortId(), entry.getSubaddressIndex(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                        if (openOffer.isCanceled() || HavenoUtils.isInvalidTx(e)) throw e; // do not retry if canceled or tx is invalid
                         xmrWalletService.handleMainWalletError(e, sourceConnection, i + 1);
                         if (stopped || i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
                         HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
