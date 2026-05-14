@@ -735,7 +735,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 } catch (Exception e) {
                     log.error(ExceptionUtils.getStackTrace(e));
                     errorMessage = e.getMessage();
-                    if (trade != null) trade.setErrorMessage(errorMessage);
+                    if (trade != null && !trade.isPayoutPublished()) trade.setErrorMessage(errorMessage);
                 }
 
                 // use chat message instead of open dispute message for the ack
