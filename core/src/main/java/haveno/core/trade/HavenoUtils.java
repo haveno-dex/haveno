@@ -674,6 +674,14 @@ public class HavenoUtils {
         return t != null && t.getMessage() != null && t.getMessage().contains("Read timed out");
     }
 
+    public static boolean isDaemonConnectionIssue(Throwable t) {
+        if (t == null || t.getMessage() == null) return false;
+        String message = t.getMessage().toLowerCase(Locale.ROOT);
+        return message.contains("no connection to daemon") ||
+                message.contains("failed to get output distribution") ||
+                message.contains("failed to get height");
+    }
+
     public static boolean isUnresponsive(Throwable t) {
         return isConnectionRefused(t) || isReadTimeout(t) || XmrWalletBase.isSyncWithProgressTimeout(t);
     }

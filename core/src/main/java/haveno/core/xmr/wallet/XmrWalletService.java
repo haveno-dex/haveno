@@ -1911,8 +1911,11 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void handleMainWalletError(Exception e, MoneroRpcConnection sourceConnection, int numAttempts) {
+        boolean daemonConnectionIssue = HavenoUtils.isDaemonConnectionIssue(e);
         if (HavenoUtils.isUnresponsive(e)) forceCloseMainWallet(); // wallet can be stuck a while
-        if (numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0) requestConnectionSwitchSynchronous(sourceConnection); // request connection switch every n attempts
+        if (daemonConnectionIssue || numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0) {
+            requestConnectionSwitchSynchronous(sourceConnection);
+        }
         initMainWallet();
     }
 
