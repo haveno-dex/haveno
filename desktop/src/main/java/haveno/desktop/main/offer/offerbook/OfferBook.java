@@ -97,6 +97,15 @@ public class OfferBook {
                     }
                 });
             }
+
+            @Override
+            public void onRefresh(Offer offer) {
+                UserThread.execute(() -> {
+                    synchronized (offerBookListItems) {
+                        refreshOffer(offer);
+                    }
+                });
+            }
         });
     }
 
@@ -120,6 +129,13 @@ public class OfferBook {
                             oldOfferItem.getOffer().getId());
                 }
             });
+        }
+    }
+
+    public void refreshOffer(Offer offer) {
+        synchronized (offerBookListItems) {
+            offerBookListItems.removeIf(item -> item.getOffer().getId().equals(offer.getId()));
+            offerBookListItems.add(new OfferBookListItem(offer));
         }
     }
 

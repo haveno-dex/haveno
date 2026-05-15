@@ -74,6 +74,10 @@ public class MarketAlerts {
             @Override
             public void onRemoved(Offer offer) {
             }
+
+            @Override
+            public void onRefresh(Offer offer) {
+            }
         });
         applyFilterOnAllOffers();
     }
