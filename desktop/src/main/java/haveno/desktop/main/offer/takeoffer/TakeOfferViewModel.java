@@ -122,6 +122,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
     private ChangeListener<BigInteger> amountListener;
     private ChangeListener<String> volumeStringListener;
     private ChangeListener<Volume> volumeListener;
+    private ChangeListener<String> warningListener;
     private ChangeListener<Boolean> isWalletFundedListener;
     private ChangeListener<Trade.State> tradeStateListener;
     private ChangeListener<Offer.State> offerStateListener;
@@ -437,6 +438,11 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         });
     }
 
+    private void applyWarningMessage(String warningMessage) {
+        this.offerWarning.set(warningMessage);
+        updateSpinnerInfo();
+    }
+
     private void applyTradeErrorMessage(@Nullable String errorMessage) {
         if (errorMessage != null) {
             String appendMsg = "";
@@ -542,6 +548,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             ignoreVolumeStringListener = false;
         };
 
+        warningListener = (ov, oldValue, newValue) -> applyWarningMessage(newValue);
+
         isWalletFundedListener = (ov, oldValue, newValue) -> updateButtonDisableState();
 
         tradeStateListener = (ov, oldValue, newValue) -> applyTradeState();
@@ -595,6 +603,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().addListener(amountListener);
         dataModel.getVolume().addListener(volumeListener);
+        dataModel.getWarningMessage().addListener(warningListener);
 
         dataModel.getIsXmrWalletFunded().addListener(isWalletFundedListener);
         p2PService.getNetworkNode().addConnectionListener(connectionListener);
@@ -611,6 +620,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         // Binding with Bindings.createObjectBinding does not work because of bi-directional binding
         dataModel.getAmount().removeListener(amountListener);
         dataModel.getVolume().removeListener(volumeListener);
+        dataModel.getWarningMessage().removeListener(warningListener);
 
         dataModel.getIsXmrWalletFunded().removeListener(isWalletFundedListener);
         if (offer != null) {

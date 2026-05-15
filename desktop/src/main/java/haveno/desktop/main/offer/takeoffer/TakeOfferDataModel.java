@@ -55,7 +55,10 @@ import haveno.network.p2p.P2PService;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -90,6 +93,8 @@ class TakeOfferDataModel extends OfferDataModel {
     // final BooleanProperty isMainNet = new SimpleBooleanProperty();
     private final ObjectProperty<BigInteger> amount = new SimpleObjectProperty<>();
     final ObjectProperty<Volume> volume = new SimpleObjectProperty<>();
+    @Getter
+    protected final StringProperty warningMessage = new SimpleStringProperty();
 
     private XmrBalanceListener balanceListener;
     private PaymentAccount paymentAccount;
@@ -160,7 +165,7 @@ class TakeOfferDataModel extends OfferDataModel {
                     errorMessage -> {
                         log.warn(errorMessage);
                         if (offer.getState() != Offer.State.NOT_AVAILABLE && offer.getState() != Offer.State.INVALID) { // handled elsewhere in UI
-                            new Popup().warning(errorMessage).show();
+                            warningMessage.set(errorMessage);
                         }
                     });
         }

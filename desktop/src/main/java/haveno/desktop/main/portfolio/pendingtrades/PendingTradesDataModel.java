@@ -562,7 +562,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class);
         disputeManager.sendDisputeOpenedMessage(dispute,
                 null,
-                (errorMessage, throwable) -> new Popup().warning(errorMessage).show());
+                (errorMessage, throwable) -> new Popup().warning(errorMessage).show()); // TODO: do not use popup in data model?
     }
 
     public boolean isReadyForTxBroadcast() {
