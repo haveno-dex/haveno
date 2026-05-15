@@ -641,29 +641,36 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 if (offerDetailsWindowDisplayed)
                     offerDetailsWindow.hide();
 
-                UserThread.runAfter(() -> new Popup().warning(newValue + "\n\n" +
-                                Res.get("takeOffer.alreadyPaidInFunds"))
-                        .actionButtonTextWithGoTo("funds.tab.withdrawal")
-                        .onAction(() -> {
-                            errorPopupDisplayed.set(true);
-                            model.resetOfferWarning();
-                            close();
-                            navigation.navigateTo(MainView.class, FundsView.class, WithdrawalView.class);
-                        })
-                        .onClose(() -> {
-                            errorPopupDisplayed.set(true);
-                            model.resetOfferWarning();
-                            close();
-                        })
-                        .show(), 100, TimeUnit.MILLISECONDS);
+                UserThread.runAfter(() -> {
+
+                    // ignore if popup already displayed
+                    if (errorPopupDisplayed.get()) {
+                        return;
+                    }
+
+                    errorPopupDisplayed.set(true);
+                    new Popup().warning(newValue + "\n\n" +
+                                    Res.get("takeOffer.alreadyPaidInFunds"))
+                            .actionButtonTextWithGoTo("funds.tab.withdrawal")
+                            .onAction(() -> {
+                                model.resetOfferWarning();
+                                close();
+                                navigation.navigateTo(MainView.class, FundsView.class, WithdrawalView.class);
+                            })
+                            .onClose(() -> {
+                                model.resetOfferWarning();
+                                close();
+                            })
+                        .show();
+                }, 100, TimeUnit.MILLISECONDS); 
             }
         });
 
         errorMessageSubscription = EasyBind.subscribe(model.errorMessage, newValue -> {
             if (newValue != null) {
+                errorPopupDisplayed.set(true);
                 new Popup().error(Res.get("takeOffer.error.message", model.errorMessage.get()))
                         .onClose(() -> {
-                            errorPopupDisplayed.set(true);
                             model.resetErrorMessage();
                             close();
                         })
