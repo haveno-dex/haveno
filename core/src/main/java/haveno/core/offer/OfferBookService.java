@@ -95,6 +95,7 @@ public class OfferBookService {
     public interface OfferBookChangedListener {
         void onAdded(Offer offer);
         void onRemoved(Offer offer);
+        void onRefresh(Offer offer);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -179,6 +180,11 @@ public class OfferBookService {
 
                         @Override
                         public void onRemoved(Offer offer) {
+                            doDumpStatistics();
+                        }
+
+                        @Override
+                        public void onRefresh(Offer offer) {
                             doDumpStatistics();
                         }
                     });
@@ -457,8 +463,7 @@ public class OfferBookService {
                 updateReservedFundsSpentStatus(offer);
                 synchronized (offerBookChangedListeners) {
                     offerBookChangedListeners.forEach(listener -> {
-                        listener.onRemoved(offer);
-                        listener.onAdded(offer);
+                        listener.onRefresh(offer);
                     });
                 }
             }
