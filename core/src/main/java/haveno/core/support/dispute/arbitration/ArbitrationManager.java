@@ -172,7 +172,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                 final Trade trade = tradeManager.getTrade(dispute.getTradeId());
                 if (trade == null) {
                     log.warn("Dispute trade {} does not exist", dispute.getTradeId());
-                    return;
+                    continue;
                 }
     
                 // remove dispute if owned by arbitrator
