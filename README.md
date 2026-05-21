@@ -25,7 +25,7 @@ See the [FAQ on our website](https://haveno.exchange/faq/) for more information.
 
 ## Haveno Demo
 
-https://github.com/user-attachments/assets/eb6b3af0-78ce-46a7-bfa1-2aacd8649d47
+https://github.com/user-attachments/assets/edfb20b6-6f70-44d6-8989-5fc3bd70e0ce
 
 ## Installing Haveno
 
