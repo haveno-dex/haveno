@@ -77,6 +77,7 @@ import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.network.TorNetworkNode;
@@ -2547,6 +2548,25 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (getTaker() != null && getTaker().getPubKeyRing().equals(pubKeyRing)) return getTaker();
         if (getArbitrator() != null && getArbitrator().getPubKeyRing().equals(pubKeyRing)) return getArbitrator();
         return null;
+    }
+
+    public TradePeer getVerifiedTradePeer(DecryptedMessageWithPubKey message) {
+        for (TradePeer peer : getAllPeers()) {
+            if (peer.getPubKeyRing() != null && peer.getPubKeyRing().getSignaturePubKey().equals(message.getSignaturePubKey())) {
+                return peer;
+            }
+        }
+        return null;
+    }
+
+    public void updateNodeAddress(TradePeer verifiedPeer, NodeAddress nodeAddress) {
+        for (TradePeer peer : getAllPeers()) {
+            if (verifiedPeer == peer) continue;
+            if (nodeAddress.equals(peer.getNodeAddress())) {
+                throw new IllegalArgumentException("Refusing to update node address to " + nodeAddress + " for " + getClass().getSimpleName() + " " + getShortId() + " because it is already used by another peer " + getPeerRole(peer));
+            }
+        }
+        verifiedPeer.setNodeAddress(nodeAddress);
     }
 
     public String getRole() {

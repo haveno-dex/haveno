@@ -66,10 +66,6 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
 
             // verify signature of payment received message
             HavenoUtils.verifyPaymentReceivedMessage(trade, message);
-
-            // update to the latest peer address of our peer if message is correct
-            trade.getSeller().setNodeAddress(processModel.getTempTradePeerNodeAddress());
-            if (trade.getSeller().getNodeAddress().equals(trade.getBuyer().getNodeAddress())) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
             trade.requestPersistence();
 
             // ack and complete if already processed

@@ -79,23 +79,12 @@ public class DisputeValidation {
         }
     }
 
-
-    public static void validateSenderNodeAddress(Dispute dispute,
-                                                 NodeAddress senderNodeAddress,
-                                                 Config config) throws NodeAddressException {
-        if (config.useLocalhostForP2P) return;
-        if (!senderNodeAddress.getHostName().equals(dispute.getContract().getBuyerNodeAddress().getHostName())
-                && !senderNodeAddress.getHostName().equals(dispute.getContract().getSellerNodeAddress().getHostName())
-                && !senderNodeAddress.getHostName().equals(dispute.getContract().getArbitratorNodeAddress().getHostName())) {
-            throw new NodeAddressException(dispute, "senderNodeAddress not matching any of the trade node addresses");
-        }
-    }
-
-    public static void validateNodeAddresses(Dispute dispute, Config config)
+    public static void validateNodeAddresses(Dispute dispute, Config config, Trade trade)
             throws NodeAddressException {
         if (config.useLocalhostForP2P) return;  
-        validateNodeAddress(dispute, dispute.getContract().getBuyerNodeAddress());
-        validateNodeAddress(dispute, dispute.getContract().getSellerNodeAddress());
+        validateNodeAddress(dispute, trade.getBuyer().getNodeAddress());
+        validateNodeAddress(dispute, trade.getSeller().getNodeAddress());
+        validateNodeAddress(dispute, trade.getArbitrator().getNodeAddress());
     }
 
     private static void validateNodeAddress(Dispute dispute, NodeAddress nodeAddress) throws NodeAddressException {

@@ -18,14 +18,9 @@
 package haveno.core.trade.protocol.tasks.mediation;
 
 import haveno.common.taskrunner.TaskRunner;
-import haveno.core.support.dispute.mediation.MediationResultState;
 import haveno.core.trade.Trade;
-import haveno.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import haveno.core.trade.protocol.tasks.TradeTask;
-import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class ProcessMediatedPayoutSignatureMessage extends TradeTask {
@@ -38,20 +33,7 @@ public class ProcessMediatedPayoutSignatureMessage extends TradeTask {
         try {
             runInterceptHook();
             log.debug("current trade state " + trade.getState());
-            MediatedPayoutTxSignatureMessage message = (MediatedPayoutTxSignatureMessage) processModel.getTradeMessage();
-            Validator.checkTradeId(processModel.getOfferId(), message);
-            checkNotNull(message);
-
-            trade.getTradePeer().setMediatedPayoutTxSignature(checkNotNull(message.getTxSignature()));
-
-            // update to the latest peer address of our peer if the message is correct
-            trade.getTradePeer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
-
-            trade.setMediationResultState(MediationResultState.RECEIVED_SIG_MSG);
-
-            processModel.getTradeManager().requestPersistence();
-
-            complete();
+            throw new RuntimeException("Not supported");
         } catch (Throwable t) {
             failed(t);
         }

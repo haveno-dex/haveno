@@ -44,14 +44,10 @@ public class ProcessDepositsConfirmedMessage extends TradeTask {
             DepositsConfirmedMessage request = (DepositsConfirmedMessage) processModel.getTradeMessage();
             checkNotNull(request);
             Validator.checkTradeId(processModel.getOfferId(), request);
-            TradePeer sender = trade.getTradePeer(request.getPubKeyRing());
-            if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
-              
-            // update peer node address
-            sender.setNodeAddress(processModel.getTempTradePeerNodeAddress());
-            if (sender.getNodeAddress().equals(trade.getBuyer().getNodeAddress()) && sender != trade.getBuyer()) trade.getBuyer().setNodeAddress(null); // tests can reuse addresses
-            if (sender.getNodeAddress().equals(trade.getSeller().getNodeAddress()) && sender != trade.getSeller()) trade.getSeller().setNodeAddress(null);
-            if (sender.getNodeAddress().equals(trade.getArbitrator().getNodeAddress()) && sender != trade.getArbitrator()) trade.getArbitrator().setNodeAddress(null);
+
+            // ignore if unknown sender address (protocol can update state later)
+            TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+            if (sender == null) throw new RuntimeException(DepositsConfirmedMessage.class.getSimpleName() + " sender address is not arbitrator, buyer, or seller");
 
             // decrypt seller payment account payload if key given
             if (request.getSellerPaymentAccountKey() != null && trade.getTradePeer().getPaymentAccountPayload() == null) {
