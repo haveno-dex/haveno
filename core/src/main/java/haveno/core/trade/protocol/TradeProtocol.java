@@ -156,7 +156,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     @Override
-    public void onDirectMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress peer) {
+    public void onDirectMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress sender) {
         NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
         if (!isMyMessage(networkEnvelope)) {
             return;
@@ -166,48 +166,65 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             return;
         }
 
+        TradePeer verifiedPeer = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
         if (networkEnvelope instanceof TradeMessage) {
-            onTradeMessage((TradeMessage) networkEnvelope, peer);
+
+            // update verified peer node address if changed
+            if (verifiedPeer != null && sender != null && !sender.equals(verifiedPeer.getNodeAddress())) {
+                log.info("Updating verified peer node address from {} to {} based on direct message of type {}", verifiedPeer.getNodeAddress(), sender, networkEnvelope.getClass().getSimpleName());
+                try {
+                    trade.updateNodeAddress(verifiedPeer, sender);
+                } catch (Throwable t) {
+                    log.warn("Failed to update verified peer node address for {} {} with sender {} based on direct message of type {}. Error: {}", trade.getClass().getSimpleName(), trade.getId(), sender, networkEnvelope.getClass().getSimpleName(), t.getMessage(), t);
+                    return;
+                }
+            }
+
+            onTradeMessage((TradeMessage) networkEnvelope, sender);
 
             // notify trade listeners
             // TODO (woodser): better way to register message notifications for trade?
             if (((TradeMessage) networkEnvelope).getOfferId().equals(processModel.getOfferId())) {
-              trade.onVerifiedTradeMessage((TradeMessage) networkEnvelope, peer);
+              trade.onVerifiedTradeMessage((TradeMessage) networkEnvelope, sender);
             }
         } else if (networkEnvelope instanceof AckMessage) {
-            onAckMessage((AckMessage) networkEnvelope, peer);
+            onAckMessage((AckMessage) networkEnvelope, verifiedPeer, sender);
         }
     }
 
     @Override
     public void onMailboxMessageAdded(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress peer) {
-        if (!isPubKeyValid(decryptedMessageWithPubKey)) return;
-        handleMailboxCollectionSkipValidation(Collections.singletonList(decryptedMessageWithPubKey));
-    }
-
-    // TODO (woodser): this method only necessary because isPubKeyValid not called with sender argument, so it's validated before
-    private void handleMailboxCollectionSkipValidation(Collection<DecryptedMessageWithPubKey> collection) {
-        collection.stream()
-                .map(DecryptedMessageWithPubKey::getNetworkEnvelope)
-                .filter(this::isMyMessage)
-                .filter(e -> e instanceof MailboxMessage)
-                .map(e -> (MailboxMessage) e)
-                .forEach(this::handleMailboxMessage);
+        handleMailboxCollection(Collections.singletonList(decryptedMessageWithPubKey));
     }
 
     private void handleMailboxCollection(Collection<DecryptedMessageWithPubKey> collection) {
         collection.stream()
                 .filter(this::isPubKeyValid)
-                .map(DecryptedMessageWithPubKey::getNetworkEnvelope)
-                .filter(this::isMyMessage)
-                .filter(e -> e instanceof MailboxMessage)
-                .map(e -> (MailboxMessage) e)
-                .sorted(new MailboxMessageComparator())
-                .forEach(this::handleMailboxMessage);
+                .filter(msg -> isMyMessage(msg.getNetworkEnvelope()))
+                .filter(msg -> msg.getNetworkEnvelope() instanceof MailboxMessage)
+                .sorted((a, b) -> new MailboxMessageComparator().compare(
+                        (MailboxMessage) a.getNetworkEnvelope(), 
+                        (MailboxMessage) b.getNetworkEnvelope()))
+                .forEach(msg -> {
+                    MailboxMessage mailboxMessage = (MailboxMessage) msg.getNetworkEnvelope();
+                    handleMailboxMessage(mailboxMessage, trade.getVerifiedTradePeer(msg));
+                });
     }
 
-    private void handleMailboxMessage(MailboxMessage mailboxMessage) {
+    private void handleMailboxMessage(MailboxMessage mailboxMessage, TradePeer verifiedPeer) {
         if (mailboxMessage instanceof TradeMessage) {
+
+            // update verified peer node address if changed
+            if (verifiedPeer != null && mailboxMessage.getSenderNodeAddress() != null && !mailboxMessage.getSenderNodeAddress().equals(verifiedPeer.getNodeAddress())) {
+                log.info("Updating verified peer node address from {} to {} based on mailbox message of type {}", verifiedPeer.getNodeAddress(), mailboxMessage.getSenderNodeAddress(), mailboxMessage.getClass().getSimpleName());
+                try {
+                    trade.updateNodeAddress(verifiedPeer, mailboxMessage.getSenderNodeAddress());
+                } catch (Throwable t) {
+                    log.warn("Failed to update verified peer node address for {} {} with sender {} based on mailbox message of type {}. Error: {}", trade.getClass().getSimpleName(), trade.getId(), mailboxMessage.getSenderNodeAddress(), mailboxMessage.getClass().getSimpleName(), t.getMessage(), t);
+                    return;
+                }
+            }
+
             TradeMessage tradeMessage = (TradeMessage) mailboxMessage;
             // We only remove here if we have already completed the trade.
             // Otherwise removal is done after successfully applied the task runner.
@@ -220,7 +237,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             onMailboxMessage(tradeMessage, mailboxMessage.getSenderNodeAddress());
         } else if (mailboxMessage instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) mailboxMessage;
-            onAckMessage(ackMessage, mailboxMessage.getSenderNodeAddress());
+            onAckMessage(ackMessage, verifiedPeer, mailboxMessage.getSenderNodeAddress());
             processModel.getP2PService().getMailboxMessageService().removeMailboxMsg(ackMessage);
             log.info("Remove {} from the P2P network.", ackMessage.getClass().getSimpleName());
         }
@@ -862,38 +879,47 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     // ACK msg
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void onAckMessage(AckMessage ackMessage, NodeAddress sender) {
+    private void onAckMessage(AckMessage ackMessage, TradePeer verifiedPeer, NodeAddress sender) {
         boolean processOnTradeThread = !ackMessage.getSourceMsgClassName().equals(ChatMessage.class.getSimpleName()); // handle chat message acks off trade thread for responsiveness if the thread is busy
         if (processOnTradeThread) {
-            ThreadUtils.execute(() -> onAckMessageAux(ackMessage, sender), trade.getId());
+            ThreadUtils.execute(() -> onAckMessageAux(ackMessage, verifiedPeer, sender), trade.getId());
         } else {
-            onAckMessageAux(ackMessage, sender);
+            onAckMessageAux(ackMessage, verifiedPeer, sender);
         }
     }
 
     // TODO: this has grown in complexity over time and could use refactoring
-    private void onAckMessageAux(AckMessage ackMessage, NodeAddress sender) {
+    private void onAckMessageAux(AckMessage ackMessage, TradePeer verifiedPeer, NodeAddress sender) {
         
         // ignore if trade is completely finished
         if (trade.isFinished()) return;
 
-        // get trade peer
-        TradePeer peer = trade.getTradePeer(sender);
-        if (peer == null) peer = getTradePeer(ackMessage);
-        if (peer == null) {
-            if (ackMessage.isSuccess()) log.warn("Received AckMessage from unknown peer for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
-            else log.warn("Received AckMessage with error state from unknown peer for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
+        // ignore if peer is not verified
+        if (verifiedPeer == null) {
+            if (ackMessage.isSuccess()) log.warn("Received AckMessage from unverified peer for {}, sender={}, trade={} {}, messageUid={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
+            else log.warn("Received AckMessage with error state from unverified peer for {}, sender={}, trade={} {}, messageUid={}, errorMessage={}", ackMessage.getSourceMsgClassName(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
             return;
         }
 
-        // update sender's node address
-        if (!peer.getNodeAddress().equals(sender)) {
-            log.info("Updating peer's node address from {} to {} using ACK message to {}", peer.getNodeAddress(), sender, ackMessage.getSourceMsgClassName());
-            peer.setNodeAddress(sender);
+        // update verified peer node address if changed
+        if (sender != null && !sender.equals(verifiedPeer.getNodeAddress())) {
+
+            // only allow updating node address from ACK messages after multisig created
+            if (!trade.isDepositRequested()) {
+                log.warn("Refusing to process AckMessage with updated node address from {} to {} for {} {} because deposits not requested yet, sourceMsg={}", verifiedPeer.getNodeAddress(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
+                return;
+            }
+            log.info("Updating verified peer node address from {} to {} using ACK message to {} for {} {}", verifiedPeer.getNodeAddress(), sender, ackMessage.getSourceMsgClassName(), trade.getClass().getSimpleName(), trade.getId());
+            try {
+                trade.updateNodeAddress(verifiedPeer, sender);
+            } catch (Throwable t) {
+                log.warn("Failed to update peer node address from {} to {} for {} {}, sourceMsg={}, error={}", verifiedPeer.getNodeAddress(), sender, trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), t.getMessage(), t);
+                return;
+            }
         }
 
         // handle nack of InitTradeRequest from arbitrator to maker
-        if (!ackMessage.isSuccess() && trade.isMaker() && peer == trade.getArbitrator() && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
+        if (!ackMessage.isSuccess() && trade.isMaker() && verifiedPeer == trade.getArbitrator() && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
             if (ignoreInitTradeRequestNackFromArbitrator(ackMessage)) {
                 log.warn("Ignoring InitTradeRequest NACK from arbitrator, offerId={}, errorMessage={}", processModel.getOfferId(), ackMessage.getErrorMessage());
                 // use default postprocessing
@@ -919,7 +945,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // handle ack message for DepositsConfirmedMessage, which automatically re-sends if not ACKed in a certain time
         if (ackMessage.getSourceMsgClassName().equals(DepositsConfirmedMessage.class.getSimpleName())) {
-            peer.setDepositsConfirmedAckMessage(ackMessage);
+            verifiedPeer.setDepositsConfirmedAckMessage(ackMessage);
             processModel.getTradeManager().requestPersistence();
         }
 
@@ -929,12 +955,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 log.warn("Received AckMessage for PaymentSentMessage but trade is in unexpected state, ignoring. Sender={}, trade={} {}, state={}, success={}, error={}, messageUid={}", sender, trade.getClass().getSimpleName(), trade.getId(), trade.getState(), ackMessage.isSuccess(), ackMessage.getErrorMessage(), ackMessage.getSourceUid());
                 return;
             }
-            if (peer == trade.getSeller()) {
+            if (verifiedPeer == trade.getSeller()) {
                 trade.getSeller().setPaymentSentAckMessage(ackMessage);
                 if (ackMessage.isSuccess()) trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
                 else trade.setState(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
                 processModel.getTradeManager().requestPersistence();
-            } else if (peer == trade.getArbitrator()) {
+            } else if (verifiedPeer == trade.getArbitrator()) {
                 trade.getArbitrator().setPaymentSentAckMessage(ackMessage);
                 processModel.getTradeManager().requestPersistence();
             } else {
@@ -949,7 +975,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         if (ackMessage.getSourceMsgClassName().equals(PaymentReceivedMessage.class.getSimpleName())) {
 
             // ack message from buyer
-            if (peer == trade.getBuyer()) {
+            if (verifiedPeer == trade.getBuyer()) {
                 trade.getBuyer().setPaymentReceivedAckMessage(ackMessage);
                 processModel.getTradeManager().persistNow(null);
 
@@ -974,14 +1000,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        onPaymentReceivedNack(true, peer, ackMessage);
+                        onPaymentReceivedNack(true, verifiedPeer, ackMessage);
                         return; // skip remaining processing
                     }
                 }
             }
             
             // ack message from arbitrator
-            else if (peer == trade.getArbitrator()) {
+            else if (verifiedPeer == trade.getArbitrator()) {
                 trade.getArbitrator().setPaymentReceivedAckMessage(ackMessage);
                 processModel.getTradeManager().persistNow(null);
 
@@ -993,7 +1019,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
                         processModel.getTradeManager().persistNow(null);
-                        onPaymentReceivedNack(true, peer, ackMessage);
+                        onPaymentReceivedNack(true, verifiedPeer, ackMessage);
                         return; // skip remaining processing
                     }
                 }
@@ -1021,25 +1047,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         trade.onAckMessage(ackMessage, sender);
     }
 
-    private TradePeer getTradePeer(AckMessage ackMessage) {
-        Class<?>[] messageClasses = {DepositsConfirmedMessage.class, PaymentSentMessage.class, PaymentReceivedMessage.class}; // TODO: same for DisputeOpenedMessage, DisputeClosedMessage?
-        TradePeer[] peers = {trade.getArbitrator(), trade.getMaker(), trade.getTaker()};
-        for (Class<?> messageClass : messageClasses) {
-            for (TradePeer peer : peers) {
-                String expectedUid = HavenoUtils.getDeterministicId(trade, messageClass, peer.getNodeAddress());
-                if (ackMessage.getSourceUid().equals(expectedUid)) {
-                    return peer;
-                }
-            }
-        }
-        return null;
-    }
-
     private static boolean ignoreInitTradeRequestNackFromArbitrator(AckMessage ackMessage) {
         return ackMessage.getErrorMessage() != null && ackMessage.getErrorMessage().contains(SEND_INIT_TRADE_REQUEST_FAILED); // ignore if arbitrator's request failed to taker
     }
 
-    private boolean onPaymentReceivedNack(boolean syncAndPoll, TradePeer peer, AckMessage ackMessage) {
+    private boolean onPaymentReceivedNack(boolean syncAndPoll, TradePeer verifiedPeer, AckMessage ackMessage) {
 
         // prevent infinite nack loop with max attempts
         numPaymentReceivedNacks++;
@@ -1051,7 +1063,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }
 
         // handle payout error
-        return trade.onPayoutError(syncAndPoll, true, peer);
+        return trade.onPayoutError(syncAndPoll, true, verifiedPeer);
     }
 
     private void handleFirstMakerInitTradeRequestNack(AckMessage ackMessage) {

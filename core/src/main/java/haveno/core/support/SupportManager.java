@@ -102,12 +102,27 @@ public abstract class SupportManager {
         });
     }
 
+    // base implementation for subclasses to verify trade peer and update node address if changed
+    protected void onSupportMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, SupportMessage networkEnvelope) {
+        Trade trade = tradeManager.getTrade(networkEnvelope.getTradeId());
+        if (trade == null) {
+            log.warn("Received {} for non-existing trade with tradeId {} and uid {}", networkEnvelope.getClass().getSimpleName(), networkEnvelope.getTradeId(), networkEnvelope.getUid());
+            return;
+        }
+
+        // update verified peer node address if changed
+        TradePeer verifiedPeer = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
+        if (verifiedPeer == null) throw new IllegalStateException("Received " + networkEnvelope.getClass().getSimpleName() + " from unknown peer " + networkEnvelope.getSenderNodeAddress() + " for tradeId=" + networkEnvelope.getTradeId() + " and uid=" + networkEnvelope.getUid());
+        else if (networkEnvelope.getSenderNodeAddress() != null && !networkEnvelope.getSenderNodeAddress().equals(verifiedPeer.getNodeAddress())) {
+            log.info("Updating verified peer node address from {} to {} based on support message of type {}", verifiedPeer.getNodeAddress(), networkEnvelope.getSenderNodeAddress(), networkEnvelope.getClass().getSimpleName());
+            trade.updateNodeAddress(verifiedPeer, networkEnvelope.getSenderNodeAddress()); // this can throw error for caller to catch and process
+        }
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Abstract methods
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    protected abstract void onSupportMessage(SupportMessage networkEnvelope);
 
     public abstract NodeAddress getPeerNodeAddress(ChatMessage message);
 
@@ -186,7 +201,8 @@ public abstract class SupportManager {
             sendAckMessage(chatMessage, receiverPubKeyRing, true, null);
     }
 
-    private void onAckMessage(AckMessage ackMessage) {
+    // TODO: this never updates the node address
+    private void onAckMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, AckMessage ackMessage) {
         if (ackMessage.getSourceType() == getAckMessageSourceType()) {
             if (ackMessage.isSuccess()) {
                 log.info("Received AckMessage for {} with tradeId {} and uid {}", ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
@@ -200,11 +216,12 @@ public abstract class SupportManager {
                                     if (chatMessage.getUid().equals(ackMessage.getSourceUid())) {
                                         
                                         // set ack state
-                                        TradePeer sender = trade.getTradePeer(ackMessage.getSenderNodeAddress());
-                                        if (sender == null) {
+                                        TradePeer verifiedPeer = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
+                                        if (verifiedPeer == null) {
                                             log.warn("Received AckMessage from unknown peer {} for {} with tradeId={}, uid={}", ackMessage.getSenderNodeAddress(), ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
+                                            return;
                                         } else {
-                                            sender.setDisputeOpenedAckMessage(ackMessage);
+                                            verifiedPeer.setDisputeOpenedAckMessage(ackMessage);
                                         }
 
                                         // advance trade state
@@ -233,9 +250,10 @@ public abstract class SupportManager {
                                     if (!trade.isArbitrator() && (trade.getDisputeState().isRequested() || trade.getDisputeState().isCloseRequested())) {
 
                                         // set ack state
-                                        TradePeer sender = trade.getTradePeer(ackMessage.getSenderNodeAddress());
+                                        TradePeer sender = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
                                         if (sender == null) {
                                             log.warn("Received AckMessage from unknown peer {} for {} with tradeId={}, uid={}", ackMessage.getSenderNodeAddress(), ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
+                                            return;
                                         } else {
                                             sender.setDisputeOpenedAckMessage(ackMessage);
                                         }
@@ -425,9 +443,9 @@ public abstract class SupportManager {
     private void applyDirectMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey) {
         NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
         if (networkEnvelope instanceof SupportMessage) {
-            onSupportMessage((SupportMessage) networkEnvelope);
+            onSupportMessage(decryptedMessageWithPubKey, (SupportMessage) networkEnvelope);
         } else if (networkEnvelope instanceof AckMessage) {
-            onAckMessage((AckMessage) networkEnvelope);
+            onAckMessage(decryptedMessageWithPubKey, (AckMessage) networkEnvelope);
         }
     }
 
@@ -436,11 +454,11 @@ public abstract class SupportManager {
         log.trace("## decryptedMessageWithPubKey message={}", networkEnvelope.getClass().getSimpleName());
         if (networkEnvelope instanceof SupportMessage) {
             SupportMessage supportMessage = (SupportMessage) networkEnvelope;
-            onSupportMessage(supportMessage);
+            onSupportMessage(decryptedMessageWithPubKey, supportMessage);
             mailboxMessageService.removeMailboxMsg(supportMessage);
         } else if (networkEnvelope instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) networkEnvelope;
-            onAckMessage(ackMessage);
+            onAckMessage(decryptedMessageWithPubKey, ackMessage);
             mailboxMessageService.removeMailboxMsg(ackMessage);
         }
     }

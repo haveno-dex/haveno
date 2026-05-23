@@ -48,8 +48,10 @@ public class MaybeResendDisputeClosedMessageWithPayout extends TradeTask {
             DepositsConfirmedMessage request = (DepositsConfirmedMessage) processModel.getTradeMessage();
             checkNotNull(request);
             Validator.checkTradeId(processModel.getOfferId(), request);
-            TradePeer sender = trade.getTradePeer(request.getPubKeyRing());
-            if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
+
+            // ignore if unknown sender address
+            TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+            if (sender == null) throw new RuntimeException(DepositsConfirmedMessage.class.getSimpleName() + " sender address is not arbitrator, buyer, or seller. This should never happen because the node address is updated for each verified message.");
 
             // arbitrator resends DisputeClosedMessage with payout tx when updated multisig info received
             boolean ticketClosed = false;

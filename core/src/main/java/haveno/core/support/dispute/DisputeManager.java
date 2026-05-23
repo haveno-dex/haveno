@@ -73,6 +73,7 @@ import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendMailboxMessageListener;
@@ -298,7 +299,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         synchronized (disputes) {
             disputes.forEach(dispute -> {
                 try {
-                    DisputeValidation.validateNodeAddresses(dispute, config);
+                    Trade trade = tradeManager.getTrade(dispute.getTradeId());
+                    if (trade != null) DisputeValidation.validateNodeAddresses(dispute, config, trade);
                 } catch (DisputeValidation.ValidationException e) {
                     log.error(e.toString());
                     validationExceptions.add(e);
@@ -575,7 +577,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
     // arbitrator receives dispute opened message from opener, opener's peer receives from arbitrator
-    protected void handle(DisputeOpenedMessage message) {
+    protected void handle(DecryptedMessageWithPubKey decryptedMessageWithPubKey, DisputeOpenedMessage message) {
         Dispute msgDispute = message.getDispute();
         log.info("Processing DisputeOpenedMessage with trade {}, dispute {}", message.getClass().getSimpleName(), msgDispute.getTradeId(), msgDispute.getId());
 
@@ -602,13 +604,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         TradePeer sender;
         PubKeyRing senderPubKeyRing;
         if (reOpen) { // re-open can come from either peer
-            sender = trade.isArbitrator() ? trade.getTradePeer(message.getSenderNodeAddress()) : trade.getArbitrator();
+            sender = trade.isArbitrator() ? trade.getVerifiedTradePeer(decryptedMessageWithPubKey) : trade.getArbitrator();
             senderPubKeyRing = sender.getPubKeyRing();
         } else {
             senderPubKeyRing = trade.isArbitrator() ? (dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing()) : trade.getArbitrator().getPubKeyRing();
             sender = trade.getTradePeer(senderPubKeyRing);
         }
-        if (sender == null) throw new RuntimeException("Pub key ring is not from arbitrator, buyer, or seller");
+        if (sender == null) throw new RuntimeException("Dispute opener is not arbitrator, buyer, or seller");
 
         // TODO: save message for reprocessing (arbitrator must remove this when processed or it'll attempt to be sent to peer)
         // sender.setDisputeOpenedMessage(message);
@@ -631,9 +633,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     // validate dispute
                     try {
                         DisputeValidation.validateDisputeData(dispute);
-                        DisputeValidation.validateNodeAddresses(dispute, config);
-                        DisputeValidation.validateSenderNodeAddress(dispute, message.getSenderNodeAddress(), config);
-                        //DisputeValidation.testIfDisputeTriesReplay(dispute, disputeList.getList());
+                        DisputeValidation.validateNodeAddresses(dispute, config, trade);
                     } catch (DisputeValidation.ValidationException e) {
                         log.error(ExceptionUtils.getStackTrace(e));
                         validationExceptions.add(e);
@@ -654,9 +654,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         if (trade.getBuyer().getPaymentAccountPayload() == null) trade.getBuyer().setPaymentAccountPayload(dispute.getBuyerPaymentAccountPayload());
                         if (trade.getSeller().getPaymentAccountPayload() == null) trade.getSeller().setPaymentAccountPayload(dispute.getSellerPaymentAccountPayload());
                     }
-
-                    // update sender node address
-                    sender.setNodeAddress(message.getSenderNodeAddress());
 
                     // verify message to trader is expected from arbitrator
                     if (!trade.isArbitrator() && sender != trade.getArbitrator()) {

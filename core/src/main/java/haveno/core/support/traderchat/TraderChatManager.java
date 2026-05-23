@@ -33,6 +33,7 @@ import haveno.core.trade.TradeManager;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import java.util.List;
@@ -162,14 +163,19 @@ public class TraderChatManager extends SupportManager {
     }
 
     @Override
-    public void onSupportMessage(SupportMessage message) {
+    public void onSupportMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, SupportMessage message) {
         if (canProcessMessage(message)) {
-            log.info("Received {} with tradeId {} and uid {}",
-                    message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
-            if (message instanceof ChatMessage) {
-                handle((ChatMessage) message);
-            } else {
-                log.warn("Unsupported message at dispatchMessage. message={}", message);
+            try {
+                log.info("Received {} with tradeId {} and uid {}",
+                        message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
+                super.onSupportMessage(decryptedMessageWithPubKey, message);
+                if (message instanceof ChatMessage) {
+                    handle((ChatMessage) message);
+                } else {
+                    log.warn("Unsupported message at dispatchMessage. message={}", message);
+                }
+            } catch (Throwable t) {
+                log.warn("Failed to process support message of type {} from {} with tradeId {} and uid {}. Error: {}", message.getClass().getSimpleName(), message.getSenderNodeAddress(), message.getTradeId(), message.getUid(), t.getMessage(), t);
             }
         }
     }

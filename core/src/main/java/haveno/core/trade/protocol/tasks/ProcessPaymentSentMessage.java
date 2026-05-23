@@ -44,9 +44,6 @@ public class ProcessPaymentSentMessage extends TradeTask {
 
             // verify signature of payment sent message
             HavenoUtils.verifyPaymentSentMessage(trade, message);
-
-            // update latest peer address
-            trade.getBuyer().setNodeAddress(processModel.getTempTradePeerNodeAddress());
             trade.requestPersistence();
 
             // update state from message

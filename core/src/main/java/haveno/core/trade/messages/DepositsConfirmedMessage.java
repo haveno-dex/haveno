@@ -19,7 +19,6 @@ package haveno.core.trade.messages;
 
 import com.google.protobuf.ByteString;
 import haveno.common.app.Version;
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.util.Utilities;
 import haveno.core.proto.CoreProtoResolver;
@@ -34,7 +33,6 @@ import java.util.Optional;
 @Value
 public final class DepositsConfirmedMessage extends TradeMailboxMessage {
     private final NodeAddress senderNodeAddress;
-    private final PubKeyRing pubKeyRing;
     @Nullable
     private final byte[] sellerPaymentAccountKey;
     @Nullable
@@ -42,13 +40,11 @@ public final class DepositsConfirmedMessage extends TradeMailboxMessage {
 
     public DepositsConfirmedMessage(String tradeId,
                                      NodeAddress senderNodeAddress,
-                                     PubKeyRing pubKeyRing,
                                      String uid,
                                      @Nullable byte[] sellerPaymentAccountKey,
                                      @Nullable String updatedMultisigHex) {
         super(Version.getP2PMessageVersion(), tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
-        this.pubKeyRing = pubKeyRing;
         this.sellerPaymentAccountKey = sellerPaymentAccountKey;
         this.updatedMultisigHex = updatedMultisigHex;
     }
@@ -63,7 +59,6 @@ public final class DepositsConfirmedMessage extends TradeMailboxMessage {
         protobuf.DepositsConfirmedMessage.Builder builder = protobuf.DepositsConfirmedMessage.newBuilder()
                 .setTradeId(offerId)
                 .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
-                .setPubKeyRing(pubKeyRing.toProtoMessage())
                 .setUid(uid);
         Optional.ofNullable(sellerPaymentAccountKey).ifPresent(e -> builder.setSellerPaymentAccountKey(ByteString.copyFrom(e)));
         Optional.ofNullable(updatedMultisigHex).ifPresent(e -> builder.setUpdatedMultisigHex(updatedMultisigHex));
@@ -75,7 +70,6 @@ public final class DepositsConfirmedMessage extends TradeMailboxMessage {
                                                       String messageVersion) {
         return new DepositsConfirmedMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
-                PubKeyRing.fromProto(proto.getPubKeyRing()),
                 proto.getUid(),
                 ProtoUtil.byteArrayOrNullFromProto(proto.getSellerPaymentAccountKey()),
                 ProtoUtil.stringOrNullFromProto(proto.getUpdatedMultisigHex()));

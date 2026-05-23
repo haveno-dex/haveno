@@ -69,6 +69,7 @@ import haveno.core.trade.Trade.DisputeState;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.FileTransferPart;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -133,18 +134,22 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
     }
 
     @Override
-    public void onSupportMessage(SupportMessage message) {
+    public void onSupportMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, SupportMessage message) {
         if (canProcessMessage(message)) {
-            log.info("Received {} from {} with tradeId {} and uid {}",
-                    message.getClass().getSimpleName(), message.getSenderNodeAddress(), message.getTradeId(), message.getUid());
-            if (message instanceof DisputeOpenedMessage) {
-                handle((DisputeOpenedMessage) message);
-            } else if (message instanceof ChatMessage) {
-                handle((ChatMessage) message);
-            } else if (message instanceof DisputeClosedMessage) {
-                handle((DisputeClosedMessage) message);
-            } else {
-                log.warn("Unsupported message at dispatchMessage. message={}", message);
+            try {
+                log.info("Received {} from {} with tradeId {} and uid {}", message.getClass().getSimpleName(), message.getSenderNodeAddress(), message.getTradeId(), message.getUid());
+                super.onSupportMessage(decryptedMessageWithPubKey, message);
+                if (message instanceof DisputeOpenedMessage) {
+                    handle(decryptedMessageWithPubKey, (DisputeOpenedMessage) message);
+                } else if (message instanceof ChatMessage) {
+                    handle((ChatMessage) message);
+                } else if (message instanceof DisputeClosedMessage) {
+                    handle((DisputeClosedMessage) message);
+                } else {
+                    log.warn("Unsupported message at dispatchMessage. message={}", message);
+                }
+            } catch (Throwable t) {
+                log.warn("Failed to process support message of type {} from {} with tradeId {} and uid {}. Error: {}", message.getClass().getSimpleName(), message.getSenderNodeAddress(), message.getTradeId(), message.getUid(), t.getMessage(), t);
             }
         }
     }
