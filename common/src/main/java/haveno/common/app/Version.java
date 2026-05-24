@@ -32,7 +32,7 @@ public class Version {
     // 1st digit: Mandatory protocol or consensus changes from upstream.
     // 2nd digit: Non-mandatory updates, patches, or minor improvements from upstream.
     // 3rd digit: Network-specific builds. This is reserved for forks and is never set by upstream.
-    public static final String VERSION = "1.4.0";
+    public static final String VERSION = "1.6.0";
 
     /**
      * Holds a list of the tagged resource files for optimizing the getData requests.
