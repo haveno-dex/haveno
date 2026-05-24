@@ -43,9 +43,9 @@ public final class BuyerAsMakerTrade extends BuyerTrade implements MakerTrade {
                              XmrWalletService xmrWalletService,
                              ProcessModel processModel,
                              String uid,
-                             NodeAddress makerNodeAddress,
-                             NodeAddress takerNodeAddress,
-                             NodeAddress arbitratorNodeAddress,
+                             @Nullable NodeAddress makerNodeAddress,
+                             @Nullable NodeAddress takerNodeAddress,
+                             @Nullable NodeAddress arbitratorNodeAddress,
                              @Nullable String challenge) {
         super(offer,
                 tradeAmount,

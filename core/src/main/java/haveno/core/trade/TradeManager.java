@@ -71,15 +71,10 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.handlers.TradeResultHandler;
-import haveno.core.trade.messages.DepositRequest;
-import haveno.core.trade.messages.DepositResponse;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
-import haveno.core.trade.messages.InitMultisigRequest;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
-import haveno.core.trade.messages.SignContractRequest;
-import haveno.core.trade.messages.SignContractResponse;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.protocol.ArbitratorProtocol;
 import haveno.core.trade.protocol.MakerProtocol;
@@ -88,7 +83,6 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TakerProtocol;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.trade.protocol.TradeProtocolFactory;
-import haveno.core.trade.protocol.TraderProtocol;
 import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.User;
@@ -289,27 +283,15 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void onDirectMessage(DecryptedMessageWithPubKey message, NodeAddress sender) {
-        NetworkEnvelope networkEnvelope = message.getNetworkEnvelope();
-        if (!(networkEnvelope instanceof TradeMessage)) return;
-        TradeMessage tradeMessage = (TradeMessage) networkEnvelope;
-        String tradeId = tradeMessage.getOfferId();
-        log.info("TradeManager received {} for tradeId={}, sender={}, uid={}", networkEnvelope.getClass().getSimpleName(), tradeId, sender, tradeMessage.getUid());
+    public void onDirectMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, NodeAddress sender) {
+        NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
+        if (!(networkEnvelope instanceof InitTradeRequest)) return;
+        InitTradeRequest initTradeRequest = (InitTradeRequest) networkEnvelope;
+        String tradeId = initTradeRequest.getOfferId();
+        log.info("TradeManager received {} for tradeId={}, sender={}, uid={}", networkEnvelope.getClass().getSimpleName(), tradeId, sender, initTradeRequest.getUid());
         try {
             ThreadUtils.execute(() -> {
-                if (networkEnvelope instanceof InitTradeRequest) {
-                    handleInitTradeRequest((InitTradeRequest) networkEnvelope, sender);
-                } else if (networkEnvelope instanceof InitMultisigRequest) {
-                    handleInitMultisigRequest((InitMultisigRequest) networkEnvelope, sender);
-                } else if (networkEnvelope instanceof SignContractRequest) {
-                    handleSignContractRequest((SignContractRequest) networkEnvelope, sender);
-                } else if (networkEnvelope instanceof SignContractResponse) {
-                    handleSignContractResponse((SignContractResponse) networkEnvelope, sender);
-                } else if (networkEnvelope instanceof DepositRequest) {
-                    handleDepositRequest((DepositRequest) networkEnvelope, sender);
-                } else if (networkEnvelope instanceof DepositResponse) {
-                    handleDepositResponse((DepositResponse) networkEnvelope, sender);
-                }
+                handleInitTradeRequest(decryptedMessageWithPubKey, initTradeRequest, sender);
             }, tradeId);
         } catch (Throwable t) {
             log.warn("Error handling direct message on trade thread. That should never happen. tradeId=" + tradeId + ", error: " + t.getMessage(), t);
@@ -579,13 +561,21 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         persistenceManager.persistNow(completeHandler);
     }
 
-    private void handleInitTradeRequest(InitTradeRequest request, NodeAddress sender) {
+    private void handleInitTradeRequest(DecryptedMessageWithPubKey decryptedMessageWithPubKey, InitTradeRequest request, NodeAddress sender) {
         log.info("TradeManager handling InitTradeRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
         try {
             Validator.nonEmptyStringOf(request.getOfferId());
         } catch (Throwable t) {
             log.warn("Invalid InitTradeRequest message " + request.toString());
+            return;
+        }
+
+        // verify that maker, taker, and arbitrator addresses are different
+        if (request.getMakerNodeAddress().equals(request.getTakerNodeAddress()) ||
+                request.getMakerNodeAddress().equals(request.getArbitratorNodeAddress()) ||
+                request.getTakerNodeAddress().equals(request.getArbitratorNodeAddress())) {
+            log.warn("Ignoring InitTradeRequest because maker, taker, and arbitrator addresses must be different, tradeId={}, sender={}", request.getOfferId(), sender);
             return;
         }
 
@@ -619,6 +609,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
   
             // reserve open offer
             openOfferManager.reserveOpenOffer(openOffer);
+
+            // verify maker and taker pubKeyRings are different
+            if (offer.getPubKeyRing().equals(request.getTakerPubKeyRing())) {
+                log.warn("Ignoring InitTradeRequest to maker because maker and taker pubKeyRings are the same, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
   
             // initialize trade
             Trade trade;
@@ -629,9 +625,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         xmrWalletService,
                         getNewProcessModel(offer),
                         UUID.randomUUID().toString(),
-                        request.getMakerNodeAddress(),
-                        request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress(),
+                        p2PService.getNetworkNode().getNodeAddress(),
+                        sender,
+                        null, // maker selects arbitrator later
                         openOffer.getChallenge());
             else
                 trade = new SellerAsMakerTrade(offer,
@@ -640,16 +636,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         xmrWalletService,
                         getNewProcessModel(offer),
                         UUID.randomUUID().toString(),
-                        request.getMakerNodeAddress(),
-                        request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress(),
+                        p2PService.getNetworkNode().getNodeAddress(),
+                        sender,
+                        null,
                         openOffer.getChallenge());
-            trade.getMaker().setPaymentAccountId(trade.getOffer().getOfferPayload().getMakerPaymentAccountId());
+            trade.getMaker().setPaymentAccountId(trade.getOffer().getOfferPayload().getMakerPaymentAccountId()); // TODO: initialize these fields in ProcessInitTradeRequest
             trade.getTaker().setPaymentAccountId(request.getTakerPaymentAccountId());
             trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
             trade.getTaker().setPubKeyRing(request.getTakerPubKeyRing());
             trade.getSelf().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
-            trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash()); // TODO (woodser): initialize in initTradeAndProtocol?
+            trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash());
             trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
             trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
             trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
@@ -686,11 +682,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
 
-            // verify arbitrator is payload signer unless they are offline
-            // TODO (woodser): handle if payload signer differs from current arbitrator (verify signer is offline)
-
             // verify maker is offer owner
-            // TODO (woodser): maker address might change if they disconnect and reconnect, should allow maker address to differ if pubKeyRing is same?
             if (!offer.getOwnerNodeAddress().equals(request.getMakerNodeAddress())) {
                 log.warn("Ignoring InitTradeRequest to arbitrator because maker is not offer owner, tradeId={}, sender={}", request.getOfferId(), sender);
                 return;
@@ -709,8 +701,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 trade = tradeOptional.get();
 
                 // verify request is from taker
-                if (!sender.equals(request.getTakerNodeAddress())) {
-                    if (sender.equals(request.getMakerNodeAddress())) {
+                if (!sender.equals(trade.getTaker().getNodeAddress())) {
+                    if (sender.equals(trade.getMaker().getNodeAddress())) {
                         log.warn("Received InitTradeRequest from maker to arbitrator for trade that is already initializing, tradeId={}, sender={}", request.getOfferId(), sender);
                         sendAckMessage(sender, trade.getMaker().getPubKeyRing(), request, false, "Trade is already initializing for " + getClass().getSimpleName() + " " + trade.getId(), null);
                     } else {
@@ -721,7 +713,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             } else {
 
                 // verify request is from maker
-                if (!sender.equals(request.getMakerNodeAddress())) {
+                if (!offer.getPubKeyRing().getSignaturePubKey().equals(decryptedMessageWithPubKey.getSignaturePubKey())) {
+                    log.warn("Ignoring InitTradeRequest to arbitrator because signature pub key does not match maker pub key, tradeId={}, sender={}", request.getOfferId(), sender);
+                    return;
+                }
+                if (!sender.equals(offer.getOwnerNodeAddress())) {
                     log.warn("Ignoring InitTradeRequest to arbitrator because request must be from maker when trade is not initialized, tradeId={}, sender={}", request.getOfferId(), sender);
                     return;
                 }
@@ -733,9 +729,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         xmrWalletService,
                         getNewProcessModel(offer),
                         UUID.randomUUID().toString(),
-                        request.getMakerNodeAddress(),
+                        offer.getOwnerNodeAddress(),
                         request.getTakerNodeAddress(),
-                        request.getArbitratorNodeAddress(),
+                        p2PService.getNetworkNode().getNodeAddress(),
                         request.getChallenge());
 
                 // set reserve tx hash if available
@@ -753,7 +749,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // process with protocol
             ((ArbitratorProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
                 log.warn("Arbitrator error during trade initialization for trade {}: {}", trade.getId(), errorMessage);
-                trade.onProtocolInitializationError();
+                trade.onProtocolInitializationError(); // TODO: this should be called internally in the protocol instead?
             });
 
             requestPersistence();
@@ -786,104 +782,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             log.warn("Ignoring InitTradeRequest because sender is not maker, arbitrator, or taker, tradeId={}, sender={}", request.getOfferId(), sender);
             return;
         }
-    }
-
-    private void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
-        log.info("TradeManager handling InitMultisigRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
-
-        try {
-            Validator.nonEmptyStringOf(request.getOfferId());
-        } catch (Throwable t) {
-            log.warn("Invalid InitMultisigRequest " + request.toString());
-            return;
-        }
-
-        Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
-        if (!tradeOptional.isPresent()) {
-            log.warn("No trade with id " + request.getOfferId() + " at node " + P2PService.getMyNodeAddress());
-            return;
-        }
-        Trade trade = tradeOptional.get();
-        getTradeProtocol(trade).handleInitMultisigRequest(request, sender);
-    }
-
-    private void handleSignContractRequest(SignContractRequest request, NodeAddress sender) {
-        log.info("TradeManager handling SignContractRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
-
-        try {
-            Validator.nonEmptyStringOf(request.getOfferId());
-        } catch (Throwable t) {
-            log.warn("Invalid SignContractRequest message " + request.toString());
-            return;
-        }
-
-        Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
-        if (!tradeOptional.isPresent()) {
-            log.warn("No trade with id " + request.getOfferId());
-            return;
-        }
-        Trade trade = tradeOptional.get();
-        getTradeProtocol(trade).handleSignContractRequest(request, sender);
-    }
-
-    private void handleSignContractResponse(SignContractResponse request, NodeAddress sender) {
-        log.info("TradeManager handling SignContractResponse for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
-
-        try {
-            Validator.nonEmptyStringOf(request.getOfferId());
-        } catch (Throwable t) {
-            log.warn("Invalid SignContractResponse message " + request.toString());
-            return;
-        }
-
-        Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
-        if (!tradeOptional.isPresent()) {
-            log.warn("No trade with id " + request.getOfferId());
-            return;
-        }
-        Trade trade = tradeOptional.get();
-        ((TraderProtocol) getTradeProtocol(trade)).handleSignContractResponse(request, sender);
-    }
-
-    private void handleDepositRequest(DepositRequest request, NodeAddress sender) {
-        log.info("TradeManager handling DepositRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
-
-        try {
-            Validator.nonEmptyStringOf(request.getOfferId());
-        } catch (Throwable t) {
-            log.warn("Invalid DepositRequest message " + request.toString());
-            return;
-        }
-
-        Optional<Trade> tradeOptional = getOpenTrade(request.getOfferId());
-        if (!tradeOptional.isPresent()) {
-            log.warn("No trade with id " + request.getOfferId());
-            return;
-        }
-        Trade trade = tradeOptional.get();
-        ((ArbitratorProtocol) getTradeProtocol(trade)).handleDepositRequest(request, sender);
-    }
-
-    private void handleDepositResponse(DepositResponse response, NodeAddress sender) {
-        log.info("TradeManager handling DepositResponse for tradeId={}, sender={}, uid={}", response.getOfferId(), sender, response.getUid());
-
-        try {
-            Validator.nonEmptyStringOf(response.getOfferId());
-        } catch (Throwable t) {
-            log.warn("Invalid DepositResponse message " + response.toString());
-            return;
-        }
-
-        Optional<Trade> tradeOptional = getOpenTrade(response.getOfferId());
-        if (!tradeOptional.isPresent()) {
-            tradeOptional = getFailedTrade(response.getOfferId());
-            if (!tradeOptional.isPresent()) {
-                log.warn("No trade with id " + response.getOfferId());
-                return;
-            }
-        }
-        Trade trade = tradeOptional.get();
-        ((TraderProtocol) getTradeProtocol(trade)).handleDepositResponse(response, sender);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

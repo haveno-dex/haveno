@@ -22,6 +22,6 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.network.p2p.NodeAddress;
 
-public interface MakerProtocol extends TraderProtocol {
+public interface MakerProtocol {
     void handleInitTradeRequest(InitTradeRequest message, NodeAddress taker, ErrorMessageHandler errorMessageHandler);
 }
