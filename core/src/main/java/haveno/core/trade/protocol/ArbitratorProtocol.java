@@ -34,6 +34,9 @@ public class ArbitratorProtocol extends DisputeProtocol {
     @Override
     protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
         super.onTradeMessage(message, peer);
+        if (message instanceof DepositRequest) {
+            handleDepositRequest((DepositRequest) message, peer);
+        }
     }
 
     @Override
@@ -120,11 +123,11 @@ public class ArbitratorProtocol extends DisputeProtocol {
     }
     
     @Override
-    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
+    protected void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
         log.warn("Arbitrator ignoring SignContractResponse");
     }
-    
-    public void handleDepositRequest(DepositRequest request, NodeAddress sender) {
+
+    protected void handleDepositRequest(DepositRequest request, NodeAddress sender) {
         log.info(TradeProtocol.LOG_HIGHLIGHT + "handleDepositRequest() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -154,7 +157,7 @@ public class ArbitratorProtocol extends DisputeProtocol {
     }
     
     @Override
-    public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
+    protected void handleDepositResponse(DepositResponse response, NodeAddress sender) {
         log.warn("Arbitrator ignoring DepositResponse for trade " + response.getOfferId());
     }
 

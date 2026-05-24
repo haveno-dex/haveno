@@ -39,8 +39,6 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.Trade;
-import haveno.core.trade.messages.SignContractResponse;
-import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.protocol.tasks.ApplyFilter;
 import haveno.core.trade.protocol.tasks.BuyerPreparePaymentSentMessage;
 import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToArbitrator;
@@ -48,7 +46,6 @@ import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToSeller;
 import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToArbitrator;
 import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToSeller;
 import haveno.core.trade.protocol.tasks.TradeTask;
-import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -101,21 +98,6 @@ public class BuyerProtocol extends DisputeProtocol {
                 }
             }
         }, trade.getId());
-    }
-
-    @Override
-    protected void onTradeMessage(TradeMessage message, NodeAddress peer) {
-        super.onTradeMessage(message, peer);
-    }
-
-    @Override
-    public void onMailboxMessage(TradeMessage message, NodeAddress peer) {
-        super.onMailboxMessage(message, peer);
-    }
-
-    @Override
-    public void handleSignContractResponse(SignContractResponse response, NodeAddress sender) {
-        super.handleSignContractResponse(response, sender);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

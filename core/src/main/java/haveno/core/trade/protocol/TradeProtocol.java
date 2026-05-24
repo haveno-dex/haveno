@@ -146,7 +146,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     }
 
     private void handle(TradeMessage message, NodeAddress peerNodeAddress) {
-        if (message instanceof DepositsConfirmedMessage) {
+        if (message instanceof InitMultisigRequest) {
+            handleInitMultisigRequest((InitMultisigRequest) message, peerNodeAddress);
+        } else if (message instanceof SignContractRequest) {
+            handleSignContractRequest((SignContractRequest) message, peerNodeAddress);
+        } else if (message instanceof SignContractResponse) {
+            handleSignContractResponse((SignContractResponse) message, peerNodeAddress);
+        } else if (message instanceof DepositResponse) {
+            handleDepositResponse((DepositResponse) message, peerNodeAddress);
+        } else if (message instanceof DepositsConfirmedMessage) {
             handle((DepositsConfirmedMessage) message, peerNodeAddress);
         } else if (message instanceof PaymentSentMessage) {
             handle((PaymentSentMessage) message, peerNodeAddress);
@@ -388,7 +396,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, trade.getId());
     }
 
-    public void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
+    protected void handleInitMultisigRequest(InitMultisigRequest request, NodeAddress sender) {
         log.info(LOG_HIGHLIGHT + "handleInitMultisigRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
@@ -425,7 +433,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, trade.getId());
     }
 
-    public void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
+    protected void handleSignContractRequest(SignContractRequest message, NodeAddress sender) {
         log.info(LOG_HIGHLIGHT + "handleSignContractRequest() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         ThreadUtils.execute(() -> {
             synchronized (trade.getLock()) {
@@ -468,7 +476,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, trade.getId());
     }
 
-    public void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
+    protected void handleSignContractResponse(SignContractResponse message, NodeAddress sender) {
         log.info(LOG_HIGHLIGHT + "handleSignContractResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
@@ -490,7 +498,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                             .with(message)
                             .from(sender))
                             .setup(tasks(
-                                    // TODO (woodser): validate request
                                     SendDepositRequest.class)
                             .using(new TradeTaskRunner(trade,
                                     () -> {
@@ -514,7 +521,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, trade.getId());
     }
 
-    public void handleDepositResponse(DepositResponse response, NodeAddress sender) {
+    protected void handleDepositResponse(DepositResponse response, NodeAddress sender) {
         log.info(LOG_HIGHLIGHT + "handleDepositResponse() for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         trade.addInitProgressStep();
         ThreadUtils.execute(() -> {
@@ -554,7 +561,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, trade.getId());
     }
 
-    public void handle(DepositsConfirmedMessage message, NodeAddress sender) {
+    protected void handle(DepositsConfirmedMessage message, NodeAddress sender) {
         log.info(LOG_HIGHLIGHT + "handle(DepositsConfirmedMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
         if (!trade.isInitialized() || trade.isShutDown()) return;
         ThreadUtils.execute(() -> {

@@ -45,7 +45,6 @@ public class ProcessInitTradeRequest extends TradeTask {
         super(taskHandler, trade);
     }
 
-    // TODO (woodser): synchronize access to setting trade state in case of concurrent requests
     @Override
     protected void run() {
         try {
@@ -87,7 +86,7 @@ public class ProcessInitTradeRequest extends TradeTask {
 
             // handle request as arbitrator
             else if (trade instanceof ArbitratorTrade) {
-                trade.getMaker().setPubKeyRing((trade.getOffer().getPubKeyRing())); // TODO: why initializing this here?
+                trade.getMaker().setPubKeyRing((trade.getOffer().getPubKeyRing()));
                 trade.getArbitrator().setPubKeyRing(processModel.getPubKeyRing()); // TODO: why duplicating field in process model?
                 if (!trade.getArbitrator().getNodeAddress().equals(request.getArbitratorNodeAddress())) throw new RuntimeException("Trade's arbitrator node address does not match request");
 
@@ -114,7 +113,8 @@ public class ProcessInitTradeRequest extends TradeTask {
 
                 // handle request from taker
                 else if (sender == trade.getTaker()) {
-                    if (!trade.getTaker().getPubKeyRing().equals(request.getTakerPubKeyRing())) throw new RuntimeException("Taker's pub key ring does not match request's pub key ring");
+                    if (!request.getTakerPubKeyRing().equals(trade.getTaker().getPubKeyRing())) throw new RuntimeException("Taker's pub key ring does not match request's pub key ring");
+                    if (!request.getTakerAccountId().equals(trade.getTaker().getAccountId())) throw new RuntimeException("Taker's account id does not match request's account id");
                     if (request.getTradeAmount() != trade.getAmount().longValueExact()) throw new RuntimeException("Trade amount does not match request's trade amount");
                     if (request.getTradePrice() != trade.getPrice().getValue()) throw new RuntimeException("Trade price does not match request's trade price");
                     if (request.getCurrentDate() != trade.getTakeOfferDate().getTime()) throw new RuntimeException("Trade's take offer date does not match request's current date");
@@ -131,9 +131,9 @@ public class ProcessInitTradeRequest extends TradeTask {
                 if (request.getTradeAmount() != trade.getAmount().longValueExact()) throw new RuntimeException("Trade amount does not match request's trade amount");
                 if (request.getTradePrice() != trade.getPrice().getValue()) throw new RuntimeException("Trade price does not match request's trade price");
                 Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(request.getArbitratorNodeAddress());
-                if (arbitrator == null) throw new RuntimeException("Arbitrator is not accepted by taker");
+                if (arbitrator == null) throw new RuntimeException("Arbitrator is not accepted by taker: " + request.getArbitratorNodeAddress());
                 if (trade.getArbitrator().getNodeAddress() != null && !trade.getArbitrator().getNodeAddress().equals(request.getArbitratorNodeAddress())) throw new RuntimeException("Trade's arbitrator node address does not match request");
-                trade.getArbitrator().setNodeAddress(request.getArbitratorNodeAddress());
+                trade.getArbitrator().setNodeAddress(arbitrator.getNodeAddress());
                 trade.getArbitrator().setPubKeyRing(arbitrator.getPubKeyRing());
                 sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
                 if (sender != trade.getArbitrator()) throw new RuntimeException("InitTradeRequest to taker is expected from arbitrator");

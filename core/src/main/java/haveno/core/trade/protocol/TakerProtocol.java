@@ -22,7 +22,7 @@ import haveno.core.trade.handlers.TradeResultHandler;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.network.p2p.NodeAddress;
 
-public interface TakerProtocol extends TraderProtocol {
+public interface TakerProtocol {
     void onTakeOffer(TradeResultHandler tradeResultHandler, ErrorMessageHandler errorMessageHandler);
     void handleInitTradeRequest(InitTradeRequest message, NodeAddress peer);
 
