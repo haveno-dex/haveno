@@ -1,0 +1,5 @@
+
+task runSanity(type: JavaExec) {
+    mainClass = 'haveno.core.payment.payload.PaymentMethodSanityChecker'
+    classpath = sourceSets.main.runtimeClasspath
+}
