@@ -33,7 +33,7 @@ public abstract class XmrWalletBase {
 
     // constants
     protected static final int MAX_SYNC_ATTEMPTS = 5;
-    protected static final long SYNC_TIMEOUT_MS = 180000;
+    protected static final long SYNC_TIMEOUT_MS = 1800000;
     private static final String SYNC_TIMEOUT_MSG = "Sync timeout called";
     private static final String RECEIVED_ERROR_RESPONSE_MSG = "Received error response from RPC request";
     private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
