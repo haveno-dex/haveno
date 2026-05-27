@@ -298,7 +298,7 @@ Enter the alert message and new version number, then click the button to send th
 
 ## Manually sign payment accounts as the arbitrator
 
-Arbitrators can manually sign payment accounts. First open the legacy UI.
+Arbitrators can manually sign payment accounts. First open the desktop UI.
 
 ### Sign payment account after trade is completed
 
