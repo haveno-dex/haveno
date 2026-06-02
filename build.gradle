@@ -177,6 +177,7 @@ configure([project(':cli'),
                 if (applicationName == 'desktop') {
                     windowsScriptFile.text = windowsScriptFile.text.replace(
                         'DEFAULT_JVM_OPTS=', 'DEFAULT_JVM_OPTS=-XX:MaxRAM=4g ' +
+                            '--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED ' +
                             '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
                             '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
                             '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
@@ -191,6 +192,7 @@ configure([project(':cli'),
                 if (applicationName == 'desktop') {
                     unixScriptFile.text = unixScriptFile.text.replace(
                         'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="-XX:MaxRAM=4g ' +
+                            '--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED ' +
                             '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
                             '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
                             '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
@@ -624,6 +626,18 @@ configure(project(':desktop')) {
         "CFBundleVersion": version)
 
     mainClassName = 'haveno.desktop.app.HavenoAppMain'
+
+    applicationDefaultJvmArgs = [
+        "--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED",
+        "--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED",
+        "--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED",
+        "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+        "--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"
+    ]
+
+    run {
+        jvmArgs = applicationDefaultJvmArgs
+    }
 
     tasks.withType(AbstractArchiveTask) {
         preserveFileTimestamps = false

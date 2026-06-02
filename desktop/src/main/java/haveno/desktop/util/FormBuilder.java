@@ -868,7 +868,7 @@ public class FormBuilder {
         inputTextField.setPromptText(title);
         GridPane.setRowIndex(inputTextField, rowIndex);
         GridPane.setColumnIndex(inputTextField, 0);
-        GridPane.setMargin(inputTextField, new Insets(top + Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
+        GridPane.setMargin(inputTextField, new Insets(top + Layout.FLOATING_LABEL_DISTANCE, 0, 20, 0));
         gridPane.getChildren().add(inputTextField);
 
         return inputTextField;

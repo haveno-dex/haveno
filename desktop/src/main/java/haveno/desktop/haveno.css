@@ -2699,3 +2699,21 @@ textfield */
 .popup-with-input {
     -fx-background-color: -bs-color-background-popup-input;
 }
+
+/* Fix for Java 21 double prompt text bug in JFoenix */
+.jfx-text-field,
+.jfx-password-field,
+.jfx-text-area {
+    -fx-prompt-text-fill: transparent !important;
+}
+
+.jfx-text-field .prompt-text,
+.jfx-text-field .text,
+.jfx-password-field .prompt-text,
+.jfx-password-field .text,
+.jfx-text-area .prompt-text,
+.jfx-text-area .text,
+.jfx-text-field > .text-field > .prompt-text,
+.jfx-text-area > .scroll-pane > .viewport > .text-area > .prompt-text {
+    -fx-prompt-text-fill: transparent !important;
+}

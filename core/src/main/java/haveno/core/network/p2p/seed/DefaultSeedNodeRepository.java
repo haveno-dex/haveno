@@ -55,7 +55,9 @@ public class DefaultSeedNodeRepository implements SeedNodeRepository {
             // see if there are any seed nodes configured manually
             if (!config.seedNodes.isEmpty()) {
                 cache.clear();
-                config.seedNodes.forEach(s -> cache.add(new NodeAddress(s)));
+                config.seedNodes.stream()
+                        .filter(s -> s != null && !s.trim().isEmpty() && s.contains(":"))
+                        .forEach(s -> cache.add(new NodeAddress(s.trim())));
 
                 return;
             }
