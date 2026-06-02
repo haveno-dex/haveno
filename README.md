@@ -78,5 +78,5 @@ To bring Haveno to life, we need resources. If you have the possibility, please 
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/haveno-dex/haveno/master/media/donate_monero.png" alt="Donate Monero" width="115" height="115"><br>
-  <code>492gGyG35ia97V8SB7nSZDjAQQtJ7Tuuxhxy7SXEbNAMKLZzyzbZu5a1oH42ZTrSx8ePGBoY6EcNNZBnEBaPSkLZR7Qgj12</code>
+  <code>47fo8N5m2VVW4uojadGQVJ34LFR9yXwDrZDRugjvVSjcTWV2WFSoc1XfNpHmxwmVtfNY9wMBch6259G6BXXFmhU49YG1zfB</code>
 </p>
