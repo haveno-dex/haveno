@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 import java.util.regex.Pattern
 
 task jpackageSanityChecks {
-    description 'Interactive sanity checks on the version of the code that will be packaged'
+    description = 'Interactive sanity checks on the version of the code that will be packaged'
 
     doLast {
         if (!System.getenv("CI")) {
@@ -27,10 +27,10 @@ task jpackageSanityChecks {
                 ant.fail('Aborting')
             }
 
-            // TODO Evtl check programmatically in gradle (i.e. fail if below v11)
+            // TODO Evtl check programmatically in gradle (i.e. fail if below Java 21)
             executeCmd("java --version")
             ant.input(message: "Above you see the installed java version, which will be used to compile and build Haveno.\n" +
-                    "Is this java version ok for that? (y=continue, n=abort)",
+                    "Java 21 is required. Is this java version ok for that? (y=continue, n=abort)",
                     addproperty: "sanity-check-3",
                     validargs: "y,n")
             if (ant.properties['sanity-check-3'] == 'n') {
@@ -46,15 +46,15 @@ task jpackageSanityChecks {
 }
 
 task getJavaBinariesDownloadURLs {
-    description 'Find out which JDK will be used for jpackage and prepare to download it'
-    dependsOn 'jpackageSanityChecks'
+    description = 'Find out which JDK will be used for jpackage and prepare to download it'
+    dependsOn('jpackageSanityChecks')
 
     doLast {
         // The build directory will be deleted next time the clean task runs
         // Therefore, we can use it to store any temp files (separate JDK for jpackage, etc) and resulting build artefacts
         // We create a temp folder in the build directory which holds all jpackage-related artefacts (not just the final installers)
         String tempRootDirName = 'temp-' + LocalDateTime.now().format('yyyy.MM.dd-HHmmssSSS')
-        File tempRootDir = new File(project.buildDir, tempRootDirName)
+        File tempRootDir = layout.buildDirectory.dir(tempRootDirName).get().asFile
         tempRootDir.mkdirs()
         ext.tempRootDir = tempRootDir
         println "Created temp root folder " + tempRootDir
@@ -122,8 +122,8 @@ task getJavaBinariesDownloadURLs {
 }
 
 task retrieveAndExtractJavaBinaries {
-    description 'Retrieve necessary Java binaries and extract them'
-    dependsOn 'getJavaBinariesDownloadURLs'
+    description = 'Retrieve necessary Java binaries and extract them'
+    dependsOn('getJavaBinariesDownloadURLs')
 
     doLast {
         File tempRootDir = getJavaBinariesDownloadURLs.property("tempRootDir") as File
@@ -191,12 +191,12 @@ task retrieveAndExtractJavaBinaries {
 }
 
 task packageInstallers {
-    description 'Call jpackage to prepare platform-specific binaries for this platform'
-    dependsOn 'retrieveAndExtractJavaBinaries'
+    description = 'Call jpackage to prepare platform-specific binaries for this platform'
+    dependsOn('retrieveAndExtractJavaBinaries')
     // Clean all previous artifacts and create a fresh shadowJar for the installers
-    dependsOn rootProject.clean
-    dependsOn ':core:havenoDeps'
-    dependsOn ':desktop:shadowJar'
+    dependsOn(rootProject.clean)
+    dependsOn(':core:havenoDeps')
+    dependsOn(':desktop:shadowJar')
 
     doLast {
         String jPackageFilePath = retrieveAndExtractJavaBinaries.property('jpackageFilePath')
@@ -212,13 +212,13 @@ task packageInstallers {
         // However, the fat jar is the only one we need
         // Therefore, this location should point to a folder that ONLY contains the fat jar
         // If later we will need to include other non-jar resources, we can do that by adding --resource-dir to the jpackage opts
-        String fatJarFolderPath = "${project(':desktop').buildDir}/libs/fatJar"
-        String mainJarName = shadowJar.getArchiveFileName().get()
+        String fatJarFolderPath = "${project(':desktop').layout.buildDirectory.get()}/libs/fatJar"
+        String mainJarName = tasks.named('shadowJar').get().archiveFileName.get()
 
         delete(fatJarFolderPath)
         mkdir(fatJarFolderPath)
         copy {
-            from "${project(':desktop').buildDir}/libs/${mainJarName}"
+            from "${project(':desktop').layout.buildDirectory.get()}/libs/${mainJarName}"
             into fatJarFolderPath
         }
 
@@ -247,7 +247,7 @@ task packageInstallers {
         // for the release
         if (Os.isFamily(Os.FAMILY_MAC)) {
             println "Zipping jar lib for raspberry pi"
-            ant.zip(basedir: "${project(':desktop').buildDir}/app/lib",
+            ant.zip(basedir: "${project(':desktop').layout.buildDirectory.get()}/app/lib",
                     destfile: "${binariesFolderPath}/jar-lib-for-raspberry-pi-${appVersion}.zip")
         }
 
@@ -271,17 +271,9 @@ task packageInstallers {
                         // Options for creating the application launcher
                         " --main-jar ${mainJarName}" +
                         " --main-class haveno.desktop.app.HavenoAppMain" +
-                        " --java-options -Xss1280k" +
-                        " --java-options -XX:MaxRAM=4g" +
-                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED" +
-                        " --java-options --add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED" +
-                        " --java-options --add-opens=java.base/java.lang.reflect=ALL-UNNAMED" +
-                        " --java-options --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED" +
-                        " --java-options -Djava.net.preferIPv4Stack=true" +
+                        rootProject.ext.havenoDesktopJpackageOpts +
                         " --arguments --baseCurrencyNetwork=XMR_STAGENET"
-                // Warning: this will cause guice reflection exceptions and lead to issues with the guice internal cache
-                // resulting in the UI not loading
-//              " --java-options -Djdk.module.illegalAccess=deny" +
+                // Note: -Djdk.module.illegalAccess=deny breaks Guice reflection (UI won't load)
         )
 
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {

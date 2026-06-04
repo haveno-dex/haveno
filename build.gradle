@@ -1,24 +1,201 @@
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.gradle.api.tasks.Sync
 import org.gradle.internal.logging.ConsoleRenderer
+import org.gradle.jvm.application.tasks.CreateStartScripts
 
-buildscript {
-    repositories {
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.17'
-        classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.3'
-        classpath 'com.github.johnrengelman:shadow:8.1.1'
-        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.2.3'
-        classpath 'com.gradle:gradle-enterprise-gradle-plugin:3.16.1' // added for windows build verification-metadata.xml error
-    }
+plugins {
+    id 'base'
+    id 'com.google.osdetector' apply false
+    id 'com.google.protobuf' apply false
+    id 'com.gradleup.shadow' apply false
 }
 
 configure(rootProject) {
+    ext {
+        havenoJavaVersion = libs.versions.haveno.java.get().toInteger()
+
+        // JavaFX / Guice / JFoenix reflective access (desktop only).
+        // JavaFX jars must be on --module-path (see desktop startScripts) for these opens to apply.
+        havenoJavaFxModuleOpens = [
+            '--add-modules=javafx.controls,javafx.fxml,javafx.swing',
+            '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED',
+            '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED',
+            '--add-opens=javafx.base/com.sun.javafx.binding=ALL-UNNAMED',
+            '--add-opens=javafx.base/com.sun.javafx.event=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.javafx.scene.text=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.javafx.css=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.nio=ALL-UNNAMED',
+            '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
+        ]
+
+        // Shared runtime flags for all Haveno JVM processes
+        havenoCommonJvmArgs = [
+            '-XX:+ExitOnOutOfMemoryError',
+            '-XX:+HeapDumpOnOutOfMemoryError',
+            '-XX:HeapDumpPath=haveno-%p.hprof',
+            '-XX:+EnableDynamicAgentLoading',
+            '-Djava.net.preferIPv4Stack=true',
+            '-Dfile.encoding=UTF-8',
+            '-Dstdout.encoding=UTF-8',
+            '-Dstderr.encoding=UTF-8',
+        ]
+
+        // Java 21 generational ZGC — low pause times for long-running P2P / wallet workloads
+        havenoGcJvmArgs = [
+            '-XX:+UseZGC',
+            '-XX:+ZGenerational',
+            '-XX:SoftMaxHeapSize=3584m',
+            '-XX:ZUncommitDelay=300',
+            '-XX:+SegmentedCodeCache',
+            '-XX:MaxMetaspaceSize=512m',
+            '-XX:ReservedCodeCacheSize=256m',
+        ]
+
+        havenoMemory4gJvmArgs = [
+            '-XX:MaxRAM=4g',
+            '-Xms512m',
+            '-Xmx4g',
+        ]
+
+        havenoMemory2gJvmArgs = [
+            '-XX:MaxRAM=2g',
+            '-Xms256m',
+            '-Xmx2g',
+        ]
+
+        havenoMemory3gJvmArgs = [
+            '-XX:MaxRAM=3g',
+            '-Xms384m',
+            '-Xmx3g',
+        ]
+
+        havenoMemory512mJvmArgs = [
+            '-XX:MaxRAM=512m',
+            '-Xms128m',
+            '-Xmx512m',
+        ]
+
+        havenoHeadlessJvmArgs = havenoMemory4gJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+            '-Djava.awt.headless=true',
+            '-Xss1m',
+        ]
+
+        // seednode/haveno.env uses fixed 4g heap — match that profile
+        havenoSeednodeJvmArgs = [
+            '-XX:MaxRAM=4g',
+            '-Xms4g',
+            '-Xmx4g',
+        ] + havenoGcJvmArgs + havenoCommonJvmArgs + [
+            '-Djava.awt.headless=true',
+            '-Xss1m',
+        ]
+
+        havenoDesktopJvmArgs = havenoMemory4gJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+            '-Xss1280k',
+        ] + havenoJavaFxModuleOpens
+
+        havenoMonitorJvmArgs = havenoMemory512mJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+            '-Djava.awt.headless=true',
+        ]
+
+        havenoApitestLogbackOpt = '-Dlogback.configurationFile=apitest/build/resources/main/logback.xml'
+
+        havenoApitestLauncherJvmArgs = [
+            havenoApitestLogbackOpt,
+        ] + havenoHeadlessJvmArgs
+
+        // Flat string helpers for apitest spawned processes and env files
+        havenoJvmArgsToString = { List args -> args.join(' ') }
+
+        havenoApitestSpawnHeadlessJvmOpts = { List memoryArgs ->
+            havenoJvmArgsToString(memoryArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+                '-Djava.awt.headless=true',
+                '-Xss1m',
+                havenoApitestLogbackOpt,
+            ])
+        }
+
+        havenoApitestSpawnDesktopJvmOpts = { List memoryArgs ->
+            havenoJvmArgsToString(memoryArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+                '-Xss1280k',
+            ] + havenoJavaFxModuleOpens + [havenoApitestLogbackOpt])
+        }
+
+        // Pre-formatted for jpackage --java-options
+        havenoDesktopJpackageOpts = havenoDesktopJvmArgs.collect { " --java-options ${it}" }.join('')
+        havenoHeadlessJpackageOpts = havenoHeadlessJvmArgs.collect { " --java-options ${it}" }.join('')
+
+        patchDesktopAppHome = { File script ->
+            def text = script.text
+            text = text.replace(
+                    'APP_HOME=$( cd -P "${APP_HOME:-./}.." > /dev/null && printf \'%s\\n\' "$PWD" ) || exit',
+                    'APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf \'%s\\n\' "$PWD" ) || exit')
+            text = text.replace(
+                    'APP_HOME=$( cd "${APP_HOME:-./}.." > /dev/null && pwd -P ) || exit',
+                    'APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit')
+            script.text = text
+        }
+
+        patchDesktopStartScript = { File script, String pathSeparator ->
+            def text = script.text
+            def cpLineIndex = text.readLines().findIndexOf { it.startsWith('CLASSPATH=') }
+            if (cpLineIndex < 0) {
+                return
+            }
+            def cpLine = text.readLines()[cpLineIndex]
+            def jars = cpLine.substring('CLASSPATH='.length()).split(java.util.regex.Pattern.quote(pathSeparator))
+            def javafxJars = jars.findAll { it.contains('javafx-') }
+            def modulePath = javafxJars.join(pathSeparator)
+            def classpath = (jars - javafxJars).join(pathSeparator)
+
+            def lines = text.readLines()
+            lines[cpLineIndex] = "CLASSPATH=${classpath}"
+            lines.add(cpLineIndex + 1, "MODULE_PATH=${modulePath}")
+            text = lines.join('\n')
+
+            if (text.contains('CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )')) {
+                text = text.replace(
+                        'CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )',
+                        'CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )\n    MODULE_PATH=$( cygpath --path --mixed "$MODULE_PATH" )')
+            }
+
+            text = text.replace(
+                    'set -- \\\n        -classpath "$CLASSPATH" \\',
+                    'set -- \\\n        --module-path "$MODULE_PATH" \\\n        -classpath "$CLASSPATH" \\')
+
+            script.text = text
+        }
+
+        configureJavaFxModulePathForTest = { Test testTask ->
+            testTask.doFirst {
+                def allFiles = testTask.classpath.files
+                def javafxFiles = allFiles.findAll { it.name.startsWith('javafx-') && it.name.endsWith('.jar') }
+                if (javafxFiles.isEmpty()) {
+                    return
+                }
+                testTask.classpath = files(allFiles - javafxFiles.toSet())
+                testTask.jvmArgs = testTask.jvmArgs + [
+                    '--module-path', javafxFiles.collect { it.absolutePath }.join(File.pathSeparator),
+                ]
+                if (!testTask.jvmArgs.any { it.startsWith('--add-modules=') }) {
+                    def moduleNames = javafxFiles.collect { file ->
+                        def matcher = (file.name =~ /^javafx-([a-z]+)/)
+                        matcher ? "javafx.${matcher[0][1]}" : null
+                    }.findAll { it != null }.unique().sort()
+                    testTask.jvmArgs = testTask.jvmArgs + ["--add-modules=${moduleNames.join(',')}"]
+                }
+            }
+        }
+    }
+
     // remove the 'haveno-*' scripts and 'lib' dir generated by the 'installDist' task
-    task clean {
+    tasks.named('clean').configure {
         doLast {
-            delete fileTree(dir: rootProject.projectDir, include: 'haveno-*'), 'lib'
+            delete fileTree(dir: rootProject.layout.projectDirectory.asFile, include: 'haveno-*'), 'lib'
         }
     }
 }
@@ -31,53 +208,57 @@ configure(subprojects) {
     apply plugin: 'jacoco-report-aggregation'
     apply plugin: 'checkstyle'
 
-    sourceCompatibility = JavaVersion.VERSION_21
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(rootProject.ext.havenoJavaVersion)
+        }
+    }
 
-    ext { // in alphabetical order
-        bcVersion = '1.63'
-        bitcoinjVersion = '7dc0851a807857ba19f76824e48d75ab0390eca7'
-        codecVersion = '1.13'
-        cowwocVersion = '1.2'
-        easybindVersion = '1.0.3'
-        easyVersion = '4.0.1'
-        findbugsVersion = '3.0.2'
-        firebaseVersion = '6.2.0'
-        fontawesomefxVersion = '8.0.0'
-        fontawesomefxCommonsVersion = '9.1.2'
-        fontawesomefxMaterialdesignfontVersion = '2.0.26-9.1.2'
-        grpcVersion = '1.42.1'
-        gsonVersion = '2.8.5'
-        guavaVersion = '32.1.1-jre'
-        guiceVersion = '7.0.0'
-        moneroJavaVersion = '0.8.44'
-        httpclient5Version = '5.0'
-        hamcrestVersion = '2.2'
-        httpclientVersion = '4.5.12'
-        httpcoreVersion = '4.4.13'
-        ioVersion = '2.6'
-        jacksonVersion = '2.12.1'
-        javafxVersion = '21.0.9'
-        javaxAnnotationVersion = '1.2'
-        jcsvVersion = '1.4.0'
-        jetbrainsAnnotationsVersion = '13.0'
-        jfoenixVersion = '9.0.10'
-        joptVersion = '5.0.4'
-        jsonsimpleVersion = '1.1.1'
-        jsonrpc4jVersion = '1.6.0.bisq.1'
-        jupiterVersion = '5.9.2'
-        kotlinVersion = '1.3.41'
-        langVersion = '3.11'
-        logbackVersion = '1.1.11'
-        loggingVersion = '1.2'
-        lombokVersion = '1.18.30'
-        mockitoVersion = '5.10.0'
-        netlayerVersion = 'eb06444186' // Tor browser version 15.0.13 and tor binary version: 0.4.9.8
-        protobufVersion = '3.19.1'
+    ext { // in alphabetical order; versions from gradle/libs.versions.toml
+        def v = libs.versions
+        bcVersion = v.bc.get()
+        bitcoinjVersion = v.bitcoinj.get()
+        codecVersion = v.codec.get()
+        cowwocVersion = v.cowwoc.get()
+        easybindVersion = v.easybind.get()
+        easyVersion = v.easy.get()
+        findbugsVersion = v.findbugs.get()
+        firebaseVersion = v.firebase.get()
+        fontawesomefxCommonsVersion = v.fontawesomefx.commons.get()
+        fontawesomefxFontawesomeVersion = v.fontawesomefx.fontawesome.get()
+        fontawesomefxMaterialdesignfontVersion = v.fontawesomefx.materialdesignfont.get()
+        grpcVersion = v.grpc.get()
+        gsonVersion = v.gson.get()
+        guavaVersion = v.guava.get()
+        guiceVersion = v.guice.get()
+        moneroJavaVersion = v.monero.java.get()
+        httpclient5Version = v.httpclient5.get()
+        httpcore5Version = v.httpcore5.get()
+        hamcrestVersion = v.hamcrest.get()
+        ioVersion = v.commons.io.get()
+        jacksonVersion = v.jackson.get()
+        jacksonAnnotationsVersion = v.jacksonAnnotations.get()
+        javafxVersion = v.javafx.get()
+        javaxAnnotationVersion = v.javax.annotation.get()
+        commonsCsvVersion = v.commons.csv.get()
+        jetbrainsAnnotationsVersion = v.jetbrains.annotations.get()
+        jfoenixVersion = v.jfoenix.get()
+        joptVersion = v.jopt.get()
+        jsonrpc4jVersion = v.jsonrpc4j.get()
+        jupiterVersion = v.jupiter.get()
+        kotlinVersion = v.kotlin.get()
+        langVersion = v.commons.lang3.get()
+        logbackVersion = v.logback.get()
+        lombokVersion = v.lombok.get()
+        mockitoVersion = v.mockito.get()
+        netlayerVersion = v.netlayer.get() // Tor browser version 15.0.13 and tor binary version: 0.4.9.8
+        protobufVersion = v.protobuf.get()
         protocVersion = protobufVersion
-        pushyVersion = '0.13.2'
-        qrgenVersion = '1.3'
-        slf4jVersion = '1.7.30'
-        sparkVersion = '2.5.2'
+        pushyVersion = v.pushy.get()
+        slf4jVersion = v.slf4j.get()
+        sparkVersion = v.spark.get()
+        zxingCoreVersion = v.zxing.get()
+        zxingJavaSeVersion = v.zxing.get()
 
         def osName = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
         def osArch = System.getProperty("os.arch").toLowerCase()
@@ -90,17 +271,18 @@ configure(subprojects) {
 
     repositories {
         mavenCentral()
-        //mavenLocal()
-        maven { url 'https://jitpack.io' }
-        maven { url 'https://mvnrepository.com' }
+        maven { url = uri('https://jitpack.io') }
     }
 
-    tasks.withType(JavaCompile) {
+    tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
+        options.incremental = true
+        options.fork = true
+        options.compilerArgs.add('-parameters')
     }
 
     checkstyle {
-        toolVersion = '10.8.1'
+        toolVersion = libs.versions.checkstyle.get()
         // https://raw.githubusercontent.com/checkstyle/checkstyle/checkstyle-10.8.1/src/main/resources/google_checks.xml
         configFile = rootProject.file("$rootDir/config/checkstyle/checkstyle.xml")
     }
@@ -111,8 +293,7 @@ configure(subprojects) {
     }
 
     jacoco {
-        toolVersion = "0.8.10"
-        reportsDirectory = file("$rootDir/build/reports/jacoco")
+        toolVersion = libs.versions.jacoco.get()
     }
 
     test.finalizedBy {
@@ -127,6 +308,20 @@ configure(subprojects) {
 
     test {
         useJUnitPlatform()
+        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))
+        jvmArgs = rootProject.ext.havenoCommonJvmArgs + [
+            '-XX:+UseZGC',
+            '-XX:+ZGenerational',
+        ]
+        rootProject.ext.configureJavaFxModulePathForTest(it)
+    }
+
+    dependencies {
+        compileOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
+        compileOnly "com.google.code.findbugs:jsr305:$findbugsVersion"
+        compileOnly "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
+        testCompileOnly "com.google.code.findbugs:jsr305:$findbugsVersion"
+        testRuntimeOnly "org.junit.platform:junit-platform-launcher:$jupiterVersion"
     }
 }
 
@@ -142,82 +337,70 @@ configure([project(':cli'),
 
     apply plugin: 'application'
 
-    build.dependsOn installDist
-    installDist.destinationDir = file('build/app')
-    distZip.enabled = false
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoHeadlessJvmArgs
+    }
+
+    tasks.named('build').configure {
+        dependsOn tasks.named('installDist')
+    }
+    tasks.named('distZip').configure {
+        enabled = false
+    }
 
     // the 'installDist' and 'startScripts' blocks below configure haveno executables to put
     // generated shell scripts in the root project directory, such that users can easily
     // discover and invoke e.g. ./haveno-desktop, ./haveno-seednode, etc.
     // See https://stackoverflow.com/q/46327736 for details.
 
-    installDist {
+    def havenoScriptName = "haveno-${project.name}"
+
+    tasks.named('installDist', Sync).configure {
+        into layout.buildDirectory.dir('app')
         doLast {
+            def installDir = layout.buildDirectory.dir('app').get().asFile
             // copy generated shell scripts, e.g. `haveno-desktop` directly to the project
             // root directory for discoverability and ease of use
 
             copy {
-                from "$destinationDir/bin"
-                into rootProject.projectDir
+                from "$installDir/bin"
+                into rootProject.layout.projectDirectory
             }
             // copy libs required for generated shell script classpaths to 'lib' dir under
             // the project root directory
             copy {
-                from "$destinationDir/lib"
-                into "${rootProject.projectDir}/lib"
+                from "$installDir/lib"
+                into rootProject.layout.projectDirectory.dir('lib')
             }
 
             // edit generated shell scripts such that they expect to be executed in the
             // project root dir as opposed to a 'bin' subdirectory
             if (osdetector.os == 'windows') {
-                def windowsScriptFile = file("${rootProject.projectDir}/haveno-${applicationName}.bat")
+                def windowsScriptFile = rootProject.layout.projectDirectory.file("${havenoScriptName}.bat").asFile
                 windowsScriptFile.text = windowsScriptFile.text.replace(
                     'set APP_HOME=%DIRNAME%..', 'set APP_HOME=%DIRNAME%')
+            } else {
+                rootProject.ext.patchDesktopAppHome(
+                        rootProject.layout.projectDirectory.file(havenoScriptName).asFile)
+            }
 
-                if (applicationName == 'desktop') {
-                    windowsScriptFile.text = windowsScriptFile.text.replace(
-                        'DEFAULT_JVM_OPTS=', 'DEFAULT_JVM_OPTS=-XX:MaxRAM=4g ' +
-                            '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
-                            '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
-                            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
-                            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED')
+            if (osdetector.os != 'windows') {
+                def staleBat = rootProject.layout.projectDirectory.file("${havenoScriptName}.bat").asFile
+                if (staleBat.exists()) {
+                    staleBat.delete()
+                }
+            } else {
+                def staleSh = rootProject.layout.projectDirectory.file(havenoScriptName).asFile
+                if (staleSh.exists()) {
+                    staleSh.delete()
                 }
             }
-            else {
-                def unixScriptFile = file("${rootProject.projectDir}/haveno-$applicationName")
-                unixScriptFile.text = unixScriptFile.text.replace(
-                    'APP_HOME=$( cd "${APP_HOME:-./}.." > /dev/null && pwd -P ) || exit', 'APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit')
-
-                if (applicationName == 'desktop') {
-                    unixScriptFile.text = unixScriptFile.text.replace(
-                        'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="-XX:MaxRAM=4g ' +
-                            '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
-                            '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
-                            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
-                            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"')
-                }
-            }
-
-            if (applicationName == 'apitest') {
-                // Pass the logback config file as a system property to avoid chatty
-                // logback startup due to multiple logback.xml files in the classpath
-                // (:daemon & :cli).
-                def script = file("${rootProject.projectDir}/haveno-$applicationName")
-                script.text = script.text.replace(
-                    'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="' +
-                    '-Dlogback.configurationFile=apitest/build/resources/main/logback.xml"')
-            }
-
-            if (osdetector.os != 'windows')
-                delete fileTree(dir: rootProject.projectDir, include: 'haveno-*.bat')
-            else
-                delete fileTree(dir: rootProject.projectDir, include: 'haveno-*', exclude: '*.bat')
         }
     }
 
-    startScripts {
+    tasks.named('startScripts', CreateStartScripts).configure {
         // rename scripts from, e.g. `desktop` to `haveno-desktop`
-        applicationName = "haveno-$applicationName"
+        applicationName = havenoScriptName
     }
 }
 
@@ -244,9 +427,13 @@ configure(project(':proto')) {
     }
 
     sourceSets.main.java.srcDirs += [
-        'build/generated/source/proto/main/grpc',
-        'build/generated/source/proto/main/java'
+        'build/generated/sources/proto/main/grpc',
+        'build/generated/sources/proto/main/java'
     ]
+
+    tasks.named('compileJava').configure {
+        dependsOn(tasks.named('generateProto'))
+    }
 
     protobuf {
         protoc {
@@ -312,7 +499,7 @@ configure(project(':common')) {
         implementation "commons-io:commons-io:$ioVersion"
         implementation "net.sf.jopt-simple:jopt-simple:$joptVersion"
         implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.bouncycastle:bcpg-jdk15on:$bcVersion"
+        implementation "org.bouncycastle:bcpg-jdk18on:$bcVersion"
         implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
         implementation "org.slf4j:slf4j-api:$slf4jVersion"
         testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
@@ -359,9 +546,10 @@ configure(project(':p2p')) {
         implementation("com.google.inject:guice:$guiceVersion") {
             exclude(module: 'guava')
         }
-        implementation("org.apache.httpcomponents:httpclient:$httpclientVersion") {
+        implementation("org.apache.httpcomponents.client5:httpclient5:$httpclient5Version") {
             exclude(module: 'commons-codec')
         }
+        implementation "org.apache.httpcomponents.core5:httpcore5:$httpcore5Version"
         testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
         testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
@@ -390,7 +578,7 @@ configure(project(':core')) {
         implementation "ch.qos.logback:logback-classic:$logbackVersion"
         implementation "ch.qos.logback:logback-core:$logbackVersion"
         implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
-        implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
+        implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonAnnotationsVersion"
         implementation "com.google.code.findbugs:jsr305:$findbugsVersion"
         implementation "com.google.code.gson:gson:$gsonVersion"
         implementation "com.google.guava:guava:$guavaVersion"
@@ -399,7 +587,7 @@ configure(project(':core')) {
         implementation "commons-io:commons-io:$ioVersion"
         implementation "net.sf.jopt-simple:jopt-simple:$joptVersion"
         implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.apache.httpcomponents:httpcore:$httpcoreVersion"
+        implementation "org.apache.httpcomponents.core5:httpcore5:$httpcore5Version"
         implementation "org.fxmisc.easybind:easybind:$easybindVersion"
         implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
         implementation "org.slf4j:slf4j-api:$slf4jVersion"
@@ -428,9 +616,10 @@ configure(project(':core')) {
         implementation("com.google.inject:guice:$guiceVersion") {
             exclude(module: 'guava')
         }
-        implementation("org.apache.httpcomponents:httpclient:$httpclientVersion") {
+        implementation("org.apache.httpcomponents.client5:httpclient5:$httpclient5Version") {
             exclude(module: 'commons-codec')
         }
+        implementation "org.apache.httpcomponents.core5:httpcore5:$httpcore5Version"
         testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
         testCompileOnly "org.projectlombok:lombok:$lombokVersion"
         testImplementation "com.natpryce:make-it-easy:$easyVersion"
@@ -453,6 +642,9 @@ configure(project(':core')) {
     test {
         systemProperty 'jdk.attach.allowAttachSelf', true
     }
+
+    def repoRootDirectory = rootProject.layout.projectDirectory
+    def moneroBinDirectory = layout.projectDirectory.dir('src/main/resources/bin')
 
     task generateKeypairs(type: JavaExec) {
         mainClass = 'haveno.core.util.GenerateKeyPairs'
@@ -490,8 +682,7 @@ configure(project(':core')) {
             String moneroDownloadUrl = moneroBinaries[osKey]
             String moneroSHA256Hash = moneroBinaries[osKey + '-sha256']
             String moneroArchiveFileName = moneroDownloadUrl.tokenize('/').last()
-            String localnetDirName = '.localnet'
-            File localnetDir = new File(project.rootDir, localnetDirName)
+            File localnetDir = repoRootDirectory.dir('.localnet').asFile
             localnetDir.mkdirs()
             File moneroArchiveFile = new File(localnetDir, moneroArchiveFileName)
             ext.downloadAndVerifyDependencies(moneroDownloadUrl, moneroSHA256Hash, moneroArchiveFile)
@@ -516,12 +707,12 @@ configure(project(':core')) {
 
             // add the current platform's monero dependencies into the resources folder for installation
             copy {
-                from "${monerodFile}"
-                into "${project(':core').projectDir}/src/main/resources/bin"
+                from monerodFile
+                into moneroBinDirectory
             }
             copy {
-                from "${moneroRpcFile}"
-                into "${project(':core').projectDir}/src/main/resources/bin"
+                from moneroRpcFile
+                into moneroBinDirectory
             }
         }
 
@@ -574,11 +765,15 @@ configure(project(':core')) {
         }
     }
 
-    processResources.dependsOn havenoDeps // before both test and build
+    tasks.named('processResources').configure {
+        dependsOn tasks.named('havenoDeps') // before both test and build
+    }
 }
 
 configure(project(':cli')) {
-    mainClassName = 'haveno.cli.CliMain'
+    application {
+        mainClass = 'haveno.cli.CliMain'
+    }
 
     dependencies {
         implementation project(':proto')
@@ -613,22 +808,38 @@ configure(project(':cli')) {
 }
 
 configure(project(':desktop')) {
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'com.gradleup.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.6.0-SNAPSHOT'
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoDesktopJvmArgs
+        mainClass = 'haveno.desktop.app.HavenoAppMain'
+    }
+
+    startScripts {
+        doLast {
+            rootProject.ext.patchDesktopAppHome(unixScript)
+            rootProject.ext.patchDesktopStartScript(unixScript, ':')
+            rootProject.ext.patchDesktopAppHome(windowsScript)
+            rootProject.ext.patchDesktopStartScript(windowsScript, ';')
+        }
+    }
+
+    tasks.named('run', JavaExec).configure {
+        doFirst {
+            def allFiles = classpath.files
+            def javafxFiles = allFiles.findAll { it.name.startsWith('javafx-') && it.name.endsWith('.jar') }
+            classpath = files(allFiles - javafxFiles.toSet())
+            jvmArgs += ['--module-path', javafxFiles.collect { it.absolutePath }.join(File.pathSeparator)]
+        }
+    }
+
+    version = libs.versions.haveno.desktop.get()
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,
         "Implementation-Version": version,
         "CFBundleVersion": version)
-
-    mainClassName = 'haveno.desktop.app.HavenoAppMain'
-
-    tasks.withType(AbstractArchiveTask) {
-        preserveFileTimestamps = false
-        reproducibleFileOrder = true
-    }
 
     sourceSets.main.resources.srcDirs += ['src/main/java'] // to copy fxml and css files
 
@@ -645,15 +856,16 @@ configure(project(':desktop')) {
         implementation "com.google.code.gson:gson:$gsonVersion"
         implementation "com.google.guava:guava:$guavaVersion"
         implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "com.googlecode.jcsv:jcsv:$jcsvVersion"
+        implementation "com.google.zxing:core:$zxingCoreVersion"
+        implementation "com.google.zxing:javase:$zxingJavaSeVersion"
         implementation "com.jfoenix:jfoenix:$jfoenixVersion"
         implementation "commons-io:commons-io:$ioVersion"
         implementation "de.jensd:fontawesomefx-commons:$fontawesomefxCommonsVersion"
+        implementation "de.jensd:fontawesomefx-fontawesome:$fontawesomefxFontawesomeVersion"
         implementation "de.jensd:fontawesomefx-materialdesignfont:$fontawesomefxMaterialdesignfontVersion"
-        implementation "de.jensd:fontawesomefx:$fontawesomefxVersion"
-        implementation "net.glxn:qrgen:$qrgenVersion"
+        implementation "org.apache.commons:commons-csv:$commonsCsvVersion"
         implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.bouncycastle:bcpg-jdk15on:$bcVersion"
+        implementation "org.bouncycastle:bcpg-jdk18on:$bcVersion"
         implementation "org.fxmisc.easybind:easybind:$easybindVersion"
         implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
         implementation "org.slf4j:slf4j-api:$slf4jVersion"
@@ -718,13 +930,17 @@ configure(project(':desktop')) {
     }
 
     test {
+        jvmArgs = rootProject.ext.havenoDesktopJvmArgs
         systemProperty 'jdk.attach.allowAttachSelf', true
     }
 }
 
 
 configure(project(':monitor')) {
-    mainClassName = 'haveno.monitor.Monitor'
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoMonitorJvmArgs
+        mainClass = 'haveno.monitor.Monitor'
+    }
 
     dependencies {
         implementation project(':assets')
@@ -759,7 +975,9 @@ configure(project(':monitor')) {
 
 
 configure(project(':relay')) {
-    mainClassName = 'haveno.relay.RelayMain'
+    application {
+        mainClass = 'haveno.relay.RelayMain'
+    }
 
     dependencies {
         implementation project(':common')
@@ -771,8 +989,8 @@ configure(project(':relay')) {
             exclude(module: 'httpclient')
             exclude(module: 'httpcore')
         }
-        implementation "com.sparkjava:spark-core:$sparkVersion"
-        implementation "com.turo:pushy:$pushyVersion"
+        implementation "io.github.sparkjavateam:spark-core:$sparkVersion"
+        implementation "com.eatthepath:pushy:$pushyVersion"
         implementation "commons-codec:commons-codec:$codecVersion"
         implementation "io.grpc:grpc-auth:$grpcVersion"
     }
@@ -780,9 +998,12 @@ configure(project(':relay')) {
 
 
 configure(project(':seednode')) {
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'com.gradleup.shadow'
 
-    mainClassName = 'haveno.seednode.SeedNodeMain'
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoSeednodeJvmArgs
+        mainClass = 'haveno.seednode.SeedNodeMain'
+    }
 
     dependencies {
         implementation project(':common')
@@ -803,7 +1024,9 @@ configure(project(':seednode')) {
 
 
 configure(project(':statsnode')) {
-    mainClassName = 'haveno.statistics.StatisticsMain'
+    application {
+        mainClass = 'haveno.statistics.StatisticsMain'
+    }
 
     dependencies {
         implementation project(':common')
@@ -819,7 +1042,11 @@ configure(project(':statsnode')) {
 }
 
 configure(project(':daemon')) {
-    mainClassName = 'haveno.daemon.app.HavenoDaemonMain'
+    application {
+        mainClass = 'haveno.daemon.app.HavenoDaemonMain'
+    }
+
+    apply plugin: 'com.gradleup.shadow'
 
     dependencies {
         implementation project(':proto')
@@ -880,9 +1107,11 @@ configure(project(':daemon')) {
 }
 
 configure(project(':inventory')) {
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'com.gradleup.shadow'
 
-    mainClassName = 'haveno.inventory.InventoryMonitorMain'
+    application {
+        mainClass = 'haveno.inventory.InventoryMonitorMain'
+    }
 
     dependencies {
         implementation project(':common')
@@ -893,7 +1122,7 @@ configure(project(':inventory')) {
         implementation "ch.qos.logback:logback-classic:$logbackVersion"
         implementation "ch.qos.logback:logback-core:$logbackVersion"
         implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.sparkjava:spark-core:$sparkVersion"
+        implementation "io.github.sparkjavateam:spark-core:$sparkVersion"
         implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
         implementation("com.google.inject:guice:$guiceVersion") {
             exclude(module: 'guava')
@@ -902,7 +1131,10 @@ configure(project(':inventory')) {
 }
 
 configure(project(':apitest')) {
-    mainClassName = 'haveno.apitest.ApiTestMain'
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoApitestLauncherJvmArgs
+        mainClass = 'haveno.apitest.ApiTestMain'
+    }
 
     // We have to disable the :apitest 'test' task by default because we do not want
     // to interfere with normal builds.  To run JUnit tests in this subproject:
@@ -917,7 +1149,7 @@ configure(project(':apitest')) {
             exceptionFormat = "full"
             // Show passed & failed tests, and anything printed to stderr by the tests in the console.
             // Do not show skipped tests in the console;  they are shown in the html report.
-            events "passed", "failed", "standardError"
+            events = ["passed", "failed", "standardError"]
         }
 
         afterSuite { desc, result ->
@@ -981,6 +1213,19 @@ configure(project(':apitest')) {
         testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
         testRuntimeOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
         testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+    }
+}
+
+// Reproducible fat JARs for release packaging (daemon, desktop, seednode, inventory)
+configure([project(':daemon'), project(':desktop'), project(':seednode'), project(':inventory')]) {
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+
+    tasks.named('shadowJar').configure {
+        archiveClassifier.set('all')
+        mergeServiceFiles()
     }
 }
 

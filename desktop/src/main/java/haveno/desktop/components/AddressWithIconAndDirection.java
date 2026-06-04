@@ -17,8 +17,8 @@
 
 package haveno.desktop.components;
 
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -39,7 +39,7 @@ public class AddressWithIconAndDirection extends HBox {
         Label directionIcon = new Label();
         directionIcon.getStyleClass().add("icon");
         directionIcon.getStyleClass().add(received ? "received-funds-icon" : "sent-funds-icon");
-        AwesomeDude.setIcon(directionIcon, received ? AwesomeIcon.SIGNIN : AwesomeIcon.SIGNOUT);
+        GlyphsDude.setIcon(directionIcon, received ? FontAwesomeIcon.SIGN_IN : FontAwesomeIcon.SIGN_OUT);
         if (received)
             directionIcon.setRotate(180);
         directionIcon.setMouseTransparent(true);

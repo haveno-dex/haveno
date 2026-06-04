@@ -161,8 +161,8 @@ public class CoreAccountService {
 
                 // exclude monero binaries from backup so they're reinstalled with permissions
                 List<File> excludedFiles = Arrays.asList(
-                        new File(XmrWalletService.MONERO_WALLET_RPC_PATH),
-                        new File(XmrLocalNode.MONEROD_PATH)
+                        new File(XmrWalletService.getMoneroWalletRpcPath()),
+                        new File(XmrLocalNode.getMonerodPath())
                 );
 
                 new Thread(() -> {

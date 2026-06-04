@@ -21,14 +21,14 @@ import com.google.common.base.Charsets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.googlecode.jcsv.CSVStrategy;
-import com.googlecode.jcsv.writer.CSVEntryConverter;
-import com.googlecode.jcsv.writer.CSVWriter;
-import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.CorruptedStorageFileHandler;
@@ -92,6 +92,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.text.Text;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
@@ -113,10 +114,13 @@ import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTxConfig;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Coin;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -135,6 +139,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.desktop.util.FormBuilder.addTopLabelComboBoxComboBox;
@@ -252,25 +257,31 @@ public class GUIUtil {
     }
 
 
-    public static <T> void exportCSV(String fileName, CSVEntryConverter<T> headerConverter,
-                                     CSVEntryConverter<T> contentConverter, T emptyItem,
+    public static byte[] generateQrCodePng(String data, int width, int height) {
+        try {
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, width, height);
+            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+            return pngOutputStream.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate QR code", e);
+        }
+    }
+
+    public static <T> void exportCSV(String fileName, Function<T, String[]> headerConverter,
+                                     Function<T, String[]> contentConverter, T emptyItem,
                                      List<T> list, Stage stage) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setInitialFileName(fileName);
         File file = fileChooser.showSaveDialog(stage);
         if (file != null) {
-            try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(file, false), Charsets.UTF_8)) {
-                CSVWriter<T> headerWriter = new CSVWriterBuilder<T>(outputStreamWriter)
-                        .strategy(CSVStrategy.UK_DEFAULT)
-                        .entryConverter(headerConverter)
-                        .build();
-                headerWriter.write(emptyItem);
-
-                CSVWriter<T> contentWriter = new CSVWriterBuilder<T>(outputStreamWriter)
-                        .strategy(CSVStrategy.UK_DEFAULT)
-                        .entryConverter(contentConverter)
-                        .build();
-                contentWriter.writeAll(list);
+            try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(new FileOutputStream(file, false), Charsets.UTF_8);
+                 CSVPrinter printer = new CSVPrinter(outputStreamWriter, CSVFormat.DEFAULT)) {
+                printer.printRecord((Object[]) headerConverter.apply(emptyItem));
+                for (T item : list) {
+                    printer.printRecord((Object[]) contentConverter.apply(item));
+                }
             } catch (RuntimeException | IOException e) {
                 e.printStackTrace();
                 log.error(e.getMessage());
@@ -1094,7 +1105,7 @@ public class GUIUtil {
 
         return (state.equals(AccountAgeWitnessService.SignState.ARBITRATOR) ||
                 state.equals(AccountAgeWitnessService.SignState.PEER_SIGNER)) ?
-                MaterialDesignIcon.APPROVAL : MaterialDesignIcon.ALERT_CIRCLE_OUTLINE;
+                MaterialDesignIcon.CHECKBOX_MARKED_CIRCLE : MaterialDesignIcon.ALERT_OUTLINE;
     }
 
     public static ScrollPane createScrollPane() {
@@ -1374,13 +1385,13 @@ public class GUIUtil {
     }
 
     public static Label getLockLabel() {
-        Label lockLabel = FormBuilder.getIcon(AwesomeIcon.LOCK, "16px");
+        Label lockLabel = FormBuilder.getIcon(FontAwesomeIcon.LOCK, "16px");
         lockLabel.setStyle(lockLabel.getStyle() + " -fx-text-fill: white;");
         return lockLabel;
     }
 
-    public static MaterialDesignIconView getCopyIcon() {
-        return new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.35em");
+    public static Text getCopyIcon() {
+        return GlyphsDude.createIcon(MaterialDesignIcon.CONTENT_COPY, "1.35em");
     }
 
 

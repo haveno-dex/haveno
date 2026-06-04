@@ -17,7 +17,7 @@
 
 package haveno.desktop.components;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.GlyphIcons;
 import haveno.desktop.components.controlsfx.control.PopOver;
 import javafx.geometry.Insets;
@@ -41,7 +41,7 @@ public class InfoAutoTooltipLabel extends AutoTooltipLabel {
         positionAndActivateIcon(contentDisplay, info, DEFAULT_WIDTH);
     }
 
-    public InfoAutoTooltipLabel(String text, AwesomeIcon icon, ContentDisplay contentDisplay, String info, double width) {
+    public InfoAutoTooltipLabel(String text, FontAwesomeIcon icon, ContentDisplay contentDisplay, String info, double width) {
         super(text);
 
         setIcon(icon);
@@ -62,7 +62,7 @@ public class InfoAutoTooltipLabel extends AutoTooltipLabel {
         positionAndActivateIcon(contentDisplay, info, DEFAULT_WIDTH);
     }
 
-    public void setIcon(AwesomeIcon icon) {
+    public void setIcon(FontAwesomeIcon icon) {
         textIcon = getIcon(icon);
     }
 

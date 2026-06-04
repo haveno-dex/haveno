@@ -18,8 +18,8 @@
 package haveno.desktop.main.funds.transactions;
 
 import com.google.inject.Inject;
-import com.googlecode.jcsv.writer.CSVEntryConverter;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import java.util.function.Function;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.UserThread;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
@@ -202,13 +202,13 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         exportButton.setOnAction(event -> {
             final ObservableList<TableColumn<TransactionsListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             final int reportColumns = tableColumns.size();
-            CSVEntryConverter<TransactionsListItem> headerConverter = item -> {
+            Function<TransactionsListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[reportColumns];
                 for (int i = 0; i < columns.length; i++)
                     columns[i] = ((AutoTooltipLabel) tableColumns.get(i).getGraphic()).getText();
                 return columns;
             };
-            CSVEntryConverter<TransactionsListItem> contentConverter = item -> {
+            Function<TransactionsListItem, String[]> contentConverter = item -> {
                 String[] columns = new String[reportColumns];
                 columns[0] = item.getDateString();
                 columns[1] = item.getDetails();
@@ -312,7 +312,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
                                 if (item != null && !empty) {
                                     if (item.getDetailsAvailable()) {
-                                        hyperlinkWithIcon = new HyperlinkWithIcon(item.getDetails(), AwesomeIcon.INFO_SIGN);
+                                        hyperlinkWithIcon = new HyperlinkWithIcon(item.getDetails(), FontAwesomeIcon.INFO_CIRCLE);
                                         hyperlinkWithIcon.setOnAction(event -> openDetailPopup(item));
                                         hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                         setGraphic(hyperlinkWithIcon);
@@ -383,7 +383,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                 //noinspection Duplicates
                                 if (item != null && !empty) {
                                     String transactionId = item.getTxId();
-                                    hyperlinkWithIcon = new HyperlinkWithIcon(transactionId, AwesomeIcon.INFO_SIGN);
+                                    hyperlinkWithIcon = new HyperlinkWithIcon(transactionId, FontAwesomeIcon.INFO_CIRCLE);
                                     hyperlinkWithIcon.setOnAction(event -> openTxDetailPopup(item));
                                     hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("txDetailsWindow.headline")));
                                     setGraphic(hyperlinkWithIcon);

@@ -17,7 +17,7 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
 import haveno.core.network.MessageState;
@@ -99,28 +99,28 @@ public class BuyerStep3View extends TradeStepView {
         Label iconLabel = textFieldWithIcon.getIconLabel();
         switch (messageState) {
             case UNDEFINED:
-                textFieldWithIcon.setIcon(AwesomeIcon.QUESTION);
+                textFieldWithIcon.setIcon(FontAwesomeIcon.QUESTION);
                 iconLabel.getStyleClass().add("trade-msg-state-undefined");
                 break;
             case SENT:
-                textFieldWithIcon.setIcon(AwesomeIcon.ARROW_RIGHT);
+                textFieldWithIcon.setIcon(FontAwesomeIcon.ARROW_RIGHT);
                 iconLabel.getStyleClass().add("trade-msg-state-sent");
                 break;
             case ARRIVED:
-                textFieldWithIcon.setIcon(AwesomeIcon.OK);
+                textFieldWithIcon.setIcon(FontAwesomeIcon.CHECK);
                 iconLabel.getStyleClass().add("trade-msg-state-arrived");
                 break;
             case STORED_IN_MAILBOX:
-                textFieldWithIcon.setIcon(AwesomeIcon.ENVELOPE_ALT);
+                textFieldWithIcon.setIcon(FontAwesomeIcon.ENVELOPE_ALT);
                 iconLabel.getStyleClass().add("trade-msg-state-stored");
                 break;
             case ACKNOWLEDGED:
-                textFieldWithIcon.setIcon(AwesomeIcon.OK_SIGN);
+                textFieldWithIcon.setIcon(FontAwesomeIcon.CHECK_CIRCLE);
                 iconLabel.getStyleClass().add("trade-msg-state-stored");
                 break;
             case FAILED:
             case NACKED:
-                textFieldWithIcon.setIcon(AwesomeIcon.EXCLAMATION_SIGN);
+                textFieldWithIcon.setIcon(FontAwesomeIcon.EXCLAMATION_TRIANGLE);
                 iconLabel.getStyleClass().add("trade-msg-state-acknowledged");
                 break;
         }

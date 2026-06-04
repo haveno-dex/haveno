@@ -96,8 +96,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import monero.wallet.model.MoneroWalletListener;
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
 import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -337,12 +335,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     private void updateQRCode() {
         if (addressTextField.getAddress() != null && !addressTextField.getAddress().isEmpty()) {
-            final byte[] imageBytes = QRCode
-                    .from(getPaymentUri())
-                    .withSize(300, 300)
-                    .to(ImageType.PNG)
-                    .stream()
-                    .toByteArray();
+            final byte[] imageBytes = GUIUtil.generateQrCodePng(getPaymentUri(), 300, 300);
             Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
             qrCodeImageView.setImage(qrImage);
         }

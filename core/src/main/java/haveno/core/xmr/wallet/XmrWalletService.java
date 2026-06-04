@@ -105,9 +105,8 @@ public class XmrWalletService extends XmrWalletBase {
 
     // monero configuration
     public static final int NUM_BLOCKS_UNLOCK = 10;
-    public static final String MONERO_BINS_DIR = Config.appDataDir().getAbsolutePath();
+    private static volatile String moneroBinsDir;
     public static final String MONERO_WALLET_RPC_NAME = Utilities.isWindows() ? "monero-wallet-rpc.exe" : "monero-wallet-rpc";
-    public static final String MONERO_WALLET_RPC_PATH = MONERO_BINS_DIR + File.separator + MONERO_WALLET_RPC_NAME;
     public static final MoneroTxPriority PROTOCOL_FEE_PRIORITY = MoneroTxPriority.DEFAULT;
     public static final int MONERO_LOG_LEVEL = -1; // monero library log level, -1 to disable
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
@@ -125,6 +124,17 @@ public class XmrWalletService extends XmrWalletBase {
     private static final boolean TEST_STARTUP_SYNC_ERROR = false;
     private static final long INIT_WALLET_DELAY_MS = 5000;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
+
+    public static String getMoneroBinsDir() {
+        if (moneroBinsDir == null) {
+            moneroBinsDir = Config.appDataDir().getAbsolutePath();
+        }
+        return moneroBinsDir;
+    }
+
+    public static String getMoneroWalletRpcPath() {
+        return getMoneroBinsDir() + File.separator + MONERO_WALLET_RPC_NAME;
+    }
 
     private final User user;
     private final Preferences preferences;
@@ -1713,12 +1723,12 @@ public class XmrWalletService extends XmrWalletBase {
     private MoneroWalletRpc startWalletRpcInstance(Integer port, MoneroRpcConnection connection) {
 
         // check if monero-wallet-rpc exists
-        if (!new File(MONERO_WALLET_RPC_PATH).exists()) throw new RuntimeException("monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH
+        if (!new File(getMoneroWalletRpcPath()).exists()) throw new RuntimeException("monero-wallet-rpc executable doesn't exist at path " + getMoneroWalletRpcPath()
                 + "; copy monero-wallet-rpc to the project root or set WalletConfig.java MONERO_WALLET_RPC_PATH for your system");
 
         // build command to start monero-wallet-rpc
         List<String> cmd = new ArrayList<>(Arrays.asList( // modifiable list
-                MONERO_WALLET_RPC_PATH,
+                getMoneroWalletRpcPath(),
                 "--rpc-login",
                 MONERO_WALLET_RPC_USERNAME + ":" + MONERO_WALLET_RPC_DEFAULT_PASSWORD,
                 "--wallet-dir", walletDir.toString()));

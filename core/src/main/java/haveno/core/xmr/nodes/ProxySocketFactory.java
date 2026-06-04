@@ -30,7 +30,7 @@
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  * <p/>
  * You should have received a copy of the GNU General Public License along with
- * PircBotX. If not, see <http://www.gnu.org/licenses/>.
+ * PircBotX. If not, see https://www.gnu.org/licenses/.
  */
 
 package haveno.core.xmr.nodes;

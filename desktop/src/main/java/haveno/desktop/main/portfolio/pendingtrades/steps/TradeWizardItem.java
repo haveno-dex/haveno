@@ -61,7 +61,7 @@ public class TradeWizardItem extends Label {
 
     public void setCompleted() {
         setId("trade-wizard-item-background-active");
-        final Text icon = getBigIcon(MaterialDesignIcon.CHECK_CIRCLE);
+        final Text icon = getBigIcon(MaterialDesignIcon.CHECKBOX_MARKED_CIRCLE);
         icon.getStyleClass().add("trade-step-active-bg");
         UserThread.execute(() -> setGraphic(icon));
     }
@@ -71,7 +71,7 @@ public class TradeWizardItem extends Label {
         StackPane stackPane = new StackPane();
         final Label label = new Label(iconLabel);
         label.getStyleClass().add("trade-step-label");
-        final Text icon = getBigIcon(MaterialDesignIcon.CIRCLE);
+        final Text icon = getBigIcon(MaterialDesignIcon.CHECKBOX_BLANK_CIRCLE_OUTLINE);
         icon.getStyleClass().add(styleClass);
         stackPane.getChildren().addAll(icon, label);
         return stackPane;

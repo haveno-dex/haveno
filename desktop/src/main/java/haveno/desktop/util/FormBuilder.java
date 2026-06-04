@@ -21,10 +21,9 @@ import com.jfoenix.controls.JFXComboBox;
 //import com.jfoenix.controls.JFXDatePicker;
 import com.jfoenix.controls.JFXTextArea;
 import com.jfoenix.controls.JFXToggleButton;
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.GlyphIcons;
-import de.jensd.fx.glyphs.materialdesignicons.utils.MaterialDesignIconFactory;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
 import haveno.common.util.Tuple4;
@@ -2392,7 +2391,7 @@ public class FormBuilder {
 
     public static Text getIconForLabel(GlyphIcons icon, String iconSize, Label label, String style) {
         if (icon.fontFamily().equals(MATERIAL_DESIGN_ICONS)) {
-            final Text textIcon = MaterialDesignIconFactory.get().createIcon(icon, iconSize);
+            final Text textIcon = GlyphsDude.createIcon(icon, iconSize);
             textIcon.setOpacity(0.7);
             if (style != null) {
                 textIcon.getStyleClass().add(style);
@@ -2441,7 +2440,7 @@ public class FormBuilder {
         Text textIcon;
 
         if (icon.fontFamily().equals(MATERIAL_DESIGN_ICONS)) {
-            textIcon = MaterialDesignIconFactory.get().createIcon(icon, iconSize);
+            textIcon = GlyphsDude.createIcon(icon, iconSize);
         } else {
             throw new IllegalArgumentException("Not supported icon type");
         }
@@ -2450,22 +2449,22 @@ public class FormBuilder {
     }
 
 
-    public static Label getIcon(AwesomeIcon icon) {
+    public static Label getIcon(FontAwesomeIcon icon) {
         final Label label = new Label();
-        AwesomeDude.setIcon(label, icon);
+        GlyphsDude.setIcon(label, icon);
         return label;
     }
 
-    public static Label getIcon(AwesomeIcon icon, String fontSize) {
+    public static Label getIcon(FontAwesomeIcon icon, String fontSize) {
         return getIconForLabel(icon, new Label(), fontSize);
     }
 
-    public static Label getSmallIcon(AwesomeIcon icon) {
+    public static Label getSmallIcon(FontAwesomeIcon icon) {
         return getIcon(icon, "1em");
     }
 
-    public static Label getIconForLabel(AwesomeIcon icon, Label label, String fontSize) {
-        AwesomeDude.setIcon(label, icon, fontSize);
+    public static Label getIconForLabel(FontAwesomeIcon icon, Label label, String fontSize) {
+        GlyphsDude.setIcon(label, icon, fontSize);
         return label;
     }
 
@@ -2487,7 +2486,7 @@ public class FormBuilder {
 
     public static Button getIconButton(GlyphIcons icon, String styleClass, String iconSize) {
         if (icon.fontFamily().equals(MATERIAL_DESIGN_ICONS)) {
-            Button iconButton = MaterialDesignIconFactory.get().createIconButton(icon,
+            Button iconButton = GlyphsDude.createIconButton(icon,
                     "", iconSize, null, ContentDisplay.CENTER);
             iconButton.setId("icon-button");
             iconButton.getGraphic().getStyleClass().add(styleClass);

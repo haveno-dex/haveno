@@ -233,7 +233,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         HBox.setHgrow(filterTextField, Priority.ALWAYS);
 
         alertIconLabel = new Label();
-        Text icon = getIconForLabel(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE, "2em", alertIconLabel);
+        Text icon = getIconForLabel(MaterialDesignIcon.ALERT_OUTLINE, "2em", alertIconLabel);
         icon.getStyleClass().add("alert-icon");
         HBox.setMargin(alertIconLabel, new Insets(4, 0, 0, 10));
         alertIconLabel.setMouseTransparent(false);

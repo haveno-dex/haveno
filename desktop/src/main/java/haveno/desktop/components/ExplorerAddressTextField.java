@@ -18,8 +18,8 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
@@ -57,7 +57,7 @@ public class ExplorerAddressTextField extends AnchorPane {
 
         missingAddressWarningIcon = new Label();
         missingAddressWarningIcon.getStyleClass().addAll("icon", "error-icon");
-        AwesomeDude.setIcon(missingAddressWarningIcon, AwesomeIcon.WARNING_SIGN);
+        GlyphsDude.setIcon(missingAddressWarningIcon, FontAwesomeIcon.WARNING);
         missingAddressWarningIcon.setTooltip(new Tooltip(Res.get("explorerAddressTextField.missingTx.warning.tooltip")));
         missingAddressWarningIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(missingAddressWarningIcon, 52.0);

@@ -263,7 +263,7 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                             }
 
                             alertIconLabel = new Label();
-                            Text icon = getIconForLabel(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE, "1.5em", alertIconLabel);
+                            Text icon = getIconForLabel(MaterialDesignIcon.ALERT_OUTLINE, "1.5em", alertIconLabel);
                             icon.getStyleClass().add("alert-icon");
                             HBox.setMargin(alertIconLabel, new Insets(4, 0, 0, 10));
                             alertIconLabel.setMouseTransparent(false);

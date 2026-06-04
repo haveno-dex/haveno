@@ -19,7 +19,7 @@ package haveno.desktop.main.market.trades;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.googlecode.jcsv.writer.CSVEntryConverter;
+import java.util.function.Function;
 import com.jfoenix.controls.JFXTabPane;
 import haveno.common.UserThread;
 import haveno.common.util.MathUtils;
@@ -397,7 +397,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         int reportColumns = tableColumns.size() + 1;
 
         boolean showAllTradeCurrencies = model.showAllTradeCurrenciesProperty.get();
-        CSVEntryConverter<TradeStatistics3ListItem> headerConverter = item -> {
+        Function<TradeStatistics3ListItem, String[]> headerConverter = item -> {
             String[] columns = new String[reportColumns];
             columns[0] = "Epoch time in ms";
             for (int i = 0; i < tableColumns.size(); i++) {
@@ -406,7 +406,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
             return columns;
         };
 
-        CSVEntryConverter<TradeStatistics3ListItem> contentConverter;
+        Function<TradeStatistics3ListItem, String[]> contentConverter;
         if (showAllTradeCurrencies) {
             contentConverter = item -> {
                 String[] columns = new String[reportColumns];

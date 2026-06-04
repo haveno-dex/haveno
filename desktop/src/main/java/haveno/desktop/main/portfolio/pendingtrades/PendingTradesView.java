@@ -667,7 +667,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                                 if (isMaybeInvalidTrade(trade)) {
                                     field = new HyperlinkWithIcon(trade.getShortId());
-                                    field.setIcon(FormBuilder.getMediumSizeIcon(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE));
+                                    field.setIcon(FormBuilder.getMediumSizeIcon(MaterialDesignIcon.ALERT_OUTLINE));
                                     field.setOnAction(event -> tradeDetailsWindow.show(trade));
                                     field.setTooltip(new Tooltip(Res.get("tooltip.invalidTradeState.warning")));
                                     if (trade.isTxChainInvalid()) {
@@ -976,8 +976,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                             private void update() {
                                 if (isMaybeInvalidTrade(trade)) {
-                                    Text warnIcon = FormBuilder.getMediumSizeIcon(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE);
-                                    Text trashIcon = FormBuilder.getMediumSizeIcon(MaterialDesignIcon.ARROW_RIGHT_BOLD_BOX_OUTLINE);
+                                    Text warnIcon = FormBuilder.getMediumSizeIcon(MaterialDesignIcon.ALERT_OUTLINE);
+                                    Text trashIcon = FormBuilder.getMediumSizeIcon(MaterialDesignIcon.ARROW_RIGHT_BOLD_HEXAGON_OUTLINE);
                                     if (trade.isTxChainInvalid()) {
                                         trashIcon.getStyleClass().addAll("icon", "error-icon");
                                         warnIcon.getStyleClass().addAll("icon", "error-icon");

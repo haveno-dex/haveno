@@ -86,7 +86,7 @@ public class TitledGroupBg extends Pane {
 
     public void setHelpUrl(String helpUrl) {
         if (helpIcon == null) {
-            helpIcon = FormBuilder.getIcon(MaterialDesignIcon.HELP_CIRCLE_OUTLINE, "1em");
+            helpIcon = FormBuilder.getIcon(MaterialDesignIcon.HELP_CIRCLE, "1em");
             helpIcon.getStyleClass().addAll("icon", "link-icon");
             box.getChildren().add(helpIcon);
         }

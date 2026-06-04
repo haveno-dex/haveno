@@ -51,8 +51,15 @@ public class XmrLocalNode {
     // constants
     public static final long REFRESH_PERIOD_LOCAL_MS = 5000; // refresh period for local node
     public static final String MONEROD_NAME = Utilities.isWindows() ? "monerod.exe" : "monerod";
-    public static final String MONEROD_PATH = XmrWalletService.MONERO_BINS_DIR + File.separator + MONEROD_NAME;
-    private static final String MONEROD_DATADIR =  Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? XmrWalletService.MONERO_BINS_DIR + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1" : null; // use default directory unless local
+    public static String getMonerodPath() {
+        return XmrWalletService.getMoneroBinsDir() + File.separator + MONEROD_NAME;
+    }
+
+    private static String getMonerodDataDir() {
+        return Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL
+                ? XmrWalletService.getMoneroBinsDir() + File.separator + Config.baseCurrencyNetwork().toString().toLowerCase() + File.separator + "node1"
+                : null; // use default directory unless local
+    }
 
     // instance fields
     private MoneroDaemonRpc daemon;
@@ -68,7 +75,7 @@ public class XmrLocalNode {
     // required arguments
     private static final List<String> MONEROD_ARGS = new ArrayList<String>();
     static {
-        MONEROD_ARGS.add(MONEROD_PATH);
+        MONEROD_ARGS.add(getMonerodPath());
         MONEROD_ARGS.add("--no-igd");
         MONEROD_ARGS.add("--hide-my-port");
         MONEROD_ARGS.add("--p2p-bind-ip");
@@ -225,7 +232,7 @@ public class XmrLocalNode {
         if (config.xmrBlockchainPath == null || config.xmrBlockchainPath.isEmpty()) {
             dataDir = settings.getBlockchainPath();
             if (dataDir == null || dataDir.isEmpty()) {
-                dataDir = MONEROD_DATADIR;
+                dataDir = getMonerodDataDir();
             }
         } else {
             dataDir = config.xmrBlockchainPath; // startup config overrides settings
@@ -239,7 +246,7 @@ public class XmrLocalNode {
             args.add("--bootstrap-daemon-address=" + bootstrapUrl);
         }
 
-        var syncBlockchain = settings.getSyncBlockchain();
+        Boolean syncBlockchain = settings.getSyncBlockchain();
         if (syncBlockchain != null && !syncBlockchain) {
             args.add("--no-sync");
         }

@@ -18,7 +18,7 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.desktop.components.controlsfx.control.PopOver;
 import haveno.desktop.util.Layout;
@@ -58,7 +58,7 @@ public class InfoTextField extends AnchorPane {
         textField.setFocusTraversable(false);
         textField.setId("info-field");
 
-        infoIcon = getIcon(AwesomeIcon.INFO_SIGN);
+        infoIcon = getIcon(FontAwesomeIcon.INFO_CIRCLE);
         infoIcon.setLayoutY(Layout.FLOATING_ICON_Y - 2);
         infoIcon.getStyleClass().addAll("icon", "info");
 

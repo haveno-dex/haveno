@@ -18,7 +18,7 @@
 package haveno.desktop.main.portfolio.openoffer;
 
 import com.google.inject.Inject;
-import com.googlecode.jcsv.writer.CSVEntryConverter;
+import java.util.function.Function;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
@@ -281,14 +281,14 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
-            CSVEntryConverter<OpenOfferListItem> headerConverter = item -> {
+            Function<OpenOfferListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[ColumnNames.values().length];
                 for (ColumnNames m : ColumnNames.values()) {
                     columns[m.ordinal()] = m.toString();
                 }
                 return columns;
             };
-            CSVEntryConverter<OpenOfferListItem> contentConverter = item -> {
+            Function<OpenOfferListItem, String[]> contentConverter = item -> {
                 String[] columns = new String[ColumnNames.values().length];
                 columns[ColumnNames.OFFER_ID.ordinal()] = model.getOfferId(item);
                 columns[ColumnNames.GROUP_ID.ordinal()] = openOfferManager.hasClonedOffer(item.getOffer().getId()) ? getShortenedGroupId(item.getGroupId()) : "";
@@ -917,7 +917,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
                                 if (item != null && !empty) {
                                     if (button == null) {
-                                        button = getRegularIconButton(MaterialDesignIcon.DELETE_FOREVER, "delete");
+                                        button = getRegularIconButton(MaterialDesignIcon.DELETE_VARIANT, "delete");
                                         button.setTooltip(new Tooltip(Res.get("shared.removeOffer")));
                                         setGraphic(button);
                                     }
@@ -985,7 +985,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
                                 if (item != null && !empty) {
                                     if (button == null) {
-                                        button = getRegularIconButton(MaterialDesignIcon.BOX_SHADOW);
+                                        button = getRegularIconButton(MaterialDesignIcon.BOX);
                                         button.setTooltip(new Tooltip(Res.get("offerbook.cloneOffer")));
                                         setGraphic(button);
                                     }
@@ -1010,7 +1010,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                     @Override
                     public TableCell<OpenOfferListItem, OpenOfferListItem> call(TableColumn<OpenOfferListItem, OpenOfferListItem> column) {
                         return new TableCell<>() {
-                            private final Button button = getRegularIconButton(MaterialDesignIcon.SHIELD_HALF_FULL);
+                            private final Button button = getRegularIconButton(MaterialDesignIcon.SHIELD_OUTLINE);
 
                             @Override
                             protected void updateItem(final OpenOfferListItem item, boolean empty) {

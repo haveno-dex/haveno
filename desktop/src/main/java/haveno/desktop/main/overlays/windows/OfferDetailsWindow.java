@@ -23,8 +23,8 @@ import com.google.inject.name.Named;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXTextField;
 
+import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Tuple2;
@@ -82,6 +82,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
 
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -406,7 +407,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             Label copyLabel = new Label();
             copyLabel.getStyleClass().addAll("icon");
             copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
-            MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.2em");
+            Text copyIcon = GlyphsDude.createIcon(MaterialDesignIcon.CONTENT_COPY, "1.2em");
             copyIcon.setFill(Color.WHITE);
             copyLabel.setGraphic(copyIcon);
             JFXButton copyButton = new JFXButton(Res.get("offerDetailsWindow.challenge.copy"), copyLabel);

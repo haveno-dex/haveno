@@ -2,6 +2,12 @@
 
 This document is a guide for Haveno development.
 
+## Java 21 / JavaFX 21 compatibility
+
+Haveno targets **Java 21** with **JavaFX 21.0.11**. Builds use **Gradle 8.14** with a version catalog (`gradle/libs.versions.toml`). Run `make help` for common build targets.
+
+The desktop app uses **JFoenix** and **EasyBind**, which are unmaintained but kept in compatibility mode with `--add-opens` JVM flags (see `havenoJavaFxModuleOpens` in `build.gradle`). A future UI modernization may replace these libraries; until then they remain supported via reflective access flags in desktop, apitest, and jpackage builds.
+
 ## Install and test Haveno
 
 [Build Haveno and join the test network or test locally](installing.md).

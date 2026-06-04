@@ -43,7 +43,7 @@ import java.util.List;
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser Public License for more details.
  * You should have received a copy of the GNU Lesser Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see https://www.gnu.org/licenses/.
  *
  * Please ee the following page for the LGPL license:
  * http://www.gnu.org/licenses/lgpl.txt

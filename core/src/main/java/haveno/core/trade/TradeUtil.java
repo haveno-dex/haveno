@@ -50,10 +50,10 @@ public class TradeUtil {
     }
 
     /**
-     * Returns <MULTI_SIG, TRADE_PAYOUT> if and only if both are AVAILABLE,
+     * Returns {@code MULTI_SIG} and {@code TRADE_PAYOUT} addresses if and only if both are AVAILABLE,
      * otherwise null.
-     * @param trade the trade being queried for MULTI_SIG, TRADE_PAYOUT addresses
-     * @return Tuple2 tuple containing MULTI_SIG, TRADE_PAYOUT addresses for trade
+     * @param trade the trade being queried for MULTI_SIG and TRADE_PAYOUT addresses
+     * @return Tuple2 tuple containing MULTI_SIG and TRADE_PAYOUT addresses for trade
      */
     public Tuple2<String, String> getAvailableAddresses(Trade trade) {
         var addresses = getTradeAddresses(trade);
@@ -72,10 +72,10 @@ public class TradeUtil {
     }
 
     /**
-     * Returns <MULTI_SIG, TRADE_PAYOUT> addresses as strings if they're known by the
+     * Returns {@code MULTI_SIG} and {@code TRADE_PAYOUT} addresses as strings if they're known by the
      * wallet.
-     * @param trade the trade being queried for MULTI_SIG, TRADE_PAYOUT addresses
-     * @return Tuple2 tuple containing MULTI_SIG, TRADE_PAYOUT addresses for trade
+     * @param trade the trade being queried for MULTI_SIG and TRADE_PAYOUT addresses
+     * @return Tuple2 tuple containing MULTI_SIG and TRADE_PAYOUT addresses for trade
      */
     public Tuple2<String, String> getTradeAddresses(Trade trade) {
         throw new RuntimeException("TradeUtil.getTradeAddresses() not implemented for XMR");

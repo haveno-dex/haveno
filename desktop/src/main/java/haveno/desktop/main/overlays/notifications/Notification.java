@@ -17,7 +17,7 @@
 
 package haveno.desktop.main.overlays.notifications;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -190,7 +190,7 @@ public class Notification extends Overlay<Notification> {
         headlineIcon.setManaged(true);
         headlineIcon.setVisible(true);
         headlineIcon.setPadding(new Insets(1));
-        FormBuilder.getIconForLabel(AwesomeIcon.INFO_SIGN, headlineIcon, "1em");
+        FormBuilder.getIconForLabel(FontAwesomeIcon.INFO_CIRCLE, headlineIcon, "1em");
         if (actionButton != null)
             actionButton.getStyleClass().add("compact-button");
     }

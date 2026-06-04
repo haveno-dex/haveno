@@ -44,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.function.Consumer;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 
 import static haveno.desktop.util.FormBuilder.addInputTextField;
 
@@ -226,7 +226,7 @@ public class PasswordPopup extends Overlay<PasswordPopup> {
     @Override
     protected void applyStyles() {
         super.applyStyles();
-        FormBuilder.getIconForLabel(AwesomeIcon.LOCK, headlineIcon, "1.5em");
+        FormBuilder.getIconForLabel(FontAwesomeIcon.LOCK, headlineIcon, "1.5em");
     }
 
     @Override

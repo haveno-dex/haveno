@@ -31,8 +31,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,12 +49,7 @@ public class QRCodeWindow extends Overlay<QRCodeWindow> {
         qrCodePane = qrCodeTuple.first;
         ImageView qrCodeImageView = qrCodeTuple.second;
         
-        final byte[] imageBytes = QRCode
-                .from(moneroUri)
-                .withSize(300, 300)
-                .to(ImageType.PNG)
-                .stream()
-                .toByteArray();
+        final byte[] imageBytes = GUIUtil.generateQrCodePng(moneroUri, 300, 300);
         Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
         qrCodeImageView.setImage(qrImage);
 
