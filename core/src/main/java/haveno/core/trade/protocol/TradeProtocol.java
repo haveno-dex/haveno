@@ -689,10 +689,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                                     reprocessPaymentSentMessageCount++;
                                                     maybeReprocessPaymentSentMessage(reprocessOnError);
                                                 }, trade.getReprocessDelayInSeconds(reprocessPaymentSentMessageCount));
+                                                unlatchTrade();
                                             } else {
                                                 handleTaskRunnerFault(peer, message, errorMessage); // otherwise send nack
                                             }
-                                            unlatchTrade();
                                         })))
                                 .executeTasks(true);
                         awaitTradeLatch();
