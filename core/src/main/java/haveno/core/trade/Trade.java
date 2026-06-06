@@ -3597,7 +3597,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         log.info("Ingesting multisig hexes for {} {}, count={}", getClass().getSimpleName(), getShortId(), multisigHexes.size());
         long startTime = System.currentTimeMillis();
         setUnknownSyncProgress();
-        int numOutputsImported = wallet.importMultisigHex(multisigHexes);
+        int numOutputsImported = wallet.importMultisigHex(multisigHexes, false); // import without refreshing, which is handled later
         log.info("Done ingesting multisig hexes for {} {} in {} ms, count={}, numOutputsImported={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size(), numOutputsImported);
 
         // sync from new wallet height
