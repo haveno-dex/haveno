@@ -933,7 +933,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     public BigInteger getUnallocatedBalance() {
         BigInteger unallocatedBalance = xmrWalletService.getBalance();
         for (OpenOffer openOffer : getOpenOffersWithoutClones()) {
-            if (openOffer.getState() == OpenOffer.State.AVAILABLE) continue;
+            if (openOffer.getState() != OpenOffer.State.PENDING) continue;
             if (openOffer.isReserveExactAmount()) {
                 unallocatedBalance = unallocatedBalance.subtract(openOffer.getOffer().getAmountNeeded());
             } else if (openOffer.getScheduledAmount() != null && !openOffer.getScheduledAmount().isEmpty()) {
