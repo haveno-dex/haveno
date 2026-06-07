@@ -123,7 +123,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
     private static final String THREAD_ID = Connection.class.getSimpleName();
-    public static final long LOG_THROTTLE_INTERVAL_MS = 180000; // throttle logging rule violations and warnings to once every 60s
+    public static final long LOG_THROTTLE_INTERVAL_MS = 180000; // throttle logging rule violations and warnings to once every 3 mins
     public static final int POSSIBLE_DOS_THRESHOLD = 60;
     public static final String POSSIBLE_DOS_MESSAGE = "Possible DoS attack detected";
 
