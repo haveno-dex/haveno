@@ -648,7 +648,10 @@ public final class XmrConnectionService {
 
     public XmrKeyImagePoller getKeyImagePoller() {
         synchronized (lock) {
-            if (keyImagePoller == null) keyImagePoller = new XmrKeyImagePoller();
+            if (keyImagePoller == null) {
+                keyImagePoller = new XmrKeyImagePoller();
+                keyImagePoller.setRefreshPeriodMs(getKeyImageRefreshPeriodMs());
+            }
             return keyImagePoller;
         }
     }

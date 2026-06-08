@@ -318,7 +318,7 @@ public class XmrKeyImagePoller {
 
     private synchronized void setIsPolling(boolean enabled) {
         if (enabled) {
-            if (!isPolling) {
+            if (!isPolling && refreshPeriodMs > 0) {
                 isPolling = true; // TODO: use looper.isStarted(), synchronize
                 looper.start(refreshPeriodMs);
             }
