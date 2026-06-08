@@ -799,6 +799,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             latch.countDown();
                             resultHandler.handleResult();
                         }, (errorMsg) -> {
+                            offersToBeEdited.remove(openOffer.getId());
                             latch.countDown();
                             errorMessageHandler.handleErrorMessage(errorMsg);
                         });
