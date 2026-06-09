@@ -1109,7 +1109,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         String warningMessage = "Your offer (" + trade.getOffer().getShortId() + ") has been removed because there was a problem taking the trade.\n\nError message: " + ackMessage.getErrorMessage();
         OpenOffer openOffer = HavenoUtils.openOfferManager.getOpenOffer(trade.getId()).orElse(null);
         if (openOffer != null) {
-            HavenoUtils.openOfferManager.cancelOpenOffer(openOffer, null, null);
+            HavenoUtils.openOfferManager.removeOpenOffer(openOffer, null, null);
             HavenoUtils.setTopError(warningMessage);
         }
         log.warn(warningMessage);

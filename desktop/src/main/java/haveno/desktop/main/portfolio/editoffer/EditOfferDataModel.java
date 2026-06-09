@@ -47,12 +47,14 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
+import lombok.Getter;
 import java.util.Optional;
 import java.util.Set;
 
 class EditOfferDataModel extends MutableOfferDataModel {
 
     private final CorePersistenceProtoResolver corePersistenceProtoResolver;
+    @Getter
     private OpenOffer openOffer;
     private OpenOffer.State initialState;
     private Offer editedOffer;

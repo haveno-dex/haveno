@@ -73,7 +73,7 @@ class OpenOffersDataModel extends ActivatableDataModel {
     }
 
     void onRemoveOpenOffer(OpenOffer openOffer, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        openOfferManager.cancelOpenOffer(openOffer, resultHandler, errorMessageHandler);
+        openOfferManager.removeOpenOffer(openOffer, resultHandler, errorMessageHandler);
     }
 
 

@@ -659,7 +659,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         OpenOfferManager openOfferManager = HavenoUtils.openOfferManager;
         Optional<OpenOffer> openOffer = openOfferManager.getOpenOffer(offer.getId());
         if (openOffer.isPresent()) {
-            openOfferManager.cancelOpenOffer(openOffer.get(), () -> {
+            openOfferManager.removeOpenOffer(openOffer.get(), () -> {
                 UserThread.execute(() -> {
                     updateButtonDisableState();
                     updateSpinnerInfo();
