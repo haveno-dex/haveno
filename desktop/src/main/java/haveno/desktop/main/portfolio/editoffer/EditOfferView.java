@@ -26,6 +26,7 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
 import haveno.core.payment.PaymentAccount;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
@@ -120,6 +121,10 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
 
     @Override
     public void onClose() {
+        if (model.getDataModel().getOpenOffer() == null || !HavenoUtils.openOfferManager.getOpenOffer(model.getDataModel().getOpenOffer().getId()).isPresent()) {
+            log.warn("Open offer has been removed, closing view. offerId={}", model.getDataModel().getOpenOffer() != null ? model.getDataModel().getOpenOffer().getId() : "null");
+            return;
+        }
         model.onCancelEditOffer(errorMessage -> {
             log.error(errorMessage);
             new Popup().warning(Res.get("editOffer.failed", errorMessage)).show();
@@ -235,6 +240,12 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
                         model.isNextButtonDisabled.setValue(false);
                         cancelButton.setDisable(false);
                         new Popup().warning(Res.get("editOffer.failed", message)).show();
+
+                        // close view if offer is removed while editing
+                        if (model.getDataModel().getOpenOffer() == null || !HavenoUtils.openOfferManager.getOpenOffer(model.getDataModel().getOpenOffer().getId()).isPresent()) {
+                            log.warn("Open offer has been removed, closing view. offerId={}", model.getDataModel().getOpenOffer().getId());
+                            close();
+                        }
                     });
                 });
             }
