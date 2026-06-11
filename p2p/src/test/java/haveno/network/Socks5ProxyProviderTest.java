@@ -55,4 +55,9 @@ public class Socks5ProxyProviderTest {
     public void testRejectsBracketedNonIpv6ProxyAddress() {
         assertNull(new Socks5ProxyProvider("[localhost]:9050", "").getSocks5ProxyXmr());
     }
+
+    @Test
+    public void testRejectsUnbracketedIpv6ProxyAddressWithPort() {
+        assertNull(new Socks5ProxyProvider("2001:db8::1:9050", "").getSocks5ProxyXmr());
+    }
 }

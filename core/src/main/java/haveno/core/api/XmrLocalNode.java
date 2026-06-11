@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
-import monero.common.MoneroUtils;
 import monero.common.TaskLooper;
 import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroDaemonInfo;
@@ -173,7 +172,7 @@ public class XmrLocalNode {
 
     public boolean equalsUri(String uri) {
         try {
-            return HavenoUtils.isLocalHost(uri) && MoneroUtils.parseUri(uri).getPort() == HavenoUtils.getDefaultMoneroPort();
+            return HavenoUtils.isLocalHost(uri) && HavenoUtils.parseUri(uri).getPort() == HavenoUtils.getDefaultMoneroPort();
         } catch (Exception e) {
             return false;
         }

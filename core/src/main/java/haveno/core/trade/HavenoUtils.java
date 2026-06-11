@@ -29,6 +29,7 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.file.FileUtil;
 import haveno.common.util.Base64;
+import haveno.common.util.NetworkUtils;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.api.CorePaymentAccountsService;
@@ -71,7 +72,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
-import java.util.regex.Pattern;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -80,6 +80,7 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroError;
 import monero.common.MoneroRpcConnection;
 import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroOutput;
@@ -139,7 +140,6 @@ public class HavenoUtils {
     public static int XMR_SMALLEST_UNIT_EXPONENT = 12;
     public static final String LOOPBACK_HOST = "127.0.0.1"; // local loopback address to host Monero node
     public static final String LOCALHOST = "localhost";
-    private static final Pattern IPV4 = Pattern.compile("^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)$");
     private static final long CENTINEROS_AU_MULTIPLIER = 10000;
     private static final BigInteger XMR_AU_MULTIPLIER = new BigInteger("1000000000000");
     public static final DecimalFormat XMR_FORMATTER = new DecimalFormat("##############0.000000000000", DECIMAL_FORMAT_SYMBOLS);
@@ -550,12 +550,40 @@ public class HavenoUtils {
     }
 
     /**
+     * Parse a URI, defaulting to http when no scheme is present.
+     */
+    public static URI parseUri(String uriString) {
+        if (uriString != null && uriString.length() > 0 && !uriString.toLowerCase(Locale.ROOT).matches("^[a-z][a-z0-9+.-]*://.+")) {
+            String trimmedUriString = uriString.trim();
+            if (trimmedUriString.startsWith("[") || trimmedUriString.indexOf(':') != trimmedUriString.lastIndexOf(':')) {
+                try {
+                    NetworkUtils.HostAndPort hostAndPort = NetworkUtils.parseHostAndPort(trimmedUriString, -1);
+                    if (isIpv6Literal(hostAndPort.getHost())) {
+                        uriString = "http://" + (hostAndPort.hasPort() ? formatHostAndPort(hostAndPort.getHost(), hostAndPort.getPort()) : NetworkUtils.formatHost(hostAndPort.getHost()));
+                    } else {
+                        uriString = "http://" + uriString;
+                    }
+                } catch (IllegalArgumentException e) {
+                    uriString = "http://" + uriString;
+                }
+            } else {
+                uriString = "http://" + uriString;
+            }
+        }
+        try {
+            return new URI(uriString);
+        } catch (Exception e) {
+            throw new MoneroError(e);
+        }
+    }
+
+    /**
      * Check if the given URI is on local host.
      */
     public static boolean isLocalHost(String uriString) {
         try {
-            String host = MoneroUtils.parseUri(uriString).getHost();
-            return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host) || (isLiteralIp(host) && InetAddress.getByName(host).isLoopbackAddress());
+            String host = parseUri(uriString).getHost();
+            return LOOPBACK_HOST.equals(host) || LOCALHOST.equals(host) || (isLiteralIp(host) && NetworkUtils.getLiteralIpAddress(host).isLoopbackAddress());
         } catch (Exception e) {
             return false;
         }
@@ -568,18 +596,16 @@ public class HavenoUtils {
         if (uriString == null || uriString.isEmpty()) return false;
         if (isLocalHost(uriString)) return true;
         try {
-            URI uri = MoneroUtils.parseUri(uriString);
+            URI uri = parseUri(uriString);
             String host = uri.getHost();
             if (host == null) return false;
 
             // strip IPv6 brackets
-            if (host.startsWith("[") && host.endsWith("]")) {
-                host = host.substring(1, host.length() - 1);
-            }
+            host = stripIpv6Brackets(host);
 
             // check if private IP address
             if (!isLiteralIp(host)) return false;
-            InetAddress addr = InetAddress.getByName(host); // does not perform DNS check if using literal IP
+            InetAddress addr = NetworkUtils.getLiteralIpAddress(host);
             return addr.isAnyLocalAddress()
                         || addr.isLoopbackAddress()
                         || addr.isLinkLocalAddress()
@@ -589,8 +615,37 @@ public class HavenoUtils {
         }
     }
 
-    private static boolean isLiteralIp(String host) {
-        return IPV4.matcher(host).matches() || host.indexOf(':') >= 0;
+    public static boolean isIpv6Uri(String uriString) {
+        try {
+            String host = parseUri(uriString).getHost();
+            return isIpv6Literal(host);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static NetworkUtils.HostAndPort parseHostAndPort(String address, int defaultPort) {
+        return NetworkUtils.parseHostAndPort(address, defaultPort);
+    }
+
+    public static NetworkUtils.HostAndPort parseHostAndPort(String address, int defaultPort, boolean portRequired) {
+        return NetworkUtils.parseHostAndPort(address, defaultPort, portRequired);
+    }
+
+    public static String formatHostAndPort(String host, int port) {
+        return NetworkUtils.formatHostAndPort(host, port);
+    }
+
+    public static String stripIpv6Brackets(String host) {
+        return NetworkUtils.stripIpv6Brackets(host);
+    }
+
+    public static boolean isIpv6Literal(String host) {
+        return NetworkUtils.isIpv6Literal(host);
+    }
+
+    public static boolean isLiteralIp(String host) {
+        return NetworkUtils.isLiteralIp(host);
     }
 
     /**

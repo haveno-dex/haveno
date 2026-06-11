@@ -48,6 +48,7 @@ import haveno.core.xmr.setup.WalletsSetup;
 import haveno.network.utils.EventThrottler;
 import java.io.File;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -1736,8 +1737,8 @@ public class XmrWalletService extends XmrWalletBase {
             if (connection.getProxyUri() != null) { // TODO: remove this when wallet server is not started with proxy uri
                 boolean supportsSocks5ProxyScheme = walletRpcSupportsSocks5ProxyScheme();
                 cmd.add("--proxy");
-                cmd.add(XmrWalletRpcUtils.getProxyUri(connection.getProxyUri(), supportsSocks5ProxyScheme));
-                if (!supportsSocks5ProxyScheme && XmrWalletRpcUtils.isIpv6Uri(connection.getUri())) {
+                cmd.add(WalletRpc.getProxyUri(connection.getProxyUri(), supportsSocks5ProxyScheme));
+                if (!supportsSocks5ProxyScheme && HavenoUtils.isIpv6Uri(connection.getUri())) {
                     log.warn("monero-wallet-rpc does not advertise SOCKS5 proxy URI support; IPv6 monerod connections through proxy may fail: monerod={}", connection.getUri());
                 }
                 if (!connection.isOnion()) cmd.add("--daemon-ssl-allow-any-cert"); // necessary to use proxy with clearnet monerod
@@ -1795,9 +1796,34 @@ public class XmrWalletService extends XmrWalletBase {
 
     private static synchronized boolean walletRpcSupportsSocks5ProxyScheme() {
         if (walletRpcSupportsSocks5ProxyScheme == null) {
-            walletRpcSupportsSocks5ProxyScheme = XmrWalletRpcUtils.detectSocks5ProxySchemeSupport(MONERO_WALLET_RPC_PATH);
+            walletRpcSupportsSocks5ProxyScheme = WalletRpc.detectSocks5ProxySchemeSupport(MONERO_WALLET_RPC_PATH);
         }
         return walletRpcSupportsSocks5ProxyScheme;
+    }
+
+    static class WalletRpc {
+
+        static String getProxyUri(String proxyUri, boolean supportsSocks5ProxyScheme) {
+            if (!supportsSocks5ProxyScheme || proxyUri.contains("://")) return proxyUri;
+            return "socks5://" + proxyUri;
+        }
+
+        private static boolean detectSocks5ProxySchemeSupport(String walletRpcPath) {
+            if (!new File(walletRpcPath).exists()) return false;
+            try {
+                Process process = new ProcessBuilder(walletRpcPath, "--help").redirectErrorStream(true).start();
+                boolean exited = process.waitFor(10, TimeUnit.SECONDS);
+                String helpText = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+                if (!exited) {
+                    process.destroyForcibly();
+                    return false;
+                }
+                return helpText.contains("socks5://");
+            } catch (Exception e) {
+                log.warn("Could not detect monero-wallet-rpc SOCKS5 proxy URI support", e);
+                return false;
+            }
+        }
     }
 
     private void changeWalletPasswords(String oldPassword, String newPassword) {

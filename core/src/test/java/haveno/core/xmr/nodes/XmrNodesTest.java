@@ -49,14 +49,8 @@ public class XmrNodesTest {
     }
 
     @Test
-    public void testFromFullAddressParsesUnbracketedIpv6WithMoneroPort() {
-        XmrNode node = XmrNode.fromFullAddress("2a0b:f4c2:2::63:18081");
-
-        assertEquals("2a0b:f4c2:2::63", node.getHostNameOrAddress());
-        assertEquals(18081, node.getPort());
-        assertEquals("[2a0b:f4c2:2::63]:18081", node.getHostNameOrAddressWithPort());
-        assertEquals("http://[2a0b:f4c2:2::63]:18081", node.getClearNetUri());
-        assertEquals("http://[2a0b:f4c2:2::63]:18081", new MoneroRpcConnection(node.getClearNetUri()).getUri());
+    public void testFromFullAddressRejectsUnbracketedIpv6WithPort() {
+        assertThrows(IllegalArgumentException.class, () -> XmrNode.fromFullAddress("2a0b:f4c2:2::63:18081"));
     }
 
     @Test

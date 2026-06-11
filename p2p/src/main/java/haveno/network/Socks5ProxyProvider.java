@@ -21,9 +21,8 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.config.Config;
+import haveno.common.util.NetworkUtils;
 import haveno.network.p2p.network.NetworkNode;
-import java.net.Inet6Address;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -95,8 +94,8 @@ public class Socks5ProxyProvider {
     private Socks5Proxy getProxyFromAddress(String socks5ProxyAddress) {
         if (!socks5ProxyAddress.isEmpty()) {
             try {
-                HostAndPort hostAndPort = parseHostAndPort(socks5ProxyAddress);
-                Socks5Proxy proxy = new Socks5Proxy(hostAndPort.host, hostAndPort.port);
+                NetworkUtils.HostAndPort hostAndPort = NetworkUtils.parseHostAndPort(socks5ProxyAddress, -1, true);
+                Socks5Proxy proxy = new Socks5Proxy(hostAndPort.getHost(), hostAndPort.getPort());
                 proxy.resolveAddrLocally(false);
                 return proxy;
             } catch (IllegalArgumentException e) {
@@ -107,54 +106,5 @@ public class Socks5ProxyProvider {
             }
         }
         return null;
-    }
-
-    private static HostAndPort parseHostAndPort(String socks5ProxyAddress) {
-        String trimmedAddress = socks5ProxyAddress.trim();
-        if (trimmedAddress.startsWith("[")) {
-            int closingBracketIndex = trimmedAddress.indexOf("]");
-            if (closingBracketIndex <= 0) throw new IllegalArgumentException("Invalid bracketed IPv6 address");
-            String host = trimmedAddress.substring(1, closingBracketIndex);
-            if (!isIpv6Literal(host)) throw new IllegalArgumentException("Invalid bracketed IPv6 address");
-            String remainder = trimmedAddress.substring(closingBracketIndex + 1);
-            if (!remainder.startsWith(":") || remainder.length() == 1) throw new IllegalArgumentException("Missing port");
-            return new HostAndPort(host, parsePort(remainder.substring(1)));
-        }
-
-        int lastColonIndex = trimmedAddress.lastIndexOf(":");
-        if (lastColonIndex <= 0 || lastColonIndex == trimmedAddress.length() - 1) throw new IllegalArgumentException("Missing port");
-
-        String host = trimmedAddress.substring(0, lastColonIndex);
-        String port = trimmedAddress.substring(lastColonIndex + 1);
-        if (host.contains(":") && !(isIpv6Literal(host))) throw new IllegalArgumentException("Invalid IPv6 address");
-        return new HostAndPort(host, parsePort(port));
-    }
-
-    private static int parsePort(String portString) {
-        try {
-            int port = Integer.parseInt(portString);
-            if (port < 0 || port > 65535) throw new IllegalArgumentException("Invalid port: " + portString);
-            return port;
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid port: " + portString, e);
-        }
-    }
-
-    private static boolean isIpv6Literal(String host) {
-        try {
-            return host.contains(":") && InetAddress.getByName(host) instanceof Inet6Address;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static class HostAndPort {
-        private final String host;
-        private final int port;
-
-        private HostAndPort(String host, int port) {
-            this.host = host;
-            this.port = port;
-        }
     }
 }

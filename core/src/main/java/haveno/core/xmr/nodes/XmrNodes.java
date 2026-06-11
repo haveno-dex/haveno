@@ -35,14 +35,13 @@
 package haveno.core.xmr.nodes;
 
 import haveno.common.config.Config;
+import haveno.common.util.NetworkUtils;
 import haveno.core.trade.HavenoUtils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
-import java.net.Inet6Address;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -152,99 +151,12 @@ public class XmrNodes {
          * @return XmrNode instance
          */
         public static XmrNode fromFullAddress(String fullAddress) {
-            ParsedAddress parsedAddress = parseFullAddress(fullAddress);
-            String host = parsedAddress.host;
-            int port = parsedAddress.port;
+            NetworkUtils.HostAndPort hostAndPort = HavenoUtils.parseHostAndPort(fullAddress, HavenoUtils.getDefaultMoneroPort());
+            String host = hostAndPort.getHost();
+            int port = hostAndPort.getPort();
 
             checkArgument(host.length() > 0, "XmrNode address format not recognised");
             return host.contains(".onion") ? new XmrNode(MoneroNodesOption.CUSTOM, null, host, null, port, null, null) : new XmrNode(MoneroNodesOption.CUSTOM, null, null, host, port, null, null);
-        }
-
-        private static ParsedAddress parseFullAddress(String fullAddress) {
-            checkArgument(fullAddress != null, "XmrNode address must not be null");
-            String trimmedAddress = fullAddress.trim();
-            checkArgument(!trimmedAddress.isEmpty(), "XmrNode address must not be empty");
-
-            int port = HavenoUtils.getDefaultMoneroPort();
-            String host;
-            if (trimmedAddress.startsWith("[")) {
-                int closingBracketIndex = trimmedAddress.indexOf("]");
-                checkArgument(closingBracketIndex > 0, "Invalid bracketed IPv6 address: %s", fullAddress);
-                host = trimmedAddress.substring(1, closingBracketIndex);
-                checkArgument(isIpv6Literal(host), "Invalid bracketed IPv6 address: %s", fullAddress);
-
-                String remainder = trimmedAddress.substring(closingBracketIndex + 1);
-                if (!remainder.isEmpty()) {
-                    checkArgument(remainder.startsWith(":") && remainder.length() > 1, "Invalid bracketed IPv6 address: %s", fullAddress);
-                    port = parsePort(remainder.substring(1));
-                }
-            } else {
-                int colonCount = countChars(trimmedAddress, ':');
-                if (colonCount == 0) {
-                    host = trimmedAddress;
-                } else if (colonCount == 1) {
-                    int lastColonIndex = trimmedAddress.lastIndexOf(':');
-                    host = trimmedAddress.substring(0, lastColonIndex);
-                    port = parsePort(trimmedAddress.substring(lastColonIndex + 1));
-                } else if (isIpv6Literal(trimmedAddress)) {
-                    host = trimmedAddress;
-                } else {
-                    int lastColonIndex = trimmedAddress.lastIndexOf(':');
-                    String hostCandidate = trimmedAddress.substring(0, lastColonIndex);
-                    String portCandidate = trimmedAddress.substring(lastColonIndex + 1);
-                    checkArgument(isIpv6Literal(hostCandidate), "Invalid IPv6 address: %s", fullAddress);
-                    host = hostCandidate;
-                    port = parsePort(portCandidate);
-                }
-            }
-
-            checkArgument(!host.isEmpty(), "XmrNode address format not recognised");
-            return new ParsedAddress(stripIpv6Brackets(host), port);
-        }
-
-        private static int parsePort(String portString) {
-            try {
-                int port = Integer.parseInt(portString);
-                checkArgument(port >= 0 && port <= 65535, "Invalid port: %s", portString);
-                return port;
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid port: " + portString, e);
-            }
-        }
-
-        private static int countChars(String value, char character) {
-            int count = 0;
-            for (int i = 0; i < value.length(); i++) {
-                if (value.charAt(i) == character) count++;
-            }
-            return count;
-        }
-
-        private static String stripIpv6Brackets(String host) {
-            return host.startsWith("[") && host.endsWith("]") ? host.substring(1, host.length() - 1) : host;
-        }
-
-        private static boolean isIpv6Literal(String host) {
-            try {
-                return host.contains(":") && InetAddress.getByName(host) instanceof Inet6Address;
-            } catch (Exception e) {
-                return false;
-            }
-        }
-
-        private static String formatHostAndPort(String host, int port) {
-            host = stripIpv6Brackets(host);
-            return isIpv6Literal(host) ? "[" + host + "]:" + port : host + ":" + port;
-        }
-
-        private static class ParsedAddress {
-            private final String host;
-            private final int port;
-
-            private ParsedAddress(String host, int port) {
-                this.host = host;
-                this.port = port;
-            }
         }
 
         public XmrNode(MoneroNodesOption type,
@@ -272,7 +184,7 @@ public class XmrNodes {
 
         public String getHostNameOrAddressWithPort() {
             if (!hasClearNetAddress()) throw new IllegalStateException("XmrNode does not have clearnet address");
-            return formatHostAndPort(getHostNameOrAddress(), port);
+            return HavenoUtils.formatHostAndPort(getHostNameOrAddress(), port);
         }
 
         public String getOnionAddressWithPort() {

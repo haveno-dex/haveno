@@ -25,17 +25,17 @@ public class XmrWalletServiceTest {
 
     @Test
     public void testGetWalletRpcProxyUriAddsSocks5SchemeWhenSupported() {
-        assertEquals("socks5://127.0.0.1:9050", XmrWalletRpcUtils.getProxyUri("127.0.0.1:9050", true));
-        assertEquals("socks5://[::1]:9050", XmrWalletRpcUtils.getProxyUri("[::1]:9050", true));
+        assertEquals("socks5://127.0.0.1:9050", XmrWalletService.WalletRpc.getProxyUri("127.0.0.1:9050", true));
+        assertEquals("socks5://[::1]:9050", XmrWalletService.WalletRpc.getProxyUri("[::1]:9050", true));
     }
 
     @Test
     public void testGetWalletRpcProxyUriKeepsLegacyProxyUriWhenSocks5SchemeIsUnsupported() {
-        assertEquals("127.0.0.1:9050", XmrWalletRpcUtils.getProxyUri("127.0.0.1:9050", false));
+        assertEquals("127.0.0.1:9050", XmrWalletService.WalletRpc.getProxyUri("127.0.0.1:9050", false));
     }
 
     @Test
     public void testGetWalletRpcProxyUriDoesNotDuplicateExistingScheme() {
-        assertEquals("socks5://127.0.0.1:9050", XmrWalletRpcUtils.getProxyUri("socks5://127.0.0.1:9050", true));
+        assertEquals("socks5://127.0.0.1:9050", XmrWalletService.WalletRpc.getProxyUri("socks5://127.0.0.1:9050", true));
     }
 }

@@ -19,10 +19,18 @@ package haveno.core.trade;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class HavenoUtilsTest {
+
+    @Test
+    public void testParseUriSupportsIpv6WithoutScheme() {
+        assertEquals("[::1]", HavenoUtils.parseUri("[::1]:18081").getHost());
+        assertEquals(18081, HavenoUtils.parseUri("[::1]:18081").getPort());
+        assertEquals("[2607:3c40:1900:33e0::1]", HavenoUtils.parseUri("2607:3c40:1900:33e0::1").getHost());
+    }
 
     @Test
     public void testIsLocalHostSupportsIpv6LoopbackWithoutScheme() {
@@ -32,8 +40,16 @@ public class HavenoUtilsTest {
 
     @Test
     public void testIsPrivateIpSupportsIpv6WithoutScheme() {
+        assertTrue(HavenoUtils.isPrivateIp("fe80::1"));
         assertTrue(HavenoUtils.isPrivateIp("[fe80::1]:18081"));
         assertTrue(HavenoUtils.isPrivateIp("http://[fe80::1]:18081"));
         assertFalse(HavenoUtils.isPrivateIp("[2607:3c40:1900:33e0::1]:18089"));
+    }
+
+    @Test
+    public void testIsIpv6Uri() {
+        assertTrue(HavenoUtils.isIpv6Uri("http://[2607:3c40:1900:33e0::1]:18089"));
+        assertFalse(HavenoUtils.isIpv6Uri("http://127.0.0.1:18081"));
+        assertFalse(HavenoUtils.isIpv6Uri("http://example.com:18081"));
     }
 }
