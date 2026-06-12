@@ -891,6 +891,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public void unreserveOpenOffer(OpenOffer openOffer) {
+        if (!openOffer.isReserved()) { // TODO: this avoids a race condition with cancelOpenOffer (e.g. on 2nd arbitrator NACK) and onProtocolInitializationError after trade initialization fails, leaving a historical tradable in state AVAILABLE
+            log.warn("Not unreserving open offer {} because it is not reserved, state={}", openOffer.getId(), openOffer.getState());
+            return;
+        }
         openOffer.setState(OpenOffer.State.AVAILABLE);
         requestPersistence();
     }
