@@ -226,17 +226,17 @@ public class Offer implements NetworkPayload, PersistablePayload {
         if (offerPrice == null)
             throw new MarketPriceNotAvailableException("Market price required for calculating trade price is not available.");
 
-        checkArgument(price > 0, "takersTradePrice must be positive");
+        checkArgument(price > 0, "tradePrice must be positive");
 
         double relation = (double) price / (double) offerPrice.getValue();
         double deviation = Math.abs(1 - relation);
-        log.info("Price at take-offer time: id={}, currency={}, takersPrice={}, makersPrice={}, deviation={}",
+        log.info("Price at take-offer time: id={}, currency={}, tradePrice={}, offerPrice={}, deviation={}",
                 getShortId(), getCounterCurrencyCode(), price, offerPrice.getValue(),
                 deviation * 100 + "%");
         if (deviation > PRICE_TOLERANCE) {
-            String msg = "Taker's trade price is too far away from our calculated price based on the market price.\n" +
-                    "takersPrice=" + tradePrice.getValue() + "\n" +
-                    "makersPrice=" + offerPrice.getValue();
+            String msg = "Trade price is too far away from our calculated offer price based on the market price.\n" +
+                    "tradePrice=" + tradePrice.getValue() + "\n" +
+                    "offerPrice=" + offerPrice.getValue();
             log.warn(msg);
             throw new TradePriceOutOfToleranceException(msg);
         }
