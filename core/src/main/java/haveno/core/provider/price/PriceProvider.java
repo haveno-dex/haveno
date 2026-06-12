@@ -74,8 +74,8 @@ public class PriceProvider extends HttpClientProvider {
                 counterCurrencyCode = CurrencyUtil.getCurrencyCodeBase(counterCurrencyCode);
                 double price = (Double) treeMap.get("price");
                 if (isInverted) price = BigDecimal.ONE.divide(BigDecimal.valueOf(price), 10, RoundingMode.HALF_UP).doubleValue(); // XMR is always base currency, so invert price if applicable
-                long timestampSec = MathUtils.doubleToLong((Double) treeMap.get("timestampSec"));
-                marketPriceMap.put(counterCurrencyCode, new MarketPrice(counterCurrencyCode, price, timestampSec, true));
+                long timestampMs = MathUtils.doubleToLong((Double) treeMap.get("timestampMs"));
+                marketPriceMap.put(counterCurrencyCode, new MarketPrice(counterCurrencyCode, price, timestampMs, true));
             } catch (Throwable t) {
                 log.error("Error getting all prices: {}\n", t.getMessage(), t);
             }
