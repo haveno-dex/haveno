@@ -42,6 +42,7 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.taskrunner.Task;
+import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.ArbitratorTrade;
@@ -1106,6 +1107,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
     private void handleSecondMakerInitTradeRequestNack(AckMessage ackMessage) {
         log.warn("Maker received 2nd NACK to InitTradeRequest from arbitrator for {} {}, messageUid={}, errorMessage={}", trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
+
+        // skip removing offer if nack is acceptable
+        if (isAcceptableInitTradeRequestNack(ackMessage)) {
+            log.warn("Not removing offer {} on 2nd InitTradeRequest NACK from arbitrator because the NACK is for an acceptable reason, errorMessage={}", trade.getOffer().getShortId(), ackMessage.getErrorMessage());
+            return;
+        }
+
+        // remove offer on unacceptable 2nd nack
         String warningMessage = "Your offer (" + trade.getOffer().getShortId() + ") has been removed because there was a problem taking the trade.\n\nError message: " + ackMessage.getErrorMessage();
         OpenOffer openOffer = HavenoUtils.openOfferManager.getOpenOffer(trade.getId()).orElse(null);
         if (openOffer != null) {
@@ -1113,6 +1122,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             HavenoUtils.setTopError(warningMessage);
         }
         log.warn(warningMessage);
+    }
+
+    private static boolean isAcceptableInitTradeRequestNack(AckMessage ackMessage) {
+        String errorMessage = ackMessage.getErrorMessage();
+        if (errorMessage == null) return false;
+        return errorMessage.contains(Offer.TRADE_PRICE_OUT_OF_TOLERANCE_MSG) || errorMessage.contains(Offer.MARKET_PRICE_NOT_AVAILABLE_MSG);
     }
 
     protected void sendAckMessage(NodeAddress peer, TradeMessage message, boolean result, @Nullable String errorMessage) {
