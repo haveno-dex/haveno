@@ -41,6 +41,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
+import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.core.api.XmrConnectionService;
@@ -352,11 +353,15 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             }
                             dispute = disputeOptional.get();
 
-                            // verify arbitrator signature
+                            // verify arbitrator signature of the summary text
                             String summaryText = chatMessage.getMessage();
                             if (summaryText == null || summaryText.isEmpty()) throw new IllegalArgumentException("Summary text for dispute is missing, tradeId=" + tradeId + (dispute == null ? "" : ", disputeId=" + dispute.getId()));
                             if (dispute != null) DisputeSummaryVerification.verifySignature(summaryText, dispute.getAgentPubKeyRing()); // use dispute's arbitrator pub key ring
                             else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail if arbitrator is unregistered)
+
+                            // verify arbitrator signature of the payout fields
+                            if (disputeResult.getArbitratorSignature() == null) throw new IllegalArgumentException("DisputeResult is missing the arbitrator's payout signature, tradeId=" + tradeId + ", disputeId=" + dispute.getId());
+                            HavenoUtils.verifySignature(dispute.getAgentPubKeyRing(), Hash.getSha256Hash(disputeResult.getPayoutSignaturePayload()), disputeResult.getArbitratorSignature());
 
                             // verify arbitrator does not receive DisputeClosedMessage
                             if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {

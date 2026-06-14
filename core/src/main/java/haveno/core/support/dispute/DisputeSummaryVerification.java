@@ -47,7 +47,9 @@ public class DisputeSummaryVerification {
         try {
             byte[] signature = HavenoUtils.sign(signatureKeyPair.getPrivate(), hash);
             sigAsHex = Utilities.encodeToHex(signature);
-            disputeResult.setArbitratorSignature(signature);
+
+            // sign the payout fields
+            disputeResult.setArbitratorSignature(HavenoUtils.sign(signatureKeyPair.getPrivate(), Hash.getSha256Hash(disputeResult.getPayoutSignaturePayload())));
         } catch (Exception e) {
             sigAsHex = "Signing failed";
         }
