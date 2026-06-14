@@ -79,8 +79,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                     trade.setPrice(tradePrice);
                 } catch (TradePriceOutOfToleranceException e) {
                     failed(e.getMessage());
-                } catch (Throwable e2) {
-                    failed(e2);
+                    return;
                 }
             }
 
@@ -106,8 +105,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                         trade.setPrice(tradePrice);
                     } catch (TradePriceOutOfToleranceException e) {
                         failed(e.getMessage());
-                    } catch (Throwable e2) {
-                        failed(e2);
+                        return;
                     }
                 }
 
