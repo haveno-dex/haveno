@@ -239,6 +239,21 @@ public final class DisputeResult implements NetworkPayload {
         return new Date(closeDate);
     }
 
+    /**
+     * Canonical representation of the payout fields. The arbitrator signs this so a trade peer
+     * cannot alter the payout decision after it has been signed.
+     */
+    public String getPayoutSignaturePayload() {
+        return tradeId + "|" +
+                traderId + "|" +
+                winner + "|" +
+                reasonOrdinal + "|" +
+                subtractFeeFrom + "|" +
+                buyerPayoutAmountBeforeCost + "|" +
+                sellerPayoutAmountBeforeCost + "|" +
+                closeDate;
+    }
+
     @Override
     public String toString() {
         return "DisputeResult{" +
