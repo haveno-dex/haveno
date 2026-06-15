@@ -141,10 +141,26 @@ public class HttpClientImpl implements HttpClient {
 
         hasPendingRequest = true;
         Socks5Proxy socks5Proxy = getSocks5Proxy(socks5ProxyProvider);
-        if (ignoreSocks5Proxy || socks5Proxy == null || baseUrl.contains("localhost")) {
+        if (ignoreSocks5Proxy || socks5Proxy == null || isLoopbackUrl(baseUrl)) {
             return requestWithoutProxy(baseUrl, param, httpMethod, headerKey, headerValue);
         } else {
             return doRequestWithProxy(baseUrl, param, httpMethod, socks5Proxy, headerKey, headerValue);
+        }
+    }
+
+    // Returns true only if the URL's host is a loopback/localhost literal. We parse the host rather
+    // than substring-matching "localhost" on the whole URL, otherwise a host like
+    // "localhost.example.com" (or any URL containing the word) would bypass the Tor proxy and leak
+    // the real IP. Fails closed (returns false -> request goes through the proxy) if parsing fails.
+    static boolean isLoopbackUrl(String url) {
+        try {
+            String host = new java.net.URI(url).getHost();
+            if (host == null) return false;
+            if (host.startsWith("[") && host.endsWith("]")) host = host.substring(1, host.length() - 1);
+            host = host.toLowerCase();
+            return host.equals("localhost") || host.equals("::1") || host.startsWith("127.");
+        } catch (Exception e) {
+            return false;
         }
     }
 
