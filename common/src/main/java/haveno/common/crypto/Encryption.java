@@ -17,7 +17,6 @@
 
 package haveno.common.crypto;
 
-import haveno.common.util.Hex;
 import haveno.common.util.Utilities;
 import java.io.ByteArrayOutputStream;
 import java.security.InvalidKeyException;
@@ -141,15 +140,12 @@ public class Encryption {
 
     public static byte[] decryptPayloadWithHmac(byte[] encryptedPayloadWithHmac, SecretKey secretKey) throws CryptoException {
         byte[] payloadWithHmac = decrypt(encryptedPayloadWithHmac, secretKey);
-        String payloadWithHmacAsHex = Hex.encode(payloadWithHmac);
-        // first part is raw message
-        int length = payloadWithHmacAsHex.length();
-        int sep = length - 64;
-        String payloadAsHex = payloadWithHmacAsHex.substring(0, sep);
-        // last 64 bytes is hmac
-        String hmacAsHex = payloadWithHmacAsHex.substring(sep, length);
-        if (verifyHmac(Hex.decode(payloadAsHex), Hex.decode(hmacAsHex), secretKey)) {
-            return Hex.decode(payloadAsHex);
+        // HMAC-SHA256 is always 32 bytes; split directly to avoid hex-encoding memory amplification
+        int payloadLen = payloadWithHmac.length - 32;
+        byte[] payload = Arrays.copyOfRange(payloadWithHmac, 0, payloadLen);
+        byte[] hmac = Arrays.copyOfRange(payloadWithHmac, payloadLen, payloadWithHmac.length);
+        if (verifyHmac(payload, hmac, secretKey)) {
+            return payload;
         } else {
             throw new CryptoException(HMAC_ERROR_MSG);
         }
