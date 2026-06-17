@@ -19,9 +19,11 @@ package haveno.core.support.dispute;
 
 import haveno.common.config.Config;
 import haveno.common.crypto.Hash;
+import haveno.common.crypto.PubKeyRing;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.JsonUtil;
 import haveno.core.util.validation.RegexValidatorFactory;
 import haveno.network.p2p.NodeAddress;
@@ -72,8 +74,41 @@ public class DisputeValidation {
             throws ValidationException {
         try {
             checkArgument(dispute.getContract().equals(trade.getContract()),
-                    "contract must match contract from trade");
+                    "Dispute contract does not match the trade contract for trade " + trade.getId());
 
+            PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
+            checkNotNull(arbitratorPubKeyRing, "Arbitrator pub key ring is null for trade " + trade.getId());
+            checkArgument(arbitratorPubKeyRing.equals(dispute.getAgentPubKeyRing()),
+                    "Dispute agent does not match the arbitrator for trade " + trade.getId());
+        } catch (Throwable t) {
+            throw new ValidationException(dispute, t.getMessage());
+        }
+    }
+
+    /**
+     * Verify that the sender of a DisputeOpenedMessage holds an expected role for the trade: a trader must receive the
+     * dispute from the arbitrator, and the arbitrator must receive it from a trader. For a newly opened dispute the
+     * sending trader must also match the dispute's claimed buyer/seller opener (a re-open may come from either trader).
+     */
+    public static void validateSenderRole(Dispute dispute, Trade trade, TradePeer sender, boolean reOpen)
+            throws ValidationException {
+        try {
+            PubKeyRing senderPubKeyRing = sender.getPubKeyRing();
+            PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
+            checkNotNull(arbitratorPubKeyRing, "Arbitrator pub key ring is null for trade " + trade.getId());
+            if (trade.isArbitrator()) {
+                checkArgument(!senderPubKeyRing.equals(arbitratorPubKeyRing),
+                        "DisputeOpenedMessage to the arbitrator must come from a trader for trade " + trade.getId());
+                if (!reOpen) {
+                    Contract contract = dispute.getContract();
+                    PubKeyRing openerPubKeyRing = dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing();
+                    checkArgument(senderPubKeyRing.equals(openerPubKeyRing),
+                            "Dispute opener does not match the signed message sender for trade " + trade.getId());
+                }
+            } else {
+                checkArgument(senderPubKeyRing.equals(arbitratorPubKeyRing),
+                        "DisputeOpenedMessage to a trader must come from the arbitrator for trade " + trade.getId());
+            }
         } catch (Throwable t) {
             throw new ValidationException(dispute, t.getMessage());
         }
