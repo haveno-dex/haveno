@@ -35,6 +35,7 @@
 package haveno.core.xmr.nodes;
 
 import haveno.common.config.Config;
+import monero.common.NetworkUtils;
 import haveno.core.trade.HavenoUtils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -133,6 +134,9 @@ public class XmrNodes {
     @Getter
     public static class XmrNode {
 
+        private static final String HTTP_SCHEME = "http";
+        private static final String HTTPS_SCHEME = "https";
+
         private final MoneroNodesOption type;
         @Nullable
         private final String onionAddress;
@@ -141,40 +145,30 @@ public class XmrNodes {
         @Nullable
         private final String operator; // null in case the user provides a list of custom btc nodes
         @Nullable
-        private final String address; // IPv4 address
+        private final String address; // IP address or host name
         private int port = HavenoUtils.getDefaultMoneroPort();
         private int priority = 0;
+        private final String scheme; // clearnet scheme, "http" or "https"
 
         /**
-         * @param fullAddress [IPv4 address:port or onion:port]
+         * @param fullAddress [scheme://]?[IP address:port, host name:port, or onion:port]
          * @return XmrNode instance
          */
         public static XmrNode fromFullAddress(String fullAddress) {
-            String[] parts = fullAddress.split("]");
-            checkArgument(parts.length > 0);
-            String host = "";
-            int port = HavenoUtils.getDefaultMoneroPort();
-            if (parts[0].contains("[") && parts[0].contains(":")) {
-                // IPv6 address and optional port number
-                // address part delimited by square brackets e.g. [2a01:123:456:789::2]:8333
-                host = parts[0] + "]";  // keep the square brackets per RFC-2732
-                if (parts.length == 2)
-                    port = Integer.parseInt(parts[1].replace(":", ""));
-            } else if (parts[0].contains(":") && !parts[0].contains(".")) {
-                // IPv6 address only; not delimited by square brackets
-                host = parts[0];
-            } else if (parts[0].contains(".")) {
-                // address and an optional port number
-                // e.g. 127.0.0.1:8333 or abcdef123xyz.onion:9999
-                parts = fullAddress.split(":");
-                checkArgument(parts.length > 0);
-                host = parts[0];
-                if (parts.length == 2)
-                    port = Integer.parseInt(parts[1]);
+            String scheme = HTTP_SCHEME;
+            String address = fullAddress == null ? "" : fullAddress.trim();
+            int schemeIndex = address.indexOf("://");
+            if (schemeIndex >= 0) {
+                scheme = address.substring(0, schemeIndex).toLowerCase();
+                checkArgument(scheme.equals(HTTP_SCHEME) || scheme.equals(HTTPS_SCHEME), "XmrNode scheme must be http or https");
+                address = address.substring(schemeIndex + 3);
             }
+            NetworkUtils.HostAndPort hostAndPort = NetworkUtils.parseHostAndPort(address, HavenoUtils.getDefaultMoneroPort());
+            String host = hostAndPort.getHost();
+            int port = hostAndPort.getPort();
 
             checkArgument(host.length() > 0, "XmrNode address format not recognised");
-            return host.contains(".onion") ? new XmrNode(MoneroNodesOption.CUSTOM, null, host, null, port, null, null) : new XmrNode(MoneroNodesOption.CUSTOM, null, null, host, port, null, null);
+            return host.contains(".onion") ? new XmrNode(MoneroNodesOption.CUSTOM, null, host, null, port, null, null, scheme) : new XmrNode(MoneroNodesOption.CUSTOM, null, null, host, port, null, null, scheme);
         }
 
         public XmrNode(MoneroNodesOption type,
@@ -184,6 +178,17 @@ public class XmrNodes {
                        int port,
                        Integer priority,
                        @Nullable String operator) {
+            this(type, hostName, onionAddress, address, port, priority, operator, HTTP_SCHEME);
+        }
+
+        public XmrNode(MoneroNodesOption type,
+                       @Nullable String hostName,
+                       @Nullable String onionAddress,
+                       @Nullable String address,
+                       int port,
+                       Integer priority,
+                       @Nullable String operator,
+                       String scheme) {
             this.type = type;
             this.hostName = hostName;
             this.onionAddress = onionAddress;
@@ -191,6 +196,7 @@ public class XmrNodes {
             this.port = port;
             this.priority = priority == null ? 0 : priority;
             this.operator = operator;
+            this.scheme = scheme == null ? HTTP_SCHEME : scheme;
         }
 
         public String getHostNameOrAddress() {
@@ -198,6 +204,16 @@ public class XmrNodes {
                 return hostName;
             else
                 return address;
+        }
+
+        public String getHostNameOrAddressWithPort() {
+            if (!hasClearNetAddress()) throw new IllegalStateException("XmrNode does not have clearnet address");
+            return NetworkUtils.formatHostAndPort(getHostNameOrAddress(), port);
+        }
+
+        public String getOnionAddressWithPort() {
+            if (!hasOnionAddress()) throw new IllegalStateException("XmrNode does not have onion address");
+            return onionAddress + ":" + port;
         }
 
         public boolean hasOnionAddress() {
@@ -210,7 +226,7 @@ public class XmrNodes {
 
         public String getClearNetUri() {
             if (!hasClearNetAddress()) throw new IllegalStateException("XmrNode does not have clearnet address");
-            return "http://" + getHostNameOrAddress() + ":" + port;
+            return scheme + "://" + getHostNameOrAddressWithPort();
         }
 
         @Override

@@ -1732,10 +1732,14 @@ public class XmrWalletService extends XmrWalletBase {
         if (connection != null) {
             cmd.add("--daemon-address");
             cmd.add(connection.getUri());
+            boolean allowAnyCert = !connection.getSslVerify() && !connection.isOnion();
             if (connection.getProxyUri() != null) { // TODO: remove this when wallet server is not started with proxy uri
                 cmd.add("--proxy");
                 cmd.add(connection.getProxyUri());
-                if (!connection.isOnion()) cmd.add("--daemon-ssl-allow-any-cert"); // necessary to use proxy with clearnet monerod
+                if (!connection.isOnion()) allowAnyCert = true; // necessary to use proxy with clearnet monerod
+            }
+            if (allowAnyCert) {
+                cmd.add("--daemon-ssl-allow-any-cert");
             }
             if (connection.getUsername() != null) {
                 cmd.add("--daemon-login");
