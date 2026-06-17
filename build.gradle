@@ -334,6 +334,13 @@ configure(project(':p2p')) {
     dependencies {
         implementation project(':proto')
         implementation project(':common')
+        implementation("io.github.woodser:monero-java:$moneroJavaVersion") {
+            exclude(module: 'jackson-core')
+            exclude(module: 'jackson-annotations')
+            exclude(module: 'jackson-databind')
+            exclude(module: 'bcprov-jdk15on')
+            exclude(group: 'org.slf4j', module: 'slf4j-simple')
+        }
         annotationProcessor "org.projectlombok:lombok:$lombokVersion"
         compileOnly "org.projectlombok:lombok:$lombokVersion"
         implementation "com.google.guava:guava:$guavaVersion"

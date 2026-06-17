@@ -24,6 +24,7 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
+import monero.common.NetworkUtils;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
@@ -153,6 +154,7 @@ public final class XmrConnectionService {
     private boolean fallbackApplied;
     private boolean usedSyncingLocalNodeBeforeStartup;
     private boolean localNodeStartedFromPrompt = false;
+    private final Set<String> warnedInsecureConnections = new HashSet<>(); // tracks remote https uris already warned about
 
     @Inject
     public XmrConnectionService(P2PService p2PService,
@@ -225,7 +227,9 @@ public final class XmrConnectionService {
     }
 
     public String getProxyUri() {
-        return socks5ProxyProvider.getSocks5Proxy() == null ? null : socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress() + ":" + socks5ProxyProvider.getSocks5Proxy().getPort();
+        if (socks5ProxyProvider.getSocks5Proxy() == null) return null;
+        String host = socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress();
+        return NetworkUtils.formatHostAndPort(host, socks5ProxyProvider.getSocks5Proxy().getPort());
     }
 
     public void addConnectionListener(XmrConnectionListener listener) {
@@ -250,6 +254,7 @@ public final class XmrConnectionService {
 
     private void addConnection(MoneroRpcConnection connection, boolean addToEncryptedList) {
         accountService.checkAccountOpen();
+        applySslPolicy(connection);
         synchronized (connections) {
             if (getConnection(connection.getUri()) != null) throw new IllegalArgumentException("Connection already exists with URI: " + connection.getUri());
             connections.add(connection);
@@ -330,6 +335,7 @@ public final class XmrConnectionService {
                     isConnected = false;
                     connectionList.setCurrentConnectionUri(null);
                 } else {
+                    applySslPolicy(connection);
                     monerod = new MoneroDaemonRpc(connection);
                     isConnected = connection.isConnected();
                     synchronized (connections) {
@@ -769,7 +775,7 @@ public final class XmrConnectionService {
 
     protected static boolean isProxyApplied(MoneroRpcConnection connection) {
         if (connection == null) return false;
-        return connection.isOnion() || (HavenoUtils.preferences.getUseTorForXmr().isUseTorForXmr() && !HavenoUtils.isPrivateIp(connection.getUri()));
+        return connection.isOnion() || (HavenoUtils.preferences.getUseTorForXmr().isUseTorForXmr() && !NetworkUtils.isPrivateIp(connection.getUri()));
     }
 
     protected static void checkConnection(MoneroRpcConnection connection) {
@@ -800,7 +806,7 @@ public final class XmrConnectionService {
     }
 
     protected static long getTimeoutMs(MoneroRpcConnection connection) {
-        if (HavenoUtils.isLocalHost(connection.getUri())) {
+        if (NetworkUtils.isLocalHost(connection.getUri())) {
             return XmrLocalNode.REFRESH_PERIOD_LOCAL_MS;
         } else if (isProxyApplied(connection)) {
             return REFRESH_PERIOD_ONION_MS;
@@ -828,7 +834,33 @@ public final class XmrConnectionService {
     }
 
     private boolean isConnectionLocalHost(MoneroRpcConnection connection) {
-        return connection != null && HavenoUtils.isLocalHost(connection.getUri());
+        return connection != null && NetworkUtils.isLocalHost(connection.getUri());
+    }
+
+    /**
+     * Apply TLS verification policy to a Monero daemon connection.
+     *
+     * A Monero node never holds the user's keys and its data is validated by the wallet, so
+     * a malicious node cannot steal funds; TLS verification adds little here. It also can't be
+     * enforced in practice, since monerod's default serves a self-signed certificate that no
+     * certificate authority can validate. We therefore disable verification, but warn once and
+     * recommend Tor when connecting to a remote clearnet node over HTTPS.
+     *
+     * @param connection the connection to configure (no-op if null)
+     */
+    private void applySslPolicy(MoneroRpcConnection connection) {
+        if (connection == null) return;
+        connection.setSslVerify(false);
+        String uri = connection.getUri();
+        boolean isRemoteHttps = uri != null && uri.toLowerCase().startsWith("https:") && !connection.isOnion() && !NetworkUtils.isLocalHost(uri);
+        if (isRemoteHttps) {
+            synchronized (warnedInsecureConnections) {
+                if (warnedInsecureConnections.add(uri)) {
+                    log.warn("Connecting to remote Monero node {} over HTTPS without verifying its TLS certificate. " +
+                            "Prefer a Tor onion node, or a node you run or trust, for better privacy.", uri);
+                }
+            }
+        }
     }
 
     private long getDefaultRefreshPeriodMs(boolean internal, Boolean isProxyApplied) {
@@ -961,12 +993,12 @@ public final class XmrConnectionService {
                     for (XmrNode node : xmrNodes.getAllXmrNodes()) {
                         if (node.hasClearNetAddress()) {
                             if (!(xmrLocalNode.equalsUri(node.getClearNetUri()) && xmrLocalNode.shouldBeIgnored())) {
-                                MoneroRpcConnection connection = new MoneroRpcConnection(node.getHostNameOrAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                                MoneroRpcConnection connection = new MoneroRpcConnection(node.getClearNetUri()).setPriority(node.getPriority());
                                 if (!connectionList.hasConnection(connection.getUri())) addConnection(connection);
                             }
                         }
                         if (node.hasOnionAddress()) {
-                            MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                            MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddressWithPort()).setPriority(node.getPriority());
                             if (!connectionList.hasConnection(connection.getUri())) addConnection(connection);
                         }
                     }
@@ -976,12 +1008,12 @@ public final class XmrConnectionService {
                     for (XmrNode node : xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(preferences))) {
                         if (node.hasClearNetAddress()) {
                             if (!(xmrLocalNode.equalsUri(node.getClearNetUri()) && xmrLocalNode.shouldBeIgnored())) {
-                                MoneroRpcConnection connection = new MoneroRpcConnection(node.getHostNameOrAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                                MoneroRpcConnection connection = new MoneroRpcConnection(node.getClearNetUri()).setPriority(node.getPriority());
                                 addConnection(connection);
                             }
                         }
                         if (node.hasOnionAddress()) {
-                            MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddress() + ":" + node.getPort()).setPriority(node.getPriority());
+                            MoneroRpcConnection connection = new MoneroRpcConnection(node.getOnionAddressWithPort()).setPriority(node.getPriority());
                             addConnection(connection);
                         }
                     }
@@ -1241,7 +1273,7 @@ public final class XmrConnectionService {
     }
 
     private boolean isFixedConnection() {
-        return !"".equals(config.xmrNode) && !(HavenoUtils.isLocalHost(config.xmrNode) && xmrLocalNode.shouldBeIgnored()) && !fallbackApplied;
+        return !"".equals(config.xmrNode) && !(NetworkUtils.isLocalHost(config.xmrNode) && xmrLocalNode.shouldBeIgnored()) && !fallbackApplied;
     }
 
     private boolean isCustomConnections() {

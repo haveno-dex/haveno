@@ -21,6 +21,7 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.config.Config;
+import monero.common.NetworkUtils;
 import haveno.network.p2p.network.NetworkNode;
 import java.net.UnknownHostException;
 import javax.annotation.Nullable;
@@ -92,18 +93,16 @@ public class Socks5ProxyProvider {
     @Nullable
     private Socks5Proxy getProxyFromAddress(String socks5ProxyAddress) {
         if (!socks5ProxyAddress.isEmpty()) {
-            String[] tokens = socks5ProxyAddress.split(":");
-            if (tokens.length == 2) {
-                try {
-                    Socks5Proxy proxy = new Socks5Proxy(tokens[0], Integer.valueOf(tokens[1]));
-                    proxy.resolveAddrLocally(false);
-                    return proxy;
-                } catch (UnknownHostException e) {
-                    log.error(ExceptionUtils.getStackTrace(e));
-                }
-            } else {
-                log.error("Incorrect format for socks5ProxyAddress. Should be: host:port.\n" +
-                        "socks5ProxyAddress=" + socks5ProxyAddress);
+            try {
+                NetworkUtils.HostAndPort hostAndPort = NetworkUtils.parseHostAndPort(socks5ProxyAddress, -1, true);
+                Socks5Proxy proxy = new Socks5Proxy(hostAndPort.getHost(), hostAndPort.getPort());
+                proxy.resolveAddrLocally(false);
+                return proxy;
+            } catch (IllegalArgumentException e) {
+                log.error("Incorrect format for socks5ProxyAddress. Should be: host:port or [ipv6]:port.\n" +
+                        "socks5ProxyAddress=" + socks5ProxyAddress, e);
+            } catch (UnknownHostException e) {
+                log.error(ExceptionUtils.getStackTrace(e));
             }
         }
         return null;
