@@ -41,6 +41,7 @@ import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.NetworkUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -141,7 +142,7 @@ public class HttpClientImpl implements HttpClient {
 
         hasPendingRequest = true;
         Socks5Proxy socks5Proxy = getSocks5Proxy(socks5ProxyProvider);
-        if (ignoreSocks5Proxy || socks5Proxy == null || baseUrl.contains("localhost")) {
+        if (ignoreSocks5Proxy || socks5Proxy == null || NetworkUtils.isLoopbackUrl(baseUrl)) {
             return requestWithoutProxy(baseUrl, param, httpMethod, headerKey, headerValue);
         } else {
             return doRequestWithProxy(baseUrl, param, httpMethod, socks5Proxy, headerKey, headerValue);
