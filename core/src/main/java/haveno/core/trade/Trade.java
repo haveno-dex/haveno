@@ -1681,7 +1681,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         Optional<Dispute> disputeOptional = HavenoUtils.arbitrationManager.findDispute(getId());
         if (!disputeOptional.isPresent()) throw new IllegalArgumentException("Trader has no dispute when signing dispute payout tx. This should never happen. TradeId = " + getId());
         Dispute dispute = disputeOptional.get();
-        Contract contract = dispute.getContract();
+        Contract contract = getContract();
+        if (!contract.equals(dispute.getContract())) throw new IllegalArgumentException("Dispute contract does not match trade contract for trade " + getId());
         DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
         String unsignedPayoutTxHex = getArbitrator().getDisputeClosedMessage().getUnsignedPayoutTxHex();
 
@@ -1756,7 +1757,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             MoneroTxWallet feeEstimateTx = null;
             try {
                 log.info("Creating dispute fee estimate tx for {} {}", getClass().getSimpleName(), getShortId());
-                feeEstimateTx = createDisputePayoutTx(dispute.getContract(), disputeResult, false);
+                feeEstimateTx = createDisputePayoutTx(contract, disputeResult, false);
             } catch (Exception e) {
                 if (isPayoutPublished()) log.warn("Payout tx already published for {} {}, skipping fee verification", getClass().getSimpleName(), getShortId());
                 else throw new RuntimeException("Could not recreate dispute payout tx to verify fee: " + e.getMessage(), e);

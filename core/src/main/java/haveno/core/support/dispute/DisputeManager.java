@@ -600,17 +600,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // get contract
         Contract contract = dispute.getContract();
 
-        // get sender
-        TradePeer sender;
-        PubKeyRing senderPubKeyRing;
-        if (reOpen) { // re-open can come from either peer
-            sender = trade.isArbitrator() ? trade.getVerifiedTradePeer(decryptedMessageWithPubKey) : trade.getArbitrator();
-            senderPubKeyRing = sender.getPubKeyRing();
-        } else {
-            senderPubKeyRing = trade.isArbitrator() ? (dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing()) : trade.getArbitrator().getPubKeyRing();
-            sender = trade.getTradePeer(senderPubKeyRing);
-        }
-        if (sender == null) throw new RuntimeException("Dispute opener is not arbitrator, buyer, or seller");
+        // get verified sender
+        TradePeer sender = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
+        if (sender == null) throw new RuntimeException("DisputeOpenedMessage for trade " + trade.getId() + " is not signed by a trade participant");
 
         // TODO: save message for reprocessing (arbitrator must remove this when processed or it'll attempt to be sent to peer)
         // sender.setDisputeOpenedMessage(message);
@@ -633,6 +625,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     // validate dispute
                     try {
                         DisputeValidation.validateDisputeData(dispute);
+                        DisputeValidation.validateTradeAndDispute(dispute, trade);
+                        DisputeValidation.validateSenderRole(dispute, trade, sender, reOpen);
                         DisputeValidation.validateNodeAddresses(dispute, config, trade);
                     } catch (DisputeValidation.ValidationException e) {
                         log.error(ExceptionUtils.getStackTrace(e));
@@ -653,11 +647,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     if (trade.isArbitrator()) {
                         if (trade.getBuyer().getPaymentAccountPayload() == null) trade.getBuyer().setPaymentAccountPayload(dispute.getBuyerPaymentAccountPayload());
                         if (trade.getSeller().getPaymentAccountPayload() == null) trade.getSeller().setPaymentAccountPayload(dispute.getSellerPaymentAccountPayload());
-                    }
-
-                    // verify message to trader is expected from arbitrator
-                    if (!trade.isArbitrator() && sender != trade.getArbitrator()) {
-                        throw new RuntimeException(message.getClass().getSimpleName() + " to trader is expected only from arbitrator");
                     }
 
                     // arbitrator verifies signature of payment sent message if given
@@ -739,7 +728,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 ObservableList<ChatMessage> messages = message.getDispute().getChatMessages();
                 if (!messages.isEmpty()) {
                     ChatMessage msg = messages.get(messages.size() - 1); // send ack to sender of last chat message
-                    sendAckMessage(msg, senderPubKeyRing, errorMessage == null, errorMessage);
+                    sendAckMessage(msg, sender.getPubKeyRing(), errorMessage == null, errorMessage);
                 }
 
                 requestPersistence();
@@ -774,6 +763,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             return;
         }
 
+        // get trade
+        Trade trade = tradeManager.getTrade(disputeFromOpener.getTradeId());
+        if (trade == null) {
+            log.warn("Dispute trade {} does not exist", disputeFromOpener.getTradeId());
+            return;
+        }
+
         // create mirrored dispute
         Dispute dispute = new Dispute(new Date().getTime(),
                 disputeFromOpener.getTradeId(),
@@ -793,7 +789,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 disputeFromOpener.getTakerContractSignature(),
                 disputeFromOpener.getMakerPaymentAccountPayload(),
                 disputeFromOpener.getTakerPaymentAccountPayload(),
-                disputeFromOpener.getAgentPubKeyRing(),
+                trade.getArbitrator().getPubKeyRing(),
                 disputeFromOpener.isSupportTicket(),
                 disputeFromOpener.getSupportType());
         dispute.setExtraDataMap(disputeFromOpener.getExtraDataMap());
@@ -836,13 +832,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     disputeList.add(finalDispute);
                 }
             });
-        }
-
-        // get trade
-        Trade trade = tradeManager.getTrade(dispute.getTradeId());
-        if (trade == null) {
-            log.warn("Dispute trade {} does not exist", dispute.getTradeId());
-            return;
         }
 
         // create dispute opened message with peer dispute

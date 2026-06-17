@@ -43,6 +43,7 @@ import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
@@ -54,7 +55,6 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeSummaryVerification;
-import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.FileTransferReceiver;
 import haveno.core.support.dispute.mediation.FileTransferSender;
 import haveno.core.support.dispute.mediation.FileTransferSession;
@@ -95,8 +95,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Singleton
 public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeList> implements MessageListener, FileTransferSession.FtpCallback {
 
-    private final ArbitratorManager arbitratorManager;
-
     private Map<String, Integer> reprocessDisputeClosedMessageCounts = new HashMap<>();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +107,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               XmrWalletService walletService,
                               XmrConnectionService xmrConnectionService,
                               CoreNotificationService notificationService,
-                              ArbitratorManager arbitratorManager,
                               TradeManager tradeManager,
                               ClosedTradableManager closedTradableManager,
                               OpenOfferManager openOfferManager,
@@ -119,7 +116,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                               PriceFeedService priceFeedService) {
         super(p2PService, tradeWalletService, walletService, xmrConnectionService, notificationService, tradeManager, closedTradableManager,
                 openOfferManager, keyRing, arbitrationDisputeListService, config, priceFeedService);
-        this.arbitratorManager = arbitratorManager;
         HavenoUtils.arbitrationManager = this; // TODO: storing static reference, better way?
         p2PService.getNetworkNode().addMessageListener(this);   // listening for FileTransferPart message
     }
@@ -356,15 +352,16 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             // verify arbitrator signature of the summary text
                             String summaryText = chatMessage.getMessage();
                             if (summaryText == null || summaryText.isEmpty()) throw new IllegalArgumentException("Summary text for dispute is missing, tradeId=" + tradeId + (dispute == null ? "" : ", disputeId=" + dispute.getId()));
-                            if (dispute != null) DisputeSummaryVerification.verifySignature(summaryText, dispute.getAgentPubKeyRing()); // use dispute's arbitrator pub key ring
-                            else DisputeSummaryVerification.verifySignature(summaryText, arbitratorManager); // verify using registered arbitrator (will fail if arbitrator is unregistered)
+                            PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
+                            checkNotNull(arbitratorPubKeyRing, "Arbitrator pub key ring is null for trade " + tradeId);
+                            DisputeSummaryVerification.verifySignature(summaryText, arbitratorPubKeyRing);
 
                             // verify arbitrator signature of the payout fields
                             if (disputeResult.getArbitratorSignature() == null) throw new IllegalArgumentException("DisputeResult is missing the arbitrator's payout signature, tradeId=" + tradeId + ", disputeId=" + dispute.getId());
-                            HavenoUtils.verifySignature(dispute.getAgentPubKeyRing(), Hash.getSha256Hash(disputeResult.getPayoutSignaturePayload()), disputeResult.getArbitratorSignature());
+                            HavenoUtils.verifySignature(arbitratorPubKeyRing, Hash.getSha256Hash(disputeResult.getPayoutSignaturePayload()), disputeResult.getArbitratorSignature());
 
                             // verify arbitrator does not receive DisputeClosedMessage
-                            if (keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing())) {
+                            if (keyRing.getPubKeyRing().equals(arbitratorPubKeyRing)) {
                                 log.error("Arbitrator received disputeResultMessage. That should never happen.");
                                 trade.getArbitrator().setDisputeClosedMessage(null); // don't reprocess
                                 return;

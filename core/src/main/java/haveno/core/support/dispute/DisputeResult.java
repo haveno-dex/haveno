@@ -41,6 +41,8 @@ import java.util.Optional;
 @Slf4j
 public final class DisputeResult implements NetworkPayload {
 
+    private static final String PAYOUT_SIGNATURE_PAYLOAD_PREFIX = "DisputeResultPayout:v1";
+
     public enum Winner {
         BUYER,
         SELLER
@@ -244,7 +246,8 @@ public final class DisputeResult implements NetworkPayload {
      * cannot alter the payout decision after it has been signed.
      */
     public String getPayoutSignaturePayload() {
-        return tradeId + "|" +
+        return PAYOUT_SIGNATURE_PAYLOAD_PREFIX + "|" +
+                tradeId + "|" +
                 traderId + "|" +
                 winner + "|" +
                 reasonOrdinal + "|" +
