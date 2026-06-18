@@ -37,6 +37,7 @@ public abstract class XmrWalletBase {
     private static final String SYNC_TIMEOUT_MSG = "Sync timeout called";
     private static final String RECEIVED_ERROR_RESPONSE_MSG = "Received error response from RPC request";
     private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
+    private static final long SAVE_PROGRESS_CHECK_PERIOD_MS = 10000;
 
     // inherited
     protected MoneroWallet wallet;
@@ -213,8 +214,23 @@ public abstract class XmrWalletBase {
                 wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                 syncProgressLooper.start(1000);
 
+                // save wallet periodically
+                TaskLooper saveProgressLooper = new TaskLooper(() -> {
+                    if (syncProgressError != null) return; // skip if sync errored
+                    try {
+                        saveWalletIfElapsedTime(false);
+                    } catch (Exception e) {
+                        log.warn("Error periodically saving wallet during sync with progress: {}", e.getMessage());
+                    }
+                });
+                saveProgressLooper.start(SAVE_PROGRESS_CHECK_PERIOD_MS);
+
                 // wait for sync to complete
-                HavenoUtils.awaitLatch(syncProgressLatch);
+                try {
+                    HavenoUtils.awaitLatch(syncProgressLatch);
+                } finally {
+                    saveProgressLooper.stop();
+                }
                 syncProgressLooper.stop();
 
                 // finish processing
@@ -233,13 +249,24 @@ public abstract class XmrWalletBase {
         return wasWalletSynced;
     }
 
-    public void saveWalletIfElapsedTime() {
-        if (!isTimeElapsedForSave()) return; // skip if possible
+    public void saveWallet() {
         synchronized (walletLock) {
-            if (isTimeElapsedForSave()) {
-                saveWallet();
-                lastSaveTimeMs = System.currentTimeMillis();
-            }
+            saveWalletNoSync();
+        }
+    }
+
+    public void saveWalletIfElapsedTime() {
+        saveWalletIfElapsedTime(true);
+    }
+
+    public void saveWalletIfElapsedTime(boolean acquireLock) {
+        if (!isTimeElapsedForSave()) return; // skip if possible
+        if (!acquireLock) {
+            saveWalletNoSync(); // skip walletLock; only safe for rpc wallets, whose requests the rpc serializes
+            return;
+        }
+        synchronized (walletLock) {
+            if (isTimeElapsedForSave()) saveWalletNoSync();
         }
     }
 
@@ -283,7 +310,7 @@ public abstract class XmrWalletBase {
 
     // --------------------------------- ABSTRACT -----------------------------
 
-    public abstract void saveWallet();
+    protected abstract void saveWalletNoSync();
 
     // ------------------------------ PRIVATE HELPERS -------------------------
 

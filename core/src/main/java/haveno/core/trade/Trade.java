@@ -1126,16 +1126,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     @Override
-    public void saveWallet() {
-        synchronized (walletLock) {
-            if (!walletExists()) {
-                log.warn("Cannot save wallet for {} {} because it does not exist", getClass().getSimpleName(), getShortId());
-                return;
-            }
-            if (wallet == null) throw new IllegalStateException("Cannot save trade wallet because it's not open for " + getClass().getSimpleName() + " " + getShortId());
-            wallet.save();
-            lastSaveTimeMs = System.currentTimeMillis();
+    protected void saveWalletNoSync() {
+        if (!walletExistsNoSync()) {
+            log.warn("Cannot save wallet for {} {} because it does not exist", getClass().getSimpleName(), getShortId());
+            return;
         }
+        if (wallet == null) throw new IllegalStateException("Cannot save trade wallet because it's not open for " + getClass().getSimpleName() + " " + getShortId());
+        wallet.save();
+        lastSaveTimeMs = System.currentTimeMillis();
     }
 
     private boolean isWalletOpen() {
