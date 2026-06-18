@@ -90,6 +90,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         if (offer.isUseMarketBasedPrice()) {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
+        setPrivateOffer(offer.isPrivateOffer());
         setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
         setSecurityDepositPct(getSecurityAsPercent(offer));
         setExtraInfo(offer.getOfferExtraInfo());

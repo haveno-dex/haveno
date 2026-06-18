@@ -178,7 +178,7 @@ public class CloneOfferView extends MutableOfferView<CloneOfferViewModel> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void addCloneGroup() {
-        Tuple4<Button, BusyAnimation, Label, HBox> tuple4 = addButtonBusyAnimationLabelAfterGroup(gridPane, 6, Res.get("cloneOffer.clone"));
+        Tuple4<Button, BusyAnimation, Label, HBox> tuple4 = addButtonBusyAnimationLabelAfterGroup(gridPane, nextButtonsGridRow, Res.get("cloneOffer.clone"));
 
         HBox hBox = tuple4.fourth;
         hBox.setAlignment(Pos.CENTER_LEFT);

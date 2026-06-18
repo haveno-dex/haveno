@@ -115,8 +115,13 @@ public class HavenoUtils {
     public static final long LOG_POLL_ERROR_PERIOD_MS = 1000 * 60 * 4; // log poll errors up to once every 4 minutes
     public static final long LOG_MONEROD_NOT_SYNCED_WARN_PERIOD_MS = 1000 * 30; // log warnings when daemon not synced once every 30s
     public static final int PRIVATE_OFFER_PASSPHRASE_NUM_WORDS = 8; // number of words in a private offer passphrase
+    private static final boolean GENERAL_PRIVATE_OFFERS_ENABLED = true; // allow private offers with a buyer deposit (false = no-deposit sell offers only); requires a mandatory update to change
     public static final boolean RECOMMEND_CONFIRMATIONS_BEFORE_SENDING_PAYMENT = true; // recommend waiting additional confirmations before sending payment
     public static final long ARBITRATOR_IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 75000 : 12 * 60 * 60 * 1000; // refresh arbitrator trade wallets once every 12 hours
+
+    public static boolean isGeneralPrivateOffersEnabled() {
+        return GENERAL_PRIVATE_OFFERS_ENABLED;
+    }
 
     // synchronize requests to monerod
     private static boolean SYNC_DAEMON_REQUESTS = false; // sync long requests to daemon (e.g. refresh, update pool) // TODO: performance suffers by syncing daemon requests, but otherwise we sometimes get sporadic errors?

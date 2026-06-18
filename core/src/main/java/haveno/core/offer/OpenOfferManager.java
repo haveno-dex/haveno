@@ -1667,6 +1667,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
+            // public offers must not have a challenge hash
+            if (!offer.isPrivateOffer() && offer.getChallengeHash() != null && offer.getChallengeHash().length() > 0) {
+                errorMessage = "Public offer must not have a challenge hash for offer " + request.offerId;
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
             // verify max length of extra info
             if (offer.getOfferPayload().getExtraInfo() != null && offer.getOfferPayload().getExtraInfo().length() > Restrictions.getMaxExtraInfoLength()) {
                 errorMessage = "Extra info is too long for offer " + request.offerId + ". Max length is " + Restrictions.getMaxExtraInfoLength() + " but got " + offer.getOfferPayload().getExtraInfo().length();
@@ -1703,8 +1711,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
 
             // verify maker and taker fees
-            boolean hasBuyerAsTakerWithoutDeposit = offer.getDirection() == OfferDirection.SELL && offer.isPrivateOffer() && offer.getChallengeHash() != null && offer.getChallengeHash().length() > 0 && offer.getTakerFeePct() == 0;
+            boolean hasBuyerAsTakerWithoutDeposit = offer.hasBuyerAsTakerWithoutDeposit();
             if (hasBuyerAsTakerWithoutDeposit) {
+
+                // offers without buyer deposit must be private (passphrase protected)
+                if (!offer.isPrivateOffer()) {
+                    errorMessage = "Offer without buyer deposit must be private (passphrase protected) for offer " + request.offerId;
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
 
                 // verify maker's trade fee
                 double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
@@ -1740,9 +1756,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 }
             } else {
 
-                // verify public offer (remove to generally allow private offers)
-                if (offer.isPrivateOffer() || offer.getChallengeHash() != null) {
-                    errorMessage = "Private offer " + request.offerId + " is not valid. It must have direction SELL, taker fee of 0, and a challenge hash.";
+                // reject private offer with a buyer deposit if disabled
+                if (!HavenoUtils.isGeneralPrivateOffersEnabled() && offer.isPrivateOffer() && !hasBuyerAsTakerWithoutDeposit) {
+                    errorMessage = "Private offers with a buyer deposit are not enabled on this network for offer " + request.offerId;
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;

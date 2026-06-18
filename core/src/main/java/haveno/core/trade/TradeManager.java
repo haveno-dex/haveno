@@ -694,6 +694,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
 
+            // reject private offer with a buyer deposit if disabled
+            if (!HavenoUtils.isGeneralPrivateOffersEnabled() && offer.isPrivateOffer() && !offer.hasBuyerAsTakerWithoutDeposit()) {
+                log.warn("Ignoring InitTradeRequest to arbitrator because private offers with a buyer deposit are not enabled, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
+
             // handle trade
             Trade trade;
             Optional<Trade> tradeOptional = getOpenOrClosedTrade(offer.getId());

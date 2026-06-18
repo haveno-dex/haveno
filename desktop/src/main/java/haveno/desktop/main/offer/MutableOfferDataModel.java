@@ -110,6 +110,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     // Percentage value of buyer security deposit. E.g. 0.01 means 1% of trade amount
     protected final DoubleProperty securityDepositPct = new SimpleDoubleProperty();
+    // Whether the offer is passphrase protected (private). A no-deposit offer is a subset of this.
+    protected final BooleanProperty isPrivateOffer = new SimpleBooleanProperty();
     protected final BooleanProperty buyerAsTakerWithoutDeposit = new SimpleBooleanProperty();
 
     protected final ObservableList<PaymentAccount> paymentAccounts = FXCollections.observableArrayList();
@@ -309,7 +311,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 useMarketBasedPrice.get() ? marketPriceMarginPct : 0,
                 securityDepositPct.get(),
                 paymentAccount,
-                buyerAsTakerWithoutDeposit.get(), // private offer if buyer as taker without deposit
+                isPrivateOffer.get() || buyerAsTakerWithoutDeposit.get(), // no-deposit offers are always private
                 buyerAsTakerWithoutDeposit.get(),
                 extraInfo.get());
     }
@@ -462,6 +464,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected void setUseMarketBasedPrice(boolean useMarketBasedPrice) {
         this.useMarketBasedPrice.set(useMarketBasedPrice);
         preferences.setUsePercentageBasedPrice(useMarketBasedPrice);
+    }
+
+    protected void setPrivateOffer(boolean isPrivateOffer) {
+        this.isPrivateOffer.set(isPrivateOffer);
     }
 
     protected void setBuyerAsTakerWithoutDeposit(boolean buyerAsTakerWithoutDeposit) {
@@ -647,6 +653,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     ReadOnlyObjectProperty<Volume> getMinVolume() {
         return minVolume;
+    }
+
+    public ReadOnlyBooleanProperty getIsPrivateOffer() {
+        return isPrivateOffer;
     }
 
     public ReadOnlyBooleanProperty getBuyerAsTakerWithoutDeposit() {

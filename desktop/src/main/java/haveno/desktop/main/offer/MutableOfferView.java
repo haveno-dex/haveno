@@ -139,6 +139,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private AddressTextField addressTextField;
     private BalanceTextField balanceTextField;
     private ToggleButton reserveExactAmountSlider;
+    private ToggleButton isPrivateOfferSlider;
     private ToggleButton buyerAsTakerWithoutDepositSlider;
     protected InputTextArea extraInfoTextArea;
     private FundsTextField totalToPayTextField;
@@ -160,7 +161,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ChangeListener<Boolean> amountFocusedListener, minAmountFocusedListener, volumeFocusedListener,
             securityDepositFocusedListener, priceFocusedListener, placeOfferCompletedListener,
             priceAsPercentageFocusedListener, getShowWalletFundedNotificationListener,
-            isMinSecurityDepositListener, buyerAsTakerWithoutDepositListener, triggerPriceFocusedListener, extraInfoFocusedListener;
+            isMinSecurityDepositListener, isPrivateOfferListener, buyerAsTakerWithoutDepositListener, triggerPriceFocusedListener, extraInfoFocusedListener;
     private ChangeListener<BigInteger> missingCoinListener;
     private ChangeListener<String> tradeCurrencyCodeListener, errorMessageListener,
             marketPriceMarginListener, volumeListener, securityDepositInXMRListener, extraInfoListener;
@@ -169,6 +170,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private OfferView.CloseHandler closeHandler;
 
     protected int gridRow = 0;
+    protected int nextButtonsGridRow; // grid row of the next buttons; reused by the edit and clone views for their action buttons
     private final List<Node> editOfferElements = new ArrayList<>();
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
     private boolean zelleWarningDisplayed, fasterPaymentsWarningDisplayed, isActivated;
@@ -262,7 +264,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             Label popOverLabel = OfferViewUtil.createPopOverLabel(Res.get("createOffer.triggerPrice.tooltip"));
             triggerPriceInfoInputTextField.setContentForPopOver(popOverLabel, AwesomeIcon.SHIELD);
 
+            isPrivateOfferSlider.setSelected(model.dataModel.getIsPrivateOffer().get());
             buyerAsTakerWithoutDepositSlider.setSelected(model.dataModel.getBuyerAsTakerWithoutDeposit().get());
+            updatePrivateOfferControls();
 
             triggerPriceInputTextField.setText(model.triggerPrice.get());
             extraInfoTextArea.setText(model.dataModel.extraInfo.get());
@@ -336,8 +340,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             fundFromSavingsWalletButton.setId("sell-button");
         }
 
-        buyerAsTakerWithoutDepositSlider.setVisible(model.isSellOffer());
-        buyerAsTakerWithoutDepositSlider.setManaged(model.isSellOffer());
+        // passphrase toggle is shown only when enabled on the network
+        isPrivateOfferSlider.setVisible(HavenoUtils.isGeneralPrivateOffersEnabled());
+        isPrivateOfferSlider.setManaged(HavenoUtils.isGeneralPrivateOffersEnabled());
+        updatePrivateOfferControls();
 
         placeOfferButton.updateText(placeOfferButtonLabel);
         updatePriceToggle();
@@ -391,6 +397,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         securityDepositAndFeeBox.setVisible(false);
         securityDepositAndFeeBox.setManaged(false);
+
+        isPrivateOfferSlider.setVisible(false);
+        isPrivateOfferSlider.setManaged(false);
 
         buyerAsTakerWithoutDepositSlider.setVisible(false);
         buyerAsTakerWithoutDepositSlider.setManaged(false);
@@ -841,6 +850,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             updateSecurityDepositLabels();
         });
 
+        isPrivateOfferListener = ((observable, oldValue, newValue) -> {
+            updatePrivateOfferControls();
+        });
+
         buyerAsTakerWithoutDepositListener = ((observable, oldValue, newValue) -> {
             updateSecurityDepositLabels();
         });
@@ -850,6 +863,32 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 // no action
             }
         };
+    }
+
+    private void updatePrivateOfferControls() {
+
+        // the no-deposit option applies only to sell offers, but is shown alongside the private
+        // toggle so both options are always visible at once
+        boolean showNoDeposit = model.isSellOffer();
+        buyerAsTakerWithoutDepositSlider.setVisible(showNoDeposit);
+        buyerAsTakerWithoutDepositSlider.setManaged(showNoDeposit);
+
+        // a no-deposit offer is always private, so clear it if private protection is removed
+        boolean isPrivate = model.getDataModel().getIsPrivateOffer().get();
+        if (!isPrivate && model.getDataModel().getBuyerAsTakerWithoutDeposit().get()) {
+            buyerAsTakerWithoutDepositSlider.setSelected(false);
+            model.dataModel.setBuyerAsTakerWithoutDeposit(false);
+        }
+    }
+
+    private void applyBuyerAsTakerWithoutDeposit(boolean noDeposit) {
+        model.dataModel.setBuyerAsTakerWithoutDeposit(noDeposit);
+
+        // a no-deposit offer is always private, so enabling it also enables passphrase protection
+        if (noDeposit && !model.getDataModel().getIsPrivateOffer().get()) {
+            isPrivateOfferSlider.setSelected(true);
+            model.dataModel.setPrivateOffer(true);
+        }
     }
 
     private void updateSecurityDepositLabels() {
@@ -908,6 +947,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         model.getDataModel().missingCoin.addListener(missingCoinListener);
         model.securityDepositInXMR.addListener(securityDepositInXMRListener);
         model.isMinSecurityDeposit.addListener(isMinSecurityDepositListener);
+        model.getDataModel().isPrivateOffer.addListener(isPrivateOfferListener);
         model.getDataModel().buyerAsTakerWithoutDeposit.addListener(buyerAsTakerWithoutDepositListener);
         model.getDataModel().extraInfo.addListener(extraInfoListener);
 
@@ -943,6 +983,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         model.getDataModel().missingCoin.removeListener(missingCoinListener);
         model.securityDepositInXMR.removeListener(securityDepositInXMRListener);
         model.isMinSecurityDeposit.removeListener(isMinSecurityDepositListener);
+        model.getDataModel().isPrivateOffer.removeListener(isPrivateOfferListener);
         model.getDataModel().buyerAsTakerWithoutDeposit.removeListener(buyerAsTakerWithoutDepositListener);
         model.getDataModel().extraInfo.removeListener(extraInfoListener);
 
@@ -1075,6 +1116,39 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         tradeFeeFieldsBox.setMinWidth(240);
         securityDepositAndFeeBox.getChildren().addAll(getSecurityDepositBox(), tradeFeeFieldsBox);
 
+        // toggle to passphrase-protect any offer
+        isPrivateOfferSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("createOffer.isPrivateOffer"));
+        isPrivateOfferSlider.setPadding(new Insets(0, 0, 0, 0));
+        isPrivateOfferSlider.setOnAction(event -> {
+
+            // popup info box
+            String key = "popup.info.isPrivateOffer";
+            if (isPrivateOfferSlider.isSelected() && DontShowAgainLookup.showAgain(key)) {
+                new Popup().headLine(Res.get(key + ".headline"))
+                        .information(Res.get(key))
+                        .closeButtonText(Res.get("shared.cancel"))
+                        .actionButtonText(Res.get("shared.ok"))
+                        .onAction(() -> {
+                            model.dataModel.setPrivateOffer(true);
+                            updatePrivateOfferControls();
+                        })
+                        .onClose(() -> {
+                            isPrivateOfferSlider.setSelected(false);
+                            model.dataModel.setPrivateOffer(false);
+                            updatePrivateOfferControls();
+                        })
+                        .dontShowAgainId(key)
+                        .show();
+            } else {
+                model.dataModel.setPrivateOffer(isPrivateOfferSlider.isSelected());
+                updatePrivateOfferControls();
+            }
+        });
+        GridPane.setHalignment(isPrivateOfferSlider, HPos.LEFT);
+        GridPane.setMargin(isPrivateOfferSlider, new Insets(0, 0, 0, 0));
+
+        // toggle to waive the buyer deposit (no-deposit offer); only for sell offers.
+        // enabling it also enables the private toggle, since a no-deposit offer requires a passphrase.
         buyerAsTakerWithoutDepositSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("createOffer.buyerAsTakerWithoutDeposit"));
         buyerAsTakerWithoutDepositSlider.setPadding(new Insets(0, 0, 0, 0));
         buyerAsTakerWithoutDepositSlider.setOnAction(event -> {
@@ -1086,15 +1160,15 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                         .information(Res.get(key))
                         .closeButtonText(Res.get("shared.cancel"))
                         .actionButtonText(Res.get("shared.ok"))
-                        .onAction(() -> model.dataModel.setBuyerAsTakerWithoutDeposit(true))
+                        .onAction(() -> applyBuyerAsTakerWithoutDeposit(true))
                         .onClose(() -> {
                             buyerAsTakerWithoutDepositSlider.setSelected(false);
-                            model.dataModel.setBuyerAsTakerWithoutDeposit(false);
+                            applyBuyerAsTakerWithoutDeposit(false);
                         })
                         .dontShowAgainId(key)
                         .show();
             } else {
-                model.dataModel.setBuyerAsTakerWithoutDeposit(buyerAsTakerWithoutDepositSlider.isSelected());
+                applyBuyerAsTakerWithoutDeposit(buyerAsTakerWithoutDepositSlider.isSelected());
             }
         });
         GridPane.setHalignment(buyerAsTakerWithoutDepositSlider, HPos.LEFT);
@@ -1125,7 +1199,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addNextButtons() {
-        Tuple2<Button, Button> tuple = add2ButtonsAfterGroup(gridPane, ++gridRow,
+        nextButtonsGridRow = ++gridRow;
+        Tuple2<Button, Button> tuple = add2ButtonsAfterGroup(gridPane, nextButtonsGridRow,
                 Res.get("shared.nextStep"), Res.get("shared.cancel"));
         nextButton = (AutoTooltipButton) tuple.first;
         nextButton.setMaxWidth(200);
@@ -1169,6 +1244,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         setDepositTitledGroupBg.setManaged(false);
         securityDepositAndFeeBox.setVisible(false);
         securityDepositAndFeeBox.setManaged(false);
+        isPrivateOfferSlider.setVisible(false);
+        isPrivateOfferSlider.setManaged(false);
         buyerAsTakerWithoutDepositSlider.setVisible(false);
         buyerAsTakerWithoutDepositSlider.setManaged(false);
     }

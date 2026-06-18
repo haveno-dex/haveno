@@ -175,6 +175,7 @@ class EditOfferDataModel extends MutableOfferDataModel {
             setMarketPriceMarginPct(offer.getMarketPriceMarginPct());
         }
         setTriggerPrice(openOffer.getTriggerPrice());
+        setPrivateOffer(offer.isPrivateOffer());
         setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
         setSecurityDepositPct(getSecurityAsPercent(offer));
         setExtraInfo(offer.getOfferExtraInfo());

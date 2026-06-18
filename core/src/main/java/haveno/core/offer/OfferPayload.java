@@ -334,9 +334,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
     public BigInteger getBuyerSecurityDepositForTradeAmount(BigInteger tradeAmount) {
         BigInteger securityDepositUnadjusted = HavenoUtils.multiply(tradeAmount, getBuyerSecurityDepositPct());
-        boolean isBuyerTaker = getDirection() == OfferDirection.SELL;
-        if (isPrivateOffer() && isBuyerTaker) {
-            return securityDepositUnadjusted;
+        if (isBuyerAsTakerWithoutDeposit()) {
+            return securityDepositUnadjusted; // buyer as taker posts no deposit, so the minimum does not apply
         } else {
             return Restrictions.getMinSecurityDeposit().max(securityDepositUnadjusted);
         }

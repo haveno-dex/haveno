@@ -478,7 +478,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         confirmButton.setId(isBuyerRole ? "buy-button-big" : "sell-button-big");
         confirmButton.updateText(isPlaceOffer ? placeOfferButtonText : takeOfferButtonText);
 
-        if (offer.hasBuyerAsTakerWithoutDeposit()) {
+        if (offer.isPrivateOffer()) {
             confirmButton.setGraphic(GUIUtil.getLockLabel());
         } else {
             ImageView iconView = new ImageView();

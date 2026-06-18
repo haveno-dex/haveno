@@ -83,6 +83,11 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
             if (offer.getSellerSecurityDepositPct() <= 0) throw new IllegalArgumentException("Seller security deposit percent must be positive but was " + offer.getSellerSecurityDepositPct());
         }
 
+        // remove private offers with a buyer deposit if disabled
+        if (!HavenoUtils.isGeneralPrivateOffersEnabled() && offer.isPrivateOffer() && !offer.hasBuyerAsTakerWithoutDeposit()) {
+            throw new IllegalArgumentException("Private offers with a buyer deposit are not enabled on this network");
+        }
+
         // validate there is no confirmed trade with same id
         if (HavenoUtils.tradeManager.getClosedTrade(offer.getId()).isPresent()) {
             throw new IllegalArgumentException("Closed trade already exists with id " + offer.getId());
