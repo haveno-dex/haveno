@@ -191,7 +191,7 @@ public abstract class XmrWalletBase {
                     try {
                         height = wallet.getHeight(); // can get read timeout while syncing
                     } catch (Exception e) {
-                        if (wallet != null && !isShutDownStarted) {
+                        if (syncProgressError == null && wallet != null && !isShutDownStarted) {
                             log.warn("Error getting wallet height while syncing with progress: " + e.getMessage());
                         }
                         if (wallet == null || wallet != sourceWallet) {
@@ -220,7 +220,7 @@ public abstract class XmrWalletBase {
                     try {
                         saveWalletIfElapsedTime(false);
                     } catch (Exception e) {
-                        log.warn("Error periodically saving wallet during sync with progress: {}", e.getMessage());
+                        if (syncProgressError == null) log.warn("Error periodically saving wallet during sync with progress: {}", e.getMessage());
                     }
                 });
                 saveProgressLooper.start(SAVE_PROGRESS_CHECK_PERIOD_MS);
