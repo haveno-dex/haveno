@@ -143,7 +143,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     final IntegerProperty maxPlacesForMarketPriceMargin = new SimpleIntegerProperty();
     boolean showAllPaymentMethods = true;
     boolean useOffersMatchingMyAccountsFilter;
-    boolean showPrivateOffers;
+    boolean showNoDepositOffers; // show no-deposit offers
+    boolean showPrivateOffers;   // show all private (passphrase-protected) offers
 
     protected static final boolean SORT_CURRENCIES_BY_OFFER_COUNT = true; // TODO: make configurable via preferences?
 
@@ -250,6 +251,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             disableMatchToggle.set(user.getPaymentAccounts() == null || user.getPaymentAccounts().isEmpty());
         }
         useOffersMatchingMyAccountsFilter = !disableMatchToggle.get() && isShowOffersMatchingMyAccounts();
+        showNoDepositOffers = preferences.isShowNoDepositOffers();
         showPrivateOffers = preferences.isShowPrivateOffers();
 
         updateSelectedTradeCurrency();
@@ -342,6 +344,12 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     void onShowOffersMatchingMyAccounts(boolean isSelected) {
         useOffersMatchingMyAccountsFilter = isSelected;
         preferences.setShowOffersMatchingMyAccounts(useOffersMatchingMyAccountsFilter);
+        filterOffers();
+    }
+
+    void onShowNoDepositOffers(boolean isSelected) {
+        showNoDepositOffers = isSelected;
+        preferences.setShowNoDepositOffers(isSelected);
         filterOffers();
     }
 
@@ -629,10 +637,12 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency).and(getOffersMatchingMyAccountsPredicate()) :
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
 
-        // filter private offers
-        if (direction == OfferDirection.BUY) {
-            predicate = predicate.and(offerBookListItem -> offerBookListItem.getOffer().isPrivateOffer() == showPrivateOffers);
-        }
+        // no deposit filter shows only no-deposit offers, lock filter shows only private offers, otherwise only public offers
+        predicate = predicate.and(offerBookListItem -> {
+            if (direction == OfferDirection.BUY && showNoDepositOffers) return offerBookListItem.getOffer().hasBuyerAsTakerWithoutDeposit();
+            if (showPrivateOffers) return offerBookListItem.getOffer().isPrivateOffer();
+            return !offerBookListItem.getOffer().isPrivateOffer();
+        });
 
         if (!filterText.isEmpty()) {
 

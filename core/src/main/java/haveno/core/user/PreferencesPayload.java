@@ -128,13 +128,10 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private int blockNotifyPort;
     private boolean tacAcceptedV120;
     private double bsqAverageTrimThreshold = 0.05;
-
-    // Added at 1.3.8
     private List<AutoConfirmSettings> autoConfirmSettingsList = new ArrayList<>();
-
-    // Added in 1.5.5
     private boolean hideNonAccountPaymentMethods;
     private boolean showOffersMatchingMyAccounts;
+    private boolean showNoDepositOffers;
     private boolean showPrivateOffers;
     private boolean denyApiTaker;
     private boolean notifyOnPreRelease;
@@ -207,6 +204,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                         .collect(Collectors.toList()))
                 .setHideNonAccountPaymentMethods(hideNonAccountPaymentMethods)
                 .setShowOffersMatchingMyAccounts(showOffersMatchingMyAccounts)
+                .setShowNoDepositOffers(showNoDepositOffers)
                 .setShowPrivateOffers(showPrivateOffers)
                 .setDenyApiTaker(denyApiTaker)
                 .setNotifyOnPreRelease(notifyOnPreRelease);
@@ -315,6 +313,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                                 .collect(Collectors.toList())),
                 proto.getHideNonAccountPaymentMethods(),
                 proto.getShowOffersMatchingMyAccounts(),
+                proto.getShowNoDepositOffers(),
                 proto.getShowPrivateOffers(),
                 proto.getDenyApiTaker(),
                 proto.getNotifyOnPreRelease(),

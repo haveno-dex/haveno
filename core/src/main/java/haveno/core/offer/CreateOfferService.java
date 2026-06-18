@@ -133,12 +133,16 @@ public class CreateOfferService {
         // must nullify empty string so contracts match
         if ("".equals(extraInfo)) extraInfo = null;
 
-        // verify config for private no deposit offers
+        // verify config for private and no-deposit offers
         boolean isBuyerMaker = offerUtil.isBuyOffer(direction);
-        if (buyerAsTakerWithoutDeposit || isPrivateOffer) {
-            if (isBuyerMaker) throw new IllegalArgumentException("Buyer must be taker for private offers without deposit");
-            if (!buyerAsTakerWithoutDeposit) throw new IllegalArgumentException("Must set buyer as taker without deposit for private offers");
-            if (!isPrivateOffer) throw new IllegalArgumentException("Must set offer to private for buyer as taker without deposit");
+        if (buyerAsTakerWithoutDeposit) {
+            if (isBuyerMaker) throw new IllegalArgumentException("Buyer must be taker for offers without buyer deposit");
+            if (!isPrivateOffer) throw new IllegalArgumentException("Offer without buyer deposit must be private (passphrase protected)");
+        }
+
+        // reject private offer with a buyer deposit if disabled
+        if (isPrivateOffer && !buyerAsTakerWithoutDeposit && !HavenoUtils.isGeneralPrivateOffersEnabled()) {
+            throw new IllegalArgumentException("Private offers with a buyer deposit are not enabled on this network");
         }
 
         // verify payment account supports trade currency
@@ -193,7 +197,7 @@ public class CreateOfferService {
         String bankId = PaymentAccountUtil.getBankId(paymentAccount);
         List<String> acceptedBanks = PaymentAccountUtil.getAcceptedBanks(paymentAccount);
         long maxTradePeriod = paymentAccount.getMaxTradePeriod();
-        boolean hasBuyerAsTakerWithoutDeposit = !isBuyerMaker && isPrivateOffer && buyerAsTakerWithoutDeposit;
+        boolean hasBuyerAsTakerWithoutDeposit = !isBuyerMaker && buyerAsTakerWithoutDeposit;
         long maxTradeLimitAsLong = offerUtil.getMaxTradeLimit(paymentAccount, currencyCode, direction, hasBuyerAsTakerWithoutDeposit).longValueExact();
         boolean useAutoClose = false;
         boolean useReOpenAfterAutoClose = false;

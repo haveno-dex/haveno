@@ -49,6 +49,7 @@ import haveno.core.api.XmrKeyImageListener;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.util.JsonUtil;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.BootstrapListener;
@@ -403,6 +404,11 @@ public class OfferBookService {
         // validate offer is not banned
         if (filterManager.isOfferIdBanned(offerPayload.getId())) {
             throw new IllegalArgumentException("Offer is banned with offerId=" + offerPayload.getId());
+        }
+
+        // remove private offers with a buyer deposit if disabled
+        if (!HavenoUtils.isGeneralPrivateOffersEnabled() && offerPayload.isPrivateOffer() && !offerPayload.isBuyerAsTakerWithoutDeposit()) {
+            throw new IllegalArgumentException("Private offer with a buyer deposit is not enabled on this network with offerId=" + offerPayload.getId());
         }
 
         // validate v3 node address compliance

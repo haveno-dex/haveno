@@ -1776,7 +1776,8 @@ message PreferencesPayload {
     bool use_sound_for_notifications_initialized = 64;
     string buy_screen_other_currency_code = 65;
     string sell_screen_other_currency_code = 66;
-    bool show_private_offers = 67;
+    bool show_no_deposit_offers = 67;
+    bool show_private_offers = 68;
 }
 
 message AutoConfirmSettings {
