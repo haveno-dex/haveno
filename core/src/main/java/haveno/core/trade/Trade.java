@@ -2720,7 +2720,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         MoneroTxWallet takerDepositTx = getTakerDepositTx();
         boolean hasUnlockedDepositTx = (makerDepositTx != null && Boolean.FALSE.equals(makerDepositTx.isLocked())) || (takerDepositTx != null && Boolean.FALSE.equals(takerDepositTx.isLocked()));
         if (!hasUnlockedDepositTx) return false;
-        boolean hasMissingDepositTx = makerDepositTx == null || (!hasBuyerAsTakerWithoutDeposit() && takerDepositTx == null);
+        boolean hasMissingDepositTx = (makerDepositTx == null || !makerDepositTx.isConfirmed()) || (!hasBuyerAsTakerWithoutDeposit() && (takerDepositTx == null || !takerDepositTx.isConfirmed()));
         return hasMissingDepositTx;
     }
 
