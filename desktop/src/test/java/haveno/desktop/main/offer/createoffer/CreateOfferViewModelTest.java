@@ -96,7 +96,7 @@ public class CreateOfferViewModelTest {
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(
                 new MarketPrice("USD",
                         12684.0450,
-                        Instant.now().getEpochSecond(),
+                        Instant.now().toEpochMilli(),
                         true));
         when(user.findFirstPaymentAccountWithCurrency(any())).thenReturn(paymentAccount);
         when(paymentAccount.getPaymentMethod()).thenReturn(PaymentMethod.ZELLE);

@@ -420,8 +420,8 @@ public class PriceFeedService {
                             result = true;
                         } else {
                             errorMessage = "Price for currency " + currencyCode + " is outdated by " +
-                                    (Instant.now().getEpochSecond() - marketPrice.getTimestampSec()) / 60 + " minutes. " +
-                                    "Max. allowed age of price is " + MarketPrice.MARKET_PRICE_MAX_AGE_SEC / 60 + " minutes. " +
+                                    (Instant.now().toEpochMilli() - marketPrice.getTimestampMs()) / 1000 / 60 + " minutes. " +
+                                    "Max. allowed age of price is " + MarketPrice.MARKET_PRICE_MAX_AGE_MS / 1000 / 60 + " minutes. " +
                                     "priceProvider=" + baseUrl + ". " +
                                     "marketPrice= " + marketPrice;
                         }

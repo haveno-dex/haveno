@@ -533,7 +533,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         return Res.get("mainView.marketPrice.tooltip",
                 "Haveno Price Index for " + selectedCurrencyCode,
                 "",
-                selectedMarketPrice != null ? DisplayUtils.formatTime(new Date(selectedMarketPrice.getTimestampSec())) : Res.get("shared.na"),
+                selectedMarketPrice != null ? DisplayUtils.formatTime(new Date(selectedMarketPrice.getTimestampMs())) : Res.get("shared.na"),
                 model.getPriceFeedService().getProviderNodeAddress());
     }
 

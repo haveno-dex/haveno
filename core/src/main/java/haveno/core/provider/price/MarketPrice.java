@@ -24,18 +24,18 @@ import java.time.Instant;
 
 @Value
 public class MarketPrice {
-    public static final long MARKET_PRICE_MAX_AGE_SEC = 1800;  // 30 min
+    public static final long MARKET_PRICE_MAX_AGE_MS = 30 * 60 * 1000L;  // 30 min
 
     private final String currencyCode;
     private final double price;
-    private final long timestampSec;
+    private final long timestampMs;
     @Getter
     private final boolean isExternallyProvidedPrice;
 
-    public MarketPrice(String currencyCode, double price, long timestampSec, boolean isExternallyProvidedPrice) {
+    public MarketPrice(String currencyCode, double price, long timestampMs, boolean isExternallyProvidedPrice) {
         this.currencyCode = currencyCode;
         this.price = price;
-        this.timestampSec = timestampSec;
+        this.timestampMs = timestampMs;
         this.isExternallyProvidedPrice = isExternallyProvidedPrice;
     }
 
@@ -44,7 +44,7 @@ public class MarketPrice {
     }
 
     public boolean isRecentPriceAvailable() {
-        return isPriceAvailable() && timestampSec > (Instant.now().getEpochSecond() - MARKET_PRICE_MAX_AGE_SEC);
+        return isPriceAvailable() && timestampMs > (Instant.now().toEpochMilli() - MARKET_PRICE_MAX_AGE_MS);
     }
 
     public boolean isRecentExternalPriceAvailable() {

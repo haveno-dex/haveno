@@ -428,7 +428,7 @@ public class OfferBookViewModelTest {
 
         final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
-        when(priceFeedService.getMarketPrice(anyString())).thenReturn(new MarketPrice("USD", 12684.0450, Instant.now().getEpochSecond(), true));
+        when(priceFeedService.getMarketPrice(anyString())).thenReturn(new MarketPrice("USD", 12684.0450, Instant.now().toEpochMilli(), true));
 
         final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
