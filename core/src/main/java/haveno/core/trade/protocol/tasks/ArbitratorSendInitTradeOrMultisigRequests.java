@@ -143,7 +143,8 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
                 preparedHex,
                 null,
                 null,
-                trade.getProcessModel().getTradeFeeAddress());
+                trade.getProcessModel().getTradeFeeAddress(),
+                trade.getPrice().getValue()); // arbitrator sets the final trade price
 
         // send request to maker
         log.info("Send {} with offerId {} and uid {} to maker {}", initMultisigRequest.getClass().getSimpleName(), initMultisigRequest.getOfferId(), initMultisigRequest.getUid(), trade.getMaker().getNodeAddress());

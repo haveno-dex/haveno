@@ -20,6 +20,7 @@ package haveno.core.trade.protocol.tasks;
 import haveno.common.app.Version;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
@@ -74,6 +75,17 @@ public class ProcessInitMultisigRequest extends TradeTask {
             }
           } else {
             trade.getProcessModel().setTradeFeeAddress(HavenoUtils.getGlobalTradeFeeAddress());
+          }
+
+          // adopt arbitrator's final trade price, verifying it is within tolerance of our price
+          if (sender == trade.getArbitrator() && request.getTradePrice() > 0 && request.getTradePrice() != trade.getPrice().getValue()) {
+            try {
+              trade.getOffer().verifyTradePrice(request.getTradePrice());
+              trade.setPrice(request.getTradePrice());
+            } catch (TradePriceOutOfToleranceException e) {
+              failed(e.getMessage());
+              return;
+            }
           }
 
           // reconcile peer's established multisig hex with message
@@ -230,7 +242,8 @@ public class ProcessInitMultisigRequest extends TradeTask {
                 trade.getSelf().getPreparedMultisigHex(),
                 trade.getSelf().getMadeMultisigHex(),
                 trade.getSelf().getExchangedMultisigHex(),
-                null);
+                null,
+                trade.getPrice().getValue());
 
         log.info("Send {} with offerId {} and uid {} to peer {}", request.getClass().getSimpleName(), request.getOfferId(), request.getUid(), recipient);
         processModel.getP2PService().sendEncryptedDirectMessage(recipient, pubKeyRing, request, listener);

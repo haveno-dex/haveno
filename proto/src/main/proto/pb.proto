@@ -262,6 +262,7 @@ message InitMultisigRequest {
     string made_multisig_hex = 5;
     string exchanged_multisig_hex = 6;
     string trade_fee_address = 7;
+    int64 trade_price = 8;
 }
 
 message SignContractRequest {
