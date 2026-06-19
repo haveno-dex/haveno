@@ -386,6 +386,10 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             T persistableEnvelope = (T) persistenceProtoResolver.fromProto(proto);
             log.info("Reading {} completed in {} ms", fileName, System.currentTimeMillis() - ts);
             return persistableEnvelope;
+        } catch (OutOfMemoryError e) {
+            // Do not treat OOM as file corruption — the file is valid but too large for current heap.
+            // Re-throw so the file is not moved to backup_of_corrupted_data and data is preserved.
+            throw e;
         } catch (Throwable t) {
             log.error("Reading {} failed with {}.", fileName, t.getMessage(), t);
             try {
