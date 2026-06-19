@@ -125,6 +125,12 @@ public class Offer implements NetworkPayload, PersistablePayload {
     @Nullable
     transient private String challenge;
 
+    @JsonExclude
+    @Getter
+    @Setter
+    @Nullable
+    transient private AvailabilityResult availabilityResult;
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
