@@ -2066,8 +2066,8 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
 
-            // handle first wallet sync
-            if (isFirstSync) onFirstSync();
+            // handle sucessful sync before wallet service initialized
+            if (isFirstSync || (wasWalletSynced && !isWalletServiceInitialized())) onFirstSync();
         } catch (Exception e) {
 
             // skip error handling if shut down or another thread force restarts while polling
@@ -2118,7 +2118,10 @@ public class XmrWalletService extends XmrWalletBase {
 
     private void onFirstSync() {
         wasWalletSynced = true;
-        if (walletInitListener != null) xmrConnectionService.downloadPercentageProperty().removeListener(walletInitListener);
+        if (walletInitListener != null) {
+            xmrConnectionService.downloadPercentageProperty().removeListener(walletInitListener);
+            walletInitListener = null;
+        }
 
         // log wallet balances
         if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) {
@@ -2142,6 +2145,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void onWalletServiceInitialized() {
+        if (isWalletServiceInitialized()) return;
 
         // monitor wallet height updates to request connection change
         walletHeight.addListener((obs, oldVal, newVal) -> {
