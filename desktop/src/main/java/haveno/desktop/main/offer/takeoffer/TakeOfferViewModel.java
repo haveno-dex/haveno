@@ -26,6 +26,7 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
+import haveno.core.offer.AvailabilityResult;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferRestrictions;
@@ -403,13 +404,25 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                     isOfferAvailable.set(true);
                     updateButtonDisableState();
                     break;
-                case NOT_AVAILABLE:
-                    if (takeOfferRequested)
+                case NOT_AVAILABLE: {
+                    AvailabilityResult availabilityResult = offer.getAvailabilityResult();
+                    if (availabilityResult == AvailabilityResult.PRICE_OUT_OF_TOLERANCE)
+                        offerWarning.set(Res.get("takeOffer.failed.priceOutOfTolerance"));
+                    else if (availabilityResult == AvailabilityResult.MARKET_PRICE_NOT_AVAILABLE)
+                        offerWarning.set(Res.get("takeOffer.failed.marketPriceNotAvailable"));
+                    else if (availabilityResult == AvailabilityResult.USER_IGNORED)
+                        offerWarning.set(Res.get("takeOffer.failed.userIgnored"));
+                    else if (availabilityResult == AvailabilityResult.MAKER_DENIED_TAKER)
+                        offerWarning.set(Res.get("takeOffer.failed.makerDeniedTaker"));
+                    else if (availabilityResult != null && availabilityResult != AvailabilityResult.OFFER_TAKEN)
+                        offerWarning.set(Res.get("takeOffer.failed.availabilityResult", availabilityResult.description()));
+                    else if (takeOfferRequested)
                         offerWarning.set(Res.get("takeOffer.failed.offerNotAvailable"));
                     else
                         offerWarning.set(Res.get("takeOffer.failed.offerTaken"));
                     takeOfferRequested = false;
                     break;
+                }
                 case INVALID:
                     offerWarning.set(Res.get("takeOffer.failed.offerInvalid"));
                     takeOfferRequested = false;

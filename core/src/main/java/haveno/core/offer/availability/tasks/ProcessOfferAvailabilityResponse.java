@@ -46,6 +46,7 @@ public class ProcessOfferAvailabilityResponse extends Task<OfferAvailabilityMode
             // check availability result
             OfferAvailabilityResponse offerAvailabilityResponse = model.getMessage();
             if (offerAvailabilityResponse.getAvailabilityResult() != AvailabilityResult.AVAILABLE) {
+                offer.setAvailabilityResult(offerAvailabilityResponse.getAvailabilityResult());
                 offer.setState(Offer.State.NOT_AVAILABLE);
                 failed("Take offer attempt rejected because of: " + offerAvailabilityResponse.getAvailabilityResult());
                 return;
