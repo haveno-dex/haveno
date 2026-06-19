@@ -252,12 +252,10 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     @Override
-    public void saveWallet() {
-        synchronized (walletLock) {
-            if (wallet == null) throw new IllegalStateException("Cannot save main wallet because it's not open");
-            wallet.save();
-            lastSaveTimeMs = System.currentTimeMillis();
-        }
+    protected void saveWalletNoSync() {
+        if (wallet == null) throw new IllegalStateException("Cannot save main wallet because it's not open");
+        wallet.save();
+        lastSaveTimeMs = System.currentTimeMillis();
     }
 
     public boolean isWalletAvailable() {
