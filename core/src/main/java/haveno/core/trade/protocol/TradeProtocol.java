@@ -178,8 +178,17 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         TradePeer verifiedPeer = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
         if (networkEnvelope instanceof TradeMessage) {
 
-            // require an authenticated sender for trade setup messages (see requiresVerifiedSender())
-            if (verifiedPeer == null && requiresVerifiedSender(networkEnvelope)) {
+            // Require an authenticated sender (matched by signature pub key) for every trade message handled here.
+            // During trade initialization isPubKeyValid() accepts any signature pub key because peer pub key rings
+            // may not be set yet (bootstrap), and the sender is otherwise resolved by a self-reported, spoofable node
+            // address; dropping unverified messages prevents an attacker from injecting one attributed to a legitimate
+            // peer and corrupting the trade's setup state. This is a whitelist (fail-closed): rather than enumerating
+            // which messages need verification, every message requires it unless proven otherwise, so a future message
+            // type cannot silently slip past sender verification. The only message that establishes the peer pub key
+            // rings, InitTradeRequest, is handled in TradeManager and never reaches this dispatch, so there is no
+            // bootstrap message that legitimately arrives here before its sender can be verified; the normal flow is
+            // unaffected because every message handled here is sent after InitTradeRequest has set the relevant rings.
+            if (verifiedPeer == null) {
                 log.warn("Ignoring {} for {} {} from {} because the sender could not be verified against the trade's pub key rings", networkEnvelope.getClass().getSimpleName(), trade.getClass().getSimpleName(), trade.getId(), sender);
                 return;
             }
@@ -229,8 +238,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private void handleMailboxMessage(MailboxMessage mailboxMessage, TradePeer verifiedPeer) {
         if (mailboxMessage instanceof TradeMessage) {
 
-            // require an authenticated sender for trade setup messages (see requiresVerifiedSender())
-            if (verifiedPeer == null && requiresVerifiedSender((NetworkEnvelope) mailboxMessage)) {
+            // require an authenticated sender for every trade message (fail-closed whitelist; see onDirectMessage())
+            if (verifiedPeer == null) {
                 log.warn("Ignoring {} for {} {} from {} because the sender could not be verified against the trade's pub key rings", mailboxMessage.getClass().getSimpleName(), trade.getClass().getSimpleName(), trade.getId(), mailboxMessage.getSenderNodeAddress());
                 return;
             }
@@ -1223,20 +1232,6 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         return null;
       }
       return peer.getPubKeyRing();
-    }
-
-    // Trade setup messages that establish multisig, contract, or deposit state and must therefore come from an
-    // authenticated trade participant. During trade initialization isPubKeyValid() accepts any signature pub key
-    // because peer pub key rings may not be set yet (bootstrap), and the sender is otherwise resolved by a
-    // self-reported, spoofable node address. Requiring a verified sender (matched by signature pub key) for these
-    // messages prevents an attacker from injecting a setup message attributed to a legitimate peer and corrupting
-    // the trade's setup state. The legitimate protocol always sets the relevant peer pub key rings (via
-    // InitTradeRequest) before any of these messages are sent, so this does not affect the normal flow.
-    private boolean requiresVerifiedSender(NetworkEnvelope networkEnvelope) {
-        return networkEnvelope instanceof InitMultisigRequest ||
-                networkEnvelope instanceof SignContractRequest ||
-                networkEnvelope instanceof SignContractResponse ||
-                networkEnvelope instanceof DepositResponse;
     }
 
     public boolean isPubKeyValid(DecryptedMessageWithPubKey message) {
