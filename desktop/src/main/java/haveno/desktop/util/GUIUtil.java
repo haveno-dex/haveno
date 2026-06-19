@@ -26,7 +26,6 @@ import com.googlecode.jcsv.writer.CSVEntryConverter;
 import com.googlecode.jcsv.writer.CSVWriter;
 import com.googlecode.jcsv.writer.internal.CSVWriterBuilder;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
@@ -83,6 +82,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
@@ -101,6 +101,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -1374,9 +1375,25 @@ public class GUIUtil {
     }
 
     public static Label getLockLabel() {
-        Label lockLabel = FormBuilder.getIcon(AwesomeIcon.LOCK, "16px");
-        lockLabel.setStyle(lockLabel.getStyle() + " -fx-text-fill: white;");
+        MaterialDesignIconView lockIcon = new MaterialDesignIconView(MaterialDesignIcon.LOCK, "16px");
+        lockIcon.setFill(Color.WHITE);
+        Label lockLabel = new Label();
+        lockLabel.setGraphic(lockIcon);
         return lockLabel;
+    }
+
+    public static MaterialDesignIconView getLockIcon(Labeled colorSource, String glyphSize) {
+        MaterialDesignIconView lockIcon = new MaterialDesignIconView(MaterialDesignIcon.LOCK, glyphSize);
+        lockIcon.fillProperty().bind(colorSource.textFillProperty());
+        return lockIcon;
+    }
+
+    public static void addPrivateOfferLockIcon(Label label) {
+        MaterialDesignIconView lockIcon = getLockIcon(label, "1.2em");
+        lockIcon.setOpacity(0.7); // match the muted weight of other inline icons (e.g. the info icon)
+        label.setGraphic(lockIcon);
+        label.setContentDisplay(ContentDisplay.RIGHT);
+        label.setGraphicTextGap(6);
     }
 
     public static MaterialDesignIconView getCopyIcon() {

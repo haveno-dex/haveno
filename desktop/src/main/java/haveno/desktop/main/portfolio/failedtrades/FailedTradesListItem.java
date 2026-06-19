@@ -76,7 +76,11 @@ class FailedTradesListItem implements FilterableListItem {
                 ? offer.getDirection()
                 : offer.getMirroredDirection();
         String currencyCode = trade.getOffer().getCounterCurrencyCode();
-        return DisplayUtils.getDirectionWithCode(direction, currencyCode, offer.isPrivateOffer());
+        return DisplayUtils.getDirectionWithCode(direction, currencyCode);
+    }
+
+    public boolean isPrivateOffer() {
+        return trade.getOffer().isPrivateOffer();
     }
 
     public String getVolumeAsString() {

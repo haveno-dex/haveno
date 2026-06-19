@@ -193,7 +193,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         Tooltip noDepositOffersTooltip = new Tooltip(Res.get("offerbook.noDepositOffers"));
         Tooltip.install(noDepositOffersToggleButton, noDepositOffersTooltip);
 
-        privateOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.LOCK, null, "1.5em", null);
+        privateOffersToggleButton = new ToggleButton();
+        privateOffersToggleButton.setGraphic(GUIUtil.getLockIcon(privateOffersToggleButton, "1.5em"));
         privateOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         // lock filter is shown only when enabled on the network
         privateOffersToggleButton.setManaged(HavenoUtils.isGeneralPrivateOffersEnabled());

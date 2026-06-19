@@ -125,7 +125,7 @@ class OpenOffersViewModel extends ActivatableWithDataModel<OpenOffersDataModel> 
         if ((item == null))
             return "";
 
-        return DisplayUtils.getDirectionWithCode(dataModel.getDirection(item.getOffer()), item.getOffer().getCounterCurrencyCode(), item.getOffer().isPrivateOffer());
+        return DisplayUtils.getDirectionWithCode(dataModel.getDirection(item.getOffer()), item.getOffer().getCounterCurrencyCode());
     }
 
     String getMarketLabel(OpenOfferListItem item) {
