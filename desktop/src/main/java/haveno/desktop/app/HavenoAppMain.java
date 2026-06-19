@@ -200,10 +200,6 @@ public class HavenoAppMain extends HavenoExecutable {
             setTitle("Enter Password");
             setHeaderText("Please enter your Haveno password:");
 
-            // Add an icon to the dialog
-            Stage stage = (Stage) getDialogPane().getScene().getWindow();
-            stage.getIcons().add(ImageUtil.getImageByPath("lock@2x.png"));
-
             // Create the password field
             PasswordField passwordField = new PasswordField();
             passwordField.setPromptText("Password");

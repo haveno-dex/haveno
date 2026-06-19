@@ -20,6 +20,7 @@ package haveno.desktop.main.overlays.windows;
 import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import haveno.common.UserThread;
+import haveno.common.util.Tuple2;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
@@ -39,9 +40,11 @@ import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
 import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelButton;
+import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextField;
 import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
 import static haveno.desktop.util.FormBuilder.addLabelExplorerAddressTextField;
@@ -54,6 +57,7 @@ import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
@@ -143,8 +147,9 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 DisplayUtils.formatDateTime(offer.getDate()) + " / " + DisplayUtils.formatDateTime(dispute.getTradeDate()));
         String currencyCode = offer.getCounterCurrencyCode();
         addSeparator(gridPane, ++rowIndex);
-        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.offerType"),
-                DisplayUtils.getDirectionBothSides(offer.getDirection(), offer.isPrivateOffer()));
+        Tuple2<Label, Label> directionTuple = addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.offerType"),
+                DisplayUtils.getDirectionBothSides(offer.getDirection()));
+        if (offer.isPrivateOffer()) GUIUtil.addPrivateOfferLockIcon(directionTuple.second);
         addSeparator(gridPane, ++rowIndex);        
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
                 FormattingUtils.formatPrice(contract.getPrice()));

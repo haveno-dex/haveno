@@ -601,7 +601,9 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                             public void updateItem(final ClosedTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
-                                    setGraphic(new AutoTooltipLabel(item.getDirectionLabel()));
+                                    AutoTooltipLabel directionLabel = new AutoTooltipLabel(item.getDirectionLabel());
+                                    if (item.isPrivateOffer()) GUIUtil.addPrivateOfferLockIcon(directionLabel);
+                                    setGraphic(directionLabel);
                                 } else {
                                     setGraphic(null);
                                 }

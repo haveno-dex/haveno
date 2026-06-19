@@ -219,13 +219,15 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             counterCurrencyDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
             xmrDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
         } else if (placeOfferHandlerOptional.isPresent()) {
-            addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
-                    DisplayUtils.getOfferDirectionForCreateOffer(direction, currencyCode, offer.isPrivateOffer()), firstRowDistance);
+            Tuple2<Label, Label> directionTuple = addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
+                    DisplayUtils.getOfferDirectionForCreateOffer(direction, currencyCode), firstRowDistance);
+            if (offer.isPrivateOffer()) GUIUtil.addPrivateOfferLockIcon(directionTuple.second);
             counterCurrencyDirectionInfo = direction == OfferDirection.SELL ? toReceive : toSpend;
             xmrDirectionInfo = direction == OfferDirection.BUY ? toReceive : toSpend;
         } else {
-            addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
-                    DisplayUtils.getDirectionBothSides(direction, offer.isPrivateOffer()), firstRowDistance);
+            Tuple2<Label, Label> directionTuple = addConfirmationLabelLabel(gridPane, rowIndex, offerTypeLabel,
+                    DisplayUtils.getDirectionBothSides(direction), firstRowDistance);
+            if (offer.isPrivateOffer()) GUIUtil.addPrivateOfferLockIcon(directionTuple.second);
         }
 
         String amount = Res.get("shared.xmrAmount");

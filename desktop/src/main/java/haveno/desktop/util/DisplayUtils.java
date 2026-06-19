@@ -115,15 +115,15 @@ public class DisplayUtils {
     // Offer direction
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static String getDirectionWithCode(OfferDirection direction, String currencyCode, boolean isPrivate) {
-        return (direction == OfferDirection.BUY) ? Res.get(isPrivate ? "shared.buyCurrency.locked" : "shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get(isPrivate ? "shared.sellCurrency.locked" : "shared.sellCurrency", Res.getBaseCurrencyCode());
+    public static String getDirectionWithCode(OfferDirection direction, String currencyCode) {
+        return (direction == OfferDirection.BUY) ? Res.get("shared.buyCurrency", Res.getBaseCurrencyCode()) : Res.get("shared.sellCurrency", Res.getBaseCurrencyCode());
     }
 
-    public static String getDirectionBothSides(OfferDirection direction, boolean isPrivate) {
+    public static String getDirectionBothSides(OfferDirection direction) {
         String currencyCode = Res.getBaseCurrencyCode();
         return direction == OfferDirection.BUY ?
-                Res.get(isPrivate ? "formatter.makerTaker.locked" : "formatter.makerTaker", currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
-                Res.get(isPrivate ? "formatter.makerTaker.locked" : "formatter.makerTaker", currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
+                Res.get("formatter.makerTaker", currencyCode, Res.get("shared.buyer"), currencyCode, Res.get("shared.seller")) :
+                Res.get("formatter.makerTaker", currencyCode, Res.get("shared.seller"), currencyCode, Res.get("shared.buyer"));
     }
 
     public static String getDirectionForBuyer(boolean isMyOffer, String currencyCode) {
@@ -147,11 +147,11 @@ public class DisplayUtils {
                 Res.get("formatter.youAre", Res.get("shared.buying"), baseCurrencyCode, Res.get("shared.selling"), currencyCode);
     }
 
-    public static String getOfferDirectionForCreateOffer(OfferDirection direction, String currencyCode, boolean isPrivate) {
+    public static String getOfferDirectionForCreateOffer(OfferDirection direction, String currencyCode) {
         String baseCurrencyCode = Res.getBaseCurrencyCode();
         return direction == OfferDirection.BUY ?
-                Res.get(isPrivate ? "formatter.youAreCreatingAnOffer.traditional.locked" : "formatter.youAreCreatingAnOffer.traditional", Res.get("shared.buy"), baseCurrencyCode) :
-                Res.get(isPrivate ? "formatter.youAreCreatingAnOffer.traditional.locked" : "formatter.youAreCreatingAnOffer.traditional", Res.get("shared.sell"), baseCurrencyCode);
+                Res.get("formatter.youAreCreatingAnOffer.traditional", Res.get("shared.buy"), baseCurrencyCode) :
+                Res.get("formatter.youAreCreatingAnOffer.traditional", Res.get("shared.sell"), baseCurrencyCode);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
