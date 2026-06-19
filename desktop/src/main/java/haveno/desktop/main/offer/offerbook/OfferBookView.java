@@ -194,7 +194,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         Tooltip.install(noDepositOffersToggleButton, noDepositOffersTooltip);
 
         privateOffersToggleButton = new ToggleButton();
-        privateOffersToggleButton.setGraphic(GUIUtil.getLockIcon(privateOffersToggleButton, "1.5em"));
+        privateOffersToggleButton.setGraphic(GUIUtil.getLockIcon(privateOffersToggleButton, "1.4em"));
         privateOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         // lock filter is shown only when enabled on the network
         privateOffersToggleButton.setManaged(HavenoUtils.isGeneralPrivateOffersEnabled());
@@ -202,7 +202,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         Tooltip privateOffersTooltip = new Tooltip(Res.get("offerbook.privateOffers"));
         Tooltip.install(privateOffersToggleButton, privateOffersTooltip);
 
-        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.5em", null);
+        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.4em", null);
         matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
         Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
@@ -230,7 +230,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         filterInputField.getStyleClass().add("input-with-border");
 
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
-                filterBox, noDepositOffersToggleButton, privateOffersToggleButton, matchingOffersToggleButton, getSpacer(), createOfferVBox);
+                filterBox, matchingOffersToggleButton, privateOffersToggleButton, noDepositOffersToggleButton, getSpacer(), createOfferVBox);
 
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);
