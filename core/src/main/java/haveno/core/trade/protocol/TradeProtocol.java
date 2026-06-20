@@ -186,13 +186,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 return;
             }
 
-            // A DepositResponse must come from the arbitrator. It is the message that finalizes deposit
-            // setup, and a reported error in it drives the trade to PUBLISH_DEPOSIT_TX_REQUEST_FAILED, which
-            // tears the trade down and deletes its wallet. Verify the sender by the authenticated signature
-            // pub key (verifiedPeer), not the sender node address, which is taken from the connection and is
-            // not cryptographically bound to the message. Otherwise a trade peer could forge a DepositResponse
-            // error to make the counterparty delete its trade wallet while the arbitrator still publishes the
-            // deposit txs, permanently locking the victim's funds in the multisig.
+            // a deposit response must come from the arbitrator
             if (networkEnvelope instanceof DepositResponse && verifiedPeer != trade.getArbitrator()) {
                 log.warn("Ignoring DepositResponse for {} {} because it was not sent by the arbitrator", trade.getClass().getSimpleName(), trade.getId());
                 return;
