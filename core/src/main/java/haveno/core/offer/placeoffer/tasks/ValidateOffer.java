@@ -68,7 +68,6 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         checkBINotNullOrZero(offer.getMaxTradeLimit(), "MaxTradeLimit");
         if (offer.getMakerFeePct() < 0) throw new IllegalArgumentException("Maker fee must be >= 0% but was " + offer.getMakerFeePct());
         if (offer.getTakerFeePct() < 0) throw new IllegalArgumentException("Taker fee must be >= 0% but was " + offer.getTakerFeePct());
-        offer.isPrivateOffer();
         if (offer.isPrivateOffer()) {
             boolean isBuyerMaker = offer.getDirection() == OfferDirection.BUY;
             if (isBuyerMaker) {
