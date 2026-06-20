@@ -2109,8 +2109,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             return;
         }
 
-        // remove if deposit not requested or is failed
-        if (!isDepositRequested() || isDepositRequestFailed()) {
+        // remove immediately if deposit not requested
+        if (!isDepositRequested()) {
             removeTradeOnError();
             return;
         }
