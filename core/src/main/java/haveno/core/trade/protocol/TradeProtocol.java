@@ -178,9 +178,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         TradePeer verifiedPeer = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
         if (networkEnvelope instanceof TradeMessage) {
 
-            // Require an authenticated sender (matched by signature pub key) for every trade message. This is a
-            // fail-closed whitelist so a future message type cannot slip past sender verification. InitTradeRequest,
-            // which establishes the pub key rings, is handled in TradeManager and never reaches this dispatch.
+            // InitTradeRequest bootstraps the trade's pub key rings and is only processed in TradeManager
+            if (networkEnvelope instanceof InitTradeRequest) {
+                return;
+            }
+
+            // every other trade message requires an authenticated sender (matched by signature pub key)
             if (verifiedPeer == null) {
                 log.warn("Ignoring {} for {} {} from {} because the sender could not be verified against the trade's pub key rings", networkEnvelope.getClass().getSimpleName(), trade.getClass().getSimpleName(), trade.getId(), sender);
                 return;
