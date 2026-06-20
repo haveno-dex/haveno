@@ -38,6 +38,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
     private final String exchangedMultisigHex;
     @Nullable
     private final String tradeFeeAddress;
+    private final long tradePrice; // arbitrator sets the final trade price, 0 if unset
 
     public InitMultisigRequest(String tradeId,
                                      String uid,
@@ -46,13 +47,15 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                                      String preparedMultisigHex,
                                      String madeMultisigHex,
                                      String exchangedMultisigHex,
-                                     String tradeFeeAddress) {
+                                     String tradeFeeAddress,
+                                     long tradePrice) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
         this.preparedMultisigHex = preparedMultisigHex;
         this.madeMultisigHex = madeMultisigHex;
         this.exchangedMultisigHex = exchangedMultisigHex;
         this.tradeFeeAddress = tradeFeeAddress;
+        this.tradePrice = tradePrice;
     }
 
 
@@ -72,6 +75,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
         Optional.ofNullable(tradeFeeAddress).ifPresent(e -> builder.setTradeFeeAddress(tradeFeeAddress));
 
         builder.setCurrentDate(currentDate);
+        builder.setTradePrice(tradePrice);
 
         return getNetworkEnvelopeBuilder().setInitMultisigRequest(builder).build();
     }
@@ -86,7 +90,8 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                 ProtoUtil.stringOrNullFromProto(proto.getPreparedMultisigHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getMadeMultisigHex()),
                 ProtoUtil.stringOrNullFromProto(proto.getExchangedMultisigHex()),
-                ProtoUtil.stringOrNullFromProto(proto.getTradeFeeAddress()));
+                ProtoUtil.stringOrNullFromProto(proto.getTradeFeeAddress()),
+                proto.getTradePrice());
     }
 
     @Override
@@ -97,6 +102,7 @@ public final class InitMultisigRequest extends TradeMessage implements DirectMes
                 ",\n     madeMultisigHex=" + madeMultisigHex +
                 ",\n     exchangedMultisigHex=" + exchangedMultisigHex +
                 ",\n     tradeFeeAddress=" + tradeFeeAddress +
+                ",\n     tradePrice=" + tradePrice +
                 "\n} " + super.toString();
     }
 }

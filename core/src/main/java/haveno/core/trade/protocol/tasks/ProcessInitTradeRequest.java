@@ -98,11 +98,10 @@ public class ProcessInitTradeRequest extends TradeTask {
                     trade.getTaker().setPubKeyRing(request.getTakerPubKeyRing());
                     trade.setTakeOfferDate(request.getCurrentDate());
 
-                    // check trade price
+                    // arbitrator sets the final trade price, verifying the maker's and taker's price is within tolerance
                     try {
-                        long tradePrice = request.getTradePrice();
-                        offer.verifyTradePrice(tradePrice);
-                        trade.setPrice(tradePrice);
+                        offer.verifyTradePrice(request.getTradePrice());
+                        trade.setPrice(offer.getPrice().getValue());
                     } catch (TradePriceOutOfToleranceException e) {
                         failed(e.getMessage());
                         return;
@@ -127,7 +126,15 @@ public class ProcessInitTradeRequest extends TradeTask {
             // handle request as taker
             else if (trade instanceof TakerTrade) {
                 if (request.getTradeAmount() != trade.getAmount().longValueExact()) throw new RuntimeException("Trade amount does not match request's trade amount");
-                if (request.getTradePrice() != trade.getPrice().getValue()) throw new RuntimeException("Trade price does not match request's trade price");
+
+                // adopt the arbitrator's final trade price if within tolerance
+                try {
+                    offer.verifyTradePrice(request.getTradePrice());
+                    trade.setPrice(request.getTradePrice());
+                } catch (TradePriceOutOfToleranceException e) {
+                    failed(e.getMessage());
+                    return;
+                }
                 Arbitrator arbitrator = processModel.getUser().getAcceptedArbitratorByAddress(request.getArbitratorNodeAddress());
                 if (arbitrator == null) throw new RuntimeException("Arbitrator is not accepted by taker: " + request.getArbitratorNodeAddress());
                 if (trade.getArbitrator().getNodeAddress() != null && !trade.getArbitrator().getNodeAddress().equals(request.getArbitratorNodeAddress())) throw new RuntimeException("Trade's arbitrator node address does not match request");
