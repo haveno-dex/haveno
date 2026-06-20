@@ -178,8 +178,16 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         TradePeer verifiedPeer = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
         if (networkEnvelope instanceof TradeMessage) {
 
+            // Require an authenticated sender (matched by signature pub key) for every trade message. This is a
+            // fail-closed whitelist so a future message type cannot slip past sender verification. InitTradeRequest,
+            // which establishes the pub key rings, is handled in TradeManager and never reaches this dispatch.
+            if (verifiedPeer == null) {
+                log.warn("Ignoring {} for {} {} from {} because the sender could not be verified against the trade's pub key rings", networkEnvelope.getClass().getSimpleName(), trade.getClass().getSimpleName(), trade.getId(), sender);
+                return;
+            }
+
             // update verified peer node address if changed
-            if (verifiedPeer != null && sender != null && !sender.equals(verifiedPeer.getNodeAddress())) {
+            if (sender != null && !sender.equals(verifiedPeer.getNodeAddress())) {
                 log.info("Updating verified peer node address from {} to {} based on direct message of type {}", verifiedPeer.getNodeAddress(), sender, networkEnvelope.getClass().getSimpleName());
                 try {
                     trade.updateNodeAddress(verifiedPeer, sender);
@@ -223,8 +231,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private void handleMailboxMessage(MailboxMessage mailboxMessage, TradePeer verifiedPeer) {
         if (mailboxMessage instanceof TradeMessage) {
 
+            // require an authenticated sender for every trade message
+            if (verifiedPeer == null) {
+                log.warn("Ignoring {} for {} {} from {} because the sender could not be verified against the trade's pub key rings", mailboxMessage.getClass().getSimpleName(), trade.getClass().getSimpleName(), trade.getId(), mailboxMessage.getSenderNodeAddress());
+                return;
+            }
+
             // update verified peer node address if changed
-            if (verifiedPeer != null && mailboxMessage.getSenderNodeAddress() != null && !mailboxMessage.getSenderNodeAddress().equals(verifiedPeer.getNodeAddress())) {
+            if (mailboxMessage.getSenderNodeAddress() != null && !mailboxMessage.getSenderNodeAddress().equals(verifiedPeer.getNodeAddress())) {
                 log.info("Updating verified peer node address from {} to {} based on mailbox message of type {}", verifiedPeer.getNodeAddress(), mailboxMessage.getSenderNodeAddress(), mailboxMessage.getClass().getSimpleName());
                 try {
                     trade.updateNodeAddress(verifiedPeer, mailboxMessage.getSenderNodeAddress());
