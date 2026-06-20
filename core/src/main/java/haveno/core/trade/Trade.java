@@ -2109,11 +2109,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             return;
         }
 
-        // remove immediately only if the deposit was never requested (nothing created or published yet).
-        // a failed deposit request must NOT short-circuit to immediate deletion: the failure may be forged or
-        // erroneous (e.g. a spoofed DepositRequest nack or DepositResponse error) while the arbitrator still
-        // publishes our deposit tx into the multisig. fall through to the scheduled cleanup below, which confirms
-        // on-chain via monerod that no deposit tx is published before deleting the wallet.
+        // remove immediately if deposit not requested
         if (!isDepositRequested()) {
             removeTradeOnError();
             return;
