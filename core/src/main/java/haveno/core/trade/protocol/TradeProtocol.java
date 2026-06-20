@@ -959,7 +959,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // handle nack of DepositRequest from arbitrator to buyer or seller
         if (ackMessage.getSourceMsgClassName().equals(DepositRequest.class.getSimpleName())) {
-            if (!ackMessage.isSuccess() && verifiedPeer == trade.getArbitrator()) {
+            if (!ackMessage.isSuccess()) {
+                if (verifiedPeer != trade.getArbitrator()) {
+                    log.warn("Ignoring DepositRequest NACK from non-arbitrator peer for {} {}, sender={}", trade.getClass().getSimpleName(), trade.getId(), sender);
+                    return;
+                }
                 trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
                 processModel.getTradeManager().requestPersistence();
             }
