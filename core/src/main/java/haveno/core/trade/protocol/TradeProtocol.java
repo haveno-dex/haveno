@@ -186,6 +186,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 return;
             }
 
+            // a deposit response must come from the arbitrator
+            if (networkEnvelope instanceof DepositResponse && verifiedPeer != trade.getArbitrator()) {
+                log.warn("Ignoring DepositResponse for {} {} because it was not sent by the arbitrator", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
+
             // update verified peer node address if changed
             if (sender != null && !sender.equals(verifiedPeer.getNodeAddress())) {
                 log.info("Updating verified peer node address from {} to {} based on direct message of type {}", verifiedPeer.getNodeAddress(), sender, networkEnvelope.getClass().getSimpleName());
