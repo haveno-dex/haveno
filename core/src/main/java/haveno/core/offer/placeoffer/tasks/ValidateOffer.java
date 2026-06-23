@@ -123,9 +123,11 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
                 "Amount must be above minimum amount of " + HavenoUtils.atomicUnitsToXmr(minAmount) + " XMR");
         checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "Minimum amount is larger than amount");
 
-        checkNotNull(offer.getPrice(), "Price is null");
-        if (!offer.isUseMarketBasedPrice()) checkArgument(offer.getPrice().isPositive(),
-                "Price must be positive unless using market based price. price=" + offer.getPrice().toFriendlyString());
+        if (!offer.isUseMarketBasedPrice()) {
+            checkNotNull(offer.getPrice(), "Price is null");
+            checkArgument(offer.getPrice().isPositive(),
+                    "Price must be positive unless using market based price. price=" + offer.getPrice().toFriendlyString());
+        }
 
         checkArgument(offer.getOfferPayload().getMarketPriceMarginPct() > -1 && offer.getOfferPayload().getMarketPriceMarginPct() < 1,
                 "Market price margin must be greater than -100% and less than 100% but was " + (offer.getOfferPayload().getMarketPriceMarginPct() * 100) + "%");
@@ -138,7 +140,6 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         checkNotNull(offer.getId(), "Id is null");
         checkNotNull(offer.getPubKeyRing(), "pubKeyRing is null");
         checkNotNull(offer.getMinAmount(), "MinAmount is null");
-        checkNotNull(offer.getPrice(), "Price is null");
         checkNotNull(offer.getVersionNr(), "VersionNr is null");
         checkArgument(offer.getMaxTradePeriod() > 0,
                 "maxTradePeriod must be positive. maxTradePeriod=" + offer.getMaxTradePeriod());
