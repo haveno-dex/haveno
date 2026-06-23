@@ -94,7 +94,21 @@ wget "${wget_flags}" -cq "${base_url}""${signature_filename}" || { echo_red "Fai
 
 # Download the GPG key
 echo_blue "Downloading signing GPG key ..."
-wget "${wget_flags}" -cqO "${key_filename}" "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$(echo "$expected_fingerprint" | tr -d ' ')" || { echo_red "Failed to download GPG key."; exit 1; }
+key_search="0x$(echo "$expected_fingerprint" | tr -d ' ')"
+keyservers=(
+  "https://keys.openpgp.org/pks/lookup?op=get&search=${key_search}"
+  "https://keyserver.ubuntu.com/pks/lookup?op=get&search=${key_search}"
+  "https://pgp.mit.edu/pks/lookup?op=get&search=${key_search}"
+)
+key_downloaded=false
+for keyserver in "${keyservers[@]}"; do
+  echo_blue "  Trying ${keyserver%%/pks/*} ..."
+  if wget "${wget_flags}" -cqO "${key_filename}" "${keyserver}" && [ -s "${key_filename}" ]; then
+    key_downloaded=true
+    break
+  fi
+done
+[ "${key_downloaded}" = true ] || { echo_red "Failed to download GPG key from all keyservers."; exit 1; }
 
 
 # Import the GPG key
