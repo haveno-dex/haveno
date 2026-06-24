@@ -18,7 +18,7 @@
 }
 
 .root:dir(ltr){
-    -fx-font-family: "IBM Plex Sans";
+    -fx-font-family: "System";
 }
 
 /********************************************************************************************************************
@@ -2347,7 +2347,7 @@ textfield */
 
 #price-feed-combo > .list-cell {
     -fx-text-fill: -bs-rd-font-balance;
-    -fx-font-family: "IBM Plex Sans";
+    -fx-font-family: "System";
 }
 
 #invert-market-price {
@@ -2650,7 +2650,7 @@ textfield */
     -fx-background-radius: 8;
     -fx-border-radius: 8;
     -fx-font-size: 1.077em;
-    -fx-font-family: "IBM Plex Sans";
+    -fx-font-family: "System";
     -fx-font-weight: normal;
     -fx-text-fill: -bs-rd-font-dark-gray !important;
     -fx-border-width: 1;
@@ -2692,7 +2692,7 @@ textfield */
     -fx-border-radius: 999;
     -fx-min-height: 0;
     -fx-font-size: 1.077em;
-    -fx-font-family: "IBM Plex Sans";
+    -fx-font-family: "System";
     -fx-font-weight: normal;
 }
 
