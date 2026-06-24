@@ -60,6 +60,17 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
     }
 
     public static void validateOffer(Offer offer, AccountAgeWitnessService accountAgeWitnessService, User user) {
+        validateOffer(offer, accountAgeWitnessService, user, true);
+    }
+
+    /**
+     * Validate the offer.
+     *
+     * @param requirePrice true if the price must be currently available, which is required to post the offer but not
+     *                     afterwards. A market based offer's price is derived from the price feed at runtime, so it can
+     *                     be temporarily unavailable, which is not an indication that the offer is invalid.
+     */
+    public static void validateOffer(Offer offer, AccountAgeWitnessService accountAgeWitnessService, User user, boolean requirePrice) {
 
         // Coins
         checkBINotNullOrZero(offer.getAmount(), "Amount");
@@ -123,7 +134,7 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
                 "Amount must be above minimum amount of " + HavenoUtils.atomicUnitsToXmr(minAmount) + " XMR");
         checkArgument(offer.getAmount().compareTo(offer.getMinAmount()) >= 0, "Minimum amount is larger than amount");
 
-        checkNotNull(offer.getPrice(), "Price is null");
+        if (requirePrice) checkNotNull(offer.getPrice(), "Price is null");
         if (!offer.isUseMarketBasedPrice()) checkArgument(offer.getPrice().isPositive(),
                 "Price must be positive unless using market based price. price=" + offer.getPrice().toFriendlyString());
 
@@ -138,7 +149,6 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         checkNotNull(offer.getId(), "Id is null");
         checkNotNull(offer.getPubKeyRing(), "pubKeyRing is null");
         checkNotNull(offer.getMinAmount(), "MinAmount is null");
-        checkNotNull(offer.getPrice(), "Price is null");
         checkNotNull(offer.getVersionNr(), "VersionNr is null");
         checkArgument(offer.getMaxTradePeriod() > 0,
                 "maxTradePeriod must be positive. maxTradePeriod=" + offer.getMaxTradePeriod());
