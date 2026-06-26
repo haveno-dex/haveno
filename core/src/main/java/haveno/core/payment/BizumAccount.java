@@ -18,6 +18,8 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.BizumAccountPayload;
@@ -26,6 +28,8 @@ import haveno.core.payment.payload.PaymentMethod;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
+import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
@@ -33,8 +37,16 @@ public final class BizumAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("EUR"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.MOBILE_NR,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public BizumAccount() {
         super(PaymentMethod.BIZUM);
+        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0)); // this payment method is only for Spain/EUR
     }
 
     @Override
@@ -72,6 +84,12 @@ public final class BizumAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return Arrays.asList(CountryUtil.findCountryByCode("ES").get());
     }
 }

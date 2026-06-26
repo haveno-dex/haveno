@@ -549,7 +549,8 @@ public abstract class PaymentAccount implements PersistablePayload {
             if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
             break;
         case MOBILE_NR:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new InputValidator().validate(value));
+            break;
         case NATIONAL_ACCOUNT_ID:
             throw new IllegalArgumentException("Not implemented");
         case PAYID:
