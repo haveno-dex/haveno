@@ -1946,6 +1946,7 @@ message PaymentAccountForm {
         BIZUM = 36;
         NEQUI = 37;
         JAPAN_BANK = 38;
+        PAYTM = 39;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
