@@ -1930,6 +1930,7 @@ message PaymentAccountForm {
         NATIONAL_BANK = 29;
         WESTERN_UNION = 30;
         CASH_DEPOSIT = 31;
+        UPI = 32;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
@@ -1997,6 +1998,7 @@ message PaymentAccountFormField {
         USERNAME = 57;
         EMAIL_OR_MOBILE_NR_OR_USERNAME = 58;
         EMAIL_OR_MOBILE_NR_OR_CASHTAG = 59;
+        VIRTUAL_PAYMENT_ADDRESS = 60;
     }
     enum Component {
         TEXT = 0;

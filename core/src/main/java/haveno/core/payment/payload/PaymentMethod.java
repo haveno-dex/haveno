@@ -366,6 +366,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 SWIFT_ID,
                 TRANSFERWISE_ID,
                 UPHOLD_ID,
+                UPI_ID,
                 ZELLE_ID,
                 AUSTRALIA_PAYID_ID,
                 CASH_APP_ID,
