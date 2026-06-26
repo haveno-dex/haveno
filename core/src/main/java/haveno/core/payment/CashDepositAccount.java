@@ -17,20 +17,47 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.validation.EmailValidator;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public final class CashDepositAccount extends CountryBasedPaymentAccount implements SameCountryRestrictedBankAccount {
+/**
+ * Cash deposit shares all the bank form fields and country based validation with
+ * {@link GeneralBankAccount}, adding a required holder email and an optional free
+ * text requirements field (mirroring the desktop {@code CashDepositForm}).
+ */
+@EqualsAndHashCode(callSuper = true)
+public final class CashDepositAccount extends GeneralBankAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_EMAIL,
+            PaymentAccountFormField.FieldId.HOLDER_TAX_ID,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BANK_ID,
+            PaymentAccountFormField.FieldId.BRANCH_ID,
+            PaymentAccountFormField.FieldId.NATIONAL_ACCOUNT_ID,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.ACCOUNT_TYPE,
+            PaymentAccountFormField.FieldId.REQUIREMENTS,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public CashDepositAccount() {
         super(PaymentMethod.CASH_DEPOSIT);
@@ -48,17 +75,43 @@ public final class CashDepositAccount extends CountryBasedPaymentAccount impleme
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     @Override
-    public String getBankId() {
-        return ((CashDepositAccountPayload) paymentAccountPayload).getBankId();
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+        case HOLDER_EMAIL:
+            processValidationResult(new EmailValidator().validate(value));
+            break;
+        case REQUIREMENTS:
+            // optional free text, not validated (matches the desktop form)
+            break;
+        default:
+            // bank fields are validated by GeneralBankAccount
+            super.validateFormField(form, fieldId, value);
+        }
     }
 
     @Override
-    public String getCountryCode() {
-        return getCountry() != null ? getCountry().code : "";
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        switch (fieldId) {
+        case HOLDER_EMAIL: {
+            PaymentAccountFormField field = new PaymentAccountFormField(fieldId);
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setType("email");
+            field.setLabel(Res.get("payment.email"));
+            return field;
+        }
+        case REQUIREMENTS: {
+            PaymentAccountFormField field = new PaymentAccountFormField(fieldId);
+            field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
+            field.setLabel(Res.get("payment.extras"));
+            return field;
+        }
+        default:
+            return super.getEmptyFormField(fieldId);
+        }
     }
 
     @Nullable
