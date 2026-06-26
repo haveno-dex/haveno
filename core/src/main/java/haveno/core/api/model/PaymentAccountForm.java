@@ -90,7 +90,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         PIX,
         NATIONAL_BANK,
         WESTERN_UNION,
-        CASH_DEPOSIT;
+        CASH_DEPOSIT,
+        UPI;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
