@@ -710,9 +710,11 @@ public abstract class PaymentAccount implements PersistablePayload {
         case CITY:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.account.city"));
+            break;
         case CONTACT:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.payByMail.contact"));
+            break;
         case COUNTRY:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel(Res.get("shared.country"));
