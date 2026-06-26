@@ -595,6 +595,9 @@ public abstract class PaymentAccount implements PersistablePayload {
         case ADDRESS:
             processValidationResult(new LengthValidator(10, 150).validate(value)); // TODO: validate crypto address
             break;
+        case VIRTUAL_PAYMENT_ADDRESS:
+            processValidationResult(new InputValidator().validate(value));
+            break;
         default:
             throw new RuntimeException("Unhandled form field: " + fieldId);
         }
@@ -845,6 +848,10 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel(Res.get("payment.account.address"));
             field.setMinLength(10);
             field.setMaxLength(150);
+            break;
+        case VIRTUAL_PAYMENT_ADDRESS:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.upi.virtualPaymentAddress"));
             break;
         default:
             throw new RuntimeException("Unhandled form field: " + field);
