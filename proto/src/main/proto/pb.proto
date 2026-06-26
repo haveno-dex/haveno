@@ -1944,6 +1944,7 @@ message PaymentAccountForm {
         IMPS = 34;
         PROMPT_PAY = 35;
         BIZUM = 36;
+        NEQUI = 37;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
