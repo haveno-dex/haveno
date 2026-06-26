@@ -1945,6 +1945,7 @@ message PaymentAccountForm {
         PROMPT_PAY = 35;
         BIZUM = 36;
         NEQUI = 37;
+        JAPAN_BANK = 38;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
