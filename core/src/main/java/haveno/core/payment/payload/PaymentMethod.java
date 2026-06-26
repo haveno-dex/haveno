@@ -352,6 +352,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         List<String> paymentMethodIds = List.of(
                 BLOCK_CHAINS_ID,
                 CASH_AT_ATM_ID,
+                CASH_DEPOSIT_ID,
                 FASTER_PAYMENTS_ID,
                 F2F_ID,
                 MONEY_GRAM_ID,
