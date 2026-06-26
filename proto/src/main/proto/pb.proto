@@ -1931,6 +1931,7 @@ message PaymentAccountForm {
         WESTERN_UNION = 30;
         CASH_DEPOSIT = 31;
         UPI = 32;
+        NEFT = 33;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

@@ -56,6 +56,7 @@ import haveno.core.payment.validation.EmailOrMobileNrValidator;
 import haveno.core.payment.validation.EmailValidator;
 import haveno.core.payment.validation.IBANValidator;
 import haveno.core.payment.validation.LengthValidator;
+import haveno.core.util.validation.RegexValidator;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.validation.InputValidator;
@@ -536,8 +537,13 @@ public abstract class PaymentAccount implements PersistablePayload {
         case IBAN:
             processValidationResult(new IBANValidator().validate(value));
             break;
-        case IFSC:
-            throw new IllegalArgumentException("Not implemented");
+        case IFSC: {
+            RegexValidator ifscValidator = new RegexValidator(); // https://en.wikipedia.org/wiki/Indian_Financial_System_Code
+            ifscValidator.setPattern("[A-Z]{4}0[0-9]{6}");
+            ifscValidator.setErrorMessage(Res.get("payment.ifsc.validation"));
+            processValidationResult(ifscValidator.validate(value));
+            break;
+        }
         case INTERMEDIARY_COUNTRY_CODE:
             if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
             break;
@@ -755,7 +761,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel("IBAN");
             break;
         case IFSC:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.ifsc"));
+            break;
         case INTERMEDIARY_ADDRESS:
             field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
             field.setLabel(Res.get("payment.swift.address.intermediary"));
