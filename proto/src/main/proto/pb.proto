@@ -1933,6 +1933,7 @@ message PaymentAccountForm {
         UPI = 32;
         NEFT = 33;
         IMPS = 34;
+        PROMPT_PAY = 35;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

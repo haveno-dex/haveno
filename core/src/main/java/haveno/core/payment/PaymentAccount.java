@@ -56,6 +56,7 @@ import haveno.core.payment.validation.EmailOrMobileNrValidator;
 import haveno.core.payment.validation.EmailValidator;
 import haveno.core.payment.validation.IBANValidator;
 import haveno.core.payment.validation.LengthValidator;
+import haveno.core.payment.validation.PromptPayValidator;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.trade.HavenoUtils;
@@ -561,7 +562,8 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new InputValidator().validate(value));
             break;
         case PROMPT_PAY_ID:
-            throw new IllegalArgumentException("Not implemented");
+            processValidationResult(new PromptPayValidator().validate(value));
+            break;
         case QUESTION:
             throw new IllegalArgumentException("Not implemented");
         case REQUIREMENTS:
@@ -803,7 +805,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setLabel(Res.get("payment.postal.address"));
             break;
         case PROMPT_PAY_ID:
-            throw new IllegalArgumentException("Not implemented");
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.promptPay.promptPayId"));
+            break;
         case QUESTION:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.secret"));
