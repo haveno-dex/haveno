@@ -17,6 +17,7 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.BankUtil;
@@ -107,11 +108,25 @@ public final class AchTransferAccount extends CountryBasedPaymentAccount impleme
     }
 
     @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+        case ACCOUNT_TYPE:
+            if (!BankUtil.getAccountTypeValues("US").contains(value)) throw new IllegalArgumentException(BankUtil.getAccountTypeLabel("US") + ": " + value);
+            break;
+        default:
+            super.validateFormField(form, fieldId, value);
+        }
+    }
+
+    @Override
     protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
         var field = super.getEmptyFormField(fieldId);
         if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
         if (field.getId() == PaymentAccountFormField.FieldId.BRANCH_ID) field.setLabel(BankUtil.getBranchIdLabel("US"));
-        if (field.getId() == PaymentAccountFormField.FieldId.ACCOUNT_TYPE) field.setLabel(BankUtil.getAccountTypeLabel("US"));
+        if (field.getId() == PaymentAccountFormField.FieldId.ACCOUNT_TYPE) {
+            field.setLabel(BankUtil.getAccountTypeLabel("US"));
+            field.setSupportedValues(BankUtil.getAccountTypeValues("US")); // Checking / Savings
+        }
         return field;
     }
 }
