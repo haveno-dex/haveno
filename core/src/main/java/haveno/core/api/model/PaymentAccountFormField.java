@@ -139,6 +139,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
     private List<Country> supportedSepaEuroCountries;
     private List<Country> supportedSepaNonEuroCountries;
     private List<String> requiredForCountries;
+    private List<String> supportedValues; // valid options for a SELECT_ONE/SELECT_MULTIPLE field with plain string values
 
     public PaymentAccountFormField(FieldId id) {
         this.id = id;
@@ -159,6 +160,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
         Optional.ofNullable(supportedSepaEuroCountries).ifPresent(e -> builder.addAllSupportedSepaEuroCountries(ProtoUtil.collectionToProto(supportedSepaEuroCountries, protobuf.Country.class)));
         Optional.ofNullable(supportedSepaNonEuroCountries).ifPresent(e -> builder.addAllSupportedSepaNonEuroCountries(ProtoUtil.collectionToProto(supportedSepaNonEuroCountries, protobuf.Country.class)));
         Optional.ofNullable(requiredForCountries).ifPresent(builder::addAllRequiredForCountries);
+        Optional.ofNullable(supportedValues).ifPresent(builder::addAllSupportedValues);
         return builder.build();
     }
 
@@ -173,6 +175,7 @@ public final class PaymentAccountFormField implements PersistablePayload {
         formField.supportedSepaEuroCountries = proto.getSupportedSepaEuroCountriesList().isEmpty() ? null : proto.getSupportedSepaEuroCountriesList().stream().map(Country::fromProto).collect(Collectors.toList());
         formField.supportedSepaNonEuroCountries = proto.getSupportedSepaNonEuroCountriesList().isEmpty() ? null : proto.getSupportedSepaNonEuroCountriesList().stream().map(Country::fromProto).collect(Collectors.toList());
         formField.requiredForCountries = proto.getRequiredForCountriesList() == null ? null : new ArrayList<String>(proto.getRequiredForCountriesList());
+        formField.supportedValues = proto.getSupportedValuesList().isEmpty() ? null : new ArrayList<String>(proto.getSupportedValuesList());
         return formField;
     }
 }

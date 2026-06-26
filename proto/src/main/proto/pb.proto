@@ -2013,4 +2013,5 @@ message PaymentAccountFormField {
     repeated Country supported_sepa_euro_countries = 10;
     repeated Country supported_sepa_non_euro_countries = 11;
     repeated string required_for_countries = 12;
+    repeated string supported_values = 13; // valid options for a SELECT_ONE/SELECT_MULTIPLE field whose values are plain strings
 }
