@@ -1932,6 +1932,7 @@ message PaymentAccountForm {
         CASH_DEPOSIT = 31;
         UPI = 32;
         NEFT = 33;
+        IMPS = 34;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
