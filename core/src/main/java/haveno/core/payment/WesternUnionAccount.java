@@ -31,6 +31,17 @@ public final class WesternUnionAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.CITY,
+            PaymentAccountFormField.FieldId.STATE,
+            PaymentAccountFormField.FieldId.EMAIL,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public WesternUnionAccount() {
         super(PaymentMethod.WESTERN_UNION);
     }
@@ -47,7 +58,17 @@ public final class WesternUnionAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        PaymentAccountFormField field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) {
+            field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
+            if (getSupportedCurrencies().size() > 1) field.setValue(""); // SELECT_ONE must not pre-fill the whole currency list
+        }
+        return field;
     }
 
     public String getEmail() {

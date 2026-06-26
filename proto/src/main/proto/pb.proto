@@ -1937,6 +1937,7 @@ message PaymentAccountForm {
         US_POSTAL_MONEY_ORDER = 27;
         PIX = 28;
         NATIONAL_BANK = 29;
+        WESTERN_UNION = 30;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
