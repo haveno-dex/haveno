@@ -1929,6 +1929,7 @@ message PaymentAccountForm {
         PIX = 28;
         NATIONAL_BANK = 29;
         WESTERN_UNION = 30;
+        CASH_DEPOSIT = 31;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
