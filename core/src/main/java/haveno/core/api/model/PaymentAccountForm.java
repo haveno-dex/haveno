@@ -94,7 +94,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         UPI,
         NEFT,
         IMPS,
-        PROMPT_PAY;
+        PROMPT_PAY,
+        BIZUM;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
