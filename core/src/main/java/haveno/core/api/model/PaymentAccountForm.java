@@ -98,7 +98,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         BIZUM,
         NEQUI,
         JAPAN_BANK,
-        PAYTM;
+        PAYTM,
+        DOMESTIC_WIRE_TRANSFER;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
