@@ -17,10 +17,8 @@
 
 package haveno.core.payment;
 
-import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.payload.BankAccountPayload;
 import haveno.core.payment.payload.NationalBankAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
@@ -30,7 +28,7 @@ import lombok.NonNull;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
-public final class NationalBankAccount extends CountryBasedPaymentAccount implements SameCountryRestrictedBankAccount {
+public final class NationalBankAccount extends GeneralBankAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
 
@@ -46,20 +44,5 @@ public final class NationalBankAccount extends CountryBasedPaymentAccount implem
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
-    }
-
-    @Override
-    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
-    }
-
-    @Override
-    public String getBankId() {
-        return ((BankAccountPayload) paymentAccountPayload).getBankId();
-    }
-
-    @Override
-    public String getCountryCode() {
-        return getCountry() != null ? getCountry().code : "";
     }
 }

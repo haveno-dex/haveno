@@ -87,7 +87,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         ACH_TRANSFER,
         INTERAC_E_TRANSFER,
         US_POSTAL_MONEY_ORDER,
-        PIX;
+        PIX,
+        NATIONAL_BANK;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
