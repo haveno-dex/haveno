@@ -19,6 +19,7 @@ package haveno.core.payment;
 
 import com.google.common.collect.ImmutableMap;
 import haveno.core.trade.HavenoUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +46,11 @@ import java.util.Map;
 */
 
 public class JapanBankData {
+
+    // selectable account types: These are locale-independent data values (the account type written on a Japanese bank
+    // transfer), so they are constants rather than Res/getString lookups.
+    public static final String FUTSU = "普通"; // ordinary account (futsu)
+    public static final String TOUZA = "当座"; // current account (touza)
 
     /*
        Returns the main list of ~500 banks in Japan with bank codes,
@@ -98,6 +104,19 @@ public class JapanBankData {
         return ID_OPEN + bankId + ID_CLOSE + SPACE +
                 JA_OPEN + bankName + JA_CLOSE;
     } // }}}
+
+    // Inverse of the prettyPrint* methods: parse a bank list entry like "0001 みずほ Mizuho Bank"
+    public static String bankCodeFromEntry(String entry) {
+        return entry == null ? "" : StringUtils.substringBefore(entry, SPACE);
+    }
+
+    public static String bankNameFromEntry(String entry) {
+        return entry == null ? "" : StringUtils.substringBefore(StringUtils.substringAfter(entry, SPACE), SPACE);
+    }
+
+    public static List<String> accountTypes() {
+        return List.of(FUTSU, TOUZA);
+    }
 
     // top 30 mega banks with english
     private static final Map<String, String> megaBanksEnglish = ImmutableMap.<String, String>builder()
@@ -826,19 +845,19 @@ public class JapanBankData {
                 return "Select Account Type";
             // displayed while creating account
             case "account.type.futsu":
-                if (ja) return "普通";
+                if (ja) return FUTSU;
                 return "FUTSUU (ordinary) account";
             case "account.type.touza":
-                if (ja) return "当座";
+                if (ja) return TOUZA;
                 return "TOUZA (checking) account";
             case "account.type.chochiku":
                 if (ja) return "貯金";
                 return "CHOCHIKU (special) account";
             // used when saving account info
             case "account.type.futsu.ja":
-                return "普通";
+                return FUTSU;
             case "account.type.touza.ja":
-                return "当座";
+                return TOUZA;
             case "account.type.chochiku.ja":
                 return "貯金";
 
