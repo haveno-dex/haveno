@@ -102,7 +102,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         DOMESTIC_WIRE_TRANSFER,
         SATISPAY,
         PAYSERA,
-        TIKKIE;
+        TIKKIE,
+        MPESA;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());

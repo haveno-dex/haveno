@@ -104,6 +104,8 @@ public class PaymentAccountFactory {
                 return new PaytmAccount();
             case PaymentMethod.NEQUI_ID:
                 return new NequiAccount();
+            case PaymentMethod.MPESA_ID:
+                return new MpesaAccount();
             case PaymentMethod.BIZUM_ID:
                 return new BizumAccount();
             case PaymentMethod.PIX_ID:
