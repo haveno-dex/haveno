@@ -61,6 +61,7 @@ import static haveno.core.payment.payload.PaymentMethod.INTERAC_E_TRANSFER_ID;
 import static haveno.core.payment.payload.PaymentMethod.JAPAN_BANK_ID;
 import static haveno.core.payment.payload.PaymentMethod.MONESE_ID;
 import static haveno.core.payment.payload.PaymentMethod.MONEY_BEAM_ID;
+import static haveno.core.payment.payload.PaymentMethod.MERCADO_PAGO_ID;
 import static haveno.core.payment.payload.PaymentMethod.MONEY_GRAM_ID;
 import static haveno.core.payment.payload.PaymentMethod.MPESA_ID;
 import static haveno.core.payment.payload.PaymentMethod.NATIONAL_BANK_ID;
@@ -198,6 +199,8 @@ public class PaymentAccountUtil {
                 return NequiAccount.SUPPORTED_CURRENCIES;
             case MPESA_ID:
                 return MpesaAccount.SUPPORTED_CURRENCIES;
+            case MERCADO_PAGO_ID:
+                return MercadoPagoAccount.SUPPORTED_CURRENCIES;
             case IMPS_ID:
             case NEFT_ID:
             case PAYTM_ID:

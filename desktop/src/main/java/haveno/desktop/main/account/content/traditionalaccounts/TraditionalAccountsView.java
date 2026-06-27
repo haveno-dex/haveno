@@ -97,6 +97,7 @@ import haveno.desktop.components.paymentmethods.JapanBankTransferForm;
 import haveno.desktop.components.paymentmethods.MoneseForm;
 import haveno.desktop.components.paymentmethods.MoneyBeamForm;
 import haveno.desktop.components.paymentmethods.MoneyGramForm;
+import haveno.desktop.components.paymentmethods.MercadoPagoForm;
 import haveno.desktop.components.paymentmethods.MpesaForm;
 import haveno.desktop.components.paymentmethods.NationalBankForm;
 import haveno.desktop.components.paymentmethods.NeftForm;
@@ -659,6 +660,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new NequiForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.MPESA_ID:
                 return new MpesaForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.MERCADO_PAGO_ID:
+                return new MercadoPagoForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.BIZUM_ID:
                 return new BizumForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.PIX_ID:

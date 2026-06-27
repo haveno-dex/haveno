@@ -930,6 +930,7 @@ message CountryBasedPaymentAccountPayload {
         TransferwiseUsdAccountPayload transferwise_usd_account_payload = 18;
         SwiftAccountPayload swift_account_payload = 19;
         MpesaAccountPayload mpesa_account_payload = 20;
+        MercadoPagoAccountPayload mercado_pago_account_payload = 21;
     }
 }
 
@@ -1213,6 +1214,11 @@ message SatispayAccountPayload {
 message MpesaAccountPayload {
     string holder_name = 1;
     string mobile_nr = 2;
+}
+
+message MercadoPagoAccountPayload {
+    string holder_name = 1;
+    string email_or_mobile_nr = 2;
 }
 
 message StrikeAccountPayload {
@@ -1958,6 +1964,7 @@ message PaymentAccountForm {
         PAYSERA = 42;
         TIKKIE = 43;
         MPESA = 44;
+        MERCADO_PAGO = 45;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

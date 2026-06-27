@@ -62,6 +62,7 @@ import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.ImpsAccount;
 import haveno.core.payment.InteracETransferAccount;
 import haveno.core.payment.JapanBankAccount;
+import haveno.core.payment.MercadoPagoAccount;
 import haveno.core.payment.MoneseAccount;
 import haveno.core.payment.MoneyBeamAccount;
 import haveno.core.payment.MoneyGramAccount;
@@ -157,6 +158,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String INTERAC_E_TRANSFER_ID = "INTERAC_E_TRANSFER";
     public static final String US_POSTAL_MONEY_ORDER_ID = "US_POSTAL_MONEY_ORDER";
     public static final String CASH_DEPOSIT_ID = "CASH_DEPOSIT";
+    public static final String MERCADO_PAGO_ID = "MERCADO_PAGO";
     public static final String MONEY_GRAM_ID = "MONEY_GRAM";
     public static final String WESTERN_UNION_ID = "WESTERN_UNION";
     public static final String HAL_CASH_ID = "HAL_CASH";
@@ -219,6 +221,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod INTERAC_E_TRANSFER;
     public static PaymentMethod US_POSTAL_MONEY_ORDER;
     public static PaymentMethod CASH_DEPOSIT;
+    public static PaymentMethod MERCADO_PAGO;
     public static PaymentMethod MONEY_GRAM;
     public static PaymentMethod WESTERN_UNION;
     public static PaymentMethod F2F;
@@ -320,6 +323,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             CELPAY = new PaymentMethod(CELPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CelPayAccount.SUPPORTED_CURRENCIES)),
             MONESE = new PaymentMethod(MONESE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MoneseAccount.SUPPORTED_CURRENCIES)),
             MPESA = new PaymentMethod(MPESA_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MpesaAccount.SUPPORTED_CURRENCIES)),
+            MERCADO_PAGO = new PaymentMethod(MERCADO_PAGO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MercadoPagoAccount.SUPPORTED_CURRENCIES)),
             SATISPAY = new PaymentMethod(SATISPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(SatispayAccount.SUPPORTED_CURRENCIES)),
             TIKKIE = new PaymentMethod(TIKKIE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(TikkieAccount.SUPPORTED_CURRENCIES)),
             VERSE = new PaymentMethod(VERSE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VerseAccount.SUPPORTED_CURRENCIES)),
@@ -363,6 +367,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 F2F_ID,
                 IMPS_ID,
                 JAPAN_BANK_ID,
+                MERCADO_PAGO_ID,
                 MONEY_GRAM_ID,
                 MPESA_ID,
                 NATIONAL_BANK_ID,
