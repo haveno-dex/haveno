@@ -365,6 +365,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 NEQUI_ID,
                 PAXUM_ID,
                 PAY_BY_MAIL_ID,
+                PAYSERA_ID,
                 PAYTM_ID,
                 PROMPT_PAY_ID,
                 REVOLUT_ID,
