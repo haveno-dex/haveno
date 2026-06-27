@@ -106,6 +106,8 @@ public class PaymentAccountFactory {
                 return new NequiAccount();
             case PaymentMethod.MPESA_ID:
                 return new MpesaAccount();
+            case PaymentMethod.MERCADO_PAGO_ID:
+                return new MercadoPagoAccount();
             case PaymentMethod.BIZUM_ID:
                 return new BizumAccount();
             case PaymentMethod.PIX_ID:

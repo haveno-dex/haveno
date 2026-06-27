@@ -103,7 +103,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         SATISPAY,
         PAYSERA,
         TIKKIE,
-        MPESA;
+        MPESA,
+        MERCADO_PAGO;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
