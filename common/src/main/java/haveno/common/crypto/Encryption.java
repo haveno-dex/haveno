@@ -18,7 +18,7 @@
 package haveno.common.crypto;
 
 import haveno.common.util.Utilities;
-import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -101,11 +101,11 @@ public class Encryption {
     private static byte[] getPayloadWithHmac(byte[] payload, SecretKey secretKey) {
         try {
             byte[] hmac = getHmac(payload, secretKey);
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(payload.length + hmac.length)) {
-                outputStream.write(payload);
-                outputStream.write(hmac);
-                return outputStream.toByteArray();
-            }
+            // Append the hmac with a single copy (HMAC-SHA256 is always 32 bytes) to avoid the
+            // extra full-payload copy a ByteArrayOutputStream would make.
+            byte[] payloadWithHmac = Arrays.copyOf(payload, payload.length + hmac.length);
+            System.arraycopy(hmac, 0, payloadWithHmac, payload.length, hmac.length);
+            return payloadWithHmac;
         } catch (Throwable e) {
             log.error("Could not create hmac", e);
             throw new RuntimeException("Could not create hmac", e);
@@ -136,6 +136,40 @@ public class Encryption {
 
     public static byte[] encryptPayloadWithHmac(byte[] payload, SecretKey secretKey) throws CryptoException {
         return encrypt(getPayloadWithHmac(payload, secretKey), secretKey);
+    }
+
+    /**
+     * Streams {@code encrypt(payload || hmac(payload))} directly to {@code outputStream} without
+     * ever holding the concatenated payload-with-hmac or the encrypted result fully in memory.
+     * This produces byte-identical output to {@link #encryptPayloadWithHmac(byte[], SecretKey)} but
+     * avoids the ~3x peak-memory amplification of the array based variant, which can throw
+     * OutOfMemoryError for large persisted stores (e.g. ClosedTrades for arbitrators with many trades).
+     * The provided {@code outputStream} is not closed by this method.
+     */
+    public static void encryptPayloadWithHmacToStream(byte[] payload, SecretKey secretKey, OutputStream outputStream) throws CryptoException {
+        try {
+            byte[] hmac = getHmac(payload, secretKey);
+            Cipher cipher = Cipher.getInstance(SYM_CIPHER);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
+            // Encrypt the payload in chunks so we never allocate a full second copy of it.
+            int chunkSize = 64 * 1024;
+            byte[] outBuf = new byte[cipher.getOutputSize(chunkSize)];
+            int n;
+            for (int off = 0; off < payload.length; off += chunkSize) {
+                int len = Math.min(chunkSize, payload.length - off);
+                n = cipher.update(payload, off, len, outBuf, 0);
+                if (n > 0) outputStream.write(outBuf, 0, n);
+            }
+            // Append the hmac (also encrypted) and flush the final padded block.
+            n = cipher.update(hmac, 0, hmac.length, outBuf, 0);
+            if (n > 0) outputStream.write(outBuf, 0, n);
+            n = cipher.doFinal(outBuf, 0);
+            if (n > 0) outputStream.write(outBuf, 0, n);
+        } catch (Throwable e) {
+            log.error("error in encryptPayloadWithHmacToStream", e);
+            throw new CryptoException(e);
+        }
     }
 
     public static byte[] decryptPayloadWithHmac(byte[] encryptedPayloadWithHmac, SecretKey secretKey) throws CryptoException {
