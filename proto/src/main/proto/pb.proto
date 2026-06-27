@@ -932,6 +932,7 @@ message CountryBasedPaymentAccountPayload {
         MpesaAccountPayload mpesa_account_payload = 20;
         MercadoPagoAccountPayload mercado_pago_account_payload = 21;
         GcashAccountPayload gcash_account_payload = 22;
+        MomoAccountPayload momo_account_payload = 23;
     }
 }
 
@@ -1223,6 +1224,11 @@ message MercadoPagoAccountPayload {
 }
 
 message GcashAccountPayload {
+    string holder_name = 1;
+    string mobile_nr = 2;
+}
+
+message MomoAccountPayload {
     string holder_name = 1;
     string mobile_nr = 2;
 }
@@ -1972,6 +1978,7 @@ message PaymentAccountForm {
         MPESA = 44;
         MERCADO_PAGO = 45;
         GCASH = 46;
+        MOMO = 47;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

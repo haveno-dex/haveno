@@ -105,7 +105,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         TIKKIE,
         MPESA,
         MERCADO_PAGO,
-        GCASH;
+        GCASH,
+        MOMO;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
