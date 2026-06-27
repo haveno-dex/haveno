@@ -108,6 +108,8 @@ public class PaymentAccountFactory {
                 return new MpesaAccount();
             case PaymentMethod.MERCADO_PAGO_ID:
                 return new MercadoPagoAccount();
+            case PaymentMethod.GCASH_ID:
+                return new GcashAccount();
             case PaymentMethod.BIZUM_ID:
                 return new BizumAccount();
             case PaymentMethod.PIX_ID:
