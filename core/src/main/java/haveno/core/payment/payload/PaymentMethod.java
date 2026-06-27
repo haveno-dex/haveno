@@ -374,6 +374,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 SEPA_INSTANT_ID,
                 STRIKE_ID,
                 SWIFT_ID,
+                TIKKIE_ID,
                 TRANSFERWISE_ID,
                 UPHOLD_ID,
                 UPI_ID,

@@ -1941,6 +1941,7 @@ message PaymentAccountForm {
         DOMESTIC_WIRE_TRANSFER = 40;
         SATISPAY = 41;
         PAYSERA = 42;
+        TIKKIE = 43;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
