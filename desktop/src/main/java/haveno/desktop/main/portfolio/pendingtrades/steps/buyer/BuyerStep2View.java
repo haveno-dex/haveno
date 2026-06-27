@@ -73,6 +73,7 @@ import haveno.desktop.components.paymentmethods.MoneyGramForm;
 import haveno.desktop.components.paymentmethods.NationalBankForm;
 import haveno.desktop.components.paymentmethods.GcashForm;
 import haveno.desktop.components.paymentmethods.MercadoPagoForm;
+import haveno.desktop.components.paymentmethods.MomoForm;
 import haveno.desktop.components.paymentmethods.MpesaForm;
 import haveno.desktop.components.paymentmethods.NeftForm;
 import haveno.desktop.components.paymentmethods.NequiForm;
@@ -423,6 +424,9 @@ public class BuyerStep2View extends TradeStepView {
                 break;
             case PaymentMethod.GCASH_ID:
                 paymentAccountGridRow = GcashForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.MOMO_ID:
+                paymentAccountGridRow = MomoForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
                 break;
             case PaymentMethod.TIKKIE_ID:
                 paymentAccountGridRow = TikkieForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);

@@ -50,6 +50,7 @@ import haveno.core.payment.payload.MoneyBeamAccountPayload;
 import haveno.core.payment.payload.MoneyGramAccountPayload;
 import haveno.core.payment.payload.GcashAccountPayload;
 import haveno.core.payment.payload.MercadoPagoAccountPayload;
+import haveno.core.payment.payload.MomoAccountPayload;
 import haveno.core.payment.payload.MpesaAccountPayload;
 import haveno.core.payment.payload.NationalBankAccountPayload;
 import haveno.core.payment.payload.NeftAccountPayload;
@@ -152,6 +153,8 @@ public class CoreProtoResolver implements ProtoResolver {
                             return MercadoPagoAccountPayload.fromProto(proto);
                         case GCASH_ACCOUNT_PAYLOAD:
                             return GcashAccountPayload.fromProto(proto);
+                        case MOMO_ACCOUNT_PAYLOAD:
+                            return MomoAccountPayload.fromProto(proto);
                         case BIZUM_ACCOUNT_PAYLOAD:
                             return BizumAccountPayload.fromProto(proto);
                         case PIX_ACCOUNT_PAYLOAD:
