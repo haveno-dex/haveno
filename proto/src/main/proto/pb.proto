@@ -1939,6 +1939,7 @@ message PaymentAccountForm {
         JAPAN_BANK = 38;
         PAYTM = 39;
         DOMESTIC_WIRE_TRANSFER = 40;
+        SATISPAY = 41;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
