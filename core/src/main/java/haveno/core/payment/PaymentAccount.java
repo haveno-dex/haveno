@@ -517,6 +517,13 @@ public abstract class PaymentAccount implements PersistablePayload {
             }
             if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
             break;
+        case CLABE: {
+            RegexValidator clabeValidator = new RegexValidator(); // Mexican CLABE: 18 digits (https://en.wikipedia.org/wiki/CLABE)
+            clabeValidator.setPattern("[0-9]{18}");
+            clabeValidator.setErrorMessage(Res.get("payment.clabe.validation"));
+            processValidationResult(clabeValidator.validate(value));
+            break;
+        }
         case EMAIL:
             processValidationResult(new EmailValidator().validate(value));
             break;
@@ -731,6 +738,10 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel(Res.get("shared.country"));
             if (this instanceof CountryBasedPaymentAccount) field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
+            break;
+        case CLABE:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.clabe"));
             break;
         case EMAIL:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
