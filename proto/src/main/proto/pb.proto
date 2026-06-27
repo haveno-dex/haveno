@@ -933,6 +933,7 @@ message CountryBasedPaymentAccountPayload {
         MercadoPagoAccountPayload mercado_pago_account_payload = 21;
         GcashAccountPayload gcash_account_payload = 22;
         MomoAccountPayload momo_account_payload = 23;
+        SpeiAccountPayload spei_account_payload = 24;
     }
 }
 
@@ -1231,6 +1232,11 @@ message GcashAccountPayload {
 message MomoAccountPayload {
     string holder_name = 1;
     string mobile_nr = 2;
+}
+
+message SpeiAccountPayload {
+    string holder_name = 1;
+    string clabe = 2;
 }
 
 message StrikeAccountPayload {
@@ -1979,6 +1985,7 @@ message PaymentAccountForm {
         MERCADO_PAGO = 45;
         GCASH = 46;
         MOMO = 47;
+        SPEI = 48;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
@@ -2047,6 +2054,7 @@ message PaymentAccountFormField {
         EMAIL_OR_MOBILE_NR_OR_USERNAME = 58;
         EMAIL_OR_MOBILE_NR_OR_CASHTAG = 59;
         VIRTUAL_PAYMENT_ADDRESS = 60;
+        CLABE = 61;
     }
     enum Component {
         TEXT = 0;

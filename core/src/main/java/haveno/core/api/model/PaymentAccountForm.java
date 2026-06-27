@@ -106,7 +106,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         MPESA,
         MERCADO_PAGO,
         GCASH,
-        MOMO;
+        MOMO,
+        SPEI;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
