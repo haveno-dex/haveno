@@ -515,8 +515,10 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             fileOutputStream = new FileOutputStream(tempFile);
 
             if (keyRing != null) {
-                byte[] encryptedBytes = Encryption.encryptPayloadWithHmac(serialized.toByteArray(), keyRing.getSymmetricKey());
-                fileOutputStream.write(encryptedBytes);
+                // Stream the encryption directly to disk to avoid the peak-memory amplification of
+                // building the full encrypted byte[] in memory, which could throw OutOfMemoryError for
+                // large stores and silently leave the on-disk file frozen at the last successful write.
+                Encryption.encryptPayloadWithHmacToStream(serialized.toByteArray(), keyRing.getSymmetricKey(), fileOutputStream);
             } else {
                 serialized.writeDelimitedTo(fileOutputStream);
             }
