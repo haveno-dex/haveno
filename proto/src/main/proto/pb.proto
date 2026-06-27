@@ -931,6 +931,7 @@ message CountryBasedPaymentAccountPayload {
         SwiftAccountPayload swift_account_payload = 19;
         MpesaAccountPayload mpesa_account_payload = 20;
         MercadoPagoAccountPayload mercado_pago_account_payload = 21;
+        GcashAccountPayload gcash_account_payload = 22;
     }
 }
 
@@ -1219,6 +1220,11 @@ message MpesaAccountPayload {
 message MercadoPagoAccountPayload {
     string holder_name = 1;
     string email_or_mobile_nr = 2;
+}
+
+message GcashAccountPayload {
+    string holder_name = 1;
+    string mobile_nr = 2;
 }
 
 message StrikeAccountPayload {
@@ -1965,6 +1971,7 @@ message PaymentAccountForm {
         TIKKIE = 43;
         MPESA = 44;
         MERCADO_PAGO = 45;
+        GCASH = 46;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
