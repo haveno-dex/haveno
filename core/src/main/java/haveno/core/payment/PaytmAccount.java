@@ -17,10 +17,14 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.PaytmAccountPayload;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 public final class PaytmAccount extends IfscBasedAccount {
@@ -51,5 +55,17 @@ public final class PaytmAccount extends IfscBasedAccount {
 
     public String getMessageForAccountCreation() {
         return "payment.paytm.info.account";
+    }
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.EMAIL_OR_MOBILE_NR,
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
+    @Override
+    public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
+        return INPUT_FIELD_IDS;
     }
 }

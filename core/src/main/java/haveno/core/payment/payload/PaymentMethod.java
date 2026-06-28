@@ -347,39 +347,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             BLOCK_CHAINS_INSTANT = new PaymentMethod(BLOCK_CHAINS_INSTANT_ID, TimeUnit.HOURS.toMillis(1), DEFAULT_TRADE_LIMIT_CRYPTO, Arrays.asList())
     );
 
-    // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private
     public static List<PaymentMethod> getPaymentMethods() {
-        List<String> paymentMethodIds = List.of(
-                BLOCK_CHAINS_ID,
-                CASH_AT_ATM_ID,
-                FASTER_PAYMENTS_ID,
-                F2F_ID,
-                MONEY_GRAM_ID,
-                PAXUM_ID,
-                PAY_BY_MAIL_ID,
-                REVOLUT_ID,
-                SEPA_ID,
-                SEPA_INSTANT_ID,
-                STRIKE_ID,
-                SWIFT_ID,
-                TRANSFERWISE_ID,
-                UPHOLD_ID,
-                ZELLE_ID,
-                AUSTRALIA_PAYID_ID,
-                CASH_APP_ID,
-                PAYPAL_ID,
-                VENMO_ID,
-                PAYSAFE_ID,
-                WECHAT_PAY_ID,
-                ALI_PAY_ID,
-                SWISH_ID,
-                TRANSFERWISE_USD_ID,
-                AMAZON_GIFT_CARD_ID,
-                ACH_TRANSFER_ID,
-                INTERAC_E_TRANSFER_ID,
-                US_POSTAL_MONEY_ORDER_ID,
-                PIX_ID);
-        return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
+        return new ArrayList<>(paymentMethods);
     }
 
     private static List<String> getAssetCodes(List<TradeCurrency> tradeCurrencies) {
