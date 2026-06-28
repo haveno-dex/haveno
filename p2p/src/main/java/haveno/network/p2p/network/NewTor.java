@@ -110,7 +110,7 @@ public class NewTor extends TorMode {
             torrcOverride = new Torrc(torrcOptionsOverride);
         }
 
-        log.info("Starting tor");
+        log.info("Starting bundled Tor");
         NativeTor result = new NativeTor(torDir, bridgeEntries, torrcOverride);
         log.info(
                 "\n################################################################\n"

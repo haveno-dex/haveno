@@ -71,7 +71,7 @@ public class RunningTor extends TorMode {
         while (retry && ((new Date().getTime() - ts1) <= twoMinutesInMilli)) {
             retry = false;
             try {
-                log.info("Connecting to running tor");
+                log.info("Connecting to running Tor at {}:{}", controlHost, controlPort);
 
                 Tor result;
                 if (!password.isEmpty())
