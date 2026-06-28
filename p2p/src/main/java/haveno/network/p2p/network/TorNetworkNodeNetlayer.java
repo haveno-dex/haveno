@@ -48,7 +48,7 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     private final String hiddenServiceParams;
     private final String torControlHost;
     private Timer shutDownTimeoutTimer;
-    private boolean isShutDownStarted;
+    private volatile boolean isShutDownStarted;
     private boolean isShutDownComplete;
 
     public TorNetworkNodeNetlayer(int servicePort,
@@ -207,7 +207,18 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
             } catch (IOException e) {
                 log.error("Could not connect to running Tor", e);
                 UserThread.execute(() -> setupListeners.forEach(s -> s.onSetupFailed(new RuntimeException(e.getMessage()))));
-            } catch (Throwable ignore) {
+            } catch (Throwable t) {
+
+                // surface any other error, otherwise the bootstrapping thread dies silently
+                boolean abortedByShutDown = isShutDownStarted || Thread.currentThread().isInterrupted() || t instanceof InterruptedException;
+                if (t instanceof InterruptedException) Thread.currentThread().interrupt(); // preserve interrupt status
+                if (abortedByShutDown) {
+                    log.warn("Tor node startup was aborted because shut down has started");
+                } else {
+                    log.error("Starting tor node failed with unexpected error", t);
+                    String errorMessage = t.getMessage() != null ? t.getMessage() : t.toString();
+                    UserThread.execute(() -> setupListeners.forEach(s -> s.onSetupFailed(new RuntimeException(errorMessage))));
+                }
             }
             return null;
         });
