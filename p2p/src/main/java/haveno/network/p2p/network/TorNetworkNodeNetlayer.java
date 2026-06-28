@@ -177,6 +177,8 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                         .toList();
 
                 Tor.setDefault(torMode.getTor());
+                Socks5Proxy proxy = getSocksProxy();
+                if (proxy != null) log.info("Tor SOCKS proxy ready on {}:{} (auto-assigned, loopback only)", torControlHost, proxy.getPort());
                 long ts = System.currentTimeMillis();
                 log.info("Starting tor hidden service with flags={}, params={}", hiddenServiceFlagsList, hiddenServiceParamsList);
                 hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort, null, hiddenServiceFlagsList, hiddenServiceParamsList);
