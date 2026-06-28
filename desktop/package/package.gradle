@@ -255,15 +255,12 @@ task packageInstallers {
         String appCopyright = '© 2026 Haveno'
         String appNameAndVendor = 'Haveno'
 
-        String commonOpts = new String(
-                // Generic options
-                " --dest \"${binariesFolderPath}\"" +
-                        " --name ${appNameAndVendor}" +
+        String commonImageOpts = new String(
+                " --name ${appNameAndVendor}" +
                         //" --description \"${appDescription}\"" + // TODO: task managers show app description instead of name, so we disable it
                         " --app-version ${appVersion}" +
                         " --copyright \"${appCopyright}\"" +
                         " --vendor ${appNameAndVendor}" +
-                        " --temp \"${jpackageTempDir}\"" +
 
                         // Options for creating the application image
                         " --input ${fatJarFolderPath}" +
@@ -284,6 +281,13 @@ task packageInstallers {
 //              " --java-options -Djdk.module.illegalAccess=deny" +
         )
 
+        String commonOpts = new String(
+                // Generic options
+                " --dest \"${binariesFolderPath}\"" +
+                        " --temp \"${jpackageTempDir}\"" +
+                        commonImageOpts
+        )
+
         if (Os.isFamily(Os.FAMILY_WINDOWS)) {
             String windowsOpts = new String(
                     " --icon \"${project(':desktop').projectDir}/package/windows/Haveno.ico\"" +
@@ -299,11 +303,37 @@ task packageInstallers {
             // See https://docs.oracle.com/en/java/javase/14/jpackage/override-jpackage-resources.html
             // for details of "--resource-dir"
 
+            File macResourceDir = file("${project(':desktop').projectDir}/package/macosx")
+            File macEntitlementsFile = file("${macResourceDir}/Haveno.entitlements")
+            File macAppImageDest = new File(jpackageTempDir, "mac-app-image")
+            File macDmgTempDir = new File(jpackageTempDir, "mac-dmg")
+            macAppImageDest.mkdirs()
+            macDmgTempDir.mkdirs()
+
             String macOpts = new String(
-                    " --resource-dir \"${project(':desktop').projectDir}/package/macosx\""
+                    " --resource-dir \"${macResourceDir}\""
             )
 
-            executeCmd(jPackageFilePath + commonOpts + macOpts + " --type dmg")
+            executeCmdOrFail(jPackageFilePath +
+                    " --dest \"${macAppImageDest}\"" +
+                    " --temp \"${jpackageTempDir}\"" +
+                    commonImageOpts +
+                    macOpts +
+                    " --type app-image")
+
+            File macAppImage = new File(macAppImageDest, "${appNameAndVendor}.app")
+            signMacAppImage(macAppImage, macEntitlementsFile)
+
+            executeCmdOrFail(jPackageFilePath +
+                    " --dest \"${binariesFolderPath}\"" +
+                    " --name ${appNameAndVendor}" +
+                    " --app-version ${appVersion}" +
+                    " --copyright \"${appCopyright}\"" +
+                    " --vendor ${appNameAndVendor}" +
+                    " --temp \"${macDmgTempDir}\"" +
+                    macOpts +
+                    " --app-image \"${macAppImage}\"" +
+                    " --type dmg")
         } else {
             String linuxOpts = new String(
                     " --icon ${project(':desktop').projectDir}/package/linux/icon.png" +
@@ -468,6 +498,64 @@ task packageInstallers {
             println it.path
         }
     }
+}
+
+def signMacAppImage(File appImage, File entitlementsFile) {
+    if (!appImage.exists()) {
+        throw new GradleException("macOS app image was not created: ${appImage}")
+    }
+    if (!entitlementsFile.exists()) {
+        throw new GradleException("macOS entitlements file is missing: ${entitlementsFile}")
+    }
+
+    String signingIdentity = System.getenv("HAVENO_MAC_SIGNING_IDENTITY")
+    if (signingIdentity == null || signingIdentity.trim().isEmpty()) {
+        signingIdentity = "-"
+    }
+
+    String signingArgs = signingIdentity == "-"
+            ? "--sign -"
+            : "--sign \"${signingIdentity}\" --timestamp"
+
+    executeCmdOrFail("/usr/bin/codesign --force --deep --options runtime " +
+            "--entitlements \"${entitlementsFile}\" " +
+            "${signingArgs} \"${appImage}\"")
+
+    String entitlements = executeCmdOrFail("/usr/bin/codesign -d --entitlements :- \"${appImage}\" 2>/dev/null")
+    if (!entitlements.contains("com.apple.security.cs.allow-jit")) {
+        throw new GradleException("Signed macOS app image is missing the JIT entitlement")
+    }
+}
+
+def executeCmdOrFail(String cmd) {
+    String shell
+    String shellArg
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        shell = 'cmd'
+        shellArg = '/c'
+    } else {
+        shell = 'bash'
+        shellArg = '-c'
+    }
+
+    println "Executing command:\n${cmd}\n"
+    def commands = [shell, shellArg, cmd]
+    def process = commands.execute(null, project.rootDir)
+    def stdout = new StringBuffer()
+    def stderr = new StringBuffer()
+    process.waitForProcessOutput(stdout, stderr)
+
+    if (stdout.length() > 0) {
+        println "Command output (stdout):\n${stdout}"
+    }
+    if (stderr.length() > 0) {
+        println "Command output (stderr):\n${stderr}"
+    }
+    if (process.exitValue() != 0) {
+        throw new GradleException("Command failed with exit code ${process.exitValue()}: ${cmd}")
+    }
+
+    return stdout.toString()
 }
 
 def executeCmd(String cmd) {
