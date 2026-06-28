@@ -803,7 +803,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                 if (item != null) {
                                     if (model.isDeactivated(item)) getStyleClass().add("offer-disabled");
                                     AutoTooltipLabel directionLabel = new AutoTooltipLabel(model.getDirectionLabel(item));
-                                    if (item.getOffer().isPrivateOffer()) GUIUtil.addPrivateOfferLockIcon(directionLabel);
+                                    if (item.getOffer().isPrivateOffer()) GUIUtil.addCompactPrivateOfferLockIcon(directionLabel);
                                     setGraphic(directionLabel);
                                 } else {
                                     setGraphic(null);

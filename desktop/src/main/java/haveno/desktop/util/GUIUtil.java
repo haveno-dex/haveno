@@ -1389,8 +1389,16 @@ public class GUIUtil {
     }
 
     public static void addPrivateOfferLockIcon(Label label) {
-        MaterialDesignIconView lockIcon = getLockIcon(label, "1.2em");
-        lockIcon.setOpacity(0.7); // match the muted weight of other inline icons (e.g. the info icon)
+        addPrivateOfferLockIcon(label, "1.231em", 0.7);
+    }
+
+    public static void addCompactPrivateOfferLockIcon(Label label) {
+        addPrivateOfferLockIcon(label, "1.2em", 0.7);
+    }
+
+    private static void addPrivateOfferLockIcon(Label label, String glyphSize, double opacity) {
+        MaterialDesignIconView lockIcon = getLockIcon(label, glyphSize);
+        lockIcon.setOpacity(opacity);
         label.setGraphic(lockIcon);
         label.setContentDisplay(ContentDisplay.RIGHT);
         label.setGraphicTextGap(6);

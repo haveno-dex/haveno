@@ -21,7 +21,7 @@ import haveno.common.util.Utilities;
 import haveno.core.locale.GlobalSettings;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
-import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -44,7 +44,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.function.Consumer;
 
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 
 import static haveno.desktop.util.FormBuilder.addInputTextField;
 
@@ -226,7 +225,8 @@ public class PasswordPopup extends Overlay<PasswordPopup> {
     @Override
     protected void applyStyles() {
         super.applyStyles();
-        FormBuilder.getIconForLabel(MaterialDesignIcon.LOCK, "1.5em", headlineIcon);
+        headlineIcon.setText(null); // clear info glyph set as text by Overlay.applyStyles()
+        headlineIcon.setGraphic(GUIUtil.getLockIcon(headlineIcon, "1.5em"));
     }
 
     @Override
