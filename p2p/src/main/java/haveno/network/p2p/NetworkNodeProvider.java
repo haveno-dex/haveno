@@ -34,7 +34,9 @@ import haveno.network.p2p.network.TorNetworkNodeDirectBind;
 import haveno.network.p2p.network.TorNetworkNodeNetlayer;
 import java.io.File;
 import javax.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NetworkNodeProvider implements Provider<NetworkNode> {
 
     private final NetworkNode networkNode;
@@ -59,6 +61,7 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             @Named(Config.TOR_STREAM_ISOLATION) boolean streamIsolation,
             @Named(Config.TOR_CONTROL_USE_SAFE_COOKIE_AUTH) boolean useSafeCookieAuthentication) {
         if (useLocalhostForP2P) {
+            log.info("Tor mode: disabled, using localhost for P2P (--useLocalhostForP2P set)");
             networkNode = new LocalhostNetworkNode(port, networkProtoResolver, banFilter, maxConnections);
         } else {
             TorMode torMode = getTorMode(bridgeAddressProvider,
@@ -90,10 +93,13 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             @Nullable File cookieFile,
             boolean useSafeCookieAuthentication) {
         if (!hiddenServiceAddress.equals("")) {
+            log.info("Tor mode: binding to an external static onion service {} (--hiddenServiceAddress set)", hiddenServiceAddress);
             return new DirectBindTor();
         } else if (controlPort != Config.UNSPECIFIED_PORT) {
+            log.info("Tor mode: connecting to an already-running Tor via control port {}:{} (--torControlPort set)", controlHost, controlPort);
             return new RunningTor(torDir, controlHost, controlPort, password, cookieFile, useSafeCookieAuthentication);
         } else {
+            log.info("Tor mode: starting Haveno's own bundled Tor in {}", torDir);
             return new NewTor(torDir, torrcFile, torrcOptions, bridgeAddressProvider);
         }
     }
