@@ -1191,9 +1191,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     return;
                 }
 
-                // validate offer
+                // validate offer, not requiring a price since the price is only needed to post the offer
                 try {
-                    ValidateOffer.validateOffer(openOffer.getOffer(), accountAgeWitnessService, user);
+                    ValidateOffer.validateOffer(openOffer.getOffer(), accountAgeWitnessService, user, false);
                 } catch (Exception e) {
                     openOffer.getOffer().setState(Offer.State.INVALID);
                     errorMessageHandler.handleErrorMessage("Failed to validate offer: " + e.getMessage());
