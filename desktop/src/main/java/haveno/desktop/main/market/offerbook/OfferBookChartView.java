@@ -52,16 +52,21 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
+import javafx.scene.Node;
 import javafx.scene.chart.AreaChart;
+import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
@@ -75,9 +80,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Line;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.fxmisc.easybind.EasyBind;
@@ -88,12 +95,15 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private final boolean useDevPrivilegeKeys;
 
     private NumberAxis xAxis;
+    private NumberAxis yAxis;
     private XYChart.Series<Number, Number> seriesBuy, seriesSell;
     private final CoinFormatter formatter;
     private TableView<OfferListItem> buyOfferTableView;
     private TableView<OfferListItem> sellOfferTableView;
     private AreaChart<Number, Number> areaChart;
     private AnchorPane chartPane;
+    private Pane gridLinesPane;
+    private boolean chartOverlaysRedrawScheduled;
     private AutocompleteComboBox<CurrencyListItem> currencyComboBox;
     private Subscription tradeCurrencySubscriber;
     private final StringProperty volumeSellColumnLabel = new SimpleStringProperty();
@@ -322,7 +332,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         xAxis.setTickMarkVisible(true);
         xAxis.setMinorTickVisible(false);
 
-        NumberAxis yAxis = new NumberAxis();
+        yAxis = new NumberAxis();
         yAxis.setForceZeroInRange(false);
         yAxis.setSide(Side.RIGHT);
         yAxis.setAutoRanging(true);
@@ -337,6 +347,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         areaChart = new AreaChart<>(xAxis, yAxis);
         areaChart.setLegendVisible(false);
         areaChart.setAnimated(false);
+        areaChart.setHorizontalGridLinesVisible(false); // draw the horizontal grid lines ourselves to fix flickering due to floating-point edge comparison
         areaChart.setId("charts");
         areaChart.setMinHeight(270);
         areaChart.setPrefHeight(270);
@@ -352,7 +363,23 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         AnchorPane.setLeftAnchor(areaChart, 10d);
         AnchorPane.setRightAnchor(areaChart, 0d);
 
-        chartPane.getChildren().add(areaChart);
+        // Pane for our self-drawn horizontal grid lines. It sits behind the chart so the lines
+        // render beneath the (translucent) area fills, matching the chart's built-in appearance.
+        gridLinesPane = new Pane();
+        gridLinesPane.setMouseTransparent(true);
+        gridLinesPane.setPickOnBounds(false);
+        AnchorPane.setTopAnchor(gridLinesPane, 0d);
+        AnchorPane.setBottomAnchor(gridLinesPane, 0d);
+        AnchorPane.setLeftAnchor(gridLinesPane, 0d);
+        AnchorPane.setRightAnchor(gridLinesPane, 0d);
+
+        chartPane.getChildren().addAll(gridLinesPane, areaChart);
+
+        InvalidationListener overlayRedrawTrigger = observable -> scheduleChartOverlaysRedraw();
+        yAxis.lowerBoundProperty().addListener(overlayRedrawTrigger);
+        yAxis.upperBoundProperty().addListener(overlayRedrawTrigger);
+        areaChart.widthProperty().addListener(overlayRedrawTrigger);
+        areaChart.heightProperty().addListener(overlayRedrawTrigger);
     }
 
     private synchronized void updateChartData() {
@@ -379,6 +406,73 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         seriesBuy.getData().addAll(filterOutliersBuy(model.getBuyData()));
 
         areaChart.getData().addAll(List.of(seriesBuy, seriesSell));
+
+        updateChartAxisRanging();
+
+        scheduleChartOverlaysRedraw();
+    }
+
+    private static final double EMPTY_AXIS_UPPER_BOUND = 4;
+    private static final int EMPTY_AXIS_TICK_INTERVALS = 4;
+
+    private void updateChartAxisRanging() {
+        boolean hasData = !seriesBuy.getData().isEmpty() || !seriesSell.getData().isEmpty();
+        pinAxisWhenEmpty(xAxis, hasData);
+        pinAxisWhenEmpty(yAxis, hasData);
+    }
+
+    private void pinAxisWhenEmpty(NumberAxis axis, boolean hasData) {
+        if (hasData) {
+            axis.setAutoRanging(true);
+        } else if (axis.isAutoRanging()) {
+            axis.setAutoRanging(false);
+            axis.setLowerBound(0);
+            axis.setUpperBound(EMPTY_AXIS_UPPER_BOUND);
+            axis.setTickUnit(EMPTY_AXIS_UPPER_BOUND / EMPTY_AXIS_TICK_INTERVALS);
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Horizontal grid lines (drawn here so the top/bottom lines don't flicker; see createChart)
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private void scheduleChartOverlaysRedraw() {
+        if (chartOverlaysRedrawScheduled) return;
+        chartOverlaysRedrawScheduled = true;
+        UserThread.execute(() -> {
+            chartOverlaysRedrawScheduled = false;
+            redrawGridLines();
+        });
+    }
+
+    private void redrawGridLines() {
+        if (gridLinesPane == null || areaChart == null || yAxis == null) return;
+        gridLinesPane.getChildren().clear();
+
+        Node plotBackground = areaChart.lookup(".chart-plot-background");
+        if (plotBackground == null) return;
+        Bounds plotBounds = gridLinesPane.sceneToLocal(plotBackground.localToScene(plotBackground.getBoundsInLocal()));
+        double plotLeft = plotBounds.getMinX();
+        double plotRight = plotBounds.getMaxX();
+        double plotTop = plotBounds.getMinY();
+        double plotBottom = plotBounds.getMaxY();
+        if (!(plotRight > plotLeft) || !(plotBottom > plotTop)) return;
+
+        // draw a horizontal grid line for every y-axis tick
+        for (Axis.TickMark<Number> tick : yAxis.getTickMarks()) {
+            double y = gridLineY(tick.getValue());
+            if (y < plotTop - 1 || y > plotBottom + 1) continue;
+            y = Math.floor(Math.min(plotBottom, Math.max(plotTop, y))) + 0.5;
+            Line line = new Line(plotLeft, y, plotRight, y);
+            line.getStyleClass().add("chart-horizontal-grid-line");
+            line.setManaged(false);
+            gridLinesPane.getChildren().add(line);
+        }
+    }
+
+    private double gridLineY(Number value) {
+        Point2D scenePoint = yAxis.localToScene(0, yAxis.getDisplayPosition(value));
+        return gridLinesPane.sceneToLocal(scenePoint).getY();
     }
 
     List<XYChart.Data<Number, Number>> filterOutliersBuy(List<XYChart.Data<Number, Number>> buy) {
