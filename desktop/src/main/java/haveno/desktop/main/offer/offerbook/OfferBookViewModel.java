@@ -255,6 +255,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         showPrivateOffers = preferences.isShowPrivateOffers();
 
         updateSelectedTradeCurrency();
+        restoreSelectedPaymentMethod();
         fillCurrencies();
         preferences.getTradeCurrenciesAsObservable().addListener(tradeCurrencyListChangeListener);
         offerBook.fillOfferBookListItems();
@@ -334,7 +335,30 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             this.selectedPaymentMethod = getShowAllEntryForPaymentMethod();
         }
 
+        savePaymentMethodInPreferences(direction, selectedPaymentMethod.getId());
         filterOffers();
+    }
+
+    abstract void savePaymentMethodInPreferences(OfferDirection direction, String paymentMethodId);
+
+    abstract String getPaymentMethodIdFromPreferences(OfferDirection direction);
+
+    private void restoreSelectedPaymentMethod() {
+        String paymentMethodId = getPaymentMethodIdFromPreferences(direction);
+
+        PaymentMethod restored = paymentMethodId == null || isShowAllEntry(paymentMethodId) ? null :
+                getPaymentMethods().stream()
+                        .filter(paymentMethod -> paymentMethod.getId().equals(paymentMethodId))
+                        .findFirst()
+                        .orElse(null);
+
+        if (restored == null) {
+            showAllPaymentMethods = true;
+            selectedPaymentMethod = getShowAllEntryForPaymentMethod();
+        } else {
+            showAllPaymentMethods = false;
+            selectedPaymentMethod = restored;
+        }
     }
 
     void onRemoveOpenOffer(Offer offer, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {

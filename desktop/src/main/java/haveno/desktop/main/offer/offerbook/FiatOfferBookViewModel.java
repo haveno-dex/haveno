@@ -73,10 +73,25 @@ public class FiatOfferBookViewModel extends OfferBookViewModel {
     @Override
     void saveSelectedCurrencyCodeInPreferences(OfferDirection direction, String code) {
         if (direction == OfferDirection.BUY) {
-            preferences.setBuyScreenCurrencyCode(code);
+            preferences.setBuyScreenFiatCurrencyCode(code);
         } else {
-            preferences.setSellScreenCurrencyCode(code);
+            preferences.setSellScreenFiatCurrencyCode(code);
         }
+    }
+
+    @Override
+    void savePaymentMethodInPreferences(OfferDirection direction, String paymentMethodId) {
+        if (direction == OfferDirection.BUY) {
+            preferences.setBuyScreenFiatPaymentMethodId(paymentMethodId);
+        } else {
+            preferences.setSellScreenFiatPaymentMethodId(paymentMethodId);
+        }
+    }
+
+    @Override
+    String getPaymentMethodIdFromPreferences(OfferDirection direction) {
+        return direction == OfferDirection.BUY ? preferences.getBuyScreenFiatPaymentMethodId() :
+                preferences.getSellScreenFiatPaymentMethodId();
     }
 
     @Override
@@ -164,7 +179,7 @@ public class FiatOfferBookViewModel extends OfferBookViewModel {
     @Override
     String getCurrencyCodeFromPreferences(OfferDirection direction) {
         // validate if previous stored currencies are Traditional ones
-        String currencyCode = direction == OfferDirection.BUY ? preferences.getBuyScreenCurrencyCode() : preferences.getSellScreenCurrencyCode();
+        String currencyCode = direction == OfferDirection.BUY ? preferences.getBuyScreenFiatCurrencyCode() : preferences.getSellScreenFiatCurrencyCode();
 
         return CurrencyUtil.isTraditionalCurrency(currencyCode) ? currencyCode : null;
     }
