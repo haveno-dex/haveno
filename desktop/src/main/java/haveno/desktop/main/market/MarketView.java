@@ -27,6 +27,7 @@ import haveno.core.offer.OfferPayload;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatistics3StorageService;
+import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
@@ -67,6 +68,7 @@ public class MarketView extends ActivatableView<TabPane, Void> {
     private final OfferBook offerBook;
     private final CoinFormatter formatter;
     private final Navigation navigation;
+    private final Preferences preferences;
     private Navigation.Listener navigationListener;
     private ChangeListener<Tab> tabChangeListener;
     private EventHandler<KeyEvent> keyEventEventHandler;
@@ -78,12 +80,14 @@ public class MarketView extends ActivatableView<TabPane, Void> {
                       TradeStatistics3StorageService tradeStatistics3StorageService,
                       OfferBook offerBook,
                       @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                      Navigation navigation) {
+                      Navigation navigation,
+                      Preferences preferences) {
         this.viewLoader = viewLoader;
         this.tradeStatistics3StorageService = tradeStatistics3StorageService;
         this.offerBook = offerBook;
         this.formatter = formatter;
         this.navigation = navigation;
+        this.preferences = preferences;
     }
 
     @Override
@@ -99,14 +103,19 @@ public class MarketView extends ActivatableView<TabPane, Void> {
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {
-            if (newValue == offerBookTab)
+            if (newValue == offerBookTab) {
+                preferences.setMarketSelectedTabIndex(0);
                 navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
-            else if (newValue == tradesTab)
-                navigation.navigateTo(MainView.class, MarketView.class, TradesChartsView.class);
-            else if (newValue == spreadTab)
+            } else if (newValue == spreadTab) {
+                preferences.setMarketSelectedTabIndex(1);
                 navigation.navigateTo(MainView.class, MarketView.class, SpreadView.class);
-            else if (newValue == spreadTabPaymentMethod)
+            } else if (newValue == spreadTabPaymentMethod) {
+                preferences.setMarketSelectedTabIndex(2);
                 navigation.navigateTo(MainView.class, MarketView.class, SpreadViewPaymentMethod.class);
+            } else if (newValue == tradesTab) {
+                preferences.setMarketSelectedTabIndex(3);
+                navigation.navigateTo(MainView.class, MarketView.class, TradesChartsView.class);
+            }
         };
 
         keyEventEventHandler = keyEvent -> {
@@ -131,14 +140,21 @@ public class MarketView extends ActivatableView<TabPane, Void> {
         root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
         navigation.addListener(navigationListener);
 
-        if (root.getSelectionModel().getSelectedItem() == offerBookTab)
-            navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
-        else if (root.getSelectionModel().getSelectedItem() == tradesTab)
-            navigation.navigateTo(MainView.class, MarketView.class, TradesChartsView.class);
-        else if (root.getSelectionModel().getSelectedItem() == spreadTab)
-            navigation.navigateTo(MainView.class, MarketView.class, SpreadView.class);
-        else
-            navigation.navigateTo(MainView.class, MarketView.class, SpreadViewPaymentMethod.class);
+        // restore the last selected market tab from the previous session
+        switch (preferences.getMarketSelectedTabIndex()) {
+            case 1:
+                navigation.navigateTo(MainView.class, MarketView.class, SpreadView.class);
+                break;
+            case 2:
+                navigation.navigateTo(MainView.class, MarketView.class, SpreadViewPaymentMethod.class);
+                break;
+            case 3:
+                navigation.navigateTo(MainView.class, MarketView.class, TradesChartsView.class);
+                break;
+            default:
+                navigation.navigateTo(MainView.class, MarketView.class, OfferBookChartView.class);
+                break;
+        }
 
         if (root.getScene() != null) {
             scene = root.getScene();

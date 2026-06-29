@@ -146,6 +146,14 @@ public final class Navigation implements PersistedDataHost {
         navigateTo(previousPath, null);
     }
 
+    public void setCurrentPathSilently(ViewPath newPath) {
+        if (newPath == null || newPath.tip() == null)
+            return;
+        currentPath = newPath;
+        previousPath = newPath;
+        requestPersistence();
+    }
+
     public void addListener(Listener listener) {
         listeners.add(listener);
     }

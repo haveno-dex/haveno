@@ -79,6 +79,21 @@ public class CryptoOfferBookViewModel extends OfferBookViewModel {
     }
 
     @Override
+    void savePaymentMethodInPreferences(OfferDirection direction, String paymentMethodId) {
+        if (direction == OfferDirection.BUY) {
+            preferences.setBuyScreenCryptoPaymentMethodId(paymentMethodId);
+        } else {
+            preferences.setSellScreenCryptoPaymentMethodId(paymentMethodId);
+        }
+    }
+
+    @Override
+    String getPaymentMethodIdFromPreferences(OfferDirection direction) {
+        return direction == OfferDirection.BUY ? preferences.getBuyScreenCryptoPaymentMethodId() :
+                preferences.getSellScreenCryptoPaymentMethodId();
+    }
+
+    @Override
     protected ObservableList<PaymentMethod> filterPaymentMethods(ObservableList<PaymentMethod> list,
                                                                  TradeCurrency selectedTradeCurrency) {
         return FXCollections.observableArrayList(list.stream().filter(paymentMethod -> {
