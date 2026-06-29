@@ -345,7 +345,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         return offerBookListItems.stream().anyMatch(item -> item.getOffer().getPrice() == null);
     }
 
-    private void updateChartData() {
+    void updateChartData() {
 
         // Offer price can be null (if price feed unavailable), thus a null-tolerant comparator is used.
         Comparator<Offer> offerPriceComparator = Comparator.comparing(Offer::getPrice, Comparator.nullsLast(Comparator.naturalOrder()));

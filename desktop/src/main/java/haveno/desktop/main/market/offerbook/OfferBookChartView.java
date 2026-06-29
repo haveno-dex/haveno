@@ -20,6 +20,7 @@ package haveno.desktop.main.market.offerbook;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.jfoenix.controls.JFXTabPane;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.util.Tuple3;
@@ -129,6 +130,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         return extraRows == 0 ? initialOfferTableViewHeight : Math.ceil(initialOfferTableViewHeight + ((extraRows + 1) * pixelsPerOfferTableRow));
     };
     private ChangeListener<Number> havenoWindowVerticalSizeListener;
+    private ChangeListener<Number> priceFeedUpdateCounterListener;
+    private Timer priceRefreshTimer;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -275,6 +278,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         buyOfferTableView.getSelectionModel().selectedItemProperty().addListener(buyTableRowSelectionListener);
         sellOfferTableView.getSelectionModel().selectedItemProperty().addListener(sellTableRowSelectionListener);
 
+        model.priceFeedService.updateCounterProperty().addListener(priceFeedUpdateCounterListener);
+
         root.getScene().heightProperty().addListener(havenoWindowVerticalSizeListener);
         layout();
 
@@ -313,6 +318,18 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         buyTableRowSelectionListener = (observable, oldValue, newValue) -> model.goToOfferView(OfferDirection.BUY);
 
         havenoWindowVerticalSizeListener = (observable, oldValue, newValue) -> layout();
+
+        // Market prices update ~once per minute; refresh the prices, chart and tables.
+        // Debounced to collapse the burst of updates from a single price request cycle.
+        priceFeedUpdateCounterListener = (observable, oldValue, newValue) -> {
+            if (priceRefreshTimer == null) {
+                priceRefreshTimer = UserThread.runAfter(() -> {
+                    priceRefreshTimer = null;
+                    model.updateChartData();
+                    updateChartData();
+                }, 1);
+            }
+        };
     }
 
     @Override
@@ -323,6 +340,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tradeCurrencySubscriber.unsubscribe();
         buyOfferTableView.getSelectionModel().selectedItemProperty().removeListener(buyTableRowSelectionListener);
         sellOfferTableView.getSelectionModel().selectedItemProperty().removeListener(sellTableRowSelectionListener);
+        model.priceFeedService.updateCounterProperty().removeListener(priceFeedUpdateCounterListener);
+        if (priceRefreshTimer != null) {
+            priceRefreshTimer.stop();
+            priceRefreshTimer = null;
+        }
     }
 
     private void createChart() {
