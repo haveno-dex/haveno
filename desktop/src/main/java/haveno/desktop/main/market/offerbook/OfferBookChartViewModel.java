@@ -30,6 +30,7 @@ import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOfferManager;
+import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
@@ -276,6 +277,12 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     public String getCurrencyCode() {
         return selectedTradeCurrencyProperty.get().getCode();
+    }
+
+    public Optional<Double> getMarketPriceAsDouble() {
+        MarketPrice marketPrice = priceFeedService.getMarketPrice(getCurrencyCode());
+        if (marketPrice == null || !marketPrice.isPriceAvailable()) return Optional.empty();
+        return Optional.of(marketPrice.getPrice());
     }
 
     public ObservableList<OfferBookListItem> getOfferBookListItems() {

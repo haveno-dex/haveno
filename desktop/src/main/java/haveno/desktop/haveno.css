@@ -2032,11 +2032,33 @@ textfield */
     -fx-background-color: transparent;
 }
 
-.chart-horizontal-grid-line {
+.deviation-scale-label {
+    -fx-text-fill: -bs-rd-font-lighter;
+    -fx-font-size: 0.769em;
+    -fx-padding: 0;
+}
+
+.deviation-scale-tick {
+    -fx-stroke: -bs-color-gray-line;
+    -fx-stroke-width: 1;
+}
+
+.deviation-scale-minor-tick {
+    -fx-stroke: -bs-color-gray-line;
+    -fx-stroke-width: 1;
+}
+
+.deviation-scale-zero-line {
     -fx-stroke: -bs-color-gray-line;
     -fx-stroke-width: 1;
     -fx-stroke-dash-array: 2 3;
     -fx-opacity: 0.5;
+}
+
+.chart-horizontal-grid-line {
+    -fx-stroke: -bs-color-gray-line;
+    -fx-stroke-width: 1;
+    -fx-stroke-dash-array: 2 3;
 }
 
 #charts .default-color0.chart-area-symbol {

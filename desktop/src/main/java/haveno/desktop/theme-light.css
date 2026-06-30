@@ -169,6 +169,12 @@
     );
 }
 
+/* Match the deviation scale ticks and horizontal grid lines to the light-mode axis tick color
+   (modena's AXIS_COLOR), since the light theme doesn't override the axis stroke like dark does. */
+.chart-horizontal-grid-line, .deviation-scale-tick, .deviation-scale-minor-tick {
+    -fx-stroke: derive(-fx-background, -20%);
+}
+
 /* All inputs have border in light mode. */
 .jfx-combo-box, .jfx-text-field, .jfx-text-area, .jfx-password-field {
     -fx-border-color: -bs-color-border-form-field;
