@@ -386,6 +386,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 MERCADO_PAGO_ID,
                 MOMO_ID,
                 MONESE_ID,
+                MONEY_BEAM_ID,
                 MONEY_GRAM_ID,
                 MPESA_ID,
                 NATIONAL_BANK_ID,
