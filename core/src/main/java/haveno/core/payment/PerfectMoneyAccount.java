@@ -18,6 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.Res;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -31,11 +32,21 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public final class PerfectMoneyAccount extends PaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("USD"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(
+            new TraditionalCurrency("USD"),
+            new TraditionalCurrency("EUR")
+    );
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public PerfectMoneyAccount() {
         super(PaymentMethod.PERFECT_MONEY);
-        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0));
+        // the single currency (USD or EUR) is chosen on the form, so no default is set here
     }
 
     @Override
@@ -50,7 +61,18 @@ public final class PerfectMoneyAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        PaymentAccountFormField field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.ACCOUNT_NR) field.setLabel(Res.get("payment.account.no"));
+        if (field.getId() == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) {
+            field.setComponent(PaymentAccountFormField.Component.SELECT_ONE); // a PerfectMoney account holds a single currency (USD or EUR)
+            field.setValue(""); // user chooses USD or EUR
+        }
+        return field;
     }
 
     public void setAccountNr(String accountNr) {
