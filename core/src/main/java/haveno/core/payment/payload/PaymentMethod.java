@@ -377,6 +377,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 CASH_DEPOSIT_ID,
                 CELPAY_ID,
                 DOMESTIC_WIRE_TRANSFER_ID,
+                HAL_CASH_ID,
                 FASTER_PAYMENTS_ID,
                 F2F_ID,
                 GCASH_ID,
