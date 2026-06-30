@@ -1985,6 +1985,7 @@ message PaymentAccountForm {
         PERFECT_MONEY = 55;
         POPMONEY = 56;
         RTGS = 57;
+        VERSE = 58;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

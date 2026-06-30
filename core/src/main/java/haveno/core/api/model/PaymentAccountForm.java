@@ -115,7 +115,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         MONEY_BEAM,
         PERFECT_MONEY,
         POPMONEY,
-        RTGS;
+        RTGS,
+        VERSE;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
