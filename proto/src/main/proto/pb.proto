@@ -1989,6 +1989,7 @@ message PaymentAccountForm {
         ADVANCED_CASH = 50;
         CELPAY = 51;
         HAL_CASH = 52;
+        MONESE = 53;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
