@@ -102,7 +102,8 @@ public final class PaymentAccountFormField implements PersistablePayload {
         EMAIL_OR_MOBILE_NR_OR_USERNAME,
         EMAIL_OR_MOBILE_NR_OR_CASHTAG,
         VIRTUAL_PAYMENT_ADDRESS,
-        CLABE;
+        CLABE,
+        ACCEPTED_BANKS;
 
         public static PaymentAccountFormField.FieldId fromProto(protobuf.PaymentAccountFormField.FieldId fieldId) {
             return ProtoUtil.enumFromProto(PaymentAccountFormField.FieldId.class, fieldId.name());

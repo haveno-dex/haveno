@@ -1996,6 +1996,7 @@ message PaymentAccountForm {
         RTGS = 57;
         VERSE = 58;
         SAME_BANK = 59;
+        SPECIFIC_BANKS = 60;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
@@ -2065,6 +2066,7 @@ message PaymentAccountFormField {
         EMAIL_OR_MOBILE_NR_OR_CASHTAG = 59;
         VIRTUAL_PAYMENT_ADDRESS = 60;
         CLABE = 61;
+        ACCEPTED_BANKS = 62;
     }
     enum Component {
         TEXT = 0;

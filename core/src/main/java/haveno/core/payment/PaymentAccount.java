@@ -428,6 +428,10 @@ public abstract class PaymentAccount implements PersistablePayload {
             }
             break;
         }
+        case ACCEPTED_BANKS:
+            // comma-delimited list of accepted bank names; require at least one
+            if (commaDelimitedValuesToList.apply(value).isEmpty()) throw new IllegalArgumentException(Res.get("payment.accepted.banks") + ": " + value);
+            break;
         case ACCOUNT_ID:
             processValidationResult(new InputValidator().validate(value));
             break;
@@ -631,6 +635,11 @@ public abstract class PaymentAccount implements PersistablePayload {
             List<Country> supportedCountries = ((CountryBasedPaymentAccount) this).getSupportedCountries();
             field.setSupportedCountries(supportedCountries);
             field.setComponent(supportedCountries.size() == 1 ? PaymentAccountFormField.Component.SELECT_ONE : PaymentAccountFormField.Component.SELECT_MULTIPLE);
+            break;
+        case ACCEPTED_BANKS:
+            // comma-delimited list of accepted bank names
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.accepted.banks"));
             break;
         case ACCOUNT_ID:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
@@ -892,5 +901,11 @@ public abstract class PaymentAccount implements PersistablePayload {
             return singletonList(s.trim().toUpperCase());
         else
             return new ArrayList<>();
+    };
+
+    // like commaDelimitedCodesToList but preserves case (e.g. for free-text values such as bank names)
+    public static final Function<String, List<String>> commaDelimitedValuesToList = (s) -> {
+        if (s == null || s.trim().isEmpty()) return new ArrayList<>();
+        return stream(s.split(",")).map(String::trim).filter(v -> !v.isEmpty()).collect(toList());
     };
 }
