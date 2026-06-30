@@ -1983,6 +1983,7 @@ message PaymentAccountForm {
         MONESE = 53;
         MONEY_BEAM = 54;
         PERFECT_MONEY = 55;
+        POPMONEY = 56;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
