@@ -1979,6 +1979,7 @@ message PaymentAccountForm {
         SPEI = 48;
         ADVANCED_CASH = 50;
         CELPAY = 51;
+        HAL_CASH = 52;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
