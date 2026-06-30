@@ -1,18 +1,18 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment;
@@ -22,7 +22,7 @@ import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.payload.BizumAccountPayload;
+import haveno.core.payment.payload.MomoAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.EqualsAndHashCode;
@@ -33,48 +33,57 @@ import java.util.Arrays;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
-public final class BizumAccount extends CountryBasedPaymentAccount {
+public final class MomoAccount extends CountryBasedPaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("EUR"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("VND"));
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
             PaymentAccountFormField.FieldId.MOBILE_NR,
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.SALT
     );
 
-    public BizumAccount() {
-        super(PaymentMethod.BIZUM);
-        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0)); // this payment method is only for Spain/EUR
+    public MomoAccount() {
+        super(PaymentMethod.MOMO);
+        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0)); // this payment method is only for Vietnam/VND
     }
 
     @Override
     protected PaymentAccountPayload createPayload() {
-        return new BizumAccountPayload(paymentMethod.getId(), id);
+        return new MomoAccountPayload(paymentMethod.getId(), id);
+    }
+
+    public void setHolderName(String holderName) {
+        ((MomoAccountPayload) paymentAccountPayload).setHolderName(holderName);
+    }
+
+    public String getHolderName() {
+        return ((MomoAccountPayload) paymentAccountPayload).getHolderName();
     }
 
     public void setMobileNr(String mobileNr) {
-        ((BizumAccountPayload) paymentAccountPayload).setMobileNr(mobileNr);
+        ((MomoAccountPayload) paymentAccountPayload).setMobileNr(mobileNr);
     }
 
     public String getMobileNr() {
-        return ((BizumAccountPayload) paymentAccountPayload).getMobileNr();
+        return ((MomoAccountPayload) paymentAccountPayload).getMobileNr();
     }
 
     @Override
     public String getMessageForBuyer() {
-        return "payment.bizum.info.buyer";
+        return "payment.momo.info.buyer";
     }
 
     @Override
     public String getMessageForSeller() {
-        return "payment.bizum.info.seller";
+        return "payment.momo.info.seller";
     }
 
     @Override
     public String getMessageForAccountCreation() {
-        return "payment.bizum.info.account";
+        return "payment.momo.info.account";
     }
 
     @Override
@@ -90,6 +99,6 @@ public final class BizumAccount extends CountryBasedPaymentAccount {
     @Override
     @Nullable
     public List<Country> getSupportedCountries() {
-        return Arrays.asList(CountryUtil.findCountryByCode("ES").get());
+        return Arrays.asList(CountryUtil.findCountryByCode("VN").get());
     }
 }

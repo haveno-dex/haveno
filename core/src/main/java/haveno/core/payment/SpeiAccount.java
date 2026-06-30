@@ -1,18 +1,18 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.core.payment;
@@ -22,59 +22,69 @@ import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
-import haveno.core.payment.payload.BizumAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.payload.SpeiAccountPayload;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
-import javax.annotation.Nullable;
-import java.util.Arrays;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
-public final class BizumAccount extends CountryBasedPaymentAccount {
+public final class SpeiAccount extends CountryBasedPaymentAccount {
 
-    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("EUR"));
+    public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("MXN"));
+    public static final List<Country> SUPPORTED_COUNTRIES = CountryUtil.getCountries(List.of("MX"));
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.COUNTRY,
-            PaymentAccountFormField.FieldId.MOBILE_NR,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.CLABE,
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
             PaymentAccountFormField.FieldId.SALT
     );
 
-    public BizumAccount() {
-        super(PaymentMethod.BIZUM);
-        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0)); // this payment method is only for Spain/EUR
+    public SpeiAccount() {
+        super(PaymentMethod.SPEI);
+        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0)); // this payment method is only for Mexico/MXN
     }
 
     @Override
     protected PaymentAccountPayload createPayload() {
-        return new BizumAccountPayload(paymentMethod.getId(), id);
+        return new SpeiAccountPayload(paymentMethod.getId(), id);
     }
 
-    public void setMobileNr(String mobileNr) {
-        ((BizumAccountPayload) paymentAccountPayload).setMobileNr(mobileNr);
+    public void setHolderName(String holderName) {
+        ((SpeiAccountPayload) paymentAccountPayload).setHolderName(holderName);
     }
 
-    public String getMobileNr() {
-        return ((BizumAccountPayload) paymentAccountPayload).getMobileNr();
+    public String getHolderName() {
+        return ((SpeiAccountPayload) paymentAccountPayload).getHolderName();
+    }
+
+    public void setClabe(String clabe) {
+        ((SpeiAccountPayload) paymentAccountPayload).setClabe(clabe);
+    }
+
+    public String getClabe() {
+        return ((SpeiAccountPayload) paymentAccountPayload).getClabe();
     }
 
     @Override
     public String getMessageForBuyer() {
-        return "payment.bizum.info.buyer";
+        return "payment.spei.info.buyer";
     }
 
     @Override
     public String getMessageForSeller() {
-        return "payment.bizum.info.seller";
+        return "payment.spei.info.seller";
     }
 
     @Override
     public String getMessageForAccountCreation() {
-        return "payment.bizum.info.account";
+        return "payment.spei.info.account";
     }
 
     @Override
@@ -88,8 +98,7 @@ public final class BizumAccount extends CountryBasedPaymentAccount {
     }
 
     @Override
-    @Nullable
-    public List<Country> getSupportedCountries() {
-        return Arrays.asList(CountryUtil.findCountryByCode("ES").get());
+    public @NotNull List<Country> getSupportedCountries() {
+        return SUPPORTED_COUNTRIES;
     }
 }

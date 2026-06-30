@@ -929,6 +929,11 @@ message CountryBasedPaymentAccountPayload {
         TikkieAccountPayload tikkie_account_payload = 17;
         TransferwiseUsdAccountPayload transferwise_usd_account_payload = 18;
         SwiftAccountPayload swift_account_payload = 19;
+        MpesaAccountPayload mpesa_account_payload = 20;
+        MercadoPagoAccountPayload mercado_pago_account_payload = 21;
+        GcashAccountPayload gcash_account_payload = 22;
+        MomoAccountPayload momo_account_payload = 23;
+        SpeiAccountPayload spei_account_payload = 24;
     }
 }
 
@@ -1207,6 +1212,31 @@ message MoneseAccountPayload {
 message SatispayAccountPayload {
     string mobile_nr = 1;
     string holder_name = 2;
+}
+
+message MpesaAccountPayload {
+    string holder_name = 1;
+    string mobile_nr = 2;
+}
+
+message MercadoPagoAccountPayload {
+    string holder_name = 1;
+    string email_or_mobile_nr = 2;
+}
+
+message GcashAccountPayload {
+    string holder_name = 1;
+    string mobile_nr = 2;
+}
+
+message MomoAccountPayload {
+    string holder_name = 1;
+    string mobile_nr = 2;
+}
+
+message SpeiAccountPayload {
+    string holder_name = 1;
+    string clabe = 2;
 }
 
 message StrikeAccountPayload {
@@ -1927,6 +1957,37 @@ message PaymentAccountForm {
         INTERAC_E_TRANSFER = 26;
         US_POSTAL_MONEY_ORDER = 27;
         PIX = 28;
+        NATIONAL_BANK = 29;
+        WESTERN_UNION = 30;
+        CASH_DEPOSIT = 31;
+        UPI = 32;
+        NEFT = 33;
+        IMPS = 34;
+        PROMPT_PAY = 35;
+        BIZUM = 36;
+        NEQUI = 37;
+        JAPAN_BANK = 38;
+        PAYTM = 39;
+        DOMESTIC_WIRE_TRANSFER = 40;
+        SATISPAY = 41;
+        PAYSERA = 42;
+        TIKKIE = 43;
+        MPESA = 44;
+        MERCADO_PAGO = 45;
+        GCASH = 46;
+        MOMO = 47;
+        SPEI = 48;
+        ADVANCED_CASH = 50;
+        CELPAY = 51;
+        HAL_CASH = 52;
+        MONESE = 53;
+        MONEY_BEAM = 54;
+        PERFECT_MONEY = 55;
+        POPMONEY = 56;
+        RTGS = 57;
+        VERSE = 58;
+        SAME_BANK = 59;
+        SPECIFIC_BANKS = 60;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
@@ -1994,6 +2055,9 @@ message PaymentAccountFormField {
         USERNAME = 57;
         EMAIL_OR_MOBILE_NR_OR_USERNAME = 58;
         EMAIL_OR_MOBILE_NR_OR_CASHTAG = 59;
+        VIRTUAL_PAYMENT_ADDRESS = 60;
+        CLABE = 61;
+        ACCEPTED_BANKS = 62;
     }
     enum Component {
         TEXT = 0;
@@ -2013,4 +2077,5 @@ message PaymentAccountFormField {
     repeated Country supported_sepa_euro_countries = 10;
     repeated Country supported_sepa_non_euro_countries = 11;
     repeated string required_for_countries = 12;
+    repeated string supported_values = 13; // valid options for a SELECT_ONE/SELECT_MULTIPLE field whose values are plain strings
 }

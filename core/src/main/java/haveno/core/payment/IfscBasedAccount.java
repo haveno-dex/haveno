@@ -18,19 +18,37 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentMethod;
 import lombok.NonNull;
 
+import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Base class for IFSC based India bank transfers (NEFT, RTGS, IMPS), which share the
+ * holder name / account number / IFSC code form fields. India and INR are fixed.
+ */
 abstract public class IfscBasedAccount extends CountryBasedPaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("INR"));
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.IFSC,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     protected IfscBasedAccount(PaymentMethod paymentMethod) {
         super(paymentMethod);
+        setSingleTradeCurrency(SUPPORTED_CURRENCIES.get(0)); // this payment method is only for India/INR
     }
 
     @Override
@@ -40,6 +58,12 @@ abstract public class IfscBasedAccount extends CountryBasedPaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return Arrays.asList(CountryUtil.findCountryByCode("IN").get());
     }
 }

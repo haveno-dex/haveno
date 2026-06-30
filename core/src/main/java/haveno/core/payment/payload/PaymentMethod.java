@@ -58,11 +58,15 @@ import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.DomesticWireTransferAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.FasterPaymentsAccount;
+import haveno.core.payment.GcashAccount;
 import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.ImpsAccount;
 import haveno.core.payment.InteracETransferAccount;
 import haveno.core.payment.JapanBankAccount;
+import haveno.core.payment.MercadoPagoAccount;
+import haveno.core.payment.MomoAccount;
 import haveno.core.payment.MoneseAccount;
+import haveno.core.payment.MpesaAccount;
 import haveno.core.payment.MoneyBeamAccount;
 import haveno.core.payment.MoneyGramAccount;
 import haveno.core.payment.NationalBankAccount;
@@ -80,6 +84,7 @@ import haveno.core.payment.RtgsAccount;
 import haveno.core.payment.SameBankAccount;
 import haveno.core.payment.SatispayAccount;
 import haveno.core.payment.SepaAccount;
+import haveno.core.payment.SpeiAccount;
 import haveno.core.payment.SepaInstantAccount;
 import haveno.core.payment.SpecificBanksAccount;
 import haveno.core.payment.StrikeAccount;
@@ -139,7 +144,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String PERFECT_MONEY_ID = "PERFECT_MONEY";
     public static final String SEPA_ID = "SEPA";
     public static final String SEPA_INSTANT_ID = "SEPA_INSTANT";
+    public static final String SPEI_ID = "SPEI";
     public static final String FASTER_PAYMENTS_ID = "FASTER_PAYMENTS";
+    public static final String GCASH_ID = "GCASH";
     public static final String NATIONAL_BANK_ID = "NATIONAL_BANK";
     public static final String JAPAN_BANK_ID = "JAPAN_BANK";
     public static final String AUSTRALIA_PAYID_ID = "AUSTRALIA_PAYID";
@@ -156,6 +163,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String INTERAC_E_TRANSFER_ID = "INTERAC_E_TRANSFER";
     public static final String US_POSTAL_MONEY_ORDER_ID = "US_POSTAL_MONEY_ORDER";
     public static final String CASH_DEPOSIT_ID = "CASH_DEPOSIT";
+    public static final String MERCADO_PAGO_ID = "MERCADO_PAGO";
+    public static final String MOMO_ID = "MOMO";
     public static final String MONEY_GRAM_ID = "MONEY_GRAM";
     public static final String WESTERN_UNION_ID = "WESTERN_UNION";
     public static final String HAL_CASH_ID = "HAL_CASH";
@@ -182,6 +191,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String CAPITUAL_ID = "CAPITUAL";
     public static final String CELPAY_ID = "CELPAY";
     public static final String MONESE_ID = "MONESE";
+    public static final String MPESA_ID = "MPESA";
     public static final String SATISPAY_ID = "SATISPAY";
     public static final String TIKKIE_ID = "TIKKIE";
     public static final String VERSE_ID = "VERSE";
@@ -202,8 +212,10 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod REVOLUT;
     public static PaymentMethod PERFECT_MONEY;
     public static PaymentMethod SEPA;
+    public static PaymentMethod SPEI;
     public static PaymentMethod SEPA_INSTANT;
     public static PaymentMethod FASTER_PAYMENTS;
+    public static PaymentMethod GCASH;
     public static PaymentMethod NATIONAL_BANK;
     public static PaymentMethod JAPAN_BANK;
     public static PaymentMethod AUSTRALIA_PAYID;
@@ -217,6 +229,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod INTERAC_E_TRANSFER;
     public static PaymentMethod US_POSTAL_MONEY_ORDER;
     public static PaymentMethod CASH_DEPOSIT;
+    public static PaymentMethod MERCADO_PAGO;
+    public static PaymentMethod MOMO;
     public static PaymentMethod MONEY_GRAM;
     public static PaymentMethod WESTERN_UNION;
     public static PaymentMethod F2F;
@@ -243,6 +257,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod CAPITUAL;
     public static PaymentMethod CELPAY;
     public static PaymentMethod MONESE;
+    public static PaymentMethod MPESA;
     public static PaymentMethod SATISPAY;
     public static PaymentMethod TIKKIE;
     public static PaymentMethod VERSE;
@@ -316,6 +331,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             CAPITUAL = new PaymentMethod(CAPITUAL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CapitualAccount.SUPPORTED_CURRENCIES)),
             CELPAY = new PaymentMethod(CELPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CelPayAccount.SUPPORTED_CURRENCIES)),
             MONESE = new PaymentMethod(MONESE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MoneseAccount.SUPPORTED_CURRENCIES)),
+            MPESA = new PaymentMethod(MPESA_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MpesaAccount.SUPPORTED_CURRENCIES)),
+            MERCADO_PAGO = new PaymentMethod(MERCADO_PAGO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MercadoPagoAccount.SUPPORTED_CURRENCIES)),
+            GCASH = new PaymentMethod(GCASH_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(GcashAccount.SUPPORTED_CURRENCIES)),
+            MOMO = new PaymentMethod(MOMO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(MomoAccount.SUPPORTED_CURRENCIES)),
+            SPEI = new PaymentMethod(SPEI_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(SpeiAccount.SUPPORTED_CURRENCIES)),
             SATISPAY = new PaymentMethod(SATISPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(SatispayAccount.SUPPORTED_CURRENCIES)),
             TIKKIE = new PaymentMethod(TIKKIE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(TikkieAccount.SUPPORTED_CURRENCIES)),
             VERSE = new PaymentMethod(VERSE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VerseAccount.SUPPORTED_CURRENCIES)),
@@ -350,25 +370,55 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     // TODO: delete this override method, which overrides the paymentMethods variable, when all payment methods supported using structured form api, and make paymentMethods private
     public static List<PaymentMethod> getPaymentMethods() {
         List<String> paymentMethodIds = List.of(
+                ADVANCED_CASH_ID,
+                BIZUM_ID,
                 BLOCK_CHAINS_ID,
                 CASH_AT_ATM_ID,
+                CASH_DEPOSIT_ID,
+                CELPAY_ID,
+                DOMESTIC_WIRE_TRANSFER_ID,
+                HAL_CASH_ID,
                 FASTER_PAYMENTS_ID,
                 F2F_ID,
+                GCASH_ID,
+                IMPS_ID,
+                JAPAN_BANK_ID,
+                MERCADO_PAGO_ID,
+                MOMO_ID,
+                MONESE_ID,
+                MONEY_BEAM_ID,
                 MONEY_GRAM_ID,
+                MPESA_ID,
+                NATIONAL_BANK_ID,
+                SAME_BANK_ID,
+                SPECIFIC_BANKS_ID,
+                NEFT_ID,
+                NEQUI_ID,
                 PAXUM_ID,
                 PAY_BY_MAIL_ID,
+                PAYSERA_ID,
+                PAYTM_ID,
+                PERFECT_MONEY_ID,
+                POPMONEY_ID,
+                PROMPT_PAY_ID,
                 REVOLUT_ID,
+                RTGS_ID,
+                SATISPAY_ID,
                 SEPA_ID,
                 SEPA_INSTANT_ID,
+                SPEI_ID,
                 STRIKE_ID,
                 SWIFT_ID,
+                TIKKIE_ID,
                 TRANSFERWISE_ID,
                 UPHOLD_ID,
+                UPI_ID,
                 ZELLE_ID,
                 AUSTRALIA_PAYID_ID,
                 CASH_APP_ID,
                 PAYPAL_ID,
                 VENMO_ID,
+                VERSE_ID,
                 PAYSAFE_ID,
                 WECHAT_PAY_ID,
                 ALI_PAY_ID,
@@ -378,7 +428,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 ACH_TRANSFER_ID,
                 INTERAC_E_TRANSFER_ID,
                 US_POSTAL_MONEY_ORDER_ID,
-                PIX_ID);
+                PIX_ID,
+                WESTERN_UNION_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 

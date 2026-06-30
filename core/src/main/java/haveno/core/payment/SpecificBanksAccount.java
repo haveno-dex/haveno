@@ -30,9 +30,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
-public final class SpecificBanksAccount extends CountryBasedPaymentAccount implements BankNameRestrictedBankAccount, SameCountryRestrictedBankAccount {
+public final class SpecificBanksAccount extends GeneralBankAccount implements BankNameRestrictedBankAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = CurrencyUtil.getAllFiatCurrencies();
+
+    // same fields as the general bank account, plus the list of accepted banks
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.COUNTRY,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.HOLDER_TAX_ID,
+            PaymentAccountFormField.FieldId.BANK_NAME,
+            PaymentAccountFormField.FieldId.BANK_ID,
+            PaymentAccountFormField.FieldId.BRANCH_ID,
+            PaymentAccountFormField.FieldId.NATIONAL_ACCOUNT_ID,
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.ACCOUNT_TYPE,
+            PaymentAccountFormField.FieldId.ACCEPTED_BANKS,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public SpecificBanksAccount() {
         super(PaymentMethod.SPECIFIC_BANKS);
@@ -50,21 +67,11 @@ public final class SpecificBanksAccount extends CountryBasedPaymentAccount imple
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 
     // TODO change to List
     public ArrayList<String> getAcceptedBanks() {
         return ((SpecificBanksAccountPayload) paymentAccountPayload).getAcceptedBanks();
-    }
-
-    @Override
-    public String getBankId() {
-        return ((SpecificBanksAccountPayload) paymentAccountPayload).getBankId();
-    }
-
-    @Override
-    public String getCountryCode() {
-        return getCountry() != null ? getCountry().code : "";
     }
 }

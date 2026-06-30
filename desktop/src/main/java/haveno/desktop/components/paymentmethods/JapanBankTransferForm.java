@@ -45,7 +45,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.util.StringConverter;
-import org.apache.commons.lang3.StringUtils;
 
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
@@ -189,18 +188,16 @@ public class JapanBankTransferForm extends PaymentMethodForm {
             // get selected value
             String bank = bankComboBox.getSelectionModel().getSelectedItem();
 
-            // parse first 4 characters as bank code
-            String bankCode = StringUtils.substring(bank, 0, 4);
-            if (bankCode != null) {
+            // derive the bank code from the selection (see JapanBankData.prettyPrintBankList())
+            String bankCode = JapanBankData.bankCodeFromEntry(bank);
+            if (!bankCode.isEmpty()) {
                 // set bank code field to this value
                 bankCodeField.setText(bankCode);
                 // save to payload
                 japanBankAccount.setBankCode(bankCode);
 
-                // parse remainder as bank name
-                String bankNameFull = StringUtils.substringAfter(bank, JapanBankData.SPACE);
-                // parse beginning as Japanese bank name
-                String bankNameJa = StringUtils.substringBefore(bankNameFull, JapanBankData.SPACE);
+                // derive the Japanese bank name from the selection
+                String bankNameJa = JapanBankData.bankNameFromEntry(bank);
                 // set bank name field to this value
                 bankComboBox.getEditor().setText(bankNameJa);
                 // save to payload
