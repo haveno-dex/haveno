@@ -18,6 +18,7 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.Res;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.MoneyBeamAccountPayload;
@@ -33,6 +34,13 @@ import java.util.List;
 public final class MoneyBeamAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = List.of(new TraditionalCurrency("EUR"));
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_ID,
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public MoneyBeamAccount() {
         super(PaymentMethod.MONEY_BEAM);
@@ -51,7 +59,14 @@ public final class MoneyBeamAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        PaymentAccountFormField field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.ACCOUNT_ID) field.setLabel(Res.get("payment.moneyBeam.accountId"));
+        return field;
     }
 
     public void setAccountId(String accountId) {
