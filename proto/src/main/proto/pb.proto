@@ -1982,6 +1982,7 @@ message PaymentAccountForm {
         HAL_CASH = 52;
         MONESE = 53;
         MONEY_BEAM = 54;
+        PERFECT_MONEY = 55;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
