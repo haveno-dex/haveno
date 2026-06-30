@@ -20,6 +20,7 @@ package haveno.desktop.main.market.offerbook;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.jfoenix.controls.JFXTabPane;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.util.Tuple3;
@@ -48,20 +49,29 @@ import haveno.desktop.util.GUIUtil;
 import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
 import haveno.network.p2p.NodeAddress;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
+import javafx.scene.Node;
 import javafx.scene.chart.AreaChart;
+import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
@@ -75,9 +85,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Line;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.fxmisc.easybind.EasyBind;
@@ -88,12 +100,16 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private final boolean useDevPrivilegeKeys;
 
     private NumberAxis xAxis;
+    private NumberAxis yAxis;
     private XYChart.Series<Number, Number> seriesBuy, seriesSell;
     private final CoinFormatter formatter;
     private TableView<OfferListItem> buyOfferTableView;
     private TableView<OfferListItem> sellOfferTableView;
     private AreaChart<Number, Number> areaChart;
     private AnchorPane chartPane;
+    private Pane deviationScalePane;
+    private Pane gridLinesPane;
+    private boolean chartOverlaysRedrawScheduled;
     private AutocompleteComboBox<CurrencyListItem> currencyComboBox;
     private Subscription tradeCurrencySubscriber;
     private final StringProperty volumeSellColumnLabel = new SimpleStringProperty();
@@ -119,6 +135,17 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         return extraRows == 0 ? initialOfferTableViewHeight : Math.ceil(initialOfferTableViewHeight + ((extraRows + 1) * pixelsPerOfferTableRow));
     };
     private ChangeListener<Number> havenoWindowVerticalSizeListener;
+    private ChangeListener<Number> priceFeedUpdateCounterListener;
+    private Timer priceRefreshTimer;
+
+    // Fixed axis scale used while the chart has no data, so the scales don't jump (see updateChartAxisRanging).
+    private static final double EMPTY_AXIS_UPPER_BOUND = 4;
+    private static final int EMPTY_AXIS_TICK_INTERVALS = 4;
+
+    // Heights (px) of the deviation scale's tick marks above the plot
+    private static final int DEVIATION_TICK_HEIGHT = 5;        // labeled ticks
+    private static final int DEVIATION_MINOR_TICK_HEIGHT = 4;  // unlabeled midway ticks
+    private static final int DEVIATION_LABEL_GAP = 1;          // px between the labels and their ticks (0 = touching)
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -265,6 +292,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         buyOfferTableView.getSelectionModel().selectedItemProperty().addListener(buyTableRowSelectionListener);
         sellOfferTableView.getSelectionModel().selectedItemProperty().addListener(sellTableRowSelectionListener);
 
+        model.priceFeedService.updateCounterProperty().addListener(priceFeedUpdateCounterListener);
+
         root.getScene().heightProperty().addListener(havenoWindowVerticalSizeListener);
         layout();
 
@@ -303,6 +332,18 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         buyTableRowSelectionListener = (observable, oldValue, newValue) -> model.goToOfferView(OfferDirection.BUY);
 
         havenoWindowVerticalSizeListener = (observable, oldValue, newValue) -> layout();
+
+        // Market prices update ~once per minute; refresh the prices, chart and tables.
+        // Debounced to collapse the burst of updates from a single price request cycle.
+        priceFeedUpdateCounterListener = (observable, oldValue, newValue) -> {
+            if (priceRefreshTimer == null) {
+                priceRefreshTimer = UserThread.runAfter(() -> {
+                    priceRefreshTimer = null;
+                    model.updateChartData();
+                    updateChartData();
+                }, 1);
+            }
+        };
     }
 
     @Override
@@ -313,6 +354,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tradeCurrencySubscriber.unsubscribe();
         buyOfferTableView.getSelectionModel().selectedItemProperty().removeListener(buyTableRowSelectionListener);
         sellOfferTableView.getSelectionModel().selectedItemProperty().removeListener(sellTableRowSelectionListener);
+        model.priceFeedService.updateCounterProperty().removeListener(priceFeedUpdateCounterListener);
+        if (priceRefreshTimer != null) {
+            priceRefreshTimer.stop();
+            priceRefreshTimer = null;
+        }
     }
 
     private void createChart() {
@@ -322,7 +368,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         xAxis.setTickMarkVisible(true);
         xAxis.setMinorTickVisible(false);
 
-        NumberAxis yAxis = new NumberAxis();
+        yAxis = new NumberAxis();
         yAxis.setForceZeroInRange(false);
         yAxis.setSide(Side.RIGHT);
         yAxis.setAutoRanging(true);
@@ -337,6 +383,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         areaChart = new AreaChart<>(xAxis, yAxis);
         areaChart.setLegendVisible(false);
         areaChart.setAnimated(false);
+        areaChart.setHorizontalGridLinesVisible(false); // draw the horizontal grid lines ourselves to fix flickering due to floating-point edge comparison
         areaChart.setId("charts");
         areaChart.setMinHeight(270);
         areaChart.setPrefHeight(270);
@@ -347,12 +394,39 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         chartPane = new AnchorPane();
         chartPane.getStyleClass().add("chart-pane");
 
-        AnchorPane.setTopAnchor(areaChart, 15d);
+        AnchorPane.setTopAnchor(areaChart, 24d);
         AnchorPane.setBottomAnchor(areaChart, 10d);
         AnchorPane.setLeftAnchor(areaChart, 10d);
         AnchorPane.setRightAnchor(areaChart, 0d);
 
-        chartPane.getChildren().add(areaChart);
+        deviationScalePane = new Pane();
+        deviationScalePane.setMouseTransparent(true);
+        deviationScalePane.setPickOnBounds(false);
+        AnchorPane.setTopAnchor(deviationScalePane, 0d);
+        AnchorPane.setBottomAnchor(deviationScalePane, 0d);
+        AnchorPane.setLeftAnchor(deviationScalePane, 0d);
+        AnchorPane.setRightAnchor(deviationScalePane, 0d);
+
+        // Pane for our self-drawn horizontal grid lines. It sits behind the chart so the lines
+        // render beneath the (translucent) area fills, matching the chart's built-in appearance.
+        gridLinesPane = new Pane();
+        gridLinesPane.setMouseTransparent(true);
+        gridLinesPane.setPickOnBounds(false);
+        AnchorPane.setTopAnchor(gridLinesPane, 0d);
+        AnchorPane.setBottomAnchor(gridLinesPane, 0d);
+        AnchorPane.setLeftAnchor(gridLinesPane, 0d);
+        AnchorPane.setRightAnchor(gridLinesPane, 0d);
+
+        chartPane.getChildren().addAll(gridLinesPane, areaChart, deviationScalePane);
+
+        InvalidationListener overlayRedrawTrigger = observable -> scheduleChartOverlaysRedraw();
+        xAxis.lowerBoundProperty().addListener(overlayRedrawTrigger);
+        xAxis.upperBoundProperty().addListener(overlayRedrawTrigger);
+        xAxis.widthProperty().addListener(overlayRedrawTrigger);
+        yAxis.lowerBoundProperty().addListener(overlayRedrawTrigger);
+        yAxis.upperBoundProperty().addListener(overlayRedrawTrigger);
+        areaChart.widthProperty().addListener(overlayRedrawTrigger);
+        areaChart.heightProperty().addListener(overlayRedrawTrigger);
     }
 
     private synchronized void updateChartData() {
@@ -379,6 +453,193 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         seriesBuy.getData().addAll(filterOutliersBuy(model.getBuyData()));
 
         areaChart.getData().addAll(List.of(seriesBuy, seriesSell));
+
+        updateChartAxisRanging();
+
+        scheduleChartOverlaysRedraw();
+    }
+
+    private void updateChartAxisRanging() {
+        boolean hasData = !seriesBuy.getData().isEmpty() || !seriesSell.getData().isEmpty();
+        pinAxisWhenEmpty(xAxis, hasData);
+        pinAxisWhenEmpty(yAxis, hasData);
+    }
+
+    private void pinAxisWhenEmpty(NumberAxis axis, boolean hasData) {
+        if (hasData) {
+            axis.setAutoRanging(true);
+        } else if (axis.isAutoRanging()) {
+            axis.setAutoRanging(false);
+            axis.setLowerBound(0);
+            axis.setUpperBound(EMPTY_AXIS_UPPER_BOUND);
+            axis.setTickUnit(EMPTY_AXIS_UPPER_BOUND / EMPTY_AXIS_TICK_INTERVALS);
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Deviation scale (% from market price across the top of the chart)
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private static final int DEVIATION_TARGET_TICKS = 6;
+    private static final int DEVIATION_MAX_TICKS = 40;
+
+    private void scheduleChartOverlaysRedraw() {
+        if (chartOverlaysRedrawScheduled) return;
+        chartOverlaysRedrawScheduled = true;
+        UserThread.execute(() -> {
+            chartOverlaysRedrawScheduled = false;
+            redrawGridLines();
+            redrawDeviationScale();
+        });
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Horizontal grid lines (drawn here so the top/bottom lines don't flicker; see createChart)
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private void redrawGridLines() {
+        if (gridLinesPane == null || areaChart == null || yAxis == null) return;
+        gridLinesPane.getChildren().clear();
+
+        Node plotBackground = areaChart.lookup(".chart-plot-background");
+        if (plotBackground == null) return;
+        Bounds plotBounds = gridLinesPane.sceneToLocal(plotBackground.localToScene(plotBackground.getBoundsInLocal()));
+        double plotLeft = plotBounds.getMinX();
+        double plotRight = plotBounds.getMaxX();
+        double plotTop = plotBounds.getMinY();
+        double plotBottom = plotBounds.getMaxY();
+        if (!(plotRight > plotLeft) || !(plotBottom > plotTop)) return;
+
+        // draw a horizontal grid line for every y-axis tick
+        for (Axis.TickMark<Number> tick : yAxis.getTickMarks()) {
+            double y = gridLineY(tick.getValue());
+            if (y < plotTop - 1 || y > plotBottom + 1) continue;
+            y = Math.floor(Math.min(plotBottom, Math.max(plotTop, y))) + 0.5;
+            Line line = new Line(plotLeft, y, plotRight, y);
+            line.getStyleClass().add("chart-horizontal-grid-line");
+            line.setManaged(false);
+            gridLinesPane.getChildren().add(line);
+        }
+    }
+
+    private double gridLineY(Number value) {
+        Point2D scenePoint = yAxis.localToScene(0, yAxis.getDisplayPosition(value));
+        return gridLinesPane.sceneToLocal(scenePoint).getY();
+    }
+
+    private void redrawDeviationScale() {
+        if (deviationScalePane == null || areaChart == null || xAxis == null) return;
+        deviationScalePane.getChildren().clear();
+
+        if (seriesBuy.getData().isEmpty() && seriesSell.getData().isEmpty()) return;
+        if (xAxis.getWidth() <= 0) return;
+
+        Optional<Double> marketPriceOpt = model.getMarketPriceAsDouble();
+        if (marketPriceOpt.isEmpty()) return;
+        double marketPrice = marketPriceOpt.get();
+        if (marketPrice <= 0) return;
+
+        double lower = xAxis.getLowerBound();
+        double upper = xAxis.getUpperBound();
+        if (!(upper > lower)) return;
+
+        Node plotBackground = areaChart.lookup(".chart-plot-background");
+        if (plotBackground == null) return;
+        Bounds plotBounds = deviationScalePane.sceneToLocal(plotBackground.localToScene(plotBackground.getBoundsInLocal()));
+        double plotTop = plotBounds.getMinY();
+        double plotBottom = plotBounds.getMaxY();
+        if (!(plotBottom > plotTop)) return;
+
+        double lowerDeviation = lower / marketPrice - 1;
+        double upperDeviation = upper / marketPrice - 1;
+        List<Double> deviations = niceTicks(lowerDeviation, upperDeviation, DEVIATION_TARGET_TICKS);
+        if (deviations.isEmpty()) return;
+        double step = deviations.size() > 1 ? Math.abs(deviations.get(1) - deviations.get(0)) : Math.abs(deviations.get(0));
+        int decimals = percentDecimals(step);
+
+        for (double deviation : deviations) {
+            double price = marketPrice * (1 + deviation);
+            if (price < lower || price > upper) continue;
+            double x = deviationScaleX(price);
+            boolean isZero = Math.abs(deviation) < step / 2;
+
+            Label label = new Label(formatDeviation(deviation, decimals));
+            label.getStyleClass().add("deviation-scale-label");
+            label.setManaged(false);
+            deviationScalePane.getChildren().add(label);
+            label.applyCss();
+            double labelWidth = label.prefWidth(-1);
+            double labelHeight = label.prefHeight(labelWidth);
+            label.resizeRelocate(x - labelWidth / 2, Math.max(1, plotTop - DEVIATION_TICK_HEIGHT - labelHeight - DEVIATION_LABEL_GAP), labelWidth, labelHeight);
+
+            Line line = isZero ? new Line(x, plotTop, x, plotBottom) : new Line(x, plotTop - DEVIATION_TICK_HEIGHT, x, plotTop);
+            line.getStyleClass().add(isZero ? "deviation-scale-zero-line" : "deviation-scale-tick");
+            line.setManaged(false);
+            deviationScalePane.getChildren().add(line);
+        }
+
+        // Minor ticks halfway between the labeled ticks (no label), for finer reading of the scale.
+        double minorStep = step / 2;
+        if (minorStep > 0) {
+            int minorTicks = 0;
+            for (double deviation = Math.ceil(lowerDeviation / minorStep) * minorStep;
+                    deviation <= upperDeviation + minorStep * 1e-6 && minorTicks < DEVIATION_MAX_TICKS;
+                    deviation += minorStep) {
+                double majorRatio = deviation / step;
+                if (Math.abs(majorRatio - Math.rint(majorRatio)) < 1e-6) continue; // coincides with a labeled tick
+                double price = marketPrice * (1 + deviation);
+                if (price < lower || price > upper) continue;
+                double x = deviationScaleX(price);
+
+                Line minorTick = new Line(x, plotTop - DEVIATION_MINOR_TICK_HEIGHT, x, plotTop);
+                minorTick.getStyleClass().add("deviation-scale-minor-tick");
+                minorTick.setManaged(false);
+                deviationScalePane.getChildren().add(minorTick);
+                minorTicks++;
+            }
+        }
+    }
+
+    private double deviationScaleX(double price) {
+        Point2D scenePoint = xAxis.localToScene(xAxis.getDisplayPosition(price), 0);
+        return deviationScalePane.sceneToLocal(scenePoint).getX();
+    }
+
+    private static List<Double> niceTicks(double min, double max, int targetCount) {
+        List<Double> result = new ArrayList<>();
+        if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) return result;
+        double step = niceStep((max - min) / Math.max(1, targetCount));
+        if (!(step > 0) || !Double.isFinite(step)) return result;
+        for (double v = Math.ceil(min / step) * step; v <= max + step * 1e-6 && result.size() < DEVIATION_MAX_TICKS; v += step) {
+            double rounded = Math.round(v / step) * step;
+            result.add(Math.abs(rounded) < step * 1e-9 ? 0 : rounded);
+        }
+        return result;
+    }
+
+    private static double niceStep(double raw) {
+        if (!(raw > 0) || !Double.isFinite(raw)) return 0;
+        double base = Math.pow(10, Math.floor(Math.log10(raw)));
+        double f = raw / base;
+        double niceF = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
+        return niceF * base;
+    }
+
+    private static int percentDecimals(double step) {
+        int decimals = 0;
+        for (double s = step * 100; decimals < 4 && Math.abs(s - Math.rint(s)) > 1e-9; s *= 10) decimals++;
+        return decimals;
+    }
+
+    private static String formatDeviation(double deviation, int decimals) {
+        double percent = deviation * 100;
+        if (Math.abs(percent) < Math.pow(10, -decimals) / 2) percent = 0;
+        DecimalFormat format = new DecimalFormat();
+        format.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.US));
+        format.setGroupingUsed(false);
+        format.setMinimumFractionDigits(decimals);
+        format.setMaximumFractionDigits(decimals);
+        return (percent > 0 ? "+" : "") + format.format(percent) + "%";
     }
 
     List<XYChart.Data<Number, Number>> filterOutliersBuy(List<XYChart.Data<Number, Number>> buy) {
