@@ -38,6 +38,14 @@ public final class MoneseAccount extends PaymentAccount {
             new TraditionalCurrency("RON")
     );
 
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.HOLDER_NAME,
+            PaymentAccountFormField.FieldId.MOBILE_NR,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
+
     public MoneseAccount() {
         super(PaymentMethod.MONESE);
     }
@@ -85,6 +93,6 @@ public final class MoneseAccount extends PaymentAccount {
 
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
     }
 }

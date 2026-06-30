@@ -110,7 +110,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         SPEI,
         ADVANCED_CASH,
         CELPAY,
-        HAL_CASH;
+        HAL_CASH,
+        MONESE;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
