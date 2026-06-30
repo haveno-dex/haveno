@@ -17,12 +17,17 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.Res;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AdvancedCashAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.validation.AdvancedCashValidator;
+import haveno.core.payment.validation.EmailValidator;
+import haveno.core.util.validation.RegexValidator;
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,6 +44,13 @@ public final class AdvancedCashAccount extends PaymentAccount {
             new TraditionalCurrency("RUB"),
             new TraditionalCurrency("UAH"),
             new TraditionalCurrency("USD"));
+
+    private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
+            PaymentAccountFormField.FieldId.ACCOUNT_NR,
+            PaymentAccountFormField.FieldId.TRADE_CURRENCIES,
+            PaymentAccountFormField.FieldId.ACCOUNT_NAME,
+            PaymentAccountFormField.FieldId.SALT
+    );
 
     public AdvancedCashAccount() {
         super(PaymentMethod.ADVANCED_CASH);
@@ -58,7 +70,26 @@ public final class AdvancedCashAccount extends PaymentAccount {
     @NotNull
     @Override
     public List<PaymentAccountFormField.FieldId> getInputFieldIds() {
-        throw new RuntimeException("Not implemented");
+        return INPUT_FIELD_IDS;
+    }
+
+    @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        switch (fieldId) {
+        case ACCOUNT_NR:
+            // the wallet id is either an email or an Advanced Cash wallet number (mirrors the desktop AdvancedCashValidator)
+            processValidationResult(new AdvancedCashValidator(new EmailValidator(), new RegexValidator()).validate(value));
+            break;
+        default:
+            super.validateFormField(form, fieldId, value);
+        }
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        PaymentAccountFormField field = super.getEmptyFormField(fieldId);
+        if (field.getId() == PaymentAccountFormField.FieldId.ACCOUNT_NR) field.setLabel(Res.get("payment.wallet"));
+        return field;
     }
 
     public void setAccountNr(String accountNr) {
