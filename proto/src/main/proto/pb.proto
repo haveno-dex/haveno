@@ -1986,6 +1986,7 @@ message PaymentAccountForm {
         POPMONEY = 56;
         RTGS = 57;
         VERSE = 58;
+        SAME_BANK = 59;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
