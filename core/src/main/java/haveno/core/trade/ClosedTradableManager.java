@@ -19,8 +19,8 @@ package haveno.core.trade;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
+import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
-import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
@@ -56,7 +56,7 @@ public class ClosedTradableManager implements PersistedDataHost {
     private final PriceFeedService priceFeedService;
     private final Preferences preferences;
     private final TradeStatisticsManager tradeStatisticsManager;
-    private final PersistenceManager<TradableList<Tradable>> persistenceManager;
+    private final ClosedTradesStore store;
     private final CleanupMailboxMessagesService cleanupMailboxMessagesService;
 
     private final TradableList<Tradable> closedTradables = new TradableList<>();
@@ -66,30 +66,45 @@ public class ClosedTradableManager implements PersistedDataHost {
                                  PriceFeedService priceFeedService,
                                  Preferences preferences,
                                  TradeStatisticsManager tradeStatisticsManager,
-                                 PersistenceManager<TradableList<Tradable>> persistenceManager,
+                                 ClosedTradesStore store,
                                  CleanupMailboxMessagesService cleanupMailboxMessagesService) {
         this.keyRing = keyRing;
         this.priceFeedService = priceFeedService;
         this.preferences = preferences;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.cleanupMailboxMessagesService = cleanupMailboxMessagesService;
-        this.persistenceManager = persistenceManager;
-
-        this.persistenceManager.initialize(closedTradables, "ClosedTrades", PersistenceManager.Source.PRIVATE);
+        this.store = store;
     }
 
     @Override
     public void readPersisted(Runnable completeHandler) {
-        persistenceManager.readPersisted(persisted -> {
-            synchronized (persisted.getList()) {
-                closedTradables.setAll(persisted.getList());
-                closedTradables.stream()
-                        .filter(tradable -> tradable.getOffer() != null)
-                        .forEach(tradable -> tradable.getOffer().setPriceFeedService(priceFeedService));
+        // Replay the append-only log off the user thread (it can be large), then publish to the
+        // in-memory ObservableList on the user thread, mirroring PersistenceManager.readPersisted.
+        new Thread(() -> {
+            List<Tradable> loaded;
+            try {
+                loaded = store.load();
+            } catch (OutOfMemoryError e) {
+                // Do not continue with a partial/empty list that a later append could overwrite;
+                // preserve the data and halt this path, mirroring the OOM handling in #2353.
+                throw e;
+            } catch (Throwable t) {
+                // A decode/parse fault must not hang startup (completeHandler would never run). The
+                // on-disk log is left untouched so a fixed build can still recover it; proceed empty.
+                log.error("Could not load closed trades; continuing with an empty list. The log on disk is left intact for recovery.", t);
+                loaded = List.of();
             }
-            completeHandler.run();
-        },
-        completeHandler);
+            List<Tradable> result = loaded;
+            UserThread.execute(() -> {
+                synchronized (closedTradables.getList()) {
+                    closedTradables.setAll(result);
+                    closedTradables.stream()
+                            .filter(tradable -> tradable.getOffer() != null)
+                            .forEach(tradable -> tradable.getOffer().setPriceFeedService(priceFeedService));
+                }
+                completeHandler.run();
+            });
+        }, "ClosedTradesStore-read").start();
     }
 
     public void onAllServicesInitialized() {
@@ -101,7 +116,7 @@ public class ClosedTradableManager implements PersistedDataHost {
         synchronized (closedTradables.getList()) {
             if (closedTradables.add(tradable)) {
                 maybeClearSensitiveData();
-                requestPersistence();
+                store.appendUpsert(tradable);
             }
         }
     }
@@ -109,7 +124,7 @@ public class ClosedTradableManager implements PersistedDataHost {
     public void remove(Tradable tradable) {
         synchronized (closedTradables.getList()) {
             if (closedTradables.remove(tradable)) {
-                requestPersistence();
+                store.appendDelete(tradable.getId());
             }
         }
     }
@@ -161,12 +176,16 @@ public class ClosedTradableManager implements PersistedDataHost {
     public void maybeClearSensitiveData() {
         synchronized (closedTradables.getList()) {
             log.info("checking closed trades eligibility for having sensitive data cleared");
+            List<Trade> cleared = new ArrayList<>();
             closedTradables.stream()
                 .filter(e -> e instanceof Trade)
                 .map(e -> (Trade) e)
                 .filter(e -> canTradeHaveSensitiveDataCleared(e.getId()))
-                .forEach(Trade::maybeClearSensitiveData);
-            requestPersistence();
+                .forEach(trade -> {
+                    if (trade.maybeClearSensitiveData()) cleared.add(trade);
+                });
+            // Persist only the trades that actually changed, so this stays cheap on every add().
+            cleared.forEach(store::appendUpsert);
         }
     }
 
@@ -228,14 +247,10 @@ public class ClosedTradableManager implements PersistedDataHost {
         return tradable instanceof MakerTrade || tradable.getOffer().isMyOffer(keyRing);
     }
 
-    private void requestPersistence() {
-        persistenceManager.requestPersistence();
-    }
-
     public void removeTrade(Trade trade) {
         synchronized (closedTradables.getList()) {
             if (closedTradables.remove(trade)) {
-                requestPersistence();
+                store.appendDelete(trade.getId());
             }
         }
     }

@@ -935,8 +935,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
         if (trade.isCompleted()) throw new RuntimeException("Trade " + trade.getId() + " was already completed");
-        closedTradableManager.add(trade);
+        // Mark completed BEFORE adding to closed trades: ClosedTradableManager.add() appends a snapshot
+        // of the trade to the append-only log synchronously, so isCompleted (a persisted flag that is
+        // not re-derived on startup) must already be set or it would persist as false. Do not reorder.
         trade.setCompleted(true);
+        closedTradableManager.add(trade);
         removeTrade(trade);
         xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();

@@ -2001,7 +2001,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         getProcessModel().getP2PService().removeDecryptedDirectMessageListener(getProtocol());
     }
 
-    public void maybeClearSensitiveData() {
+    /**
+     * Clears any sensitive data still held by this trade.
+     *
+     * @return true if anything was actually changed, so callers can persist only the trades that changed.
+     */
+    public boolean maybeClearSensitiveData() {
         String change = "";
         if (contract != null && contract.maybeClearSensitiveData()) {
             change += "contract;";
@@ -2022,6 +2027,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (change.length() > 0) {
             log.info("Cleared sensitive data from {} of {} {}", change, getClass().getSimpleName(), getShortId());
         }
+        return change.length() > 0;
     }
 
     public void onShutDownStarted() {
