@@ -1993,6 +1993,7 @@ message PaymentAccountForm {
         MONEY_BEAM = 54;
         PERFECT_MONEY = 55;
         POPMONEY = 56;
+        RTGS = 57;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
