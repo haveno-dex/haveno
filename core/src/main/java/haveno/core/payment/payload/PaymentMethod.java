@@ -416,6 +416,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 CASH_APP_ID,
                 PAYPAL_ID,
                 VENMO_ID,
+                VERSE_ID,
                 PAYSAFE_ID,
                 WECHAT_PAY_ID,
                 ALI_PAY_ID,
