@@ -27,6 +27,7 @@ import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.SpecificBanksAccountPayload;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -216,6 +217,10 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
             if (didReadAcceptedCountryCodes(in, account, currentFieldName))
                 continue;
 
+            // The acceptedBanks field (SpecificBanks) is a list with no plain string setter.
+            if (didReadAcceptedBanks(in, account, currentFieldName))
+                continue;
+
             // The selectedTradeCurrency field is common to all payment account types,
             // but is @Nullable, and may not need to be explicitly defined by user.
             if (didReadSelectedTradeCurrencyField(in, account, currentFieldName))
@@ -340,6 +345,18 @@ class PaymentAccountTypeAdapter extends TypeAdapter<PaymentAccount> {
         String fieldValue = nextStringOrNull(in);
         List<String> countryCodes = PaymentAccount.commaDelimitedCodesToList.apply(fieldValue);
         ((CountryBasedPaymentAccount) account).setAcceptedCountries(CountryUtil.getCountries(countryCodes));
+        return true;
+    }
+
+    private boolean didReadAcceptedBanks(JsonReader in,
+                                         PaymentAccount account,
+                                         String fieldName) {
+        if (!fieldName.equals("acceptedBanks")) return false;
+        String fieldValue = nextStringOrNull(in);
+        List<String> banks = PaymentAccount.commaDelimitedValuesToList.apply(fieldValue);
+        SpecificBanksAccountPayload payload = (SpecificBanksAccountPayload) account.getPaymentAccountPayload();
+        payload.clearAcceptedBanks();
+        for (String bank : banks) payload.addAcceptedBank(bank);
         return true;
     }
 

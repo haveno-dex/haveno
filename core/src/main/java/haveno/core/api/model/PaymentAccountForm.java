@@ -117,7 +117,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         POPMONEY,
         RTGS,
         VERSE,
-        SAME_BANK;
+        SAME_BANK,
+        SPECIFIC_BANKS;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
