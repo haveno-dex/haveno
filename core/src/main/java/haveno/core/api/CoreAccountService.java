@@ -121,11 +121,16 @@ public class CoreAccountService {
         if ("".equals(oldPassword)) oldPassword = null; // normalize to null
         if (!StringUtils.equals(this.password, oldPassword)) throw new IllegalStateException("Incorrect password");
         if (newPassword != null && newPassword.length() < 8) throw new IllegalStateException("Password must be at least 8 characters");
-        keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
-        this.password = newPassword;
+
+        // change wallet passwords before committing new account password
+        // TODO: recover if wallet password change fails
         synchronized (listeners) {
             for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onPasswordChanged(oldPassword, newPassword);
         }
+
+        // commit new account password
+        keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
+        this.password = newPassword;
     }
 
     public void verifyPassword(String password) throws IncorrectPasswordException {
