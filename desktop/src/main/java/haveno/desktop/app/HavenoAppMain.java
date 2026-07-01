@@ -27,23 +27,10 @@ import haveno.core.locale.Res;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
 import haveno.desktop.setup.DesktopPersistedDataHost;
-import haveno.desktop.util.ImageUtil;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.geometry.Pos;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.stage.Stage;
-import javafx.stage.Window;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -163,88 +150,34 @@ public class HavenoAppMain extends HavenoExecutable {
             throw new IllegalStateException(e);
         }
 
-        // login using dialog
-        CompletableFuture<Boolean> dialogResult = new CompletableFuture<>();
+        // password is required, so prompt for it within the main application window
+        CompletableFuture<Boolean> loginResult = new CompletableFuture<>();
         Platform.setImplicitExit(false);
-        Platform.runLater(() -> {
+        UserThread.execute(() -> application.showPasswordScreen(
 
-            // show password dialog until account open
-            String errorMessage = null;
-            while (!accountService.isAccountOpen()) {
-
-                // create the password dialog
-                PasswordDialog passwordDialog = new PasswordDialog(errorMessage);
-
-                // wait for user to enter password
-                Optional<String> passwordResult = passwordDialog.showAndWait();
-                if (passwordResult.isPresent()) {
+                // verify off the JavaFX thread (openAccount decrypts the keys) and report the outcome
+                (password, resultHandler) -> new Thread(() -> {
                     try {
-                        accountService.openAccount(passwordResult.get());
-                        dialogResult.complete(accountService.isAccountOpen());
+                        accountService.openAccount(password);
+                        if (accountService.isAccountOpen()) {
+                            UserThread.execute(() -> loginResult.complete(true));
+                            resultHandler.accept(null);
+                        } else {
+                            resultHandler.accept(Res.get("password.startup.wrongPw"));
+                        }
                     } catch (IncorrectPasswordException e) {
-                        errorMessage = "Incorrect password";
+                        resultHandler.accept(Res.get("password.startup.wrongPw"));
+                    } catch (Throwable t) {
+                        log.error("Error opening account", t);
+                        resultHandler.accept(t.getMessage() != null ? t.getMessage() : t.toString());
                     }
-                } else {
-                    // if the user cancelled the dialog, complete the passwordFuture exceptionally
-                    dialogResult.completeExceptionally(new Exception("Password dialog cancelled"));
-                    break;
-                }
-            }
-        });
-        return dialogResult;
-    }
+                }, "PasswordLogin").start(),
 
-    private class PasswordDialog extends Dialog<String> {
-
-        public PasswordDialog(String errorMessage) {
-            setTitle("Enter Password");
-            setHeaderText("Please enter your Haveno password:");
-
-            // Create the password field
-            PasswordField passwordField = new PasswordField();
-            passwordField.setPromptText("Password");
-
-            // Create the error message field
-            Label errorMessageField = new Label(errorMessage);
-            errorMessageField.setTextFill(Color.color(1, 0, 0));
-
-            // Create the version field
-            Label versionField = new Label(Res.get("mainView.footer.version", Version.VERSION));
-
-            // Set the dialog content
-            VBox vbox = new VBox(10);
-            ImageView logoImageView = new ImageView(ImageUtil.getImageByPath("logo_splash_light_mode.png"));
-            logoImageView.setFitWidth(342);
-            logoImageView.setPreserveRatio(true);
-            vbox.getChildren().addAll(logoImageView, passwordField, errorMessageField, versionField);
-            vbox.setAlignment(Pos.TOP_CENTER);
-            getDialogPane().setContent(vbox);
-
-            // Add OK and Cancel buttons
-            ButtonType okButton = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
-            ButtonType cancelButton = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
-            getDialogPane().getButtonTypes().addAll(okButton, cancelButton);
-
-            // Convert the result to a string when the OK button is clicked
-            setResultConverter(buttonType -> {
-                if (buttonType == okButton) {
-                    return passwordField.getText();
-                } else {
+                // called if the user chooses to quit instead of logging in
+                () -> {
+                    log.warn("Password entry cancelled, shutting down");
                     new Thread(() -> HavenoApp.getShutDownHandler().run()).start();
-                    return null;
-                }
-            });
-
-            // Focus the password field when dialog is shown
-            Window window = getDialogPane().getScene().getWindow();
-            if (window instanceof Stage) {
-                Stage dialogStage = (Stage) window;
-                dialogStage.focusedProperty().addListener((observable, oldValue, newValue) -> {
-                    if (newValue) {
-                        passwordField.requestFocus();
-                    }
-                });
-            }
-        }
+                }));
+        return loginResult;
     }
 }
