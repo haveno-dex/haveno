@@ -47,6 +47,7 @@ import javafx.animation.Timeline;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -189,6 +190,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected Optional<Runnable> actionHandlerOptional = Optional.empty();
     protected Optional<Runnable> secondaryActionHandlerOptional = Optional.<Runnable>empty();
     protected ChangeListener<Number> positionListener;
+    private ListChangeListener<String> stylesheetsListener;
 
     protected Timer centerTime;
     protected Type type = Type.Undefined;
@@ -277,6 +279,8 @@ public abstract class Overlay<T extends Overlay<T>> {
             owner = MainView.getRootContainer();
         Scene rootScene = owner.getScene();
         if (rootScene != null) {
+            if (stylesheetsListener != null)
+                rootScene.getStylesheets().removeListener(stylesheetsListener);
             Window window = rootScene.getWindow();
             if (window != null && positionListener != null) {
                 window.xProperty().removeListener(positionListener);
@@ -529,6 +533,8 @@ public abstract class Overlay<T extends Overlay<T>> {
                 UserThread.execute(() -> {
                     Scene scene = new Scene(getRootContainer());
                     scene.getStylesheets().setAll(rootScene.getStylesheets());
+                    stylesheetsListener = change -> scene.getStylesheets().setAll(rootScene.getStylesheets());
+                    rootScene.getStylesheets().addListener(stylesheetsListener); // re-theme the overlay if the css theme changes (light/dark) while it is showing
                     scene.setFill(Color.TRANSPARENT);
 
                     setupKeyHandler(scene);
