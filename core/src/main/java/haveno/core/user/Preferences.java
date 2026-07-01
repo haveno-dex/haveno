@@ -153,6 +153,14 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         this.xmrNodesFromOptions = xmrNodesFromOptions;
         this.xmrNodes = xmrNodes;
 
+        // the css theme is stored globally and unencrypted (outside the encrypted account payload) so it
+        // can be applied before the account is unlocked at startup, avoiding a flash to the old theme
+        Integer cssThemeFromSettings = readCssThemeFromSettings();
+        if (cssThemeFromSettings != null) {
+            prefPayload.setCssTheme(cssThemeFromSettings);
+            cssThemeProperty.set(cssThemeFromSettings);
+        }
+
         useAnimationsProperty.addListener((ov) -> {
             prefPayload.setUseAnimations(useAnimationsProperty.get());
             GlobalSettings.setUseAnimations(prefPayload.isUseAnimations());
@@ -161,7 +169,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         cssThemeProperty.addListener((ov) -> {
             prefPayload.setCssTheme(cssThemeProperty.get());
-            requestPersistence();
+            writeCssThemeToSettings(cssThemeProperty.get());
         });
 
         useStandbyModeProperty.addListener((ov) -> {
@@ -272,7 +280,14 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         useAnimationsProperty.set(prefPayload.isUseAnimations());
         useStandbyModeProperty.set(prefPayload.isUseStandbyMode());
         useSoundForNotificationsProperty.set(prefPayload.isUseSoundForNotifications());
-        cssThemeProperty.set(prefPayload.getCssTheme());
+
+        // the css theme lives in an unencrypted global file; keep reading it from there, migrating
+        // from the (previously encrypted) payload on first run so an existing preference is preserved
+        Integer cssThemeFromSettings = readCssThemeFromSettings();
+        int cssTheme = cssThemeFromSettings != null ? cssThemeFromSettings : prefPayload.getCssTheme();
+        prefPayload.setCssTheme(cssTheme);
+        writeCssThemeToSettings(cssTheme);
+        cssThemeProperty.set(cssTheme);
 
 
         // if no valid Monero block explorer is set, select the 1st valid Monero block explorer
@@ -372,6 +387,24 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     public void setCssTheme(boolean useDarkMode) {
         this.cssThemeProperty.set(useDarkMode ? 1 : 0);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Css theme is kept in the unencrypted StartupSettings store so it can be applied before login
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private Integer readCssThemeFromSettings() {
+        if (config == null) return null; // config is stubbed as null in some tests
+        return StartupSettings.read(config.appDataDir).getAsOptionalBoolean(CookieKey.CSS_THEME)
+                .map(useDarkMode -> useDarkMode ? 1 : 0)
+                .orElse(null);
+    }
+
+    private void writeCssThemeToSettings(int cssTheme) {
+        if (config == null) return; // config is stubbed as null in some tests
+        Cookie updates = new Cookie();
+        updates.putAsBoolean(CookieKey.CSS_THEME, cssTheme == 1);
+        StartupSettings.write(config.appDataDir, updates);
     }
 
     public void addTraditionalCurrency(TraditionalCurrency tradeCurrency) {

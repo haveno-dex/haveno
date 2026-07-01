@@ -43,6 +43,7 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipToggleButton;
 import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.DarkModeToggle;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.funds.FundsView;
 import haveno.desktop.main.market.MarketView;
@@ -393,7 +394,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             });
         });
 
-        VBox splashScreen = createSplashScreen();
+        Region splashScreen = createSplashScreen();
 
         root.getChildren().addAll(baseApplicationContainer, splashScreen);
 
@@ -537,7 +538,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 model.getPriceFeedService().getProviderNodeAddress());
     }
 
-    private VBox createSplashScreen() {
+    private Region createSplashScreen() {
         VBox vBox = new VBox();
         vBox.setAlignment(Pos.CENTER);
         vBox.setSpacing(10);
@@ -636,6 +637,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         splashP2PNetworkIcon.setFitHeight(networkIconSize);
         splashP2PNetworkIcon.setVisible(false);
         splashP2PNetworkIcon.setManaged(false);
+        splashP2PNetworkIcon.setPickOnBounds(true);
+        splashP2PNetworkIcon.setCursor(Cursor.HAND);
         HBox.setMargin(splashP2PNetworkIcon, new Insets(0, 0, 0, 0));
         splashP2PNetworkIcon.setOnMouseClicked(e -> {
             torNetworkSettingsWindow.show();
@@ -674,7 +677,15 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         Label versionLabel = new Label(FormattingUtils.formatVersion());
 
         vBox.getChildren().addAll(logo, blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox, versionLabel);
-        return vBox;
+
+        // light/dark toggle in the corner so the user can switch theme while connecting
+        DarkModeToggle themeToggle = new DarkModeToggle(preferences);
+        themeToggle.setFitHeight(networkIconSize);
+
+        StackPane splashPane = new StackPane(vBox, themeToggle);
+        StackPane.setAlignment(themeToggle, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(themeToggle, new Insets(12));
+        return splashPane;
     }
 
     private void disposeSplashScreen() {
