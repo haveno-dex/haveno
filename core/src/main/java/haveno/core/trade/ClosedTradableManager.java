@@ -129,6 +129,20 @@ public class ClosedTradableManager implements PersistedDataHost {
         }
     }
 
+    /**
+     * Re-persists an already-closed trade whose in-place mutable state changed (e.g. process data
+     * cleared on shut down). No-op if the trade is not in the closed list, so callers can invoke it
+     * unconditionally; pending trades keep their own whole-list flush. This restores what the old
+     * "serialize the whole list on flush" model captured implicitly for such mutations.
+     */
+    public void persistClosedTrade(Trade trade) {
+        synchronized (closedTradables.getList()) {
+            if (closedTradables.stream().anyMatch(t -> t.getId().equals(trade.getId()))) {
+                store.appendUpsert(trade);
+            }
+        }
+    }
+
     public boolean wasMyOffer(Offer offer) {
         return offer.isMyOffer(keyRing);
     }

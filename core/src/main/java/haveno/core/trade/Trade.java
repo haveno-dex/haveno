@@ -1948,7 +1948,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         
         // clear process data and shut down trade
         ThreadUtils.execute(() -> {
-            clearProcessData();
+            if (clearProcessData()) maybePersistClearedClosedTrade();
             onShutDownStarted();
             ThreadUtils.submitToPool(() -> { // run off trade thread
                 try {
@@ -1965,7 +1965,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private void clearAndShutDownBeforeInitialized() {
         if (isShutDown) return; // ignore if already shut down
         onShutDownStarted();
-        clearProcessData();
+        if (clearProcessData()) maybePersistClearedClosedTrade();
         onShutDownStarted();
         removeDecryptedDirectMessageListener();
         xmrConnectionService.removeConnectionListener(this);
@@ -1975,11 +1975,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         isShutDown = true;
     }
 
-    private void clearProcessData() {
+    /**
+     * Clears process data (trade wallet and peer tx/message fields) once the trade is finished.
+     *
+     * @return true if it cleared this call (false if already cleared), so callers can persist the
+     *         cleared state to the closed-trades log — the append-only store does not otherwise
+     *         capture in-place mutations of an already-closed trade.
+     */
+    private boolean clearProcessData() {
 
         // delete trade wallet
         synchronized (walletLock) {
-            if (!walletExists()) return; // done if already cleared
+            if (!walletExists()) return false; // done if already cleared
             deleteWallet();
         }
 
@@ -1994,6 +2001,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (peer.isPaymentReceivedMessageAckedOrNacked() || isPayoutFinalized()) peer.setUnsignedPayoutTxHex(null);
             if (peer.isPaymentReceivedMessageAckedOrNacked()) peer.setPaymentReceivedMessage(null);
         }
+        return true;
+    }
+
+    // Persist the just-cleared state if this trade lives in the closed-trades log; a no-op otherwise
+    // (pending trades are persisted via TradeManager's whole-list flush).
+    private void maybePersistClearedClosedTrade() {
+        TradeManager tradeManager = processModel.getTradeManager();
+        if (tradeManager != null) tradeManager.persistClosedTrade(this);
     }
 
     private void removeDecryptedDirectMessageListener() {

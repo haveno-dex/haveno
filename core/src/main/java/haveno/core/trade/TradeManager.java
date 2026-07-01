@@ -1061,6 +1061,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         closedTradableManager.removeTrade(trade);
     }
 
+    // Re-persist a closed trade whose in-place state changed (e.g. process data cleared on shut down).
+    // No-op if the trade is not in the closed list, so callers need not check first.
+    public void persistClosedTrade(Trade trade) {
+        closedTradableManager.persistClosedTrade(trade);
+    }
+
     private void removeFailedTrade(Trade trade) {
         failedTradesManager.removeTrade(trade);
     }
