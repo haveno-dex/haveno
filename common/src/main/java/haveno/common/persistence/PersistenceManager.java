@@ -18,8 +18,10 @@
 package haveno.common.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.google.protobuf.CodedInputStream;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -35,11 +37,11 @@ import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.common.util.GcUtil;
 import static haveno.common.util.Preconditions.checkDir;
 import haveno.common.util.SingleThreadExecutorUtils;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,6 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
+import javax.crypto.SecretKey;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -366,20 +369,14 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
 
         long ts = System.currentTimeMillis();
-        try (FileInputStream fileInputStream = new FileInputStream(storageFile)) {
+        try {
             protobuf.PersistableEnvelope proto;
             if (keyRing != null) {
-                byte[] encryptedBytes = fileInputStream.readAllBytes();
-                try {
-                    byte[] decryptedBytes = Encryption.decryptPayloadWithHmac(encryptedBytes, keyRing.getSymmetricKey());
-                    proto = protobuf.PersistableEnvelope.parseFrom(decryptedBytes);
-                } catch (CryptoException ce) {
-                    log.warn("Expected encrypted persisted file, attempting to getPersisted without decryption");
-                    ByteArrayInputStream bs = new ByteArrayInputStream(encryptedBytes);
-                    proto = protobuf.PersistableEnvelope.parseDelimitedFrom(bs);
-                }
+                proto = readEncrypted(storageFile, keyRing.getSymmetricKey());
             } else {
-                proto = protobuf.PersistableEnvelope.parseDelimitedFrom(fileInputStream);
+                try (FileInputStream fileInputStream = new FileInputStream(storageFile)) {
+                    proto = protobuf.PersistableEnvelope.parseDelimitedFrom(fileInputStream);
+                }
             }
 
             //noinspection unchecked
@@ -406,6 +403,34 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             }
         }
         return null;
+    }
+
+    // Reads an encrypted store in two streaming passes so we never hold the whole decrypted payload in
+    // memory (which previously caused OutOfMemoryError on large stores such as ClosedTrades). Pass 1
+    // verifies the hmac and returns the payload length; pass 2 re-reads and parses only the verified
+    // payload bytes. A file that is not a valid encrypted store (e.g. a legacy unencrypted one) makes
+    // pass 1 throw CryptoException, in which case we fall back to reading it without decryption.
+    private protobuf.PersistableEnvelope readEncrypted(File storageFile, SecretKey symmetricKey) throws Exception {
+        long payloadLength;
+        try (FileInputStream verifyStream = new FileInputStream(storageFile)) {
+            payloadLength = Encryption.verifyPayloadWithHmacStream(verifyStream, symmetricKey);
+        } catch (CryptoException ce) {
+            log.warn("Expected encrypted persisted file, attempting to getPersisted without decryption");
+            try (FileInputStream rawStream = new FileInputStream(storageFile)) {
+                return protobuf.PersistableEnvelope.parseDelimitedFrom(rawStream);
+            }
+        }
+        try (FileInputStream parseStream = new FileInputStream(storageFile);
+             InputStream decryptStream = Encryption.decryptStream(parseStream, symmetricKey);
+             InputStream payloadStream = ByteStreams.limit(decryptStream, payloadLength)) {
+            // The previous read used parseFrom(byte[]), whose array decoder imposes no message size limit.
+            // The stream decoder defaults to a 64 MB limit, so we lift it explicitly; otherwise a large but
+            // valid store (the very case this streaming read exists for) would throw "Protocol message too
+            // large" and be wrongly moved to backup_of_corrupted_data.
+            CodedInputStream codedInput = CodedInputStream.newInstance(payloadStream);
+            codedInput.setSizeLimit(Integer.MAX_VALUE);
+            return protobuf.PersistableEnvelope.parseFrom(codedInput);
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -515,8 +540,10 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             fileOutputStream = new FileOutputStream(tempFile);
 
             if (keyRing != null) {
-                byte[] encryptedBytes = Encryption.encryptPayloadWithHmac(serialized.toByteArray(), keyRing.getSymmetricKey());
-                fileOutputStream.write(encryptedBytes);
+                // Stream the encryption directly to disk to avoid the peak-memory amplification of
+                // building the full encrypted byte[] in memory, which could throw OutOfMemoryError for
+                // large stores and silently leave the on-disk file frozen at the last successful write.
+                Encryption.encryptPayloadWithHmacToStream(serialized.toByteArray(), keyRing.getSymmetricKey(), fileOutputStream);
             } else {
                 serialized.writeDelimitedTo(fileOutputStream);
             }

@@ -18,7 +18,8 @@
 package haveno.common.crypto;
 
 import haveno.common.util.Utilities;
-import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -32,6 +33,7 @@ import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -101,11 +103,11 @@ public class Encryption {
     private static byte[] getPayloadWithHmac(byte[] payload, SecretKey secretKey) {
         try {
             byte[] hmac = getHmac(payload, secretKey);
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(payload.length + hmac.length)) {
-                outputStream.write(payload);
-                outputStream.write(hmac);
-                return outputStream.toByteArray();
-            }
+            // Append the hmac with a single copy (HMAC-SHA256 is always 32 bytes) to avoid the
+            // extra full-payload copy a ByteArrayOutputStream would make.
+            byte[] payloadWithHmac = Arrays.copyOf(payload, payload.length + hmac.length);
+            System.arraycopy(hmac, 0, payloadWithHmac, payload.length, hmac.length);
+            return payloadWithHmac;
         } catch (Throwable e) {
             log.error("Could not create hmac", e);
             throw new RuntimeException("Could not create hmac", e);
@@ -138,6 +140,40 @@ public class Encryption {
         return encrypt(getPayloadWithHmac(payload, secretKey), secretKey);
     }
 
+    /**
+     * Streams {@code encrypt(payload || hmac(payload))} directly to {@code outputStream} without
+     * ever holding the concatenated payload-with-hmac or the encrypted result fully in memory.
+     * This produces byte-identical output to {@link #encryptPayloadWithHmac(byte[], SecretKey)} but
+     * avoids the ~3x peak-memory amplification of the array based variant, which can throw
+     * OutOfMemoryError for large persisted stores (e.g. ClosedTrades for arbitrators with many trades).
+     * The provided {@code outputStream} is not closed by this method.
+     */
+    public static void encryptPayloadWithHmacToStream(byte[] payload, SecretKey secretKey, OutputStream outputStream) throws CryptoException {
+        try {
+            byte[] hmac = getHmac(payload, secretKey);
+            Cipher cipher = Cipher.getInstance(SYM_CIPHER);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
+            // Encrypt the payload in chunks so we never allocate a full second copy of it.
+            int chunkSize = 64 * 1024;
+            byte[] outBuf = new byte[cipher.getOutputSize(chunkSize)];
+            int n;
+            for (int off = 0; off < payload.length; off += chunkSize) {
+                int len = Math.min(chunkSize, payload.length - off);
+                n = cipher.update(payload, off, len, outBuf, 0);
+                if (n > 0) outputStream.write(outBuf, 0, n);
+            }
+            // Append the hmac (also encrypted) and flush the final padded block.
+            n = cipher.update(hmac, 0, hmac.length, outBuf, 0);
+            if (n > 0) outputStream.write(outBuf, 0, n);
+            n = cipher.doFinal(outBuf, 0);
+            if (n > 0) outputStream.write(outBuf, 0, n);
+        } catch (Throwable e) {
+            log.error("error in encryptPayloadWithHmacToStream", e);
+            throw new CryptoException(e);
+        }
+    }
+
     public static byte[] decryptPayloadWithHmac(byte[] encryptedPayloadWithHmac, SecretKey secretKey) throws CryptoException {
         byte[] payloadWithHmac = decrypt(encryptedPayloadWithHmac, secretKey);
         // HMAC-SHA256 is always 32 bytes; split directly to avoid hex-encoding memory amplification
@@ -148,6 +184,91 @@ public class Encryption {
             return payload;
         } else {
             throw new CryptoException(HMAC_ERROR_MSG);
+        }
+    }
+
+    /**
+     * Streaming counterpart of {@link #decryptPayloadWithHmac(byte[], SecretKey)} for large persisted
+     * files. This is "pass 1" of a two-pass read: it decrypts {@code encryptedInput} in chunks, verifies
+     * the trailing HMAC over the payload, and returns the payload length (decrypted length minus the
+     * 32-byte HMAC) without ever holding the full decrypted payload in memory. The caller then re-reads
+     * the file with {@link #decryptStream(InputStream, SecretKey)} limited to the returned length to parse
+     * the (already integrity-checked) payload.
+     *
+     * <p>Throws {@link CryptoException} if the input is not a valid hmac-protected encrypted stream (bad
+     * padding, fewer than 32 decrypted bytes, or hmac mismatch), so callers can fall back to reading an
+     * unencrypted legacy file. {@link OutOfMemoryError} is intentionally not caught so a heap-constrained
+     * read is never mistaken for a corrupt file.
+     *
+     * @return the payload length in bytes (always {@code >= 0})
+     */
+    public static long verifyPayloadWithHmacStream(InputStream encryptedInput, SecretKey secretKey) throws CryptoException {
+        try {
+            Cipher cipher = Cipher.getInstance(SYM_CIPHER);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            Mac mac = Mac.getInstance(HMAC);
+            mac.init(secretKey);
+
+            // We feed every decrypted byte except the final 32 (the hmac) into the mac and count it as
+            // payload; the final 32 bytes are kept in 'hold' and compared against the computed hmac at EOF.
+            byte[] hold = new byte[32];
+            int holdLen = 0;
+            long payloadLen = 0;
+            byte[] readBuf = new byte[64 * 1024];
+            try (CipherInputStream cipherInputStream = new CipherInputStream(encryptedInput, cipher)) {
+                int read;
+                while ((read = cipherInputStream.read(readBuf)) != -1) {
+                    int emit = holdLen + read - 32; // decrypted bytes that can no longer be part of the hmac
+                    if (emit <= 0) {
+                        System.arraycopy(readBuf, 0, hold, holdLen, read);
+                        holdLen += read;
+                        continue;
+                    }
+                    int fromHold = Math.min(emit, holdLen);
+                    if (fromHold > 0) {
+                        mac.update(hold, 0, fromHold);
+                        payloadLen += fromHold;
+                    }
+                    int fromBuf = emit - fromHold;
+                    if (fromBuf > 0) {
+                        mac.update(readBuf, 0, fromBuf);
+                        payloadLen += fromBuf;
+                    }
+                    // The new trailing 32 bytes = leftover of hold followed by the tail of readBuf.
+                    int remHold = holdLen - fromHold;
+                    if (remHold > 0) System.arraycopy(hold, fromHold, hold, 0, remHold);
+                    int tail = read - fromBuf;
+                    System.arraycopy(readBuf, fromBuf, hold, remHold, tail);
+                    holdLen = remHold + tail; // == 32
+                }
+            }
+            if (holdLen != 32) throw new CryptoException(HMAC_ERROR_MSG);
+            if (!Arrays.equals(mac.doFinal(), hold)) {
+                throw new CryptoException(HMAC_ERROR_MSG);
+            }
+            return payloadLen;
+        } catch (OutOfMemoryError e) {
+            throw e;
+        } catch (CryptoException e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new CryptoException(e);
+        }
+    }
+
+    /**
+     * "Pass 2" of the streaming read: returns a stream that decrypts {@code encryptedInput} on the fly.
+     * The returned stream yields {@code payload || hmac}; callers limit it to the payload length returned
+     * by {@link #verifyPayloadWithHmacStream(InputStream, SecretKey)} so only the (already verified)
+     * payload is consumed. Closing the returned stream closes {@code encryptedInput}.
+     */
+    public static InputStream decryptStream(InputStream encryptedInput, SecretKey secretKey) throws CryptoException {
+        try {
+            Cipher cipher = Cipher.getInstance(SYM_CIPHER);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            return new CipherInputStream(encryptedInput, cipher);
+        } catch (Throwable e) {
+            throw new CryptoException(e);
         }
     }
 
