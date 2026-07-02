@@ -1187,6 +1187,18 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         synchronized (timeoutTimerLock) {
             stopTimeout();
             timeoutTimer = UserThread.runAfter(() -> {
+
+                // do not flag trade with error if deposits are published (e.g. deposit txs seen but DepositResponse not received within timeout)
+                if (trade.isDepositsPublished()) {
+                    log.warn("Trade step timeout reached after {} sec for {} {} but deposits are published, so not flagging trade with error, state={}", timeoutSec, trade.getClass().getSimpleName(), trade.getId(), trade.stateProperty().get());
+                    stopTimeout();
+                    unlatchTrade();
+                    if (tradeResultHandler != null) tradeResultHandler.handleResult(trade); // trade is initialized
+                    tradeResultHandler = null;
+                    errorMessageHandler = null;
+                    return;
+                }
+
                 handleError(TIMEOUT_REACHED + " Protocol did not complete in " + timeoutSec + " sec. TradeID=" + trade.getId() + ", state=" + trade.stateProperty().get());
             }, timeoutSec);
         }
