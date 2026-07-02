@@ -70,6 +70,24 @@ public class EncryptedAppendLogTest {
         }
     }
 
+    // Backups are written to backup_of_corrupted_data/ with a timestamped name so incidents never
+    // overwrite each other.
+    private int corruptedBackupCount() {
+        File[] files = new File(dir, "backup_of_corrupted_data").listFiles((d, name) -> name.endsWith("_Test.log"));
+        return files == null ? 0 : files.length;
+    }
+
+    // Returns the byte offset of the given zero-based frame's length prefix.
+    private static int frameOffset(byte[] bytes, int frame) {
+        int offset = 0;
+        for (int i = 0; i < frame; i++) {
+            int len = ((bytes[offset] & 0xff) << 24) | ((bytes[offset + 1] & 0xff) << 16)
+                    | ((bytes[offset + 2] & 0xff) << 8) | (bytes[offset + 3] & 0xff);
+            offset += 4 + len;
+        }
+        return offset;
+    }
+
     @Test
     public void testEmptyLogReturnsEmpty() {
         assertFalse(newLog().exists());
@@ -121,6 +139,9 @@ public class EncryptedAppendLogTest {
         assertRecords(full, read);
         // The torn tail must have been repaired on disk.
         assertEquals(goodLength, logFile.length(), "log should be truncated back to last good frame");
+        // The dropped bytes must have been preserved first (a mid-log length corruption is
+        // indistinguishable from a torn tail, so nothing is ever destroyed without a copy).
+        assertEquals(1, corruptedBackupCount(), "pre-truncation copy must be preserved");
         // And a re-read returns the same clean prefix.
         assertRecords(full, newLog().readAllValidRecords());
     }
@@ -135,25 +156,89 @@ public class EncryptedAppendLogTest {
         byte[] bytes = Files.readAllBytes(logFile.toPath());
 
         // Find the ciphertext of the 3rd frame and flip a byte inside it (a full frame, not the tail).
-        int offset = 0;
-        int targetFrame = 2; // zero-based
-        int corruptBytePos = -1;
-        for (int frame = 0; frame <= targetFrame; frame++) {
-            int len = ((bytes[offset] & 0xff) << 24) | ((bytes[offset + 1] & 0xff) << 16)
-                    | ((bytes[offset + 2] & 0xff) << 8) | (bytes[offset + 3] & 0xff);
-            if (frame == targetFrame) corruptBytePos = offset + 4 + len / 2;
-            offset += 4 + len;
-        }
-        bytes[corruptBytePos] ^= 0x5a;
+        int offset = frameOffset(bytes, 2);
+        int len = ((bytes[offset] & 0xff) << 24) | ((bytes[offset + 1] & 0xff) << 16)
+                | ((bytes[offset + 2] & 0xff) << 8) | (bytes[offset + 3] & 0xff);
+        bytes[offset + 4 + len / 2] ^= 0x5a;
         Files.write(logFile.toPath(), bytes);
 
         List<byte[]> read = newLog().readAllValidRecords();
         // Only the valid leading prefix survives.
         assertRecords(List.of("keep-1", "keep-2"), read);
         // Original corrupt log preserved for recovery.
-        assertTrue(new File(dir, "backup_of_corrupted_data/Test.log").exists(), "corrupt log must be backed up");
+        assertEquals(1, corruptedBackupCount(), "corrupt log must be backed up");
         // Log rebuilt clean from the prefix; re-read is stable and equal.
         assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
+    }
+
+    @Test
+    public void testCorruptedLengthPrefixIsBackedUpNotSilentlyTruncated() throws Exception {
+        EncryptedAppendLog log = newLog();
+        List<String> all = List.of("keep-1", "keep-2", "PREFIX-HIT", "after-1", "after-2");
+        for (String s : all) log.append(rec(s));
+
+        File logFile = new File(dir, "Test.log");
+        byte[] bytes = Files.readAllBytes(logFile.toPath());
+
+        // Flip the sign bit of the 3rd frame's length prefix (the prefix is outside the HMAC).
+        // A complete non-positive length can never come from a torn append, so this must be treated
+        // as corruption: whole file moved to backup, log rebuilt from the valid prefix.
+        bytes[frameOffset(bytes, 2)] |= (byte) 0x80;
+        Files.write(logFile.toPath(), bytes);
+
+        assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
+        assertEquals(1, corruptedBackupCount(), "file with corrupted prefix must be backed up");
+        assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
+    }
+
+    @Test
+    public void testOversizedLengthPrefixMidLogPreservesDroppedBytes() throws Exception {
+        EncryptedAppendLog log = newLog();
+        List<String> all = List.of("keep-1", "keep-2", "PREFIX-HIT", "after-1", "after-2");
+        for (String s : all) log.append(rec(s));
+
+        File logFile = new File(dir, "Test.log");
+        long originalLength = logFile.length();
+        byte[] bytes = Files.readAllBytes(logFile.toPath());
+
+        // Set a huge (but positive) length in the 3rd frame's prefix: indistinguishable from a torn
+        // tail, so the suffix is truncated - but only after the whole file is copied to backup.
+        int offset = frameOffset(bytes, 2);
+        bytes[offset] = 0x7f;
+        Files.write(logFile.toPath(), bytes);
+
+        assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
+        assertEquals(1, corruptedBackupCount(), "dropped bytes must be preserved in a backup copy");
+        File[] backups = new File(dir, "backup_of_corrupted_data").listFiles((d, name) -> name.endsWith("_Test.log"));
+        assertEquals(originalLength, backups[0].length(), "backup must contain the full pre-truncation file");
+    }
+
+    @Test
+    public void testTornFrameFromFailedAppendIsRepairedBeforeNextAppend() throws Exception {
+        EncryptedAppendLog log = newLog();
+        for (String s : List.of("one", "two")) log.append(rec(s));
+
+        // Simulate a failed append (e.g. disk full) that left a partial frame: a plausible length
+        // prefix followed by too little ciphertext, written directly behind the good frames.
+        File logFile = new File(dir, "Test.log");
+        try (RandomAccessFile raf = new RandomAccessFile(logFile, "rw")) {
+            raf.seek(raf.length());
+            raf.writeInt(50_000); // claims 50 KB ciphertext...
+            raf.write(rec("...but only a few bytes made it"));
+        }
+
+        // The same instance already knows the good length, so the next append must truncate the
+        // torn frame away instead of burying it mid-log.
+        log.append(rec("three"));
+        assertRecords(List.of("one", "two", "three"), newLog().readAllValidRecords());
+    }
+
+    @Test
+    public void testAppendAllWritesBatchInOrder() throws Exception {
+        EncryptedAppendLog log = newLog();
+        log.append(rec("solo"));
+        log.appendAll(List.of(rec("batch-1"), rec("batch-2"), rec("batch-3")));
+        assertRecords(List.of("solo", "batch-1", "batch-2", "batch-3"), newLog().readAllValidRecords());
     }
 
     @Test
@@ -179,6 +264,6 @@ public class EncryptedAppendLogTest {
         EncryptedAppendLog wrongKeyLog = new EncryptedAppendLog(dir, "Test.log", Encryption.generateSecretKey(256), 3);
         List<byte[]> read = wrongKeyLog.readAllValidRecords();
         assertTrue(read.isEmpty(), "no records should be recovered with the wrong key");
-        assertTrue(new File(dir, "backup_of_corrupted_data/Test.log").exists());
+        assertEquals(1, corruptedBackupCount(), "undecryptable log must be backed up");
     }
 }
