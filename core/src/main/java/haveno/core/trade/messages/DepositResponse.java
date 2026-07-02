@@ -18,6 +18,7 @@
 package haveno.core.trade.messages;
 
 import haveno.common.proto.ProtoUtil;
+import haveno.common.util.Utilities;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.network.p2p.DirectMessage;
 import lombok.EqualsAndHashCode;
@@ -60,7 +61,7 @@ public final class DepositResponse extends TradeMessage implements DirectMessage
         builder.setCurrentDate(currentDate);
         builder.setBuyerSecurityDeposit(buyerSecurityDeposit);
         builder.setSellerSecurityDeposit(sellerSecurityDeposit);
-        Optional.ofNullable(errorMessage).ifPresent(e -> builder.setErrorMessage(errorMessage));
+        Optional.ofNullable(errorMessage).ifPresent(e -> builder.setErrorMessage(Utilities.redactSensitiveInfo(e)));
 
         return getNetworkEnvelopeBuilder().setDepositResponse(builder).build();
     }
