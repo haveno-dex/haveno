@@ -18,6 +18,8 @@
 package haveno.common.crypto;
 
 import haveno.common.util.Utilities;
+import java.io.FilterOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.InvalidKeyException;
@@ -25,7 +27,6 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -34,6 +35,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -102,12 +104,8 @@ public class Encryption {
 
     private static byte[] getPayloadWithHmac(byte[] payload, SecretKey secretKey) {
         try {
-            byte[] hmac = getHmac(payload, secretKey);
-            // Append the hmac with a single copy (HMAC-SHA256 is always 32 bytes) to avoid the
-            // extra full-payload copy a ByteArrayOutputStream would make.
-            byte[] payloadWithHmac = Arrays.copyOf(payload, payload.length + hmac.length);
-            System.arraycopy(hmac, 0, payloadWithHmac, payload.length, hmac.length);
-            return payloadWithHmac;
+            // Single-allocation concat (no ByteArrayOutputStream copy of the full payload).
+            return Utilities.concatenateByteArrays(payload, getHmac(payload, secretKey));
         } catch (Throwable e) {
             log.error("Could not create hmac", e);
             throw new RuntimeException("Could not create hmac", e);
@@ -124,10 +122,18 @@ public class Encryption {
         }
     }
 
-    private static byte[] getHmac(byte[] payload, SecretKey secretKey) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
+    private static byte[] getHmac(byte[] payload, SecretKey secretKey) throws NoSuchAlgorithmException, InvalidKeyException {
+        return createHmac(secretKey).doFinal(payload);
+    }
+
+    /**
+     * Returns an initialized {@code HmacSHA256} Mac for the store hmac, so callers that verify
+     * streamed payloads use the same algorithm as the writers in this class.
+     */
+    public static Mac createHmac(SecretKey secretKey) throws NoSuchAlgorithmException, InvalidKeyException {
         Mac mac = Mac.getInstance(HMAC);
         mac.init(secretKey);
-        return mac.doFinal(payload);
+        return mac;
     }
 
 
@@ -141,36 +147,88 @@ public class Encryption {
     }
 
     /**
-     * Streams {@code encrypt(payload || hmac(payload))} directly to {@code outputStream} without
-     * ever holding the concatenated payload-with-hmac or the encrypted result fully in memory.
-     * This produces byte-identical output to {@link #encryptPayloadWithHmac(byte[], SecretKey)} but
-     * avoids the ~3x peak-memory amplification of the array based variant, which can throw
-     * OutOfMemoryError for large persisted stores (e.g. ClosedTrades for arbitrators with many trades).
+     * A payload that can be written to a stream more than once, producing identical bytes each time
+     * (e.g. a protobuf {@code Message::writeTo}). Lets hmac computation and encryption run as two
+     * write passes without ever materializing the payload as a single byte[].
+     */
+    public interface PayloadWriter {
+        void writeTo(OutputStream outputStream) throws IOException;
+    }
+
+    /**
+     * Streams {@code encrypt(payload || hmac(payload))} directly to {@code outputStream} with
+     * constant memory: pass 1 feeds the payload through the hmac, pass 2 feeds it through the
+     * cipher, so neither the payload, the payload-with-hmac nor the encrypted result is ever held
+     * fully in memory. This produces byte-identical output to
+     * {@link #encryptPayloadWithHmac(byte[], SecretKey)} so existing persisted files stay
+     * compatible, but cannot throw OutOfMemoryError for large persisted stores (e.g. ClosedTrades
+     * or DisputeLists for arbitrators with many trades).
      * The provided {@code outputStream} is not closed by this method.
      */
-    public static void encryptPayloadWithHmacToStream(byte[] payload, SecretKey secretKey, OutputStream outputStream) throws CryptoException {
+    public static void encryptPayloadWithHmacToStream(PayloadWriter payloadWriter, SecretKey secretKey, OutputStream outputStream) throws CryptoException {
         try {
-            byte[] hmac = getHmac(payload, secretKey);
+            Mac mac = createHmac(secretKey);
+            payloadWriter.writeTo(new MacUpdatingOutputStream(mac));
+            byte[] hmac = mac.doFinal();
+
             Cipher cipher = Cipher.getInstance(SYM_CIPHER);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-
-            // Encrypt the payload in chunks so we never allocate a full second copy of it.
-            int chunkSize = 64 * 1024;
-            byte[] outBuf = new byte[cipher.getOutputSize(chunkSize)];
-            int n;
-            for (int off = 0; off < payload.length; off += chunkSize) {
-                int len = Math.min(chunkSize, payload.length - off);
-                n = cipher.update(payload, off, len, outBuf, 0);
-                if (n > 0) outputStream.write(outBuf, 0, n);
+            // Closing the CipherOutputStream flushes the final padded block; the shield keeps the
+            // caller's stream open.
+            try (CipherOutputStream cipherOutputStream = new CipherOutputStream(new CloseShieldOutputStream(outputStream), cipher)) {
+                payloadWriter.writeTo(cipherOutputStream);
+                cipherOutputStream.write(hmac);
             }
-            // Append the hmac (also encrypted) and flush the final padded block.
-            n = cipher.update(hmac, 0, hmac.length, outBuf, 0);
-            if (n > 0) outputStream.write(outBuf, 0, n);
-            n = cipher.doFinal(outBuf, 0);
-            if (n > 0) outputStream.write(outBuf, 0, n);
         } catch (Throwable e) {
             log.error("error in encryptPayloadWithHmacToStream", e);
             throw new CryptoException(e);
+        }
+    }
+
+    /**
+     * Convenience overload for payloads already held in memory; writes in chunks so the cipher
+     * never allocates a full second copy.
+     */
+    public static void encryptPayloadWithHmacToStream(byte[] payload, SecretKey secretKey, OutputStream outputStream) throws CryptoException {
+        int chunkSize = 64 * 1024;
+        encryptPayloadWithHmacToStream(out -> {
+            for (int off = 0; off < payload.length; off += chunkSize) {
+                out.write(payload, off, Math.min(chunkSize, payload.length - off));
+            }
+        }, secretKey, outputStream);
+    }
+
+    private static class MacUpdatingOutputStream extends OutputStream {
+        private final Mac mac;
+
+        private MacUpdatingOutputStream(Mac mac) {
+            this.mac = mac;
+        }
+
+        @Override
+        public void write(int b) {
+            mac.update((byte) b);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) {
+            mac.update(b, off, len);
+        }
+    }
+
+    private static class CloseShieldOutputStream extends FilterOutputStream {
+        private CloseShieldOutputStream(OutputStream out) {
+            super(out);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            out.write(b, off, len); // FilterOutputStream would write byte-by-byte
+        }
+
+        @Override
+        public void close() throws IOException {
+            flush(); // keep the underlying stream open
         }
     }
 
@@ -206,8 +264,7 @@ public class Encryption {
         try {
             Cipher cipher = Cipher.getInstance(SYM_CIPHER);
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
-            Mac mac = Mac.getInstance(HMAC);
-            mac.init(secretKey);
+            Mac mac = createHmac(secretKey);
 
             // We feed every decrypted byte except the final 32 (the hmac) into the mac and count it as
             // payload; the final 32 bytes are kept in 'hold' and compared against the computed hmac at EOF.

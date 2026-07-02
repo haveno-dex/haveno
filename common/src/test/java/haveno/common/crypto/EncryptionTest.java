@@ -54,6 +54,28 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testWriterVariantMatchesArray() throws CryptoException {
+        // The PayloadWriter variant (used with protobuf Message::writeTo to avoid materializing the
+        // payload) must be byte-identical to the array variant, including when the payload arrives
+        // in many small writes as protobuf's 4 KB CodedOutputStream buffer produces.
+        SecretKey key = Encryption.generateSecretKey(256);
+        Random random = new Random(4321);
+        byte[] payload = new byte[300_000];
+        random.nextBytes(payload);
+
+        byte[] viaArray = Encryption.encryptPayloadWithHmac(payload, key);
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        Encryption.encryptPayloadWithHmacToStream(out -> {
+            for (int off = 0; off < payload.length; off += 4096) {
+                out.write(payload, off, Math.min(4096, payload.length - off));
+            }
+        }, key, bos);
+
+        assertArrayEquals(viaArray, bos.toByteArray(), "writer-based ciphertext differs from array variant");
+    }
+
+    @Test
     public void testStreamDoesNotCloseOutputStream() throws CryptoException {
         SecretKey key = Encryption.generateSecretKey(256);
         TrackingOutputStream out = new TrackingOutputStream();

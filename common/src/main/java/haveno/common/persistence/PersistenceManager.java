@@ -37,12 +37,15 @@ import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.common.util.GcUtil;
 import static haveno.common.util.Preconditions.checkDir;
 import haveno.common.util.SingleThreadExecutorUtils;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -52,6 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -82,6 +86,9 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     public static final Map<String, PersistenceManager<?>> ALL_PERSISTENCE_MANAGERS = new HashMap<>();
     private static boolean flushAtShutdownCalled;
     public static final AtomicBoolean allServicesInitialized = new AtomicBoolean(false);
+    // CipherInputStream pulls from the underlying stream in 512-byte chunks, so encrypted reads go
+    // through a buffer of this size to keep syscalls proportional to the buffer, not the chunk.
+    private static final int READ_BUFFER_SIZE = 64 * 1024;
 
     public static void onAllServicesInitialized() {
         allServicesInitialized.set(true);
@@ -391,7 +398,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             log.error("Reading {} failed with {}.", fileName, t.getMessage(), t);
             try {
                 // We keep a backup which might be used for recovery
-                FileUtil.removeAndBackupFile(dir, storageFile, fileName, "backup_of_corrupted_data");
+                FileUtil.removeAndBackupFile(dir, storageFile, fileName, FileUtil.CORRUPTED_BACKUP_FOLDER);
                 DevEnv.logErrorAndThrowIfDevMode(t.toString());
             } catch (IOException e1) {
                 e1.printStackTrace();
@@ -408,28 +415,65 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     // Reads an encrypted store in two streaming passes so we never hold the whole decrypted payload in
     // memory (which previously caused OutOfMemoryError on large stores such as ClosedTrades). Pass 1
     // verifies the hmac and returns the payload length; pass 2 re-reads and parses only the verified
-    // payload bytes. A file that is not a valid encrypted store (e.g. a legacy unencrypted one) makes
-    // pass 1 throw CryptoException, in which case we fall back to reading it without decryption.
+    // payload bytes, re-checking the hmac over the bytes it actually parsed (the file could in theory
+    // change between the two opens, e.g. through an external backup/sync tool - pass 1's verification
+    // covered a different read). A file that is not a valid encrypted store (e.g. a legacy unencrypted
+    // one) makes pass 1 throw CryptoException, in which case we fall back to reading it without
+    // decryption. The raw FileInputStreams are buffered because CipherInputStream pulls from the
+    // underlying stream in 512-byte chunks - unbuffered, a large store costs ~2000 read syscalls per MB.
     private protobuf.PersistableEnvelope readEncrypted(File storageFile, SecretKey symmetricKey) throws Exception {
         long payloadLength;
-        try (FileInputStream verifyStream = new FileInputStream(storageFile)) {
+        try (InputStream verifyStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
             payloadLength = Encryption.verifyPayloadWithHmacStream(verifyStream, symmetricKey);
         } catch (CryptoException ce) {
             log.warn("Expected encrypted persisted file, attempting to getPersisted without decryption");
-            try (FileInputStream rawStream = new FileInputStream(storageFile)) {
+            try (InputStream rawStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
                 return protobuf.PersistableEnvelope.parseDelimitedFrom(rawStream);
             }
         }
-        try (FileInputStream parseStream = new FileInputStream(storageFile);
-             InputStream decryptStream = Encryption.decryptStream(parseStream, symmetricKey);
-             InputStream payloadStream = ByteStreams.limit(decryptStream, payloadLength)) {
+        try (InputStream parseStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE);
+             InputStream decryptStream = Encryption.decryptStream(parseStream, symmetricKey)) {
+            Mac mac = Encryption.createHmac(symmetricKey);
+            InputStream payloadStream = new MacUpdatingInputStream(ByteStreams.limit(decryptStream, payloadLength), mac);
             // The previous read used parseFrom(byte[]), whose array decoder imposes no message size limit.
             // The stream decoder defaults to a 64 MB limit, so we lift it explicitly; otherwise a large but
             // valid store (the very case this streaming read exists for) would throw "Protocol message too
             // large" and be wrongly moved to backup_of_corrupted_data.
             CodedInputStream codedInput = CodedInputStream.newInstance(payloadStream);
             codedInput.setSizeLimit(Integer.MAX_VALUE);
-            return protobuf.PersistableEnvelope.parseFrom(codedInput);
+            protobuf.PersistableEnvelope proto = protobuf.PersistableEnvelope.parseFrom(codedInput);
+            // Authenticate what we just parsed: consume the rest of the payload (if any), then compare
+            // the trailing hmac from this same read against the mac over the parsed bytes.
+            ByteStreams.exhaust(payloadStream);
+            byte[] expectedHmac = new byte[32];
+            ByteStreams.readFully(decryptStream, expectedHmac);
+            if (!Arrays.equals(mac.doFinal(), expectedHmac)) {
+                throw new IOException("Storage file " + storageFile.getName() + " changed while it was being read");
+            }
+            return proto;
+        }
+    }
+
+    private static class MacUpdatingInputStream extends FilterInputStream {
+        private final Mac mac;
+
+        private MacUpdatingInputStream(InputStream in, Mac mac) {
+            super(in);
+            this.mac = mac;
+        }
+
+        @Override
+        public int read() throws IOException {
+            int b = in.read();
+            if (b >= 0) mac.update((byte) b);
+            return b;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            int read = in.read(b, off, len);
+            if (read > 0) mac.update(b, off, read);
+            return read;
         }
     }
 
@@ -540,10 +584,12 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             fileOutputStream = new FileOutputStream(tempFile);
 
             if (keyRing != null) {
-                // Stream the encryption directly to disk to avoid the peak-memory amplification of
-                // building the full encrypted byte[] in memory, which could throw OutOfMemoryError for
-                // large stores and silently leave the on-disk file frozen at the last successful write.
-                Encryption.encryptPayloadWithHmacToStream(serialized.toByteArray(), keyRing.getSymmetricKey(), fileOutputStream);
+                // Stream the encryption directly to disk with constant memory: the proto is written
+                // through the hmac and the cipher in two passes, so neither a serialized byte[] nor
+                // an encrypted byte[] of the whole store is ever built. The array-building variants
+                // could throw OutOfMemoryError for large stores and silently leave the on-disk file
+                // frozen at the last successful write.
+                Encryption.encryptPayloadWithHmacToStream(serialized::writeTo, keyRing.getSymmetricKey(), fileOutputStream);
             } else {
                 serialized.writeDelimitedTo(fileOutputStream);
             }

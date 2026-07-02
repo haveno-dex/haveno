@@ -42,6 +42,10 @@ import java.util.Scanner;
 @Slf4j
 public class FileUtil {
 
+    // Where corrupted store files are preserved for recovery; referenced by the
+    // popup.warning.incompatibleDB resource string shown to the user.
+    public static final String CORRUPTED_BACKUP_FOLDER = "backup_of_corrupted_data";
+
     private static final String BACKUP_DIR = "backup";
     
     public static void rollingBackup(File dir, String fileName, int numMaxBackupFiles) {

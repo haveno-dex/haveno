@@ -18,6 +18,7 @@
 package haveno.common.persistence;
 
 import haveno.common.Payload;
+import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
@@ -32,9 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import javax.crypto.Cipher;
-import javax.crypto.CipherOutputStream;
-import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,18 +101,12 @@ public class PersistenceManagerTest {
         assertTrue(latch.await(15, TimeUnit.SECONDS), "write did not complete");
     }
 
-    // Writes encrypt(payload || hmac(payload)) to a file with constant memory, matching the on-disk
-    // format produced by PersistenceManager. Used to create large fixtures without the array encrypt's
-    // peak-memory amplification.
+    // Writes encrypt(payload || hmac(payload)) to a file with constant memory through the same
+    // production helper PersistenceManager uses, so the fixture format can never drift from the
+    // real writer. Avoids the array encrypt's peak-memory amplification for large fixtures.
     private void writeEncryptedFile(byte[] payload, SecretKey key, File file) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(key);
-        byte[] hmac = mac.doFinal(payload);
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        try (CipherOutputStream cos = new CipherOutputStream(new FileOutputStream(file), cipher)) {
-            cos.write(payload);
-            cos.write(hmac);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            Encryption.encryptPayloadWithHmacToStream(payload, key, fos);
         }
     }
 
