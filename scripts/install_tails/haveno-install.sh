@@ -133,12 +133,11 @@ fi
 
 # Verify the downloaded binary with the signature
 echo_blue "Verifying the signature of the downloaded file ..."
-OUTPUT=$(gpg --digest-algo SHA256 --verify "${signature_filename}" "${binary_filename}" 2>&1)
-
-if ! echo "$OUTPUT" | grep -q "Good signature from"; then
+if OUTPUT=$(LC_ALL=C gpg --digest-algo SHA256 --verify "${signature_filename}" "${binary_filename}" 2>&1); then
+    mv -f "${binary_filename}" "${package_filename}"
+else
     echo_red "Verification failed: $OUTPUT"
-    exit 1;
-    else mv -f "${binary_filename}" "${package_filename}"
+    exit 1
 fi
 
 echo_blue "Haveno binaries have been successfully verified."
