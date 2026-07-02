@@ -21,7 +21,9 @@ import com.google.inject.Provider;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
+import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.file.FileUtil;
+import haveno.common.persistence.EncryptedAppendLog;
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
@@ -48,6 +50,7 @@ public class ClosedTradesStoreTest {
     private File dir;
     private KeyRing keyRing;
     private CorePersistenceProtoResolver resolver;
+    private CorruptedStorageFileHandler corruptedStorageFileHandler;
 
     @BeforeEach
     public void setup() throws Exception {
@@ -60,6 +63,7 @@ public class ClosedTradesStoreTest {
         Provider<BtcWalletService> btc = () -> null;
         Provider<XmrWalletService> xmr = () -> null;
         resolver = new CorePersistenceProtoResolver(btc, xmr, null);
+        corruptedStorageFileHandler = new CorruptedStorageFileHandler();
     }
 
     @AfterEach
@@ -70,7 +74,7 @@ public class ClosedTradesStoreTest {
 
     private ClosedTradesStore newStore() {
         Provider<XmrWalletService> xmr = () -> null;
-        return new ClosedTradesStore(dir, keyRing, resolver, xmr,
+        return new ClosedTradesStore(dir, keyRing, resolver, xmr, corruptedStorageFileHandler,
                 new PersistenceManager<>(dir, resolver, null, keyRing));
     }
 
@@ -136,15 +140,18 @@ public class ClosedTradesStoreTest {
         assertEquals(List.of("b", "a"), ids(newStore().load()));
     }
 
-    @Test
-    public void testMigrationFromLegacyMonolithicFile() throws Exception {
-        // Write a legacy monolithic ClosedTrades file in the exact on-disk format PersistenceManager uses.
+    // Writes a legacy monolithic ClosedTrades file in the exact on-disk format PersistenceManager uses.
+    private void writeLegacyFile(OpenOffer... offers) throws Exception {
         TradableList<Tradable> legacy = new TradableList<>();
-        legacy.add(openOffer("legacy-1", 0));
-        legacy.add(openOffer("legacy-2", 0));
+        for (OpenOffer offer : offers) legacy.add(offer);
         byte[] payload = ((protobuf.PersistableEnvelope) legacy.toProtoMessage()).toByteArray();
         byte[] encrypted = Encryption.encryptPayloadWithHmac(payload, keyRing.getSymmetricKey());
         Files.write(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).toPath(), encrypted);
+    }
+
+    @Test
+    public void testMigrationFromLegacyMonolithicFile() throws Exception {
+        writeLegacyFile(openOffer("legacy-1", 0), openOffer("legacy-2", 0));
 
         List<Tradable> loaded = newStore().load();
 
@@ -154,6 +161,69 @@ public class ClosedTradesStoreTest {
         assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists(), "legacy file should be moved");
         // A second start does not re-migrate (log already present) and reads identically.
         assertEquals(List.of("legacy-1", "legacy-2"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testLegacyFileIsMergedEvenWhenLogAlreadyExists() throws Exception {
+        // A log already exists (e.g. the first migration was deferred and an append created it, or
+        // the user re-upgraded after a downgrade during which the old build recreated ClosedTrades).
+        ClosedTradesStore store = newStore();
+        store.appendUpsert(openOffer("log-a", 0));
+        store.appendUpsert(openOffer("shared", 11));
+        store.appendUpsert(openOffer("tombstoned", 0));
+        store.appendDelete("tombstoned");
+
+        // The legacy file holds a stale copy of "shared", a copy of the deliberately deleted
+        // "tombstoned", and a trade the log has never seen.
+        writeLegacyFile(openOffer("shared", 99), openOffer("tombstoned", 0), openOffer("legacy-only", 0));
+
+        List<Tradable> loaded = newStore().load();
+
+        // Ids the log has ever mentioned are not resurrected or overwritten; unseen ones are merged.
+        assertEquals(List.of("log-a", "shared", "legacy-only"), ids(loaded));
+        assertEquals(11, ((OpenOffer) loaded.get(1)).getTriggerPrice(), "log version must win over stale legacy copy");
+        assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists(), "legacy file should be moved after merge");
+        // Durable across restarts.
+        assertEquals(List.of("log-a", "shared", "legacy-only"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testSecondMergeDoesNotOverwriteEarlierLegacyBackup() throws Exception {
+        writeLegacyFile(openOffer("first", 0));
+        newStore().load();
+        assertTrue(new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME).exists());
+
+        writeLegacyFile(openOffer("second", 0));
+        newStore().load();
+
+        File[] backups = dir.listFiles((d, name) -> name.startsWith(ClosedTradesStore.LEGACY_BACKUP_NAME));
+        assertEquals(2, backups.length, "an earlier legacy backup must never be overwritten");
+    }
+
+    @Test
+    public void testUndecodableRecordIsSkippedAndSurfaced() throws Exception {
+        ClosedTradesStore store = newStore();
+        store.appendUpsert(openOffer("a", 0));
+        store.appendUpsert(openOffer("b", 0));
+
+        // Append two authenticated but undecodable records directly to the log: one that is not a
+        // valid TradableLogEntry at all, and one whose upsert has no known tradable type (as a newer
+        // version would write). Neither may hide the rest of the history.
+        EncryptedAppendLog rawLog = new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME, keyRing.getSymmetricKey(), 3);
+        rawLog.append(new byte[]{0x0a}); // truncated protobuf
+        rawLog.append(protobuf.TradableLogEntry.newBuilder()
+                .setUpsert(protobuf.Tradable.newBuilder().build())
+                .build()
+                .toByteArray());
+
+        List<Tradable> loaded = newStore().load();
+
+        assertEquals(List.of("a", "b"), ids(loaded), "decodable records must survive an undecodable one");
+        assertTrue(corruptedStorageFileHandler.getFiles().isPresent(), "user must be notified of skipped records");
+        assertTrue(corruptedStorageFileHandler.getFiles().get().contains(ClosedTradesStore.LOG_FILE_NAME));
+        // The undecodable records stay on disk (no compaction while they exist): a later read with a
+        // build that understands them would still see them; here we just prove the load is stable.
+        assertEquals(List.of("a", "b"), ids(newStore().load()));
     }
 
     @Test
