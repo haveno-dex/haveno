@@ -700,7 +700,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                         },
                                         (errorMessage) -> {
                                             log.warn("Error processing payment sent message: " + errorMessage);
-                                            processModel.getTradeManager().requestPersistence();
+                                            trade.requestPersistence();
                                             if (trade.isShutDownStarted()) {
                                                 log.warn("Skipping error handling for PaymentSentMessage for {} {} because trade is shutting down", trade.getClass().getSimpleName(), trade.getId());
                                                 unlatchTrade();
@@ -817,7 +817,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                     },
                                     errorMessage -> {
                                         log.warn("Error processing payment received message: " + errorMessage);
-                                        processModel.getTradeManager().requestPersistence();
+                                        trade.requestPersistence();
                                         if (trade.isShutDownStarted()) {
                                             log.warn("Skipping error handling for PaymentReceivedMessage for {} {} because trade is shutting down", trade.getClass().getSimpleName(), trade.getId());
                                             unlatchTrade();
@@ -974,14 +974,14 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     return;
                 }
                 trade.setStateIfValidTransitionTo(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED);
-                processModel.getTradeManager().requestPersistence();
+                trade.requestPersistence();
             }
         }
 
         // handle ack message for DepositsConfirmedMessage, which automatically re-sends if not ACKed in a certain time
         if (ackMessage.getSourceMsgClassName().equals(DepositsConfirmedMessage.class.getSimpleName())) {
             verifiedPeer.setDepositsConfirmedAckMessage(ackMessage);
-            processModel.getTradeManager().requestPersistence();
+            trade.requestPersistence();
         }
 
         // handle ack message for PaymentSentMessage, which automatically re-sends if not ACKed in a certain time
@@ -994,10 +994,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 trade.getSeller().setPaymentSentAckMessage(ackMessage);
                 if (ackMessage.isSuccess()) trade.setStateIfValidTransitionTo(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
                 else trade.setState(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
-                processModel.getTradeManager().requestPersistence();
+                trade.requestPersistence();
             } else if (verifiedPeer == trade.getArbitrator()) {
                 trade.getArbitrator().setPaymentSentAckMessage(ackMessage);
-                processModel.getTradeManager().requestPersistence();
+                trade.requestPersistence();
             } else {
                 log.warn("Received AckMessage from unexpected peer. Sender={}, trade={} {}, state={}, success={}, error={}, messageUid={}", sender, trade.getClass().getSimpleName(), trade.getId(), trade.getState(), ackMessage.isSuccess(), ackMessage.getErrorMessage(), ackMessage.getSourceUid());
                 return;
@@ -1012,7 +1012,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // ack message from buyer
             if (verifiedPeer == trade.getBuyer()) {
                 trade.getBuyer().setPaymentReceivedAckMessage(ackMessage);
-                processModel.getTradeManager().persistNow(null);
+                trade.persistNow(null);
 
                 // handle successful ack
                 if (ackMessage.isSuccess()) {
@@ -1024,7 +1024,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     }
 
                     trade.setStateIfValidTransitionTo(Trade.State.BUYER_RECEIVED_PAYMENT_RECEIVED_MSG);
-                    processModel.getTradeManager().persistNow(null);
+                    trade.persistNow(null);
                 }
                 
                 // handle nack
@@ -1034,7 +1034,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     // nack includes updated multisig hex since v1.1.1
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getBuyer().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
-                        processModel.getTradeManager().persistNow(null);
+                        trade.persistNow(null);
                         onPaymentReceivedNack(true, verifiedPeer, ackMessage);
                         return; // skip remaining processing
                     }
@@ -1044,7 +1044,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             // ack message from arbitrator
             else if (verifiedPeer == trade.getArbitrator()) {
                 trade.getArbitrator().setPaymentReceivedAckMessage(ackMessage);
-                processModel.getTradeManager().persistNow(null);
+                trade.persistNow(null);
 
                 // handle nack
                 if (!ackMessage.isSuccess()) {
@@ -1053,7 +1053,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                     // nack includes updated multisig hex since v1.1.1
                     if (ackMessage.getUpdatedMultisigHex() != null) {
                         trade.getArbitrator().setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex());
-                        processModel.getTradeManager().persistNow(null);
+                        trade.persistNow(null);
                         onPaymentReceivedNack(true, verifiedPeer, ackMessage);
                         return; // skip remaining processing
                     }
@@ -1308,7 +1308,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         stopTimeout();
         log.error(errorMessage);
         if (setTradeError) trade.setErrorMessage(errorMessage);
-        processModel.getTradeManager().requestPersistence();
+        trade.requestPersistence();
         unlatchTrade();
         if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage(errorMessage);
         errorMessageHandler = null;

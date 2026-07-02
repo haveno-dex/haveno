@@ -910,12 +910,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     // TODO: throw if trade manager is null
     public void requestPersistence() {
-        if (processModel.getTradeManager() != null) processModel.getTradeManager().requestPersistence();
+        if (processModel.getTradeManager() != null) processModel.getTradeManager().requestPersistence(this);
     }
 
     // TODO: throw if trade manager is null
     public void persistNow(@Nullable Runnable completeHandler) {
-        if (processModel.getTradeManager() != null) processModel.getTradeManager().persistNow(completeHandler);
+        if (processModel.getTradeManager() != null) processModel.getTradeManager().persistNow(this, completeHandler);
     }
 
     public TradeProtocol getProtocol() {
@@ -1948,7 +1948,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         
         // clear process data and shut down trade
         ThreadUtils.execute(() -> {
-            if (clearProcessData()) maybePersistClearedClosedTrade();
+            if (clearProcessData()) requestPersistence(); // routes to the closed-trades log if closed
             onShutDownStarted();
             ThreadUtils.submitToPool(() -> { // run off trade thread
                 try {
@@ -1965,7 +1965,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private void clearAndShutDownBeforeInitialized() {
         if (isShutDown) return; // ignore if already shut down
         onShutDownStarted();
-        if (clearProcessData()) maybePersistClearedClosedTrade();
+        if (clearProcessData()) requestPersistence(); // routes to the closed-trades log if closed
         onShutDownStarted();
         removeDecryptedDirectMessageListener();
         xmrConnectionService.removeConnectionListener(this);
@@ -1979,8 +1979,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
      * Clears process data (trade wallet and peer tx/message fields) once the trade is finished.
      *
      * @return true if it cleared this call (false if already cleared), so callers can persist the
-     *         cleared state to the closed-trades log — the append-only store does not otherwise
-     *         capture in-place mutations of an already-closed trade.
+     *         cleared state via {@link #requestPersistence()}, which routes to whichever container
+     *         (pending store or closed-trades log) owns this trade.
      */
     private boolean clearProcessData() {
 
@@ -2002,13 +2002,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (peer.isPaymentReceivedMessageAckedOrNacked()) peer.setPaymentReceivedMessage(null);
         }
         return true;
-    }
-
-    // Persist the just-cleared state if this trade lives in the closed-trades log; a no-op otherwise
-    // (pending trades are persisted via TradeManager's whole-list flush).
-    private void maybePersistClearedClosedTrade() {
-        TradeManager tradeManager = processModel.getTradeManager();
-        if (tradeManager != null) tradeManager.persistClosedTrade(this);
     }
 
     private void removeDecryptedDirectMessageListener() {

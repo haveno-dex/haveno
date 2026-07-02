@@ -561,6 +561,29 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         persistenceManager.persistNow(completeHandler);
     }
 
+    /**
+     * Persists a mutation of the given trade to whichever container owns it: a trade that was moved
+     * to the closed list is no longer in this manager's pending store, so its post-close mutations
+     * (payout/dispute state, ack state) go to the closed-trades log instead. The old model captured
+     * those implicitly by re-serializing the whole closed list at shutdown.
+     */
+    public void requestPersistence(Trade trade) {
+        if (closedTradableManager.getTradableById(trade.getId()).isPresent()) {
+            closedTradableManager.persistClosedTrade(trade);
+        } else {
+            requestPersistence();
+        }
+    }
+
+    public void persistNow(Trade trade, @Nullable Runnable completeHandler) {
+        if (closedTradableManager.getTradableById(trade.getId()).isPresent()) {
+            closedTradableManager.persistClosedTrade(trade); // durable (or queued for retry) on return
+            if (completeHandler != null) completeHandler.run();
+        } else {
+            persistNow(completeHandler);
+        }
+    }
+
     private void handleInitTradeRequest(DecryptedMessageWithPubKey decryptedMessageWithPubKey, InitTradeRequest request, NodeAddress sender) {
         log.info("TradeManager handling InitTradeRequest for tradeId={}, sender={}, uid={}", request.getOfferId(), sender, request.getUid());
 
@@ -1059,12 +1082,6 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         trade.setCompleted(false);
         addTradeToPendingTrades(trade);
         closedTradableManager.removeTrade(trade);
-    }
-
-    // Re-persist a closed trade whose in-place state changed (e.g. process data cleared on shut down).
-    // No-op if the trade is not in the closed list, so callers need not check first.
-    public void persistClosedTrade(Trade trade) {
-        closedTradableManager.persistClosedTrade(trade);
     }
 
     private void removeFailedTrade(Trade trade) {
