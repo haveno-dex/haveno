@@ -223,8 +223,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         tradesAndUIReady.subscribe((observable, oldValue, newValue) -> {
             if (newValue) {
                 ThreadUtils.submitToPool(() -> {
-                    tradeManager.applyTradePeriodState();
-
                     tradeManager.getOpenTrades().forEach(trade -> {
 
                         // check initialization error

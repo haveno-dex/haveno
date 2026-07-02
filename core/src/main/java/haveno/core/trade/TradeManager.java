@@ -481,6 +481,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 checkForLockedUpFunds();
             }
 
+            // apply trade period state
+            if (isShutDownStarted) return;
+            applyTradePeriodState();
+
             // notify that persisted trades initialized
             log.info("Done postprocessing after initializing trades");
             if (isShutDownStarted) return;
@@ -979,8 +983,11 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // Trade period state
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public void applyTradePeriodState() {
+    private boolean tradePeriodStateApplied; // guard so the clock watcher listener is only registered once
+    private void applyTradePeriodState() {
         updateTradePeriodState();
+        if (tradePeriodStateApplied) return;
+        tradePeriodStateApplied = true;
         clockWatcher.addListener(new ClockWatcher.Listener() {
             @Override
             public void onSecondTick() {
