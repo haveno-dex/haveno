@@ -15,10 +15,12 @@
             replacement: '250-status/bootstrap-phase=NOTICE BOOTSTRAP PROGRESS=100 TAG=done SUMMARY="Done"'
       - 'net/listeners/socks'
     ADD_ONION:
-      - pattern:     'NEW:(\S+) Port=9999,(\S+)'
-        replacement: 'NEW:{} Port=9999,{client-address}:{}'
-      - pattern:     '(\S+):(\S+) Port=9999,(\S+)'
-        replacement: '{}:{} Port=9999,{client-address}:{}'
+      # Allow the optional PoW defense parameters (PoWDefensesEnabled/PoWQueueRate/PoWQueueBurst), in any order,
+      # between the key and the port. Without this, the ADD_ONION command is rejected as "Command filtered".
+      - pattern:     'NEW:(\S+)((?: PoW\S+=\S+)*) Port=9999,(\S+)'
+        replacement: 'NEW:{0}{1} Port=9999,{client-address}:{2}'
+      - pattern:     '(\S+):(\S+)((?: PoW\S+=\S+)*) Port=9999,(\S+)'
+        replacement: '{0}:{1}{2} Port=9999,{client-address}:{3}'
     DEL_ONION:
       - '.+'
     HSFETCH:
