@@ -1793,10 +1793,22 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
                 }
+                if (offer.getSellerSecurityDepositPct() > Restrictions.getMaxSecurityDepositPct()) {
+                    errorMessage = "Excessive seller security deposit for offer " + request.offerId + ". Expected at most " + Restrictions.getMaxSecurityDepositPct() + " but got " + offer.getSellerSecurityDepositPct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
 
                 // verify buyer's security deposit
                 if (offer.getBuyerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct()) {
                     errorMessage = "Insufficient buyer security deposit for offer " + request.offerId + ". Expected at least " + Restrictions.getMinSecurityDepositPct() + " but got " + offer.getBuyerSecurityDepositPct();
+                    log.warn(errorMessage);
+                    sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                    return;
+                }
+                if (offer.getBuyerSecurityDepositPct() > Restrictions.getMaxSecurityDepositPct()) {
+                    errorMessage = "Excessive buyer security deposit for offer " + request.offerId + ". Expected at most " + Restrictions.getMaxSecurityDepositPct() + " but got " + offer.getBuyerSecurityDepositPct();
                     log.warn(errorMessage);
                     sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                     return;
