@@ -510,6 +510,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         AnchorPane.setRightAnchor(priceChart, 10d);
 
         priceChartPane.getChildren().add(priceChart);
+        priceChart.setTooltipOverlayPane(root);
 
         volumeAxisX = new NumberAxis(0, MAX_TICKS + 1, 1);
         volumeAxisY = new NumberAxis();
@@ -535,6 +536,8 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         volumeChartPane = new AnchorPane();
         volumeChartPane.getStyleClass().add("chart-pane");
         volumeChartPane.getChildren().add(vBox);
+        volumeChart.setTooltipOverlayPane(volumeChartPane);
+        volumeInUsdChart.setTooltipOverlayPane(volumeChartPane);
     }
 
     private VolumeChart getVolumeChart(NumberAxis axisX,
