@@ -53,7 +53,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private static final long RETRY_DELAY_SEC = 10;
     private static final long CLEANUP_TIMER = 120;
     // How many seeds we request the PreliminaryGetDataRequest from
-    private static int NUM_SEEDS_FOR_PRELIMINARY_REQUEST = 2;
+    private static int NUM_SEEDS_FOR_PRELIMINARY_REQUEST = 3;
     // how many seeds additional to the first responding PreliminaryGetDataRequest seed we request the GetUpdatedDataRequest from
     private static int NUM_ADDITIONAL_SEEDS_FOR_UPDATE_REQUEST = 1;
     private static int MAX_REPEATED_REQUESTS = 30;
@@ -133,7 +133,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
             if (myAddress != null) {
                 seedNodeAddresses.remove(myAddress);
                 if (seedNodeRepository.isSeedNode(myAddress)) {
-                    NUM_SEEDS_FOR_PRELIMINARY_REQUEST = 3;
+                    NUM_SEEDS_FOR_PRELIMINARY_REQUEST = 4;
                     NUM_ADDITIONAL_SEEDS_FOR_UPDATE_REQUEST = 2;
                     MAX_REPEATED_REQUESTS = 100;
                 }
@@ -366,8 +366,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                     } else if (!allDataReceived) {
                                         allDataReceived = true;
                                         log.warn("\n#################################################################\n" +
-                                                "Loading initial data from {} did not complete after 20 repeated requests. \n" +
-                                                "#################################################################\n", nodeAddress);
+                                                "Loading initial data from {} did not complete after {} repeated requests. \n" +
+                                                "#################################################################\n", nodeAddress, MAX_REPEATED_REQUESTS);
                                         checkNotNull(listener).onDataReceived();
                                     }
                                 } else if (!allDataReceived) {
@@ -430,6 +430,14 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                         handlerMap.remove(nodeAddress);
                     }
                 }, CLEANUP_TIMER);
+
+                // This node is already being requested by another parallel chain, so continue
+                // failover with the next remaining seed instead of dead-ending here.
+                if (!remainingNodeAddresses.isEmpty()) {
+                    NodeAddress nextCandidate = remainingNodeAddresses.get(0);
+                    remainingNodeAddresses.remove(nextCandidate);
+                    requestData(nextCandidate, remainingNodeAddresses);
+                }
             }
         } else {
             log.warn("We have stopped already. We ignore that requestData call.");
