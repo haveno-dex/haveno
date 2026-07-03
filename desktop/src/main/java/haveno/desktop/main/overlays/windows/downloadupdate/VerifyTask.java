@@ -104,12 +104,15 @@ public class VerifyTask extends Task<List<HavenoInstaller.VerifyDescriptor>> {
                         .collect(Collectors.toList());
                 // iterate all keys which have the same id
                 for (HavenoInstaller.FileDescriptor key : keys) {
-                    if (signingKey.equals(key.getId())) {
+                    // signingkey.asc names which pinned signer signed this release; match leniently
+                    // (the fingerprint is pinned and enforced in HavenoInstaller.verifySignature)
+                    if (signingKey.equalsIgnoreCase(key.getId())) {
                         verifyDescriptorBuilder.keyFile(key.getSaveFile());
                         try {
                             verifyDescriptorBuilder.verifyStatusEnum(HavenoInstaller.verifySignature(key.getSaveFile(),
                                     sig.getSaveFile(),
-                                    installer.get().getSaveFile()));
+                                    installer.get().getSaveFile(),
+                                    key.getId()));
                             updateMessage(key.getFileName());
                         } catch (Exception e) {
                             verifyDescriptorBuilder.verifyStatusEnum(HavenoInstaller.VerifyStatusEnum.FAIL);

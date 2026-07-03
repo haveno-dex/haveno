@@ -34,6 +34,9 @@ public class HavenoInstallerTest {
     public void call() throws Exception {
     }
 
+    // Full primary-key fingerprint of the /downloadUpdate/F379A1C6.asc test key.
+    private static final String TEST_KEY_FINGERPRINT = "1DC3C8C4316A698AC494039CF5B84436F379A1C6";
+
     @Test
     public void verifySignature() throws Exception {
         URL url = this.getClass().getResource("/downloadUpdate/test.txt");
@@ -43,7 +46,15 @@ public class HavenoInstallerTest {
         url = this.getClass().getResource("/downloadUpdate/F379A1C6.asc");
         File pubKeyFile = new File(url.toURI().getPath());
 
-        assertEquals(HavenoInstaller.VerifyStatusEnum.OK, HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile));
+        // valid signature made by the pinned key
+        assertEquals(HavenoInstaller.VerifyStatusEnum.OK, HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile, TEST_KEY_FINGERPRINT));
+
+        // valid signature but the key's fingerprint does not match the pinned fingerprint must fail
+        String wrongFingerprint = TEST_KEY_FINGERPRINT.replace('F', 'A');
+        assertEquals(HavenoInstaller.VerifyStatusEnum.FAIL, HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile, wrongFingerprint));
+
+        // no pinned fingerprint provided must fail
+        assertEquals(HavenoInstaller.VerifyStatusEnum.FAIL, HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile, null));
 
         url = this.getClass().getResource("/downloadUpdate/test_bad.txt");
         dataFile = new File(url.toURI().getPath());
@@ -52,8 +63,8 @@ public class HavenoInstallerTest {
         url = this.getClass().getResource("/downloadUpdate/F379A1C6.asc");
         pubKeyFile = new File(url.toURI().getPath());
 
-        HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile);
-        assertEquals(HavenoInstaller.VerifyStatusEnum.FAIL, HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile));
+        // tampered data does not match the signature, even with the correct pinned fingerprint
+        assertEquals(HavenoInstaller.VerifyStatusEnum.FAIL, HavenoInstaller.verifySignature(pubKeyFile, sigFile, dataFile, TEST_KEY_FINGERPRINT));
     }
 
     @Test

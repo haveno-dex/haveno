@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.SignatureException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -50,10 +51,18 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 public class HavenoInstaller {
-    private static final String FINGER_PRINT_MANFRED_KARRER = "F379A1C6";
-    private static final String FINGER_PRINT_CHRIS_BEAMS = "5BC5ED73";
-    private static final String FINGER_PRINT_CHRISTOPH_ATTENEDER = "29CDFD3B";
-    private static final String PUB_KEY_HOSTING_URL = "https://haveno.exchange/pubkey/";
+
+    /**
+     * Full (40 hex char) primary-key fingerprints of the keys trusted to sign releases. Empty in the
+     * upstream reference repo (no verification; users verify manually). Operational forks enable
+     * in-app update verification by adding each signer's fingerprint here (uppercase, no spaces) and
+     * bundling the matching public key as {@code desktop/src/main/resources/keys/<FINGERPRINT>.asc}.
+     * The bundled key is the trust anchor: {@link #verifySignature} rejects any signature not made by
+     * a pinned key, so a compromised download host cannot substitute its own key/signature/installer.
+     */
+    private static final List<String> PINNED_SIGNING_KEY_FINGERPRINTS = List.of(
+            // e.g. "1DC3C8C4316A698AC494039CF5B84436F379A1C6"
+    );
     private static final String DOWNLOAD_HOST_URL = "https://haveno.exchange/downloads/";
 
     public boolean isSupportedOS() {
@@ -121,15 +130,20 @@ public class HavenoInstaller {
     /**
      * Verifies detached PGP signatures against GPG/openPGP RSA public keys. Does currently not work with openssl or JCA/JCE keys.
      *
-     * @param pubKeyFile Path to file providing the public key to use
-     * @param sigFile    Path to detached signature file
-     * @param dataFile   Path to signed data file
-     * @return {@code true} if signature is valid, {@code false} if signature is not valid
+     * @param pubKeyFile          Path to file providing the public key to use
+     * @param sigFile             Path to detached signature file
+     * @param dataFile            Path to signed data file
+     * @param expectedFingerprint Full (40 hex char) primary-key fingerprint the signing key is pinned to.
+     *                            Verification fails unless the key which produced the signature belongs to a
+     *                            key ring whose primary key matches this fingerprint. This prevents a
+     *                            compromised download host from supplying a self-consistent
+     *                            key/signature/installer that validates against itself.
+     * @return {@code OK} if the signature is valid and made by the pinned key, {@code FAIL} otherwise
      * @throws Exception throws various exceptions in case something went wrong. Main reason should be that key or
      *                   signature could be extracted from the provided files due to a "bad" format.<br>
      *                   <code>FileNotFoundException, IOException, SignatureException, PGPException</code>
      */
-    public static VerifyStatusEnum verifySignature(File pubKeyFile, File sigFile, File dataFile) throws Exception {
+    public static VerifyStatusEnum verifySignature(File pubKeyFile, File sigFile, File dataFile, String expectedFingerprint) throws Exception {
         InputStream inputStream;
         int bytesRead;
         PGPPublicKey publicKey;
@@ -174,6 +188,15 @@ public class HavenoInstaller {
         // If signature is not matching the key used for signing we fail
         if (publicKey == null)
             return VerifyStatusEnum.FAIL;
+
+        // Pin the trust anchor: the key which produced the signature must belong to a key ring whose
+        // primary-key fingerprint equals the pinned fingerprint.
+        String actualFingerprint = HexFormat.of().withUpperCase().formatHex(pgpPublicKeyRing.getPublicKey().getFingerprint());
+        String normalizedExpected = expectedFingerprint == null ? "" : expectedFingerprint.replaceAll("\\s", "");
+        if (normalizedExpected.isEmpty() || !actualFingerprint.equalsIgnoreCase(normalizedExpected)) {
+            log.warn("Public key fingerprint {} does not match the pinned fingerprint {}", actualFingerprint, normalizedExpected);
+            return VerifyStatusEnum.FAIL;
+        }
 
         log.debug("The ID of the selected key is %X\n", publicKey.getKeyID());
         pgpSignature.init(new BcPGPContentVerifierBuilderProvider(), publicKey);
@@ -241,34 +264,24 @@ public class HavenoInstaller {
     }
 
     /**
-     * The files containing the gpg keys of the haveno signers.
-     * Currently these are 2 hard-coded keys, one included with haveno and the same key online for maximum security.
+     * The public keys, bundled with the app, of the release signers pinned in
+     * {@link #PINNED_SIGNING_KEY_FINGERPRINTS}. The bundled key is the trust anchor; each
+     * verification is checked against the pinned fingerprint in {@link #verifySignature}. A pinned
+     * fingerprint with no bundled key is skipped with an error so verification fails safely rather
+     * than crashing.
      *
-     * @return list of keys to check agains corresponding sigs.
+     * @return list of keys to check against corresponding sigs (empty when no signers are pinned).
      */
     private List<FileDescriptor> getKeyFileDescriptors() {
         List<FileDescriptor> list = new ArrayList<>();
-
-        list.add(getKeyFileDescriptor(FINGER_PRINT_MANFRED_KARRER));
-        list.add(getLocalKeyFileDescriptor(FINGER_PRINT_MANFRED_KARRER));
-
-        list.add(getKeyFileDescriptor(FINGER_PRINT_CHRIS_BEAMS));
-        list.add(getLocalKeyFileDescriptor(FINGER_PRINT_CHRIS_BEAMS));
-
-        list.add(getKeyFileDescriptor(FINGER_PRINT_CHRISTOPH_ATTENEDER));
-        list.add(getLocalKeyFileDescriptor(FINGER_PRINT_CHRISTOPH_ATTENEDER));
-
+        for (String fingerprint : PINNED_SIGNING_KEY_FINGERPRINTS) {
+            if (getClass().getResource("/keys/" + fingerprint + ".asc") == null) {
+                log.error("Pinned signing key {} has no bundled public key at /keys/{}.asc; skipping", fingerprint, fingerprint);
+                continue;
+            }
+            list.add(getLocalKeyFileDescriptor(fingerprint));
+        }
         return list;
-    }
-
-    private FileDescriptor getKeyFileDescriptor(String fingerPrint) {
-        final String fileName = fingerPrint + ".asc";
-        return FileDescriptor.builder()
-                .type(DownloadType.KEY)
-                .fileName(fileName)
-                .id(fingerPrint)
-                .loadUrl(PUB_KEY_HOSTING_URL + fileName)
-                .build();
     }
 
     private FileDescriptor getLocalKeyFileDescriptor(String fingerPrint) {

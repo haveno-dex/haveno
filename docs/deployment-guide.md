@@ -279,10 +279,23 @@ Then follow these instructions: https://github.com/haveno-dex/haveno/blob/master
 
 ## Send alerts to update the application
 
-<b>Upload updated installers for download</b>
+<b>Enable in-app update verification (one-time, forks only)</b>
 
-* In https://<domain>/downloads/<version>/, upload the installer files: Haveno-<version>.jar.txt, signingkey.asc, Haveno-<version>.dmg, Haveno-<version>.dmg.asc, and files for Linux and Windows.
-* In https://<domain>/pubkey/, upload pub key files, e.g. F379A1C6.asc.
+The base Haveno repo pins no release signers, so the in-app updater performs no verification and directs users to download and verify manually. A fork enables verification by pinning its own signing key. `<FINGERPRINT>` below is the signer's full 40 hex character primary-key fingerprint, uppercase and without spaces (see `gpg --fingerprint`, e.g. `1DC3C8C4316A698AC494039CF5B84436F379A1C6`).
+
+1. Bundle the public key with the app:
+   `gpg --armor --export <FINGERPRINT> > desktop/src/main/resources/keys/<FINGERPRINT>.asc`
+2. Pin the fingerprint: add `<FINGERPRINT>` to `PINNED_SIGNING_KEY_FINGERPRINTS` in [HavenoInstaller.java](https://github.com/haveno-dex/haveno/blob/master/desktop/src/main/java/haveno/desktop/main/overlays/windows/downloadupdate/HavenoInstaller.java) (see [keys/README.md](https://github.com/haveno-dex/haveno/blob/master/desktop/src/main/resources/keys/README.md)).
+
+The bundled key is the trust anchor: the app only accepts an installer whose signature was made by a pinned key, so a compromised download host cannot substitute its own key, signature, and installer.
+
+<b>Upload updated installers for download (per release)</b>
+
+Sign each installer with the pinned key and upload the following to `https://<domain>/downloads/<version>/`:
+* the installers: `Haveno-<version>.dmg` (macOS), plus the `.deb`/`.rpm` (Linux) and `.exe` (Windows) files.
+* a detached signature for each installer, e.g. `gpg --detach-sign --armor Haveno-<version>.dmg` produces `Haveno-<version>.dmg.asc`.
+* `signingkey.asc` containing the signer's full fingerprint, matching a pinned key: `echo <FINGERPRINT> > signingkey.asc`.
+* `Haveno-<version>.jar.txt`, the hash of the bundled jar.
 
 <b>Set the mandatory minimum version for trading (optional)</b>
 

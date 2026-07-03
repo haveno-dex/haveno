@@ -6,7 +6,7 @@ version="0.0.1-SNAPSHOT"
 
 target_dir="releases/$version"
 
-# Set HAVENO_GPG_USER as environment var to the email address used for gpg signing. e.g. HAVENO_GPG_USER=manfred@bitsquare.io
+# Set HAVENO_GPG_USER as environment var to the email address used for gpg signing. e.g. HAVENO_GPG_USER=releases@example.com
 # Set HAVENO_VM_PATH as environment var to the directory where your shared folders for virtual box are residing
 
 vmPath=$HAVENO_VM_PATH
@@ -20,14 +20,11 @@ rm -r $target_dir
 
 mkdir -p $target_dir
 
-# sig key mkarrer
-cp "$target_dir/../../package/F379A1C6.asc" "$target_dir/"
-# sig key cbeams
-cp "$target_dir/../../package/5BC5ED73.asc" "$target_dir/"
-# sig key Christoph Atteneder
-cp "$target_dir/../../package/29CDFD3B.asc" "$target_dir/"
-# signing key
-cp "$target_dir/../../package/signingkey.asc" "$target_dir/"
+# Release signer public key(s) and signingkey.asc, if present.
+# Operational forks: place each signer's <FINGERPRINT>.asc and a signingkey.asc
+# (containing the signer's full fingerprint) in desktop/package/ to have them
+# copied alongside the release. See docs/deployment-guide.md.
+cp "$target_dir/../../package/"*.asc "$target_dir/" 2>/dev/null || true
 
 dmg="Haveno-$version.dmg"
 cp "$macos/$dmg" "$target_dir/"
