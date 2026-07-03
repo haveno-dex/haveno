@@ -95,3 +95,22 @@
 .chart-plot-background {
     -fx-background-color: -bs-background-color;
 }
+
+/* In-scene tooltip box shown on candle / volume-bar hover. Replaces the heavyweight JavaFX
+   Tooltip popup, whose appearance caused a full scene re-composite (a "flicker/sharpen" on
+   hover). */
+.chart-tooltip-box {
+    -fx-background-color: -bs-background-color;
+    -fx-background-radius: 6px;
+    -fx-border-color: -bs-color-gray-line;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+    -fx-padding: 8 10 8 10;
+    -fx-text-fill: -bs-text-color;
+    -fx-font-size: 0.85em;
+    -fx-effect: dropshadow(three-pass-box, -bs-text-color-transparent, 10, 0, 0, 3);
+}
+
+.chart-tooltip-box .label {
+    -fx-text-fill: -bs-text-color;
+}

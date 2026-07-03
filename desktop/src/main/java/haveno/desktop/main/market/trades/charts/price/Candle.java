@@ -51,10 +51,8 @@ package haveno.desktop.main.market.trades.charts.price;
 
 import haveno.desktop.main.market.trades.charts.CandleData;
 import javafx.scene.Group;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Line;
-import javafx.util.StringConverter;
 
 /**
  * Candle node used for drawing a candle
@@ -62,14 +60,14 @@ import javafx.util.StringConverter;
 public class Candle extends Group {
     private String seriesStyleClass;
     private String dataStyleClass;
-    private final CandleTooltip candleTooltip;
     private final Line highLowLine = new Line();
     private final Region bar = new Region();
 
     private boolean openAboveClose = true;
     private double closeOffset;
+    private CandleData candleData;
 
-    Candle(String seriesStyleClass, String dataStyleClass, StringConverter<Number> priceStringConverter) {
+    Candle(String seriesStyleClass, String dataStyleClass) {
         this.seriesStyleClass = seriesStyleClass;
         this.dataStyleClass = dataStyleClass;
 
@@ -77,11 +75,6 @@ public class Candle extends Group {
         getChildren().addAll(highLowLine, bar);
         getStyleClass().setAll("candlestick-candle", seriesStyleClass, dataStyleClass);
         updateStyleClasses();
-
-        candleTooltip = new CandleTooltip(priceStringConverter);
-        Tooltip tooltip = new Tooltip();
-        tooltip.setGraphic(candleTooltip);
-        Tooltip.install(this, tooltip);
     }
 
     public void setSeriesAndDataStyleClasses(String seriesStyleClass, String dataStyleClass) {
@@ -104,8 +97,12 @@ public class Candle extends Group {
         }
     }
 
-    public void updateTooltip(CandleData candleData) {
-        candleTooltip.update(candleData);
+    public void setCandleData(CandleData candleData) {
+        this.candleData = candleData;
+    }
+
+    public CandleData getCandleData() {
+        return candleData;
     }
 
     private void updateStyleClasses() {

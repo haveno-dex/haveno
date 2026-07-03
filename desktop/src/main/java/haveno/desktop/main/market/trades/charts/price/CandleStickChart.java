@@ -50,12 +50,15 @@
 package haveno.desktop.main.market.trades.charts.price;
 
 import haveno.desktop.main.market.trades.charts.CandleData;
+import haveno.desktop.main.market.trades.charts.PlotAreaTooltip;
 import javafx.animation.FadeTransition;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
@@ -75,7 +78,9 @@ import java.util.List;
  */
 public class CandleStickChart extends XYChart<Number, Number> {
 
-    private final StringConverter<Number> priceStringConverter;
+    private final CandleTooltip candleTooltipContent;
+    private final PlotAreaTooltip tooltip;
+    private Pane tooltipOverlayPane;
 
     // -------------- CONSTRUCTORS ----------------------------------------------
 
@@ -87,7 +92,8 @@ public class CandleStickChart extends XYChart<Number, Number> {
      */
     public CandleStickChart(Axis<Number> xAxis, Axis<Number> yAxis, StringConverter<Number> priceStringConverter) {
         super(xAxis, yAxis);
-        this.priceStringConverter = priceStringConverter;
+        this.candleTooltipContent = new CandleTooltip(priceStringConverter);
+        this.tooltip = new PlotAreaTooltip(candleTooltipContent);
     }
 
     // -------------- METHODS ------------------------------------------------------------------------------------------
@@ -130,7 +136,7 @@ public class CandleStickChart extends XYChart<Number, Number> {
                     }
                     // update candle
                     candle.update(close - y, high - y, low - y, candleWidth);
-                    candle.updateTooltip(candleData);
+                    candle.setCandleData(candleData);
 
                     // position the candle
                     candle.setLayoutX(x);
@@ -278,10 +284,35 @@ public class CandleStickChart extends XYChart<Number, Number> {
         if (candle instanceof Candle) {
             ((Candle) candle).setSeriesAndDataStyleClasses("series" + seriesIndex, "data" + itemIndex);
         } else {
-            candle = new Candle("series" + seriesIndex, "data" + itemIndex, priceStringConverter);
-            item.setNode(candle);
+            Candle newCandle = new Candle("series" + seriesIndex, "data" + itemIndex);
+            registerTooltip(newCandle);
+            item.setNode(newCandle);
+            candle = newCandle;
         }
         return candle;
+    }
+
+    private void registerTooltip(Candle candle) {
+        candle.setOnMouseEntered(e -> showTooltip(candle, e));
+        candle.setOnMouseMoved(e -> showTooltip(candle, e));
+        candle.setOnMouseExited(e -> tooltip.hide());
+    }
+
+    private void showTooltip(Candle candle, MouseEvent e) {
+        CandleData candleData = candle.getCandleData();
+        if (candleData == null) {
+            return;
+        }
+        candleTooltipContent.update(candleData);
+        tooltip.show(e.getSceneX(), e.getSceneY(), tooltipOverlayPane);
+    }
+
+    /**
+     * Sets the pane the hover tooltip is rendered in. It must sit above the chart and outside the
+     * plot area's clip so the tooltip is not cut off by the axes.
+     */
+    public void setTooltipOverlayPane(Pane tooltipOverlayPane) {
+        this.tooltipOverlayPane = tooltipOverlayPane;
     }
 
     /**

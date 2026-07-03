@@ -18,6 +18,7 @@
 package haveno.desktop.main.market.trades.charts.volume;
 
 import haveno.desktop.main.market.trades.charts.CandleData;
+import haveno.desktop.main.market.trades.charts.PlotAreaTooltip;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -26,6 +27,9 @@ import javafx.scene.Node;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Label;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 
@@ -36,6 +40,9 @@ import java.util.List;
 public class VolumeChart extends XYChart<Number, Number> {
 
     private final StringConverter<Number> toolTipStringConverter;
+    private final Label volumeTooltipContent = new Label();
+    private final PlotAreaTooltip tooltip = new PlotAreaTooltip(volumeTooltipContent);
+    private Pane tooltipOverlayPane;
 
     public VolumeChart(Axis<Number> xAxis, Axis<Number> yAxis, StringConverter<Number> toolTipStringConverter) {
         super(xAxis, yAxis);
@@ -156,10 +163,31 @@ public class VolumeChart extends XYChart<Number, Number> {
         if (volumeBar instanceof VolumeBar) {
             ((VolumeBar) volumeBar).setSeriesAndDataStyleClasses("series" + seriesIndex, "data" + itemIndex);
         } else {
-            volumeBar = new VolumeBar("series" + seriesIndex, "data" + itemIndex, toolTipStringConverter);
-            item.setNode(volumeBar);
+            VolumeBar newVolumeBar = new VolumeBar("series" + seriesIndex, "data" + itemIndex, toolTipStringConverter);
+            registerTooltip(newVolumeBar);
+            item.setNode(newVolumeBar);
+            volumeBar = newVolumeBar;
         }
         return volumeBar;
+    }
+
+    private void registerTooltip(VolumeBar volumeBar) {
+        volumeBar.setOnMouseEntered(e -> showTooltip(volumeBar, e));
+        volumeBar.setOnMouseMoved(e -> showTooltip(volumeBar, e));
+        volumeBar.setOnMouseExited(e -> tooltip.hide());
+    }
+
+    private void showTooltip(VolumeBar volumeBar, MouseEvent e) {
+        volumeTooltipContent.setText(volumeBar.getTooltipText());
+        tooltip.show(e.getSceneX(), e.getSceneY(), tooltipOverlayPane);
+    }
+
+    /**
+     * Sets the pane the hover tooltip is rendered in. It must sit above the chart and outside the
+     * plot area's clip so the tooltip is not cut off by the axes.
+     */
+    public void setTooltipOverlayPane(Pane tooltipOverlayPane) {
+        this.tooltipOverlayPane = tooltipOverlayPane;
     }
 
     @Override

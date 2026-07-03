@@ -21,7 +21,6 @@ import haveno.core.locale.Res;
 import haveno.core.util.VolumeUtil;
 import haveno.desktop.main.market.trades.charts.CandleData;
 import javafx.scene.Group;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Region;
 import javafx.util.StringConverter;
 
@@ -31,7 +30,7 @@ public class VolumeBar extends Group {
     private final StringConverter<Number> volumeStringConverter;
 
     private final Region bar = new Region();
-    private final Tooltip tooltip;
+    private String tooltipText = "";
 
     VolumeBar(String seriesStyleClass, String dataStyleClass, StringConverter<Number> volumeStringConverter) {
         this.seriesStyleClass = seriesStyleClass;
@@ -41,8 +40,6 @@ public class VolumeBar extends Group {
         setAutoSizeChildren(false);
         getChildren().add(bar);
         updateStyleClasses();
-        tooltip = new Tooltip();
-        Tooltip.install(this, tooltip);
     }
 
     public void setSeriesAndDataStyleClasses(String seriesStyleClass, String dataStyleClass) {
@@ -55,7 +52,11 @@ public class VolumeBar extends Group {
         bar.resizeRelocate(-candleWidth / 2, 0, candleWidth, height);
         String volumeInXmr = volumeStringConverter.toString(candleData.accumulatedAmount);
         String volumeInUsd = VolumeUtil.formatLargeFiat(candleData.volumeInUsd, "USD");
-        tooltip.setText(Res.get("market.trades.tooltip.volumeBar", volumeInXmr, volumeInUsd, candleData.numTrades, candleData.date));
+        tooltipText = Res.get("market.trades.tooltip.volumeBar", volumeInXmr, volumeInUsd, candleData.numTrades, candleData.date);
+    }
+
+    public String getTooltipText() {
+        return tooltipText;
     }
 
     private void updateStyleClasses() {
