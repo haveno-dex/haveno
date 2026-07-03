@@ -92,6 +92,7 @@ public final class XmrConnectionService {
     private static final boolean USE_BOOTSTRAP_HEIGHT = false;
     private static final long STAGGER_MS = 1500; // stagger connection checks
     private static final String LAST_INFO_KEY = "lastInfo";
+    private static final String LAST_ERROR_KEY = "lastError";
     private static int numConsecutiveErrors = 0;
 
     public enum XmrConnectionFallbackType {
@@ -787,6 +788,7 @@ public final class XmrConnectionService {
             connection.setOnline(getNumOutgoingConnections(info) != 0);
             connection.setAuthenticated(true);
             connection.setAttribute(LAST_INFO_KEY, info);
+            connection.setAttribute(LAST_ERROR_KEY, null);
         } catch (Exception e) {
             connection.setOnline(false);
             if (e instanceof MoneroRpcError) {
@@ -799,6 +801,7 @@ public final class XmrConnectionService {
                 connection.setAuthenticated(null);
             }
             connection.setAttribute(LAST_INFO_KEY, null);
+            connection.setAttribute(LAST_ERROR_KEY, e);
         }
         if (Boolean.TRUE.equals(connection.isOnline())) {
             connection.setResponseTime(System.currentTimeMillis() - startTime);
@@ -817,6 +820,10 @@ public final class XmrConnectionService {
 
     protected static MoneroDaemonInfo getCachedDaemonInfo(MoneroRpcConnection connection) {
         return (MoneroDaemonInfo) connection.getAttribute(LAST_INFO_KEY);
+    }
+
+    protected static Exception getCachedDaemonError(MoneroRpcConnection connection) {
+        return (Exception) connection.getAttribute(LAST_ERROR_KEY);
     }
 
     protected static boolean isSyncedWithinTolerance(MoneroDaemonInfo info) {
@@ -1144,7 +1151,11 @@ public final class XmrConnectionService {
                     if (applyInfo == null) {
                         checkConnection(connection);
                         MoneroDaemonInfo info = getCachedDaemonInfo(connection);
-                        if (info == null) throw new RuntimeException("Could not get latest info from the Monero node.");
+                        if (info == null) {
+                            Exception cause = getCachedDaemonError(connection);
+                            String detail = cause == null ? "." : ": " + (cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage());
+                            throw new RuntimeException("Could not get latest info from the Monero node" + detail, cause);
+                        }
                         lastInfo = info;
                     } else {
                         lastInfo = applyInfo;
