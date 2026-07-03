@@ -43,9 +43,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
@@ -109,20 +110,15 @@ public class ChartCalculations {
             // Generate date range and create sets for all ticks
             Map<Long, Pair<Date, Set<TradeStatistics3>>> itemsPerInterval = getItemsPerInterval(tradeStatisticsByCurrency, tickUnit);
 
-            Map<Long, Long> usdAveragePriceMap = usdAveragePriceMapsPerTickUnit.get(tickUnit);
-            AtomicLong averageUsdPrice = new AtomicLong(0);
+            // Value volume at day granularity regardless of the display tick, so a wide candle is the sum of
+            // each day's volume at that day's rate rather than one blended rate over the whole candle.
+            NavigableMap<Long, Long> usdPricePerDay = new TreeMap<>(
+                    usdAveragePriceMapsPerTickUnit.getOrDefault(TradesChartsViewModel.TickUnit.DAY, Collections.emptyMap()));
 
             // create CandleData for defined time interval
             List<CandleData> candleDataList = itemsPerInterval.entrySet().stream()
                     .filter(entry -> entry.getKey() >= 0 && !entry.getValue().getValue().isEmpty())
-                    .map(entry -> {
-                        long tickStartDate = entry.getValue().getKey().getTime();
-                        // If we don't have a price we take the previous one
-                        if (usdAveragePriceMap.containsKey(tickStartDate)) {
-                            averageUsdPrice.set(usdAveragePriceMap.get(tickStartDate));
-                        }
-                        return getCandleData(entry.getKey(), entry.getValue().getValue(), averageUsdPrice.get(), tickUnit, currencyCode, itemsPerInterval);
-                    })
+                    .map(entry -> getCandleData(entry.getKey(), entry.getValue().getValue(), usdPricePerDay, tickUnit, currencyCode, itemsPerInterval))
                     .sorted(Comparator.comparingLong(o -> o.tick))
                     .collect(Collectors.toList());
 
@@ -232,7 +228,7 @@ public class ChartCalculations {
 
     @VisibleForTesting
     static CandleData getCandleData(long tick, Set<TradeStatistics3> set,
-                                    long averageUsdPrice,
+                                    NavigableMap<Long, Long> usdPricePerDay,
                                     TradesChartsViewModel.TickUnit tickUnit,
                                     String currencyCode,
                                     Map<Long, Pair<Date, Set<TradeStatistics3>>> itemsPerInterval) {
@@ -278,13 +274,51 @@ public class ChartCalculations {
                 DisplayUtils.formatDateTimeSpan(dateFrom, dateTo) :
                 DisplayUtils.formatDate(dateFrom) + " - " + DisplayUtils.formatDate(dateTo);
 
-        // We do not need precision, so we scale down before multiplication otherwise we could get an overflow.
-        averageUsdPrice = (long) MathUtils.scaleDownByPowerOf10((double) averageUsdPrice, smallestUnitExponent);
-        long volumeInUsd = averageUsdPrice * MathUtils.scaleDownByPowerOf10(accumulatedAmount, 4).longValue();
-        // We store USD value without decimals as its only total volume, no precision is needed.
-        volumeInUsd = (long) MathUtils.scaleDownByPowerOf10((double) volumeInUsd, smallestUnitExponent);
+        // Sum each day's volume valued at its own day's USD rate (interpolated when a day has no USD trades of
+        // its own), so a late USD trade re-values only the days around it rather than the whole candle.
+        Map<Long, BigInteger> amountPerDay = new HashMap<>();
+        for (TradeStatistics3 item : set) {
+            long dayStartDate = roundToTick(item.getLocalDateTime(), TradesChartsViewModel.TickUnit.DAY).getTime();
+            amountPerDay.merge(dayStartDate, item.getTradeAmount(), BigInteger::add);
+        }
+        long volumeInUsd = 0;
+        for (Map.Entry<Long, BigInteger> dayAmount : amountPerDay.entrySet()) {
+            long usdRate = getInterpolatedUsdRate(usdPricePerDay, dayAmount.getKey());
+            // We do not need precision, so we scale down before multiplication otherwise we could get an overflow.
+            long scaledRate = (long) MathUtils.scaleDownByPowerOf10((double) usdRate, smallestUnitExponent);
+            long partialVolumeInUsd = scaledRate * MathUtils.scaleDownByPowerOf10(dayAmount.getValue(), 4).longValue();
+            // We store USD value without decimals as its only total volume, no precision is needed.
+            volumeInUsd += (long) MathUtils.scaleDownByPowerOf10((double) partialVolumeInUsd, smallestUnitExponent);
+        }
         return new CandleData(tick, open, close, high, low, averagePrice, medianPrice, accumulatedAmount.longValueExact(), accumulatedVolume.longValueExact(),
                 numTrades, isBullish, dateString, volumeInUsd);
+    }
+
+    /**
+     * Resolves the XMR→USD rate for a day's volume: a day with its own USD trades uses its own rate; a gap day
+     * is interpolated linearly by time between the nearest earlier and later days that have USD trades; days
+     * beyond the known range carry the nearest rate flat; with no USD data at all the rate is 0.
+     */
+    static long getInterpolatedUsdRate(NavigableMap<Long, Long> usdPricePerDay, long dayStartDate) {
+        Map.Entry<Long, Long> floor = usdPricePerDay.floorEntry(dayStartDate);
+        Map.Entry<Long, Long> ceiling = usdPricePerDay.ceilingEntry(dayStartDate);
+        if (floor == null && ceiling == null) {
+            return 0;
+        }
+        if (floor == null) {
+            return ceiling.getValue(); // carry back before the first known day
+        }
+        if (ceiling == null) {
+            return floor.getValue(); // carry forward after the last known day
+        }
+        if (floor.getKey().longValue() == ceiling.getKey().longValue()) {
+            return floor.getValue(); // day has its own USD rate
+        }
+        // interpolate between the two bracketing days, weighted by time distance
+        long earlierDate = floor.getKey();
+        long laterDate = ceiling.getKey();
+        double fractionToLater = (double) (dayStartDate - earlierDate) / (double) (laterDate - earlierDate);
+        return floor.getValue() + Math.round((ceiling.getValue() - floor.getValue()) * fractionToLater);
     }
 
     static long getTimeFromTickIndex(long tick, Map<Long, Pair<Date, Set<TradeStatistics3>>> itemsPerInterval) {
