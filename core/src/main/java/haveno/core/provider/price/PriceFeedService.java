@@ -49,8 +49,6 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -73,6 +71,7 @@ public class PriceFeedService {
     private static final long PERIOD_SEC = 60;
 
     private final Map<String, MarketPrice> cache = new HashMap<>();
+    private final Map<String, Date> latestHavenoMarketPriceDateByCurrencyCode = new HashMap<>();
     private PriceProvider priceProvider;
     @Nullable
     private Consumer<Double> priceConsumer;
@@ -351,27 +350,26 @@ public class PriceFeedService {
     }
 
     public void applyLatestHavenoMarketPrice(List<TradeStatistics3> tradeStatisticsList) {
-        // takes about 10 ms for 5000 items
-        Map<String, List<TradeStatistics3>> mapByCurrencyCode = new HashMap<>();
-        tradeStatisticsList.forEach(e -> {
-            List<TradeStatistics3> list;
-            String currencyCode = e.getCurrency();
-            if (mapByCurrencyCode.containsKey(currencyCode)) {
-                list = mapByCurrencyCode.get(currencyCode);
-            } else {
-                list = new ArrayList<>();
-                mapByCurrencyCode.put(currencyCode, list);
-            }
-            list.add(e);
-        });
+        Map<String, TradeStatistics3> latestByCurrencyCode = new HashMap<>();
+        tradeStatisticsList.forEach(e -> latestByCurrencyCode.merge(e.getCurrency(), e,
+                (oldValue, newValue) -> newValue.getDate().before(oldValue.getDate()) ? oldValue : newValue));
+        latestByCurrencyCode.values().forEach(this::applyHavenoMarketPrice);
+    }
 
-        mapByCurrencyCode.values().stream()
-                .filter(list -> !list.isEmpty())
-                .forEach(list -> {
-                    list.sort(Comparator.comparing(TradeStatistics3::getDate));
-                    TradeStatistics3 tradeStatistics = list.get(list.size() - 1);
-                    setHavenoMarketPrice(tradeStatistics.getCurrency(), tradeStatistics.getTradePrice());
-                });
+    // Applies a single trade statistic without scanning the full list. Ignored if we already applied a
+    // more recent trade for that currency.
+    public void applyHavenoMarketPrice(TradeStatistics3 tradeStatistics) {
+        String currencyCode = tradeStatistics.getCurrency();
+        synchronized (latestHavenoMarketPriceDateByCurrencyCode) {
+            Date latestDate = latestHavenoMarketPriceDateByCurrencyCode.get(currencyCode);
+            if (latestDate != null && tradeStatistics.getDate().before(latestDate)) {
+                return;
+            }
+            latestHavenoMarketPriceDateByCurrencyCode.put(currencyCode, tradeStatistics.getDate());
+
+            // Keep the price update inside the lock so concurrent applies enqueue their cache updates in date order.
+            setHavenoMarketPrice(currencyCode, tradeStatistics.getTradePrice());
+        }
     }
 
     /**
