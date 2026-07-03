@@ -483,7 +483,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                                 super.updateItem(item, empty);
                                 if (item != null) {
                                     AutoTooltipLabel directionLabel = new AutoTooltipLabel(item.getDirectionLabel());
-                                    if (item.isPrivateOffer()) GUIUtil.addPrivateOfferLockIcon(directionLabel);
+                                    if (item.isPrivateOffer()) GUIUtil.addCompactPrivateOfferLockIcon(directionLabel);
                                     setGraphic(directionLabel);
                                 } else
                                     setGraphic(null);
