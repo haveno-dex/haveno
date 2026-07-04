@@ -27,6 +27,7 @@ import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
@@ -72,7 +73,13 @@ public class JsonFileManager {
     }
 
     public void writeToDiscThreaded(String json, String fileName) {
-        getExecutor().execute(() -> writeToDisc(json, fileName));
+        try {
+            getExecutor().execute(() -> writeToDisc(json, fileName));
+        } catch (RejectedExecutionException e) {
+            // Depending on shutdown ordering, a write scheduled before shutdown can arrive after
+            // the executor has been shut down. Losing that write is fine; propagating is not.
+            log.warn("Skipping JSON write of {} because the executor has been shut down", fileName);
+        }
     }
 
     public void writeToDisc(String json, String fileName) {
@@ -80,8 +87,12 @@ public class JsonFileManager {
         File tempFile = null;
         PrintWriter printWriter = null;
         try {
+            // We must not use tempFile.deleteOnExit() here: every write creates a temp file with a
+            // new unique name, and each deleteOnExit call adds a path to a JVM-global set which is
+            // never purged, growing without bound over the lifetime of the process. The temp file
+            // is renamed on success and deleted in the finally block on failure, and deleteOnExit
+            // would not run on an abnormal termination anyway.
             tempFile = File.createTempFile("temp", null, dir);
-            tempFile.deleteOnExit();
 
             printWriter = new PrintWriter(tempFile);
             printWriter.println(json);
