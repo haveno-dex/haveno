@@ -1796,7 +1796,7 @@ public class XmrWalletService extends XmrWalletBase {
         List<Runnable> tasks = new ArrayList<Runnable>();
         tasks.add(() -> {
             try {
-                wallet.changePassword(oldPassword, newPassword);
+                getInitializedWallet().changePassword(oldPassword, newPassword);
                 saveWallet();
             } catch (Exception e) {
                 log.warn("Error changing main wallet password: " + e.getMessage() + "\n", e);
