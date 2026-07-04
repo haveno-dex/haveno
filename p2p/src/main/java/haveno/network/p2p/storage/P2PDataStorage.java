@@ -324,10 +324,12 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         log.info("{} PersistableNetworkPayload entries remained after filtered by excluded keys. " +
                 "Original map had {} entries.",
                 filteredPersistableNetworkPayloads.size(), mapForDataResponse.size());
-        log.trace("## buildGetDataResponse filteredPersistableNetworkPayloadHashes={}",
-                filteredPersistableNetworkPayloads.stream()
-                        .map(e -> Utilities.encodeToHex(e.getHash()))
-                        .toArray());
+        if (log.isTraceEnabled()) {
+            log.trace("## buildGetDataResponse filteredPersistableNetworkPayloadHashes={}",
+                    filteredPersistableNetworkPayloads.stream()
+                            .map(e -> Utilities.encodeToHex(e.getHash()))
+                            .toArray());
+        }
 
         // We give 75% space to ProtectedStorageEntries as they contain MailBoxMessages and those can be larger.
         limit = Math.round(maxSize * 0.75);
@@ -343,10 +345,12 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         log.info("{} ProtectedStorageEntry entries remained after filtered by excluded keys. " +
                         "Original map had {} entries.",
                 filteredProtectedStorageEntries.size(), map.size());
-        log.trace("## buildGetDataResponse filteredProtectedStorageEntryHashes={}",
-                filteredProtectedStorageEntries.stream()
-                        .map(e -> get32ByteHashAsByteArray((e.getProtectedStoragePayload())))
-                        .toArray());
+        if (log.isTraceEnabled()) {
+            log.trace("## buildGetDataResponse filteredProtectedStorageEntryHashes={}",
+                    filteredProtectedStorageEntries.stream()
+                            .map(e -> get32ByteHashAsByteArray((e.getProtectedStoragePayload())))
+                            .toArray());
+        }
 
         boolean wasTruncated = wasPersistableNetworkPayloadsTruncated.get() || wasProtectedStorageEntriesTruncated.get();
         return new GetDataResponse(
