@@ -340,9 +340,12 @@ task packageInstallers {
             )
 
             // Download AppImageTool
+            String AppImageToolVersion = "1.9.1"
             Map AppImageToolBinaries = [
-                    'linux'                 : "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage",
-                    'linux-aarch64'         : "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage",
+                    'linux'                 : "https://github.com/AppImage/appimagetool/releases/download/${AppImageToolVersion}/appimagetool-x86_64.AppImage",
+                    'linux-sha256'          : 'ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0',
+                    'linux-aarch64'         : "https://github.com/AppImage/appimagetool/releases/download/${AppImageToolVersion}/appimagetool-aarch64.AppImage",
+                    'linux-aarch64-sha256'  : 'f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158',
             ]
 
             String osKey = getJavaBinariesDownloadURLs.property('osKey')
@@ -361,6 +364,15 @@ task packageInstallers {
                 println "Downloading ${AppImageToolBinaries[osKey]}"
                 ant.get(src: AppImageToolBinaries[osKey], dest: AppImageToolBinary)
                 println 'Download saved to ' + jpackageTempDir
+
+                // Verify the downloaded appimagetool
+                println 'Verifying checksum for downloaded appimagetool ...'
+                ant.appImageToolHash = AppImageToolBinaries[osKey + '-sha256']
+                ant.checksum(file: AppImageToolBinary, algorithm: 'SHA-256', property: '${appImageToolHash}', verifyProperty: 'appImageToolHashMatches')
+                if (ant.properties['appImageToolHashMatches'] != 'true') {
+                    ant.fail('Checksum mismatch: Downloaded appimagetool binary has a different checksum than expected')
+                }
+                println 'Checksum verified'
 
                 project.exec {
                     commandLine('chmod', '+x', AppImageToolBinary)
