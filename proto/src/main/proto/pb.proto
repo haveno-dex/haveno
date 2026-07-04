@@ -1728,8 +1728,8 @@ message PreferencesPayload {
     double max_price_distance_in_percent = 16;
     string offer_book_chart_screen_currency_code = 17;
     string trade_charts_screen_currency_code = 18;
-    string buy_screen_currency_code = 19;
-    string sell_screen_currency_code = 20;
+    string buy_screen_fiat_currency_code = 19;
+    string sell_screen_fiat_currency_code = 20;
     int32 trade_statistics_tick_unit_index = 21;
     bool resync_spv_requested = 22;
     bool sort_market_currencies_numerically = 23;
@@ -1778,6 +1778,15 @@ message PreferencesPayload {
     string sell_screen_other_currency_code = 66;
     bool show_no_deposit_offers = 67;
     bool show_private_offers = 68;
+    string buy_screen_fiat_payment_method_id = 69;
+    string sell_screen_fiat_payment_method_id = 70;
+    int32 buy_screen_offer_book_sub_tab_index = 71;
+    int32 sell_screen_offer_book_sub_tab_index = 72;
+    int32 market_selected_tab_index = 73;
+    string buy_screen_crypto_payment_method_id = 74;
+    string sell_screen_crypto_payment_method_id = 75;
+    string buy_screen_other_payment_method_id = 76;
+    string sell_screen_other_payment_method_id = 77;
 }
 
 message AutoConfirmSettings {

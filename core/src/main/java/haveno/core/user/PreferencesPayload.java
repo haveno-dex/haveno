@@ -71,9 +71,9 @@ public final class PreferencesPayload implements PersistableEnvelope {
     @Nullable
     private String tradeChartsScreenCurrencyCode;
     @Nullable
-    private String buyScreenCurrencyCode;
+    private String buyScreenFiatCurrencyCode;
     @Nullable
-    private String sellScreenCurrencyCode;
+    private String sellScreenFiatCurrencyCode;
     @Nullable
     private String buyScreenCryptoCurrencyCode;
     @Nullable
@@ -82,6 +82,23 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String buyScreenOtherCurrencyCode;
     @Nullable
     private String sellScreenOtherCurrencyCode;
+    @Nullable
+    private String buyScreenFiatPaymentMethodId;
+    @Nullable
+    private String sellScreenFiatPaymentMethodId;
+    @Nullable
+    private String buyScreenCryptoPaymentMethodId;
+    @Nullable
+    private String sellScreenCryptoPaymentMethodId;
+    @Nullable
+    private String buyScreenOtherPaymentMethodId;
+    @Nullable
+    private String sellScreenOtherPaymentMethodId;
+    // Selected offer book sub tab per direction (0 = fiat, 1 = crypto, 2 = other)
+    private int buyScreenOfferBookSubTabIndex;
+    private int sellScreenOfferBookSubTabIndex;
+    // Selected market view tab (0 = offer book, 1 = spread by currency, 2 = spread by payment method, 3 = trades)
+    private int marketSelectedTabIndex;
     private int tradeStatisticsTickUnitIndex = 3;
     private boolean resyncSpvRequested;
     private boolean sortMarketCurrenciesNumerically = true;
@@ -171,6 +188,9 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setWithdrawalTxFeeInVbytes(withdrawalTxFeeInVbytes)
                 .setUseCustomWithdrawalTxFee(useCustomWithdrawalTxFee)
                 .setMaxPriceDistanceInPercent(maxPriceDistanceInPercent)
+                .setBuyScreenOfferBookSubTabIndex(buyScreenOfferBookSubTabIndex)
+                .setSellScreenOfferBookSubTabIndex(sellScreenOfferBookSubTabIndex)
+                .setMarketSelectedTabIndex(marketSelectedTabIndex)
                 .setTradeStatisticsTickUnitIndex(tradeStatisticsTickUnitIndex)
                 .setResyncSpvRequested(resyncSpvRequested)
                 .setSortMarketCurrenciesNumerically(sortMarketCurrenciesNumerically)
@@ -213,12 +233,18 @@ public final class PreferencesPayload implements PersistableEnvelope {
         Optional.ofNullable(preferredTradeCurrency).ifPresent(e -> builder.setPreferredTradeCurrency((protobuf.TradeCurrency) e.toProtoMessage()));
         Optional.ofNullable(offerBookChartScreenCurrencyCode).ifPresent(builder::setOfferBookChartScreenCurrencyCode);
         Optional.ofNullable(tradeChartsScreenCurrencyCode).ifPresent(builder::setTradeChartsScreenCurrencyCode);
-        Optional.ofNullable(buyScreenCurrencyCode).ifPresent(builder::setBuyScreenCurrencyCode);
-        Optional.ofNullable(sellScreenCurrencyCode).ifPresent(builder::setSellScreenCurrencyCode);
+        Optional.ofNullable(buyScreenFiatCurrencyCode).ifPresent(builder::setBuyScreenFiatCurrencyCode);
+        Optional.ofNullable(sellScreenFiatCurrencyCode).ifPresent(builder::setSellScreenFiatCurrencyCode);
         Optional.ofNullable(buyScreenCryptoCurrencyCode).ifPresent(builder::setBuyScreenCryptoCurrencyCode);
         Optional.ofNullable(sellScreenCryptoCurrencyCode).ifPresent(builder::setSellScreenCryptoCurrencyCode);
         Optional.ofNullable(buyScreenOtherCurrencyCode).ifPresent(builder::setBuyScreenOtherCurrencyCode);
         Optional.ofNullable(sellScreenOtherCurrencyCode).ifPresent(builder::setSellScreenOtherCurrencyCode);
+        Optional.ofNullable(buyScreenFiatPaymentMethodId).ifPresent(builder::setBuyScreenFiatPaymentMethodId);
+        Optional.ofNullable(sellScreenFiatPaymentMethodId).ifPresent(builder::setSellScreenFiatPaymentMethodId);
+        Optional.ofNullable(buyScreenCryptoPaymentMethodId).ifPresent(builder::setBuyScreenCryptoPaymentMethodId);
+        Optional.ofNullable(sellScreenCryptoPaymentMethodId).ifPresent(builder::setSellScreenCryptoPaymentMethodId);
+        Optional.ofNullable(buyScreenOtherPaymentMethodId).ifPresent(builder::setBuyScreenOtherPaymentMethodId);
+        Optional.ofNullable(sellScreenOtherPaymentMethodId).ifPresent(builder::setSellScreenOtherPaymentMethodId);
         Optional.ofNullable(selectedPaymentAccountForCreateOffer).ifPresent(
                 account -> builder.setSelectedPaymentAccountForCreateOffer(selectedPaymentAccountForCreateOffer.toProtoMessage()));
         Optional.ofNullable(bridgeAddresses).ifPresent(builder::addAllBridgeAddresses);
@@ -265,12 +291,21 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getMaxPriceDistanceInPercent(),
                 ProtoUtil.stringOrNullFromProto(proto.getOfferBookChartScreenCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getTradeChartsScreenCurrencyCode()),
-                ProtoUtil.stringOrNullFromProto(proto.getBuyScreenCurrencyCode()),
-                ProtoUtil.stringOrNullFromProto(proto.getSellScreenCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getBuyScreenFiatCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getSellScreenFiatCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getBuyScreenCryptoCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getSellScreenCryptoCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getBuyScreenOtherCurrencyCode()),
                 ProtoUtil.stringOrNullFromProto(proto.getSellScreenOtherCurrencyCode()),
+                ProtoUtil.stringOrNullFromProto(proto.getBuyScreenFiatPaymentMethodId()),
+                ProtoUtil.stringOrNullFromProto(proto.getSellScreenFiatPaymentMethodId()),
+                ProtoUtil.stringOrNullFromProto(proto.getBuyScreenCryptoPaymentMethodId()),
+                ProtoUtil.stringOrNullFromProto(proto.getSellScreenCryptoPaymentMethodId()),
+                ProtoUtil.stringOrNullFromProto(proto.getBuyScreenOtherPaymentMethodId()),
+                ProtoUtil.stringOrNullFromProto(proto.getSellScreenOtherPaymentMethodId()),
+                proto.getBuyScreenOfferBookSubTabIndex(),
+                proto.getSellScreenOfferBookSubTabIndex(),
+                proto.getMarketSelectedTabIndex(),
                 proto.getTradeStatisticsTickUnitIndex(),
                 proto.getResyncSpvRequested(),
                 proto.getSortMarketCurrenciesNumerically(),

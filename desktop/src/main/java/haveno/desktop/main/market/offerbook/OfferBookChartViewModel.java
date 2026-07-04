@@ -461,7 +461,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     private void updateScreenCurrencyInPreferences(OfferDirection direction) {
         if (isSellOffer(direction)) {
             if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
-                preferences.setBuyScreenCurrencyCode(getCurrencyCode());
+                preferences.setBuyScreenFiatCurrencyCode(getCurrencyCode());
             } else if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
                 preferences.setBuyScreenCryptoCurrencyCode(getCurrencyCode());
             } else if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
@@ -469,7 +469,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
             }
         } else {
             if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
-                preferences.setSellScreenCurrencyCode(getCurrencyCode());
+                preferences.setSellScreenFiatCurrencyCode(getCurrencyCode());
             } else if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
                 preferences.setSellScreenCryptoCurrencyCode(getCurrencyCode());
             } else if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
