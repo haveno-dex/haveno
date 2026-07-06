@@ -1711,8 +1711,11 @@ public class XmrWalletService extends XmrWalletBase {
     private MoneroWalletRpc startWalletRpcInstance(Integer port, MoneroRpcConnection connection) {
 
         // check if monero-wallet-rpc exists
-        if (!new File(MONERO_WALLET_RPC_PATH).exists()) throw new RuntimeException("monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH
-                + "; copy monero-wallet-rpc to the project root or set WalletConfig.java MONERO_WALLET_RPC_PATH for your system");
+        if (!new File(MONERO_WALLET_RPC_PATH).exists()) {
+            String errorMessage = "monero-wallet-rpc executable doesn't exist at path " + MONERO_WALLET_RPC_PATH;
+            if (Utilities.isWindows()) errorMessage += ". It may have been quarantined by antivirus software; remove it from quarantine and mark it as safe, then restart Haveno";
+            throw new RuntimeException(errorMessage);
+        }
 
         // build command to start monero-wallet-rpc
         List<String> cmd = new ArrayList<>(Arrays.asList( // modifiable list
