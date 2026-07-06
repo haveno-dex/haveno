@@ -246,6 +246,7 @@ configure(subprojects) {
 
     jacoco {
         toolVersion = libs.versions.jacoco.get()
+        reportsDirectory = file("$rootDir/build/reports/jacoco")
     }
 
     test.finalizedBy {
