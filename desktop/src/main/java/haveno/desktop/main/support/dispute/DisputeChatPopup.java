@@ -22,6 +22,7 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.Layout;
 
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.Dispute;
@@ -136,7 +137,8 @@ public class DisputeChatPopup {
                 + " " + selectedDispute.getRoleString());
         StackPane owner = MainView.getRootContainer();
         Scene rootScene = owner.getScene();
-        chatPopupStage.initOwner(rootScene.getWindow());
+
+        // keep a top-level window so the WM shows maximize/fullscreen
         chatPopupStage.initModality(Modality.NONE);
         chatPopupStage.initStyle(StageStyle.DECORATED);
         chatPopupStage.setOnHiding(event -> {
@@ -156,6 +158,10 @@ public class DisputeChatPopup {
             }
         });
         chatPopupStage.setScene(scene);
+        chatPopupStage.setWidth(Layout.CHAT_WINDOW_WIDTH);
+        chatPopupStage.setHeight(Layout.CHAT_WINDOW_HEIGHT);
+        chatPopupStage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
+        chatPopupStage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
         chatPopupStage.setOpacity(0);
         chatPopupStage.show();
 
