@@ -18,9 +18,9 @@
 package haveno.desktop.main.portfolio.failedtrades;
 
 import com.google.inject.Inject;
-import com.googlecode.jcsv.writer.CSVEntryConverter;
+import java.util.function.Function;
 import com.jfoenix.controls.JFXButton;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
@@ -223,13 +223,13 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         exportButton.setOnAction(event -> {
             ObservableList<TableColumn<FailedTradesListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             int reportColumns = tableColumns.size() - 1;    // CSV report excludes the last column (an icon)
-            CSVEntryConverter<FailedTradesListItem> headerConverter = item -> {
+            Function<FailedTradesListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[reportColumns];
                 for (int i = 0; i < columns.length; i++)
                     columns[i] = ((AutoTooltipLabel) tableColumns.get(i).getGraphic()).getText();
                 return columns;
             };
-            CSVEntryConverter<FailedTradesListItem> contentConverter = item -> {
+            Function<FailedTradesListItem, String[]> contentConverter = item -> {
                 String[] columns = new String[reportColumns];
                 columns[0] = item.getTrade().getId();
                 columns[1] = item.getDateAsString();
@@ -506,7 +506,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                             public void updateItem(FailedTradesListItem newItem, boolean empty) {
                                 super.updateItem(newItem, empty);
                                 if (!empty && newItem != null && newItem.getTrade().isDepositsPublished()) {
-                                    Label icon = FormBuilder.getIcon(AwesomeIcon.UNDO);
+                                    Label icon = FormBuilder.getIcon(FontAwesomeIcon.UNDO);
                                     JFXButton iconButton = new JFXButton("", icon);
                                     iconButton.setStyle("-fx-cursor: hand;");
                                     iconButton.getStyleClass().add("hidden-icon-button");

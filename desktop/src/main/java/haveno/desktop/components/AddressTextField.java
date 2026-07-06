@@ -18,8 +18,8 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
@@ -77,7 +77,7 @@ public class AddressTextField extends AnchorPane {
         extWalletIcon.setLayoutY(Layout.FLOATING_ICON_Y);
         extWalletIcon.getStyleClass().addAll("icon", "highlight");
         extWalletIcon.setTooltip(new Tooltip(tooltipText));
-        AwesomeDude.setIcon(extWalletIcon, AwesomeIcon.SIGNIN);
+        GlyphsDude.setIcon(extWalletIcon, FontAwesomeIcon.SIGN_IN);
         extWalletIcon.setOnMouseClicked(e -> openWallet());
 
         Label copyLabel = new Label();

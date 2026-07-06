@@ -17,7 +17,7 @@
 
 package haveno.desktop.main.offer;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -90,8 +90,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.util.StringConverter;
 import lombok.Setter;
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 import org.jetbrains.annotations.NotNull;
@@ -262,7 +260,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             updatePriceToggle();
 
             Label popOverLabel = OfferViewUtil.createPopOverLabel(Res.get("createOffer.triggerPrice.tooltip"));
-            triggerPriceInfoInputTextField.setContentForPopOver(popOverLabel, AwesomeIcon.SHIELD);
+            triggerPriceInfoInputTextField.setContentForPopOver(popOverLabel, FontAwesomeIcon.SHIELD);
 
             isPrivateOfferSlider.setSelected(model.dataModel.getIsPrivateOffer().get());
             buyerAsTakerWithoutDepositSlider.setSelected(model.dataModel.getBuyerAsTakerWithoutDeposit().get());
@@ -908,12 +906,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void updateQrCode() {
-        final byte[] imageBytes = QRCode
-                .from(getMoneroURI())
-                .withSize(300, 300)
-                .to(ImageType.PNG)
-                .stream()
-                .toByteArray();
+        final byte[] imageBytes = GUIUtil.generateQrCodePng(getMoneroURI(), 300, 300);
         Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
         qrCodeImageView.setImage(qrImage);
     }

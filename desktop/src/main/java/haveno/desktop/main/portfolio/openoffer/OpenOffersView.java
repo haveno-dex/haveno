@@ -18,7 +18,7 @@
 package haveno.desktop.main.portfolio.openoffer;
 
 import com.google.inject.Inject;
-import com.googlecode.jcsv.writer.CSVEntryConverter;
+import java.util.function.Function;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
@@ -281,14 +281,14 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
-            CSVEntryConverter<OpenOfferListItem> headerConverter = item -> {
+            Function<OpenOfferListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[ColumnNames.values().length];
                 for (ColumnNames m : ColumnNames.values()) {
                     columns[m.ordinal()] = m.toString();
                 }
                 return columns;
             };
-            CSVEntryConverter<OpenOfferListItem> contentConverter = item -> {
+            Function<OpenOfferListItem, String[]> contentConverter = item -> {
                 String[] columns = new String[ColumnNames.values().length];
                 columns[ColumnNames.OFFER_ID.ordinal()] = model.getOfferId(item);
                 columns[ColumnNames.GROUP_ID.ordinal()] = openOfferManager.hasClonedOffer(item.getOffer().getId()) ? getShortenedGroupId(item.getGroupId()) : "";

@@ -17,8 +17,8 @@
 
 package haveno.desktop.components;
 
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.desktop.components.controlsfx.control.PopOver;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -76,24 +76,24 @@ public class InfoInputTextField extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void setContentForInfoPopOver(Node node) {
-        setContentForPopOver(node, AwesomeIcon.INFO_SIGN);
+        setContentForPopOver(node, FontAwesomeIcon.INFO_CIRCLE);
     }
 
     public void setContentForWarningPopOver(Node node) {
-        setContentForPopOver(node, AwesomeIcon.WARNING_SIGN, "warning");
+        setContentForPopOver(node, FontAwesomeIcon.WARNING, "warning");
     }
 
     public void setContentForPrivacyPopOver(Node node) {
-        setContentForPopOver(node, AwesomeIcon.EYE_CLOSE);
+        setContentForPopOver(node, FontAwesomeIcon.EYE_SLASH);
     }
 
-    public void setContentForPopOver(Node node, AwesomeIcon awesomeIcon) {
+    public void setContentForPopOver(Node node, FontAwesomeIcon awesomeIcon) {
         setContentForPopOver(node, awesomeIcon, null);
     }
 
-    public void setContentForPopOver(Node node, AwesomeIcon awesomeIcon, @Nullable String style) {
+    public void setContentForPopOver(Node node, FontAwesomeIcon awesomeIcon, @Nullable String style) {
         this.node = node;
-        AwesomeDude.setIcon(icon, awesomeIcon);
+        GlyphsDude.setIcon(icon, awesomeIcon);
         icon.getStyleClass().removeAll("icon", "info", "warning", style);
         icon.getStyleClass().addAll("icon", style == null ? "info" : style);
         icon.setManaged(true);

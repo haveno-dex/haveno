@@ -18,9 +18,9 @@
 package haveno.desktop.main.overlays;
 
 import com.google.common.reflect.TypeToken;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
@@ -74,6 +74,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
 import javafx.scene.transform.Rotate;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -784,7 +785,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                 copyLabel.getStyleClass().add("popup-icon-information");
                 copyLabel.setManaged(true);
                 copyLabel.setVisible(true);
-                MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.2em");
+                Text copyIcon = GlyphsDude.createIcon(MaterialDesignIcon.CONTENT_COPY, "1.2em");
                 copyLabel.setGraphic(copyIcon);
                 copyLabel.setCursor(Cursor.HAND);
                 copyLabel.addEventHandler(MOUSE_CLICKED, mouseEvent -> {
@@ -810,7 +811,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                     headlineIcon.getStyleClass().add("popup-icon-information");
                     headlineIcon.setManaged(true);
                     headlineIcon.setVisible(true);
-                    FormBuilder.getIconForLabel(AwesomeIcon.INFO_SIGN, headlineIcon, "1.5em");
+                    FormBuilder.getIconForLabel(FontAwesomeIcon.INFO_CIRCLE, headlineIcon, "1.5em");
                     break;
                 case Warning:
                 case Error:
@@ -818,7 +819,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                     headlineIcon.getStyleClass().add("popup-icon-warning");
                     headlineIcon.setManaged(true);
                     headlineIcon.setVisible(true);
-                    FormBuilder.getIconForLabel(AwesomeIcon.EXCLAMATION_SIGN, headlineIcon, "1.5em");
+                    FormBuilder.getIconForLabel(FontAwesomeIcon.EXCLAMATION_CIRCLE, headlineIcon, "1.5em");
                     break;
                 default:
                     headLineLabel.getStyleClass().add("popup-headline");

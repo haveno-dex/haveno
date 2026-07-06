@@ -18,8 +18,8 @@
 package haveno.desktop.main.portfolio.pendingtrades.steps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
 import haveno.common.util.Tuple3;
@@ -915,7 +915,7 @@ public abstract class TradeStepView extends AnchorPane {
         GridPane.setColumnSpan(warningBox, 2);
 
         Label warningIcon = new Label();
-        AwesomeDude.setIcon(warningIcon, AwesomeIcon.WARNING_SIGN);
+        GlyphsDude.setIcon(warningIcon, FontAwesomeIcon.WARNING);
         warningIcon.getStyleClass().add("warning");
 
         Label warning = new Label(Res.get("portfolio.pending.tradePeriodWarning"));

@@ -41,10 +41,9 @@ import haveno.common.util.Utilities;
 
 import com.google.common.io.ByteStreams;
 
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import javafx.stage.FileChooser;
 
 import javafx.scene.Node;
@@ -62,6 +61,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 import javafx.geometry.Insets;
@@ -452,7 +452,7 @@ public class ChatView extends AnchorPane {
                                         else
                                             icon.getStyleClass().add("attachment-icon-black");
     
-                                        AwesomeDude.setIcon(icon, AwesomeIcon.FILE_TEXT);
+                                        GlyphsDude.setIcon(icon, FontAwesomeIcon.FILE_TEXT);
                                         icon.setPadding(new Insets(-2, 0, 0, 0));
                                         icon.setTooltip(new Tooltip(attachment.getFileName()));
                                         icon.setOnMouseClicked(event -> onOpenAttachment(attachment));
@@ -464,7 +464,7 @@ public class ChatView extends AnchorPane {
     
                                 // Need to set it here otherwise style is not correct
                                 copyLabel.getStyleClass().addAll("icon", "copy-icon-disputes");
-                                MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "16.0");
+                                Text copyIcon = GlyphsDude.createIcon(MaterialDesignIcon.CONTENT_COPY, "16.0");
                                 copyLabel.setGraphic(copyIcon);
     
                                 // TODO There are still some cell rendering issues on updates
@@ -484,7 +484,7 @@ public class ChatView extends AnchorPane {
 
                     private void updateMsgState(ChatMessage message) {
                         boolean visible;
-                        AwesomeIcon icon = null;
+                        FontAwesomeIcon icon = null;
                         String text = null;
                         statusIcon.getStyleClass().add("status-icon");
                         statusInfoLabel.getStyleClass().add("status-icon");
@@ -493,21 +493,21 @@ public class ChatView extends AnchorPane {
                                 message.acknowledgedProperty().get(), message.arrivedProperty().get());
                         if (message.acknowledgedProperty().get()) {
                             visible = true;
-                            icon = AwesomeIcon.OK_SIGN;
+                            icon = FontAwesomeIcon.CHECK_CIRCLE;
                             text = Res.get("support.acknowledged");
                         } else if (message.storedInMailboxProperty().get()) {
                             visible = true;
-                            icon = AwesomeIcon.ENVELOPE;
+                            icon = FontAwesomeIcon.ENVELOPE;
                             text = Res.get("support.savedInMailbox");
                         } else if (message.ackErrorProperty().get() != null) {
                             visible = true;
-                            icon = AwesomeIcon.EXCLAMATION_SIGN;
+                            icon = FontAwesomeIcon.EXCLAMATION_CIRCLE;
                             text = Res.get("support.error", message.ackErrorProperty().get());
                             statusIcon.getStyleClass().add("error-text");
                             statusInfoLabel.getStyleClass().add("error-text");
                         } else if (message.arrivedProperty().get()) {
                             visible = true;
-                            icon = AwesomeIcon.MAIL_REPLY;
+                            icon = FontAwesomeIcon.MAIL_REPLY;
                             text = Res.get("support.transient");
                         } else {
                             visible = false;
@@ -516,7 +516,7 @@ public class ChatView extends AnchorPane {
 
                         statusHBox.setVisible(visible);
                         if (visible) {
-                            AwesomeDude.setIcon(statusIcon, icon, "14");
+                            GlyphsDude.setIcon(statusIcon, icon, "14");
                             statusIcon.setTooltip(new Tooltip(text));
                             statusInfoLabel.setText(text);
                         }

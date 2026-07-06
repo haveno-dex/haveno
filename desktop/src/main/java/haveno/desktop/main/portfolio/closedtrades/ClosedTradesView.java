@@ -19,9 +19,9 @@ package haveno.desktop.main.portfolio.closedtrades;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.googlecode.jcsv.writer.CSVEntryConverter;
+import java.util.function.Function;
 import com.jfoenix.controls.JFXButton;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -51,7 +51,6 @@ import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
 import java.util.Comparator;
-import java.util.function.Function;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -259,14 +258,14 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
-            CSVEntryConverter<ClosedTradesListItem> headerConverter = item -> {
+            Function<ClosedTradesListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[ColumnNames.values().length];
                 for (ColumnNames m : ColumnNames.values()) {
                     columns[m.ordinal()] = m.toString();
                 }
                 return columns;
             };
-            CSVEntryConverter<ClosedTradesListItem> contentConverter = item -> {
+            Function<ClosedTradesListItem, String[]> contentConverter = item -> {
                 String[] columns = new String[ColumnNames.values().length];
                 columns[ColumnNames.TRADE_ID.ordinal()] = item.getTradeId();
                 columns[ColumnNames.DATE.ordinal()] = item.getDateAsString();
@@ -698,7 +697,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                 Trade trade = (Trade) newItem.getTradable();
                                 super.updateItem(newItem, empty);
                                 if (!empty && newItem != null && !trade.isPayoutConfirmed()) {
-                                    Label icon = FormBuilder.getIcon(AwesomeIcon.UNDO);
+                                    Label icon = FormBuilder.getIcon(FontAwesomeIcon.UNDO);
                                     JFXButton iconButton = new JFXButton("", icon);
                                     iconButton.setStyle("-fx-cursor: hand; -fx-padding: 0 10 0 10;");
                                     iconButton.getStyleClass().add("hidden-icon-button");

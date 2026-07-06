@@ -17,7 +17,7 @@
 
 package haveno.desktop.components;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.desktop.util.FormBuilder;
@@ -55,7 +55,7 @@ public class InfoDisplay extends Parent {
 
     private boolean useReadMore;
 
-    private final Label icon = FormBuilder.getIcon(AwesomeIcon.INFO_SIGN);
+    private final Label icon = FormBuilder.getIcon(FontAwesomeIcon.INFO_CIRCLE);
     private final TextFlow textFlow;
     private final Label label;
     private final Hyperlink link;

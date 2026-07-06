@@ -19,8 +19,8 @@ package haveno.desktop.main.funds.locked;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.googlecode.jcsv.writer.CSVEntryConverter;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import java.util.function.Function;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
@@ -167,13 +167,13 @@ public class LockedView extends ActivatableView<VBox, Void> {
         exportButton.setOnAction(event -> {
             ObservableList<TableColumn<LockedListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
             int reportColumns = tableColumns.size();
-            CSVEntryConverter<LockedListItem> headerConverter = item -> {
+            Function<LockedListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[reportColumns];
                 for (int i = 0; i < columns.length; i++)
                     columns[i] = ((AutoTooltipLabel) tableColumns.get(i).getGraphic()).getText();
                 return columns;
             };
-            CSVEntryConverter<LockedListItem> contentConverter = item -> {
+            Function<LockedListItem, String[]> contentConverter = item -> {
                 String[] columns = new String[reportColumns];
                 columns[0] = item.getDateString();
                 columns[1] = item.getDetails();
@@ -295,7 +295,7 @@ public class LockedView extends ActivatableView<VBox, Void> {
                             Optional<Tradable> tradableOptional = getTradable(item);
                             if (tradableOptional.isPresent()) {
                                 field = new HyperlinkWithIcon(item.getDetails(),
-                                        AwesomeIcon.INFO_SIGN);
+                                        FontAwesomeIcon.INFO_CIRCLE);
                                 field.setOnAction(event -> openDetailPopup(item));
                                 field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                 setGraphic(field);

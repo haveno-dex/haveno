@@ -18,8 +18,8 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.UserThread;
 import haveno.desktop.util.Layout;
 import javafx.geometry.Pos;
@@ -64,9 +64,9 @@ public class TextFieldWithIcon extends AnchorPane {
         getChildren().addAll(textField, dummyTextField, iconLabel);
     }
 
-    public void setIcon(AwesomeIcon iconLabel) {
+    public void setIcon(FontAwesomeIcon iconLabel) {
         UserThread.execute(() -> {
-            AwesomeDude.setIcon(this.iconLabel, iconLabel);
+            GlyphsDude.setIcon(this.iconLabel, iconLabel);
         });
     }
 

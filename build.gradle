@@ -1,24 +1,202 @@
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.gradle.api.tasks.Sync
 import org.gradle.internal.logging.ConsoleRenderer
+import org.gradle.jvm.application.tasks.CreateStartScripts
+import org.gradle.nativeplatform.MachineArchitecture
+import org.gradle.nativeplatform.OperatingSystemFamily
 
-buildscript {
-    repositories {
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.17'
-        classpath 'com.google.gradle:osdetector-gradle-plugin:1.7.3'
-        classpath 'com.github.johnrengelman:shadow:8.1.1'
-        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.2.3'
-        classpath 'com.gradle:gradle-enterprise-gradle-plugin:3.16.1' // added for windows build verification-metadata.xml error
-    }
+plugins {
+    id 'base'
+    id 'com.google.osdetector' apply false
+    id 'com.google.protobuf' apply false
+    id 'com.gradleup.shadow' apply false
+    id 'org.openjfx.javafxplugin' apply false
 }
 
 configure(rootProject) {
+    ext {
+        havenoJavaVersion = libs.versions.java.get().toInteger()
+
+        // JavaFX / Guice / JFoenix reflective access (desktop only).
+        // These opens apply only with JavaFX on the module path (see patchDesktopStartScript).
+        havenoJavaFxModuleOpens = [
+            '--add-modules=javafx.controls,javafx.fxml,javafx.swing',
+            '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED',
+            '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED',
+            '--add-opens=javafx.base/com.sun.javafx.binding=ALL-UNNAMED',
+            '--add-opens=javafx.base/com.sun.javafx.event=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.javafx.scene.text=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.javafx.css=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.nio=ALL-UNNAMED',
+            '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
+        ]
+
+        // Shared runtime flags for all Haveno JVM processes
+        havenoCommonJvmArgs = [
+            '-XX:+ExitOnOutOfMemoryError',
+            '-XX:+HeapDumpOnOutOfMemoryError',
+            '-XX:HeapDumpPath=haveno-%p.hprof',
+            '-XX:+EnableDynamicAgentLoading',
+            '-Djava.net.preferIPv4Stack=true',
+            '-Dfile.encoding=UTF-8',
+            '-Dstdout.encoding=UTF-8',
+            '-Dstderr.encoding=UTF-8',
+        ]
+
+        // Java 21 generational ZGC — low pause times for long-running P2P / wallet workloads.
+        // Note: ZGC uses Xmx as its soft max heap, so per-process -Xmx sizing (below) is what
+        // bounds memory; ZUncommitDelay returns idle heap to the OS.
+        havenoGcJvmArgs = [
+            '-XX:+UseZGC',
+            '-XX:+ZGenerational',
+            '-XX:ZUncommitDelay=300',
+            '-XX:+SegmentedCodeCache',
+            '-XX:MaxMetaspaceSize=512m',
+            '-XX:ReservedCodeCacheSize=256m',
+        ]
+
+        havenoMemory4gJvmArgs = [
+            '-XX:MaxRAM=4g',
+            '-Xms512m',
+            '-Xmx4g',
+        ]
+
+        havenoMemory512mJvmArgs = [
+            '-XX:MaxRAM=512m',
+            '-Xms128m',
+            '-Xmx512m',
+        ]
+
+        havenoHeadlessJvmArgs = havenoMemory4gJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+            '-Djava.awt.headless=true',
+            '-Xss1m',
+        ]
+
+        // seednode/haveno.env uses fixed 4g heap — match that profile
+        havenoSeednodeJvmArgs = [
+            '-XX:MaxRAM=4g',
+            '-Xms4g',
+            '-Xmx4g',
+        ] + havenoGcJvmArgs + havenoCommonJvmArgs + [
+            '-Djava.awt.headless=true',
+            '-Xss1m',
+        ]
+
+        havenoDesktopJvmArgs = havenoMemory4gJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+            '-Xss1280k',
+        ] + havenoJavaFxModuleOpens
+
+        havenoMonitorJvmArgs = havenoMemory512mJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+            '-Djava.awt.headless=true',
+        ]
+
+        havenoApitestLogbackOpt = '-Dlogback.configurationFile=apitest/build/resources/main/logback.xml'
+
+        havenoApitestLauncherJvmArgs = [
+            havenoApitestLogbackOpt,
+        ] + havenoHeadlessJvmArgs
+
+        // jpackage --java-options for the desktop image. JavaFX is on the classpath here (not
+        // the module path), so strip '--add-modules' — it would fail with FindException.
+        havenoDesktopJpackageOpts = havenoDesktopJvmArgs
+                .findAll { !it.startsWith('--add-modules') }
+                .collect { " --java-options ${it}" }.join('')
+
+        patchDesktopAppHome = { File script ->
+            def text = script.text
+            text = text.replace(
+                    'APP_HOME=$( cd -P "${APP_HOME:-./}.." > /dev/null && printf \'%s\\n\' "$PWD" ) || exit',
+                    'APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf \'%s\\n\' "$PWD" ) || exit')
+            text = text.replace(
+                    'APP_HOME=$( cd "${APP_HOME:-./}.." > /dev/null && pwd -P ) || exit',
+                    'APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit')
+            script.text = text
+        }
+
+        // Move the javafx-* jars from -classpath to --module-path in a generated start script.
+        patchDesktopStartScript = { File script, String pathSeparator ->
+            def text = script.text
+            def cpLineIndex = text.readLines().findIndexOf { it.startsWith('CLASSPATH=') }
+            if (cpLineIndex < 0) {
+                return
+            }
+            def cpLine = text.readLines()[cpLineIndex]
+            def jars = cpLine.substring('CLASSPATH='.length()).split(java.util.regex.Pattern.quote(pathSeparator))
+            def javafxJars = jars.findAll { it.contains('javafx-') }
+            def modulePath = javafxJars.join(pathSeparator)
+            def classpath = (jars - javafxJars).join(pathSeparator)
+
+            def lines = text.readLines()
+            lines[cpLineIndex] = "CLASSPATH=${classpath}"
+            lines.add(cpLineIndex + 1, "MODULE_PATH=${modulePath}")
+            text = lines.join('\n')
+
+            if (text.contains('CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )')) {
+                text = text.replace(
+                        'CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )',
+                        'CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )\n    MODULE_PATH=$( cygpath --path --mixed "$MODULE_PATH" )')
+            }
+
+            text = text.replace(
+                    'set -- \\\n        -classpath "$CLASSPATH" \\',
+                    'set -- \\\n        --module-path "$MODULE_PATH" \\\n        -classpath "$CLASSPATH" \\')
+
+            script.text = text
+        }
+
+        configureJavaFxModulePathForTest = { Test testTask ->
+            testTask.doFirst {
+                def allFiles = testTask.classpath.files
+                def javafxFiles = allFiles.findAll { it.name.startsWith('javafx-') && it.name.endsWith('.jar') }
+                if (javafxFiles.isEmpty()) {
+                    return
+                }
+                testTask.classpath = files(allFiles - javafxFiles.toSet())
+                testTask.jvmArgs = testTask.jvmArgs + [
+                    '--module-path', javafxFiles.collect { it.absolutePath }.join(File.pathSeparator),
+                ]
+                if (!testTask.jvmArgs.any { it.startsWith('--add-modules=') }) {
+                    def moduleNames = javafxFiles.collect { file ->
+                        def matcher = (file.name =~ /^javafx-([a-z]+)/)
+                        matcher ? "javafx.${matcher[0][1]}" : null
+                    }.findAll { it != null }.unique().sort()
+                    testTask.jvmArgs = testTask.jvmArgs + ["--add-modules=${moduleNames.join(',')}"]
+                }
+            }
+        }
+
+        // Applies the OpenJFX plugin and declares the given JavaFX modules using the catalog version.
+        applyJavaFx = { Project proj, List<String> javafxModules ->
+            proj.apply plugin: 'org.openjfx.javafxplugin'
+            proj.javafx {
+                version = libs.versions.javafx.get()
+                modules = javafxModules
+            }
+            // Stamp the JavaFX platform onto outgoing variants so transitive consumers resolve the right per-platform jars.
+            proj.afterEvaluate {
+                def javafxPlatform = proj.extensions.getByName('javafx').platform
+                def operatingSystem = proj.objects.named(OperatingSystemFamily, javafxPlatform.osFamily)
+                def architecture = proj.objects.named(MachineArchitecture, javafxPlatform.arch)
+                ['apiElements', 'runtimeElements'].each { configurationName ->
+                    proj.configurations.named(configurationName) {
+                        attributes {
+                            attribute(OperatingSystemFamily.OPERATING_SYSTEM_ATTRIBUTE, operatingSystem)
+                            attribute(MachineArchitecture.ARCHITECTURE_ATTRIBUTE, architecture)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // remove the 'haveno-*' scripts and 'lib' dir generated by the 'installDist' task
-    task clean {
+    tasks.named('clean').configure {
         doLast {
-            delete fileTree(dir: rootProject.projectDir, include: 'haveno-*'), 'lib'
+            delete fileTree(dir: rootProject.layout.projectDirectory.asFile, include: 'haveno-*'), 'lib'
         }
     }
 }
@@ -31,76 +209,32 @@ configure(subprojects) {
     apply plugin: 'jacoco-report-aggregation'
     apply plugin: 'checkstyle'
 
-    sourceCompatibility = JavaVersion.VERSION_21
-
-    ext { // in alphabetical order
-        bcVersion = '1.63'
-        bitcoinjVersion = '7dc0851a807857ba19f76824e48d75ab0390eca7'
-        codecVersion = '1.13'
-        cowwocVersion = '1.2'
-        easybindVersion = '1.0.3'
-        easyVersion = '4.0.1'
-        findbugsVersion = '3.0.2'
-        firebaseVersion = '6.2.0'
-        fontawesomefxVersion = '8.0.0'
-        fontawesomefxCommonsVersion = '9.1.2'
-        fontawesomefxMaterialdesignfontVersion = '2.0.26-9.1.2'
-        grpcVersion = '1.42.1'
-        gsonVersion = '2.8.5'
-        guavaVersion = '32.1.1-jre'
-        guiceVersion = '7.0.0'
-        moneroJavaVersion = '0.8.46'
-        httpclient5Version = '5.0'
-        hamcrestVersion = '2.2'
-        httpclientVersion = '4.5.12'
-        httpcoreVersion = '4.4.13'
-        ioVersion = '2.6'
-        jacksonVersion = '2.12.1'
-        javafxVersion = '21.0.9'
-        javaxAnnotationVersion = '1.2'
-        jcsvVersion = '1.4.0'
-        jetbrainsAnnotationsVersion = '13.0'
-        jfoenixVersion = '9.0.10'
-        joptVersion = '5.0.4'
-        jsonsimpleVersion = '1.1.1'
-        jsonrpc4jVersion = '1.6.0.bisq.1'
-        jupiterVersion = '5.9.2'
-        kotlinVersion = '1.3.41'
-        langVersion = '3.11'
-        logbackVersion = '1.1.11'
-        loggingVersion = '1.2'
-        lombokVersion = '1.18.30'
-        mockitoVersion = '5.10.0'
-        netlayerVersion = 'eb06444186' // Tor browser version 15.0.13 and tor binary version: 0.4.9.8
-        protobufVersion = '3.25.5'
-        protocVersion = protobufVersion
-        pushyVersion = '0.13.2'
-        qrgenVersion = '1.3'
-        slf4jVersion = '1.7.30'
-        sparkVersion = '2.5.2'
-
-        def osName = osdetector.os == 'osx' ? 'mac' : osdetector.os == 'windows' ? 'win' : osdetector.os
-        def osArch = System.getProperty("os.arch").toLowerCase()
-        os = (osName == 'mac' && (osArch.contains('aarch64') || osArch.contains('arm'))) ? 'mac-aarch64' : osName
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(rootProject.ext.havenoJavaVersion)
+        }
     }
 
+    // All-platform JavaFX pulled only so its checksums land in verification-metadata.xml (see :desktop); no task consumes it.
     configurations {
         javafxVerification
     }
 
     repositories {
         mavenCentral()
-        //mavenLocal()
-        maven { url 'https://jitpack.io' }
-        maven { url 'https://mvnrepository.com' }
+        //mavenLocal();
+        maven { url = uri('https://jitpack.io') }
     }
 
-    tasks.withType(JavaCompile) {
+    tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
+        options.incremental = true
+        options.fork = true
+        options.compilerArgs.add('-parameters')
     }
 
     checkstyle {
-        toolVersion = '10.8.1'
+        toolVersion = libs.versions.checkstyle.get()
         // https://raw.githubusercontent.com/checkstyle/checkstyle/checkstyle-10.8.1/src/main/resources/google_checks.xml
         configFile = rootProject.file("$rootDir/config/checkstyle/checkstyle.xml")
     }
@@ -111,8 +245,7 @@ configure(subprojects) {
     }
 
     jacoco {
-        toolVersion = "0.8.10"
-        reportsDirectory = file("$rootDir/build/reports/jacoco")
+        toolVersion = libs.versions.jacoco.get()
     }
 
     test.finalizedBy {
@@ -127,6 +260,20 @@ configure(subprojects) {
 
     test {
         useJUnitPlatform()
+        maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))
+        jvmArgs = rootProject.ext.havenoCommonJvmArgs + [
+            '-XX:+UseZGC',
+            '-XX:+ZGenerational',
+        ]
+        rootProject.ext.configureJavaFxModulePathForTest(it)
+    }
+
+    dependencies {
+        compileOnly libs.javax.annotation.api
+        compileOnly libs.findbugs.jsr305
+        compileOnly libs.jetbrains.annotations
+        testCompileOnly libs.findbugs.jsr305
+        testRuntimeOnly libs.junit.platform.launcher
     }
 }
 
@@ -142,82 +289,70 @@ configure([project(':cli'),
 
     apply plugin: 'application'
 
-    build.dependsOn installDist
-    installDist.destinationDir = file('build/app')
-    distZip.enabled = false
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoHeadlessJvmArgs
+    }
+
+    tasks.named('build').configure {
+        dependsOn tasks.named('installDist')
+    }
+    tasks.named('distZip').configure {
+        enabled = false
+    }
 
     // the 'installDist' and 'startScripts' blocks below configure haveno executables to put
     // generated shell scripts in the root project directory, such that users can easily
     // discover and invoke e.g. ./haveno-desktop, ./haveno-seednode, etc.
     // See https://stackoverflow.com/q/46327736 for details.
 
-    installDist {
+    def havenoScriptName = "haveno-${project.name}"
+
+    tasks.named('installDist', Sync).configure {
+        into layout.buildDirectory.dir('app')
         doLast {
+            def installDir = layout.buildDirectory.dir('app').get().asFile
             // copy generated shell scripts, e.g. `haveno-desktop` directly to the project
             // root directory for discoverability and ease of use
 
             copy {
-                from "$destinationDir/bin"
-                into rootProject.projectDir
+                from "$installDir/bin"
+                into rootProject.layout.projectDirectory
             }
             // copy libs required for generated shell script classpaths to 'lib' dir under
             // the project root directory
             copy {
-                from "$destinationDir/lib"
-                into "${rootProject.projectDir}/lib"
+                from "$installDir/lib"
+                into rootProject.layout.projectDirectory.dir('lib')
             }
 
             // edit generated shell scripts such that they expect to be executed in the
             // project root dir as opposed to a 'bin' subdirectory
             if (osdetector.os == 'windows') {
-                def windowsScriptFile = file("${rootProject.projectDir}/haveno-${applicationName}.bat")
+                def windowsScriptFile = rootProject.layout.projectDirectory.file("${havenoScriptName}.bat").asFile
                 windowsScriptFile.text = windowsScriptFile.text.replace(
                     'set APP_HOME=%DIRNAME%..', 'set APP_HOME=%DIRNAME%')
+            } else {
+                rootProject.ext.patchDesktopAppHome(
+                        rootProject.layout.projectDirectory.file(havenoScriptName).asFile)
+            }
 
-                if (applicationName == 'desktop') {
-                    windowsScriptFile.text = windowsScriptFile.text.replace(
-                        'DEFAULT_JVM_OPTS=', 'DEFAULT_JVM_OPTS=-XX:MaxRAM=4g ' +
-                            '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
-                            '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
-                            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
-                            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED')
+            if (osdetector.os != 'windows') {
+                def staleBat = rootProject.layout.projectDirectory.file("${havenoScriptName}.bat").asFile
+                if (staleBat.exists()) {
+                    staleBat.delete()
+                }
+            } else {
+                def staleSh = rootProject.layout.projectDirectory.file(havenoScriptName).asFile
+                if (staleSh.exists()) {
+                    staleSh.delete()
                 }
             }
-            else {
-                def unixScriptFile = file("${rootProject.projectDir}/haveno-$applicationName")
-                unixScriptFile.text = unixScriptFile.text.replace(
-                    'APP_HOME=$( cd "${APP_HOME:-./}.." > /dev/null && pwd -P ) || exit', 'APP_HOME=$( cd "${APP_HOME:-./}" > /dev/null && pwd -P ) || exit')
-
-                if (applicationName == 'desktop') {
-                    unixScriptFile.text = unixScriptFile.text.replace(
-                        'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="-XX:MaxRAM=4g ' +
-                            '--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED ' +
-                            '--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED ' +
-                            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ' +
-                            '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"')
-                }
-            }
-
-            if (applicationName == 'apitest') {
-                // Pass the logback config file as a system property to avoid chatty
-                // logback startup due to multiple logback.xml files in the classpath
-                // (:daemon & :cli).
-                def script = file("${rootProject.projectDir}/haveno-$applicationName")
-                script.text = script.text.replace(
-                    'DEFAULT_JVM_OPTS=""', 'DEFAULT_JVM_OPTS="' +
-                    '-Dlogback.configurationFile=apitest/build/resources/main/logback.xml"')
-            }
-
-            if (osdetector.os != 'windows')
-                delete fileTree(dir: rootProject.projectDir, include: 'haveno-*.bat')
-            else
-                delete fileTree(dir: rootProject.projectDir, include: 'haveno-*', exclude: '*.bat')
         }
     }
 
-    startScripts {
+    tasks.named('startScripts', CreateStartScripts).configure {
         // rename scripts from, e.g. `desktop` to `haveno-desktop`
-        applicationName = "haveno-$applicationName"
+        applicationName = havenoScriptName
     }
 }
 
@@ -225,36 +360,42 @@ configure(project(':proto')) {
     apply plugin: 'com.google.protobuf'
 
     dependencies {
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("io.grpc:grpc-protobuf:$grpcVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.javax.annotation.api
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation libs.guava
+        implementation libs.protobuf.java
+        implementation libs.slf4j.api
+        implementation(libs.grpc.protobuf) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        implementation("io.grpc:grpc-stub:$grpcVersion") {
+        implementation(libs.grpc.stub) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
     }
 
     sourceSets.main.java.srcDirs += [
-        'build/generated/source/proto/main/grpc',
-        'build/generated/source/proto/main/java'
+        'build/generated/sources/proto/main/grpc',
+        'build/generated/sources/proto/main/java'
     ]
+
+    tasks.named('compileJava').configure {
+        dependsOn(tasks.named('generateProto'))
+    }
 
     protobuf {
         protoc {
-            artifact = "com.google.protobuf:protoc:${protocVersion}"
+            // consumed as a raw coordinate string by the protobuf plugin, so reference the
+            // catalog version directly rather than a library accessor
+            artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"
         }
         plugins {
             grpc {
-                artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+                artifact = "io.grpc:protoc-gen-grpc-java:${libs.versions.grpc.get()}"
             }
         }
         generateProtoTasks {
@@ -265,7 +406,7 @@ configure(project(':proto')) {
 
 configure(project(':assets')) {
     dependencies {
-        implementation("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        implementation(libs.bitcoinj) {
             exclude(module: 'bcprov-jdk15on')
             exclude(module: 'guava')
             exclude(module: 'jsr305')
@@ -274,25 +415,27 @@ configure(project(':assets')) {
             exclude(module: 'protobuf-java')
             exclude(module: 'slf4j-api')
         }
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+        implementation libs.guava
+        implementation libs.commons.lang3
+        implementation libs.slf4j.api
+        testImplementation libs.hamcrest
+        testImplementation libs.junit.jupiter.api
+        testRuntimeOnly libs.junit.jupiter.engine
     }
 }
 
 
 configure(project(':common')) {
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
+
     dependencies {
         implementation project(':proto')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.javax.annotation.api
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation(libs.bitcoinj) {
             exclude(module: 'jsr305')
             exclude(module: 'slf4j-api')
             exclude(module: 'guava')
@@ -301,60 +444,60 @@ configure(project(':common')) {
             exclude(module: 'okhttp')
             exclude(module: 'okio')
         }
-        implementation "com.google.code.findbugs:jsr305:$findbugsVersion"
-        implementation "com.google.code.gson:gson:$gsonVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation("com.google.inject:guice:$guiceVersion") {
+        implementation libs.findbugs.jsr305
+        implementation libs.gson
+        implementation libs.guava
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
-        implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-        implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "commons-io:commons-io:$ioVersion"
-        implementation "net.sf.jopt-simple:jopt-simple:$joptVersion"
-        implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.bouncycastle:bcpg-jdk15on:$bcVersion"
-        implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
-        runtimeOnly("io.grpc:grpc-netty-shaded:$grpcVersion") {
+        implementation libs.kotlin.stdlib.jdk8
+        implementation libs.protobuf.java
+        implementation libs.commons.io
+        implementation libs.jopt.simple
+        implementation libs.commons.lang3
+        implementation libs.bcpg.jdk18on
+        implementation libs.jetbrains.annotations
+        implementation libs.slf4j.api
+        testImplementation libs.hamcrest
+        testImplementation libs.junit.jupiter.api
+        testRuntimeOnly libs.junit.jupiter.engine
+        runtimeOnly(libs.grpc.netty.shaded) {
             exclude(module: 'guava')
             exclude(module: 'animal-sniffer-annotations')
         }
 
         // override transitive dependency and use latest version from haveno
         implementation(group: 'com.github.haveno-dex', name: 'jtorctl') { version { strictly "[d38f9e8b9598dec3eeda8c6139bdfd66e27b8bd1]" } }
-        implementation "org.openjfx:javafx-base:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
     }
 }
 
 configure(project(':p2p')) {
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
+
     dependencies {
         implementation project(':proto')
         implementation project(':common')
-        implementation("io.github.woodser:monero-java:$moneroJavaVersion") {
+        implementation(libs.monero.java) {
             exclude(module: 'jackson-core')
             exclude(module: 'jackson-annotations')
             exclude(module: 'jackson-databind')
             exclude(module: 'bcprov-jdk15on')
             exclude(group: 'org.slf4j', module: 'slf4j-simple')
         }
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "org.fxmisc.easybind:easybind:$easybindVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation("com.github.haveno-dex.netlayer:tor.external:$netlayerVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.lombok
+        implementation libs.guava
+        implementation libs.protobuf.java
+        implementation libs.easybind
+        implementation libs.slf4j.api
+        implementation libs.commons.lang3
+        implementation(libs.netlayer.tor.external) {
             exclude(module: 'slf4j-api')
         }
-        implementation("com.github.haveno-dex.netlayer:tor.native:$netlayerVersion") {
+        implementation(libs.netlayer.tor.native) {
             exclude(module: 'slf4j-api')
         }
-        implementation("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        implementation(libs.bitcoinj) {
             exclude(module: 'bcprov-jdk15on')
             exclude(module: 'guava')
             exclude(module: 'jsr305')
@@ -363,63 +506,63 @@ configure(project(':p2p')) {
             exclude(module: 'protobuf-java')
             exclude(module: 'slf4j-api')
         }
-        implementation("com.google.inject:guice:$guiceVersion") {
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
-        implementation("org.apache.httpcomponents:httpclient:$httpclientVersion") {
+        implementation(libs.httpclient5) {
             exclude(module: 'commons-codec')
         }
-        testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
-        testImplementation "ch.qos.logback:logback-classic:$logbackVersion"
-        testImplementation "ch.qos.logback:logback-core:$logbackVersion"
-        testImplementation "org.apache.commons:commons-lang3:$langVersion"
-        testImplementation("org.mockito:mockito-core:$mockitoVersion")
-        testImplementation("org.mockito:mockito-junit-jupiter:$mockitoVersion")
-
-        implementation "org.openjfx:javafx-base:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
+        implementation libs.httpcore5
+        testAnnotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testImplementation libs.junit.jupiter.api
+        testImplementation libs.junit.jupiter.params
+        testRuntimeOnly libs.junit.jupiter.engine
+        testImplementation libs.logback.classic
+        testImplementation libs.logback.core
+        testImplementation libs.commons.lang3
+        testImplementation libs.mockito.core
+        testImplementation libs.mockito.junit.jupiter
     }
 }
 
 configure(project(':core')) {
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
+
     dependencies {
         implementation project(':proto')
         implementation project(':assets')
         implementation project(':common')
         implementation project(':p2p')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
-        implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
-        implementation "com.google.code.findbugs:jsr305:$findbugsVersion"
-        implementation "com.google.code.gson:gson:$gsonVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "commons-codec:commons-codec:$codecVersion"
-        implementation "commons-io:commons-io:$ioVersion"
-        implementation "net.sf.jopt-simple:jopt-simple:$joptVersion"
-        implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.apache.httpcomponents:httpcore:$httpcoreVersion"
-        implementation "org.fxmisc.easybind:easybind:$easybindVersion"
-        implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.javax.annotation.api
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation libs.jackson.core
+        implementation libs.jackson.annotations
+        implementation libs.findbugs.jsr305
+        implementation libs.gson
+        implementation libs.guava
+        implementation libs.protobuf.java
+        implementation libs.commons.codec
+        implementation libs.commons.io
+        implementation libs.jopt.simple
+        implementation libs.commons.lang3
+        implementation libs.httpcore5
+        implementation libs.easybind
+        implementation libs.jetbrains.annotations
+        implementation libs.slf4j.api
+        implementation(libs.jackson.databind) {
             exclude(module: 'jackson-annotations')
         }
-        implementation("com.github.haveno-dex.netlayer:tor.native:$netlayerVersion") {
+        implementation(libs.netlayer.tor.native) {
             exclude(module: 'slf4j-api')
         }
-        implementation("com.github.haveno-dex.netlayer:tor.external:$netlayerVersion") {
+        implementation(libs.netlayer.tor.external) {
             exclude(module: 'slf4j-api')
         }
-        implementation("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        implementation(libs.bitcoinj) {
             exclude(module: 'bcprov-jdk15on')
             exclude(module: 'guava')
             exclude(module: 'jsr305')
@@ -428,27 +571,26 @@ configure(project(':core')) {
             exclude(module: 'protobuf-java')
             exclude(module: 'slf4j-api')
         }
-        implementation("com.github.bisq-network:jsonrpc4j:$jsonrpc4jVersion") {
+        implementation(libs.jsonrpc4j) {
             exclude(module: 'base64')
             exclude(module: 'httpcore-nio')
         }
-        implementation("com.google.inject:guice:$guiceVersion") {
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
-        implementation("org.apache.httpcomponents:httpclient:$httpclientVersion") {
+        implementation(libs.httpclient5) {
             exclude(module: 'commons-codec')
         }
-        testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
-        testImplementation "com.natpryce:make-it-easy:$easyVersion"
-        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
-        testImplementation "org.mockito:mockito-core:$mockitoVersion"
+        implementation libs.httpcore5
+        testAnnotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testImplementation libs.make.it.easy
+        testImplementation libs.hamcrest
+        testImplementation libs.junit.jupiter.api
+        testRuntimeOnly libs.junit.jupiter.engine
+        testImplementation libs.mockito.core
 
-        implementation "org.openjfx:javafx-base:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
-        implementation("io.github.woodser:monero-java:$moneroJavaVersion") {
+        implementation(libs.monero.java) {
             exclude(module: 'jackson-core')
             exclude(module: 'jackson-annotations')
             exclude(module: 'jackson-databind')
@@ -460,6 +602,9 @@ configure(project(':core')) {
     test {
         systemProperty 'jdk.attach.allowAttachSelf', true
     }
+
+    def repoRootDirectory = rootProject.layout.projectDirectory
+    def moneroBinDirectory = layout.projectDirectory.dir('src/main/resources/bin')
 
     task generateKeypairs(type: JavaExec) {
         mainClass = 'haveno.core.util.GenerateKeyPairs'
@@ -497,8 +642,7 @@ configure(project(':core')) {
             String moneroDownloadUrl = moneroBinaries[osKey]
             String moneroSHA256Hash = moneroBinaries[osKey + '-sha256']
             String moneroArchiveFileName = moneroDownloadUrl.tokenize('/').last()
-            String localnetDirName = '.localnet'
-            File localnetDir = new File(project.rootDir, localnetDirName)
+            File localnetDir = repoRootDirectory.dir('.localnet').asFile
             localnetDir.mkdirs()
             File moneroArchiveFile = new File(localnetDir, moneroArchiveFileName)
             ext.downloadAndVerifyDependencies(moneroDownloadUrl, moneroSHA256Hash, moneroArchiveFile)
@@ -523,12 +667,12 @@ configure(project(':core')) {
 
             // add the current platform's monero dependencies into the resources folder for installation
             copy {
-                from "${monerodFile}"
-                into "${project(':core').projectDir}/src/main/resources/bin"
+                from monerodFile
+                into moneroBinDirectory
             }
             copy {
-                from "${moneroRpcFile}"
-                into "${project(':core').projectDir}/src/main/resources/bin"
+                from moneroRpcFile
+                into moneroBinDirectory
             }
         }
 
@@ -581,61 +725,83 @@ configure(project(':core')) {
         }
     }
 
-    processResources.dependsOn havenoDeps // before both test and build
+    tasks.named('processResources').configure {
+        dependsOn tasks.named('havenoDeps') // before both test and build
+    }
 }
 
 configure(project(':cli')) {
-    mainClassName = 'haveno.cli.CliMain'
+    application {
+        mainClass = 'haveno.cli.CliMain'
+    }
 
     dependencies {
         implementation project(':proto')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "net.sf.jopt-simple:jopt-simple:$joptVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("io.grpc:grpc-core:$grpcVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation libs.guava
+        implementation libs.protobuf.java
+        implementation libs.jopt.simple
+        implementation libs.slf4j.api
+        implementation(libs.grpc.core) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        implementation("io.grpc:grpc-stub:$grpcVersion") {
+        implementation(libs.grpc.stub) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        runtimeOnly("io.grpc:grpc-netty-shaded:$grpcVersion") {
+        runtimeOnly(libs.grpc.netty.shaded) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
-        testImplementation "org.bitbucket.cowwoc:diff-match-patch:$cowwocVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
-        testRuntimeOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+        testAnnotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testImplementation libs.diff.match.patch
+        testImplementation libs.junit.jupiter.api
+        testImplementation libs.junit.jupiter.params
+        testRuntimeOnly libs.javax.annotation.api
+        testRuntimeOnly libs.junit.jupiter.engine
     }
 }
 
 configure(project(':desktop')) {
-    apply plugin: 'com.github.johnrengelman.shadow'
+    rootProject.ext.applyJavaFx(project, ['javafx.controls', 'javafx.fxml', 'javafx.swing', 'javafx.base', 'javafx.graphics'])
+
+    apply plugin: 'com.gradleup.shadow'
     apply from: 'package/package.gradle'
 
-    version = '1.8.0-SNAPSHOT'
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoDesktopJvmArgs
+        mainClass = 'haveno.desktop.app.HavenoAppMain'
+    }
+
+    startScripts {
+        doLast {
+            rootProject.ext.patchDesktopAppHome(unixScript)
+            rootProject.ext.patchDesktopStartScript(unixScript, ':')
+            rootProject.ext.patchDesktopAppHome(windowsScript)
+            rootProject.ext.patchDesktopStartScript(windowsScript, ';')
+        }
+    }
+
+    tasks.named('run', JavaExec).configure {
+        doFirst {
+            def allFiles = classpath.files
+            def javafxFiles = allFiles.findAll { it.name.startsWith('javafx-') && it.name.endsWith('.jar') }
+            classpath = files(allFiles - javafxFiles.toSet())
+            jvmArgs += ['--module-path', javafxFiles.collect { it.absolutePath }.join(File.pathSeparator)]
+        }
+    }
+
+    version = libs.versions.haveno.desktop.get()
 
     jar.manifest.attributes(
         "Implementation-Title": project.name,
         "Implementation-Version": version,
         "CFBundleVersion": version)
-
-    mainClassName = 'haveno.desktop.app.HavenoAppMain'
-
-    tasks.withType(AbstractArchiveTask) {
-        preserveFileTimestamps = false
-        reproducibleFileOrder = true
-    }
 
     sourceSets.main.resources.srcDirs += ['src/main/java'] // to copy fxml and css files
 
@@ -645,26 +811,27 @@ configure(project(':desktop')) {
         implementation project(':proto')
         implementation project(':p2p')
         implementation project(':core')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation "com.google.code.gson:gson:$gsonVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "com.googlecode.jcsv:jcsv:$jcsvVersion"
-        implementation "com.jfoenix:jfoenix:$jfoenixVersion"
-        implementation "commons-io:commons-io:$ioVersion"
-        implementation "de.jensd:fontawesomefx-commons:$fontawesomefxCommonsVersion"
-        implementation "de.jensd:fontawesomefx-materialdesignfont:$fontawesomefxMaterialdesignfontVersion"
-        implementation "de.jensd:fontawesomefx:$fontawesomefxVersion"
-        implementation "net.glxn:qrgen:$qrgenVersion"
-        implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.bouncycastle:bcpg-jdk15on:$bcVersion"
-        implementation "org.fxmisc.easybind:easybind:$easybindVersion"
-        implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation libs.gson
+        implementation libs.guava
+        implementation libs.protobuf.java
+        implementation libs.zxing.core
+        implementation libs.zxing.javase
+        implementation libs.jfoenix
+        implementation libs.commons.io
+        implementation libs.fontawesomefx.commons
+        implementation libs.fontawesomefx.fontawesome
+        implementation libs.fontawesomefx.materialdesignfont
+        implementation libs.commons.csv
+        implementation libs.commons.lang3
+        implementation libs.bcpg.jdk18on
+        implementation libs.easybind
+        implementation libs.jetbrains.annotations
+        implementation libs.slf4j.api
+        implementation(libs.bitcoinj) {
             exclude(module: 'bcprov-jdk15on')
             exclude(module: 'guava')
             exclude(module: 'jsr305')
@@ -673,178 +840,174 @@ configure(project(':desktop')) {
             exclude(module: 'protobuf-java')
             exclude(module: 'slf4j-api')
         }
-        implementation("com.google.inject:guice:$guiceVersion") {
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
-        testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
-        testImplementation "com.natpryce:make-it-easy:$easyVersion"
-        testImplementation "org.mockito:mockito-core:$mockitoVersion"
-        testImplementation "org.hamcrest:hamcrest:$hamcrestVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+        testAnnotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testImplementation libs.make.it.easy
+        testImplementation libs.mockito.core
+        testImplementation libs.hamcrest
+        testImplementation libs.junit.jupiter.api
+        testRuntimeOnly libs.junit.jupiter.engine
 
-        implementation("io.github.woodser:monero-java:$moneroJavaVersion") {
+        implementation(libs.monero.java) {
             exclude(module: 'jackson-core')
             exclude(module: 'jackson-annotations')
             exclude(module: 'jackson-databind')
             exclude(module: 'bcprov-jdk15on')
             exclude(group: 'org.slf4j', module: 'slf4j-simple')
         }
-        implementation "org.openjfx:javafx-controls:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-fxml:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-swing:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-base:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
-
-        // verification-only dependencies
-        javafxVerification "org.openjfx:javafx-controls:$javafxVersion:mac"
-        javafxVerification "org.openjfx:javafx-controls:$javafxVersion:mac-aarch64"
-        javafxVerification "org.openjfx:javafx-controls:$javafxVersion:win"
-        javafxVerification "org.openjfx:javafx-controls:$javafxVersion:linux"
-
-        javafxVerification "org.openjfx:javafx-fxml:$javafxVersion:mac"
-        javafxVerification "org.openjfx:javafx-fxml:$javafxVersion:mac-aarch64"
-        javafxVerification "org.openjfx:javafx-fxml:$javafxVersion:win"
-        javafxVerification "org.openjfx:javafx-fxml:$javafxVersion:linux"
-
-        javafxVerification "org.openjfx:javafx-swing:$javafxVersion:mac"
-        javafxVerification "org.openjfx:javafx-swing:$javafxVersion:mac-aarch64"
-        javafxVerification "org.openjfx:javafx-swing:$javafxVersion:win"
-        javafxVerification "org.openjfx:javafx-swing:$javafxVersion:linux"
-
-        javafxVerification "org.openjfx:javafx-base:$javafxVersion:mac"
-        javafxVerification "org.openjfx:javafx-base:$javafxVersion:mac-aarch64"
-        javafxVerification "org.openjfx:javafx-base:$javafxVersion:win"
-        javafxVerification "org.openjfx:javafx-base:$javafxVersion:linux"
-
-        javafxVerification "org.openjfx:javafx-graphics:$javafxVersion:mac"
-        javafxVerification "org.openjfx:javafx-graphics:$javafxVersion:mac-aarch64"
-        javafxVerification "org.openjfx:javafx-graphics:$javafxVersion:win"
-        javafxVerification "org.openjfx:javafx-graphics:$javafxVersion:linux"
+        // Verification-only, all-platform coordinates so every platform's JavaFX checksums are recorded; not resolved by any task.
+        ['mac', 'mac-aarch64', 'win', 'linux', 'linux-aarch64'].each { platform ->
+            ['controls', 'fxml', 'swing', 'base', 'graphics'].each { module ->
+                javafxVerification "org.openjfx:javafx-${module}:${libs.versions.javafx.get()}:${platform}"
+            }
+        }
     }
 
     test {
+        jvmArgs = rootProject.ext.havenoDesktopJvmArgs
         systemProperty 'jdk.attach.allowAttachSelf', true
     }
 }
 
 
 configure(project(':monitor')) {
-    mainClassName = 'haveno.monitor.Monitor'
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
+
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoMonitorJvmArgs
+        mainClass = 'haveno.monitor.Monitor'
+    }
 
     dependencies {
         implementation project(':assets')
         implementation project(':common')
         implementation project(':core')
         implementation project(':p2p')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("com.github.haveno-dex.netlayer:tor.external:$netlayerVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation libs.guava
+        implementation libs.slf4j.api
+        implementation(libs.netlayer.tor.external) {
             exclude(module: 'slf4j-api')
         }
-        implementation("com.github.haveno-dex.netlayer:tor.native:$netlayerVersion") {
+        implementation(libs.netlayer.tor.native) {
             exclude(module: 'slf4j-api')
         }
-        implementation("com.google.inject:guice:$guiceVersion") {
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
-        testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
-
-        implementation "org.openjfx:javafx-base:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
+        testAnnotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testImplementation libs.junit.jupiter.api
+        testImplementation libs.junit.jupiter.params
+        testRuntimeOnly libs.junit.jupiter.engine
     }
 }
 
 
 configure(project(':relay')) {
-    mainClassName = 'haveno.relay.RelayMain'
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
+
+    application {
+        mainClass = 'haveno.relay.RelayMain'
+    }
 
     dependencies {
         implementation project(':common')
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation("com.google.firebase:firebase-admin:$firebaseVersion") {
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation(libs.firebase.admin) {
             exclude(module: 'commons-logging')
             exclude(module: 'grpc-auth')
             exclude(module: 'httpclient')
             exclude(module: 'httpcore')
         }
-        implementation "com.sparkjava:spark-core:$sparkVersion"
-        implementation "com.turo:pushy:$pushyVersion"
-        implementation "commons-codec:commons-codec:$codecVersion"
-        implementation "io.grpc:grpc-auth:$grpcVersion"
+        implementation libs.spark.core
+        implementation libs.pushy
+        implementation libs.commons.codec
+        implementation libs.grpc.auth
     }
 }
 
 
 configure(project(':seednode')) {
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'com.gradleup.shadow'
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
 
-    mainClassName = 'haveno.seednode.SeedNodeMain'
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoSeednodeJvmArgs
+        mainClass = 'haveno.seednode.SeedNodeMain'
+    }
 
     dependencies {
         implementation project(':common')
         implementation project(':p2p')
         implementation project(':core')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("com.google.inject:guice:$guiceVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.lombok
+        implementation libs.guava
+        implementation libs.slf4j.api
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
-        testImplementation "org.mockito:mockito-core:$mockitoVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+        testImplementation libs.mockito.core
+        testImplementation libs.junit.jupiter.api
+        testRuntimeOnly libs.junit.jupiter.engine
     }
 }
 
 
 configure(project(':statsnode')) {
-    mainClassName = 'haveno.statistics.StatisticsMain'
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
+
+    application {
+        mainClass = 'haveno.statistics.StatisticsMain'
+    }
 
     dependencies {
         implementation project(':common')
         implementation project(':p2p')
         implementation project(':core')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("com.google.inject:guice:$guiceVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.lombok
+        implementation libs.slf4j.api
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
     }
 }
 
 configure(project(':daemon')) {
-    mainClassName = 'haveno.daemon.app.HavenoDaemonMain'
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
+
+    application {
+        mainClass = 'haveno.daemon.app.HavenoDaemonMain'
+    }
+
+    apply plugin: 'com.gradleup.shadow'
 
     dependencies {
         implementation project(':proto')
         implementation project(':common')
         implementation project(':p2p')
         implementation project(':core')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation "com.google.code.gson:gson:$gsonVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.javax.annotation.api
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation libs.gson
+        implementation libs.guava
+        implementation libs.protobuf.java
+        implementation libs.commons.lang3
+        implementation libs.jetbrains.annotations
+        implementation libs.slf4j.api
+        implementation(libs.bitcoinj) {
             exclude(module: 'bcprov-jdk15on')
             exclude(module: 'guava')
             exclude(module: 'jsr305')
@@ -853,63 +1016,69 @@ configure(project(':daemon')) {
             exclude(module: 'protobuf-java')
             exclude(module: 'slf4j-api')
         }
-        implementation("com.google.inject:guice:$guiceVersion") {
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
-        implementation("io.grpc:grpc-protobuf:$grpcVersion") {
+        implementation(libs.grpc.protobuf) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        implementation("io.grpc:grpc-stub:$grpcVersion") {
+        implementation(libs.grpc.stub) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        runtimeOnly("io.grpc:grpc-netty-shaded:$grpcVersion") {
+        runtimeOnly(libs.grpc.netty.shaded) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
-        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
+        testAnnotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testImplementation libs.junit.jupiter.api
+        testImplementation libs.junit.jupiter.params
+        testRuntimeOnly(libs.junit.jupiter.engine)
 
-        implementation("io.github.woodser:monero-java:$moneroJavaVersion") {
+        implementation(libs.monero.java) {
             exclude(module: 'jackson-core')
             exclude(module: 'jackson-annotations')
             exclude(module: 'jackson-databind')
             exclude(module: 'bcprov-jdk15on')
             exclude(group: 'org.slf4j', module: 'slf4j-simple')
         }
-        implementation "org.openjfx:javafx-base:$javafxVersion:$os"
-        implementation "org.openjfx:javafx-graphics:$javafxVersion:$os"
     }
 }
 
 configure(project(':inventory')) {
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'com.gradleup.shadow'
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
 
-    mainClassName = 'haveno.inventory.InventoryMonitorMain'
+    application {
+        mainClass = 'haveno.inventory.InventoryMonitorMain'
+    }
 
     dependencies {
         implementation project(':common')
         implementation project(':p2p')
         implementation project(':core')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.sparkjava:spark-core:$sparkVersion"
-        implementation "org.jetbrains:annotations:$jetbrainsAnnotationsVersion"
-        implementation("com.google.inject:guice:$guiceVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation libs.guava
+        implementation libs.spark.core
+        implementation libs.jetbrains.annotations
+        implementation(libs.guice) {
             exclude(module: 'guava')
         }
     }
 }
 
 configure(project(':apitest')) {
-    mainClassName = 'haveno.apitest.ApiTestMain'
+    rootProject.ext.applyJavaFx(project, ['javafx.base', 'javafx.graphics'])
+
+    application {
+        applicationDefaultJvmArgs = rootProject.ext.havenoApitestLauncherJvmArgs
+        mainClass = 'haveno.apitest.ApiTestMain'
+    }
 
     // We have to disable the :apitest 'test' task by default because we do not want
     // to interfere with normal builds.  To run JUnit tests in this subproject:
@@ -924,7 +1093,7 @@ configure(project(':apitest')) {
             exceptionFormat = "full"
             // Show passed & failed tests, and anything printed to stderr by the tests in the console.
             // Do not show skipped tests in the console;  they are shown in the html report.
-            events "passed", "failed", "standardError"
+            events = ["passed", "failed", "standardError"]
         }
 
         afterSuite { desc, result ->
@@ -954,18 +1123,18 @@ configure(project(':apitest')) {
         implementation project(':desktop')
         implementation project(':daemon')
         implementation project(':cli')
-        annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        compileOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        compileOnly "org.projectlombok:lombok:$lombokVersion"
-        implementation "ch.qos.logback:logback-classic:$logbackVersion"
-        implementation "ch.qos.logback:logback-core:$logbackVersion"
-        implementation "com.google.code.gson:gson:$gsonVersion"
-        implementation "com.google.guava:guava:$guavaVersion"
-        implementation "com.google.protobuf:protobuf-java:$protobufVersion"
-        implementation "net.sf.jopt-simple:jopt-simple:$joptVersion"
-        implementation "org.apache.commons:commons-lang3:$langVersion"
-        implementation "org.slf4j:slf4j-api:$slf4jVersion"
-        implementation("com.github.bisq-network:bitcoinj:$bitcoinjVersion") {
+        annotationProcessor libs.lombok
+        compileOnly libs.javax.annotation.api
+        compileOnly libs.lombok
+        implementation libs.logback.classic
+        implementation libs.logback.core
+        implementation libs.gson
+        implementation libs.guava
+        implementation libs.protobuf.java
+        implementation libs.jopt.simple
+        implementation libs.commons.lang3
+        implementation libs.slf4j.api
+        implementation(libs.bitcoinj) {
             exclude(module: 'bcprov-jdk15on')
             exclude(module: 'guava')
             exclude(module: 'jsr305')
@@ -974,20 +1143,33 @@ configure(project(':apitest')) {
             exclude(module: 'protobuf-java')
             exclude(module: 'slf4j-api')
         }
-        implementation("io.grpc:grpc-protobuf:$grpcVersion") {
+        implementation(libs.grpc.protobuf) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        implementation("io.grpc:grpc-stub:$grpcVersion") {
+        implementation(libs.grpc.stub) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
-        testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
-        testCompileOnly "org.projectlombok:lombok:$lombokVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-        testImplementation "org.junit.jupiter:junit-jupiter-params:$jupiterVersion"
-        testRuntimeOnly "javax.annotation:javax.annotation-api:$javaxAnnotationVersion"
-        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+        testAnnotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testImplementation libs.junit.jupiter.api
+        testImplementation libs.junit.jupiter.params
+        testRuntimeOnly libs.javax.annotation.api
+        testRuntimeOnly libs.junit.jupiter.engine
+    }
+}
+
+// Reproducible fat JARs for release packaging (daemon, desktop, seednode, inventory)
+configure([project(':daemon'), project(':desktop'), project(':seednode'), project(':inventory')]) {
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+
+    tasks.named('shadowJar').configure {
+        archiveClassifier.set('all')
+        mergeServiceFiles()
     }
 }
 

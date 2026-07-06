@@ -400,8 +400,8 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     }
 
     /**
-     * Generic function that can be used to filter a Map<ByteArray, ProtectedStorageEntry || PersistableNetworkPayload>
-     * by a given set of keys and peer capabilities.
+     * Generic function that can be used to filter a map of {@code ProtectedStorageEntry}
+     * or {@code PersistableNetworkPayload} values by a given set of keys and peer capabilities.
      */
     static private <T extends NetworkPayload> Set<T> filterKnownHashes(
             Map<ByteArray, T> toFilter,
