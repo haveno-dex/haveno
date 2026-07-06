@@ -153,6 +153,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         this.xmrNodesFromOptions = xmrNodesFromOptions;
         this.xmrNodes = xmrNodes;
 
+        // css theme is stored globally and unencrypted so it can be applied before login without a theme flash
+        Integer cssThemeFromSettings = readCssThemeFromSettings();
+        if (cssThemeFromSettings != null) applyCssTheme(cssThemeFromSettings);
+
         useAnimationsProperty.addListener((ov) -> {
             prefPayload.setUseAnimations(useAnimationsProperty.get());
             GlobalSettings.setUseAnimations(prefPayload.isUseAnimations());
@@ -161,7 +165,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         cssThemeProperty.addListener((ov) -> {
             prefPayload.setCssTheme(cssThemeProperty.get());
-            requestPersistence();
+            writeCssThemeToSettings(cssThemeProperty.get());
         });
 
         useStandbyModeProperty.addListener((ov) -> {
@@ -272,7 +276,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         useAnimationsProperty.set(prefPayload.isUseAnimations());
         useStandbyModeProperty.set(prefPayload.isUseStandbyMode());
         useSoundForNotificationsProperty.set(prefPayload.isUseSoundForNotifications());
-        cssThemeProperty.set(prefPayload.getCssTheme());
+
+        // read the css theme from the unencrypted store, migrating from the encrypted payload on first run
+        Integer cssThemeFromSettings = readCssThemeFromSettings();
+        int cssTheme = cssThemeFromSettings != null ? cssThemeFromSettings : prefPayload.getCssTheme();
+        applyCssTheme(cssTheme);
+        writeCssThemeToSettings(cssTheme);
 
 
         // if no valid Monero block explorer is set, select the 1st valid Monero block explorer
@@ -372,6 +381,29 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     public void setCssTheme(boolean useDarkMode) {
         this.cssThemeProperty.set(useDarkMode ? 1 : 0);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Css theme is kept in the unencrypted StartupSettings store so it can be applied before login
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private void applyCssTheme(int cssTheme) {
+        prefPayload.setCssTheme(cssTheme);
+        cssThemeProperty.set(cssTheme);
+    }
+
+    private Integer readCssThemeFromSettings() {
+        if (config == null) return null; // config is stubbed as null in some tests
+        return StartupSettings.read(config.appDataDir).getAsOptionalBoolean(CookieKey.CSS_THEME)
+                .map(useDarkMode -> useDarkMode ? 1 : 0)
+                .orElse(null);
+    }
+
+    private void writeCssThemeToSettings(int cssTheme) {
+        if (config == null) return; // config is stubbed as null in some tests
+        Cookie updates = new Cookie();
+        updates.putAsBoolean(CookieKey.CSS_THEME, cssTheme == 1);
+        StartupSettings.write(config.appDataDir, updates);
     }
 
     public void addTraditionalCurrency(TraditionalCurrency tradeCurrency) {

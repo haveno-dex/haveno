@@ -931,6 +931,22 @@ tree-table-view:focused {
     -fx-prompt-text-fill: derive(-bs-prompt-text, -30%);
 }
 
+.login-password-field {
+    -fx-background-color: -bs-login-field-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 8, 6.5;
+    -fx-padding: 10 13 10 13;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.login-password-field:focused {
+    -fx-background-color: -bs-color-primary, -fx-control-inner-background;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 8, 6.5;
+    -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 12, 0, 0, 0);
+}
+
 .text-area {
     -fx-prompt-text-fill: derive(-bs-prompt-text, -30%);
 }
