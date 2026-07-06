@@ -527,7 +527,11 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatPopupStage.setTitle(Res.get("tradeChat.chatWindowTitle", trade.getShortId()));
         StackPane owner = MainView.getRootContainer();
         Scene rootScene = owner.getScene();
-        chatPopupStage.initOwner(rootScene.getWindow());
+        // initOwner makes the Stage a transient child of the main window - most
+        // Linux WMs (GNOME/Mutter, KFW) then drop the minimise/maximise buttons
+        // for that window and only render the close 'X'. Skip owner so chat is
+        // a top-level Stage with full WM decoration. The price is a separate
+        // entry in the alt-tab list, which is fine for a persistent chat.
         chatPopupStage.initModality(Modality.NONE);
         chatPopupStage.initStyle(StageStyle.DECORATED);
         chatPopupStage.setOnHiding(event -> {
@@ -563,6 +567,14 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         });
         chatPopupStage.setScene(scene);
 
+        // Without explicit sizing the Stage opens at the Scene's preferred size
+        // (tiny - ChatView's intrinsic minHeight is 150 + textarea 70), and the
+        // WM maximize button stays inert because there's no geometry hint. Match
+        // the dispute chat popup sizing so trade + mediation chats look the same.
+        chatPopupStage.setWidth(700);
+        chatPopupStage.setHeight(800);
+        chatPopupStage.setMinWidth(450);
+        chatPopupStage.setMinHeight(500);
         chatPopupStage.setOpacity(0);
         chatPopupStage.show();
 

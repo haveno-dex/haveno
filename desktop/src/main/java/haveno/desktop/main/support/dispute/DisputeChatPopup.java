@@ -136,7 +136,11 @@ public class DisputeChatPopup {
                 + " " + selectedDispute.getRoleString());
         StackPane owner = MainView.getRootContainer();
         Scene rootScene = owner.getScene();
-        chatPopupStage.initOwner(rootScene.getWindow());
+        // initOwner makes the Stage a transient child of the main window - most
+        // Linux WMs (GNOME/Mutter, KFW) then drop the minimise/maximise buttons
+        // for that window and only render the close 'X'. Skip owner so chat is
+        // a top-level Stage with full WM decoration. The price is a separate
+        // entry in the alt-tab list, which is fine for a persistent chat.
         chatPopupStage.initModality(Modality.NONE);
         chatPopupStage.initStyle(StageStyle.DECORATED);
         chatPopupStage.setOnHiding(event -> {
@@ -156,6 +160,15 @@ public class DisputeChatPopup {
             }
         });
         chatPopupStage.setScene(scene);
+        // Without explicit sizing the Stage opens at the Scene's preferred size,
+        // which for ChatView is ~200x300 px (and the maximize button stays inert
+        // because the WM has no usable geometry hint). Set sensible defaults +
+        // minimums; resizable stays at the JavaFX default (true), so the user
+        // can grow further with edge-drag or the maximize button.
+        chatPopupStage.setWidth(700);
+        chatPopupStage.setHeight(800);
+        chatPopupStage.setMinWidth(450);
+        chatPopupStage.setMinHeight(500);
         chatPopupStage.setOpacity(0);
         chatPopupStage.show();
 
