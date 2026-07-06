@@ -1988,6 +1988,7 @@ message PaymentAccountForm {
         VERSE = 58;
         SAME_BANK = 59;
         SPECIFIC_BANKS = 60;
+        CAPITUAL = 61;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

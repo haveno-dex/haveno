@@ -373,6 +373,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 ADVANCED_CASH_ID,
                 BIZUM_ID,
                 BLOCK_CHAINS_ID,
+                CAPITUAL_ID,
                 CASH_AT_ATM_ID,
                 CASH_DEPOSIT_ID,
                 CELPAY_ID,
