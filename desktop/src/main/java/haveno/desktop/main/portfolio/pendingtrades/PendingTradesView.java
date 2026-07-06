@@ -56,6 +56,7 @@ import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -527,7 +528,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatPopupStage.setTitle(Res.get("tradeChat.chatWindowTitle", trade.getShortId()));
         StackPane owner = MainView.getRootContainer();
         Scene rootScene = owner.getScene();
-        chatPopupStage.initOwner(rootScene.getWindow());
+
+        // keep a top-level window so the WM shows maximize/fullscreen
         chatPopupStage.initModality(Modality.NONE);
         chatPopupStage.initStyle(StageStyle.DECORATED);
         chatPopupStage.setOnHiding(event -> {
@@ -563,6 +565,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         });
         chatPopupStage.setScene(scene);
 
+        chatPopupStage.setWidth(Layout.CHAT_WINDOW_WIDTH);
+        chatPopupStage.setHeight(Layout.CHAT_WINDOW_HEIGHT);
+        chatPopupStage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
+        chatPopupStage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
         chatPopupStage.setOpacity(0);
         chatPopupStage.show();
 
