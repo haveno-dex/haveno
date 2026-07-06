@@ -1388,12 +1388,14 @@ public class GUIUtil {
         return lockIcon;
     }
 
+    private static final double PRIVATE_OFFER_LOCK_ICON_OPACITY = 0.7;
+
     public static void addPrivateOfferLockIcon(Label label) {
-        addPrivateOfferLockIcon(label, "1.231em", 0.7);
+        addPrivateOfferLockIcon(label, "1.231em", PRIVATE_OFFER_LOCK_ICON_OPACITY);
     }
 
     public static void addCompactPrivateOfferLockIcon(Label label) {
-        addPrivateOfferLockIcon(label, "1.2em", 0.7);
+        addPrivateOfferLockIcon(label, "1.2em", PRIVATE_OFFER_LOCK_ICON_OPACITY);
     }
 
     private static void addPrivateOfferLockIcon(Label label, String glyphSize, double opacity) {
