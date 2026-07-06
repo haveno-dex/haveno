@@ -369,6 +369,12 @@ public class DepositView extends ActivatableView<VBox, Void> {
             for (DepositListItem item : items) {
                 observableList.add(item);
             }
+
+            // select the first address when the list is first populated
+            if (titledGroupBg != null && !titledGroupBg.isVisible()
+                    && tableView.getSelectionModel().getSelectedItem() == null && !sortedList.isEmpty()) {
+                tableView.getSelectionModel().select(0);
+            }
         });
     }
 
