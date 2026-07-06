@@ -17,6 +17,8 @@
 
 package haveno.common.util;
 
+import haveno.common.config.Config;
+
 import org.bitcoinj.core.Utils;
 
 import com.google.common.base.Splitter;
@@ -48,6 +50,7 @@ import java.nio.file.Paths;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -345,6 +348,41 @@ public class Utilities {
 
     public static String getSystemHomeDirectory() {
         return Utilities.isWindows() ? System.getenv("USERPROFILE") : System.getProperty("user.home");
+    }
+
+    /**
+     * Redacts information which could identify the local user from the given text, so it is
+     * not leaked to peers over the network (e.g. in error messages relayed to a trading peer
+     * or arbitrator). File paths such as {@code C:\Users\<username>\...} contain the user's OS
+     * account name, so this replaces the user's home and application data directories with a
+     * placeholder. Should be applied to any exception or error text before it is placed into
+     * an outgoing network message.
+     *
+     * @param text the text to redact, may be null
+     * @return the redacted text, or the original value if null or empty
+     */
+    public static String redactSensitiveInfo(String text) {
+        if (text == null || text.isEmpty()) return text;
+
+        // collect the local directories whose paths embed the OS username
+        List<String> sensitiveDirs = new ArrayList<>();
+        try {
+            sensitiveDirs.add(Config.appDataDir().getAbsolutePath()); // e.g. C:\Users\<username>\AppData\Roaming\Haveno
+        } catch (Exception e) {
+            // Config not yet initialized (e.g. in tests); skip app data dir
+        }
+        sensitiveDirs.add(getSystemHomeDirectory());
+        sensitiveDirs.add(System.getProperty("user.home"));
+
+        // redact the longest paths first so nested paths are fully removed
+        String result = text;
+        for (String dir : sensitiveDirs.stream()
+                .filter(dir -> dir != null && !dir.isEmpty())
+                .sorted((a, b) -> Integer.compare(b.length(), a.length()))
+                .collect(Collectors.toList())) {
+            result = result.replace(dir, "[redacted]");
+        }
+        return result;
     }
 
     public static String encodeToHex(@Nullable byte[] bytes, boolean allowNullable) {

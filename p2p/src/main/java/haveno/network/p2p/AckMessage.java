@@ -21,6 +21,7 @@ import haveno.common.app.Version;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.persistable.PersistablePayload;
+import haveno.common.util.Utilities;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.storage.payload.ExpirablePayload;
 import lombok.EqualsAndHashCode;
@@ -150,7 +151,7 @@ public final class AckMessage extends NetworkEnvelope implements MailboxMessage,
                 .setSourceId(sourceId)
                 .setSuccess(success);
         Optional.ofNullable(sourceUid).ifPresent(builder::setSourceUid);
-        Optional.ofNullable(errorMessage).ifPresent(builder::setErrorMessage);
+        Optional.ofNullable(errorMessage).ifPresent(e -> builder.setErrorMessage(Utilities.redactSensitiveInfo(e)));
         Optional.ofNullable(updatedMultisigHex).ifPresent(builder::setUpdatedMultisigHex);
         return builder;
     }

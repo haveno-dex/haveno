@@ -20,9 +20,29 @@ package haveno.common.util;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UtilitiesTest {
+
+    @Test
+    public void testRedactSensitiveInfo() {
+        // null and empty are returned unchanged
+        assertNull(Utilities.redactSensitiveInfo(null));
+        assertEquals("", Utilities.redactSensitiveInfo(""));
+
+        // text without local paths is left untouched
+        String benign = "monero-wallet-rpc failed to start";
+        assertEquals(benign, Utilities.redactSensitiveInfo(benign));
+
+        // the user's home directory (which embeds the OS username) is redacted
+        String userHome = System.getProperty("user.home");
+        String leaky = "monero-wallet-rpc executable doesn't exist at path " + userHome + "/Haveno/monero-wallet-rpc";
+        String redacted = Utilities.redactSensitiveInfo(leaky);
+        assertFalse(redacted.contains(userHome), "user home directory should be redacted from error message");
+        assertTrue(redacted.contains("[redacted]"));
+    }
 
     @Test
     public void testToStringList() {

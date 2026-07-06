@@ -244,8 +244,8 @@ public final class ChatMessage extends SupportMessage {
                 .setUid(uid)
                 .setAcknowledged(acknowledgedProperty.get())
                 .setWasDisplayed(wasDisplayed);
-        Optional.ofNullable(sendMessageErrorProperty.get()).ifPresent(builder::setSendMessageError);
-        Optional.ofNullable(ackErrorProperty.get()).ifPresent(builder::setAckError);
+        Optional.ofNullable(sendMessageErrorProperty.get()).ifPresent(e -> builder.setSendMessageError(Utilities.redactSensitiveInfo(e)));
+        Optional.ofNullable(ackErrorProperty.get()).ifPresent(e -> builder.setAckError(Utilities.redactSensitiveInfo(e)));
         return getNetworkEnvelopeBuilder()
                 .setChatMessage(builder)
                 .build();
