@@ -1,9 +1,47 @@
-# See docs/installing.md
+# See docs/installing.md and `make help`
+SHELL := /bin/bash
+GRADLE := ./gradlew
+# Skip slow checks for dev-iteration targets
+SKIP_CHECKS := -x test -x checkstyleMain -x checkstyleTest
+# Extra Gradle flags, e.g. make skip-tests GRADLE_EXTRA='--rerun-tasks'
+GRADLE_EXTRA ?=
+# Required Java major version — single source of truth is the Gradle version catalog
+JAVA_VERSION := $(shell sed -n 's/^java = "\([0-9][0-9]*\)".*/\1/p' gradle/libs.versions.toml)
 
-build: localnet haveno
+.PHONY: help build clean clean-all haveno skip-tests daemon desktop seednode seednode-jar package test check-java \
+        update-dependencies refresh-deps haveno-apps localnet clean-localnet deploy-screen deploy-tmux
+
+.DEFAULT_GOAL := build
+
+help:
+	@echo "Haveno build targets (Java $(JAVA_VERSION), Gradle 8.14):"
+	@echo ""
+	@echo "  make / make build     Full build with tests (downloads monero bins via Gradle)"
+	@echo "  make skip-tests       Build without tests or checkstyle (fast dev iteration)"
+	@echo "  make haveno-apps      Compile core + build desktop + daemon shadow JAR (no tests)"
+	@echo "  make daemon           Build daemon fat JAR (:daemon:shadowJar)"
+	@echo "  make desktop          Build desktop fat JAR (:desktop:shadowJar)"
+	@echo "  make seednode-jar     Build seednode fat JAR (:seednode:shadowJar)"
+	@echo "  make package          Build platform installers (:desktop:packageInstallers)"
+	@echo "  make test             Run unit tests only"
+	@echo "  make clean            Gradle clean + remove root haveno-* launchers"
+	@echo "  make clean-all        clean + remove .localnet monero cache"
+	@echo "  make check-java       Verify Java $(JAVA_VERSION) is active"
+	@echo "  make update-dependencies  Refresh dependency lock metadata"
+	@echo "  make refresh-deps     Refresh verification metadata and rebuild (no tests)"
+	@echo ""
+	@echo "Local network runtime targets are listed in the Makefile below this section."
+
+check-java:
+	@java -version 2>&1 | grep -qE 'version "$(JAVA_VERSION)(\.|")' || { echo "ERROR: Java $(JAVA_VERSION) is required (see docs/installing.md)"; exit 1; }
+	@echo "Java $(JAVA_VERSION) OK"
+
+build: check-java localnet haveno
 
 clean:
-	./gradlew clean
+	$(GRADLE) clean $(GRADLE_EXTRA)
+
+clean-all: clean clean-localnet
 
 clean-localnet:
 	rm -rf .localnet
@@ -12,21 +50,38 @@ localnet:
 	mkdir -p .localnet
 
 haveno:
-	./gradlew build
+	$(GRADLE) build $(GRADLE_EXTRA)
 
 update-dependencies:
-	./gradlew --refresh-dependencies && ./gradlew --write-verification-metadata sha256
+	$(GRADLE) --refresh-dependencies $(GRADLE_EXTRA)
+	$(GRADLE) --write-verification-metadata sha256 $(GRADLE_EXTRA)
+
+daemon: localnet
+	$(GRADLE) :daemon:shadowJar $(SKIP_CHECKS) $(GRADLE_EXTRA)
+
+desktop: localnet
+	$(GRADLE) :desktop:shadowJar $(SKIP_CHECKS) $(GRADLE_EXTRA)
+
+seednode-jar: localnet
+	$(GRADLE) :seednode:shadowJar $(SKIP_CHECKS) $(GRADLE_EXTRA)
+
+package: localnet
+	$(GRADLE) :desktop:packageInstallers $(GRADLE_EXTRA)
 
 # build haveno without tests
-skip-tests: localnet
-	./gradlew build -x test -x checkstyleMain -x checkstyleTest
+skip-tests: check-java localnet
+	$(GRADLE) build $(SKIP_CHECKS) $(GRADLE_EXTRA)
 
 # quick build desktop and daemon apps without tests
-haveno-apps:
-	./gradlew :core:compileJava :desktop:build -x test -x checkstyleMain -x checkstyleTest
+haveno-apps: localnet
+	$(GRADLE) :core:compileJava :desktop:build :daemon:shadowJar $(SKIP_CHECKS) $(GRADLE_EXTRA)
+
+test: localnet
+	$(GRADLE) test $(GRADLE_EXTRA)
 
 refresh-deps:
-	./gradlew --write-verification-metadata sha256 && ./gradlew build --refresh-keys --refresh-dependencies -x test -x checkstyleMain -x checkstyleTest
+	$(GRADLE) --write-verification-metadata sha256 $(GRADLE_EXTRA)
+	$(GRADLE) build --refresh-keys --refresh-dependencies $(SKIP_CHECKS) $(GRADLE_EXTRA)
 
 deploy-screen:
 	# create a new screen session named 'localnet'
@@ -55,8 +110,6 @@ deploy-tmux:
 	sleep 5
 	# Attach to the tmux session
 	tmux attach-session -t localnet
-
-.PHONY: build seednode localnet
 
 # Local network
 

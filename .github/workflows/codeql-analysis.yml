@@ -39,14 +39,14 @@ jobs:
       uses: actions/setup-java@v4
       with:
         java-version: '21'
-        distribution: 'adopt'
-        cache: gradle
+        distribution: 'temurin'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
+        build-mode: manual
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
@@ -65,7 +65,10 @@ jobs:
     #    uses a compiled language
 
     - name: Build
-      run: ./gradlew build --stacktrace -x test -x checkstyleMain -x checkstyleTest
+      # CodeQL must observe javac during the traced build; disable daemon and caches.
+      run: ./gradlew --no-daemon clean build --stacktrace -x test -x checkstyleMain -x checkstyleTest --no-build-cache
+      env:
+        GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.caching=false
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4

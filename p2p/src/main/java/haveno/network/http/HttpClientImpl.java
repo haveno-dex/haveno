@@ -42,20 +42,25 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.NetworkUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.ssl.SSLContexts;
+import org.apache.hc.client5.http.DnsResolver;
+import org.apache.hc.client5.http.SystemDefaultDnsResolver;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
+import org.apache.hc.core5.http.config.RegistryBuilder;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.pool.PoolConcurrencyPolicy;
+import org.apache.hc.core5.pool.PoolReusePolicy;
+import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.util.TimeValue;
 
 // TODO close connection if failing
 @Slf4j
@@ -238,35 +243,47 @@ public class HttpClientImpl implements HttpClient {
         // This code is adapted from:
         //  http://stackoverflow.com/a/25203021/5616248
 
-        // Register our own SocketFactories to override createSocket() and connectSocket().
-        // connectSocket does NOT resolve hostname before passing it to proxy.
-        Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
-                .register("http", new SocksConnectionSocketFactory())
-                .register("https", new SocksSSLConnectionSocketFactory(SSLContexts.createSystemDefault())).build();
+        // HC 5.6 routes plain HTTP via DefaultHttpClientConnectionOperator + SocketConfig socks
+        // proxy (not ConnectionSocketFactory.connectSocket). Keep custom socket factories for
+        // HTTPS TLS upgrade; pair with FakeDnsResolver so .onion hostnames stay unresolved.
+        var reg = RegistryBuilder.<ConnectionSocketFactory>create()
+                .register("http", SocksConnectionSocketFactory.INSTANCE)
+                .register("https", new SocksSSLConnectionSocketFactory(SSLContexts.createSystemDefault()))
+                .build();
 
-        // Use FakeDNSResolver if not resolving DNS locally.
-        // This prevents a local DNS lookup (which would be ignored anyway)
-        PoolingHttpClientConnectionManager cm = socks5Proxy.resolveAddrLocally() ?
-                new PoolingHttpClientConnectionManager(reg) :
-                new PoolingHttpClientConnectionManager(reg, new FakeDnsResolver());
+        DnsResolver dnsResolver = socks5Proxy.resolveAddrLocally()
+                ? SystemDefaultDnsResolver.INSTANCE
+                : new FakeDnsResolver();
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(
+                reg,
+                PoolConcurrencyPolicy.STRICT,
+                PoolReusePolicy.LIFO,
+                TimeValue.ofMinutes(5),
+                null,
+                dnsResolver,
+                null);
+        InetSocketAddress socksAddress = new InetSocketAddress(socks5Proxy.getInetAddress(), socks5Proxy.getPort());
+        cm.setDefaultSocketConfig(SocketConfig.custom()
+                .setSocksProxyAddress(socksAddress)
+                .build());
         try {
             closeableHttpClient = checkNotNull(HttpClients.custom().setConnectionManager(cm).build());
-            InetSocketAddress socksAddress = new InetSocketAddress(socks5Proxy.getInetAddress(), socks5Proxy.getPort());
-
-            // remove me: Use this to test with system-wide Tor proxy, or change port for another proxy.
-            // InetSocketAddress socksAddress = new InetSocketAddress("127.0.0.1", 9050);
 
             HttpClientContext context = HttpClientContext.create();
             context.setAttribute("socks.address", socksAddress);
 
             HttpUriRequest request = getHttpUriRequest(httpMethod, baseUrl, param);
+            request.setHeader("User-Agent", "haveno/" + Version.VERSION);
             if (headerKey != null && headerValue != null) {
                 request.setHeader(headerKey, headerValue);
             }
 
             try (CloseableHttpResponse httpResponse = closeableHttpClient.execute(request, context)) {
-                String response = convertInputStreamToString(httpResponse.getEntity().getContent());
-                int statusCode = httpResponse.getStatusLine().getStatusCode();
+                int statusCode = httpResponse.getCode();
+                String response = "";
+                if (httpResponse.getEntity() != null) {
+                    response = convertInputStreamToString(httpResponse.getEntity().getContent());
+                }
                 if (statusCode == 200) {
                     log.debug("Response from {} took {} ms. Data size:{}, response: {}, param: {}",
                             baseUrl,
@@ -305,8 +322,7 @@ public class HttpClientImpl implements HttpClient {
                 return new HttpGet(baseUrl + param);
             case POST:
                 HttpPost httpPost = new HttpPost(baseUrl);
-                HttpEntity httpEntity = new StringEntity(param);
-                httpPost.setEntity(httpEntity);
+                httpPost.setEntity(new StringEntity(param, ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)));
                 return httpPost;
 
             default:

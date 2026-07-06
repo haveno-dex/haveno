@@ -17,20 +17,22 @@
 
 package haveno.network.http;
 
-import org.apache.http.HttpHost;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.protocol.HttpContext;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
+import org.apache.hc.client5.http.socket.PlainConnectionSocketFactory;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.util.TimeValue;
 
 // This class is adapted from
 //   http://stackoverflow.com/a/25203021/5616248
 //
 // This class routes connections over Socks, and avoids resolving hostnames locally.
 class SocksConnectionSocketFactory extends PlainConnectionSocketFactory {
+
+    static final SocksConnectionSocketFactory INSTANCE = new SocksConnectionSocketFactory();
 
     /**
      * creates an unconnected Socks Proxy socket
@@ -46,8 +48,13 @@ class SocksConnectionSocketFactory extends PlainConnectionSocketFactory {
      * connects a Socks Proxy socket and passes hostname to proxy without resolving it locally.
      */
     @Override
-    public Socket connectSocket(int connectTimeout, Socket socket, HttpHost host, InetSocketAddress remoteAddress,
-                                InetSocketAddress localAddress, HttpContext context) throws IOException {
+    public Socket connectSocket(
+            final TimeValue connectTimeout,
+            final Socket socket,
+            final HttpHost host,
+            final InetSocketAddress remoteAddress,
+            final InetSocketAddress localAddress,
+            final HttpContext context) throws IOException {
         // Convert address to unresolved
         InetSocketAddress unresolvedRemote = InetSocketAddress
                 .createUnresolved(host.getHostName(), remoteAddress.getPort());

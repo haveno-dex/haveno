@@ -380,7 +380,7 @@ public class HavenoSetup {
         try {
 
             // install monerod
-            File monerodFile = new File(XmrLocalNode.MONEROD_PATH);
+            File monerodFile = new File(XmrLocalNode.getMonerodPath());
             String monerodResourcePath = "bin/" + XmrLocalNode.MONEROD_NAME;
             if (!monerodFile.exists() || (config.updateXmrBinaries && !FileUtil.resourceEqualToFile(monerodResourcePath, monerodFile))) {
                 log.info("Installing monerod");
@@ -390,7 +390,7 @@ public class HavenoSetup {
             }
 
             // install monero-wallet-rpc
-            File moneroWalletRpcFile = new File(XmrWalletService.MONERO_WALLET_RPC_PATH);
+            File moneroWalletRpcFile = new File(XmrWalletService.getMoneroWalletRpcPath());
             String moneroWalletRpcResourcePath = "bin/" + XmrWalletService.MONERO_WALLET_RPC_NAME;
             if (!moneroWalletRpcFile.exists() || (config.updateXmrBinaries && !FileUtil.resourceEqualToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile))) {
                 log.info("Installing monero-wallet-rpc");

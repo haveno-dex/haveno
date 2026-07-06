@@ -18,7 +18,7 @@
 package haveno.desktop;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import de.jensd.fx.glyphs.materialdesignicons.utils.MaterialDesignIconFactory;
+import haveno.desktop.util.GlyphsDude;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -48,7 +48,7 @@ public class MaterialDesignIconDemo extends Application {
         List<MaterialDesignIcon> values = new ArrayList<>(Arrays.asList(MaterialDesignIcon.values()));
         values.sort(Comparator.comparing(Enum::name));
         for (MaterialDesignIcon icon : values) {
-            Button button = MaterialDesignIconFactory.get().createIconButton(icon, icon.name());
+            Button button = GlyphsDude.createIconButton(icon, icon.name());
             flowPane.getChildren().add(button);
         }
 

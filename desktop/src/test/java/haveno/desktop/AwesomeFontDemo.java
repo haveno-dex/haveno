@@ -17,8 +17,8 @@
 
 package haveno.desktop;
 
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -41,13 +41,13 @@ public class AwesomeFontDemo extends Application {
         flowPane.setStyle("-fx-background-color: #ddd;");
         flowPane.setHgap(2);
         flowPane.setVgap(2);
-        List<AwesomeIcon> values = new ArrayList<>(Arrays.asList(AwesomeIcon.values()));
+        List<FontAwesomeIcon> values = new ArrayList<>(Arrays.asList(FontAwesomeIcon.values()));
         values.sort((o1, o2) -> o1.name().compareTo(o2.name()));
-        for (AwesomeIcon icon : values) {
+        for (FontAwesomeIcon icon : values) {
             Label label = new Label();
             Button button = new Button(icon.name(), label);
             button.setStyle("-fx-background-color: #fff;");
-            AwesomeDude.setIcon(label, icon, "12");
+            GlyphsDude.setIcon(label, icon, "12");
             flowPane.getChildren().add(button);
         }
 

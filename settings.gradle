@@ -1,3 +1,21 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    plugins {
+        id 'com.google.protobuf' version '0.10.0'
+        id 'com.google.osdetector' version '1.7.3'
+        id 'com.gradleup.shadow' version '8.3.10'
+        id 'org.openjfx.javafxplugin' version '0.1.0'
+    }
+}
+
+// Auto-provisions the Java toolchain (configured in build.gradle) via Foojay when a matching JDK is not already installed.
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 include 'proto'
 include 'assets'
 include 'common'

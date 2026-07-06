@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <conversionRule conversionWord="hl2" converterClass="haveno.common.app.LogHighlighter" />
+    <conversionRule conversionWord="hl2" class="haveno.common.app.LogHighlighter" />
 
     <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>

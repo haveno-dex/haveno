@@ -96,8 +96,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import monero.wallet.model.MoneroWalletListener;
-import net.glxn.qrgen.QRCode;
-import net.glxn.qrgen.image.ImageType;
 import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -222,12 +220,9 @@ public class DepositView extends ActivatableView<VBox, Void> {
                     amountTextField.setText("10");
         
                 titledGroupBg.setVisible(false);
-                titledGroupBg.setManaged(false);
                 qrCodePane.setVisible(false);
-                qrCodePane.setManaged(false);
                 addressTextField.setVisible(false);
-                addressTextField.setManaged(false);
-                amountTextField.setManaged(false);
+                amountTextField.setVisible(false);
         
                 Tuple3<Button, CheckBox, HBox> buttonCheckBoxHBox = addButtonCheckBoxWithBox(gridPane, ++gridRow,
                         Res.get("funds.deposit.generateAddress"),
@@ -235,6 +230,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
                         15);
                 buttonCheckBoxHBox.third.setSpacing(25);
                 generateNewAddressButton = buttonCheckBoxHBox.first;
+                GridPane.setMargin(generateNewAddressButton, new Insets(15, 0, 0, 0));
         
                 generateNewAddressButton.setOnAction(event -> {
                     boolean hasUnusedAddress = !xmrWalletService.getUnusedAddressEntries().isEmpty();
@@ -321,14 +317,9 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     private void fillForm(String address) {
         titledGroupBg.setVisible(true);
-        titledGroupBg.setManaged(true);
         qrCodePane.setVisible(true);
-        qrCodePane.setManaged(true);
         addressTextField.setVisible(true);
-        addressTextField.setManaged(true);
-        amountTextField.setManaged(true);
-
-        GridPane.setMargin(generateNewAddressButton, new Insets(15, 0, 0, 0));
+        amountTextField.setVisible(true);
 
         addressTextField.setAddress(address);
 
@@ -337,12 +328,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     private void updateQRCode() {
         if (addressTextField.getAddress() != null && !addressTextField.getAddress().isEmpty()) {
-            final byte[] imageBytes = QRCode
-                    .from(getPaymentUri())
-                    .withSize(300, 300)
-                    .to(ImageType.PNG)
-                    .stream()
-                    .toByteArray();
+            final byte[] imageBytes = GUIUtil.generateQrCodePng(getPaymentUri(), 300, 300);
             Image qrImage = new Image(new ByteArrayInputStream(imageBytes));
             qrCodeImageView.setImage(qrImage);
         }

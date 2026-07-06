@@ -987,9 +987,9 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setCssTheme(int cssTheme);
 
-        void setUserLanguage(@NotNull String userLanguageCode);
+        void setUserLanguage(String userLanguageCode);
 
-        void setUserCountry(@NotNull Country userCountry);
+        void setUserCountry(Country userCountry);
 
         void setPreferredTradeCurrency(TradeCurrency preferredTradeCurrency);
 

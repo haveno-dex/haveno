@@ -36,7 +36,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'adopt'
+          distribution: 'temurin'
           cache: gradle
       - name: Create local share directory
         # ubuntu-24.04 Github runners do not have `~/.local/share` directory by default.
@@ -45,14 +45,14 @@ jobs:
         run: mkdir -p ~/.local/share
       - name: Build with Gradle with tests
         if: ${{ !(runner.os == 'Linux' && matrix.arch == 'aarch64') }}
-        run: ./gradlew build --stacktrace --scan
+        run: ./gradlew build --stacktrace
       - name: Build with Gradle, skip Desktop tests
         # JavaFX `21.x.x` ships with `x86_64` versions of
         # `libprism_es2.so` and `libprism_s2.so` shared objects.
         # This causes desktop tests to fail on `linux/aarch64`
         if: ${{ (runner.os == 'Linux' && matrix.arch == 'aarch64') }}
         run: |
-          ./gradlew build --stacktrace --scan -x desktop:test
+          ./gradlew build --stacktrace -x desktop:test
           echo "::warning title=Desktop Tests Skipped::Desktop tests (desktop:test) were \
           intentionally skipped for linux/aarch64 builds as JavaFX 21.x.x ships with x86_64 \
           shared objects, causing tests to fail. \

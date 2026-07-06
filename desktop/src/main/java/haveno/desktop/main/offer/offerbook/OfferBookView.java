@@ -17,10 +17,9 @@
 
 package haveno.desktop.main.offer.offerbook;
 
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple3;
@@ -92,6 +91,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
@@ -202,7 +202,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         Tooltip privateOffersTooltip = new Tooltip(Res.get("offerbook.privateOffers"));
         Tooltip.install(privateOffersToggleButton, privateOffersTooltip);
 
-        matchingOffersToggleButton = AwesomeDude.createIconToggleButton(AwesomeIcon.USER, null, "1.4em", null);
+        matchingOffersToggleButton = GlyphsDude.createIconToggleButton(FontAwesomeIcon.USER, null, "1.4em", null);
         matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
         Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
@@ -1114,7 +1114,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     button.setPrefWidth(10000);
                                 }
     
-                                MaterialDesignIconView iconView2 = new MaterialDesignIconView(MaterialDesignIcon.PENCIL);
+                                Text iconView2 = GlyphsDude.createIcon(MaterialDesignIcon.PENCIL);
                                 final AutoTooltipButton button2 = new AutoTooltipButton();
     
                                 {
@@ -1172,7 +1172,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         title = Res.get("shared.remove");
                                         button.setOnAction(e -> onRemoveOpenOffer(offer));
 
-                                        iconView2.setSize("16px");
+                                        iconView2.setStyle(String.format("-fx-font-family: %s; -fx-font-size: %s;",
+                                                MaterialDesignIcon.PENCIL.fontFamily(), "16px"));
                                         button2.updateText(Res.get("shared.edit"));
                                         button2.setOnAction(e -> onEditOpenOffer(offer));
                                         button2.setManaged(true);

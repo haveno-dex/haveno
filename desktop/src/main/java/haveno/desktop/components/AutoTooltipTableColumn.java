@@ -17,7 +17,7 @@
 
 package haveno.desktop.components;
 
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.desktop.components.controlsfx.control.PopOver;
 import haveno.desktop.util.FormBuilder;
 import javafx.scene.Node;
@@ -46,7 +46,7 @@ public class AutoTooltipTableColumn<S, T> extends TableColumn<S, T> {
     }
 
     public void setTitleWithHelpText(String title, String help) {
-        helpIcon = FormBuilder.getSmallIcon(AwesomeIcon.QUESTION_SIGN);
+        helpIcon = FormBuilder.getSmallIcon(FontAwesomeIcon.QUESTION_CIRCLE);
         helpIcon.setOpacity(0.4);
         helpIcon.setOnMouseEntered(e -> popoverWrapper.showPopOver(() -> createInfoPopOver(help)));
         helpIcon.setOnMouseExited(e -> popoverWrapper.hidePopOver());

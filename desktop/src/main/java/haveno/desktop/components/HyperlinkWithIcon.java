@@ -17,8 +17,8 @@
 
 package haveno.desktop.components;
 
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.GlyphIcons;
 import haveno.desktop.util.FormBuilder;
 import javafx.geometry.Insets;
@@ -34,18 +34,18 @@ public class HyperlinkWithIcon extends Hyperlink {
     private Node icon;
 
     public HyperlinkWithIcon(String text) {
-        this(text, AwesomeIcon.INFO_SIGN);
+        this(text, FontAwesomeIcon.INFO_CIRCLE);
     }
 
     public HyperlinkWithIcon(String text, String fontSize) {
-        this(text, AwesomeIcon.INFO_SIGN, fontSize);
+        this(text, FontAwesomeIcon.INFO_CIRCLE, fontSize);
     }
 
-    public HyperlinkWithIcon(String text, AwesomeIcon awesomeIcon, String fontSize) {
+    public HyperlinkWithIcon(String text, FontAwesomeIcon awesomeIcon, String fontSize) {
         super(text);
 
         Label icon = new Label();
-        AwesomeDude.setIcon(icon, awesomeIcon, fontSize);
+        GlyphsDude.setIcon(icon, awesomeIcon, fontSize);
         icon.setMinWidth(20);
         icon.setOpacity(0.7);
         icon.getStyleClass().addAll("hyperlink", "no-underline");
@@ -55,7 +55,7 @@ public class HyperlinkWithIcon extends Hyperlink {
         setIcon(icon);
     }
 
-    public HyperlinkWithIcon(String text, AwesomeIcon awesomeIcon) {
+    public HyperlinkWithIcon(String text, FontAwesomeIcon awesomeIcon) {
         this(text, awesomeIcon, "1.231em");
     }
 

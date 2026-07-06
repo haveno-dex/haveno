@@ -18,8 +18,8 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
-import de.jensd.fx.fontawesome.AwesomeDude;
-import de.jensd.fx.fontawesome.AwesomeIcon;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
@@ -90,14 +90,14 @@ public class TxIdTextField extends AnchorPane {
         blockExplorerIcon = new Label();
         blockExplorerIcon.getStyleClass().addAll("icon", "highlight");
         blockExplorerIcon.setTooltip(tooltip);
-        AwesomeDude.setIcon(blockExplorerIcon, AwesomeIcon.EXTERNAL_LINK);
+        GlyphsDude.setIcon(blockExplorerIcon, FontAwesomeIcon.EXTERNAL_LINK);
         blockExplorerIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(blockExplorerIcon, 52.0);
         AnchorPane.setTopAnchor(blockExplorerIcon, Layout.FLOATING_ICON_Y);
 
         missingTxWarningIcon = new Label();
         missingTxWarningIcon.getStyleClass().addAll("icon", "error-icon");
-        AwesomeDude.setIcon(missingTxWarningIcon, AwesomeIcon.WARNING_SIGN);
+        GlyphsDude.setIcon(missingTxWarningIcon, FontAwesomeIcon.WARNING);
         missingTxWarningIcon.setTooltip(new Tooltip(Res.get("txIdTextField.missingTx.warning.tooltip")));
         missingTxWarningIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(missingTxWarningIcon, 52.0);

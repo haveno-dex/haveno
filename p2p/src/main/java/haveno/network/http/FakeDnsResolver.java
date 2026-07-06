@@ -17,17 +17,33 @@
 
 package haveno.network.http;
 
-import org.apache.http.conn.DnsResolver;
-
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.List;
+import org.apache.hc.client5.http.DnsResolver;
 
 // This class is adapted from
 //   http://stackoverflow.com/a/25203021/5616248
+//
+// HttpClient 5.5+ routes connections via DnsResolver.resolve(host, port). The default
+// implementation wraps resolve(host) into resolved InetSocketAddress instances. For Tor
+// SOCKS we must return unresolved addresses so the proxy performs remote hostname lookup
+// (.onion services cannot be resolved locally).
 class FakeDnsResolver implements DnsResolver {
     @Override
     public InetAddress[] resolve(String host) throws UnknownHostException {
-        // Return some fake DNS record for every request, we won't be using it
-        return new InetAddress[]{InetAddress.getByAddress(new byte[]{1, 1, 1, 1})};
+        return null;
+    }
+
+    @Override
+    public String resolveCanonicalHostname(String host) throws UnknownHostException {
+        return host;
+    }
+
+    @Override
+    public List<InetSocketAddress> resolve(String host, int port) throws UnknownHostException {
+        return Collections.singletonList(InetSocketAddress.createUnresolved(host, port));
     }
 }

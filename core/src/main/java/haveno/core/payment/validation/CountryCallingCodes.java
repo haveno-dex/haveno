@@ -11,8 +11,8 @@ final class CountryCallingCodes {
      * In some regions, such as American Samoa ('AS'), there is only one area code, and
      * it is included in the mapping as part of the calling code.
      *
-     * @see {@link <a href="https://en.wikipedia.org/wiki/E.164">https://en.wikipedia.org/wiki/E.164</a>}
-     * @see {@link <a href="https://en.wikipedia.org/wiki/List_of_country_calling_codes">https://en.wikipedia.org/wiki/List_of_country_calling_codes</a>}
+     * @see <a href="https://en.wikipedia.org/wiki/E.164">E.164</a>
+     * @see <a href="https://en.wikipedia.org/wiki/List_of_country_calling_codes">List of country calling codes</a>
      */
     private final static Map<String, String> CALLING_CODE_MAP = Map.ofEntries(
             entry("AD", "376"),

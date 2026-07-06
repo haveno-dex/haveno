@@ -121,7 +121,10 @@ public class XmrKeyImagePoller {
      * @param refreshPeriodMs - the refresh period in milliseconds
      */
     public void setRefreshPeriodMs(long refreshPeriodMs) {
-        this.refreshPeriodMs = refreshPeriodMs;
+        synchronized (lock) {
+            this.refreshPeriodMs = refreshPeriodMs;
+            refreshPolling(); // apply the new period
+        }
     }
 
     /**
@@ -312,13 +315,14 @@ public class XmrKeyImagePoller {
 
     private void refreshPolling() {
         synchronized (lock) {
-            setIsPolling(!getKeyImages().isEmpty() && listeners.size() > 0);
+            setIsPolling(!getKeyImages().isEmpty() && listeners.size() > 0 && refreshPeriodMs > 0);
         }
     }
 
     private synchronized void setIsPolling(boolean enabled) {
         if (enabled) {
-            if (!isPolling) {
+            if (isPolling) looper.setPeriodInMs(refreshPeriodMs); // apply a changed period while running
+            else {
                 isPolling = true; // TODO: use looper.isStarted(), synchronize
                 looper.start(refreshPeriodMs);
             }
