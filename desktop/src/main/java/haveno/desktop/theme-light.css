@@ -109,6 +109,8 @@
     -bs-soft-red: #aa4c3b;
     -bs-turquoise-light: #11eeee;
     -bs-color-border-form-field: -bs-background-gray;
+    -bs-login-field-border: #c3c3c9;
+    -bs-login-field-focus-glow: rgba(28, 96, 220, 0.28);
     -bs-color-background-form-field-readonly: -bs-color-gray-1;
     -bs-color-background-pane: -bs-background-color;
     -bs-color-background-row-even: -bs-color-background-pane;

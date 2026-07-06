@@ -51,6 +51,8 @@
     -bs-color-background-form-field: rgb(26, 26, 26);
     -bs-color-background-form-field-readonly: rgb(18, 18, 18);
     -bs-color-border-form-field: rgb(65, 65, 65);
+    -bs-login-field-border: #4c4c50;
+    -bs-login-field-focus-glow: rgba(56, 128, 255, 0.45);
     -bs-color-background-pane: rgb(15, 15, 15);
     -bs-color-background-row-even: rgb(19, 19, 19);
     -bs-color-background-row-odd: rgb(9, 9, 9);
