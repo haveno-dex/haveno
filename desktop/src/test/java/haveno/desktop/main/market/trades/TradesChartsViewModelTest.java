@@ -47,6 +47,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -165,7 +166,7 @@ public class TradesChartsViewModelTest {
         long tick = ChartCalculations.roundToTick(now, TradesChartsViewModel.TickUnit.DAY).getTime();
         CandleData candleData = ChartCalculations.getCandleData(tick,
                 set,
-                0,
+                new TreeMap<>(),
                 TradesChartsViewModel.TickUnit.DAY, currencyCode,
                 itemsPerInterval);
         assertEquals(open, candleData.open);
@@ -177,6 +178,29 @@ public class TradesChartsViewModelTest {
         assertEquals(amount, candleData.accumulatedAmount);
         assertEquals(volume, candleData.accumulatedVolume);
         assertEquals(isBullish, candleData.isBullish);
+    }
+
+    @Test
+    public void testGetInterpolatedUsdRate() {
+        // Empty map: no rate available anywhere
+        assertEquals(0, ChartCalculations.getInterpolatedUsdRate(new TreeMap<>(), 2000));
+
+        TreeMap<Long, Long> usdPricePerDay = new TreeMap<>();
+        usdPricePerDay.put(1000L, 100L);
+        usdPricePerDay.put(3000L, 300L);
+
+        // Days with their own rate use it exactly
+        assertEquals(100, ChartCalculations.getInterpolatedUsdRate(usdPricePerDay, 1000));
+        assertEquals(300, ChartCalculations.getInterpolatedUsdRate(usdPricePerDay, 3000));
+
+        // A day in the gap blends the two bracketing rates weighted by time distance
+        assertEquals(200, ChartCalculations.getInterpolatedUsdRate(usdPricePerDay, 2000)); // midpoint
+        assertEquals(150, ChartCalculations.getInterpolatedUsdRate(usdPricePerDay, 1500)); // 1/4 of the way
+        assertEquals(250, ChartCalculations.getInterpolatedUsdRate(usdPricePerDay, 2500)); // 3/4 of the way
+
+        // Outside the known range we extrapolate flat from the nearest known rate
+        assertEquals(100, ChartCalculations.getInterpolatedUsdRate(usdPricePerDay, 500));  // before first: carry back
+        assertEquals(300, ChartCalculations.getInterpolatedUsdRate(usdPricePerDay, 5000)); // after last: carry forward
     }
 
     // TODO JMOCKIT
