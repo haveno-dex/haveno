@@ -87,6 +87,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     @Override
     public void readPersisted(Runnable completeHandler) {
         persistenceManager.readPersisted(persistedEncryptedConnectionList -> {
+            boolean migrated = false;
             writeLock.lock();
             try {
                 initializeEncryption(persistedEncryptedConnectionList.keyCrypterScrypt);
@@ -95,11 +96,13 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
                 currentConnectionUrl = persistedEncryptedConnectionList.currentConnectionUrl;
                 refreshPeriod = persistedEncryptedConnectionList.refreshPeriod;
                 autoSwitch = persistedEncryptedConnectionList.autoSwitch;
+                migrated = migrateLegacyEncryption();
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 writeLock.unlock();
             }
+            if (migrated) requestPersistence();
             completeHandler.run();
         }, () -> {
             writeLock.lock();
@@ -117,6 +120,20 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     private void initializeEncryption(KeyCrypterScrypt keyCrypterScrypt) {
         this.keyCrypterScrypt = keyCrypterScrypt;
         encryptionKey = toSecretKey(accountService.getPassword());
+    }
+
+    // Re-encrypts entries persisted in an older format than the current one; must hold the write lock.
+    private boolean migrateLegacyEncryption() {
+        if (encryptionKey == null) return false;
+        boolean migrated = false;
+        for (Map.Entry<String, EncryptedConnection> entry : items.entrySet()) {
+            byte[] encrypted = entry.getValue().getEncryptedPassword();
+            if (encrypted != null && encrypted.length > 0 && Encryption.blobVersion(encrypted) < Encryption.CURRENT_BLOB_VERSION) {
+                entry.setValue(reEncrypt(entry.getValue(), encryptionKey, encryptionKey));
+                migrated = true;
+            }
+        }
+        return migrated;
     }
 
     public List<MoneroRpcConnection> getConnections() {
@@ -309,7 +326,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     private static byte[] decrypt(byte[] encrypted, SecretKey secret) {
         if (secret == null) return encrypted; // no encryption
         try {
-            return Encryption.decrypt(encrypted, secret);
+            return Encryption.decryptAuto(encrypted, secret); // v2 or legacy AES-ECB
         } catch (CryptoException e) {
             throw new IllegalArgumentException("Incorrect password", e);
         }
@@ -318,7 +335,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     private static byte[] encrypt(byte[] unencrypted, SecretKey secretKey) {
         if (secretKey == null) return unencrypted; // no encryption
         try {
-            return Encryption.encrypt(unencrypted, secretKey);
+            return Encryption.encryptV2(unencrypted, secretKey);
         } catch (CryptoException e) {
             throw new RuntimeException("Could not encrypt data with the provided secret", e);
         }
