@@ -130,6 +130,7 @@ public class Version {
     // Version = 0.0.1 -> TRADE_PROTOCOL_VERSION = 1
     // Version = 1.0.19 -> TRADE_PROTOCOL_VERSION = 2
     // Version = 1.2.0 -> TRADE_PROTOCOL_VERSION = 3
+    // Do not change trade fees and bump the version in the same release; separate them (bump first so offers re-sign, change fees later so they grandfather) to avoid cancelling all offers.
     public static final int TRADE_PROTOCOL_VERSION = 3;
     private static String p2pMessageVersion;
 
