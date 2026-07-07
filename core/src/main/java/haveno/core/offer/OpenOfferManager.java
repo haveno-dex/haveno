@@ -2131,6 +2131,26 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     !OfferRestrictions.hasOfferMandatoryCapability(originalOffer, Capability.REFUND_AGENT) ||
                     !originalOfferPayload.getOwnerNodeAddress().equals(p2PService.getAddress())) {
 
+                // rebuilding forces the arbitrator to re-sign, which revalidates fees and security deposits against current rates; if they no longer conform the offer cannot be re-signed, so cancel it and let the maker recreate it
+                boolean hasBuyerAsTakerWithoutDeposit = originalOffer.hasBuyerAsTakerWithoutDeposit();
+                String counterCurrencyCode = originalOfferPayload.getCounterCurrencyCode();
+                boolean feesChanged = originalOfferPayload.getMakerFeePct() != HavenoUtils.getMakerFeePct(counterCurrencyCode, hasBuyerAsTakerWithoutDeposit) ||
+                        originalOfferPayload.getTakerFeePct() != HavenoUtils.getTakerFeePct(counterCurrencyCode, hasBuyerAsTakerWithoutDeposit) ||
+                        originalOfferPayload.getPenaltyFeePct() != HavenoUtils.PENALTY_FEE_PCT;
+                boolean securityDepositChanged = hasBuyerAsTakerWithoutDeposit ?
+                        originalOfferPayload.getSellerSecurityDepositPct() != Restrictions.getMinSecurityDepositPct() :
+                        (originalOfferPayload.getSellerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct() ||
+                                originalOfferPayload.getSellerSecurityDepositPct() > Restrictions.getMaxSecurityDepositPct() ||
+                                originalOfferPayload.getBuyerSecurityDepositPct() < Restrictions.getMinSecurityDepositPct() ||
+                                originalOfferPayload.getBuyerSecurityDepositPct() > Restrictions.getMaxSecurityDepositPct() ||
+                                originalOfferPayload.getBuyerSecurityDepositPct() != originalOfferPayload.getSellerSecurityDepositPct());
+                if (feesChanged || securityDepositChanged) {
+                    log.warn("Canceling outdated offer {} because its fees or security deposits changed and it cannot be re-signed; the maker must recreate it", originalOffer.getId());
+                    originalOffer.setErrorMessage("Offer was canceled because trade fees or security deposits changed and it could not be re-signed. Please recreate the offer.");
+                    doCancelOffer(originalOpenOffer);
+                    return;
+                }
+
                 // preserve existing funding tx if possible
                 boolean preserveFundingTx = true;
 
