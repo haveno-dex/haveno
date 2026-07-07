@@ -743,7 +743,18 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                                                 @Nullable NodeAddress sender,
                                                 boolean allowReBroadcast) {
         return addPersistableNetworkPayload(
-                payload, sender, true, allowReBroadcast, false);
+                payload, sender, true, allowReBroadcast);
+    }
+
+    /**
+     * Same as above, but allowBroadcast=false stores the payload locally without broadcasting it.
+     */
+    public boolean addPersistableNetworkPayload(PersistableNetworkPayload payload,
+                                                @Nullable NodeAddress sender,
+                                                boolean allowBroadcast,
+                                                boolean allowReBroadcast) {
+        return addPersistableNetworkPayload(
+                payload, sender, allowBroadcast, allowReBroadcast, false);
     }
 
     private boolean addPersistableNetworkPayload(PersistableNetworkPayload payload,
@@ -785,8 +796,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             }
         }
 
-        // Broadcast the payload if requested by caller
-        if (allowBroadcast && wasAdded)
+        // Broadcast if requested. reBroadcast also re-sends payloads already in our store (how republishing
+        // own data heals gaps); the receive path uses reBroadcast=false, so duplicates never re-broadcast.
+        if (allowBroadcast && (wasAdded || reBroadcast))
             broadcaster.broadcast(new AddPersistableNetworkPayloadMessage(payload), sender);
 
         return true;

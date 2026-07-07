@@ -108,6 +108,9 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // advance state, arbitrator auto completes when payout published
             trade.setStateIfValidTransitionTo(Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG);
 
+            // store the signer chain sent in-band so we can validate the signed witness locally (#2182)
+            processModel.getAccountAgeWitnessService().addValidSignerChain(message.getSignerChain(), trade.getSeller().getPubKeyRing().getSignaturePubKeyBytes());
+
             // buyer republishes signed witness for resilience
             SignedWitness signedWitness = message.getBuyerSignedWitness();
             if (signedWitness != null && trade instanceof BuyerTrade) {

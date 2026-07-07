@@ -465,7 +465,12 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public boolean addPersistableNetworkPayload(PersistableNetworkPayload payload, boolean reBroadcast) {
-        return p2PDataStorage.addPersistableNetworkPayload(payload, networkNode.getNodeAddress(), reBroadcast);
+        return addPersistableNetworkPayload(payload, true, reBroadcast);
+    }
+
+    // allowBroadcast=false stores locally without broadcasting, e.g. for older payloads which peers reject as out of date tolerance
+    public boolean addPersistableNetworkPayload(PersistableNetworkPayload payload, boolean allowBroadcast, boolean reBroadcast) {
+        return p2PDataStorage.addPersistableNetworkPayload(payload, networkNode.getNodeAddress(), allowBroadcast, reBroadcast);
     }
 
     public boolean addProtectedStorageEntry(ProtectedStoragePayload protectedStoragePayload) {
