@@ -19,6 +19,7 @@ package haveno.network.crypto;
 
 import com.google.inject.Inject;
 import com.google.protobuf.InvalidProtocolBufferException;
+import haveno.common.app.Version;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
 import static haveno.common.crypto.Encryption.decryptSecretKey;
@@ -68,7 +69,7 @@ public class EncryptionService {
             throw new CryptoException("Signature verification failed.");
 
         try {
-            final byte[] bytes = Encryption.decryptPayloadWithHmac(sealedAndSigned.getEncryptedPayloadWithHmac(), secretKey);
+            final byte[] bytes = Encryption.decryptPayloadWithHmacAuto(sealedAndSigned.getEncryptedPayloadWithHmac(), secretKey);
             final protobuf.NetworkEnvelope envelope = protobuf.NetworkEnvelope.parseFrom(bytes);
             NetworkEnvelope decryptedPayload = networkProtoResolver.fromProto(envelope);
             return new DecryptedDataTuple(decryptedPayload, sealedAndSigned.getSigPublicKey());
@@ -86,7 +87,11 @@ public class EncryptionService {
     }
 
     private static byte[] encryptPayloadWithHmac(NetworkEnvelope networkEnvelope, SecretKey secretKey) throws CryptoException {
-        return Encryption.encryptPayloadWithHmac(networkEnvelope.toProtoNetworkEnvelope().toByteArray(), secretKey);
+        byte[] payload = networkEnvelope.toProtoNetworkEnvelope().toByteArray();
+        // v1 is sent until the network can receive v2 (see Version.NETWORK_ENCRYPTION_VERSION)
+        return Version.NETWORK_ENCRYPTION_VERSION >= 2
+                ? Encryption.encryptV2(payload, secretKey)
+                : Encryption.encryptPayloadWithHmac(payload, secretKey);
     }
 
     /**
