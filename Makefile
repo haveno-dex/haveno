@@ -8,7 +8,7 @@ GRADLE_EXTRA ?=
 # Required Java major version — single source of truth is the Gradle version catalog
 JAVA_VERSION := $(shell sed -n 's/^java = "\([0-9][0-9]*\)".*/\1/p' gradle/libs.versions.toml)
 
-.PHONY: help build clean clean-all haveno skip-tests daemon desktop seednode seednode-jar package test check-java \
+.PHONY: help build clean clean-all clean-cache haveno skip-tests daemon desktop seednode seednode-jar package test check-java \
         update-dependencies refresh-deps haveno-apps localnet clean-localnet deploy-screen deploy-tmux
 
 .DEFAULT_GOAL := build
@@ -26,6 +26,7 @@ help:
 	@echo "  make test             Run unit tests only"
 	@echo "  make clean            Gradle clean + remove root haveno-* launchers"
 	@echo "  make clean-all        clean + remove .localnet monero cache"
+	@echo "  make clean-cache      Clear Gradle build cache (recover from stale/empty cached outputs)"
 	@echo "  make check-java       Verify Java $(JAVA_VERSION) is active"
 	@echo "  make update-dependencies  Refresh dependency lock metadata"
 	@echo "  make refresh-deps     Refresh verification metadata and rebuild (no tests)"
@@ -45,6 +46,10 @@ clean-all: clean clean-localnet
 
 clean-localnet:
 	rm -rf .localnet
+
+clean-cache:
+	rm -rf "$${GRADLE_USER_HOME:-$$HOME/.gradle}/caches/build-cache-1"
+	@echo "Gradle build cache cleared"
 
 localnet:
 	mkdir -p .localnet
