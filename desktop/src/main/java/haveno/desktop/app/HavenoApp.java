@@ -32,8 +32,6 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.app.Log;
-import haveno.common.app.Version;
-import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.crypto.Hash;
 import haveno.common.setup.GracefulShutDownHandler;
@@ -57,7 +55,6 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.DarkModeToggle;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.debug.DebugView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -67,6 +64,7 @@ import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.ImageUtil;
+import haveno.desktop.util.Transitions;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -77,6 +75,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javafx.application.Application;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.NumberBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Insets;
@@ -87,10 +87,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -121,10 +121,12 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     private Scene scene;
     private boolean shutDownRequested;
     private MainView mainView;
+    // persistent startup surface (scene root for the whole pre-app phase); owns the logo/version/toggle
+    private StartupShell startupShell;
     // debounces writing window bounds to the unencrypted startup store during a drag/resize
     private Timer stageBoundsPersistenceTimer;
-    // true if the window was placed from the saved bounds before login (so we must not re-apply them after)
-    private boolean startupWindowBoundsApplied;
+    // true if the window position was restored from saved bounds at startup (else we migrate the legacy cookie)
+    private boolean restoredWindowBounds;
 
     public HavenoApp() {
         shutDownHandler = this::stop;
@@ -153,29 +155,18 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             mainView = loadMainView(injector);
             mainView.setOnApplicationStartedHandler(onApplicationStartedHandler);
 
-            User user = injector.getInstance(User.class);
+            // build and show the window if no password screen
             if (scene == null) {
-
-                // no password screen was shown, so build the scene, configure the stage and restore the saved layout
-                scene = createAndConfigScene(mainView.getRoot(), injector);
-                configureStage(scene);
-                layoutStageFromPersistedData(stage, user);
-            } else {
-
-                // reuse the window already shown for the password screen and swap in the main view
-                scene.setRoot(mainView.getRoot());
-                if (startupWindowBoundsApplied) {
-                    // already placed (and maybe dragged) before login; keep and persist the current position, don't jump
-                    persistStageBounds(stage);
-                } else {
-                    // first run with no stored value: keep the current window and seed the store for next startup
-                    seedStartupWindowFromCookie(user);
-                }
+                startupShell = getOrCreateShell();
+                showStartupWindow();
             }
 
-            // track future layout changes, then show
-            addStageLayoutListeners(stage);
-            stage.show();
+            startupShell.setAppContent(mainView.getRoot());
+            startupShell.setContent(mainView.getStartupStatusContent());
+            mainView.setStartupOverlayFader(startupShell::fadeOutOverlay);
+
+            // now unlocked: capture the current position (or migrate legacy bounds) and track future moves
+            finalizeWindowBounds(injector.getInstance(User.class));
         } catch (Throwable throwable) {
             log.error("Error during app init", throwable);
             handleUncaughtException(throwable, false);
@@ -192,14 +183,9 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
      */
     public void showPasswordScreen(PasswordHandler passwordHandler, Runnable onQuit) {
         // preferences applies the persisted theme before login, so this screen uses the user's chosen theme
-        scene = createAndConfigScene(createPasswordScreen(passwordHandler, onQuit), injector);
-        configureStage(scene);
-
-        // open the window in its last saved place (from the unencrypted startup store) without waiting for login
-        Optional<BoundingBox> savedBounds = readStartupWindowBounds();
-        if (savedBounds.isPresent()) startupWindowBoundsApplied = applyStageBounds(stage, savedBounds.get());
-
-        stage.show();
+        startupShell = getOrCreateShell();
+        startupShell.setContent(createLoginContent(passwordHandler, onQuit));
+        showStartupWindow();
     }
 
     public interface PasswordHandler {
@@ -305,21 +291,19 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         return scene;
     }
 
-    private Parent createPasswordScreen(PasswordHandler passwordHandler, Runnable onQuit) {
+    // the single persistent startup surface, built lazily on the first pre-app screen
+    private StartupShell getOrCreateShell() {
+        if (startupShell == null) {
+            startupShell = new StartupShell(injector.getInstance(Preferences.class), injector.getInstance(Transitions.class));
+        }
+        return startupShell;
+    }
 
-        Preferences preferences = injector.getInstance(Preferences.class);
-
-        // logo (theme-aware via css id, matching the main splash screen)
-        ImageView logo = new ImageView();
-        logo.setId(Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET ? "image-logo-splash" : "image-logo-splash-testnet");
-        logo.setFitWidth(342);
-        logo.setPreserveRatio(true);
-        logo.setSmooth(true);
-
-        Label headline = new AutoTooltipLabel(Res.get("password.enterPassword"));
-        headline.setStyle("-fx-font-size: 1.15em;");
+    // the password prompt shown in the startup shell's content slot
+    private Region createLoginContent(PasswordHandler passwordHandler, Runnable onQuit) {
 
         PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText(Res.get("password.enterPassword"));
         passwordField.setMaxWidth(340);
         passwordField.getStyleClass().add("login-password-field");
         // PasswordField blocks cut/copy for security; allow ctrl/cmd+x to clear the selection (without clipboard)
@@ -351,14 +335,16 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         unlockButton.getStyleClass().add("action-button");
         Button quitButton = new AutoTooltipButton(Res.get("shared.shutDown"));
 
+        // size both buttons to the wider label so they match, adapting to whatever the translated text is
+        NumberBinding buttonWidth = Bindings.max(unlockButton.widthProperty(), quitButton.widthProperty());
+        unlockButton.minWidthProperty().bind(buttonWidth);
+        quitButton.minWidthProperty().bind(buttonWidth);
+
         Consumer<Boolean> setControlsDisabled = disabled -> {
             passwordField.setDisable(disabled);
             unlockButton.setDisable(disabled);
             quitButton.setDisable(disabled);
         };
-
-        Label versionLabel = new AutoTooltipLabel(Res.get("mainView.footer.version", Version.VERSION));
-        versionLabel.setStyle("-fx-font-size: 0.9em; -fx-text-fill: -bs-color-gray-6;");
 
         boolean[] submitting = {false};
         Runnable submitHandler = () -> {
@@ -399,24 +385,14 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         HBox buttonBox = new HBox(10, unlockButton, quitButton);
         buttonBox.setAlignment(Pos.CENTER);
 
-        VBox contentBox = new VBox(15, logo, headline, passwordField, statusLabel, buttonBox, versionLabel);
-        contentBox.setAlignment(Pos.CENTER);
-        contentBox.setPadding(new Insets(20));
-        VBox.setMargin(versionLabel, new Insets(20, 0, 0, 0));
-
-        // light/dark toggle in the corner so the user can switch theme while entering their password
-        DarkModeToggle themeToggle = new DarkModeToggle(preferences);
-        themeToggle.setFitHeight(20);
-
-        StackPane root = new StackPane(contentBox, themeToggle);
-        root.setId("splash");
-        StackPane.setAlignment(themeToggle, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(themeToggle, new Insets(12));
+        VBox contentBox = new VBox(15, passwordField, buttonBox, statusLabel);
+        contentBox.setAlignment(Pos.TOP_CENTER);
+        VBox.setMargin(buttonBox, new Insets(15, 0, 0, 0));
 
         // focus the password field once the screen is rendered
         UserThread.execute(passwordField::requestFocus);
 
-        return root;
+        return contentBox;
     }
 
     private void configureStage(Scene scene) {
@@ -448,23 +424,22 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         stage.getIcons().add(ImageUtil.getApplicationIconImage());
     }
 
-    private void layoutStageFromPersistedData(Stage stage, User user) {
-        loadWindowBounds(user).ifPresent(bounds -> applyStageBounds(stage, bounds));
+    private void showStartupWindow() {
+        scene = createAndConfigScene(startupShell, injector);
+        configureStage(scene);
+        restoredWindowBounds = readStartupWindowBounds().map(bounds -> applyStageBounds(stage, bounds)).orElse(false);
+        stage.show();
     }
 
-    // saved window bounds, preferring the startup store and migrating from the legacy cookie on first upgrade
-    private Optional<BoundingBox> loadWindowBounds(User user) {
-        Optional<BoundingBox> bounds = readStartupWindowBounds();
-        if (bounds.isEmpty()) {
-            bounds = readLegacyCookieBounds(user);
-            bounds.ifPresent(this::seedStartupWindow);
+    private void finalizeWindowBounds(User user) {
+        if (restoredWindowBounds) {
+            // opened in its saved place; capture it again in case it was moved during password entry
+            persistStageBounds(stage);
+        } else {
+            // no saved bounds yet: seed the store from the legacy cookie so the next startup opens in place
+            readLegacyCookieBounds(user).ifPresent(this::seedStartupWindow);
         }
-        return bounds;
-    }
-
-    // seed the store from the legacy bounds without moving the window, so it opens in place on the next startup
-    private void seedStartupWindowFromCookie(User user) {
-        readLegacyCookieBounds(user).ifPresent(this::seedStartupWindow);
+        addStageLayoutListeners(stage);
     }
 
     // read the window bounds from the unencrypted startup store (available before login)

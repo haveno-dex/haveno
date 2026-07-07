@@ -23,8 +23,6 @@ import com.jfoenix.controls.JFXComboBox;
 import haveno.common.HavenoException;
 import haveno.common.Timer;
 import haveno.common.UserThread;
-import haveno.common.config.BaseCurrencyNetwork;
-import haveno.common.config.Config;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.core.locale.GlobalSettings;
@@ -32,7 +30,6 @@ import haveno.core.locale.LanguageUtil;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.user.Preferences;
-import haveno.core.util.FormattingUtils;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
@@ -43,7 +40,6 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipToggleButton;
 import haveno.desktop.components.BusyAnimation;
-import haveno.desktop.components.DarkModeToggle;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.funds.FundsView;
 import haveno.desktop.main.market.MarketView;
@@ -62,6 +58,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.function.Consumer;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -102,6 +99,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -131,6 +129,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
     private final Preferences preferences;
     private static final int networkIconSize = 20;
+    @Getter
+    private Region startupStatusContent;
+    @Setter
+    private Consumer<Runnable> startupOverlayFader;
 
     public static StackPane getRootContainer() {
         return MainView.rootContainer;
@@ -394,16 +396,19 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             });
         });
 
-        Region splashScreen = createSplashScreen();
+        root.getChildren().add(baseApplicationContainer);
 
-        root.getChildren().addAll(baseApplicationContainer, splashScreen);
+        // build the loading/connection status hosted by the startup shell (registers its model listeners)
+        startupStatusContent = createStartupStatusContent();
 
         model.getShowAppScreen().addListener((ov, oldValue, newValue) -> {
             if (newValue) {
 
                 navigation.navigateToPreviousVisitedView();
 
-                transitions.fadeOutAndRemove(splashScreen, 1500, actionEvent -> disposeSplashScreen());
+                // fade the shell's branding overlay out to reveal the app, then dispose the status listeners
+                if (startupOverlayFader != null) startupOverlayFader.accept(this::disposeSplashScreen);
+                else disposeSplashScreen();
             }
         });
 
@@ -538,17 +543,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 model.getPriceFeedService().getProviderNodeAddress());
     }
 
-    private Region createSplashScreen() {
+    private Region createStartupStatusContent() {
         VBox vBox = new VBox();
-        vBox.setAlignment(Pos.CENTER);
+        vBox.setAlignment(Pos.TOP_CENTER);
         vBox.setSpacing(10);
-        vBox.setId("splash");
-
-        ImageView logo = new ImageView();
-        logo.setId(Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET ? "image-logo-splash" : "image-logo-splash-testnet");
-        logo.setFitWidth(400);
-        logo.setPreserveRatio(true);
-        logo.setSmooth(true);
 
         // createBitcoinInfoBox
         xmrSplashInfo = new AutoTooltipLabel();
@@ -579,7 +577,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             xmrSyncIcon.setVisible(true);
             xmrSyncIcon.setManaged(true);
 
-            // show progress bar until we have checkmark id
+            // hide the progress bar and collapse its space once synced
             boolean inProgress = "".equals(newValue);
             xmrSyncIndicator.setVisible(inProgress);
             xmrSyncIndicator.setManaged(inProgress);
@@ -590,8 +588,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         HBox blockchainSyncBox = new HBox();
         blockchainSyncBox.setSpacing(10);
         blockchainSyncBox.setAlignment(Pos.CENTER);
-        blockchainSyncBox.setPadding(new Insets(40, 0, 0, 0));
-        blockchainSyncBox.setPrefHeight(50);
+        blockchainSyncBox.setPrefHeight(30);
         blockchainSyncBox.getChildren().addAll(xmrSplashInfo, xmrSyncIcon);
 
 
@@ -671,21 +668,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         HBox splashP2PNetworkBox = new HBox();
         splashP2PNetworkBox.setSpacing(10);
         splashP2PNetworkBox.setAlignment(Pos.CENTER);
-        splashP2PNetworkBox.setPrefHeight(40);
+        splashP2PNetworkBox.setPrefHeight(30);
         splashP2PNetworkBox.getChildren().addAll(splashP2PNetworkLabel, splashP2PNetworkBusyAnimation, splashP2PNetworkIcon, showTorNetworkSettingsButton);
 
-        Label versionLabel = new Label(FormattingUtils.formatVersion());
-
-        vBox.getChildren().addAll(logo, blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox, versionLabel);
-
-        // light/dark toggle in the corner so the user can switch theme while connecting
-        DarkModeToggle themeToggle = new DarkModeToggle(preferences);
-        themeToggle.setFitHeight(networkIconSize);
-
-        StackPane splashPane = new StackPane(vBox, themeToggle);
-        StackPane.setAlignment(themeToggle, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(themeToggle, new Insets(12));
-        return splashPane;
+        vBox.getChildren().addAll(blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox);
+        return vBox;
     }
 
     private void disposeSplashScreen() {

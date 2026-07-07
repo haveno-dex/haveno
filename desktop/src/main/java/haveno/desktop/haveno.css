@@ -938,13 +938,14 @@ tree-table-view:focused {
     -fx-padding: 10 13 10 13;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
+    -fx-prompt-text-fill: -bs-login-prompt-text;
 }
 
 .login-password-field:focused {
     -fx-background-color: -bs-color-primary, -fx-control-inner-background;
     -fx-background-insets: 0, 1.5;
     -fx-background-radius: 8, 6.5;
-    -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 12, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 10, 0, 0, 0);
 }
 
 .text-area {
