@@ -98,6 +98,13 @@ public final class KeyRing {
             signatureKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_SIGNATURE, symmetricKey);
             encryptionKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_ENCRYPTION, symmetricKey);
             if (signatureKeyPair != null && encryptionKeyPair != null) pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
+            if (isUnlocked() && keyStorage.needsFormatUpgrade()) {
+                try {
+                    keyStorage.saveKeyRing(this, password);
+                } catch (Exception e) {
+                    log.error("Failed to upgrade key storage format, will retry on next unlock", e);
+                }
+            }
         } else if (generateKeys) {
             generateKeys(password);
         }
@@ -115,7 +122,7 @@ public final class KeyRing {
         signatureKeyPair = Sig.generateKeyPair();
         encryptionKeyPair = Encryption.generateKeyPair();
         pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
-        keyStorage.saveKeyRing(this, null, password);
+        keyStorage.saveKeyRing(this, password);
     }
 
     // Don't print keys for security reasons
