@@ -83,6 +83,14 @@ public class AppendOnlyDataStoreService {
                 .orElse(new HashMap<>());
     }
 
+    // Checks for the hash without merging the data stores into a new map like getMap does. The historical
+    // data stores can hold a large number of entries, so creating that merged map on every lookup is expensive.
+    public boolean containsKey(PersistableNetworkPayload payload, P2PDataStorage.ByteArray hash) {
+        return findService(payload)
+                .map(service -> service.containsKey(hash))
+                .orElse(false);
+    }
+
     public boolean put(P2PDataStorage.ByteArray hashAsByteArray, PersistableNetworkPayload payload) {
         Optional<MapStoreService<? extends PersistableNetworkPayloadStore<? extends PersistableNetworkPayload>, PersistableNetworkPayload>> optionalService = findService(payload);
         optionalService.ifPresent(service -> service.putIfAbsent(hashAsByteArray, payload));

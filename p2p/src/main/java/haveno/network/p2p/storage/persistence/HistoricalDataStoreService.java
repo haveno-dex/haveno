@@ -114,6 +114,11 @@ public abstract class HistoricalDataStoreService<T extends PersistableNetworkPay
     }
 
     @Override
+    boolean containsKey(P2PDataStorage.ByteArray hash) {
+        return anyMapContainsKey(hash);
+    }
+
+    @Override
     protected void put(P2PDataStorage.ByteArray hash, PersistableNetworkPayload payload) {
         if (anyMapContainsKey(hash)) {
             return;
