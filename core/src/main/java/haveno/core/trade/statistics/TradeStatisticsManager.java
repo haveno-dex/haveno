@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -57,7 +58,10 @@ public class TradeStatisticsManager {
     private final boolean dumpStatistics;
     private final ObservableList<TradeStatistics3> observableTradeStatisticsList = FXCollections.observableArrayList();
     private JsonFileManager jsonFileManager;
+    private final AtomicBoolean dumpStatisticsScheduled = new AtomicBoolean();
+    private volatile boolean shutDownRequested;
     public static final int PUBLISH_STATS_RANDOM_DELAY_HOURS = 24;
+    private static final int DUMP_STATISTICS_DELAY_SEC = 60;
 
     @Inject
     public TradeStatisticsManager(P2PService p2PService,
@@ -77,6 +81,11 @@ public class TradeStatisticsManager {
     }
 
     public void shutDown() {
+        shutDownRequested = true;
+        // flush a pending batched dump so the json includes the final statistics
+        if (dumpStatisticsScheduled.getAndSet(false)) {
+            dumpStatistics();
+        }
         if (jsonFileManager != null) {
             jsonFileManager.shutDown();
         }
@@ -91,8 +100,8 @@ public class TradeStatisticsManager {
                 }
                 synchronized (observableTradeStatisticsList) {
                     observableTradeStatisticsList.add(tradeStatistics);
-                    priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsList);
                 }
+                priceFeedService.applyHavenoMarketPrice(tradeStatistics);
                 maybeDumpStatistics();
             }
         });
@@ -210,6 +219,20 @@ public class TradeStatisticsManager {
             return;
         }
 
+        // Dumping serializes the whole statistics list, so we batch frequent updates into one dump per interval.
+        if (!dumpStatisticsScheduled.compareAndSet(false, true)) {
+            return;
+        }
+        UserThread.runAfter(() -> {
+            dumpStatisticsScheduled.set(false);
+            if (shutDownRequested) {
+                return;
+            }
+            dumpStatistics();
+        }, DUMP_STATISTICS_DELAY_SEC);
+    }
+
+    private void dumpStatistics() {
         if (jsonFileManager == null) {
             jsonFileManager = new JsonFileManager(storageDir);
 
