@@ -180,6 +180,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     public void activate() {
         addListeners();
 
+        fillPaymentAccounts();
+
         if (isTabSelected)
             priceFeedService.setCurrencyCode(tradeCurrencyCode.get());
 
