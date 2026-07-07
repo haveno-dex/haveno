@@ -159,7 +159,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
     private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 5;
     public static final int NUM_BLOCKS_DEPOSITS_FINALIZED = 30; // ~1 hour before deposits are considered finalized
-    public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized and multisig wallet deleted
+    public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized, after which the multisig wallet is retained but no longer opened or synced
+    public static final int NUM_BLOCKS_PAYOUT_DELETED = Config.baseCurrencyNetwork().isTestnet() ? 420 : 5040; // ~7 days before the retained multisig wallet is deleted (must be finalized first)
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
     public static final long POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS = 120000; // 2 minutes
     private static final long KEEP_ALIVE_PERIOD_MINS = 28; // connection to monerod times out after 30 mins of inactivity
@@ -767,7 +768,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 // handle when payout finalized
                 if (newValue == Trade.PayoutState.PAYOUT_FINALIZED) {
                     if (!isInitialized) return;
-                    log.info("Payout finalized for {} {}, deleting multisig wallet", getClass().getSimpleName(), getId());
+                    log.info("Payout finalized for {} {}, retaining multisig wallet until deletion threshold", getClass().getSimpleName(), getId());
                     if (isInitialized && isFinished()) clearAndShutDown();
                     else ThreadUtils.execute(() -> deleteWallet(), getId());
                 }
@@ -1189,6 +1190,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public void deleteWallet() {
         synchronized (walletLock) {
             if (walletExists()) {
+
+                // retain wallet after payout is finalized until it reaches the deletion threshold, then it is deleted by a periodic sweep
+                if (shouldRetainWallet()) {
+                    log.info("Retaining trade wallet for {} {} until finalized payout reaches {} blocks", getClass().getSimpleName(), getId(), NUM_BLOCKS_PAYOUT_DELETED);
+                    forceCloseWallet(false);
+                    return;
+                }
+
                 try {
 
                     // check wallet state if deposit requested and payout not finalized
@@ -2838,6 +2847,24 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return getPayoutState().ordinal() >= PayoutState.PAYOUT_FINALIZED.ordinal();
     }
 
+    /**
+     * The trade wallet is retained (but no longer opened or synced) after the payout is finalized,
+     * then deleted once the payout tx reaches {@link #NUM_BLOCKS_PAYOUT_DELETED} confirmations.
+     */
+    public boolean isPayoutDeletable() {
+        if (!isPayoutFinalized()) return false;
+        if (payoutHeight == null) return false;
+        Long targetHeight = xmrConnectionService.getTargetHeight();
+        if (targetHeight == null) return false;
+        long currentHeight = targetHeight - 1;
+        return currentHeight >= payoutHeight + NUM_BLOCKS_PAYOUT_DELETED;
+    }
+
+    // whether to retain the wallet on deletion because payout is finalized but has not yet reached the deletion threshold
+    private boolean shouldRetainWallet() {
+        return isPayoutFinalized() && !isPayoutDeletable();
+    }
+
     public ReadOnlyDoubleProperty initProgressProperty() {
         return initProgressProperty;
     }
@@ -3810,6 +3837,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         this.payoutTxFee = payoutTx.getFee() == null ? 0 : payoutTx.getFee().longValueExact();
         this.payoutTxKey = payoutTx.getKey();
         if ("".equals(payoutTxId)) this.payoutTxId = null; // tx id is empty until signed
+        if (payoutTx.getHeight() != null) this.payoutHeight = payoutTx.getHeight(); // record height to anchor finalization and deletion
 
         // set payout tx id in dispute(s)
         for (Dispute dispute : getDisputes()) dispute.setDisputePayoutTxId(payoutTxId);
@@ -4269,6 +4297,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         Optional.ofNullable(payoutTxKey).ifPresent(e -> builder.setPayoutTxKey(payoutTxKey));
         Optional.ofNullable(counterCurrencyExtraData).ifPresent(e -> builder.setCounterCurrencyExtraData(counterCurrencyExtraData));
         Optional.ofNullable(challenge).ifPresent(e -> builder.setChallenge(challenge));
+        Optional.ofNullable(payoutHeight).ifPresent(builder::setPayoutHeight);
         return builder.build();
     }
 
@@ -4292,6 +4321,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         trade.setStartTime(proto.getStartTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
         trade.setCompleted(proto.getIsCompleted());
+        trade.payoutHeight = proto.getPayoutHeight() == 0 ? null : proto.getPayoutHeight();
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()
                 .map(ChatMessage::fromPayloadProto)

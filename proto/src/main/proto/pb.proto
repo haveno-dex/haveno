@@ -1581,6 +1581,7 @@ message Trade {
     string uid = 27;
     bool is_completed = 28;
     string challenge = 29;
+    int64 payout_height = 30;
 }
 
 message BuyerAsMakerTrade {
