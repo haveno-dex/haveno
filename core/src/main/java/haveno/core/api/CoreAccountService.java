@@ -152,13 +152,15 @@ public class CoreAccountService {
         if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
 
         var accountWasOpen = isAccountOpen();
-        // Needed to unlock haveno_XMR.keys
-        if (accountWasOpen)
-            closeAccount();
 
-        // flush all known persistence objects to disk
+        // flush all known persistence objects to disk before locking the keys: encrypted stores
+        // skip writes while the key ring is locked, which would silently back up stale files
         PersistenceManager.flushAllDataToDiskAtBackup(() -> {
             try {
+                // Needed to unlock haveno_XMR.keys
+                if (accountWasOpen)
+                    closeAccount();
+
                 File dataDir = new File(config.appDataDir.getPath());
                 PipedInputStream in = new PipedInputStream(bufferSize); // pipe the serialized account object to stream which will be read by the consumer
                 PipedOutputStream out = new PipedOutputStream(in);
@@ -175,21 +177,22 @@ public class CoreAccountService {
                         ZipUtils.zipDirToStream(dataDir, out, bufferSize, excludedFiles);
                     } catch (Exception ex) {
                         error.accept(ex);
+                    } finally {
+                        // reopen only once the zip has read its last file, not concurrently with it
+                        if (accountWasOpen) {
+                            try {
+                                openAccount(password);
+                            } catch (Exception ex) {
+                                error.accept(ex);
+                            }
+                        }
                     }
                 }).start();
                 consume.accept(in);
-            } catch (java.io.IOException err) {
+            } catch (Exception err) {
                 error.accept(err);
             }
         });
-
-        if (accountWasOpen) {
-            try {
-                openAccount(password);
-            } catch (Exception ex){
-                throw new RuntimeException(ex);
-            }
-        }
     }
 
     public void restoreAccount(InputStream inputStream, int bufferSize, Runnable onShutdown) throws Exception {
