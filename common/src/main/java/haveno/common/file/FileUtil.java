@@ -30,8 +30,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -50,6 +52,11 @@ public class FileUtil {
 
     private static final String BACKUP_DIR = "backup";
     
+    // Backup subdirectory name for a file, e.g. "backups_sym_key" for "sym.key".
+    private static String backupDirName(String fileName) {
+        return ("backups_" + fileName).replace(".", "_");
+    }
+
     public static void rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
         if (numMaxBackupFiles <= 0) return;
         if (dir.exists()) {
@@ -60,10 +67,7 @@ public class FileUtil {
 
             File origFile = new File(Paths.get(dir.getAbsolutePath(), fileName).toString());
             if (origFile.exists()) {
-                String dirName = "backups_" + fileName;
-                if (dirName.contains("."))
-                    dirName = dirName.replace(".", "_");
-                File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
+                File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), backupDirName(fileName)).toString());
                 if (!backupFileDir.exists())
                     if (!backupFileDir.mkdir())
                         log.warn("make backupFileDir failed.\nBackupFileDir=" + backupFileDir.getAbsolutePath());
@@ -84,12 +88,14 @@ public class FileUtil {
     public static List<File> getBackupFiles(File dir, String fileName) {
         File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
         if (!backupDir.exists()) return new ArrayList<File>();
-        String dirName = "backups_" + fileName;
-        if (dirName.contains(".")) dirName = dirName.replace(".", "_");
-        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
+        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), backupDirName(fileName)).toString());
         if (!backupFileDir.exists()) return new ArrayList<File>();
         File[] files = backupFileDir.listFiles();
-        return Arrays.asList(files);
+        return files == null ? new ArrayList<File>() : Arrays.asList(files);
+    }
+
+    public static boolean hasBackups(File dir, String fileName) {
+        return !getBackupFiles(dir, fileName).isEmpty();
     }
 
     public static File getLatestBackupFile(File dir, String fileName) {
@@ -102,9 +108,7 @@ public class FileUtil {
     public static void deleteRollingBackup(File dir, String fileName) {
         File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
         if (!backupDir.exists()) return;
-        String dirName = "backups_" + fileName;
-        if (dirName.contains(".")) dirName = dirName.replace(".", "_");
-        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
+        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), backupDirName(fileName)).toString());
         try {
             FileUtils.deleteDirectory(backupFileDir);
         } catch (IOException e) {
@@ -232,14 +236,27 @@ public class FileUtil {
 
     /**
      * Replaces target with source atomically where the filesystem supports it, so no crash window
-     * exists with neither file in place ({@link #renameFile} deletes the target first on Windows).
+     * exists with neither file in place; the non-atomic fallback still replaces in a single move
+     * (unlike {@link #renameFile}, which deletes the target first on Windows). The directory entry
+     * is fsynced afterwards where the platform supports it, for power-loss durability.
      */
     public static void atomicReplace(File source, File target) throws IOException {
         try {
             java.nio.file.Files.move(source.toPath(), target.toPath(),
                     StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (AtomicMoveNotSupportedException e) {
-            renameFile(source, target);
+            java.nio.file.Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        syncParentDir(target);
+    }
+
+    // Fsyncs a file's directory entry; a no-op where directories cannot be opened (e.g. Windows).
+    private static void syncParentDir(File file) {
+        File parent = file.getParentFile();
+        if (parent == null) return;
+        try (FileChannel channel = FileChannel.open(parent.toPath(), StandardOpenOption.READ)) {
+            channel.force(true);
+        } catch (IOException | UnsupportedOperationException ignore) {
         }
     }
 
