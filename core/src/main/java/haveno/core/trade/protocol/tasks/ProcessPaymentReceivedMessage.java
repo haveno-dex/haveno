@@ -160,7 +160,13 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             if (!trade.isPayoutPublished()) {
                 try {
                     if (message.getPayoutTxId() != null && trade.isBuyer()) {
-                        trade.processBuyerPayout(message.getPayoutTxId()); // buyer can validate payout tx by id with main wallet (in case of multisig issues)
+                        try {
+                            trade.processBuyerPayout(message.getPayoutTxId()); // buyer can validate payout tx by id with main wallet (in case of multisig issues)
+                        } catch (Exception e) {
+                            if (message.getSignedPayoutTxHex() == null) throw e;
+                            log.warn("Failed to observe payout tx {} by id for {} {}, re-broadcasting seller's signed payout tx. error={}", message.getPayoutTxId(), trade.getClass().getSimpleName(), trade.getId(), e.getMessage());
+                            trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true); // re-verifies the seller's signed tx against the contract and re-broadcasts it, never creates a conflicting payout
+                        }
                     } else if (message.getSignedPayoutTxHex() != null) {
                         log.info("{} {} publishing signed payout tx from seller", trade.getClass().getSimpleName(), trade.getId());
                         trade.processPayoutTx(message.getSignedPayoutTxHex(), false, true);

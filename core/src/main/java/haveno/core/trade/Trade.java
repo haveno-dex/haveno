@@ -1597,7 +1597,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         setPayoutTx(payoutTx);
 
         // check connection
-        boolean doSign = sign && getPayoutTxHex() == null;
+        boolean hadSignedPayoutTxHex = getPayoutTxHex() != null;
+        boolean doSign = sign && !hadSignedPayoutTxHex;
         if (doSign || publish) verifyDaemonConnection();
 
         // handle tx signing
@@ -1632,6 +1633,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             describedTxSet = wallet.describeMultisigTxSet(getPayoutTxHex());
             payoutTx = describedTxSet.getTxs().get(0);
             setPayoutTx(payoutTx);
+        } else if (!sign) {
+            setPayoutTxHex(payoutTxHex); // record verified signed payout tx hex before publishing
         }
 
         // save trade state
@@ -1647,7 +1650,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 setPayoutStatePublished();
             } catch (Exception e) {
                 if (!isPayoutPublished()) {
-                    if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isMultisigError(e)) throw new IllegalArgumentException(e);
+                    if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isMultisigError(e)) {
+                        if (!hadSignedPayoutTxHex) setPayoutTxHex(null); // clear hex recorded this call so a fresh payout tx can be processed
+                        throw new IllegalArgumentException(e);
+                    }
                     throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId() + ", error=" + e.getMessage(), e);
                 }
             }
@@ -1837,17 +1843,25 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (payoutTxId == null) throw new IllegalArgumentException("Payout tx id cannot be null");
         if (!isBuyer()) throw new IllegalStateException("Only buyer can process buyer payout tx for " + getClass().getSimpleName() + " " + getShortId());
 
-        // poll the main wallet
+        // poll the main wallet until the seller's published payout tx is seen (allow time to propagate)
         log.warn("Processing payout tx for {} {} by polling main wallet", getClass().getSimpleName(), getShortId());
-        try {
-            xmrWalletService.doPollWallet();
-        } catch (Exception e) {
-            // use default error handling
+        MoneroTxWallet payoutTx = null;
+        for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
+            try {
+                xmrWalletService.doPollWallet();
+            } catch (Exception e) {
+                // use default error handling
+            }
+            payoutTx = xmrWalletService.getTx(payoutTxId);
+            if (payoutTx != null || isPayoutPublished()) break;
+            if (i < TradeProtocol.MAX_ATTEMPTS - 1) HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait for tx to propagate before retrying
         }
 
-        // fetch payout tx from main wallet
-        MoneroTxWallet payoutTx = xmrWalletService.getTx(payoutTxId);
-        if (payoutTx == null) throw new IllegalStateException("Payout tx id " + payoutTxId + " not found for " + getClass().getSimpleName() + " " + getId());
+        // done if payout observed as published, else fail if still not found
+        if (payoutTx == null) {
+            if (isPayoutPublished()) return;
+            throw new IllegalStateException("Payout tx id " + payoutTxId + " not found for " + getClass().getSimpleName() + " " + getId());
+        }
         if (payoutTx.isFailed()) throw new IllegalStateException("Payout tx " + payoutTxId + " is failed for " + getClass().getSimpleName() + " " + getId());
 
         // verify incoming amount
