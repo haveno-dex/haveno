@@ -63,29 +63,37 @@ public final class TradableList<T extends Tradable> extends PersistableListAsObs
                                                    CoreProtoResolver coreProtoResolver,
                                                    XmrWalletService xmrWalletService) {
         List<Tradable> list = proto.getTradableList().stream()
-                .map(tradable -> {
-                    switch (tradable.getMessageCase()) {
-                        case OPEN_OFFER:
-                            return OpenOffer.fromProto(tradable.getOpenOffer());
-                        case BUYER_AS_MAKER_TRADE:
-                            return BuyerAsMakerTrade.fromProto(tradable.getBuyerAsMakerTrade(), xmrWalletService, coreProtoResolver);
-                        case BUYER_AS_TAKER_TRADE:
-                            return BuyerAsTakerTrade.fromProto(tradable.getBuyerAsTakerTrade(), xmrWalletService, coreProtoResolver);
-                        case SELLER_AS_MAKER_TRADE:
-                            return SellerAsMakerTrade.fromProto(tradable.getSellerAsMakerTrade(), xmrWalletService, coreProtoResolver);
-                        case SELLER_AS_TAKER_TRADE:
-                            return SellerAsTakerTrade.fromProto(tradable.getSellerAsTakerTrade(), xmrWalletService, coreProtoResolver);
-                        case ARBITRATOR_TRADE:
-                            return ArbitratorTrade.fromProto(tradable.getArbitratorTrade(), xmrWalletService, coreProtoResolver);
-                        default:
-                            log.error("Unknown messageCase. tradable.getMessageCase() = " + tradable.getMessageCase());
-                            throw new ProtobufferRuntimeException("Unknown messageCase. tradable.getMessageCase() = " +
-                                    tradable.getMessageCase());
-                    }
-                })
+                .map(tradable -> tradableFromProto(tradable, coreProtoResolver, xmrWalletService))
                 .collect(Collectors.toList());
 
         return new TradableList<>(list);
+    }
+
+    /**
+     * Reconstructs a single {@link Tradable} from its proto. Shared by {@link #fromProto} and the
+     * append-only ClosedTrades log so both decode records through one switch.
+     */
+    public static Tradable tradableFromProto(protobuf.Tradable tradable,
+                                             CoreProtoResolver coreProtoResolver,
+                                             XmrWalletService xmrWalletService) {
+        switch (tradable.getMessageCase()) {
+            case OPEN_OFFER:
+                return OpenOffer.fromProto(tradable.getOpenOffer());
+            case BUYER_AS_MAKER_TRADE:
+                return BuyerAsMakerTrade.fromProto(tradable.getBuyerAsMakerTrade(), xmrWalletService, coreProtoResolver);
+            case BUYER_AS_TAKER_TRADE:
+                return BuyerAsTakerTrade.fromProto(tradable.getBuyerAsTakerTrade(), xmrWalletService, coreProtoResolver);
+            case SELLER_AS_MAKER_TRADE:
+                return SellerAsMakerTrade.fromProto(tradable.getSellerAsMakerTrade(), xmrWalletService, coreProtoResolver);
+            case SELLER_AS_TAKER_TRADE:
+                return SellerAsTakerTrade.fromProto(tradable.getSellerAsTakerTrade(), xmrWalletService, coreProtoResolver);
+            case ARBITRATOR_TRADE:
+                return ArbitratorTrade.fromProto(tradable.getArbitratorTrade(), xmrWalletService, coreProtoResolver);
+            default:
+                log.error("Unknown messageCase. tradable.getMessageCase() = " + tradable.getMessageCase());
+                throw new ProtobufferRuntimeException("Unknown messageCase. tradable.getMessageCase() = " +
+                        tradable.getMessageCase());
+        }
     }
 
     @Override

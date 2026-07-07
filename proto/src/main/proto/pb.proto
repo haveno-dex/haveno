@@ -1402,6 +1402,16 @@ message TradableList {
     repeated Tradable tradable = 1;
 }
 
+// A single entry in the append-only ClosedTrades log. An "upsert" adds or replaces the tradable
+// with the matching id; a "delete_id" tombstones (removes) the tradable with that id. Replaying the
+// log in order, latest-wins per id, reconstructs the equivalent of a TradableList.
+message TradableLogEntry {
+    oneof entry {
+        Tradable upsert = 1;
+        string delete_id = 2;
+    }
+}
+
 message Offer {
     enum State {
         PB_ERROR = 0;

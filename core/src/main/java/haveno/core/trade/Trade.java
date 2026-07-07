@@ -911,12 +911,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     // TODO: throw if trade manager is null
     public void requestPersistence() {
-        if (processModel.getTradeManager() != null) processModel.getTradeManager().requestPersistence();
+        if (processModel.getTradeManager() != null) processModel.getTradeManager().requestPersistence(this);
     }
 
     // TODO: throw if trade manager is null
     public void persistNow(@Nullable Runnable completeHandler) {
-        if (processModel.getTradeManager() != null) processModel.getTradeManager().persistNow(completeHandler);
+        if (processModel.getTradeManager() != null) processModel.getTradeManager().persistNow(this, completeHandler);
     }
 
     public TradeProtocol getProtocol() {
@@ -1957,7 +1957,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         
         // clear process data and shut down trade
         ThreadUtils.execute(() -> {
-            clearProcessData();
+            if (clearProcessData()) requestPersistence(); // routes to the closed-trades log if closed
             onShutDownStarted();
             ThreadUtils.submitToPool(() -> { // run off trade thread
                 try {
@@ -1974,7 +1974,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private void clearAndShutDownBeforeInitialized() {
         if (isShutDown) return; // ignore if already shut down
         onShutDownStarted();
-        clearProcessData();
+        if (clearProcessData()) requestPersistence(); // routes to the closed-trades log if closed
         onShutDownStarted();
         removeDecryptedDirectMessageListener();
         xmrConnectionService.removeConnectionListener(this);
@@ -1984,11 +1984,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         isShutDown = true;
     }
 
-    private void clearProcessData() {
+    /**
+     * Clears process data (trade wallet and peer tx/message fields) once the trade is finished.
+     *
+     * @return true if it cleared this call, so callers can persist the cleared state.
+     */
+    private boolean clearProcessData() {
 
         // delete trade wallet
         synchronized (walletLock) {
-            if (!walletExists()) return; // done if already cleared
+            if (!walletExists()) return false; // done if already cleared
             deleteWallet();
         }
 
@@ -2003,6 +2008,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (peer.isPaymentReceivedMessageAckedOrNacked() || isPayoutFinalized()) peer.setUnsignedPayoutTxHex(null);
             if (peer.isPaymentReceivedMessageAckedOrNacked()) peer.setPaymentReceivedMessage(null);
         }
+        return true;
     }
 
     private void removeDecryptedDirectMessageListener() {
@@ -2010,7 +2016,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         getProcessModel().getP2PService().removeDecryptedDirectMessageListener(getProtocol());
     }
 
-    public void maybeClearSensitiveData() {
+    /**
+     * Clears any sensitive data still held by this trade.
+     *
+     * @return true if anything changed, so callers persist only changed trades.
+     */
+    public boolean maybeClearSensitiveData() {
         String change = "";
         if (contract != null && contract.maybeClearSensitiveData()) {
             change += "contract;";
@@ -2031,6 +2042,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (change.length() > 0) {
             log.info("Cleared sensitive data from {} of {} {}", change, getClass().getSimpleName(), getShortId());
         }
+        return change.length() > 0;
     }
 
     public void onShutDownStarted() {
