@@ -419,6 +419,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         log.info("Shutting down {}", getClass().getSimpleName());
         isShutDown = true;
         closeAllTrades();
+        closedTradableManager.shutDown();
     }
 
     private void closeAllTrades() {
@@ -603,6 +604,27 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     public void persistNow(@Nullable Runnable completeHandler) {
         persistenceManager.persistNow(completeHandler);
+    }
+
+    /**
+     * Persists a mutation of the given trade to whichever container owns it: post-close mutations
+     * (payout/dispute state, ack state) go to the closed-trades log, the rest to the pending store.
+     */
+    public void requestPersistence(Trade trade) {
+        if (closedTradableManager.getTradableById(trade.getId()).isPresent()) {
+            closedTradableManager.persistClosedTrade(trade);
+        } else {
+            requestPersistence();
+        }
+    }
+
+    public void persistNow(Trade trade, @Nullable Runnable completeHandler) {
+        if (closedTradableManager.getTradableById(trade.getId()).isPresent()) {
+            closedTradableManager.persistClosedTrade(trade); // durable (or queued for retry) on return
+            if (completeHandler != null) completeHandler.run();
+        } else {
+            persistNow(completeHandler);
+        }
     }
 
     private void handleInitTradeRequest(DecryptedMessageWithPubKey decryptedMessageWithPubKey, InitTradeRequest request, NodeAddress sender) {
@@ -979,8 +1001,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
         if (trade.isCompleted()) throw new RuntimeException("Trade " + trade.getId() + " was already completed");
-        closedTradableManager.add(trade);
+        // Mark completed BEFORE adding: add() synchronously appends a snapshot to the closed log,
+        // so this persisted flag must already be set. Do not reorder.
         trade.setCompleted(true);
+        closedTradableManager.add(trade);
         removeTrade(trade);
         xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
@@ -1098,11 +1122,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         xmrWalletService.fixReservedOutputs();
     }
 
-    public void onMoveClosedTradeToPendingTrades(Trade trade) { 
+    public void onMoveClosedTradeToPendingTrades(Trade trade) {
         log.warn("Moving {} {} from closed trades to pending trades", trade.getClass().getSimpleName(), trade.getShortId());
         trade.setCompleted(false);
         addTradeToPendingTrades(trade);
-        closedTradableManager.removeTrade(trade);
+        // tombstone the closed log only once the pending store is durable; the reverse order has
+        // a crash window where the trade exists in neither store
+        persistNow(() -> closedTradableManager.removeTrade(trade));
     }
 
     private void removeFailedTrade(Trade trade) {
