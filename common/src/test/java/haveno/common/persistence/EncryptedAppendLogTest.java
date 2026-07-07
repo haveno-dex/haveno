@@ -266,4 +266,41 @@ public class EncryptedAppendLogTest {
         assertTrue(read.isEmpty(), "no records should be recovered with the wrong key");
         assertEquals(1, corruptedBackupCount(), "undecryptable log must be backed up");
     }
+
+    @Test
+    public void testLegacyFramesAreReadAndRewrittenInCurrentFormat() throws Exception {
+        // Write a log with legacy (AES-ECB + HMAC) frames, followed by one v2 frame.
+        List<String> expected = List.of("legacy-a", "legacy-b", "v2-c");
+        File logFile = new File(dir, "Test.log");
+        try (var fos = new java.io.FileOutputStream(logFile);
+             var out = new java.io.DataOutputStream(fos)) {
+            for (String s : List.of("legacy-a", "legacy-b")) {
+                byte[] ciphertext = Encryption.encryptPayloadWithHmac(rec(s), key);
+                out.writeInt(ciphertext.length);
+                out.write(ciphertext);
+            }
+            byte[] ciphertext = Encryption.encryptV2(rec("v2-c"), key);
+            out.writeInt(ciphertext.length);
+            out.write(ciphertext);
+        }
+
+        // Replay returns all records and upgrades the file to the current format.
+        assertRecords(expected, newLog().readAllValidRecords());
+        byte[] bytes = Files.readAllBytes(logFile.toPath());
+        int offset = 0;
+        int frames = 0;
+        while (offset < bytes.length) {
+            int len = ((bytes[offset] & 0xff) << 24) | ((bytes[offset + 1] & 0xff) << 16)
+                    | ((bytes[offset + 2] & 0xff) << 8) | (bytes[offset + 3] & 0xff);
+            byte[] frame = new byte[len];
+            System.arraycopy(bytes, offset + 4, frame, 0, len);
+            assertTrue(Encryption.isV2Format(frame), "frame " + frames + " not upgraded to v2");
+            offset += 4 + len;
+            frames++;
+        }
+        assertEquals(3, frames);
+
+        // And the upgraded log still reads back the same records.
+        assertRecords(expected, newLog().readAllValidRecords());
+    }
 }
