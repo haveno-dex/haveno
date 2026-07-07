@@ -38,9 +38,12 @@ import java.security.KeyPair;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
+import java.util.Set;
 
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.ARBITRATOR;
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.TRADE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
@@ -137,6 +140,72 @@ public class SignedWitnessServiceTest {
         assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew1));
         assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew2));
         assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew3));
+    }
+
+    // Chain arbitrator -> peer1(sw1) -> peer2(sw2) -> peer3(sw3): getSignerChain for account3's signer
+    // (peer2) returns the minimal path {sw2, sw1} up to the arbitrator root, excluding sw3 itself and
+    // witnesses on dead-end branches.
+    @Test
+    public void testGetSignerChainCollectsMinimalPathUpToArbitrator() throws Exception {
+        SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+        SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2);
+        SignedWitness sw3 = new SignedWitness(TRADE, account3DataHash, signature3, signer3PubKey, witnessOwner3PubKey, date3, tradeAmount3);
+
+        // dead-end branch: peer1's account also signed by peer3, whose own witness fails the date check
+        byte[] signatureX = Sig.sign(peer3KeyPair.getPrivate(), account1DataHash);
+        SignedWitness swX = new SignedWitness(TRADE, account1DataHash, signatureX, witnessOwner3PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+
+        signedWitnessService.addToMap(sw1);
+        signedWitnessService.addToMap(sw2);
+        signedWitnessService.addToMap(sw3);
+        signedWitnessService.addToMap(swX);
+
+        Set<SignedWitness> chain = signedWitnessService.getSignerChain(signer3PubKey, date3);
+        assertTrue(chain.contains(sw1));
+        assertTrue(chain.contains(sw2));
+        assertEquals(2, chain.size());
+    }
+
+    // Reproduces #2182: account3's witness (sw3) is present but its signer chain (sw1, sw2) is missing, so it
+    // appears unsigned; supplying the chain in-band heals validation.
+    @Test
+    public void testAddValidSignerChainHealsMissingChain() {
+        SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+        SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2);
+        SignedWitness sw3 = new SignedWitness(TRADE, account3DataHash, signature3, signer3PubKey, witnessOwner3PubKey, date3, tradeAmount3);
+
+        // Only account3's own witness is present; the signer chain is missing -> appears unsigned.
+        signedWitnessService.addToMap(sw3);
+        assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew3));
+
+        // Delivering the valid signer chain in-band heals validation.
+        signedWitnessService.addValidSignerChain(List.of(sw1, sw2), signer3PubKey);
+        assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew3));
+    }
+
+    // A forged/invalid witness supplied as a "signer chain" must be rejected, so no trust is gained.
+    @Test
+    public void testAddValidSignerChainRejectsInvalidWitness() {
+        SignedWitness sw2Bad = new SignedWitness(TRADE, account2DataHash, new byte[]{1, 2, 3}, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2);
+        SignedWitness sw3 = new SignedWitness(TRADE, account3DataHash, signature3, signer3PubKey, witnessOwner3PubKey, date3, tradeAmount3);
+
+        signedWitnessService.addToMap(sw3);
+        signedWitnessService.addValidSignerChain(List.of(sw2Bad), signer3PubKey);
+
+        // The invalid witness was not added, so account3 still does not validate.
+        assertFalse(signedWitnessService.getSignedWitnessMapValues().contains(sw2Bad));
+        assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew3));
+    }
+
+    // A valid witness which does not chain from the given signer's pub key must be rejected, so trade
+    // peers cannot inject unrelated witnesses.
+    @Test
+    public void testAddValidSignerChainRejectsUnconnectedWitness() {
+        SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+
+        // sw1 is valid but only reachable from signer3PubKey through the missing sw2.
+        signedWitnessService.addValidSignerChain(List.of(sw1), signer3PubKey);
+        assertFalse(signedWitnessService.getSignedWitnessMapValues().contains(sw1));
     }
 
     @Test

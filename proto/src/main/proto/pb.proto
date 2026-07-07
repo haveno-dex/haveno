@@ -339,6 +339,8 @@ message PaymentReceivedMessage {
     PaymentSentMessage payment_sent_message = 10;
     bytes seller_signature = 11;
     string payout_tx_id = 12;
+    // Signer chain proving the seller is a valid signer; excluded from the seller signature, validated on receipt.
+    repeated SignedWitness signer_chain = 13;
 }
 
 message MediatedPayoutTxPublishedMessage {

@@ -55,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
@@ -142,6 +143,11 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                     getReceiver() == trade.getArbitrator() ? trade.getBuyer().getPaymentSentMessage() : null, // buyer already has payment sent message,
                     trade.getPayoutTxId()
             );
+
+            // if we signed the peer, attach our signer chain so it can validate the signature locally (#2182)
+            if (signedWitness != null) {
+                message.setSignerChain(new ArrayList<>(processModel.getAccountAgeWitnessService().getSignerChain(signedWitness.getSignerPubKey(), signedWitness.getDate())));
+            }
 
             // verify message
             if (trade.isPayoutPublished()) {

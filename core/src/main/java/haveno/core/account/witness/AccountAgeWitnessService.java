@@ -58,6 +58,7 @@ import java.math.BigInteger;
 import java.security.PublicKey;
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -922,6 +923,16 @@ public class AccountAgeWitnessService {
 
     public Set<SignedWitness> getUnsignedSignerPubKeys() {
         return signedWitnessService.getUnsignedSignerPubKeys();
+    }
+
+    // Signer chain proving signerPubKey is a valid signer at the given date, sent in-band to a peer we sign (#2182).
+    public Set<SignedWitness> getSignerChain(byte[] signerPubKey, long childSignedWitnessDateMillis) {
+        return signedWitnessService.getSignerChain(signerPubKey, childSignedWitnessDateMillis);
+    }
+
+    // Stores a valid signer chain received in-band from a trade peer, restricted to the signer's pub key.
+    public void addValidSignerChain(Collection<SignedWitness> signerChain, byte[] signerPubKey) {
+        signedWitnessService.addValidSignerChain(signerChain, signerPubKey);
     }
 
     public boolean isSignWitnessTrade(Trade trade) {

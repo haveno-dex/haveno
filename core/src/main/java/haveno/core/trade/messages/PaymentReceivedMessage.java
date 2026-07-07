@@ -20,6 +20,7 @@ package haveno.core.trade.messages;
 import com.google.protobuf.ByteString;
 import haveno.common.app.Version;
 import haveno.common.proto.ProtoUtil;
+import haveno.common.util.JsonExclude;
 import haveno.core.account.sign.SignedWitness;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.network.p2p.NodeAddress;
@@ -29,7 +30,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
@@ -54,6 +57,13 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
     @Setter
     @Nullable
     private String payoutTxId;
+    // Signer chain proving the seller is a valid signer, so the receiver can validate locally (#2182).
+    // Excluded from JSON so it's outside the seller signature (backward compatible); validated on receipt.
+    @JsonExclude
+    @EqualsAndHashCode.Exclude
+    @Setter
+    @Nullable
+    private List<SignedWitness> signerChain;
 
     public PaymentReceivedMessage(String tradeId,
                                     NodeAddress senderNodeAddress,
@@ -124,6 +134,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
         Optional.ofNullable(paymentSentMessage).ifPresent(e -> builder.setPaymentSentMessage(paymentSentMessage.toProtoNetworkEnvelope().getPaymentSentMessage()));
         Optional.ofNullable(sellerSignature).ifPresent(e -> builder.setSellerSignature(ByteString.copyFrom(e)));
         Optional.ofNullable(payoutTxId).ifPresent(builder::setPayoutTxId);
+        Optional.ofNullable(signerChain).ifPresent(chain -> chain.forEach(signedWitness -> builder.addSignerChain(signedWitness.toProtoSignedWitness())));
         return getNetworkEnvelopeBuilder().setPaymentReceivedMessage(builder).build();
     }
 
@@ -149,6 +160,8 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                 proto.hasPaymentSentMessage() ? PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion) : null,
                 ProtoUtil.stringOrNullFromProto(proto.getPayoutTxId()));
         message.setSellerSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getSellerSignature()));
+        message.setSignerChain(proto.getSignerChainList().isEmpty() ? null :
+                proto.getSignerChainList().stream().map(SignedWitness::fromProto).collect(Collectors.toList()));
         return message;
     }
 
@@ -164,6 +177,7 @@ public final class PaymentReceivedMessage extends TradeMailboxMessage {
                 ",\n     paymentSentMessage=" + paymentSentMessage +
                 ",\n     sellerSignature=" + sellerSignature +
                 ",\n     payoutTxId=" + payoutTxId +
+                ",\n     signerChain.size=" + (signerChain == null ? 0 : signerChain.size()) +
                 "\n} " + super.toString();
     }
 }

@@ -113,8 +113,9 @@ public class P2PDataStoragePersistableNetworkPayloadTest {
         public void addPersistableNetworkPayloadDuplicate(TestCase testCase, boolean reBroadcast) {
             assertAndDoAdd(this.persistableNetworkPayload, testCase, reBroadcast, true, true, true, true);
 
-            // We return true and broadcast if reBroadcast is set
-            // assertAndDoAdd(this.persistableNetworkPayload, testCase, reBroadcast, reBroadcast, false, false, reBroadcast);
+            // On a duplicate add we don't update the store or signal listeners, but we return true and
+            // re-broadcast if reBroadcast is set (so republishing our own data can heal propagation gaps).
+            assertAndDoAdd(this.persistableNetworkPayload, testCase, reBroadcast, reBroadcast, false, false, reBroadcast);
         }
     }
 
