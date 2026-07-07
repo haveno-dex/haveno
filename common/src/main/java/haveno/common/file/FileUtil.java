@@ -95,7 +95,24 @@ public class FileUtil {
     }
 
     public static boolean hasBackups(File dir, String fileName) {
-        return !getBackupFiles(dir, fileName).isEmpty();
+        File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
+        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), backupDirName(fileName)).toString());
+        if (!backupFileDir.exists()) return false;
+        File[] files = backupFileDir.listFiles();
+        return files == null || files.length > 0; // an unlistable directory counts as present (fail closed)
+    }
+
+    /** The rolling-backup directories under dir, i.e. backup/backups_*; throws if unlistable. */
+    public static List<File> getRollingBackupDirs(File dir) throws IOException {
+        File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
+        List<File> dirs = new ArrayList<>();
+        if (!backupDir.exists()) return dirs;
+        File[] children = backupDir.listFiles();
+        if (children == null) throw new IOException("Could not list backup directory " + backupDir.getAbsolutePath());
+        for (File child : children) {
+            if (child.isDirectory() && child.getName().startsWith("backups_")) dirs.add(child);
+        }
+        return dirs;
     }
 
     public static File getLatestBackupFile(File dir, String fileName) {
@@ -251,7 +268,7 @@ public class FileUtil {
     }
 
     // Fsyncs a file's directory entry; a no-op where directories cannot be opened (e.g. Windows).
-    private static void syncParentDir(File file) {
+    public static void syncParentDir(File file) {
         File parent = file.getParentFile();
         if (parent == null) return;
         try (FileChannel channel = FileChannel.open(parent.toPath(), StandardOpenOption.READ)) {

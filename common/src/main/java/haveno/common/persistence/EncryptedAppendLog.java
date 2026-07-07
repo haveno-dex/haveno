@@ -40,10 +40,11 @@ import lombok.extern.slf4j.Slf4j;
  * An append-only, encrypted, crash-safe record log.
  *
  * <p>Each record is framed as {@code [4-byte big-endian length][ciphertext]}, with
- * {@code ciphertext = Encryption.encryptPayloadWithHmac(record)}. The length prefix lives outside
- * the ciphertext so frames can be located and a torn tail truncated without decrypting. Appends
- * fsync, so a crash or failed write (e.g. disk full) can only leave a partial trailing frame; the
- * log tracks its known-good length and truncates such a tear away before the next append.
+ * {@code ciphertext = Encryption.encryptV2(record)} (legacy AES-ECB+HMAC frames are still read and
+ * the log is rewritten in the current format after replay). The length prefix lives outside the
+ * ciphertext so frames can be located and a torn tail truncated without decrypting. Appends fsync,
+ * so a crash or failed write (e.g. disk full) can only leave a partial trailing frame; the log
+ * tracks its known-good length and truncates such a tear away before the next append.
  *
  * <p>Replay ({@link #readAllValidRecords()}) self-repairs: a torn tail is truncated back to the
  * last good frame, and mid-log corruption (bad length prefix or hmac) rebuilds the log from the
@@ -57,6 +58,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class EncryptedAppendLog {
 
+    // Sanity bound on a single frame, so a corrupt length prefix cannot force a huge allocation.
+    static final int MAX_FRAME_SIZE = 64 * 1024 * 1024;
+    // Fixed size added by Encryption.encryptV2: magic (4) + IV (16) + tag (32).
+    private static final int V2_FRAME_OVERHEAD = 52;
+
+    /** Whether a record would exceed the maximum frame size once encrypted, so callers can drop it instead of retrying forever. */
+    public static boolean exceedsMaxFrameSize(byte[] record) {
+        return record.length > MAX_FRAME_SIZE - V2_FRAME_OVERHEAD;
+    }
+
     private final File dir;
     private final String fileName;
     private final SecretKey secretKey;
@@ -65,6 +76,9 @@ public class EncryptedAppendLog {
     // File length up to which all frames are known intact (-1 until the first replay establishes
     // it), so a failed append's partial frame is truncated before the next write can bury it.
     private long knownGoodLength = -1;
+    // Set when the log file is created or renamed into place, until its directory entry is synced;
+    // sticky across failed appends so a retry still fsyncs the directory. Guarded by lock.
+    private boolean parentSyncPending;
 
     public EncryptedAppendLog(File dir, String fileName, SecretKey secretKey, int numMaxBackupFiles) {
         this.dir = dir;
@@ -100,9 +114,16 @@ public class EncryptedAppendLog {
     public void appendAll(List<byte[]> records) throws CryptoException {
         if (records.isEmpty()) return;
         List<byte[]> ciphertexts = new ArrayList<>(records.size());
-        for (byte[] record : records) ciphertexts.add(Encryption.encryptPayloadWithHmac(record, secretKey));
+        for (byte[] record : records) {
+            byte[] ciphertext = Encryption.encryptV2(record, secretKey);
+            if (ciphertext.length > MAX_FRAME_SIZE) throw new IllegalArgumentException("Record exceeds max frame size: " + ciphertext.length);
+            ciphertexts.add(ciphertext);
+        }
         synchronized (lock) {
             if (!dir.exists() && !dir.mkdir()) log.warn("make dir failed {}", dir);
+            // checked before the repair, which can itself recover the file from a rewrite temp
+            // with an unsynced rename
+            if (!logFile().exists()) parentSyncPending = true;
             repairTailBeforeAppend();
             long written = 0;
             try (FileOutputStream fos = new FileOutputStream(logFile(), true);
@@ -113,6 +134,11 @@ public class EncryptedAppendLog {
                 }
                 out.flush();
                 fos.getFD().sync();
+                // a freshly created file needs its directory entry synced too to be durable
+                if (parentSyncPending) {
+                    FileUtil.syncParentDir(logFile());
+                    parentSyncPending = false;
+                }
             } catch (IOException e) {
                 // The frame may have partially reached the disk. Truncate the tear away now
                 // (best effort; repairTailBeforeAppend covers us if this fails too).
@@ -172,6 +198,7 @@ public class EncryptedAppendLog {
                     log.warn("{} is missing but its rewrite temp exists; recovering the temp.", fileName);
                     try {
                         FileUtil.renameFile(tempFile, logFile);
+                        parentSyncPending = true; // renameFile does not sync the directory entry
                     } catch (IOException e) {
                         throw new RuntimeException("Could not recover " + fileName + " from its rewrite temp", e);
                     }
@@ -185,6 +212,7 @@ public class EncryptedAppendLog {
             long goodLength = 0;
             boolean tornTail = false;
             boolean corrupt = false;
+            boolean hasLegacyFrames = false;
 
             try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(logFile)))) {
                 while (goodLength < fileLength) {
@@ -194,9 +222,9 @@ public class EncryptedAppendLog {
                         break;
                     }
                     int len = in.readInt();
-                    if (len <= 0) {
-                        // append() only ever writes positive lengths, so a complete non-positive
-                        // prefix cannot be a torn write - it is corruption of the prefix itself.
+                    if (len <= 0 || len > MAX_FRAME_SIZE) {
+                        // append() only ever writes positive lengths within the frame bound, so a
+                        // complete prefix outside it cannot be a torn write - it is corruption.
                         corrupt = true;
                         break;
                     }
@@ -208,7 +236,8 @@ public class EncryptedAppendLog {
                     in.readFully(ciphertext);
                     byte[] record;
                     try {
-                        record = Encryption.decryptPayloadWithHmac(ciphertext, secretKey);
+                        if (Encryption.blobVersion(ciphertext) < Encryption.CURRENT_BLOB_VERSION) hasLegacyFrames = true;
+                        record = Encryption.decryptPayloadWithHmacAuto(ciphertext, secretKey);
                     } catch (CryptoException e) {
                         // A fully-present frame that fails its HMAC is not a torn write -> real corruption.
                         corrupt = true;
@@ -247,6 +276,18 @@ public class EncryptedAppendLog {
             } catch (IOException e) {
                 throw new RuntimeException("Could not repair " + fileName, e);
             }
+            // one-time migration: rewrite legacy frames in the current format. Best effort - the
+            // replayed records must never be lost to a failed rewrite (the log on disk is intact).
+            if (hasLegacyFrames) {
+                try {
+                    log.info("Rewriting {} to upgrade legacy encrypted frames.", fileName);
+                    rewrite(records);
+                } catch (OutOfMemoryError e) {
+                    throw e;
+                } catch (Throwable t) {
+                    log.error("Could not rewrite {} to upgrade legacy frames; keeping the existing log.", fileName, t);
+                }
+            }
             return records;
         }
     }
@@ -267,7 +308,7 @@ public class EncryptedAppendLog {
                 try (FileOutputStream fos = new FileOutputStream(tempFile);
                      DataOutputStream out = new DataOutputStream(new BufferedOutputStream(fos))) {
                     for (byte[] record : records) {
-                        byte[] ciphertext = Encryption.encryptPayloadWithHmac(record, secretKey);
+                        byte[] ciphertext = Encryption.encryptV2(record, secretKey);
                         writeFrame(out, ciphertext);
                         written += 4L + ciphertext.length;
                     }
@@ -276,8 +317,9 @@ public class EncryptedAppendLog {
                 }
                 // Keep a rolling backup of the pre-rewrite log as a safety net against a faulty compaction.
                 if (logFile.exists()) FileUtil.rollingBackup(dir, fileName, numMaxBackupFiles);
-                FileUtil.atomicReplace(tempFile, logFile);
+                FileUtil.atomicReplace(tempFile, logFile); // syncs the directory entry
                 knownGoodLength = written;
+                parentSyncPending = false;
             } catch (IOException | CryptoException e) {
                 throw new RuntimeException("Could not rewrite " + fileName, e);
             } finally {

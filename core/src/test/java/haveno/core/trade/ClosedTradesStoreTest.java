@@ -41,8 +41,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ClosedTradesStoreTest {
@@ -138,6 +140,23 @@ public class ClosedTradesStoreTest {
         store.appendDelete("a");
         store.appendUpsert(openOffer("a", 0));
         assertEquals(List.of("b", "a"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testOversizedRecordIsQuarantinedAndBatchSurvives() throws Exception {
+        ClosedTradesStore store = newStore();
+        byte[] oversized = new byte[64 * 1024 * 1024]; // EncryptedAppendLog.MAX_FRAME_SIZE
+        oversized[0] = 42;
+        store.appendEntries(List.of(oversized, ClosedTradesStore.upsertBytes(openOffer("a", 0))));
+
+        // the surviving record is appended, and the oversized one is preserved encrypted
+        assertEquals(List.of("a"), ids(newStore().load()));
+        File quarantineDir = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER);
+        File[] quarantined = quarantineDir.listFiles((d, name) -> name.startsWith(ClosedTradesStore.LOG_FILE_NAME + ".oversized."));
+        assertNotNull(quarantined);
+        assertEquals(1, quarantined.length);
+        byte[] recovered = Encryption.decryptV2(Files.readAllBytes(quarantined[0].toPath()), keyRing.getSymmetricKey());
+        assertArrayEquals(oversized, recovered);
     }
 
     // Writes a legacy monolithic ClosedTrades file in the exact on-disk format PersistenceManager uses.

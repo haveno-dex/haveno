@@ -19,6 +19,10 @@ package haveno.common.crypto;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
+import haveno.common.config.Config;
+import haveno.common.persistence.PlaintextMigration;
+import java.io.File;
 import java.security.KeyPair;
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
@@ -33,6 +37,9 @@ import lombok.extern.slf4j.Slf4j;
 public final class KeyRing {
 
     private final KeyStorage keyStorage;
+    // Persisted-store dir, used to record unmigrated plaintext stores before key migration.
+    @Nullable
+    private final File storageDir;
 
     private SecretKey symmetricKey;
     private KeyPair signatureKeyPair;
@@ -43,10 +50,15 @@ public final class KeyRing {
      * Creates the KeyRing. Unlocks if not encrypted. Does not generate keys.
      *
      * @param keyStorage Persisted storage
+     * @param storageDir Directory of the persisted stores
      */
     @Inject
+    public KeyRing(KeyStorage keyStorage, @Named(Config.STORAGE_DIR) File storageDir) {
+        this(keyStorage, storageDir, null, false);
+    }
+
     public KeyRing(KeyStorage keyStorage) {
-        this(keyStorage, null, false);
+        this(keyStorage, null, null, false);
     }
 
     /**
@@ -57,7 +69,12 @@ public final class KeyRing {
      * @param generateKeys Generate new keys with password if not created yet.
      */
     public KeyRing(KeyStorage keyStorage, String password, boolean generateKeys) {
+        this(keyStorage, null, password, generateKeys);
+    }
+
+    public KeyRing(KeyStorage keyStorage, @Nullable File storageDir, String password, boolean generateKeys) {
         this.keyStorage = keyStorage;
+        this.storageDir = storageDir;
         try {
             unlockKeys(password, generateKeys);
         } catch(IncorrectPasswordException ex) {
@@ -100,6 +117,9 @@ public final class KeyRing {
             if (signatureKeyPair != null && encryptionKeyPair != null) pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
             if (isUnlocked() && keyStorage.needsFormatUpgrade()) {
                 try {
+                    // durably record unmigrated plaintext stores before replacing the legacy key
+                    // files, whose presence is what authorizes reading plaintext (see PersistenceManager)
+                    if (storageDir != null) PlaintextMigration.record(storageDir, symmetricKey);
                     keyStorage.saveKeyRing(this, password);
                 } catch (Exception e) {
                     log.error("Failed to upgrade key storage format, will retry on next unlock", e);

@@ -121,6 +121,44 @@ public class EncryptedAppendLogTest {
     }
 
     @Test
+    public void testOversizedFrameLengthIsCorruption() throws Exception {
+        EncryptedAppendLog log = newLog();
+        log.append(rec("alpha"));
+
+        // a length prefix beyond the frame bound is corruption (backup + truncate), never a huge allocation
+        File logFile = new File(dir, "Test.log");
+        long validLength = logFile.length();
+        try (RandomAccessFile raf = new RandomAccessFile(logFile, "rw")) {
+            raf.seek(raf.length());
+            raf.writeInt(Integer.MAX_VALUE);
+            raf.write(new byte[100]);
+        }
+
+        assertRecords(List.of("alpha"), newLog().readAllValidRecords());
+        assertEquals(validLength, logFile.length());
+        assertEquals(1, corruptedBackupCount());
+    }
+
+    @Test
+    public void testShortLegacyFrameIsCorruption() throws Exception {
+        EncryptedAppendLog log = newLog();
+        log.append(rec("alpha"));
+
+        // a legacy-encrypted frame whose plaintext is too short to hold an hmac must classify as
+        // corruption (backup + truncate), not abort replay with an unchecked range error
+        byte[] shortLegacy = Encryption.encrypt(rec("tiny"), key);
+        File logFile = new File(dir, "Test.log");
+        try (RandomAccessFile raf = new RandomAccessFile(logFile, "rw")) {
+            raf.seek(raf.length());
+            raf.writeInt(shortLegacy.length);
+            raf.write(shortLegacy);
+        }
+
+        assertRecords(List.of("alpha"), newLog().readAllValidRecords());
+        assertEquals(1, corruptedBackupCount());
+    }
+
+    @Test
     public void testTornTailIsTruncatedAndPrefixKept() throws Exception {
         EncryptedAppendLog log = newLog();
         List<String> full = List.of("one", "two", "three");
@@ -265,5 +303,42 @@ public class EncryptedAppendLogTest {
         List<byte[]> read = wrongKeyLog.readAllValidRecords();
         assertTrue(read.isEmpty(), "no records should be recovered with the wrong key");
         assertEquals(1, corruptedBackupCount(), "undecryptable log must be backed up");
+    }
+
+    @Test
+    public void testLegacyFramesAreReadAndRewrittenInCurrentFormat() throws Exception {
+        // Write a log with legacy (AES-ECB + HMAC) frames, followed by one v2 frame.
+        List<String> expected = List.of("legacy-a", "legacy-b", "v2-c");
+        File logFile = new File(dir, "Test.log");
+        try (var fos = new java.io.FileOutputStream(logFile);
+             var out = new java.io.DataOutputStream(fos)) {
+            for (String s : List.of("legacy-a", "legacy-b")) {
+                byte[] ciphertext = Encryption.encryptPayloadWithHmac(rec(s), key);
+                out.writeInt(ciphertext.length);
+                out.write(ciphertext);
+            }
+            byte[] ciphertext = Encryption.encryptV2(rec("v2-c"), key);
+            out.writeInt(ciphertext.length);
+            out.write(ciphertext);
+        }
+
+        // Replay returns all records and upgrades the file to the current format.
+        assertRecords(expected, newLog().readAllValidRecords());
+        byte[] bytes = Files.readAllBytes(logFile.toPath());
+        int offset = 0;
+        int frames = 0;
+        while (offset < bytes.length) {
+            int len = ((bytes[offset] & 0xff) << 24) | ((bytes[offset + 1] & 0xff) << 16)
+                    | ((bytes[offset + 2] & 0xff) << 8) | (bytes[offset + 3] & 0xff);
+            byte[] frame = new byte[len];
+            System.arraycopy(bytes, offset + 4, frame, 0, len);
+            assertTrue(Encryption.isV2Format(frame), "frame " + frames + " not upgraded to v2");
+            offset += 4 + len;
+            frames++;
+        }
+        assertEquals(3, frames);
+
+        // And the upgraded log still reads back the same records.
+        assertRecords(expected, newLog().readAllValidRecords());
     }
 }

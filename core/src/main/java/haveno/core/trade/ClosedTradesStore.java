@@ -23,6 +23,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
+import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.file.FileUtil;
@@ -31,12 +32,14 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.core.proto.persistable.CorePersistenceProtoResolver;
 import haveno.core.xmr.wallet.XmrWalletService;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 
@@ -151,6 +154,18 @@ public class ClosedTradesStore {
                 batch.addAll(entries);
             }
             if (batch.isEmpty()) return;
+            // an oversized record can never be appended (a near-limit legacy frame's re-encryption
+            // can exceed the bound); quarantine it with an error rather than letting it poison the
+            // retry queue and block every later record behind a permanently failing batch. Covers
+            // new entries, queued retries and records recovered from the pending log alike.
+            if (batch.stream().anyMatch(EncryptedAppendLog::exceedsMaxFrameSize)) {
+                batch = batch.stream().filter(record -> {
+                    if (!EncryptedAppendLog.exceedsMaxFrameSize(record)) return true;
+                    log.error("Dropping a {} byte record for {}, which exceeds the maximum frame size", record.length, LOG_FILE_NAME);
+                    quarantineOversized(record);
+                    return false;
+                }).collect(Collectors.toList());
+            }
             try {
                 appendLog().appendAll(batch);
                 failedEntries.clear();
@@ -182,6 +197,45 @@ public class ClosedTradesStore {
      */
     public void flushFailedEntries() {
         appendEntries(List.of());
+    }
+
+    // Preserves a record that can never be appended as an encrypted file under the corrupted-data
+    // folder, so it is recoverable rather than destroyed. Best effort - quarantine failure must
+    // not fail the surviving batch.
+    private void quarantineOversized(byte[] record) {
+        File file = null;
+        try {
+            File quarantineDir = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER);
+            if (!quarantineDir.exists() && !quarantineDir.mkdir()) throw new IOException("Could not create " + quarantineDir.getName());
+            file = new File(quarantineDir, LOG_FILE_NAME + ".oversized." + System.currentTimeMillis());
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                Encryption.encryptV2ToStream(out -> {
+                    int chunkSize = 64 * 1024;
+                    for (int off = 0; off < record.length; off += chunkSize) {
+                        out.write(record, off, Math.min(chunkSize, record.length - off));
+                    }
+                }, keyRing.getSymmetricKey(), fos);
+                fos.flush();
+                fos.getFD().sync();
+            }
+            log.error("Quarantined the oversized record to {}/{}", FileUtil.CORRUPTED_BACKUP_FOLDER, file.getName());
+        } catch (OutOfMemoryError e) {
+            deletePartialQuarantine(file);
+            throw e;
+        } catch (Throwable t) {
+            log.error("Could not quarantine the oversized record; it is lost", t);
+            deletePartialQuarantine(file);
+        }
+    }
+
+    // A partial quarantine file could hold the very disk space the surviving batch needs.
+    private static void deletePartialQuarantine(File file) {
+        if (file == null) return;
+        try {
+            FileUtil.deleteFileIfExists(file, false);
+        } catch (Exception e) {
+            log.error("Could not delete the partially written quarantine file", e);
+        }
     }
 
     // Best-effort durable copy of the failed-write queue, so a queued batch survives a process
