@@ -5,6 +5,11 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      attach_installers:
+        description: 'Attach desktop installers to the run'
+        type: boolean
+        default: false
   push:
   pull_request:
     paths-ignore:
@@ -12,6 +17,10 @@ on:
 
 jobs:
   build:
+    # Installers always build (to validate packaging) but are attached only on
+    # tags, manual dispatch with the option enabled, or an [attach-installers] commit.
+    env:
+      ATTACH_INSTALLERS: ${{ github.event_name == 'workflow_dispatch' && inputs.attach_installers || startsWith(github.ref, 'refs/tags/') || contains(github.event.head_commit.message, '[attach-installers]') }}
     strategy:
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15, windows-2025]
@@ -103,19 +112,19 @@ jobs:
 
       # get version from jar
       - name: Set Version Unix
-        if: runner.os != 'Windows'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os != 'Windows' }}
         run: |
           export VERSION=$(ls desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 | grep -Eo 'desktop-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/desktop-//')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set Version Windows
-        if: runner.os == 'Windows'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Windows' }}
         run: |
           $VERSION = (Get-ChildItem -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256).Name -replace 'desktop-', '' -replace '-.*', ''
           "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
         shell: powershell
 
       - name: Move Release Files for Linux
-        if: runner.os == 'Linux'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Linux' }}
         run: |
             mkdir ${{ github.workspace }}/release-linux-rpm
             mkdir ${{ github.workspace }}/release-linux-deb
@@ -132,7 +141,7 @@ jobs:
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-v${{ env.VERSION }}-linux-${{ matrix.arch }}-SNAPSHOT-all.jar.SHA-256
         shell: bash
       - name: Move Release Files for macOS
-        if: runner.os == 'MacOS'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'MacOS' }}
         run: |
             mkdir ${{ github.workspace }}/release-macos-${{ matrix.arch }}
             mv desktop/build/temp-*/binaries/Haveno-*.dmg ${{ github.workspace }}/release-macos-${{ matrix.arch }}/haveno-v${{ env.VERSION }}-macos-${{ matrix.arch }}-installer.dmg
@@ -140,7 +149,7 @@ jobs:
             cp desktop/build/temp-*/binaries/desktop-*.jar.SHA-256 ${{ github.workspace }}/haveno-v${{ env.VERSION }}-macos-${{ matrix.arch }}-SNAPSHOT-all.jar.SHA-256
         shell: bash
       - name: Move Release Files on Windows
-        if: runner.os == 'Windows'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Windows' }}
         run: |
           mkdir ${{ github.workspace }}/release-windows
           Move-Item -Path desktop\build\temp-*/binaries\Haveno-*.exe -Destination ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-${{ matrix.arch }}-installer.exe
@@ -151,7 +160,7 @@ jobs:
       # Windows artifacts
       - uses: actions/upload-artifact@v4
         name: "Windows artifacts"
-        if: runner.os == 'Windows'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Windows' }}
         with:
           name: haveno-windows-${{ matrix.arch }}
           path: ${{ github.workspace }}/release-windows
@@ -159,7 +168,7 @@ jobs:
       # macOS artifacts
       - uses: actions/upload-artifact@v4
         name: "macOS artifacts"
-        if: runner.os == 'MacOS'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'MacOS' }}
         with:
           name: haveno-macos-${{ matrix.arch }}
           path: ${{ github.workspace }}/release-macos-${{ matrix.arch }}
@@ -167,28 +176,28 @@ jobs:
       # Linux artifacts
       - uses: actions/upload-artifact@v4
         name: "Linux - deb artifact"
-        if: runner.os == 'Linux'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Linux' }}
         with:
           name: haveno-linux-${{ matrix.arch }}-deb
           path: ${{ github.workspace }}/release-linux-deb
 
       - uses: actions/upload-artifact@v4
         name: "Linux - rpm artifact"
-        if: runner.os == 'Linux'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Linux' }}
         with:
           name: haveno-linux-${{ matrix.arch }}-rpm
           path: ${{ github.workspace }}/release-linux-rpm
 
       - uses: actions/upload-artifact@v4
         name: "Linux - AppImage artifact"
-        if: runner.os == 'Linux'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Linux' }}
         with:
           name: haveno-linux-${{ matrix.arch }}-appimage
           path: ${{ github.workspace }}/release-linux-appimage
 
       - uses: actions/upload-artifact@v4
         name: "Linux - flatpak artifact"
-        if: runner.os == 'Linux'
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Linux' }}
         with:
           name: haveno-linux-${{ matrix.arch }}-flatpak
           path: ${{ github.workspace }}/release-linux-flatpak
