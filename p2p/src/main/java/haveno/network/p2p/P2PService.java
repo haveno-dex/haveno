@@ -559,6 +559,15 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         return isBootstrapped;
     }
 
+    // Re-requests P2P data from seed nodes so missing append-only data (e.g. signed witnesses) can be filled
+    // in without a restart. Requests carry our known payload hashes, so responses only contain items we lack,
+    // but the requests themselves grow with the data store, so callers should limit their frequency. See #2182.
+    public void requestData() {
+        if (isBootstrapped() && requestDataManager.getNodeAddressOfPreliminaryDataRequest().isPresent()) {
+            requestDataManager.requestUpdateData();
+        }
+    }
+
     public NetworkNode getNetworkNode() {
         return networkNode;
     }

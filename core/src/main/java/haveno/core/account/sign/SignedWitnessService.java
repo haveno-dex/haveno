@@ -20,6 +20,7 @@ package haveno.core.account.sign;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.inject.Inject;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Hash;
@@ -54,6 +55,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +71,15 @@ public class SignedWitnessService {
     // Max SignedWitnesses accepted as a received signer chain. A valid chain holds one witness per level
     // and can only grow one level per SIGNER_AGE, so this is headroom against abuse, not a real limit.
     public static final int MAX_SIGNER_CHAIN_SIZE = 100;
+
+    // How often we check for witnesses with a missing signer chain, and the max intervals between
+    // re-requests while the same gaps persist, as the data may be permanently unavailable (#2182).
+    private static final long GAP_HEALING_INTERVAL_MINUTES = 60;
+    private static final int GAP_HEALING_MAX_BACKOFF_INTERVALS = 24;
+    private Timer gapHealingTimer;
+    private Set<P2PDataStorage.ByteArray> gapHealingLastGapKeys;
+    private int gapHealingBackoffIntervals = 1;
+    private int gapHealingIntervalsWaited = 0;
 
     private final KeyRing keyRing;
     private final P2PService p2PService;
@@ -152,6 +163,68 @@ public class SignedWitnessService {
     private void onBootstrapComplete() {
         if (user.getRegisteredArbitrator() != null) {
             UserThread.runAfter(this::doRepublishAllSignedWitnesses, 60);
+        }
+        startGapHealing();
+    }
+
+    // Periodically re-requests P2P data while our own account's signer chain is missing ancestors locally, so such
+    // gaps heal without a restart and our account is not wrongly treated as unsigned (#2182). Scoped to our own
+    // account, as peers deliver their signer chain in-band with the trade, so every client need not poll the seeds.
+    private void startGapHealing() {
+        if (gapHealingTimer != null) return;
+        gapHealingTimer = UserThread.runPeriodically(() -> {
+            Set<SignedWitness> gaps = getOwnSignerChainGaps();
+            if (gaps.isEmpty()) return;
+            Set<P2PDataStorage.ByteArray> gapKeys = gaps.stream()
+                    .map(SignedWitness::getHashAsByteArray)
+                    .collect(Collectors.toSet());
+            if (gapKeys.equals(gapHealingLastGapKeys)) {
+                // back off while the same gaps persist, as the data may be permanently unavailable
+                if (++gapHealingIntervalsWaited < gapHealingBackoffIntervals) return;
+                gapHealingBackoffIntervals = Math.min(gapHealingBackoffIntervals * 2, GAP_HEALING_MAX_BACKOFF_INTERVALS);
+            } else {
+                gapHealingBackoffIntervals = 1;
+            }
+            gapHealingIntervalsWaited = 0;
+            gapHealingLastGapKeys = gapKeys;
+            log.info("Our account's signer chain is missing ancestors, requesting P2P data to heal gaps");
+            p2PService.requestData();
+        }, GAP_HEALING_INTERVAL_MINUTES, TimeUnit.MINUTES);
+    }
+
+    // Collects the broken links in our own account's signer chain: witnesses we hold whose signer's witness is
+    // missing locally, the gaps a re-request could heal. Empty if our chain reaches an arbitrator or is unsigned.
+    private Set<SignedWitness> getOwnSignerChainGaps() {
+        byte[] ownPubKey = keyRing.getPubKeyRing().getSignaturePubKeyBytes();
+        Set<SignedWitness> ownWitnesses = getSignedWitnessSetByOwnerPubKey(ownPubKey, new Stack<>());
+        if (ownWitnesses.isEmpty()) return new HashSet<>(); // nobody signed us: nothing to heal
+
+        // if any of our witnesses already chains to an arbitrator our account is signed, so nothing to heal
+        long time = new Date().getTime() + SIGNER_AGE;
+        if (ownWitnesses.stream().anyMatch(w -> isValidSignerWitnessInternal(w, time, new Stack<>(), null))) {
+            return new HashSet<>();
+        }
+
+        Set<SignedWitness> gaps = new HashSet<>();
+        collectSignerChainGaps(ownPubKey, new Stack<>(), gaps);
+        return gaps;
+    }
+
+    private void collectSignerChainGaps(byte[] ownerPubKey,
+                                        Stack<P2PDataStorage.ByteArray> excludedPubKeys,
+                                        Set<SignedWitness> gaps) {
+        if (excludedPubKeys.size() >= 2000) return; // bound recursion as in isValidSignerWitnessInternal
+        for (SignedWitness signedWitness : getSignedWitnessSetByOwnerPubKey(ownerPubKey, excludedPubKeys)) {
+            if (signedWitness.isSignedByArbitrator()) continue; // arbitrator signatures need no ancestor
+            excludedPubKeys.push(new P2PDataStorage.ByteArray(signedWitness.getSignerPubKey()));
+            excludedPubKeys.push(new P2PDataStorage.ByteArray(signedWitness.getWitnessOwnerPubKey()));
+            if (getSignedWitnessSetByOwnerPubKey(signedWitness.getSignerPubKey(), new Stack<>()).isEmpty()) {
+                gaps.add(signedWitness); // we hold this witness but not its signer's
+            } else {
+                collectSignerChainGaps(signedWitness.getSignerPubKey(), excludedPubKeys, gaps);
+            }
+            excludedPubKeys.pop();
+            excludedPubKeys.pop();
         }
     }
 

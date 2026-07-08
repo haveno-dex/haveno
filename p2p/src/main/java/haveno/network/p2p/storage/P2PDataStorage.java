@@ -120,6 +120,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     public static final int CHECK_TTL_INTERVAL_SEC = 60;
 
     private boolean initialRequestApplied = false;
+    private boolean bootstrapped = false;
 
     private final Broadcaster broadcaster;
     @VisibleForTesting
@@ -594,14 +595,11 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         ts = this.clock.millis();
         persistableNetworkPayloadSet.forEach(e -> {
             if (e instanceof ProcessOncePersistableNetworkPayload) {
-                // We use an optimized method as many checks are not required in that case to avoid
-                // performance issues.
-                // Processing 82645 items took now 61 ms compared to earlier version where it took ages (> 2min).
-                // Usually we only get about a few hundred or max. a few 1000 items. 82645 is all
-                // trade stats and all account age witness data.
-
-                // We only apply it once from first response
-                if (!initialRequestApplied || getDataResponse.isWasTruncated()) {
+                if (bootstrapped) {
+                    // re-request after reconnect: apply missed items and notify listeners
+                    addPersistableNetworkPayload(e, sender, false, false, false);
+                } else if (!initialRequestApplied || getDataResponse.isWasTruncated()) {
+                    // startup: apply once via optimized path without notifying listeners
                     addPersistableNetworkPayloadFromInitialRequest(e);
                 }
             } else {
@@ -659,6 +657,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     }
 
     public void onBootstrapped() {
+        bootstrapped = true;
         removeExpiredEntriesTimer = UserThread.runPeriodically(this::removeExpiredEntries, CHECK_TTL_INTERVAL_SEC);
     }
 
