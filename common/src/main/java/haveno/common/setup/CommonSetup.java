@@ -56,6 +56,10 @@ public class CommonSetup {
         UserThread.runPeriodically(Profiler::printSystemLoad, delayMin, TimeUnit.MINUTES);
     }
 
+    public static void warnOnHighMemoryUsagePeriodically(int delaySec) {
+        Profiler.warnOnHighMemoryUsagePeriodically(delaySec, TimeUnit.SECONDS);
+    }
+
     public static void setupUncaughtExceptionHandler(UncaughtExceptionHandler uncaughtExceptionHandler) {
         Thread.UncaughtExceptionHandler handler = (thread, throwable) -> {
             // Might come from another thread

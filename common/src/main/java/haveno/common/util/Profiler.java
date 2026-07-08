@@ -20,12 +20,45 @@ package haveno.common.util;
 import haveno.common.UserThread;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class Profiler {
+
+    private static final double HIGH_MEMORY_THRESHOLD = 0.9;
+
     public static void printSystemLoadPeriodically(long delay, TimeUnit timeUnit) {
         UserThread.runPeriodically(Profiler::printSystemLoad, delay, timeUnit);
+    }
+
+    public static void warnOnHighMemoryUsagePeriodically(long delay, TimeUnit timeUnit) {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "MemoryMonitor");
+            thread.setDaemon(true);
+            return thread;
+        });
+        executor.scheduleAtFixedRate(Profiler::warnIfMemoryHigh, delay, delay, timeUnit);
+    }
+
+    private static void warnIfMemoryHigh() {
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            long max = runtime.maxMemory();
+            if (max <= 0) {
+                return;
+            }
+            long used = runtime.totalMemory() - runtime.freeMemory();
+            double ratio = (double) used / max;
+            if (ratio >= HIGH_MEMORY_THRESHOLD) {
+                log.warn("Memory usage critically high: {} used of {} max ({}%). An OutOfMemoryError may be imminent, " +
+                        "which terminates the application immediately and writes a heap dump.",
+                        Utilities.readableFileSize(used), Utilities.readableFileSize(max), Math.round(ratio * 100));
+            }
+        } catch (Throwable t) {
+            log.warn("Error checking memory usage", t);
+        }
     }
 
     public static void printSystemLoad() {

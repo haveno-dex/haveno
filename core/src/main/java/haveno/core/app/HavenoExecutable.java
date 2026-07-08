@@ -167,6 +167,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected void onApplicationLaunched() {
         configUserThread();
         CommonSetup.printSystemLoadPeriodically(10);
+        CommonSetup.warnOnHighMemoryUsagePeriodically(10);
         // As the handler method might be overwritten by subclasses and they use the application as handler
         // we need to setup the handler after the application is created.
         CommonSetup.setupUncaughtExceptionHandler(this);
