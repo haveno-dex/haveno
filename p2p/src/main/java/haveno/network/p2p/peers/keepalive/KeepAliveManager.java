@@ -160,8 +160,8 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
     public void onAwakeFromStandby() {
         closeAllHandlers();
         stopped = false;
-        if (!networkNode.getAllConnections().isEmpty())
-            restart();
+        // restart even if all connections were lost in standby; pings resume as connections return
+        restart();
     }
 
 
