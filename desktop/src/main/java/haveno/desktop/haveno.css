@@ -1072,6 +1072,46 @@ tree-table-view:focused {
     -fx-text-fill: -bs-color-gray-6;
 }
 
+/* multi-line counterpart of .login-password-field; the .text-area prefix outranks the
+   global .text-area rules that would otherwise re-add a square border and prompt color */
+.text-area.wizard-text-area {
+    -fx-background-color: -bs-login-field-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 8, 6.5;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-prompt-text-fill: -bs-login-prompt-text;
+}
+
+.text-area.wizard-text-area:focused {
+    -fx-background-color: -bs-color-primary, -fx-control-inner-background;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 8, 6.5;
+    -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 10, 0, 0, 0);
+}
+
+.text-area.wizard-text-area.validation-error,
+.text-area.wizard-text-area.validation-error:focused {
+    -fx-background-color: -bs-rd-error-red, -fx-control-inner-background;
+    /* keep the square .text-area.validation-error border rule from adding a second border */
+    -fx-border-color: transparent;
+    -fx-effect: none;
+}
+
+.wizard-text-area .scroll-pane,
+.wizard-text-area .scroll-pane .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.wizard-text-area .scroll-pane .content {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6.5;
+    -fx-padding: 6 10 6 10;
+}
+
 .tac-agreement-root {
     -fx-background-color: transparent;
 }
@@ -1099,7 +1139,7 @@ tree-table-view:focused {
     -fx-text-fill: -bs-rd-font-dark;
 }
 
-.tac-agreement-header-icon-box {
+.wizard-header-icon-box {
     -fx-background-color: rgba(28, 96, 220, 0.10);
     -fx-background-radius: 28;
     -fx-min-height: 50;
@@ -1107,22 +1147,22 @@ tree-table-view:focused {
     -fx-max-height: 50;
 }
 
-.tac-agreement-header-icon {
+.wizard-header-icon {
     -fx-fill: -bs-color-primary;
 }
 
-.tac-agreement-header-title {
+.wizard-header-title {
     -fx-font-size: 1.18em;
     -fx-font-family: "IBM Plex Sans Medium";
     -fx-text-fill: -bs-color-primary;
 }
 
-.tac-agreement-header-subtitle {
+.wizard-header-subtitle {
     -fx-font-size: 0.92em;
     -fx-text-fill: -bs-rd-font-dark;
 }
 
-.tac-agreement-header-divider {
+.wizard-header-divider {
     -fx-background-color: -bs-color-primary;
     -fx-min-height: 1;
     -fx-pref-height: 1;

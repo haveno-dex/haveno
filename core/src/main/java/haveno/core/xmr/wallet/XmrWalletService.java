@@ -167,6 +167,7 @@ public class XmrWalletService extends XmrWalletBase {
     private List<MoneroOutputWallet> cachedOutputs;
     private List<MoneroTxWallet> cachedTxs;
     private boolean isInitializingWallet;
+    private Long walletRestoreHeight; // tracked in-process because wallet rpc cannot report it
 
     private static final Object WALLET_HEIGHT_MONITOR_LOCK = new Object();
     private static final long WALLET_HEIGHT_MONITOR_PERIOD_SEC = 1200; // request connection change if wallet height is not updated within this period
@@ -319,6 +320,14 @@ public class XmrWalletService extends XmrWalletBase {
         return isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
     }
 
+    private MoneroWallet createWalletFromSeed(String walletName, Integer walletRpcPort, boolean applyProxyUri, boolean trustDaemon, String seed, long restoreHeight) {
+        log.info("{}.createWalletFromSeed({}, {})", getClass().getSimpleName(), walletName, restoreHeight);
+        if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
+        if (!isSeedValid(seed)) throw new IllegalArgumentException("Invalid wallet seed");
+        MoneroWalletConfig config = getWalletConfig(walletName).setSeed(seed).setRestoreHeight(restoreHeight);
+        return isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+    }
+
     // mainnet genesis timestamp and v2 fork height, to translate between block heights and dates
     // (1-minute target blocks before the v2 fork, 2-minute after)
     private static final long GENESIS_TIMESTAMP = 1397818193;
@@ -332,12 +341,16 @@ public class XmrWalletService extends XmrWalletBase {
 
     /** Estimate the mainnet height at the given UTC date offline, padded low since target block times drift from the chain. */
     public static long estimateHeightForDate(LocalDate date) {
-        long timestamp = date.atStartOfDay().toEpochSecond(ZoneOffset.UTC);
-        long v2ForkTimestamp = GENESIS_TIMESTAMP + V2_FORK_HEIGHT * 60;
-        long height = timestamp <= v2ForkTimestamp
-                ? (timestamp - GENESIS_TIMESTAMP) / 60
-                : V2_FORK_HEIGHT + (timestamp - v2ForkTimestamp) / 120;
+        long height = estimateTimestampHeight(date.atStartOfDay().toEpochSecond(ZoneOffset.UTC));
         return Math.max(0, height - Math.max(30 * 720, height / 100)); // pad by a month or 1%, whichever is more
+    }
+
+    // estimate the mainnet height at the given UTC timestamp, the unpadded inverse of estimateHeightTimestamp
+    private static long estimateTimestampHeight(long timestamp) {
+        long v2ForkTimestamp = GENESIS_TIMESTAMP + V2_FORK_HEIGHT * 60;
+        return Math.max(0, timestamp <= v2ForkTimestamp
+                ? (timestamp - GENESIS_TIMESTAMP) / 60
+                : V2_FORK_HEIGHT + (timestamp - v2ForkTimestamp) / 120);
     }
 
     /** Check whether the seed is a valid wallet seed, using an offline temporary wallet (native or RPC). */
@@ -345,6 +358,23 @@ public class XmrWalletService extends XmrWalletBase {
         if (useNativeXmrWallet) MoneroUtils.tryLoadNativeLibrary();
         synchronized (seedValidationLock) {
             return isNativeLibraryApplied() ? isSeedValidNative(seed) : isSeedValidRpc(seed);
+        }
+    }
+
+    /** Preload the native library and wallet creation path so the first seed validation is fast. */
+    public void warmUpSeedValidation() {
+        if (!useNativeXmrWallet) return; // rpc validation starts a new process per check, so nothing to warm
+        MoneroUtils.tryLoadNativeLibrary();
+        if (!isNativeLibraryApplied()) return;
+        synchronized (seedValidationLock) {
+            MoneroWalletFull wallet = null;
+            try {
+                wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                        .setNetworkType(getMoneroNetworkType())
+                        .setPassword(""));
+            } finally {
+                if (wallet != null) forceCloseWallet(wallet, null);
+            }
         }
     }
 
@@ -2000,16 +2030,30 @@ public class XmrWalletService extends XmrWalletBase {
                     wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon());
                 } else {
                     if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) throw new RuntimeException("Cannot create main wallet because there is no connection to Monero daemon");
-                    wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon());
+                    String importSeed = accountService.getWalletImportSeed();
+                    if (importSeed == null) {
+                        wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon());
 
-                    // set wallet creation date to yesterday to guarantee complete restore
-                    LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
-                    long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
-                    user.setWalletCreationDate(date);
+                        // set wallet creation date to yesterday to guarantee complete restore
+                        LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
+                        long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
+                        user.setWalletCreationDate(date);
+                    } else {
+
+                        // import wallet from seed with the user's restore height, estimated offline from a restore date
+                        Long importHeight = accountService.getWalletImportRestoreHeight();
+                        LocalDate importDate = accountService.getWalletImportRestoreDate();
+                        if (importHeight == null && importDate != null) importHeight = estimateHeightForDate(importDate);
+                        long restoreHeight = importHeight == null ? 0 : importHeight;
+                        walletRestoreHeight = restoreHeight;
+                        wallet = createWalletFromSeed(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon(), importSeed, restoreHeight);
+                        user.setWalletCreationDate(estimateHeightTimestamp(restoreHeight));
+                        accountService.setWalletImportDetails(null, null, null);
+                    }
                 }
 
-                // set state from wallet
-                walletHeight.set(wallet.getHeight());
+                // set state from wallet, reporting the restore height while syncing towards it
+                walletHeight.set(Math.max(wallet.getHeight(), getSyncFromHeight()));
                 cacheWalletInfo();
                 resetIfWalletChanged();
 
@@ -2146,6 +2190,21 @@ public class XmrWalletService extends XmrWalletBase {
         doPollWallet();
     }
 
+    // height syncing begins from: the restore height when it is ahead of the wallet height
+    @Override
+    protected long getSyncFromHeight() {
+        Long restoreHeight = walletRestoreHeight; // mixed long/Long ternary would unbox and NPE when null
+        if (wallet instanceof MoneroWalletFull) restoreHeight = ((MoneroWalletFull) wallet).getRestoreHeight();
+        if (restoreHeight == null && user.getWalletCreationDate() > 0) {
+
+            // recover the restore height from the wallet creation date, which encodes it
+            restoreHeight = estimateTimestampHeight(user.getWalletCreationDate());
+            Long targetHeight = xmrConnectionService.getTargetHeight();
+            if (targetHeight != null) restoreHeight = Math.min(restoreHeight, targetHeight);
+        }
+        return restoreHeight == null ? walletHeight.get() : Math.max(walletHeight.get(), restoreHeight);
+    }
+
     public void doPollWallet() {
         doPollWallet(null);
     }
@@ -2208,7 +2267,7 @@ public class XmrWalletService extends XmrWalletBase {
             // sync wallet if first sync or behind daemon
             boolean isFirstSync = !wasWalletSynced;
             if (isFirstSync || walletHeight.get() < xmrConnectionService.getTargetHeight() - 1) {
-                if (isFirstSync) log.info("Syncing main wallet from height " + walletHeight.get());
+                if (isFirstSync) log.info("Syncing main wallet from height " + getSyncFromHeight());
                 long startTime = System.currentTimeMillis();
                 syncWithProgress(initialSyncTimeoutMs);
                 if (isFirstSync) log.info("Done syncing main wallet in " + (System.currentTimeMillis() - startTime) + " ms");

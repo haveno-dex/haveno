@@ -31,12 +31,14 @@ import haveno.common.util.ZipUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import java.io.File;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -61,6 +63,17 @@ public class CoreAccountService {
     @Getter
     private String password;
     private List<AccountServiceListener> listeners = new ArrayList<AccountServiceListener>();
+
+    // seed and restore height or date to import when the main wallet is first created, held in memory only
+    @Getter
+    @Nullable
+    private String walletImportSeed;
+    @Getter
+    @Nullable
+    private Long walletImportRestoreHeight;
+    @Getter
+    @Nullable
+    private LocalDate walletImportRestoreDate;
 
     @Inject
     public CoreAccountService(Config config,
@@ -93,6 +106,13 @@ public class CoreAccountService {
 
     public void checkAccountOpen() {
         checkState(isAccountOpen(), "Account not open");
+    }
+
+    /** Set the seed and restore height or date to import when the main wallet is first created. */
+    public void setWalletImportDetails(@Nullable String seed, @Nullable Long restoreHeight, @Nullable LocalDate restoreDate) {
+        this.walletImportSeed = seed;
+        this.walletImportRestoreHeight = restoreHeight;
+        this.walletImportRestoreDate = restoreDate;
     }
 
     public void createAccount(String password) {
