@@ -191,9 +191,10 @@ public class P2PDataStorageProcessGetDataResponse {
                 beforeState, addFromSecondProcess, true, true, false);
     }
 
-    // TESTCASE: Second call to processGetDataResponse does not add any PNP (LazyProcessed)
+    // TESTCASE: Second call to processGetDataResponse applies a new PNP as a re-request delta, with a listener
+    // signal but no broadcast, so gaps heal without a restart (LazyProcessed / #2182)
     @Test
-    public void processGetDataResponse_secondProcessNoPNPUpdates_LazyProcessed() {
+    public void processGetDataResponse_secondProcessAddsNewPNP_LazyProcessed() {
         PersistableNetworkPayload addFromFirstProcess = new LazyPersistableNetworkPayloadStub(new byte[]{1});
         GetDataResponse getDataResponse = buildGetDataResponse(addFromFirstProcess);
 
@@ -202,12 +203,15 @@ public class P2PDataStorageProcessGetDataResponse {
         this.testState.verifyPersistableAdd(
                 beforeState, addFromFirstProcess, true, false, false);
 
+        // After bootstrap, re-requests apply deltas through the notifying path
+        this.testState.mockedStorage.onBootstrapped();
+
         PersistableNetworkPayload addFromSecondProcess = new LazyPersistableNetworkPayloadStub(new byte[]{2});
         getDataResponse = buildGetDataResponse(addFromSecondProcess);
         beforeState = this.testState.saveTestState(addFromSecondProcess);
         this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
         this.testState.verifyPersistableAdd(
-                beforeState, addFromSecondProcess, false, false, false);
+                beforeState, addFromSecondProcess, true, true, false);
     }
 
     // TESTCASE: GetDataResponse w/ missing PSE is added with no broadcast or listener signal
