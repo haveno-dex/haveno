@@ -20,6 +20,7 @@ package haveno.desktop.app;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.util.FormBuilder;
@@ -88,6 +89,8 @@ public class StartupWizard {
         LocalDate walletRestoreDate;
         @Nullable
         String password;
+        @Nullable
+        TradeCurrency preferredTradeCurrency;
     }
 
     public static final double PAGE_WIDTH = 800;
