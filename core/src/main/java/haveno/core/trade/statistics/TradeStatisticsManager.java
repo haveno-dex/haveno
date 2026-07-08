@@ -59,9 +59,12 @@ public class TradeStatisticsManager {
     private final ObservableList<TradeStatistics3> observableTradeStatisticsList = FXCollections.observableArrayList();
     private JsonFileManager jsonFileManager;
     private final AtomicBoolean dumpStatisticsScheduled = new AtomicBoolean();
+    private final List<TradeStatistics3> pendingTradeStatistics = new ArrayList<>();
+    private final AtomicBoolean flushPendingScheduled = new AtomicBoolean();
     private volatile boolean shutDownRequested;
     public static final int PUBLISH_STATS_RANDOM_DELAY_HOURS = 24;
     private static final int DUMP_STATISTICS_DELAY_SEC = 60;
+    private static final int ADD_STATISTICS_DELAY_SEC = 1;
 
     @Inject
     public TradeStatisticsManager(P2PService p2PService,
@@ -82,7 +85,8 @@ public class TradeStatisticsManager {
 
     public void shutDown() {
         shutDownRequested = true;
-        // flush a pending batched dump so the json includes the final statistics
+        // flush pending statistics and a pending batched dump so the json includes the final statistics
+        flushPendingTradeStatistics();
         if (dumpStatisticsScheduled.getAndSet(false)) {
             dumpStatistics();
         }
@@ -98,11 +102,10 @@ public class TradeStatisticsManager {
                 if (!tradeStatistics.isValid()) {
                     return;
                 }
-                synchronized (observableTradeStatisticsList) {
-                    observableTradeStatisticsList.add(tradeStatistics);
+                synchronized (pendingTradeStatistics) {
+                    pendingTradeStatistics.add(tradeStatistics); // add to batch which is flushed on intervals
                 }
-                priceFeedService.applyHavenoMarketPrice(tradeStatistics);
-                maybeDumpStatistics();
+                maybeFlushPendingTradeStatistics();
             }
         });
 
@@ -121,6 +124,32 @@ public class TradeStatisticsManager {
             priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsList);
         }
         maybeDumpStatistics();
+    }
+
+    // flush statistics in intervals to bound CPU and memory during rapid sync
+    private void maybeFlushPendingTradeStatistics() {
+        if (!flushPendingScheduled.compareAndSet(false, true)) {
+            return;
+        }
+        UserThread.runAfter(() -> {
+            flushPendingScheduled.set(false);
+            if (shutDownRequested) return;
+            flushPendingTradeStatistics();
+            maybeDumpStatistics();
+        }, ADD_STATISTICS_DELAY_SEC);
+    }
+
+    private void flushPendingTradeStatistics() {
+        List<TradeStatistics3> pending;
+        synchronized (pendingTradeStatistics) {
+            if (pendingTradeStatistics.isEmpty()) return;
+            pending = new ArrayList<>(pendingTradeStatistics);
+            pendingTradeStatistics.clear();
+        }
+        synchronized (observableTradeStatisticsList) {
+            observableTradeStatisticsList.addAll(pending);
+        }
+        priceFeedService.applyLatestHavenoMarketPrice(pending);
     }
 
     private void removeDuplicateStats(Set<TradeStatistics3> tradeStats) {
