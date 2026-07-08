@@ -49,11 +49,11 @@ class ProtoOutputStream {
         this.statistic = statistic;
     }
 
-    void writeEnvelope(NetworkEnvelope envelope) {
+    void writeEnvelope(NetworkEnvelope envelope, protobuf.NetworkEnvelope proto) {
         lock.lock();
 
         try {
-            writeEnvelopeOrThrow(envelope);
+            writeEnvelopeOrThrow(envelope, proto);
         } catch (IOException e) {
             if (!isConnectionActive.get()) {
                 // Connection was closed by us.
@@ -86,9 +86,9 @@ class ProtoOutputStream {
         }
     }
 
-    private void writeEnvelopeOrThrow(NetworkEnvelope envelope) throws IOException {
+    // The caller already converted the envelope for its size metrics, so we take the proto to avoid a second conversion.
+    private void writeEnvelopeOrThrow(NetworkEnvelope envelope, protobuf.NetworkEnvelope proto) throws IOException {
         long ts = System.currentTimeMillis();
-        protobuf.NetworkEnvelope proto = envelope.toProtoNetworkEnvelope();
         proto.writeDelimitedTo(outputStream);
         outputStream.flush();
         long duration = System.currentTimeMillis() - ts;

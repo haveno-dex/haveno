@@ -362,7 +362,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             log.debug("Capability for networkEnvelope is required but not supported");
             return;
         }
-        int networkEnvelopeSize = networkEnvelope.toProtoNetworkEnvelope().getSerializedSize();
+        // Convert to the proto envelope only once; it is reused for the actual send below.
+        protobuf.NetworkEnvelope proto = networkEnvelope.toProtoNetworkEnvelope();
+        int networkEnvelopeSize = proto.getSerializedSize();
         try {
             // Throttle outbound network_messages
             long now = System.currentTimeMillis();
@@ -379,7 +381,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             lastSendTimeStamp = now;
 
             if (!stopped) {
-                protoOutputStream.writeEnvelope(networkEnvelope);
+                protoOutputStream.writeEnvelope(networkEnvelope, proto);
                 ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)), THREAD_ID);
                 ThreadUtils.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize), THREAD_ID);
             }
