@@ -1535,9 +1535,16 @@ public class GUIUtil {
         ChangeListener<Number> themeListener = (ov, o, n) -> updateBrandingLogo(logo, n.intValue() == 1 ? darkPath : lightPath, pxW, pxH);
         updateBrandingLogo(logo, preferences.getCssTheme() == 1 ? darkPath : lightPath, pxW, pxH);
 
+        // replace any previous branding listener so the same view can be repointed at other assets or sizes
+        @SuppressWarnings("unchecked")
+        ChangeListener<Number> prevListener = (ChangeListener<Number>) logo.getProperties().get("brandingThemeListenerWeak");
+        if (prevListener != null) preferences.getCssThemeProperty().removeListener(prevListener);
+
         // weak listener (strong ref held on the ImageView) lets the logo be GC'd with its scene without leaking
+        WeakChangeListener<Number> weakListener = new WeakChangeListener<>(themeListener);
         logo.getProperties().put("brandingThemeListener", themeListener);
-        preferences.getCssThemeProperty().addListener(new WeakChangeListener<>(themeListener));
+        logo.getProperties().put("brandingThemeListenerWeak", weakListener);
+        preferences.getCssThemeProperty().addListener(weakListener);
     }
 
     private static void updateBrandingLogo(ImageView logo, String resourcePath, double pxW, double pxH) {

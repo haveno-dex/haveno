@@ -457,6 +457,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setTacAcceptedV190(boolean tacAccepted) {
+        prefPayload.setTacAcceptedV190(tacAccepted);
+        // accepted during startup, before deferred writes are permitted, so persist immediately
+        persistenceManager.forcePersistNow();
+    }
+
     public void setBsqAverageTrimThreshold(double bsqAverageTrimThreshold) {
         prefPayload.setBsqAverageTrimThreshold(bsqAverageTrimThreshold);
         requestPersistence();
@@ -1127,6 +1133,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         int getBlockNotifyPort();
 
         void setTacAcceptedV120(boolean tacAccepted);
+
+        void setTacAcceptedV190(boolean tacAccepted);
 
         void setBsqAverageTrimThreshold(double bsqAverageTrimThreshold);
 

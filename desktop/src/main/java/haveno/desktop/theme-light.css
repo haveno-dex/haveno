@@ -165,6 +165,10 @@
     -fx-image: url("../../images/logo_landscape_light_mode.png");
 }
 
+#image-logo-splash-landscape {
+    -fx-image: url("../../images/logo_splash_landscape_light_mode.png");
+}
+
 #charts .default-color0.chart-series-area-fill {
     -fx-fill: linear-gradient(to bottom,
         rgba(62, 163, 74, 0.55) 0%,

@@ -592,6 +592,10 @@
     -fx-image: url("../../images/logo_landscape_dark_mode.png");
 }
 
+#image-logo-splash-landscape {
+    -fx-image: url("../../images/logo_splash_landscape_dark_mode.png");
+}
+
 .table-view .placeholder {
     -fx-background-color: -bs-color-background-pane;
 }

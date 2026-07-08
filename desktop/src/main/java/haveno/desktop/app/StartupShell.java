@@ -44,26 +44,26 @@ public class StartupShell extends StackPane {
 
     // logo size, fixed so the branding never shifts across the startup phases
     private static final double LOGO_FIT_WIDTH = 450;
+    // slim landscape logo shown while tall content like the first-run wizard needs the vertical space
+    private static final double COMPACT_LOGO_FIT_WIDTH = 190;
 
     private final StackPane appLayer = new StackPane();
     private final StackPane overlay = new StackPane();
     private final StackPane contentSlot = new StackPane();
+    private final ImageView logo = new ImageView();
+    private final Preferences preferences;
     private final Transitions transitions;
+    private boolean compactBranding;
 
     public StartupShell(Preferences preferences, Transitions transitions) {
+        this.preferences = preferences;
         this.transitions = transitions;
         setId("splash");
 
-        boolean mainnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET;
-        ImageView logo = new ImageView();
-        logo.setId(mainnet ? "image-logo-splash" : "image-logo-splash-testnet");
         logo.setFitWidth(LOGO_FIT_WIDTH);
         logo.setPreserveRatio(true);
         logo.setSmooth(true);
-
-        // decode the splash logo at device-pixel size for crisp HiDPI rendering; keeps the CSS id as fallback
-        String splashBase = mainnet ? "/images/logo_splash" : "/images/logo_splash_testnet";
-        GUIUtil.setBrandingLogo(logo, preferences, splashBase + "_light_mode.png", splashBase + "_dark_mode.png", LOGO_FIT_WIDTH, 0);
+        applySplashLogo();
 
         contentSlot.setAlignment(Pos.TOP_CENTER);
 
@@ -90,8 +90,10 @@ public class StartupShell extends StackPane {
 
         overlay.setId("splash");
         overlay.getChildren().addAll(column, bottomBar);
-        // float the block vertically centered so it recenters when the window is resized
+        // float the block vertically centered so it recenters when the window is resized;
+        // the bottom margin keeps the column clear of the bottom bar at small window heights
         StackPane.setAlignment(column, Pos.CENTER);
+        StackPane.setMargin(column, new Insets(0, 0, 44, 0));
         StackPane.setAlignment(bottomBar, Pos.BOTTOM_CENTER);
         StackPane.setMargin(bottomBar, new Insets(0, 0, 12, 0));
 
@@ -108,6 +110,36 @@ public class StartupShell extends StackPane {
             contentSlot.setMinHeight(contentSlot.getHeight());
         }
         contentSlot.getChildren().setAll(content);
+    }
+
+    /**
+     * Switch between the slim landscape logo (compact, for tall content like the first-run wizard)
+     * and the full splash logo. Leaving compact mode releases the content slot's height lock so the
+     * next content centers with the full logo.
+     */
+    public void setCompactBranding(boolean compact) {
+        if (compactBranding == compact) return;
+        compactBranding = compact;
+        if (compact) {
+            logo.setId("image-logo-splash-landscape");
+            logo.setFitWidth(COMPACT_LOGO_FIT_WIDTH);
+            GUIUtil.setBrandingLogo(logo, preferences, "/images/logo_splash_landscape_light_mode.png",
+                    "/images/logo_splash_landscape_dark_mode.png", COMPACT_LOGO_FIT_WIDTH, 0);
+            VBox.setMargin(contentSlot, new Insets(16, 0, 0, 0));
+        } else {
+            logo.setFitWidth(LOGO_FIT_WIDTH);
+            applySplashLogo();
+            VBox.setMargin(contentSlot, new Insets(30, 0, 0, 0));
+            contentSlot.setMinHeight(Region.USE_COMPUTED_SIZE);
+        }
+    }
+
+    // decode the theme's splash logo at device-pixel size for crisp HiDPI rendering; keeps the CSS id as fallback
+    private void applySplashLogo() {
+        boolean mainnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET;
+        logo.setId(mainnet ? "image-logo-splash" : "image-logo-splash-testnet");
+        String splashBase = mainnet ? "/images/logo_splash" : "/images/logo_splash_testnet";
+        GUIUtil.setBrandingLogo(logo, preferences, splashBase + "_light_mode.png", splashBase + "_dark_mode.png", LOGO_FIT_WIDTH, 0);
     }
 
     /** Place the main app UI behind the overlay, ready to be revealed when startup completes. */

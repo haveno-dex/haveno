@@ -1055,6 +1055,251 @@ tree-table-view:focused {
     -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 10, 0, 0, 0);
 }
 
+/*******************************************************************************
+ *                                                                             *
+ * User agreement (startup wizard and TacWindow)                               *
+ *                                                                             *
+ ******************************************************************************/
+
+.startup-wizard-footer-label {
+    -fx-font-size: 0.9em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.tac-agreement-root {
+    -fx-background-color: transparent;
+}
+
+.tac-agreement-window {
+    -fx-font-size: 0.9em;
+    -fx-background-color: -bs-background-color;
+    -fx-background-radius: 6;
+    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow, 18, 0, 0, 0);
+}
+
+.tac-agreement-title-bar {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-background-radius: 6 6 0 0;
+    -fx-min-height: 40;
+    -fx-pref-height: 40;
+    -fx-padding: 0 12 0 12;
+    -fx-border-color: transparent transparent -bs-rd-separator transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.tac-agreement-title {
+    -fx-font-size: 1.28em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-header-icon-box {
+    -fx-background-color: rgba(28, 96, 220, 0.10);
+    -fx-background-radius: 28;
+    -fx-min-height: 50;
+    -fx-pref-height: 50;
+    -fx-max-height: 50;
+}
+
+.tac-agreement-header-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.tac-agreement-header-title {
+    -fx-font-size: 1.18em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-color-primary;
+}
+
+.tac-agreement-header-subtitle {
+    -fx-font-size: 0.92em;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-header-divider {
+    -fx-background-color: -bs-color-primary;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.tac-agreement-risk-detail-row {
+    -fx-padding: 3 24 3 24;
+}
+
+.tac-agreement-risk-detail-icon-box {
+    -fx-background-color: rgba(28, 96, 220, 0.08);
+    -fx-background-radius: 22;
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    -fx-min-height: 44;
+    -fx-pref-height: 44;
+    -fx-max-height: 44;
+}
+
+.tac-agreement-risk-detail-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.tac-agreement-risk-detail-title {
+    -fx-font-size: 0.98em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-risk-detail-body {
+    -fx-font-size: 0.94em;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-separator {
+    -fx-background-color: -bs-rd-separator;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.tac-agreement-confirm-headline {
+    -fx-font-size: 0.98em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-color-primary;
+}
+
+.tac-agreement-check-box {
+    -fx-font-size: 0.92em;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-check-box:error,
+.tac-agreement-check-box:error .text {
+    -fx-text-fill: -bs-rd-error-red;
+    -fx-fill: -bs-rd-error-red;
+    -jfx-unchecked-color: -bs-rd-error-red;
+}
+
+.tac-agreement-check-box:error .box {
+    -fx-border-color: -bs-rd-error-red;
+    -fx-border-width: 1.5;
+}
+
+.tac-agreement-legal-scroll-pane {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-padding: 0;
+}
+
+.tac-agreement-legal-scroll-pane .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+.tac-agreement-legal-scroll-content {
+    -fx-background-color: transparent;
+    -fx-padding: 14 16 14 16;
+}
+
+.tac-agreement-legal-scroll-pane .scroll-bar,
+.tac-agreement-legal-scroll-pane .scroll-bar .track,
+.tac-agreement-legal-scroll-pane .scroll-bar .track-background,
+.tac-agreement-legal-scroll-pane .scroll-bar .increment-button,
+.tac-agreement-legal-scroll-pane .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.tac-agreement-legal-scroll-pane .scroll-bar .thumb {
+    -fx-background-color: -bs-color-gray-3;
+}
+
+.tac-agreement-legal-scroll-pane .scroll-bar .thumb:hover {
+    -fx-background-color: -bs-color-gray-4;
+}
+
+.tac-agreement-legal-scroll-pane .scroll-bar .increment-arrow,
+.tac-agreement-legal-scroll-pane .scroll-bar .decrement-arrow {
+    -fx-background-color: transparent;
+}
+
+.tac-agreement-legal-section-number,
+.tac-agreement-legal-section-title {
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-legal-section-number {
+    -fx-min-width: 18;
+    -fx-pref-width: 18;
+}
+
+.tac-agreement-legal-section-body {
+    -fx-line-spacing: 1;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-acknowledgment {
+    -fx-background-color: rgba(28, 96, 220, 0.07);
+    -fx-background-radius: 4;
+    -fx-padding: 10 16 10 16;
+}
+
+.tac-agreement-acknowledgment-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.tac-agreement-acknowledgment-text {
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-footer-separator {
+    -fx-background-color: -bs-rd-separator;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.tac-agreement-footer {
+    -fx-padding: 6 0 8 0;
+}
+
+.tac-agreement-secondary-button {
+    -fx-font-size: 0.9em;
+    -fx-pref-height: 34;
+    -fx-min-height: 34;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-border-color: -bs-color-gray-3;
+    -fx-border-width: 1;
+    -fx-padding: 0 18 0 18;
+    -jfx-rippler-fill: transparent;
+}
+
+.tac-agreement-secondary-button.tac-agreement-reject-button,
+.tac-agreement-secondary-button.tac-agreement-reject-button:hover,
+.tac-agreement-secondary-button.tac-agreement-reject-button:focused,
+.tac-agreement-secondary-button.tac-agreement-reject-button:armed,
+.tac-agreement-secondary-button.tac-agreement-reject-button:pressed {
+    -fx-text-fill: -bs-rd-error-red;
+    -fx-border-color: -bs-rd-error-red;
+    -fx-background-color: -bs-background-color;
+}
+
+.tac-agreement-secondary-button.tac-agreement-back-button {
+    -fx-text-fill: -bs-rd-font-dark;
+    -fx-background-color: -bs-background-color;
+}
+
+.action-button.tac-agreement-action-button {
+    -fx-font-size: 0.9em;
+    -fx-pref-height: 34;
+    -fx-min-height: 34;
+    -fx-background-radius: 6;
+    -fx-padding: 0 28 0 28;
+}
+
 .text-area {
     -fx-prompt-text-fill: derive(-bs-prompt-text, -30%);
 }
