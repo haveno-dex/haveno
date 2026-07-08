@@ -38,10 +38,12 @@ import haveno.network.p2p.storage.P2PDataStorage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -259,8 +261,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     public void onAwakeFromStandby() {
         closeAllHandlers();
         stopped = false;
-        if (!networkNode.getAllConnections().isEmpty())
-            restart();
+        // restart even if all connections were lost in standby; requesting data opens new connections
+        restart();
     }
 
 
@@ -410,7 +412,12 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                         }
                                     }
 
-                                    requestFromNonSeedNodePeers();
+                                    boolean requested = requestFromNonSeedNodePeers();
+
+                                    // re-request after reconnect: retry until a node is reachable, else data missed while offline is only fetched on restart
+                                    if (!requested && nodeAddressOfPreliminaryDataRequest.isPresent()) {
+                                        restart();
+                                    }
                                 } else {
                                     log.info("We could not connect to seed node {} but we have other connection attempts open.", nodeAddress.getFullAddress());
                                 }
@@ -449,7 +456,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void requestFromNonSeedNodePeers() {
+    private boolean requestFromNonSeedNodePeers() {
         List<NodeAddress> list = getFilteredNonSeedNodeList(getSortedNodeAddresses(peerManager.getReportedPeers()), new ArrayList<>());
         List<NodeAddress> filteredPersistedPeers = getFilteredNonSeedNodeList(getSortedNodeAddresses(peerManager.getPersistedPeers()), list);
         list.addAll(filteredPersistedPeers);
@@ -458,13 +465,16 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
             NodeAddress nextCandidate = list.get(0);
             list.remove(nextCandidate);
             requestData(nextCandidate, list);
+            return true;
         }
+        return false;
     }
 
     private void restart() {
         if (retryTimer == null) {
             retryTimer = UserThread.runAfter(() -> {
                         stopped = false;
+                        numRepeatedRequests = 0; // reset the repeat limit per sync cycle
 
                         stopRetryTimer();
 
@@ -481,10 +491,30 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                         List<NodeAddress> filteredPersistedPeers = getFilteredNonSeedNodeList(getSortedNodeAddresses(peerManager.getPersistedPeers()), list);
                         list.addAll(filteredPersistedPeers);
 
+                        // prefer connected nodes so short wake windows complete before unreachable candidates time out
+                        Set<NodeAddress> connectedNodes = networkNode.getAllConnections().stream()
+                                .flatMap(connection -> connection.getPeersNodeAddressOptional().stream())
+                                .collect(Collectors.toSet());
+                        list.sort(Comparator.comparing(e -> !connectedNodes.contains(e)));
+
                         if (!list.isEmpty()) {
                             NodeAddress nextCandidate = list.get(0);
                             list.remove(nextCandidate);
                             requestData(nextCandidate, list);
+
+                            // after bootstrap, also refresh from additional seeds so data missing on any single node is filled
+                            if (allDataReceived) {
+                                int numRequests = 0;
+                                List<NodeAddress> seedCandidates = list.stream().filter(peerManager::isSeedNode).collect(Collectors.toList());
+                                for (int i = 0; i < seedCandidates.size() && numRequests < NUM_ADDITIONAL_SEEDS_FOR_UPDATE_REQUEST; i++) {
+                                    NodeAddress nodeAddress = seedCandidates.get(i);
+                                    if (!handlerMap.containsKey(nodeAddress)) {
+                                        list.remove(nodeAddress);
+                                        requestData(nodeAddress, list);
+                                        numRequests++;
+                                    }
+                                }
+                            }
                         }
                     },
                     RETRY_DELAY_SEC);
