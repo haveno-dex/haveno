@@ -361,10 +361,10 @@ public class HavenoSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void maybeShowTac(Runnable nextStep) {
-        if (!preferences.isTacAcceptedV120() && !DevEnv.isDevMode()) {
+        if (!preferences.isTacAcceptedV190() && !DevEnv.isDevMode()) {
             if (displayTacHandler != null)
                 displayTacHandler.accept(() -> {
-                    preferences.setTacAcceptedV120(true);
+                    preferences.setTacAcceptedV190(true);
                     nextStep.run();
                 });
         } else {

@@ -19,11 +19,13 @@ package haveno.desktop.app;
 
 import haveno.common.UserThread;
 import haveno.common.app.AppModule;
+import haveno.common.app.DevEnv;
 import haveno.common.app.Version;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.core.app.AvoidStandbyModeService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.locale.Res;
+import haveno.core.user.Preferences;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
 import haveno.desktop.setup.DesktopPersistedDataHost;
@@ -38,6 +40,7 @@ import java.util.concurrent.ExecutionException;
 public class HavenoAppMain extends HavenoExecutable {
 
     private HavenoApp application;
+    private boolean tacAcceptedInWizard;
 
     public HavenoAppMain() {
         super("Haveno Desktop", "haveno-desktop", HavenoExecutable.DEFAULT_APP_NAME, Version.VERSION);
@@ -114,7 +117,11 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     protected void readAllPersisted(Runnable completeHandler) {
-        super.readAllPersisted(DesktopPersistedDataHost.getPersistedDataHosts(injector), completeHandler);
+        super.readAllPersisted(DesktopPersistedDataHost.getPersistedDataHosts(injector), () -> {
+            // record the terms acceptance from the startup wizard once preferences are loaded
+            if (tacAcceptedInWizard) injector.getInstance(Preferences.class).setTacAcceptedV190(true);
+            completeHandler.run();
+        });
     }
 
     @Override
@@ -141,6 +148,9 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     protected CompletableFuture<Boolean> loginAccount() {
+
+        // first run: gather the user's choices with the startup wizard before creating the account
+        if (!accountService.accountExists() && !DevEnv.isDevMode()) return runStartupWizard();
 
         // attempt default login
         CompletableFuture<Boolean> result = super.loginAccount();
@@ -176,6 +186,31 @@ public class HavenoAppMain extends HavenoExecutable {
                 // called if the user chooses to quit instead of logging in
                 () -> {
                     log.warn("Password entry cancelled, shutting down");
+                    new Thread(() -> HavenoApp.getShutDownHandler().run()).start();
+                }));
+        return loginResult;
+    }
+
+    private CompletableFuture<Boolean> runStartupWizard() {
+        CompletableFuture<Boolean> loginResult = new CompletableFuture<>();
+        Platform.setImplicitExit(false);
+        UserThread.execute(() -> application.showStartupWizard(
+
+                // create the account off the JavaFX thread (generating the keys is slow)
+                () -> new Thread(() -> {
+                    try {
+                        accountService.createAccount(null);
+                        tacAcceptedInWizard = true;
+                        UserThread.execute(() -> loginResult.complete(accountService.isAccountOpen()));
+                    } catch (Throwable t) {
+                        log.error("Error creating account", t);
+                        UserThread.execute(() -> loginResult.completeExceptionally(t));
+                    }
+                }, "CreateAccount").start(),
+
+                // called if the user chooses to quit instead of completing the setup
+                () -> {
+                    log.warn("Startup wizard cancelled, shutting down");
                     new Thread(() -> HavenoApp.getShutDownHandler().run()).start();
                 }));
         return loginResult;

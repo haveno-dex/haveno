@@ -61,6 +61,7 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.FilterWindow;
 import haveno.desktop.main.overlays.windows.SendAlertMessageWindow;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
+import haveno.desktop.main.overlays.windows.TacContent;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
@@ -167,6 +168,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
 
             startupShell.setAppContent(mainView.getRoot());
             startupShell.setContent(mainView.getStartupStatusContent());
+            startupShell.setCompactBranding(false); // restore the full splash logo if the startup wizard was shown
             mainView.setStartupOverlayFader(startupShell::fadeOutOverlay);
 
             // now unlocked: capture the current position (or migrate legacy bounds) and track future moves
@@ -199,6 +201,76 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
          * account keys (slow), so it should be run off the JavaFX thread
          */
         void onPasswordEntered(String password, Consumer<String> resultHandler);
+    }
+
+    /**
+     * Show the first-run setup wizard within the primary application window. The same window is
+     * reused for the rest of the application startup once the wizard completes.
+     *
+     * @param onComplete called when the user has finished all steps
+     * @param onQuit     called if the user chooses to quit instead of completing the setup
+     */
+    public void showStartupWizard(Runnable onComplete, Runnable onQuit) {
+        startupShell = getOrCreateShell();
+        startupShell.setCompactBranding(true);
+        startupShell.setContent(new StartupWizard(createStartupWizardSteps(), onComplete, onQuit).getRoot());
+        showStartupWindow();
+    }
+
+    private List<StartupWizard.Step> createStartupWizardSteps() {
+        List<StartupWizard.Step> steps = new ArrayList<>();
+        TacContent tacContent = new TacContent(StartupWizard.PAGE_WIDTH);
+        steps.add(new StartupWizard.Step() {
+            @Override
+            public Region getContent() {
+                return tacContent.createRiskPage();
+            }
+
+            @Override
+            public boolean validate() {
+                if (!tacContent.isRiskAccepted()) {
+                    tacContent.requestRiskValidation();
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public String getNextButtonText() {
+                return Res.get("tacWindow.risk.next");
+            }
+
+            @Override
+            public String getQuitButtonText() {
+                return Res.get("tacWindow.disagree");
+            }
+        });
+        steps.add(new StartupWizard.Step() {
+            @Override
+            public Region getContent() {
+                return tacContent.createLegalPage();
+            }
+
+            @Override
+            public boolean validate() {
+                if (!tacContent.isAllAccepted()) {
+                    tacContent.requestLegalValidation();
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public String getNextButtonText() {
+                return Res.get("tacWindow.agree");
+            }
+
+            @Override
+            public String getQuitButtonText() {
+                return Res.get("tacWindow.disagree");
+            }
+        });
+        return steps;
     }
 
     @Override
