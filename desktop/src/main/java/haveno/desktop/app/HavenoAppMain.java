@@ -197,8 +197,9 @@ public class HavenoAppMain extends HavenoExecutable {
         UserThread.execute(() -> application.showStartupWizard(
 
                 // create the account off the JavaFX thread (generating the keys is slow)
-                () -> new Thread(() -> {
+                result -> new Thread(() -> {
                     try {
+                        if (result.getWalletSeed() != null) accountService.setWalletImportDetails(result.getWalletSeed(), result.getWalletRestoreHeight(), result.getWalletRestoreDate());
                         accountService.createAccount(null);
                         tacAcceptedInWizard = true;
                         UserThread.execute(() -> loginResult.complete(accountService.isAccountOpen()));

@@ -55,6 +55,8 @@ public abstract class XmrWalletBase {
     protected volatile boolean isSyncingWithProgress; // volatile for unsynchronized cross-thread reads
     private final Object syncWithProgressLock = new Object();
     protected Long syncStartHeight;
+    protected long syncFromHeight;
+    private Long lastReportedHeight;
     protected TaskLooper syncProgressLooper;
     protected CountDownLatch syncProgressLatch;
     protected Exception syncProgressError;
@@ -145,8 +147,10 @@ public abstract class XmrWalletBase {
                 resetSyncProgressTimeout(initialSyncTimeoutMs);
                 isSyncingWithProgress = true;
                 syncStartHeight = null;
+                lastReportedHeight = null;
                 syncProgressError = null;
                 syncProgressTargetHeight = xmrConnectionService.getTargetHeight();
+                syncFromHeight = getSyncFromHeight();
                 updateSyncProgress(wallet.getHeight(), syncProgressTargetHeight);
 
                 // done if already synced
@@ -310,6 +314,11 @@ public abstract class XmrWalletBase {
         return getRefreshPeriodMs() + 5000; // add padding to guarantee a sync cycle with monero-wallet-rpc (200 ms refresh evaluation period + sync time)
     }
 
+    // height syncing effectively begins from, used to floor reported progress; 0 for no floor
+    protected long getSyncFromHeight() {
+        return 0;
+    }
+
     // marks the daemon trusted if applicable, which monero-wallet-rpc requires for commands like rescan spent
     protected void setDaemonConnection(MoneroWallet wallet, MoneroRpcConnection connection, boolean trustDaemon) {
         if (wallet instanceof MoneroWalletRpc) ((MoneroWalletRpc) wallet).setDaemonConnection(connection, trustDaemon, null);
@@ -324,21 +333,23 @@ public abstract class XmrWalletBase {
 
     private void updateSyncProgress(Long height, long targetHeight) {
 
-        // use last height if no update
-        long appliedHeight = height == null ? walletHeight.get() : height;
+        // use last height if no update, floored at the restore height while the wallet skips ahead to it
+        long rawHeight = height == null ? walletHeight.get() : height;
+        long appliedHeight = Math.max(rawHeight, syncFromHeight);
 
-        // reset progress timeout if height advanced
-        if (appliedHeight != walletHeight.get()) {
+        // reset progress timeout if the wallet's reported height advanced
+        if (height != null && !height.equals(lastReportedHeight)) {
+            lastReportedHeight = height;
             resetSyncProgressTimeout(SYNC_TIMEOUT_MS); // revert to default timeout after any change
         }
 
         // set wallet height
         walletHeight.set(appliedHeight);
 
-        // calculate progress
-        long blocksRemaining = appliedHeight <= 1 ? -1 : targetHeight - 1 - appliedHeight; // unknown blocks left if height <= 1
-        if (syncStartHeight == null && appliedHeight > 1) syncStartHeight = appliedHeight;
-        double percent = syncStartHeight == null || appliedHeight <= 1 ? 0.0 : Math.min(1.0, syncStartHeight >= targetHeight - 1  ? 1.0 : ((double) appliedHeight - syncStartHeight) / (double) (targetHeight - 1 - syncStartHeight));
+        // calculate progress from the reported height, which advances through the hash skip to the restore height
+        long blocksRemaining = rawHeight <= 1 ? -1 : targetHeight - 1 - rawHeight; // unknown blocks left if height <= 1
+        if (rawHeight > 1 && (syncStartHeight == null || rawHeight < syncStartHeight)) syncStartHeight = rawHeight; // rebase to the lowest reported height
+        double percent = syncStartHeight == null || rawHeight <= 1 ? 0.0 : Math.min(1.0, syncStartHeight >= targetHeight - 1  ? 1.0 : ((double) rawHeight - syncStartHeight) / (double) (targetHeight - 1 - syncStartHeight));
         if (percent >= 1.0) wasWalletSynced = true; // set synced state before announcing progress
 
         // notify progress listener on user thread

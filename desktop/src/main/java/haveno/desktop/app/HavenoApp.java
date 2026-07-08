@@ -50,6 +50,7 @@ import haveno.core.user.Preferences;
 import haveno.core.user.StartupSettings;
 import haveno.core.user.User;
 import haveno.core.xmr.wallet.WalletsManager;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
@@ -207,17 +208,23 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
      * Show the first-run setup wizard within the primary application window. The same window is
      * reused for the rest of the application startup once the wizard completes.
      *
-     * @param onComplete called when the user has finished all steps
+     * @param onComplete called with the user's choices when they have finished all steps
      * @param onQuit     called if the user chooses to quit instead of completing the setup
      */
-    public void showStartupWizard(Runnable onComplete, Runnable onQuit) {
+    public void showStartupWizard(Consumer<StartupWizard.Result> onComplete, Runnable onQuit) {
         startupShell = getOrCreateShell();
         startupShell.setCompactBranding(true);
-        startupShell.setContent(new StartupWizard(createStartupWizardSteps(), onComplete, onQuit).getRoot());
+        StartupWizardWalletStep walletStep = new StartupWizardWalletStep(() -> injector.getInstance(XmrWalletService.class));
+        List<StartupWizard.Step> steps = createTacSteps();
+        steps.add(walletStep);
+        StartupWizard wizard = new StartupWizard(steps,
+                () -> onComplete.accept(new StartupWizard.Result(walletStep.getSeed(), walletStep.getRestoreHeight(), walletStep.getRestoreDate())),
+                onQuit);
+        startupShell.setContent(wizard.getRoot());
         showStartupWindow();
     }
 
-    private List<StartupWizard.Step> createStartupWizardSteps() {
+    private List<StartupWizard.Step> createTacSteps() {
         List<StartupWizard.Step> steps = new ArrayList<>();
         TacContent tacContent = new TacContent(StartupWizard.PAGE_WIDTH);
         steps.add(new StartupWizard.Step() {
@@ -227,12 +234,9 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             }
 
             @Override
-            public boolean validate() {
-                if (!tacContent.isRiskAccepted()) {
-                    tacContent.requestRiskValidation();
-                    return false;
-                }
-                return true;
+            public void validate(Consumer<Boolean> resultHandler) {
+                if (!tacContent.isRiskAccepted()) tacContent.requestRiskValidation();
+                resultHandler.accept(tacContent.isRiskAccepted());
             }
 
             @Override
@@ -252,12 +256,9 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             }
 
             @Override
-            public boolean validate() {
-                if (!tacContent.isAllAccepted()) {
-                    tacContent.requestLegalValidation();
-                    return false;
-                }
-                return true;
+            public void validate(Consumer<Boolean> resultHandler) {
+                if (!tacContent.isAllAccepted()) tacContent.requestLegalValidation();
+                resultHandler.accept(tacContent.isAllAccepted());
             }
 
             @Override

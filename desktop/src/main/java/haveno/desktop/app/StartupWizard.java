@@ -17,11 +17,16 @@
 
 package haveno.desktop.app;
 
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.util.FormBuilder;
+import java.time.LocalDate;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
 import javafx.beans.property.BooleanProperty;
@@ -32,9 +37,13 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javax.annotation.Nullable;
+import lombok.Value;
 
 /**
  * First-run setup wizard hosted in the {@link StartupShell} content slot: pages through the
@@ -46,8 +55,11 @@ public class StartupWizard {
     public interface Step {
         Region getContent();
 
-        /** Called on next; the step displays its own errors and returns false to block navigation. */
-        boolean validate();
+        /**
+         * Validate on next and report whether to advance; the step displays its own errors.
+         * May report asynchronously from any thread (e.g. for slow validations off the JavaFX thread).
+         */
+        void validate(Consumer<Boolean> resultHandler);
 
         String getNextButtonText();
 
@@ -63,6 +75,17 @@ public class StartupWizard {
         default ObservableBooleanValue nextBlocked() {
             return null;
         }
+    }
+
+    /** The user's choices, reported on completion. */
+    @Value
+    public static class Result {
+        @Nullable
+        String walletSeed;
+        @Nullable
+        Long walletRestoreHeight;
+        @Nullable
+        LocalDate walletRestoreDate;
     }
 
     public static final double PAGE_WIDTH = 800;
@@ -127,6 +150,43 @@ public class StartupWizard {
         return root;
     }
 
+    /** A page header shared by the wizard steps and the user agreement content: icon, title, subtitle, divider. */
+    public static VBox createHeaderSection(MaterialDesignIcon icon, String titleText, String subtitleText) {
+        HBox header = new HBox(14);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setFillHeight(false);
+
+        StackPane iconBox = new StackPane(createIcon(icon, "1.9em", "wizard-header-icon"));
+        iconBox.getStyleClass().add("wizard-header-icon-box");
+        iconBox.setMinWidth(56);
+        iconBox.setMaxWidth(56);
+
+        Label title = new Label(titleText);
+        title.getStyleClass().add("wizard-header-title");
+        title.setWrapText(true);
+
+        Label subtitle = new Label(subtitleText);
+        subtitle.getStyleClass().add("wizard-header-subtitle");
+        subtitle.setWrapText(true);
+
+        VBox titleBox = new VBox(3, title, subtitle);
+        titleBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(titleBox, Priority.ALWAYS);
+        header.getChildren().addAll(iconBox, titleBox);
+
+        Region divider = new Region();
+        divider.getStyleClass().add("wizard-header-divider");
+
+        return new VBox(10, header, divider);
+    }
+
+    public static Text createIcon(MaterialDesignIcon icon, String size, String styleClass) {
+        Text textIcon = FormBuilder.getIcon(icon, size);
+        textIcon.getStyleClass().add(styleClass);
+        textIcon.setMouseTransparent(true);
+        return textIcon;
+    }
+
     private void showStep(int index) {
         stepIndex = index;
         Step step = steps.get(index);
@@ -143,15 +203,19 @@ public class StartupWizard {
     }
 
     private void onNext() {
-        if (!steps.get(stepIndex).validate()) return;
-        if (stepIndex < steps.size() - 1) {
-            showStep(stepIndex + 1);
-        } else {
-            // keep the working state until app startup replaces this screen
-            setControlsDisabled(true);
-            footerLabel.setText(Res.get("startupWizard.finishing"));
-            onComplete.run();
-        }
+        setControlsDisabled(true);
+        steps.get(stepIndex).validate(valid -> UserThread.execute(() -> {
+            if (!valid) {
+                setControlsDisabled(false);
+            } else if (stepIndex < steps.size() - 1) {
+                setControlsDisabled(false);
+                showStep(stepIndex + 1);
+            } else {
+                // keep the working state until app startup replaces this screen
+                footerLabel.setText(Res.get("startupWizard.finishing"));
+                onComplete.run();
+            }
+        }));
     }
 
     private void setControlsDisabled(boolean disabled) {
