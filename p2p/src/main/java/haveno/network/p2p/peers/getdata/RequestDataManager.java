@@ -59,6 +59,9 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     // how many seeds additional to the first responding PreliminaryGetDataRequest seed we request the GetUpdatedDataRequest from
     private static int NUM_ADDITIONAL_SEEDS_FOR_UPDATE_REQUEST = 1;
     private static int MAX_REPEATED_REQUESTS = 30;
+    // Absolute ceiling on data requests per sync cycle. Generous so any realistic initial sync completes in one
+    // startup, but bounds a misbehaving peer that streams endless data from looping indefinitely.
+    private static final int MAX_TOTAL_REQUESTS = 2000;
     private boolean isPreliminaryDataRequest = true;
 
 
@@ -108,7 +111,10 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private boolean dataUpdateRequested;
     private boolean allDataReceived;
     private boolean stopped;
+    // Counts data requests since the last one that made progress; reset when new data arrives.
     private int numRepeatedRequests = 0;
+    // Counts all data requests in the current sync cycle; bounds total work regardless of progress.
+    private int numTotalRequests = 0;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -335,10 +341,15 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                 RequestDataHandler requestDataHandler = new RequestDataHandler(networkNode, dataStorage, peerManager,
                         new RequestDataHandler.Listener() {
                             @Override
-                            public void onComplete(boolean wasTruncated) {
+                            public void onComplete(boolean wasTruncated, int numNewItems) {
                                 log.trace("RequestDataHandshake of outbound connection complete. nodeAddress={}",
                                         nodeAddress);
                                 stopRetryTimer();
+
+                                // A truncated response that delivered new data is progress, so reset the repeat
+                                // counter. The limit then only bounds requests that fail to make progress, letting
+                                // a large initial sync page through all data within a single startup.
+                                if (numNewItems > 0) numRepeatedRequests = 0;
 
                                 // need to remove before listeners are notified as they cause the update call
                                 handlerMap.remove(nodeAddress);
@@ -359,7 +370,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                 }
 
                                 if (wasTruncated) {
-                                    if (numRepeatedRequests < MAX_REPEATED_REQUESTS) {
+                                    if (numRepeatedRequests < MAX_REPEATED_REQUESTS && numTotalRequests < MAX_TOTAL_REQUESTS) {
                                         // If we had allDataReceived already set to true but get a response with truncated flag,
                                         // we still repeat the request to that node for higher redundancy. Otherwise, one seed node
                                         // providing incomplete data would stop others to fill the gaps.
@@ -368,8 +379,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                     } else if (!allDataReceived) {
                                         allDataReceived = true;
                                         log.warn("\n#################################################################\n" +
-                                                "Loading initial data from {} did not complete after {} repeated requests. \n" +
-                                                "#################################################################\n", nodeAddress, MAX_REPEATED_REQUESTS);
+                                                "Loading initial data from {} did not complete after {} requests without progress or {} total requests. \n" +
+                                                "#################################################################\n", nodeAddress, MAX_REPEATED_REQUESTS, MAX_TOTAL_REQUESTS);
                                         checkNotNull(listener).onDataReceived();
                                     }
                                 } else if (!allDataReceived) {
@@ -425,6 +436,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                         });
                 handlerMap.put(nodeAddress, requestDataHandler);
                 numRepeatedRequests++;
+                numTotalRequests++;
                 requestDataHandler.requestData(nodeAddress, isPreliminaryDataRequest);
             } else {
                 log.warn("We have started already a requestDataHandshake to peer. nodeAddress=" + nodeAddress + "\n" +
@@ -475,6 +487,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
             retryTimer = UserThread.runAfter(() -> {
                         stopped = false;
                         numRepeatedRequests = 0; // reset the repeat limit per sync cycle
+                        numTotalRequests = 0;
 
                         stopRetryTimer();
 
