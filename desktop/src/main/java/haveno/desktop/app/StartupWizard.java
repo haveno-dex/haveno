@@ -86,6 +86,8 @@ public class StartupWizard {
         Long walletRestoreHeight;
         @Nullable
         LocalDate walletRestoreDate;
+        @Nullable
+        String password;
     }
 
     public static final double PAGE_WIDTH = 800;
