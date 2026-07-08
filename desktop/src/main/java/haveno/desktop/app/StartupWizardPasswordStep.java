@@ -107,7 +107,7 @@ public class StartupWizardPasswordStep implements StartupWizard.Step {
 
     @Override
     public String getNextButtonText() {
-        return Res.get("startupWizard.finish");
+        return Res.get("startupWizard.next");
     }
 
     /** The password to protect the account with, or null for none. */

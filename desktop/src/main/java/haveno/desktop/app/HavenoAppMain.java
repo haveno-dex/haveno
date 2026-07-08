@@ -25,6 +25,7 @@ import haveno.common.crypto.IncorrectPasswordException;
 import haveno.core.app.AvoidStandbyModeService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
 import haveno.core.user.Preferences;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
@@ -40,7 +41,7 @@ import java.util.concurrent.ExecutionException;
 public class HavenoAppMain extends HavenoExecutable {
 
     private HavenoApp application;
-    private boolean tacAcceptedInWizard;
+    private StartupWizard.Result startupWizardResult;
 
     public HavenoAppMain() {
         super("Haveno Desktop", "haveno-desktop", HavenoExecutable.DEFAULT_APP_NAME, Version.VERSION);
@@ -118,10 +119,23 @@ public class HavenoAppMain extends HavenoExecutable {
     @Override
     protected void readAllPersisted(Runnable completeHandler) {
         super.readAllPersisted(DesktopPersistedDataHost.getPersistedDataHosts(injector), () -> {
-            // record the terms acceptance from the startup wizard once preferences are loaded
-            if (tacAcceptedInWizard) injector.getInstance(Preferences.class).setTacAcceptedV190(true);
+            applyStartupWizardResult();
             completeHandler.run();
         });
+    }
+
+    // record the choices from the startup wizard once preferences are loaded
+    private void applyStartupWizardResult() {
+        if (startupWizardResult == null) return;
+        Preferences preferences = injector.getInstance(Preferences.class);
+        TradeCurrency currency = startupWizardResult.getPreferredTradeCurrency();
+        if (currency != null) {
+            preferences.setPreferredTradeCurrency(currency);
+            preferences.setOfferBookChartScreenCurrencyCode(currency.getCode());
+            preferences.setTradeChartsScreenCurrencyCode(currency.getCode());
+        }
+        // last: force-persists the preferences, making all wizard choices durable before startup continues
+        preferences.setTacAcceptedV190(true);
     }
 
     @Override
@@ -201,7 +215,7 @@ public class HavenoAppMain extends HavenoExecutable {
                     try {
                         if (result.getWalletSeed() != null) accountService.setWalletImportDetails(result.getWalletSeed(), result.getWalletRestoreHeight(), result.getWalletRestoreDate());
                         accountService.createAccount(result.getPassword());
-                        tacAcceptedInWizard = true;
+                        startupWizardResult = result;
                         UserThread.execute(() -> loginResult.complete(accountService.isAccountOpen()));
                     } catch (Throwable t) {
                         log.error("Error creating account", t);
