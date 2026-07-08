@@ -53,12 +53,14 @@ import haveno.desktop.main.market.trades.charts.CandleData;
 import haveno.desktop.main.market.trades.charts.PlotAreaTooltip;
 import javafx.animation.FadeTransition;
 import javafx.event.ActionEvent;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
@@ -78,9 +80,14 @@ import java.util.List;
  */
 public class CandleStickChart extends XYChart<Number, Number> {
 
-    private final CandleTooltip candleTooltipContent;
-    private final PlotAreaTooltip tooltip;
+    private static final double LEGEND_INSET = 8;
+
+    private final CandleTooltip legend;
+    private final PlotAreaTooltip legendOverlay;
     private Pane tooltipOverlayPane;
+    private final Line crosshairVertical = new Line();
+    private final Line crosshairHorizontal = new Line();
+    private boolean crosshairAdded;
 
     // -------------- CONSTRUCTORS ----------------------------------------------
 
@@ -92,8 +99,14 @@ public class CandleStickChart extends XYChart<Number, Number> {
      */
     public CandleStickChart(Axis<Number> xAxis, Axis<Number> yAxis, StringConverter<Number> priceStringConverter) {
         super(xAxis, yAxis);
-        this.candleTooltipContent = new CandleTooltip(priceStringConverter);
-        this.tooltip = new PlotAreaTooltip(candleTooltipContent);
+        this.legend = new CandleTooltip(priceStringConverter);
+        this.legendOverlay = new PlotAreaTooltip(legend);
+        for (Line line : new Line[]{crosshairVertical, crosshairHorizontal}) {
+            line.getStyleClass().add("chart-crosshair");
+            line.setManaged(false);
+            line.setMouseTransparent(true);
+            line.setVisible(false);
+        }
     }
 
     // -------------- METHODS ------------------------------------------------------------------------------------------
@@ -293,23 +306,52 @@ public class CandleStickChart extends XYChart<Number, Number> {
     }
 
     private void registerTooltip(Candle candle) {
-        candle.setOnMouseEntered(e -> showTooltip(candle, e));
-        candle.setOnMouseMoved(e -> showTooltip(candle, e));
-        candle.setOnMouseExited(e -> tooltip.hide());
+        candle.setOnMouseEntered(e -> showOverlays(candle, e));
+        candle.setOnMouseMoved(e -> showOverlays(candle, e));
+        candle.setOnMouseExited(e -> hideOverlays());
     }
 
-    private void showTooltip(Candle candle, MouseEvent e) {
+    /**
+     * Draw a crosshair at the hovered candle's center and the cursor's price level, and update the
+     * fixed legend in the top-left corner.
+     */
+    private void showOverlays(Candle candle, MouseEvent e) {
         CandleData candleData = candle.getCandleData();
         if (candleData == null) {
             return;
         }
-        candleTooltipContent.update(candleData);
-        tooltip.show(candle, e.getSceneY(), tooltipOverlayPane);
+        if (!crosshairAdded) {
+            getPlotChildren().addAll(crosshairVertical, crosshairHorizontal);
+            crosshairAdded = true;
+        }
+
+        double candleX = candle.getLayoutX();
+        double cursorY = candle.getParent().sceneToLocal(e.getSceneX(), e.getSceneY()).getY();
+        crosshairVertical.setStartX(candleX);
+        crosshairVertical.setEndX(candleX);
+        crosshairVertical.setEndY(getYAxis().getHeight());
+        crosshairHorizontal.setStartY(cursorY);
+        crosshairHorizontal.setEndY(cursorY);
+        crosshairHorizontal.setEndX(getXAxis().getWidth());
+        crosshairVertical.setVisible(true);
+        crosshairHorizontal.setVisible(true);
+        crosshairVertical.toFront();
+        crosshairHorizontal.toFront();
+
+        legend.update(candleData);
+        Point2D legendAnchor = candle.getParent().localToScene(LEGEND_INSET, LEGEND_INSET);
+        legendOverlay.show(legendAnchor.getX(), legendAnchor.getY(), tooltipOverlayPane);
+    }
+
+    private void hideOverlays() {
+        crosshairVertical.setVisible(false);
+        crosshairHorizontal.setVisible(false);
+        legendOverlay.hide();
     }
 
     /**
-     * Sets the pane the hover tooltip is rendered in. It must sit above the chart and outside the
-     * plot area's clip so the tooltip is not cut off by the axes.
+     * Sets the pane the fixed legend is rendered in. It must sit above the chart and outside the
+     * plot area's clip so the legend is not cut off by the plot bounds.
      */
     public void setTooltipOverlayPane(Pane tooltipOverlayPane) {
         this.tooltipOverlayPane = tooltipOverlayPane;

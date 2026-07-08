@@ -114,3 +114,11 @@
 .chart-tooltip-box .label {
     -fx-text-fill: -bs-text-color;
 }
+
+/* Crosshair snapped to the hovered candle and cursor price level. */
+.chart-crosshair {
+    -fx-stroke: -bs-color-gray-4;
+    -fx-stroke-width: 0.5;
+    -fx-stroke-dash-array: 3 3;
+    -fx-opacity: 0.8;
+}
