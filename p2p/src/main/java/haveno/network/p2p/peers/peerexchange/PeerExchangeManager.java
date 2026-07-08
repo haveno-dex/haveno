@@ -171,8 +171,8 @@ public class PeerExchangeManager implements MessageListener, ConnectionListener,
     public void onAwakeFromStandby() {
         closeAllHandlers();
         stopped = false;
-        if (!networkNode.getAllConnections().isEmpty())
-            restart();
+        // restart even if all connections were lost in standby; exchanging peers opens new connections
+        restart();
     }
 
 
