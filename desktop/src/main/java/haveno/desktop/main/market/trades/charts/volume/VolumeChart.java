@@ -179,7 +179,7 @@ public class VolumeChart extends XYChart<Number, Number> {
 
     private void showTooltip(VolumeBar volumeBar, MouseEvent e) {
         volumeTooltipContent.setText(volumeBar.getTooltipText());
-        tooltip.show(e.getSceneX(), e.getSceneY(), tooltipOverlayPane);
+        tooltip.show(volumeBar, e.getSceneY(), tooltipOverlayPane);
     }
 
     /**
