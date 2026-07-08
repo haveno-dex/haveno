@@ -37,7 +37,11 @@ import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -60,11 +64,20 @@ public class TradeStatisticsManager {
     private JsonFileManager jsonFileManager;
     private final AtomicBoolean dumpStatisticsScheduled = new AtomicBoolean();
     private final List<TradeStatistics3> pendingTradeStatistics = new ArrayList<>();
+    // Early trades are accumulated raw and deduplicated deterministically; recent trades dedup by value so re-delivered payloads are dropped.
+    private final Set<TradeStatistics3> earlyTradeStatistics = new HashSet<>();
+    private final Set<TradeStatistics3> recentTradeStatistics = new LinkedHashSet<>();
     private final AtomicBoolean flushPendingScheduled = new AtomicBoolean();
     private volatile boolean shutDownRequested;
     public static final int PUBLISH_STATS_RANDOM_DELAY_HOURS = 24;
     private static final int DUMP_STATISTICS_DELAY_SEC = 60;
     private static final int ADD_STATISTICS_DELAY_SEC = 1;
+    // Legacy publishing bugs duplicated early trades; stats before these dates are deduplicated.
+    private static final Instant EARLY_DUPLICATE_DATE = Instant.parse("2024-09-30T00:00:00Z");
+    private static final Instant EARLY_FUZZY_DUPLICATE_DATE = Instant.parse("2024-08-07T00:00:00Z");
+    // Canonical order so the greedy dedup keeps the same representatives regardless of arrival order.
+    private static final Comparator<TradeStatistics3> EARLY_TRADE_ORDER =
+            Comparator.comparingLong(TradeStatistics3::getDateAsLong).thenComparing(TradeStatistics3::getHash, Arrays::compare);
 
     @Inject
     public TradeStatisticsManager(P2PService p2PService,
@@ -114,15 +127,9 @@ public class TradeStatisticsManager {
                 .map(e -> (TradeStatistics3) e)
                 .filter(TradeStatistics3::isValid)
                 .collect(Collectors.toSet());
-        
 
-        // remove duplicates in early trade stats due to bugs
-        removeDuplicateStats(set);
-
-        synchronized (observableTradeStatisticsList) {
-            observableTradeStatisticsList.addAll(set);
-            priceFeedService.applyLatestHavenoMarketPrice(observableTradeStatisticsList);
-        }
+        // add deduplicated, dropping early trade stats duplicated by legacy publishing bugs
+        addTradeStatistics(set);
         maybeDumpStatistics();
     }
 
@@ -146,71 +153,68 @@ public class TradeStatisticsManager {
             pending = new ArrayList<>(pendingTradeStatistics);
             pendingTradeStatistics.clear();
         }
+        addTradeStatistics(pending);
+    }
+
+    private void addTradeStatistics(Collection<TradeStatistics3> tradeStatistics) {
+        List<TradeStatistics3> applied = new ArrayList<>();
         synchronized (observableTradeStatisticsList) {
-            observableTradeStatisticsList.addAll(pending);
+            List<TradeStatistics3> addedRecent = new ArrayList<>();
+            boolean earlyChanged = false;
+            for (TradeStatistics3 tradeStatistic : tradeStatistics) {
+                if (isEarlyTrade(tradeStatistic)) {
+                    earlyChanged |= earlyTradeStatistics.add(tradeStatistic);
+                } else if (recentTradeStatistics.add(tradeStatistic)) {
+                    addedRecent.add(tradeStatistic);
+                }
+            }
+            if (earlyChanged) {
+                applied.addAll(deduplicateEarlyTradeStatistics());
+                applied.addAll(recentTradeStatistics);
+                observableTradeStatisticsList.setAll(applied);
+            } else {
+                observableTradeStatisticsList.addAll(addedRecent);
+                applied.addAll(addedRecent);
+            }
         }
-        priceFeedService.applyLatestHavenoMarketPrice(pending);
+        priceFeedService.applyLatestHavenoMarketPrice(applied);
     }
 
-    private void removeDuplicateStats(Set<TradeStatistics3> tradeStats) {
-        removeEarlyDuplicateStats(tradeStats);
-        removeEarlyDuplicateStatsFuzzy(tradeStats);
-    }
-
-    private void removeEarlyDuplicateStats(Set<TradeStatistics3> tradeStats) {
-       
-        // collect trades before September 30, 2024
-        Set<TradeStatistics3> earlyTrades = tradeStats.stream()
-                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-09-30T00:00:00Z")))
-                .collect(Collectors.toSet());
-
-        // collect stats with duplicated timestamp, currency, and payment method
-        Set<TradeStatistics3> duplicates = new HashSet<>();
-        Set<TradeStatistics3> deduplicates = new HashSet<>();
-        for (TradeStatistics3 tradeStatistic : earlyTrades) {
-            TradeStatistics3 duplicate = findDuplicate(tradeStatistic, deduplicates);
-            if (duplicate == null) deduplicates.add(tradeStatistic);
-            else duplicates.add(tradeStatistic);
+    private List<TradeStatistics3> deduplicateEarlyTradeStatistics() {
+        List<TradeStatistics3> sorted = new ArrayList<>(earlyTradeStatistics);
+        sorted.sort(EARLY_TRADE_ORDER);
+        List<TradeStatistics3> deduplicated = new ArrayList<>();
+        for (TradeStatistics3 candidate : sorted) {
+            boolean checkFuzzy = isEarlyFuzzyTrade(candidate);
+            boolean duplicate = false;
+            for (TradeStatistics3 kept : deduplicated) {
+                if (isDuplicate(candidate, kept) ||
+                        (checkFuzzy && isEarlyFuzzyTrade(kept) && isFuzzyDuplicate(candidate, kept))) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) deduplicated.add(candidate);
         }
-
-        // remove duplicated stats
-        tradeStats.removeAll(duplicates);
+        return deduplicated;
     }
 
-    private TradeStatistics3 findDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set) {
-        return set.stream().filter(e -> isDuplicate(tradeStatistics, e)).findFirst().orElse(null);
+    private boolean isEarlyTrade(TradeStatistics3 tradeStatistics) {
+        return tradeStatistics.getDate().toInstant().isBefore(EARLY_DUPLICATE_DATE);
     }
 
+    private boolean isEarlyFuzzyTrade(TradeStatistics3 tradeStatistics) {
+        return tradeStatistics.getDate().toInstant().isBefore(EARLY_FUZZY_DUPLICATE_DATE);
+    }
+
+    // duplicated timestamp, currency, and payment method
     private boolean isDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
         if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
         if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;
         return tradeStatistics1.getDateAsLong() == tradeStatistics2.getDateAsLong();
     }
 
-    private void removeEarlyDuplicateStatsFuzzy(Set<TradeStatistics3> tradeStats) {
-
-        // collect trades before August 7, 2024
-        Set<TradeStatistics3> earlyTrades = tradeStats.stream()
-                .filter(e -> e.getDate().toInstant().isBefore(Instant.parse("2024-08-07T00:00:00Z")))
-                .collect(Collectors.toSet());
-
-        // collect duplicated trades
-        Set<TradeStatistics3> duplicates = new HashSet<TradeStatistics3>();
-        Set<TradeStatistics3> deduplicates = new HashSet<TradeStatistics3>();
-        for (TradeStatistics3 tradeStatistic : earlyTrades) {
-            TradeStatistics3 fuzzyDuplicate = findFuzzyDuplicate(tradeStatistic, deduplicates);
-            if (fuzzyDuplicate == null) deduplicates.add(tradeStatistic);
-            else duplicates.add(tradeStatistic);
-        }
-
-        // remove duplicated stats
-        tradeStats.removeAll(duplicates);
-    }
-
-    private TradeStatistics3 findFuzzyDuplicate(TradeStatistics3 tradeStatistics, Set<TradeStatistics3> set) {
-        return set.stream().filter(e -> isFuzzyDuplicate(tradeStatistics, e)).findFirst().orElse(null);
-    }
-
+    // duplicated payment method, currency, price, and a fuzzily matching date/amount
     private boolean isFuzzyDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
         if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
         if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;

@@ -110,17 +110,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
         this.navigation = navigation;
 
         listChangeListener = change -> {
-            applyAsyncTradeStatisticsForCurrency(getCurrencyCode())
-                    .whenComplete((result, throwable) -> {
-                        if (deactivateCalled) {
-                            return;
-                        }
-                        if (throwable != null) {
-                            log.error("Error at setChangeListener/applyAsyncTradeStatisticsForCurrency. {}", throwable.toString());
-                            return;
-                        }
-                        applyAsyncChartData();
-                    });
+            applyAsyncPriceMapsAndChartData();
             fillTradeCurrencies();
         };
 
@@ -151,29 +141,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
         syncPriceFeedCurrency();
         setMarketPriceFeedCurrency();
 
-        List<CompletableFuture<Boolean>> allFutures = new ArrayList<>();
-        CompletableFuture<Boolean> task1Done = new CompletableFuture<>();
-        allFutures.add(task1Done);
-        CompletableFuture<Boolean> task2Done = new CompletableFuture<>();
-        allFutures.add(task2Done);
-        CompletableFutureUtils.allOf(allFutures)
-                .whenComplete((res, throwable) -> {
-                    if (deactivateCalled) {
-                        return;
-                    }
-                    if (throwable != null) {
-                        log.error(throwable.toString());
-                        return;
-                    }
-                    //Once applyAsyncUsdAveragePriceMapsPerTickUnit and applyAsyncTradeStatisticsForCurrency are
-                    // both completed we call applyAsyncChartData
-                    UserThread.execute(this::applyAsyncChartData);
-                });
-
-        // We call applyAsyncUsdAveragePriceMapsPerTickUnit and applyAsyncTradeStatisticsForCurrency
-        // in parallel for better performance
-        applyAsyncUsdAveragePriceMapsPerTickUnit(task1Done);
-        applyAsyncTradeStatisticsForCurrency(getCurrencyCode(), task2Done);
+        applyAsyncPriceMapsAndChartData();
 
         log.debug("activate took {}", System.currentTimeMillis() - ts);
     }
@@ -201,6 +169,31 @@ class TradesChartsViewModel extends ActivatableViewModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Async calls
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // Recomputes the USD price maps and per-currency stats in parallel, then the chart data. The USD price maps
+    // are refreshed together with the data so volume in USD stays consistent as trade statistics arrive.
+    private void applyAsyncPriceMapsAndChartData() {
+        List<CompletableFuture<Boolean>> allFutures = new ArrayList<>();
+        CompletableFuture<Boolean> task1Done = new CompletableFuture<>();
+        allFutures.add(task1Done);
+        CompletableFuture<Boolean> task2Done = new CompletableFuture<>();
+        allFutures.add(task2Done);
+        CompletableFutureUtils.allOf(allFutures)
+                .whenComplete((res, throwable) -> {
+                    if (deactivateCalled) {
+                        return;
+                    }
+                    if (throwable != null) {
+                        log.error(throwable.toString());
+                        return;
+                    }
+                    UserThread.execute(this::applyAsyncChartData);
+                });
+
+        // Run the two recomputations in parallel for better performance.
+        applyAsyncUsdAveragePriceMapsPerTickUnit(task1Done);
+        applyAsyncTradeStatisticsForCurrency(getCurrencyCode(), task2Done);
+    }
 
     private void applyAsyncUsdAveragePriceMapsPerTickUnit(CompletableFuture<Boolean> completeFuture) {
         long ts = System.currentTimeMillis();
