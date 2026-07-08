@@ -304,7 +304,7 @@ public class CandleStickChart extends XYChart<Number, Number> {
             return;
         }
         candleTooltipContent.update(candleData);
-        tooltip.show(e.getSceneX(), e.getSceneY(), tooltipOverlayPane);
+        tooltip.show(candle, e.getSceneY(), tooltipOverlayPane);
     }
 
     /**

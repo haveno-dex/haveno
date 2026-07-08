@@ -18,6 +18,7 @@
 package haveno.desktop.main.market.trades.charts;
 
 import javafx.collections.ObservableList;
+import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
@@ -55,6 +56,14 @@ public class PlotAreaTooltip {
 
     public Region getContent() {
         return content;
+    }
+
+    /**
+     * Show the tooltip anchored to the source node's horizontal center, following the cursor vertically.
+     */
+    public void show(Node source, double sceneY, Pane overlay) {
+        Bounds bounds = source.localToScene(source.getBoundsInLocal());
+        show((bounds.getMinX() + bounds.getMaxX()) / 2, sceneY, overlay);
     }
 
     /**
