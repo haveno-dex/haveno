@@ -242,7 +242,7 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
 
     @Override
     public String getNextButtonText() {
-        return Res.get("startupWizard.finish");
+        return Res.get("startupWizard.next");
     }
 
     /** The normalized seed phrase to import, or null to create a new wallet. */

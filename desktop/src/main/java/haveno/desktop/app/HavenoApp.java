@@ -215,10 +215,12 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         startupShell = getOrCreateShell();
         startupShell.setCompactBranding(true);
         StartupWizardWalletStep walletStep = new StartupWizardWalletStep(() -> injector.getInstance(XmrWalletService.class));
+        StartupWizardPasswordStep passwordStep = new StartupWizardPasswordStep(injector.getInstance(Config.class).passwordRequired);
         List<StartupWizard.Step> steps = createTacSteps();
         steps.add(walletStep);
+        steps.add(passwordStep);
         StartupWizard wizard = new StartupWizard(steps,
-                () -> onComplete.accept(new StartupWizard.Result(walletStep.getSeed(), walletStep.getRestoreHeight(), walletStep.getRestoreDate())),
+                () -> onComplete.accept(new StartupWizard.Result(walletStep.getSeed(), walletStep.getRestoreHeight(), walletStep.getRestoreDate(), passwordStep.getPassword())),
                 onQuit);
         startupShell.setContent(wizard.getRoot());
         showStartupWindow();

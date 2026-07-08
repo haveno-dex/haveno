@@ -200,7 +200,7 @@ public class HavenoAppMain extends HavenoExecutable {
                 result -> new Thread(() -> {
                     try {
                         if (result.getWalletSeed() != null) accountService.setWalletImportDetails(result.getWalletSeed(), result.getWalletRestoreHeight(), result.getWalletRestoreDate());
-                        accountService.createAccount(null);
+                        accountService.createAccount(result.getPassword());
                         tacAcceptedInWizard = true;
                         UserThread.execute(() -> loginResult.complete(accountService.isAccountOpen()));
                     } catch (Throwable t) {
