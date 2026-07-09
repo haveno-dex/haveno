@@ -243,6 +243,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         PaymentAccount lastPaymentAccount = model.getLastSelectedPaymentAccount();
 
+        updatePaymentAccountsVisibility();
+
         if (model.getPossiblePaymentAccounts().size() > 1) {
             new Popup().headLine(Res.get("popup.info.multiplePaymentAccounts.headline"))
                     .information(Res.get("popup.info.multiplePaymentAccounts.msg"))
@@ -283,6 +285,22 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             waitingForFundsBusyAnimation.stop();
     }
 
+    // shows the accounts dropdown when multiple accounts are available, else the single account field
+    private void updatePaymentAccountsVisibility() {
+        boolean showComboBox = model.getPossiblePaymentAccounts().size() > 1;
+        paymentAccountsComboBox.setVisible(showComboBox);
+        paymentAccountsComboBox.setManaged(showComboBox);
+        paymentAccountsComboBox.setMouseTransparent(!showComboBox);
+        paymentMethodTextField.setVisible(!showComboBox);
+        paymentMethodTextField.setManaged(!showComboBox);
+        paymentMethodLabel.setVisible(!showComboBox);
+        paymentMethodLabel.setManaged(!showComboBox);
+
+        if (!showComboBox) {
+            paymentMethodTextField.setText(model.getPossiblePaymentAccounts().get(0).getAccountName());
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -305,18 +323,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         }
         priceAsPercentageDescription.setText(model.getPercentagePriceDescription());
 
-        boolean showComboBox = model.getPossiblePaymentAccounts().size() > 1;
-        paymentAccountsComboBox.setVisible(showComboBox);
-        paymentAccountsComboBox.setManaged(showComboBox);
-        paymentAccountsComboBox.setMouseTransparent(!showComboBox);
-        paymentMethodTextField.setVisible(!showComboBox);
-        paymentMethodTextField.setManaged(!showComboBox);
-        paymentMethodLabel.setVisible(!showComboBox);
-        paymentMethodLabel.setManaged(!showComboBox);
-
-        if (!showComboBox) {
-            paymentMethodTextField.setText(model.getPossiblePaymentAccounts().get(0).getAccountName());
-        }
+        updatePaymentAccountsVisibility();
 
         currencyTextField.setText(model.dataModel.getCurrencyNameAndCode());
         amountDescriptionLabel.setText(model.getAmountDescription());
