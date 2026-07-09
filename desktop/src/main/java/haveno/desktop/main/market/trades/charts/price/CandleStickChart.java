@@ -235,6 +235,7 @@ public class CandleStickChart extends XYChart<Number, Number> {
         }
         Path seriesPath = new Path();
         seriesPath.getStyleClass().setAll("candlestick-average-line", "series" + seriesIndex);
+        seriesPath.setMouseTransparent(true); // let hover events pass through to the candle below
         series.setNode(seriesPath);
 
         if (!getPlotChildren().contains(seriesPath)) {
