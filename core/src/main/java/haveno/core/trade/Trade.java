@@ -3924,10 +3924,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             paymentReceivedNackSender.setPaymentReceivedMessageState(MessageState.NACKED);
         }
         if (!isPayoutFinalized()) { // payout tx may be stale and show as published after reorg, so clear local info for reprocessing until finalized
-            log.warn("Resetting missing or failed payout tx after payout error for {} {}", getClass().getSimpleName(), getId());
-            getSelf().setUnsignedPayoutTxHex(null);
-            setPayoutTxHex(null);
-            setPayoutTxId(null);
+            if (isPublishedPayoutTxLive()) {
+                log.warn("Keeping live published payout tx {} for {} {} to re-broadcast after payout error", getPayoutTxId(), getClass().getSimpleName(), getId());
+            } else {
+                log.warn("Resetting missing or failed payout tx after payout error for {} {}", getClass().getSimpleName(), getId());
+                getSelf().setUnsignedPayoutTxHex(null);
+                setPayoutTxHex(null);
+                setPayoutTxId(null);
+            }
         }
 
         persistNow(null);
@@ -3945,6 +3949,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             return true;
         }
         return false;
+    }
+
+    // whether the published payout tx may still be live, i.e. our node does not report it as failed (unknown to the node is assumed live).
+    private boolean isPublishedPayoutTxLive() {
+        if (!isPayoutPublished() || getPayoutTxId() == null) return false;
+        try {
+            MoneroTx tx = xmrConnectionService.getTx(getPayoutTxId());
+            if (tx != null && Boolean.TRUE.equals(tx.isFailed())) return false;
+        } catch (Exception e) {
+            log.warn("Error querying node for payout tx {} of {} {}, assuming still live: {}", getPayoutTxId(), getClass().getSimpleName(), getId(), e.getMessage());
+        }
+        return true;
     }
 
     private boolean hasDepositTxs(List<MoneroTxWallet> txs) {
