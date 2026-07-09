@@ -20,6 +20,7 @@ package haveno.desktop.main.portfolio.openoffer;
 import com.google.inject.Inject;
 import java.util.function.Function;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OpenOffer;
@@ -864,7 +865,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                         openOffer.stateProperty().removeListener(offerStateChangeListeners.get(openOffer.getId()));
                                         offerStateChangeListeners.remove(openOffer.getId());
                                     }
-                                    ChangeListener<OpenOffer.State> listener = (observable, oldValue, newValue) -> { if (oldValue != newValue) refresh(); };
+                                    ChangeListener<OpenOffer.State> listener = (observable, oldValue, newValue) -> { if (oldValue != newValue) UserThread.execute(() -> refresh()); };
                                     offerStateChangeListeners.put(openOffer.getId(), listener);
                                     openOffer.stateProperty().addListener(listener);
 
