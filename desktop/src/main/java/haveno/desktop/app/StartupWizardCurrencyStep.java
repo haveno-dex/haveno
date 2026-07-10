@@ -25,6 +25,7 @@ import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.desktop.components.AutoTooltipLabel;
 import java.util.ArrayList;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -37,13 +38,16 @@ import javafx.util.StringConverter;
 
 /**
  * Wizard step to choose the preferred display currency, preselected from the system locale.
+ * Skipped on a quick start, which keeps the preselected currency.
  */
 public class StartupWizardCurrencyStep implements StartupWizard.Step {
 
+    private final BooleanSupplier quickStart;
     private final VBox content;
     private final ComboBox<TradeCurrency> currencyComboBox = new JFXComboBox<>();
 
-    public StartupWizardCurrencyStep() {
+    public StartupWizardCurrencyStep(BooleanSupplier quickStart) {
+        this.quickStart = quickStart;
         currencyComboBox.setItems(FXCollections.observableArrayList(new ArrayList<>(CurrencyUtil.getAllSortedTraditionalCurrencies())));
         currencyComboBox.setVisibleRowCount(12);
         currencyComboBox.setMinWidth(340);
@@ -88,13 +92,18 @@ public class StartupWizardCurrencyStep implements StartupWizard.Step {
     }
 
     @Override
+    public boolean isSkipped() {
+        return quickStart.getAsBoolean();
+    }
+
+    @Override
     public void validate(Consumer<Boolean> resultHandler) {
         resultHandler.accept(true);
     }
 
     @Override
     public String getNextButtonText() {
-        return Res.get("startupWizard.finish");
+        return Res.get("startupWizard.next");
     }
 
     public TradeCurrency getSelectedCurrency() {

@@ -214,10 +214,14 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     public void showStartupWizard(Consumer<StartupWizard.Result> onComplete, Runnable onQuit) {
         startupShell = getOrCreateShell();
         startupShell.setCompactBranding(true);
-        StartupWizardWalletStep walletStep = new StartupWizardWalletStep(() -> injector.getInstance(XmrWalletService.class));
-        StartupWizardPasswordStep passwordStep = new StartupWizardPasswordStep(injector.getInstance(Config.class).passwordRequired);
-        StartupWizardCurrencyStep currencyStep = new StartupWizardCurrencyStep();
+
+        // the mode step decides whether the optional setup steps after it are on the path
+        StartupWizardModeStep modeStep = new StartupWizardModeStep();
+        StartupWizardWalletStep walletStep = new StartupWizardWalletStep(modeStep::isQuickStart, () -> injector.getInstance(XmrWalletService.class));
+        StartupWizardPasswordStep passwordStep = new StartupWizardPasswordStep(injector.getInstance(Config.class).passwordRequired, modeStep::isQuickStart);
+        StartupWizardCurrencyStep currencyStep = new StartupWizardCurrencyStep(modeStep::isQuickStart);
         List<StartupWizard.Step> steps = createTacSteps();
+        steps.add(modeStep);
         steps.add(walletStep);
         steps.add(passwordStep);
         steps.add(currencyStep);
@@ -225,6 +229,8 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                 () -> onComplete.accept(new StartupWizard.Result(walletStep.getSeed(), walletStep.getRestoreHeight(),
                         walletStep.getRestoreDate(), passwordStep.getPassword(), currencyStep.getSelectedCurrency())),
                 onQuit);
+        modeStep.setOnSelectionChanged(wizard::refreshNavigation);
+        passwordStep.setOnStateChanged(wizard::refreshNavigation);
         startupShell.setContent(wizard.getRoot());
         showStartupWindow();
     }
