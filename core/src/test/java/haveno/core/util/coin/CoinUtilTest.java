@@ -24,9 +24,12 @@ import org.bitcoinj.core.Coin;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class CoinUtilTest {
@@ -145,5 +148,22 @@ public class CoinUtilTest {
                 HavenoUtils.formatXmr(result, true),
                 "Minimum trade amount allowed with low maxTradeLimit should still respect that limit, even if result does not respect the factor specified."
         );
+    }
+
+    @Test
+    public void testGetAdjustedAmountTerminatesOnZeroStep() {
+        // Regression: a high-denomination price can make the per-unit correction step round to zero,
+        // which previously spun getAdjustedAmount's min/max loops forever. It must terminate and clamp.
+        BigInteger minAmount = HavenoUtils.xmrToAtomicUnits(0.05005);
+        BigInteger maxAmount = HavenoUtils.xmrToAtomicUnits(0.05005);
+        BigInteger result = assertTimeoutPreemptively(Duration.ofSeconds(5), () ->
+                CoinUtil.getAdjustedAmount(
+                        HavenoUtils.xmrToAtomicUnits(0.05),
+                        Price.valueOf("USD", 80_000_000_000_000L),
+                        minAmount,
+                        maxAmount,
+                        1));
+        assertTrue(result.compareTo(minAmount) >= 0 && result.compareTo(maxAmount) <= 0,
+                "Adjusted amount must stay within [min, max].");
     }
 }

@@ -144,18 +144,18 @@ public class CoinUtil {
         // For the amount we allow only 4 decimal places
         long adjustedAmount = HavenoUtils.centinerosToAtomicUnits(Math.round(HavenoUtils.atomicUnitsToCentineros(amountByVolume) / 10000d) * 10000).longValueExact();
 
-        // If we are below the minAmount we increase the amount by the smallestUnitForAmount
-        BigInteger smallestUnitForAmountUnadjusted = price.getAmountByVolume(smallestUnitForVolume);
-        if (minAmount != null) {
+        // Correct the amount toward the min/max bounds by the smallestUnitForAmount. Guard against
+        // a non-positive step (e.g. high-denomination prices where the per-unit amount rounds to
+        // zero), which would otherwise spin these loops forever; the clamp below still bounds it.
+        long smallestUnitForAmountUnadjusted = price.getAmountByVolume(smallestUnitForVolume).longValueExact();
+        if (smallestUnitForAmountUnadjusted > 0) {
             while (adjustedAmount < minAmount.longValueExact()) {
-                adjustedAmount += smallestUnitForAmountUnadjusted.longValueExact();
+                adjustedAmount += smallestUnitForAmountUnadjusted;
             }
-        }
-
-        // If we are above our trade limit we reduce the amount by the smallestUnitForAmount
-        if (maxAmount != null) {
-            while (adjustedAmount > maxAmount.longValueExact()) {
-                adjustedAmount -= smallestUnitForAmountUnadjusted.longValueExact();
+            if (maxAmount != null) {
+                while (adjustedAmount > maxAmount.longValueExact()) {
+                    adjustedAmount -= smallestUnitForAmountUnadjusted;
+                }
             }
         }
 
