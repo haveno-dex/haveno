@@ -329,6 +329,28 @@
     -fx-padding: 5;
 }
 
+/* Hide scroll bar end buttons, otherwise showing as small tick marks; side padding keeps the bar's breadth */
+.combo-box-popup .scroll-bar:vertical .increment-button,
+.combo-box-popup .scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 5 0 5;
+}
+
+.combo-box-popup .scroll-bar:horizontal .increment-button,
+.combo-box-popup .scroll-bar:horizontal .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 5 0 5 0;
+}
+
+.combo-box-popup .scroll-bar:vertical .increment-arrow,
+.combo-box-popup .scroll-bar:vertical .decrement-arrow,
+.combo-box-popup .scroll-bar:horizontal .increment-arrow,
+.combo-box-popup .scroll-bar:horizontal .decrement-arrow {
+    -fx-shape: null;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
 /* Rounds the first and last list cells to create full round illusion */
 .combo-box-popup .list-cell:first-child {
     -fx-background-radius: 8 8 0 0;
