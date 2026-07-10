@@ -37,6 +37,15 @@ class ReceiptValidator {
     }
 
     boolean isValid() {
+        return isValid(false);
+    }
+
+    // a new offer derives its bank fields from the maker's account, so bank matching only applies to takers
+    boolean isValidForNewOffer() {
+        return isValid(true);
+    }
+
+    private boolean isValid(boolean isNewOffer) {
         // We only support trades with the same currencies
         if (!predicates.isMatchingCurrency(offer, account)) {
             return false;
@@ -70,7 +79,7 @@ class ReceiptValidator {
             return false;
         }
 
-        if (predicates.isOfferRequireSameOrSpecificBank(offer, account)) {
+        if (!isNewOffer && predicates.isOfferRequireSameOrSpecificBank(offer, account)) {
             return predicates.isMatchingBankId(offer, account);
         }
 

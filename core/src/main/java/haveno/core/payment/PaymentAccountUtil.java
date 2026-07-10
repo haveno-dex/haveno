@@ -145,6 +145,10 @@ public class PaymentAccountUtil {
         return new ReceiptValidator(offer, paymentAccount).isValid();
     }
 
+    public static boolean isPaymentAccountValidForNewOffer(Offer offer, PaymentAccount paymentAccount) {
+        return new ReceiptValidator(offer, paymentAccount).isValidForNewOffer();
+    }
+
     public static Optional<PaymentAccount> getMostMaturePaymentAccountForOffer(Offer offer,
                                                                                Set<PaymentAccount> paymentAccounts,
                                                                                AccountAgeWitnessService service) {

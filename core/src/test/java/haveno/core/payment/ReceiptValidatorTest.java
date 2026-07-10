@@ -115,6 +115,21 @@ public class ReceiptValidatorTest {
     }
 
     @Test
+    public void testIsValidForNewOfferSkipsBankIdMatching() {
+        account = mock(SpecificBanksAccount.class);
+
+        when(predicates.isMatchingCurrency(offer, account)).thenReturn(true);
+        when(predicates.isEqualPaymentMethods(offer, account)).thenReturn(true);
+        when(predicates.isMatchingCountryCodes(offer, account)).thenReturn(true);
+        when(predicates.isMatchingSepaOffer(offer, account)).thenReturn(false);
+        when(predicates.isMatchingSepaInstant(offer, account)).thenReturn(false);
+        when(predicates.isOfferRequireSameOrSpecificBank(offer, account)).thenReturn(true);
+        when(predicates.isMatchingBankId(offer, account)).thenReturn(false);
+
+        assertTrue(new ReceiptValidator(offer, account, predicates).isValidForNewOffer());
+    }
+
+    @Test
     public void testIsValidWhenSameBankAccountAndOfferRequireSpecificBank() {
         account = mock(SameBankAccount.class);
 

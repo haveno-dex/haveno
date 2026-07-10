@@ -61,7 +61,7 @@ import haveno.core.proto.persistable.CorePersistenceProtoResolver;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 
-import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForOffer;
+import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForNewOffer;
 import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
 import static java.lang.String.format;
@@ -475,7 +475,7 @@ public class CoreOffersService {
     // -------------------------- PRIVATE HELPERS -----------------------------
 
     private void verifyPaymentAccountIsValidForNewOffer(Offer offer, PaymentAccount paymentAccount) {
-        if (!isPaymentAccountValidForOffer(offer, paymentAccount)) {
+        if (!isPaymentAccountValidForNewOffer(offer, paymentAccount)) {
             String error = format("cannot create %s offer with payment account %s",
                     offer.getOfferPayload().getCounterCurrencyCode(),
                     paymentAccount.getId());
