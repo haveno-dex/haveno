@@ -1110,6 +1110,11 @@ tree-table-view:focused {
     -fx-background-color: transparent;
 }
 
+/* the card draws its own shadow; keep the light-mode popup shadow off the logo above it */
+.tac-agreement-root.popup-dropshadow {
+    -fx-effect: none;
+}
+
 .tac-agreement-window {
     -fx-font-size: 0.9em;
     -fx-background-color: -bs-background-color;
@@ -1164,7 +1169,7 @@ tree-table-view:focused {
 }
 
 .tac-agreement-risk-detail-row {
-    -fx-padding: 3 24 3 24;
+    -fx-padding: 8 24 8 24;
 }
 
 .tac-agreement-risk-detail-icon-box {
@@ -1198,29 +1203,6 @@ tree-table-view:focused {
     -fx-min-height: 1;
     -fx-pref-height: 1;
     -fx-max-height: 1;
-}
-
-.tac-agreement-confirm-headline {
-    -fx-font-size: 0.98em;
-    -fx-font-family: "IBM Plex Sans Medium";
-    -fx-text-fill: -bs-color-primary;
-}
-
-.tac-agreement-check-box {
-    -fx-font-size: 0.92em;
-    -fx-text-fill: -bs-rd-font-dark;
-}
-
-.tac-agreement-check-box:error,
-.tac-agreement-check-box:error .text {
-    -fx-text-fill: -bs-rd-error-red;
-    -fx-fill: -bs-rd-error-red;
-    -jfx-unchecked-color: -bs-rd-error-red;
-}
-
-.tac-agreement-check-box:error .box {
-    -fx-border-color: -bs-rd-error-red;
-    -fx-border-width: 1.5;
 }
 
 .tac-agreement-legal-scroll-pane {

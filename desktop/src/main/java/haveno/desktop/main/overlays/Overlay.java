@@ -287,6 +287,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                 window.xProperty().removeListener(positionListener);
                 window.yProperty().removeListener(positionListener);
                 window.widthProperty().removeListener(positionListener);
+                window.heightProperty().removeListener(positionListener);
             }
         }
     }
@@ -603,6 +604,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                     window.xProperty().addListener(positionListener);
                     window.yProperty().addListener(positionListener);
                     window.widthProperty().addListener(positionListener);
+                    window.heightProperty().addListener(positionListener);
 
                     animateDisplay();
                 });

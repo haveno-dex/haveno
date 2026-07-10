@@ -19,13 +19,16 @@ package haveno.desktop.main.overlays.windows;
 
 import com.google.inject.Inject;
 import haveno.core.locale.Res;
+import haveno.core.user.Preferences;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.GUIUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
@@ -36,25 +39,28 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * The user agreement popup for existing installations (first-run installations accept the
  * agreement in the startup wizard instead): a fixed-size card paging between the risk and
- * legal pages of {@link TacContent}.
+ * legal pages of {@link TacContent}, accepted once with the agree action on the legal page.
  */
 @Slf4j
 public class TacWindow extends Overlay<TacWindow> {
 
     private static final double WINDOW_WIDTH = 900;
     private static final double WINDOW_HEIGHT = 555;
-    private static final double SHADOW_PADDING = 18;
+    private static final double LOGO_FIT_WIDTH = 190;
+    private static final double SHADOW_PADDING = 30;
     private static final double TITLE_BAR_HEIGHT = 40;
     private static final double FOOTER_HEIGHT = 48;
     private static final double GRID_HORIZONTAL_PADDING = 40;
     private static final double PAGE_WIDTH = WINDOW_WIDTH - GRID_HORIZONTAL_PADDING;
     private static final double PAGE_HEIGHT = WINDOW_HEIGHT - TITLE_BAR_HEIGHT - 24 - 20 - 1 - FOOTER_HEIGHT;
 
+    private final Preferences preferences;
     private TacContent content;
     private StackPane rootContainer;
     private VBox riskPage, legalPage;
@@ -62,7 +68,8 @@ public class TacWindow extends Overlay<TacWindow> {
     private boolean isLegalPageVisible;
 
     @Inject
-    public TacWindow() {
+    public TacWindow(Preferences preferences) {
+        this.preferences = preferences;
         type = Type.Attention;
         width = WINDOW_WIDTH;
     }
@@ -103,7 +110,19 @@ public class TacWindow extends Overlay<TacWindow> {
         gridPane.getColumnConstraints().add(columnConstraints);
 
         windowContainer.getChildren().addAll(createTitleBar(), gridPane);
-        rootContainer.getChildren().add(windowContainer);
+
+        // compact landscape logo above the card, matching the startup wizard branding
+        ImageView logo = new ImageView();
+        logo.setId("image-logo-splash-landscape");
+        logo.setFitWidth(LOGO_FIT_WIDTH);
+        logo.setPreserveRatio(true);
+        logo.setSmooth(true);
+        GUIUtil.setBrandingLogo(logo, preferences, "/images/logo_splash_landscape_light_mode.png",
+                "/images/logo_splash_landscape_dark_mode.png", LOGO_FIT_WIDTH, 0);
+
+        VBox column = new VBox(16, logo, windowContainer);
+        column.setAlignment(Pos.TOP_CENTER);
+        rootContainer.getChildren().add(column);
     }
 
     @Override
@@ -188,6 +207,13 @@ public class TacWindow extends Overlay<TacWindow> {
     }
 
     @Override
+    protected void setModality() {
+        // non-modal so the app window behind stays resizable and its theme toggle clickable
+        stage.initOwner(owner.getScene().getWindow());
+        stage.initModality(Modality.NONE);
+    }
+
+    @Override
     protected void onShow() {
         display();
     }
@@ -206,18 +232,10 @@ public class TacWindow extends Overlay<TacWindow> {
 
     private void handleAction() {
         if (!isLegalPageVisible) {
-            if (content.isRiskAccepted()) setLegalPageVisible(true);
-            else content.requestRiskValidation();
+            setLegalPageVisible(true);
         } else {
-            if (content.isAllAccepted()) {
-                hide();
-                actionHandlerOptional.ifPresent(Runnable::run);
-            } else if (!content.isRiskAccepted()) {
-                content.requestRiskValidation();
-                setLegalPageVisible(false);
-            } else {
-                content.requestLegalValidation();
-            }
+            hide();
+            actionHandlerOptional.ifPresent(Runnable::run);
         }
     }
 
