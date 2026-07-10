@@ -377,7 +377,13 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                 }
                             }
                             dispute.setIsClosed();
-                            if (dispute.disputeResultProperty().get() != null) {
+                            DisputeResult storedDisputeResult = dispute.disputeResultProperty().get();
+                            if (storedDisputeResult != null) {
+                                // freshness is the signed closeDate, not arrival order: reject an older ruling
+                                if (disputeResult.getCloseDate().getTime() < storedDisputeResult.getCloseDate().getTime()) {
+                                    log.warn("Ignoring DisputeClosedMessage with an older closeDate than the stored ruling for {} {}", trade.getClass().getSimpleName(), tradeId);
+                                    return;
+                                }
                                 log.info("We already got a dispute result, indicating the message was resent after updating multisig info. TradeId = " + tradeId);
                             }
                             dispute.setDisputeResult(disputeResult);
