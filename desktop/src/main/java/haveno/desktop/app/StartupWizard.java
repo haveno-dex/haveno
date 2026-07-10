@@ -28,27 +28,35 @@ import java.time.LocalDate;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.ParallelTransition;
+import javafx.animation.TranslateTransition;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableBooleanValue;
+import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.util.Duration;
 import javax.annotation.Nullable;
 import lombok.Value;
 
 /**
  * First-run setup wizard hosted in the {@link StartupShell} content slot: pages through the
  * given steps with back/next navigation and reports completion or the user quitting.
+ * Steps may exclude themselves from the current path via {@link Step#isSkipped()}.
  */
 public class StartupWizard {
 
@@ -64,8 +72,15 @@ public class StartupWizard {
 
         String getNextButtonText();
 
+        /** Optional label for an explicit quit action on this step; when null, only the first step offers quitting. */
+        @Nullable
         default String getQuitButtonText() {
-            return Res.get("shared.shutDown");
+            return null;
+        }
+
+        /** True to leave this step out of the current path (e.g. optional setup on a quick start). */
+        default boolean isSkipped() {
+            return false;
         }
 
         default void onShown() {
@@ -95,11 +110,14 @@ public class StartupWizard {
 
     public static final double PAGE_WIDTH = 800;
     private static final double PAGE_HEIGHT = 430;
+    // the page slot may compress to this so the branding and bottom bar stay visible at small window heights
+    private static final double MIN_PAGE_HEIGHT = 385;
 
     private final List<Step> steps;
     private final Runnable onComplete;
     private final VBox root;
     private final StackPane contentSlot = new StackPane();
+    private final HBox progressDots = new HBox(7);
     private final Button backButton, nextButton, quitButton;
     private final Label footerLabel = new AutoTooltipLabel();
     // combined with the current step's own gate to drive the next button's disable binding
@@ -111,7 +129,7 @@ public class StartupWizard {
         this.onComplete = onComplete;
 
         contentSlot.setAlignment(Pos.TOP_CENTER);
-        contentSlot.setMinHeight(PAGE_HEIGHT);
+        contentSlot.setMinHeight(MIN_PAGE_HEIGHT);
         contentSlot.setPrefHeight(PAGE_HEIGHT);
         contentSlot.setMaxWidth(PAGE_WIDTH);
 
@@ -119,7 +137,7 @@ public class StartupWizard {
         nextButton = new AutoTooltipButton();
         nextButton.setDefaultButton(true);
         nextButton.getStyleClass().add("action-button");
-        quitButton = new AutoTooltipButton();
+        quitButton = new AutoTooltipButton(Res.get("shared.shutDown"));
 
         // size all buttons to the widest label so they match, adapting to whatever the translated text is
         NumberBinding buttonWidth = Bindings.max(backButton.widthProperty(),
@@ -128,7 +146,7 @@ public class StartupWizard {
         nextButton.minWidthProperty().bind(buttonWidth);
         quitButton.minWidthProperty().bind(buttonWidth);
 
-        backButton.setOnAction(event -> showStep(stepIndex - 1));
+        backButton.setOnAction(event -> showStep(previousIndex(), false));
         nextButton.setOnAction(event -> onNext());
         quitButton.setOnAction(event -> {
             setControlsDisabled(true);
@@ -139,20 +157,31 @@ public class StartupWizard {
         HBox buttonBox = new HBox(10, backButton, quitButton, nextButton);
         buttonBox.setAlignment(Pos.CENTER);
 
+        progressDots.setAlignment(Pos.CENTER);
+        progressDots.setMinHeight(8);
+
         footerLabel.getStyleClass().add("startup-wizard-footer-label");
         footerLabel.setMinHeight(24);
         footerLabel.setAlignment(Pos.CENTER);
 
-        root = new VBox(15, contentSlot, buttonBox, footerLabel);
+        root = new VBox(12, contentSlot, progressDots, buttonBox, footerLabel);
         root.setAlignment(Pos.TOP_CENTER);
         root.setMaxWidth(PAGE_WIDTH);
-        VBox.setMargin(buttonBox, new Insets(15, 0, 0, 0));
+        VBox.setMargin(buttonBox, new Insets(5, 0, 0, 0));
 
-        showStep(0);
+        showStep(0, false);
     }
 
     public Region getRoot() {
         return root;
+    }
+
+    /** Re-read the current step's navigation state (button text, path dots) after a step-internal change. */
+    public void refreshNavigation() {
+        Step step = steps.get(stepIndex);
+        // the last step on the path launches the app, so it gets the start label instead of its own
+        nextButton.setText(nextIndex() < 0 ? Res.get("startupWizard.start") : step.getNextButtonText());
+        updateProgressDots();
     }
 
     /** A page header shared by the wizard steps and the user agreement content: icon, title, subtitle, divider. */
@@ -192,35 +221,162 @@ public class StartupWizard {
         return textIcon;
     }
 
-    private void showStep(int index) {
+    /** A selectable option card: icon, title, optional badge, and description; hosts wire exclusive selection. */
+    public static class ChoiceCard extends StackPane {
+
+        private static final PseudoClass SELECTED_PSEUDO_CLASS = PseudoClass.getPseudoClass("selected");
+
+        private final Text checkMark;
+        private boolean selected;
+        private Runnable onSelect;
+
+        public ChoiceCard(MaterialDesignIcon icon, String titleText, @Nullable String badgeText, String bodyText) {
+            getStyleClass().add("wizard-choice-card");
+
+            StackPane iconBox = new StackPane(createIcon(icon, "1.4em", "wizard-choice-card-icon"));
+            iconBox.getStyleClass().add("wizard-choice-card-icon-box");
+
+            Label title = new Label(titleText);
+            title.getStyleClass().add("wizard-choice-card-title");
+
+            HBox titleRow = new HBox(8, title);
+            titleRow.setAlignment(Pos.CENTER_LEFT);
+            if (badgeText != null) {
+                Label badge = new Label(badgeText);
+                badge.getStyleClass().add("wizard-choice-card-badge");
+                titleRow.getChildren().add(badge);
+            }
+
+            Label body = new Label(bodyText);
+            body.getStyleClass().add("wizard-choice-card-body");
+            body.setWrapText(true);
+
+            VBox textBox = new VBox(4, titleRow, body);
+            HBox.setHgrow(textBox, Priority.ALWAYS);
+
+            HBox row = new HBox(14, iconBox, textBox);
+            row.setAlignment(Pos.TOP_LEFT);
+            row.setFillHeight(false);
+
+            checkMark = createIcon(MaterialDesignIcon.CHECK_CIRCLE, "1.1em", "wizard-choice-card-check");
+            checkMark.setVisible(false);
+            StackPane.setAlignment(checkMark, Pos.TOP_RIGHT);
+
+            getChildren().addAll(row, checkMark);
+
+            setFocusTraversable(true);
+            setOnMouseClicked(event -> select());
+            setOnKeyPressed(event -> {
+                if (event.getCode() == KeyCode.SPACE) {
+                    select();
+                    event.consume();
+                }
+            });
+        }
+
+        /** Wire the cards as an exclusive group: selecting one deselects the others and reports the change. */
+        public static void group(Runnable onChange, ChoiceCard... cards) {
+            for (ChoiceCard card : cards) {
+                card.onSelect = () -> {
+                    for (ChoiceCard other : cards) other.setSelected(other == card);
+                    onChange.run();
+                };
+            }
+        }
+
+        public void setSelected(boolean selected) {
+            this.selected = selected;
+            checkMark.setVisible(selected);
+            pseudoClassStateChanged(SELECTED_PSEUDO_CLASS, selected);
+        }
+
+        public boolean isSelected() {
+            return selected;
+        }
+
+        private void select() {
+            if (!selected && onSelect != null) onSelect.run();
+        }
+    }
+
+    private void showStep(int index, boolean animate) {
+        boolean forward = index > stepIndex;
         stepIndex = index;
         Step step = steps.get(index);
-        contentSlot.getChildren().setAll(step.getContent());
-        backButton.setVisible(index > 0);
-        backButton.setManaged(index > 0);
-        nextButton.setText(step.getNextButtonText());
-        quitButton.setText(step.getQuitButtonText());
-        footerLabel.setText(steps.size() > 1 ? Res.get("startupWizard.step", index + 1, steps.size()) : "");
+        Region content = step.getContent();
+        contentSlot.getChildren().setAll(content);
+        if (animate) playStepTransition(content, forward);
+        // the first step offers quitting; later steps offer going back, plus quitting where a step labels it explicitly
+        boolean first = previousIndex() < 0;
+        String quitText = step.getQuitButtonText();
+        boolean offersQuit = first || quitText != null;
+        quitButton.setVisible(offersQuit);
+        quitButton.setManaged(offersQuit);
+        quitButton.setText(quitText != null ? quitText : Res.get("shared.shutDown"));
+        backButton.setVisible(!first);
+        backButton.setManaged(!first);
+        footerLabel.setText("");
         ObservableBooleanValue blocked = step.nextBlocked();
         nextButton.disableProperty().unbind();
         nextButton.disableProperty().bind(blocked == null ? busy : busy.or(blocked));
+        refreshNavigation();
         step.onShown();
+    }
+
+    // ease the incoming page in with a subtle directional slide
+    private void playStepTransition(Region content, boolean forward) {
+        content.setOpacity(0);
+        content.setTranslateX(forward ? 32 : -32);
+        FadeTransition fade = new FadeTransition(Duration.millis(250), content);
+        fade.setToValue(1);
+        TranslateTransition slide = new TranslateTransition(Duration.millis(250), content);
+        slide.setToX(0);
+        slide.setInterpolator(Interpolator.EASE_OUT);
+        new ParallelTransition(fade, slide).play();
     }
 
     private void onNext() {
         setControlsDisabled(true);
         steps.get(stepIndex).validate(valid -> UserThread.execute(() -> {
+            int nextIndex = nextIndex();
             if (!valid) {
                 setControlsDisabled(false);
-            } else if (stepIndex < steps.size() - 1) {
+            } else if (nextIndex >= 0) {
                 setControlsDisabled(false);
-                showStep(stepIndex + 1);
+                showStep(nextIndex, true);
             } else {
                 // keep the working state until app startup replaces this screen
                 footerLabel.setText(Res.get("startupWizard.finishing"));
                 onComplete.run();
             }
         }));
+    }
+
+    private int nextIndex() {
+        for (int i = stepIndex + 1; i < steps.size(); i++) {
+            if (!steps.get(i).isSkipped()) return i;
+        }
+        return -1;
+    }
+
+    private int previousIndex() {
+        for (int i = stepIndex - 1; i >= 0; i--) {
+            if (!steps.get(i).isSkipped()) return i;
+        }
+        return -1;
+    }
+
+    // one dot per step on the current path, marking the current step
+    private void updateProgressDots() {
+        progressDots.getChildren().clear();
+        for (Step step : steps) {
+            if (step.isSkipped()) continue;
+            Region dot = new Region();
+            dot.getStyleClass().add("wizard-progress-dot");
+            if (step == steps.get(stepIndex)) dot.getStyleClass().add("wizard-progress-dot-active");
+            progressDots.getChildren().add(dot);
+        }
+        if (progressDots.getChildren().size() <= 1) progressDots.getChildren().clear();
     }
 
     private void setControlsDisabled(boolean disabled) {

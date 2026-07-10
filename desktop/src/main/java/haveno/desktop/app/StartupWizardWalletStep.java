@@ -23,10 +23,10 @@ import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.AutoTooltipRadioButton;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javafx.beans.property.BooleanProperty;
@@ -35,11 +35,10 @@ import javafx.beans.value.ObservableBooleanValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javax.annotation.Nullable;
@@ -48,17 +47,19 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Wizard step to create a new Monero wallet (default) or import an existing one from its seed
  * phrase with an optional restore height. The import is applied when the main wallet is first
- * created after connecting to the network.
+ * created after connecting to the network. Skipped on a quick start.
  */
 @Slf4j
 public class StartupWizardWalletStep implements StartupWizard.Step {
 
     private static final double FIELD_WIDTH = 620;
+    private static final double CARD_GAP = 20;
     private static final int SEED_WORD_COUNT = 25;
 
+    private final BooleanSupplier quickStart;
     private final Supplier<XmrWalletService> xmrWalletService;
     private final VBox content;
-    private final RadioButton importRadio;
+    private final StartupWizard.ChoiceCard createCard, importCard;
     private final TextArea seedTextArea;
     private final TextField restoreHeightField;
     private final Label statusLabel = new AutoTooltipLabel();
@@ -70,18 +71,28 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
     private final BooleanProperty nextBlocked = new SimpleBooleanProperty(false);
     private boolean warmUpStarted;
 
-    public StartupWizardWalletStep(Supplier<XmrWalletService> xmrWalletService) {
+    public StartupWizardWalletStep(BooleanSupplier quickStart, Supplier<XmrWalletService> xmrWalletService) {
+        this.quickStart = quickStart;
         this.xmrWalletService = xmrWalletService;
 
-        ToggleGroup toggleGroup = new ToggleGroup();
-        RadioButton createRadio = new AutoTooltipRadioButton(Res.get("startupWizard.wallet.create"));
-        importRadio = new AutoTooltipRadioButton(Res.get("startupWizard.wallet.import"));
-        createRadio.setToggleGroup(toggleGroup);
-        importRadio.setToggleGroup(toggleGroup);
-        createRadio.setSelected(true);
+        createCard = new StartupWizard.ChoiceCard(MaterialDesignIcon.PLUS_CIRCLE_OUTLINE,
+                Res.get("startupWizard.wallet.create"),
+                null,
+                Res.get("startupWizard.wallet.create.body"));
+        importCard = new StartupWizard.ChoiceCard(MaterialDesignIcon.KEY_VARIANT,
+                Res.get("startupWizard.wallet.import"),
+                null,
+                Res.get("startupWizard.wallet.import.body"));
 
-        HBox radioBox = new HBox(30, createRadio, importRadio);
-        radioBox.setAlignment(Pos.CENTER);
+        double cardWidth = (StartupWizard.PAGE_WIDTH - CARD_GAP) / 2;
+        for (StartupWizard.ChoiceCard card : new StartupWizard.ChoiceCard[]{createCard, importCard}) {
+            card.setPrefWidth(cardWidth);
+            card.setMaxWidth(cardWidth);
+            HBox.setHgrow(card, Priority.ALWAYS);
+        }
+
+        HBox cardBox = new HBox(CARD_GAP, createCard, importCard);
+        cardBox.setAlignment(Pos.CENTER);
 
         seedTextArea = new TextArea();
         seedTextArea.getStyleClass().add("wizard-text-area");
@@ -124,16 +135,21 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
         VBox importBox = new VBox(10, seedTextArea, restoreHeightField, restoreHeightInfo);
         importBox.setAlignment(Pos.TOP_CENTER);
         VBox.setMargin(importBox, new Insets(5, 0, 0, 0));
-        importBox.visibleProperty().bind(importRadio.selectedProperty());
-        importBox.managedProperty().bind(importRadio.selectedProperty());
-        importRadio.selectedProperty().addListener((observable, oldValue, newValue) -> {
+
+        StartupWizard.ChoiceCard.group(() -> {
             clearSeedError();
             updateNextBlocked();
-            if (newValue) {
+            boolean importSelected = importCard.isSelected();
+            importBox.setVisible(importSelected);
+            importBox.setManaged(importSelected);
+            if (importSelected) {
                 seedTextArea.requestFocus();
                 warmUpValidation();
             }
-        });
+        }, createCard, importCard);
+        createCard.setSelected(true);
+        importBox.setVisible(false);
+        importBox.setManaged(false);
 
         statusLabel.setMinHeight(24);
         statusLabel.setAlignment(Pos.CENTER);
@@ -142,10 +158,11 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
                 StartupWizard.createHeaderSection(MaterialDesignIcon.WALLET,
                         Res.get("startupWizard.wallet.headline"),
                         Res.get("startupWizard.wallet.subtitle")),
-                radioBox,
+                cardBox,
                 importBox,
                 statusLabel);
-        VBox.setMargin(radioBox, new Insets(8, 0, 0, 0));
+        content.setAlignment(Pos.TOP_CENTER);
+        VBox.setMargin(cardBox, new Insets(8, 0, 0, 0));
     }
 
     @Override
@@ -154,9 +171,14 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
     }
 
     @Override
+    public boolean isSkipped() {
+        return quickStart.getAsBoolean();
+    }
+
+    @Override
     public void validate(Consumer<Boolean> resultHandler) {
         clearSeedError();
-        if (!importRadio.isSelected()) {
+        if (!importCard.isSelected()) {
             resultHandler.accept(true);
             return;
         }
@@ -248,7 +270,7 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
     /** The normalized seed phrase to import, or null to create a new wallet. */
     @Nullable
     public String getSeed() {
-        if (!importRadio.isSelected()) return null;
+        if (isSkipped() || !importCard.isSelected()) return null;
         String seed = seedTextArea.getText() == null ? "" : seedTextArea.getText().trim().toLowerCase().replaceAll("\\s+", " ");
         return seed.isEmpty() ? null : seed;
     }
@@ -257,7 +279,7 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
     @Nullable
     public Long getRestoreHeight() {
         String text = restoreHeightField.getText().trim();
-        if (!importRadio.isSelected() || !text.matches("\\d+")) return null;
+        if (getSeed() == null || !text.matches("\\d+")) return null;
         try {
             return Long.parseLong(text);
         } catch (NumberFormatException e) {
@@ -269,7 +291,7 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
     @Nullable
     public LocalDate getRestoreDate() {
         String text = restoreHeightField.getText().trim();
-        if (!importRadio.isSelected() || text.matches("\\d*")) return null;
+        if (getSeed() == null || text.matches("\\d*")) return null;
         try {
             LocalDate date = LocalDate.parse(text);
             return date.isAfter(LocalDate.now()) ? null : date;
@@ -297,7 +319,7 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
     // block advancing while an import seed is entered that has not validated
     private void updateNextBlocked() {
         String seed = getSeed();
-        nextBlocked.set(importRadio.isSelected() && !(seed != null && seed.equals(validatedSeed) && validatedSeedValid));
+        nextBlocked.set(importCard.isSelected() && !(seed != null && seed.equals(validatedSeed) && validatedSeedValid));
     }
 
     @Override

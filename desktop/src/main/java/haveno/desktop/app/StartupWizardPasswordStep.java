@@ -20,6 +20,7 @@ package haveno.desktop.app;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
 import haveno.desktop.components.AutoTooltipLabel;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -29,11 +30,13 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.TextAlignment;
 import javax.annotation.Nullable;
 
 /**
  * Wizard step to protect the new account with a password. Optional unless the app was
  * started with --passwordRequired; leaving the fields empty skips password protection.
+ * Skipped on a quick start unless a password is required.
  */
 public class StartupWizardPasswordStep implements StartupWizard.Step {
 
@@ -41,21 +44,28 @@ public class StartupWizardPasswordStep implements StartupWizard.Step {
     private static final int MIN_PASSWORD_LENGTH = 8;
 
     private final boolean passwordRequired;
+    private final BooleanSupplier quickStart;
     private final VBox content;
     private final PasswordField passwordField, confirmField;
     private final Label statusLabel = new AutoTooltipLabel();
+    private Runnable onStateChanged = () -> {
+    };
 
-    public StartupWizardPasswordStep(boolean passwordRequired) {
+    public StartupWizardPasswordStep(boolean passwordRequired, BooleanSupplier quickStart) {
         this.passwordRequired = passwordRequired;
+        this.quickStart = quickStart;
 
         passwordField = createPasswordField(Res.get("password.enterPassword"));
         confirmField = createPasswordField(Res.get("password.confirmPassword"));
+        passwordField.textProperty().addListener((observable, oldValue, newValue) -> onStateChanged.run());
+        confirmField.textProperty().addListener((observable, oldValue, newValue) -> onStateChanged.run());
 
         Label info = new AutoTooltipLabel(Res.get(passwordRequired
                 ? "startupWizard.password.info.required"
                 : "startupWizard.password.info"));
         info.getStyleClass().add("startup-wizard-footer-label");
         info.setWrapText(true);
+        info.setTextAlignment(TextAlignment.CENTER);
         info.setMaxWidth(FIELD_WIDTH * 1.6);
 
         statusLabel.setMinHeight(24);
@@ -78,6 +88,11 @@ public class StartupWizardPasswordStep implements StartupWizard.Step {
     @Override
     public Region getContent() {
         return content;
+    }
+
+    @Override
+    public boolean isSkipped() {
+        return !passwordRequired && quickStart.getAsBoolean();
     }
 
     @Override
@@ -107,13 +122,20 @@ public class StartupWizardPasswordStep implements StartupWizard.Step {
 
     @Override
     public String getNextButtonText() {
-        return Res.get("startupWizard.next");
+        // advancing with both fields empty skips password protection, so label it that way
+        boolean skipping = !passwordRequired && passwordField.getText().isEmpty() && confirmField.getText().isEmpty();
+        return Res.get(skipping ? "startupWizard.skipPassword" : "startupWizard.next");
+    }
+
+    /** Register the host's handler for field changes (to refresh navigation). */
+    public void setOnStateChanged(Runnable onStateChanged) {
+        this.onStateChanged = onStateChanged;
     }
 
     /** The password to protect the account with, or null for none. */
     @Nullable
     public String getPassword() {
-        return passwordField.getText().isEmpty() ? null : passwordField.getText();
+        return isSkipped() || passwordField.getText().isEmpty() ? null : passwordField.getText();
     }
 
     private static PasswordField createPasswordField(String prompt) {
