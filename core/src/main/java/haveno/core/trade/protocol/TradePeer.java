@@ -104,7 +104,7 @@ public final class TradePeer implements PersistablePayload {
     private DisputeOpenedMessage disputeOpenedMessage;
     @Setter
     @Getter
-    private DisputeClosedMessage disputeClosedMessage;
+    private volatile DisputeClosedMessage disputeClosedMessage; // volatile so pending-ruling reads see the latest install; compound check-then-act synchronizes on this TradePeer
 
     // added in v 0.6
     @Nullable
