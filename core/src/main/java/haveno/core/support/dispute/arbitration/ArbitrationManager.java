@@ -291,8 +291,26 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             return;
         }
 
-        // set dispute closed message for reprocessing
-        trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
+        // set dispute closed message for reprocessing, keeping the newest signed closeDate
+        // so an older ruling cannot displace a newer one by arriving later; synchronized on
+        // the arbitrator peer, not the trade lock, which can be held across a UserThread wait
+        synchronized (trade.getArbitrator()) {
+            DisputeClosedMessage pendingMsg = trade.getArbitrator().getDisputeClosedMessage();
+            if (pendingMsg != null && pendingMsg != disputeClosedMessage) {
+                Date pendingCloseDate = pendingMsg.getDisputeResult().getCloseDate();
+                Date incomingCloseDate = disputeClosedMessage.getDisputeResult().getCloseDate();
+                if (pendingCloseDate.after(incomingCloseDate)) {
+                    log.warn("Ignoring DisputeClosedMessage with an older closeDate than the pending message for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                    return;
+                }
+                // at equal closeDate, a replayed message without a payout tx must not displace one carrying it
+                if (pendingCloseDate.equals(incomingCloseDate) && pendingMsg.getUnsignedPayoutTxHex() != null && disputeClosedMessage.getUnsignedPayoutTxHex() == null) {
+                    log.warn("Ignoring DisputeClosedMessage without a payout tx because the pending message with the same closeDate has one for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                    return;
+                }
+            }
+            trade.getArbitrator().setDisputeClosedMessage(disputeClosedMessage);
+        }
 
         // process on initialization thread after delay to get latest message
         ThreadUtils.execute(() -> {
@@ -321,6 +339,12 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             String tradeId = disputeResult.getTradeId();
 
                             log.info("Processing {} for {} {}", disputeClosedMessage.getClass().getSimpleName(), trade.getClass().getSimpleName(), disputeResult.getTradeId());
+
+                            // re-check that this message is still the pending ruling before mutating state
+                            if (disputeClosedMessage != trade.getArbitrator().getDisputeClosedMessage()) {
+                                log.info("Ignoring DisputeClosedMessage because a newer message was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                                return;
+                            }
 
                             // get dispute
                             Optional<Dispute> disputeOptional = findDispute(disputeResult);
@@ -363,12 +387,42 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             // verify arbitrator does not receive DisputeClosedMessage
                             if (keyRing.getPubKeyRing().equals(arbitratorPubKeyRing)) {
                                 log.error("Arbitrator received disputeResultMessage. That should never happen.");
-                                trade.getArbitrator().setDisputeClosedMessage(null); // don't reprocess
+                                clearPendingDisputeClosedMessage(trade, disputeClosedMessage); // don't reprocess
                                 return;
                             }
 
-                            // set dispute state
+                            // reject a stale ruling before mutating state; freshness is the signed closeDate,
+                            // and a re-opened dispute (ruling recorded, not closed) requires a strictly newer one
                             cleanupRetryMap(uid);
+                            DisputeResult storedDisputeResult = dispute.disputeResultProperty().get();
+                            if (storedDisputeResult != null) {
+                                long incomingCloseDate = disputeResult.getCloseDate().getTime();
+                                long storedCloseDate = storedDisputeResult.getCloseDate().getTime();
+
+                                // defer an equal-closeDate resend while a re-open awaits acknowledgement, keeping the
+                                // pending message, so the retained ruling is neither published against the re-open nor lost
+                                boolean reopenInFlight = trade.getDisputeState() == Trade.DisputeState.DISPUTE_PREPARING || trade.getDisputeState() == Trade.DisputeState.DISPUTE_REQUESTED;
+                                if (incomingCloseDate == storedCloseDate && dispute.isClosed() && reopenInFlight) {
+                                    log.info("Deferring DisputeClosedMessage processing while a dispute re-open awaits acknowledgement for {} {}", trade.getClass().getSimpleName(), tradeId);
+                                    return;
+                                }
+                                if (incomingCloseDate < storedCloseDate || (incomingCloseDate == storedCloseDate && !dispute.isClosed())) {
+                                    log.warn("Ignoring DisputeClosedMessage without a newer closeDate than the stored ruling for {} {}", trade.getClass().getSimpleName(), tradeId);
+                                    clearPendingDisputeClosedMessage(trade, disputeClosedMessage); // roll back so the stale ruling is not reprocessed
+                                    sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), true, null); // ack as handled duplicate
+                                    requestPersistence(trade);
+                                    return;
+                                }
+                                // a strictly newer ruling supersedes any previously signed payout, which must not be
+                                // substituted at submission; an equal closeDate is a resend of the same ruling
+                                if (incomingCloseDate > storedCloseDate) {
+                                    if (!trade.isPayoutPublished()) trade.setPayoutTxHex(null);
+                                } else {
+                                    log.info("We already got a dispute result, indicating the message was resent after updating multisig info. TradeId = " + tradeId);
+                                }
+                            }
+
+                            // set dispute state
                             synchronized (dispute.getChatMessages()) {
                                 if (!dispute.getChatMessages().contains(chatMessage)) {
                                     dispute.addAndPersistChatMessage(chatMessage);
@@ -377,9 +431,6 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                 }
                             }
                             dispute.setIsClosed();
-                            if (dispute.disputeResultProperty().get() != null) {
-                                log.info("We already got a dispute result, indicating the message was resent after updating multisig info. TradeId = " + tradeId);
-                            }
                             dispute.setDisputeResult(disputeResult);
 
                             // set updated multisig info
@@ -400,6 +451,13 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                         HavenoUtils.waitFor(Trade.DEFER_PUBLISH_MS / 5);
                                     }
                                     if (!trade.isPayoutPublished()) trade.updateWallet();
+                                }
+
+                                // abort after waits and wallet i/o if a newer ruling replaced this message,
+                                // so a superseded payout is not published; the newer message processes next
+                                if (disputeClosedMessage != trade.getArbitrator().getDisputeClosedMessage()) {
+                                    log.warn("Aborting dispute payout publication because a newer DisputeClosedMessage was received for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                                    return;
                                 }
 
                                 // sign and publish dispute payout tx if peer still has not published
@@ -443,7 +501,7 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             // nack bad message and do not reprocess
                             if (HavenoUtils.isIllegal(e)) {
                                 trade.setPayoutTxHex(null); // clear signed payout tx hex
-                                trade.getArbitrator().setDisputeClosedMessage(null); // message is processed
+                                clearPendingDisputeClosedMessage(trade, disputeClosedMessage); // message is processed
                                 trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
                                 String warningMsg = "Error processing dispute closed message: " +  e.getMessage() + "\n\nOpen another dispute to try again (ctrl+o).";
                                 trade.prependErrorMessage(warningMsg);
@@ -467,6 +525,13 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             });
             HavenoUtils.awaitLatch(initLatch);
         }, trade.getProtocol().getInitId()); // TODO: getInitId() should be private. ideally this function is moved to TradeProtocol, but logic above depends on SupportManager internals
+    }
+
+    // clear the pending dispute closed message unless a newer one has been installed since
+    private static void clearPendingDisputeClosedMessage(Trade trade, DisputeClosedMessage processedMsg) {
+        synchronized (trade.getArbitrator()) {
+            if (trade.getArbitrator().getDisputeClosedMessage() == processedMsg) trade.getArbitrator().setDisputeClosedMessage(null);
+        }
     }
 
     // register dispute from a verified DisputeClosedMessage so the arbitrator's resolution applies without a locally opened dispute
