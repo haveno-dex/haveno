@@ -184,7 +184,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         Tuple3<VBox, Label, AutocompleteComboBox<PaymentMethod>> paymentBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByPaymentMethod"));
         paymentMethodComboBox = paymentBoxTuple.third;
-        paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory());
         paymentMethodComboBox.setPrefWidth(250);
         paymentMethodComboBox.getStyleClass().add("input-with-border");
 
@@ -360,6 +359,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 return;
             model.onSetTradeCurrency(currencyComboBox.getSelectionModel().getSelectedItem());
             paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
+            updatePaymentMethodCellFactory();
             model.updateSelectedPaymentMethod();
             updatePaymentMethodComboBoxEditor();
             model.onSetPaymentMethod(paymentMethodComboBox.getSelectionModel().getSelectedItem());
@@ -378,6 +378,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         noDepositOffersToggleButton.setOnAction(e -> {
             boolean selected = noDepositOffersToggleButton.isSelected();
             model.onShowNoDepositOffers(selected);
+            paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
+            updatePaymentMethodCellFactory();
+            updatePaymentMethodComboBoxEditor();
             if (selected && privateOffersToggleButton.isSelected()) {
                 privateOffersToggleButton.setSelected(false);
                 model.onShowPrivateOffers(false);
@@ -388,6 +391,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         privateOffersToggleButton.setOnAction(e -> {
             boolean selected = privateOffersToggleButton.isSelected();
             model.onShowPrivateOffers(selected);
+            paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
+            updatePaymentMethodCellFactory();
+            updatePaymentMethodComboBoxEditor();
             if (selected && noDepositOffersToggleButton.isSelected()) {
                 noDepositOffersToggleButton.setSelected(false);
                 model.onShowNoDepositOffers(false);
@@ -415,6 +421,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         paymentMethodComboBox.getEditor().getStyleClass().add("combo-box-editor-bold");
 
         paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
+        updatePaymentMethodCellFactory();
         paymentMethodComboBox.setVisibleRowCount(Math.min(paymentMethodComboBox.getItems().size(), 10));
 
         paymentMethodComboBox.setOnChangeConfirmed(e -> {
@@ -463,6 +470,12 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         filterInputField.setOnKeyTyped(event -> {
             model.onFilterKeyTyped(filterInputField.getText());
         });
+    }
+
+    private void updatePaymentMethodCellFactory() {
+        paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory(Res.get("shared.oneOffer"),
+                Res.get("shared.multipleOffers"),
+                model.getPaymentMethodOfferCounts()));
     }
 
     private void updatePaymentMethodComboBoxEditor() {

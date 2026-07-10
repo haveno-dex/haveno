@@ -80,7 +80,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -147,6 +149,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     boolean showPrivateOffers;   // show all private (passphrase-protected) offers
 
     protected static final boolean SORT_CURRENCIES_BY_OFFER_COUNT = true; // TODO: make configurable via preferences?
+    protected static final boolean SORT_PAYMENT_METHODS_BY_OFFER_COUNT = true;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -424,6 +427,24 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return OfferViewUtil.isShownAsBuyOffer(getDirection(), getSelectedTradeCurrency()) ? getSellOfferCounts() : getBuyOfferCounts();
     }
 
+    // Number of offers per payment method matching currency, direction, passphrase, and no-deposit filters.
+    Map<String, Integer> getPaymentMethodOfferCounts() {
+        Map<String, Integer> counts = new HashMap<>();
+        Predicate<OfferBookListItem> predicate = getCurrencyAndMethodPredicate(direction, selectedTradeCurrency, false);
+        // Apply lock/passphrase and no-deposit filters (matching filterOffers logic)
+        predicate = predicate.and(offerBookListItem -> {
+            if (direction == OfferDirection.BUY && showNoDepositOffers) return offerBookListItem.getOffer().hasBuyerAsTakerWithoutDeposit();
+            if (showPrivateOffers) return offerBookListItem.getOffer().isPrivateOffer();
+            return !offerBookListItem.getOffer().isPrivateOffer();
+        });
+        for (OfferBookListItem item : new ArrayList<>(offerBook.getOfferBookListItems())) {
+            if (predicate.test(item)) {
+                counts.merge(item.getOffer().getPaymentMethod().getId(), 1, Integer::sum);
+            }
+        }
+        return counts;
+    }
+
     ObservableList<PaymentMethod> getPaymentMethods() {
         ObservableList<PaymentMethod> list = FXCollections.observableArrayList(PaymentMethod.paymentMethods);
         if (preferences.isHideNonAccountPaymentMethods() && user.getPaymentAccounts() != null) {
@@ -436,7 +457,14 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
         list = filterPaymentMethods(list, selectedTradeCurrency);
 
-        list.sort(Comparator.naturalOrder());
+        if (SORT_PAYMENT_METHODS_BY_OFFER_COUNT) {
+            Map<String, Integer> offerCounts = getPaymentMethodOfferCounts();
+            list.sort(Comparator.comparingInt((PaymentMethod pm) -> offerCounts.getOrDefault(pm.getId(), 0))
+                    .reversed()
+                    .thenComparing(Comparator.naturalOrder()));
+        } else {
+            list.sort(Comparator.naturalOrder());
+        }
         list.add(0, getShowAllEntryForPaymentMethod());
         return list;
     }
@@ -658,8 +686,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     private void filterOffers() {
         Predicate<OfferBookListItem> predicate = useOffersMatchingMyAccountsFilter ?
-                getCurrencyAndMethodPredicate(direction, selectedTradeCurrency).and(getOffersMatchingMyAccountsPredicate()) :
-                getCurrencyAndMethodPredicate(direction, selectedTradeCurrency);
+                getCurrencyAndMethodPredicate(direction, selectedTradeCurrency, true).and(getOffersMatchingMyAccountsPredicate()) :
+                getCurrencyAndMethodPredicate(direction, selectedTradeCurrency, true);
 
         // no deposit filter shows only no-deposit offers, lock filter shows only private offers, otherwise only public offers
         predicate = predicate.and(offerBookListItem -> {
@@ -708,7 +736,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     abstract Predicate<OfferBookListItem> getCurrencyAndMethodPredicate(OfferDirection direction,
-                                                                        TradeCurrency selectedTradeCurrency);
+                                                                        TradeCurrency selectedTradeCurrency,
+                                                                        boolean applyPaymentMethodFilter);
 
     private Predicate<OfferBookListItem> getOffersMatchingMyAccountsPredicate() {
         // This code duplicates code in the view at the button column. We need there the different results for
