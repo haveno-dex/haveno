@@ -20,11 +20,8 @@ package haveno.desktop.main.overlays.windows;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
 import haveno.desktop.app.StartupWizard;
-import haveno.desktop.components.AutoTooltipCheckBox;
-import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
@@ -35,36 +32,27 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 
 /**
- * The user agreement content, shared by the startup wizard and {@link TacWindow}: a risk overview
- * page with acknowledgment checkboxes and a legal terms page with a final acceptance checkbox.
- * The host owns page navigation and calls the validation methods to flag unchecked boxes.
+ * The user agreement content, shared by the startup wizard and {@link TacWindow}: an informational
+ * risk overview page and a legal terms page. Accepting happens once, by choosing the host's
+ * agree action on the terms page.
  */
 public class TacContent {
 
-    private static final PseudoClass ERROR_PSEUDO_CLASS = PseudoClass.getPseudoClass("error");
     private static final double DETAIL_ICON_BOX_WIDTH = 44;
     private static final double DETAIL_TEXT_GAP = 18;
     private static final double DETAIL_HORIZONTAL_PADDING = 48;
 
     private final double pageWidth;
-    private final CheckBox lossOfFundsCheckBox;
-    private final CheckBox compensationCheckBox;
-    private final CheckBox legalTermsCheckBox;
-    private boolean riskValidationRequested;
-    private boolean legalValidationRequested;
 
     public TacContent(double pageWidth) {
         this.pageWidth = pageWidth;
-        lossOfFundsCheckBox = createCheckBox(Res.get("tacWindow.risk.accept1"));
-        compensationCheckBox = createCheckBox(Res.get("tacWindow.risk.accept2"));
-        legalTermsCheckBox = createCheckBox(Res.get("tacWindow.legal.accept"));
     }
 
     public VBox createRiskPage() {
-        VBox page = new VBox(8);
+        VBox page = new VBox(14);
         page.getStyleClass().add("tac-agreement-page");
         page.setMaxWidth(pageWidth);
-        page.getChildren().addAll(createRiskOverview(), createConfirmationsPanel());
+        page.getChildren().add(createRiskOverview());
         return page;
     }
 
@@ -74,32 +62,12 @@ public class TacContent {
         page.setMaxWidth(pageWidth);
         VBox legalPanel = createLegalPanel();
         VBox.setVgrow(legalPanel, Priority.ALWAYS);
-        page.getChildren().addAll(legalPanel, createConfirmRow(legalTermsCheckBox));
+        page.getChildren().add(legalPanel);
         return page;
     }
 
-    public boolean isRiskAccepted() {
-        return lossOfFundsCheckBox.isSelected() && compensationCheckBox.isSelected();
-    }
-
-    public boolean isAllAccepted() {
-        return isRiskAccepted() && legalTermsCheckBox.isSelected();
-    }
-
-    /** Flag unchecked risk boxes (called when trying to advance past the risk page). */
-    public void requestRiskValidation() {
-        riskValidationRequested = true;
-        updateCheckBoxErrorStates();
-    }
-
-    /** Flag the unchecked legal box (called when trying to accept the terms). */
-    public void requestLegalValidation() {
-        legalValidationRequested = true;
-        updateCheckBoxErrorStates();
-    }
-
     private VBox createRiskOverview() {
-        VBox section = new VBox(8);
+        VBox section = new VBox(10);
         section.getChildren().addAll(
                 StartupWizard.createHeaderSection(MaterialDesignIcon.SHIELD_OUTLINE,
                         Res.get("tacWindow.risk.headline"),
@@ -154,20 +122,11 @@ public class TacContent {
         return separator;
     }
 
-    private VBox createConfirmationsPanel() {
-        Label headline = new Label(Res.get("tacWindow.risk.confirm.headline"));
-        headline.getStyleClass().add("tac-agreement-confirm-headline");
-
-        VBox panel = new VBox(6, headline, createConfirmRow(lossOfFundsCheckBox), createConfirmRow(compensationCheckBox));
-        panel.setPadding(new Insets(9, 0, 0, 0));
-        return panel;
-    }
-
     private VBox createLegalPanel() {
         ScrollPane scrollPane = new ScrollPane(createLegalScrollContent());
         scrollPane.getStyleClass().add("tac-agreement-legal-scroll-pane");
         scrollPane.setFitToWidth(true);
-        scrollPane.setPrefHeight(260);
+        scrollPane.setPrefHeight(280);
         scrollPane.setMinHeight(200);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
@@ -176,7 +135,7 @@ public class TacContent {
                         Res.get("tacWindow.legal.headline"),
                         Res.get("tacWindow.legal.subtitle")),
                 scrollPane,
-                createLegalAcknowledgment());
+                createAgreeNotice());
     }
 
     private VBox createLegalScrollContent() {
@@ -210,10 +169,11 @@ public class TacContent {
         return section;
     }
 
-    private HBox createLegalAcknowledgment() {
+    // clickwrap notice: choosing the agree action is the single act of accepting the terms
+    private HBox createAgreeNotice() {
         Text icon = createIcon(MaterialDesignIcon.INFORMATION_OUTLINE, "1.2em", "tac-agreement-acknowledgment-icon");
 
-        Label text = new Label(Res.get("tacWindow.legal.acknowledgment"));
+        Label text = new Label(Res.get("tacWindow.legal.footnote", Res.get("tacWindow.agree")));
         text.getStyleClass().add("tac-agreement-acknowledgment-text");
         text.setWrapText(true);
         HBox.setHgrow(text, Priority.ALWAYS);
@@ -224,35 +184,7 @@ public class TacContent {
         return acknowledgment;
     }
 
-    private CheckBox createCheckBox(String text) {
-        CheckBox checkBox = new AutoTooltipCheckBox(text);
-        checkBox.getStyleClass().add("tac-agreement-check-box");
-        checkBox.setMaxWidth(Double.MAX_VALUE);
-        checkBox.setWrapText(true);
-        checkBox.setOnAction(event -> {
-            if (riskValidationRequested || legalValidationRequested) updateCheckBoxErrorStates();
-        });
-        return checkBox;
-    }
-
-    private VBox createConfirmRow(CheckBox checkBox) {
-        HBox row = new HBox(10, checkBox);
-        row.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(checkBox, Priority.ALWAYS);
-        return new VBox(row);
-    }
-
     private Text createIcon(MaterialDesignIcon icon, String size, String styleClass) {
         return StartupWizard.createIcon(icon, size, styleClass);
-    }
-
-    private void updateCheckBoxErrorStates() {
-        updateCheckBoxErrorState(lossOfFundsCheckBox, riskValidationRequested);
-        updateCheckBoxErrorState(compensationCheckBox, riskValidationRequested);
-        updateCheckBoxErrorState(legalTermsCheckBox, legalValidationRequested);
-    }
-
-    private void updateCheckBoxErrorState(CheckBox checkBox, boolean validationRequested) {
-        checkBox.pseudoClassStateChanged(ERROR_PSEUDO_CLASS, validationRequested && !checkBox.isSelected());
     }
 }

@@ -240,8 +240,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
 
             @Override
             public void validate(Consumer<Boolean> resultHandler) {
-                if (!tacContent.isRiskAccepted()) tacContent.requestRiskValidation();
-                resultHandler.accept(tacContent.isRiskAccepted());
+                resultHandler.accept(true);
             }
 
             @Override
@@ -262,8 +261,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
 
             @Override
             public void validate(Consumer<Boolean> resultHandler) {
-                if (!tacContent.isAllAccepted()) tacContent.requestLegalValidation();
-                resultHandler.accept(tacContent.isAllAccepted());
+                resultHandler.accept(true);
             }
 
             @Override
