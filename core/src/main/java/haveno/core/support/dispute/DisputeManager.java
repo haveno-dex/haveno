@@ -741,21 +741,22 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     synchronized (disputeList) {
                         if (disputeList.contains(msgDispute)) throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
 
-                        // update trade state
-                        if (reOpen) {
-                            trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
-                        } else {
+                        // update trade state (monotonic so a replayed open cannot regress a closing dispute)
+                        if (!reOpen) {
                             UserThread.execute(() -> {
                                 synchronized (disputeList) {
                                     disputeList.add(dispute);
                                 }
                             });
-                            trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                         }
+                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
 
-                        // reset buyer and seller unsigned payout tx hex
-                        trade.getBuyer().setUnsignedPayoutTxHex(null);
-                        trade.getSeller().setUnsignedPayoutTxHex(null);
+                        // reset unsigned payout tx hex, but not once the dispute is resolved so a
+                        // replayed open cannot null a pending dispute payout
+                        if (dispute.getDisputeResultProperty().get() == null) {
+                            trade.getBuyer().setUnsignedPayoutTxHex(null);
+                            trade.getSeller().setUnsignedPayoutTxHex(null);
+                        }
 
                         // send dispute opened message to other peer if arbitrator
                         if (trade.isArbitrator()) {
