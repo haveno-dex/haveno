@@ -38,6 +38,7 @@ import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
+import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.FaultHandler;
@@ -476,7 +477,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             Optional<Dispute> storedDisputeOptional = findDispute(dispute);
             boolean reOpen = storedDisputeOptional.isPresent();
 
-            // add or re-open dispute
+            // add or re-open dispute; the stored ruling is kept until the arbitrator accepts the
+            // re-open, since the closeDate ordering supersedes it once the dispute is re-opened
             if (reOpen) {
                 dispute = storedDisputeOptional.get();
             } else {
@@ -683,8 +685,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     checkArgument(msgDispute.getSupportType() == message.getSupportType(), "Dispute support type does not match message support type");
                     if (!reOpen && msgDispute.getDisputeState() != Dispute.State.NEW) log.warn("Dispute for trade {} opened with state {}, processing to allow recovery by re-opening", msgDispute.getTradeId(), msgDispute.getDisputeState());
 
-                    dispute.setSupportType(message.getSupportType());
-                    dispute.setState(Dispute.State.NEW);
+                    // only a re-open request can re-open a resolved dispute, so neither the original
+                    // open nor a historical re-open replays against a newer ruling
+                    if (reOpen && dispute.isClosed() && !isReopenRequest(trade, dispute, msgDispute)) {
+                        log.info("Skipping replayed DisputeOpenedMessage for resolved dispute, tradeId={}, uid={}", trade.getId(), message.getUid());
+                        ackDisputeOpenedMessage(message, sender, null);
+                        return;
+                    }
 
                     // validate dispute
                     try {
@@ -742,25 +749,60 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     // add chat message with price info
                     if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
 
+                    // only a new dispute starts as NEW; a genuine re-open (locally closed dispute, or an
+                    // adopted newer ruling this arbitrator signed) supersedes the embedded ruling, so an
+                    // obsolete close cannot re-close the dispute and a replayed open cannot regress state
+                    boolean genuineReopen = false;
+                    if (!reOpen) {
+                        dispute.setSupportType(message.getSupportType());
+                        dispute.setState(Dispute.State.NEW);
+                        // discard the sender's ruling unless the trade's arbitrator signed it for this
+                        // dispute, so a new open cannot attach a forged result but can restore a genuine one
+                        DisputeResult newResult = dispute.getDisputeResultProperty().get();
+                        if (newResult != null && !isRulingSignedForDispute(trade, dispute, newResult)) {
+                            log.warn("Discarding unverified dispute result on new dispute, tradeId={}, disputeId={}", dispute.getTradeId(), dispute.getId());
+                            dispute.setDisputeResult(null);
+                        }
+                    } else if (msgDispute.isClosed() || msgDispute.getDisputeState() == Dispute.State.REOPENED) {
+                        DisputeResult msgResult = msgDispute.getDisputeResultProperty().get();
+                        DisputeResult storedResult = dispute.getDisputeResultProperty().get();
+                        if (msgResult != null && (storedResult == null || storedResult.getCloseDate().getTime() < msgResult.getCloseDate().getTime()) && isRulingSignedForDispute(trade, dispute, msgResult)) {
+                            dispute.setDisputeResult(msgResult);
+                            genuineReopen = true;
+                        }
+                        genuineReopen = genuineReopen || dispute.isClosed(); // a closed dispute passed the re-open guard above
+                        if (genuineReopen) dispute.reOpen();
+                    }
+
                     // add or re-open dispute
                     synchronized (disputeList) {
                         if (disputeList.contains(msgDispute)) throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
 
-                        // update trade state
-                        if (reOpen) {
-                            trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
-                        } else {
+                        // update trade state (monotonic so a replayed open cannot regress a closing dispute)
+                        if (!reOpen) {
                             UserThread.execute(() -> {
                                 synchronized (disputeList) {
                                     disputeList.add(dispute);
                                 }
                             });
+                        }
+
+                        // update trade state; a genuine re-open resets a closed trade so a revised ruling
+                        // can process and reprocess, while a replayed open cannot regress a closing dispute
+                        if (genuineReopen) {
+                            trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+                            clearObsoleteDisputeClosedMessages(trade, dispute.getDisputeResultProperty().get());
+                        } else {
                             trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                         }
 
-                        // reset buyer and seller unsigned payout tx hex
-                        trade.getBuyer().setUnsignedPayoutTxHex(null);
-                        trade.getSeller().setUnsignedPayoutTxHex(null);
+                        // reset payout tx hexes on a new or genuinely re-opened dispute so a revised ruling
+                        // re-signs the payout, but not for a replayed open of a dispute with a pending result
+                        if (dispute.getDisputeResultProperty().get() == null || genuineReopen) {
+                            trade.getBuyer().setUnsignedPayoutTxHex(null);
+                            trade.getSeller().setUnsignedPayoutTxHex(null);
+                            if (genuineReopen) trade.setPayoutTxHex(null);
+                        }
 
                         // send dispute opened message to other peer if arbitrator
                         if (trade.isArbitrator()) {
@@ -786,6 +828,43 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 requestPersistence();
             }
         }, trade.getId());
+    }
+
+    // a genuine re-open obsoletes the superseded ruling: drop any retained DisputeClosedMessage at or
+    // before it so reprocessing cannot re-close the re-opened dispute with the superseded payout, while
+    // preserving a newer pending ruling; check-and-clear holds the peer monitor against concurrent installs
+    private static void clearObsoleteDisputeClosedMessages(Trade trade, @Nullable DisputeResult supersededResult) {
+        if (supersededResult == null) return;
+        for (TradePeer peer : trade.getAllPeers()) {
+            synchronized (peer) {
+                DisputeClosedMessage pending = peer.getDisputeClosedMessage();
+                if (pending != null && pending.getDisputeResult().getCloseDate().getTime() <= supersededResult.getCloseDate().getTime()) peer.setDisputeClosedMessage(null);
+            }
+        }
+    }
+
+    // a ruling is only adopted from a re-open when it targets this dispute and the trade's arbitrator
+    // signed its summary and payout fields, so a party cannot transplant a ruling from another dispute
+    private static boolean isRulingSignedForDispute(Trade trade, Dispute dispute, DisputeResult result) {
+        try {
+            if (!dispute.getTradeId().equals(result.getTradeId()) || dispute.getTraderId() != result.getTraderId()) return false;
+            PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
+            DisputeSummaryVerification.verifySignature(result.getChatMessage().getMessage(), arbitratorPubKeyRing);
+            HavenoUtils.verifySignature(arbitratorPubKeyRing, Hash.getSha256Hash(result.getPayoutSignaturePayload()), result.getArbitratorSignature());
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    // a re-open request marks its dispute closed or re-opened and embeds the latest arbitrator-signed
+    // ruling, so a redelivered historical message cannot re-open a dispute which was since resolved again
+    private static boolean isReopenRequest(Trade trade, Dispute storedDispute, Dispute msgDispute) {
+        if (!msgDispute.isClosed() && msgDispute.getDisputeState() != Dispute.State.REOPENED) return false;
+        DisputeResult storedResult = storedDispute.getDisputeResultProperty().get();
+        if (storedResult == null) return true;
+        DisputeResult msgResult = msgDispute.getDisputeResultProperty().get();
+        return msgResult != null && isRulingSignedForDispute(trade, storedDispute, msgResult) && msgResult.getCloseDate().getTime() >= storedResult.getCloseDate().getTime();
     }
 
     private void ackDisputeOpenedMessage(DisputeOpenedMessage message, TradePeer sender, @Nullable String errorMessage) {
