@@ -1243,6 +1243,66 @@ tree-table-view:focused {
     -fx-background-color: -bs-color-primary;
 }
 
+.wizard-search-icon {
+    -fx-fill: -bs-login-prompt-text;
+}
+
+/* the .list-view prefix outranks the theme rules that would re-add a square border */
+.list-view.wizard-currency-list,
+.list-view.wizard-currency-list:focused {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-background-radius: 8;
+    -fx-background-insets: 0;
+    -fx-padding: 4;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.list-view.wizard-currency-list .list-cell,
+.list-view.wizard-currency-list .list-cell:odd,
+.list-view.wizard-currency-list .list-cell:even {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 7 14 7 14;
+    -fx-text-fill: -bs-rd-font-dark;
+    -fx-cursor: hand;
+}
+
+.list-view.wizard-currency-list .list-cell:filled:hover {
+    -fx-background-color: -bs-color-gray-1;
+}
+
+.list-view.wizard-currency-list .list-cell:filled:selected,
+.list-view.wizard-currency-list .list-cell:filled:selected:hover {
+    -fx-background-color: rgba(28, 96, 220, 0.12);
+    -fx-text-fill: -bs-color-primary;
+    -fx-font-family: "IBM Plex Sans Medium";
+}
+
+.wizard-currency-list .scroll-bar,
+.wizard-currency-list .scroll-bar .track,
+.wizard-currency-list .scroll-bar .track-background,
+.wizard-currency-list .scroll-bar .increment-button,
+.wizard-currency-list .scroll-bar .decrement-button {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-border-color: -bs-color-gray-0;
+}
+
+.wizard-currency-list .scroll-bar .thumb {
+    -fx-background-color: -bs-color-gray-3;
+}
+
+.wizard-currency-list .scroll-bar .thumb:hover {
+    -fx-background-color: -bs-color-gray-4;
+}
+
+.wizard-currency-list .scroll-bar .increment-arrow,
+.wizard-currency-list .scroll-bar .decrement-arrow {
+    -fx-background-color: -bs-color-gray-0;
+}
+
 .tac-agreement-risk-detail-row {
     -fx-padding: 8 24 8 24;
 }
