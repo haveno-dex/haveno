@@ -144,10 +144,15 @@ class CoreWalletsService {
     }
 
     String getXmrSeed() {
+        accountService.checkAccountOpen();
+        verifyWalletsAreAvailable();
+        verifyEncryptedWalletIsUnlocked();
         return xmrWalletService.getSeed();
     }
 
     String getXmrPrimaryAddress() {
+        accountService.checkAccountOpen();
+        verifyWalletsAreAvailable();
         return xmrWalletService.getPrimaryAddress();
     }
 
