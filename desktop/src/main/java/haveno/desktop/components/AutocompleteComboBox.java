@@ -24,9 +24,15 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
+import javafx.scene.Node;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
+import javafx.scene.text.Text;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -47,6 +53,11 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private JFXComboBoxListViewSkin<T> comboBoxListViewSkin;
     private boolean selectAllShortcut = false;
     private T lastCommittedValue;
+    private final Text measureText = new Text();
+    private double fittedWidth = -1;
+    private double maxItemWidth = -1;
+    private boolean maxItemWidthDirty = true;
+    private boolean popupHBarListenerAdded = false;
 
     public AutocompleteComboBox() {
         this(FXCollections.observableArrayList());
@@ -63,9 +74,22 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
         // Store last committed value so we can restore it if nothing selected
         valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null)
+            if (newVal != null) {
                 lastCommittedValue = newVal;
+                requestLayout(); // refit width to the new value
+            }
         });
+
+        // Refit width after the popup closes, as the value may change while it's open;
+        // expand the popup to its rendered cells after it opens
+        showingProperty().addListener((obs, wasShowing, isShowing) -> {
+            if (isShowing) UserThread.execute(this::expandPopupToFitCells);
+            else requestLayout();
+        });
+
+        // Remeasure items when the converter or editor font changes
+        converterProperty().addListener(obs -> invalidateFittedWidth());
+        getEditor().fontProperty().addListener(obs -> invalidateFittedWidth());
 
         // Restore last committed value when editor loses focus if no matches
         getEditor().focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
@@ -97,10 +121,93 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         getSelectionModel().clearSelection();
         setItems(FXCollections.observableList(matchingList));
         getEditor().setText("");
+        invalidateFittedWidth();
     }
 
     public void setAutocompleteItems(List<? extends T> items) {
         setAutocompleteItems(items, null);
+    }
+
+    // Fit width to the widest item, committed value, or prompt text; default sizing tracks
+    // the popup's widest cell, which is only measurable after first show, widening the control on click.
+    @Override
+    protected double computePrefWidth(double height) {
+        if (isShowing() && fittedWidth > 0) return fittedWidth; // keep width stable while open
+        double textWidth = Math.max(maxItemTextWidth(), Math.max(
+                textWidth(lastCommittedValue == null ? null : asString(lastCommittedValue)),
+                textWidth(getPromptText())));
+        if (textWidth < 0) return super.computePrefWidth(height);
+        double arrowWidth = lookup(".arrow-button") instanceof Region arrow ? arrow.prefWidth(-1) : 25;
+        fittedWidth = snappedLeftInset() + snapSizeX(textWidth) + 10 + arrowWidth + snappedRightInset();
+        return fittedWidth;
+    }
+
+    private double maxItemTextWidth() {
+        if (maxItemWidthDirty) {
+            maxItemWidth = -1;
+            if (list != null)
+                for (T item : list) maxItemWidth = Math.max(maxItemWidth, textWidth(asString(item)));
+            maxItemWidthDirty = false;
+        }
+        return maxItemWidth;
+    }
+
+    private double textWidth(String text) {
+        if (text == null || text.isEmpty()) return -1;
+        measureText.setFont(getEditor().getFont());
+        measureText.setText(text);
+        return measureText.prefWidth(-1);
+    }
+
+    private void invalidateFittedWidth() {
+        maxItemWidthDirty = true;
+        if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView)
+            listView.setMinWidth(Region.USE_COMPUTED_SIZE);
+        requestLayout();
+    }
+
+    // Expand the popup to its widest rendered cell, which can exceed the fitted width
+    // (e.g. cells decorated with offer counts), so it never needs a horizontal scrollbar.
+    private void expandPopupToFitCells() {
+        if (!isShowing() || !(comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView)) return;
+        listenForPopupHBar(listView);
+        double cellWidth = -1, cellLeftInset = 0, cellRightInset = 0;
+        for (Node node : listView.lookupAll(".list-cell")) {
+            if (node instanceof ListCell<?> cell && cell.isVisible() && !cell.isEmpty() && cell.prefWidth(-1) > cellWidth) {
+                cellWidth = cell.prefWidth(-1);
+                cellLeftInset = cell.snappedLeftInset();
+                cellRightInset = cell.snappedRightInset();
+            }
+        }
+        if (cellWidth < 0) return;
+        // pad the widest cell's right side to match the items' left padding, for symmetric spacing
+        double rightPadding = Math.max(2, listView.snappedLeftInset() + cellLeftInset - cellRightInset);
+        double neededWidth = listView.snappedLeftInset() + snapSizeX(cellWidth) + rightPadding
+                + vbarWidth(listView) + listView.snappedRightInset();
+        if (neededWidth > listView.getWidth()) {
+            listView.setMinWidth(neededWidth);
+            listView.autosize();
+        }
+    }
+
+    // Cells realize lazily while scrolling, so re-expand whenever the horizontal scrollbar appears
+    private void listenForPopupHBar(ListView<?> listView) {
+        if (popupHBarListenerAdded) return;
+        for (Node node : listView.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.HORIZONTAL) {
+                bar.visibleProperty().addListener((obs, wasVisible, isVisible) -> {
+                    if (isVisible) UserThread.execute(this::expandPopupToFitCells);
+                });
+                popupHBarListenerAdded = true;
+            }
+        }
+    }
+
+    private double vbarWidth(ListView<?> listView) {
+        for (Node node : listView.lookupAll(".scroll-bar"))
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.VERTICAL && bar.isVisible())
+                return bar.getWidth();
+        return 0;
     }
 
     /**
