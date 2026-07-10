@@ -93,7 +93,8 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
         this.paymentMethodId = paymentMethodId;
         this.id = id;
         this.maxTradePeriod = maxTradePeriod;
-        this.excludeFromJsonDataMap = excludeFromJsonDataMapParam;
+        // Tolerate a null map (e.g. a peer's payload with an empty excludeFromJsonDataMap) to avoid an NPE below.
+        this.excludeFromJsonDataMap = excludeFromJsonDataMapParam == null ? new HashMap<>() : excludeFromJsonDataMapParam;
 
         // If not set (old versions) we set by default a random 256 bit salt.
         // User can set salt as well by hex string.
