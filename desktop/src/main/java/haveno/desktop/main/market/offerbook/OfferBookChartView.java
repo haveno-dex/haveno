@@ -169,6 +169,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         this.currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.oneOffer"),
                 Res.get("shared.multipleOffers"), model.preferences));
         this.currencyComboBox.getStyleClass().add("input-with-border");
+        this.currencyComboBox.setMinWidth(375);
 
         createChart();
 
