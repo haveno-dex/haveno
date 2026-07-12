@@ -26,23 +26,18 @@ import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class PriceRequest {
-    private final ListeningExecutorService executorService = Utilities.getListeningExecutorService("PriceRequest", 3, 5, 10 * 60);
-    @Nullable
-    private PriceProvider provider;
-    private boolean shutDownRequested;
+    private final ListeningExecutorService executorService = Utilities.getListeningExecutorService("PriceRequest", 1, 1, 60);
+    private volatile boolean shutDownRequested;
 
     public PriceRequest() {
     }
 
     public SettableFuture<Map<String, MarketPrice>> requestAllPrices(PriceProvider provider) {
-        this.provider = provider;
         String baseUrl = provider.getBaseUrl();
         SettableFuture<Map<String, MarketPrice>> resultFuture = SettableFuture.create();
         ListenableFuture<Map<String, MarketPrice>> future = executorService.submit(() -> {
@@ -69,11 +64,9 @@ public class PriceRequest {
         return resultFuture;
     }
 
+    // suppress callbacks and stop the executor; the shared http client is canceled by the caller
     public void shutDown() {
         shutDownRequested = true;
-        if (provider != null) {
-            provider.shutDown();
-        }
-        Utilities.shutdownAndAwaitTermination(executorService, 1, TimeUnit.SECONDS);
+        executorService.shutdownNow();
     }
 }

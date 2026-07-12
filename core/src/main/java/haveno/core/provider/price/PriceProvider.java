@@ -38,18 +38,12 @@ import java.util.Map;
 @Slf4j
 public class PriceProvider extends HttpClientProvider {
 
-    private boolean shutDownRequested;
-
     // Do not use Guice here as we might create multiple instances
     public PriceProvider(HttpClient httpClient, String baseUrl) {
         super(httpClient, baseUrl, false);
     }
 
     public synchronized Map<String, MarketPrice> getAll() throws IOException {
-        if (shutDownRequested) {
-            return new HashMap<>();
-        }
-
         Map<String, MarketPrice> marketPriceMap = new HashMap<>();
         String hsVersion = "";
         if (P2PService.getMyNodeAddress() != null)
@@ -85,10 +79,5 @@ public class PriceProvider extends HttpClientProvider {
 
     public String getBaseUrl() {
         return httpClient.getBaseUrl();
-    }
-
-    public void shutDown() {
-        shutDownRequested = true;
-        httpClient.shutDown();
     }
 }
