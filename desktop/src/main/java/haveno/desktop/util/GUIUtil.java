@@ -93,7 +93,11 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelFormat;
+import javafx.scene.image.PixelWriter;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -106,6 +110,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
@@ -124,6 +129,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.math.BigInteger;
 import java.net.URI;
@@ -1322,6 +1328,9 @@ public class GUIUtil {
         return getCurrencyImageView(currencyCode, 24);
     }
 
+    // crypto logos decoded once per device-pixel size and shared across icons
+    private static final Map<String, Image> currencyImageCache = new HashMap<>();
+
     private static ImageView getCurrencyImageView(String currencyCode, double size) {
         if (currencyCode == null) return null;
         String imageId = getImageId(currencyCode);
@@ -1330,9 +1339,85 @@ public class GUIUtil {
         icon.setFitWidth(size);
         icon.setPreserveRatio(true);
         icon.setSmooth(true);
-        icon.setCache(true);
-        icon.setId(imageId);
+
+        // decode crypto logos at device-pixel size for crisp HiDPI downscaling; fall back to CSS-supplied image
+        Image image = getCurrencyImage(currencyCode, Math.ceil(size * Screen.getPrimary().getOutputScaleX()));
+        if (image != null) icon.setImage(image);
+        else icon.setId(imageId);
         return icon;
+    }
+
+    private static Image getCurrencyImage(String currencyCode, double px) {
+        return getCurrencyImage(currencyCode, (int) px, 0);
+    }
+
+    // decode the logo at native size (decoding at target size instead would flat-cut the right/bottom
+    // edge AA), then area-average it into a transparent box inset by a margin so the antialiased edge
+    // never snaps against the icon bounds and looks clipped
+    private static Image getCurrencyImage(String currencyCode, int boxPx, int marginPx) {
+        if (!CurrencyUtil.isCryptoCurrency(currencyCode)) return null;
+        String code = currencyCode.toLowerCase();
+        return currencyImageCache.computeIfAbsent(code + "@" + boxPx + "+" + marginPx, k -> {
+            try (InputStream in = GUIUtil.class.getResourceAsStream("/images/" + code + "_logo.png")) {
+                if (in == null) return null;
+                Image logo = new Image(in);
+                return logo.isError() ? null : downscaleCentered(logo, boxPx, marginPx);
+            } catch (IOException e) {
+                return null;
+            }
+        });
+    }
+
+    // area-averaged downscale of src centered in a transparent boxPx square, inset by marginPx per side
+    private static Image downscaleCentered(Image src, int boxPx, int marginPx) {
+        int sw = (int) src.getWidth(), sh = (int) src.getHeight();
+        int contentPx = Math.max(1, boxPx - 2 * marginPx);
+        double scale = Math.min(1, Math.min(contentPx / (double) sw, contentPx / (double) sh));
+        int dw = Math.max(1, (int) Math.round(sw * scale)), dh = Math.max(1, (int) Math.round(sh * scale));
+        int[] pixels = new int[sw * sh];
+        src.getPixelReader().getPixels(0, 0, sw, sh, PixelFormat.getIntArgbInstance(), pixels, 0, sw);
+        WritableImage out = new WritableImage(boxPx, boxPx);
+        PixelWriter writer = out.getPixelWriter();
+        int ox = (boxPx - dw) / 2, oy = (boxPx - dh) / 2;
+        double xr = sw / (double) dw, yr = sh / (double) dh;
+        for (int y = 0; y < dh; y++) {
+            double sy0 = y * yr, sy1 = Math.min(sh, sy0 + yr);
+            for (int x = 0; x < dw; x++) {
+                double sx0 = x * xr, sx1 = Math.min(sw, sx0 + xr);
+                double a = 0, r = 0, g = 0, b = 0, area = 0;
+                for (int sy = (int) sy0; sy < sy1; sy++) {
+                    double wy = Math.min(sy + 1, sy1) - Math.max(sy, sy0);
+                    for (int sx = (int) sx0; sx < sx1; sx++) {
+                        double w = (Math.min(sx + 1, sx1) - Math.max(sx, sx0)) * wy;
+                        int argb = pixels[sy * sw + sx];
+                        double wa = (argb >>> 24) * w;
+                        a += wa;
+                        r += ((argb >> 16) & 0xFF) * wa;
+                        g += ((argb >> 8) & 0xFF) * wa;
+                        b += (argb & 0xFF) * wa;
+                        area += w;
+                    }
+                }
+                int alpha = (int) Math.round(a / area);
+                writer.setArgb(ox + x, oy + y, alpha == 0 ? 0 : (alpha << 24)
+                        | ((int) Math.round(r / a) << 16) | ((int) Math.round(g / a) << 8) | (int) Math.round(b / a));
+            }
+        }
+        return out;
+    }
+
+    // PNG pixel dimensions read from the IHDR header, avoiding a full decode
+    private static int[] pngSize(String resourcePath) {
+        try (InputStream in = GUIUtil.class.getResourceAsStream(resourcePath)) {
+            if (in == null) return null;
+            byte[] h = in.readNBytes(24);
+            if (h.length < 24) return null;
+            int w = ((h[16] & 0xff) << 24) | ((h[17] & 0xff) << 16) | ((h[18] & 0xff) << 8) | (h[19] & 0xff);
+            int ht = ((h[20] & 0xff) << 24) | ((h[21] & 0xff) << 16) | ((h[22] & 0xff) << 8) | (h[23] & 0xff);
+            return w > 0 && ht > 0 ? new int[]{w, ht} : null;
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     public static StackPane getCurrencyIcon(String currencyCode) {
@@ -1340,7 +1425,8 @@ public class GUIUtil {
         return icon == null ? null : new StackPane(icon);
     }
 
-    public static final double CURRENCY_GRAPHIC_ROW_SIZE = 27;
+    public static final double CURRENCY_GRAPHIC_ROW_SIZE = 27; // currency logo size (px) in list rows; adjust to resize
+    private static final double CURRENCY_ICON_MARGIN = 1; // transparent margin (logical px) bled just outside list logos
 
     public static Node getCurrencyGraphic(String currencyCode, double size) {
         if (currencyCode == null) return null;
@@ -1372,8 +1458,33 @@ public class GUIUtil {
     }
 
     public static StackPane getCurrencyIcon(String currencyCode, double size) {
-        ImageView icon = getCurrencyImageView(currencyCode, size);
-        return icon == null ? null : new StackPane(icon);
+        ImageView icon = getCurrencyIconImageView(currencyCode, size);
+        if (icon == null) return null;
+        StackPane pane = new StackPane(icon);
+        pane.setMinSize(size, size);
+        pane.setPrefSize(size, size);
+        pane.setMaxSize(size, size);
+        return pane;
+    }
+
+    // list icon: the logo fills `size` while its transparent anti-clip margin bleeds just outside those
+    // bounds (the oversized ImageView overflows the size-clamped StackPane), so the full-bleed logo
+    // renders at full size yet its antialiased edge is never clipped
+    private static ImageView getCurrencyIconImageView(String currencyCode, double size) {
+        if (currencyCode == null) return null;
+        String imageId = getImageId(currencyCode);
+        if (imageId == null) return null;
+        double box = size + 2 * CURRENCY_ICON_MARGIN; // margin bleeds outside `size` instead of shrinking the logo
+        ImageView icon = new ImageView();
+        icon.setFitWidth(box);
+        icon.setFitHeight(box);
+        icon.setPreserveRatio(true);
+        icon.setSmooth(true);
+        double scale = Screen.getPrimary().getOutputScaleX();
+        Image image = getCurrencyImage(currencyCode, (int) Math.ceil(box * scale), (int) Math.ceil(CURRENCY_ICON_MARGIN * scale));
+        if (image != null) icon.setImage(image);
+        else icon.setId(imageId);
+        return icon;
     }
 
     public static StackPane getCurrencyIconWithBorder(String currencyCode) {
