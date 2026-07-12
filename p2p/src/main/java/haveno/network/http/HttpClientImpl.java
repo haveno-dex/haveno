@@ -46,6 +46,8 @@ import lombok.extern.slf4j.Slf4j;
 import monero.common.NetworkUtils;
 import org.apache.hc.client5.http.DnsResolver;
 import org.apache.hc.client5.http.SystemDefaultDnsResolver;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
@@ -63,6 +65,7 @@ import org.apache.hc.core5.pool.PoolConcurrencyPolicy;
 import org.apache.hc.core5.pool.PoolReusePolicy;
 import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.TimeValue;
+import org.apache.hc.core5.util.Timeout;
 
 // TODO close connection if failing
 @Slf4j
@@ -84,6 +87,8 @@ public class HttpClientImpl implements HttpClient {
     private final String uid;
     private final AtomicBoolean hasPendingRequest = new AtomicBoolean();
     private final AtomicLong requestGen = new AtomicLong(); // bumped on cancel so a canceled request cannot clear the next request's state
+    protected volatile int connectTimeoutMs = (int) TimeUnit.SECONDS.toMillis(120);
+    protected volatile int readTimeoutMs = (int) TimeUnit.SECONDS.toMillis(120);
 
     @Inject
     public HttpClientImpl(@Nullable Socks5ProxyProvider socks5ProxyProvider) {
@@ -180,8 +185,8 @@ public class HttpClientImpl implements HttpClient {
             connection = (HttpURLConnection) url.openConnection();
             this.connection = connection; // expose for cancellation
             connection.setRequestMethod(httpMethod.name());
-            connection.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(120));
-            connection.setReadTimeout((int) TimeUnit.SECONDS.toMillis(120));
+            connection.setConnectTimeout(connectTimeoutMs);
+            connection.setReadTimeout(readTimeoutMs);
             connection.setRequestProperty("User-Agent", "haveno/" + Version.VERSION);
             if (headerKey != null && headerValue != null) {
                 connection.setRequestProperty(headerKey, headerValue);
@@ -275,10 +280,21 @@ public class HttpClientImpl implements HttpClient {
         InetSocketAddress socksAddress = new InetSocketAddress(socks5Proxy.getInetAddress(), socks5Proxy.getPort());
         cm.setDefaultSocketConfig(SocketConfig.custom()
                 .setSocksProxyAddress(socksAddress)
+                .setSoTimeout(Timeout.ofMilliseconds(readTimeoutMs))
+                .build());
+        cm.setDefaultConnectionConfig(ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.ofMilliseconds(connectTimeoutMs))
+                .setSocketTimeout(Timeout.ofMilliseconds(readTimeoutMs))
                 .build());
         CloseableHttpClient httpclient = null;
         try {
-            httpclient = checkNotNull(HttpClients.custom().setConnectionManager(cm).build());
+            httpclient = checkNotNull(HttpClients.custom()
+                    .setConnectionManager(cm)
+                    .setDefaultRequestConfig(RequestConfig.custom()
+                            .setConnectionRequestTimeout(Timeout.ofMilliseconds(connectTimeoutMs))
+                            .setResponseTimeout(Timeout.ofMilliseconds(readTimeoutMs))
+                            .build())
+                    .build());
             this.closeableHttpClient = httpclient; // expose for cancellation
 
             HttpClientContext context = HttpClientContext.create();
