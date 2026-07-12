@@ -155,8 +155,8 @@
     -fx-text-fill: -bs-rd-font-dark-gray;
     -fx-font-size: 0.923em;
     -fx-font-weight: normal;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-min-height: 32;
     -fx-padding: 0 40 0 40;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 2, 0, 0, 0, 1);
@@ -228,8 +228,8 @@
 
 .jfx-combo-box, .jfx-text-field, .jfx-text-area, .jfx-password-field, .toggle-button-no-slider {
     -fx-padding: 7 14 7 14;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-border-color: transparent;
 }
 
@@ -244,8 +244,8 @@
 }
 
 .jfx-text-field {
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-background-color: -bs-color-background-form-field;
 }
 
@@ -264,8 +264,8 @@
 }
 
 .jfx-combo-box .arrow-button {
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 0 8 8 0;
+    -fx-border-radius: 0 8 8 0;
     -fx-padding: 0 0 0 10;
 }
 
@@ -304,15 +304,15 @@
 
 .combo-box-popup {
     -fx-background-color: -bs-color-background-pane;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-padding: 5;
 }
 
 .combo-box-popup .scroll-pane {
     -fx-background-color: -bs-color-background-pane;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-padding: 5;
 }
 
@@ -320,17 +320,17 @@
     -fx-background-color: -bs-color-background-pane;
     -fx-border-color: -bs-color-border-form-field;
     -fx-translate-y: 4;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-padding: 5;
 }
 
 /* Rounds the first and last list cells to create full round illusion */
 .combo-box-popup .list-cell:first-child {
-    -fx-background-radius: 10 10 0 0;
+    -fx-background-radius: 8 8 0 0;
 }
 .combo-box-popup .list-cell:last-child {
-    -fx-background-radius: 0 0 10 10;
+    -fx-background-radius: 0 0 8 8;
 }
 
 .combo-box-popup .list-cell:hover {
@@ -344,8 +344,8 @@
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background: -fx-selection-bar;
     -fx-background-color: -fx-selection-bar;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
 }
 
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
@@ -478,8 +478,8 @@ tree-table-view:focused {
     -fx-pref-height: 43;
     -fx-pref-width: 310;
     -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 0);
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-alignment: center;
 }
 
@@ -487,8 +487,8 @@ tree-table-view:focused {
     -fx-alignment: center-right;
     -fx-pref-height: 44;
     -fx-font-size: 1.385em;
-    -fx-background-radius: 999 0 0 999;
-    -fx-border-radius: 999 0 0 999;
+    -fx-background-radius: 8 0 0 8;
+    -fx-border-radius: 8 0 0 8;
     -fx-background-color: -bs-color-background-form-field;
     -fx-border-color: transparent;
 }
@@ -498,8 +498,8 @@ tree-table-view:focused {
     -fx-min-width: 45;
     -fx-padding: 8;
     -fx-alignment: center;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
     -fx-background-color: derive(-bs-color-background-form-field, 15%);
 }
 
@@ -511,8 +511,8 @@ tree-table-view:focused {
     -fx-background-color: -bs-color-gray-1;
     -fx-border-width: 0;
     -fx-pref-width: 300;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
 }
 
 .offer-input-readonly .text-field {
@@ -582,8 +582,8 @@ tree-table-view:focused {
 .jfx-text-area {
     -fx-background-color: -bs-color-background-form-field;
     -fx-padding: 9 9 9 9;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
 }
 
 .jfx-text-area:readonly {
@@ -596,8 +596,8 @@ tree-table-view:focused {
 
 .text-area .viewport {
     -fx-background-color: transparent;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
 }
 
 .wallet-seed-words {
@@ -1365,8 +1365,8 @@ textfield */
 .offer-table-top {
     -fx-background-color: -bs-color-background-pane;
     -fx-padding: 15 15 5 15;
-    -fx-background-radius: 15 15 0 0;
-    -fx-border-radius: 15 15 0 0;
+    -fx-background-radius: 8 8 0 0;
+    -fx-border-radius: 8 8 0 0;
     -fx-border-width: 0 0 0 0;
 }
 
@@ -1727,7 +1727,7 @@ textfield */
     -fx-font-weight: normal;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-padding: 0 6 0 6;
+    -fx-padding: 0 8 0 8;
 }
 
 /* Offer */
@@ -2009,8 +2009,8 @@ textfield */
 .grid-pane {
     -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 10;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-padding: 35, 40, 30, 40;
 }
 
@@ -2346,8 +2346,8 @@ textfield */
     -fx-font-size: 1.077em;
     -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 44;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow-light-mode, 44, 0, 0, 0);
 }
 
@@ -2357,8 +2357,8 @@ textfield */
     -fx-background-color: -bs-color-background-popup;
     -fx-background-insets: 44;
     -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow-light-mode, 44, 0, 0, 0);
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
 }
 
 .popup-bg-top {
@@ -2366,7 +2366,7 @@ textfield */
     -fx-text-fill: -bs-rd-font-dark;
     -fx-background-color: -bs-color-background-popup-blur;
     -fx-background-insets: 44;
-    -fx-background-radius: 0 0 15px 15px;
+    -fx-background-radius: 0 0 8 8;
 }
 
 .popup-dropshadow {
@@ -2741,8 +2741,8 @@ textfield */
 
 .passphrase-copy-box .jfx-button {
     -fx-padding: 5 15 5 15;
-    -fx-background-radius: 999;
-    -fx-border-radius: 999;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
     -fx-min-height: 0;
     -fx-font-size: 1.077em;
     -fx-font-family: "IBM Plex Sans";
