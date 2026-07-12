@@ -87,6 +87,7 @@ public class HttpClientImpl implements HttpClient {
     private final String uid;
     private final AtomicBoolean hasPendingRequest = new AtomicBoolean();
     private final AtomicLong requestGen = new AtomicLong(); // bumped on cancel so a canceled request cannot clear the next request's state
+    private final Object requestLock = new Object(); // guards claiming and canceling the pending request atomically
     protected volatile int connectTimeoutMs = (int) TimeUnit.SECONDS.toMillis(120);
     protected volatile int readTimeoutMs = (int) TimeUnit.SECONDS.toMillis(120);
 
@@ -103,11 +104,14 @@ public class HttpClientImpl implements HttpClient {
 
     @Override
     public void shutDown() {
+        HttpURLConnection connectionToClose = connection;
+        CloseableHttpClient closeableHttpClientToClose = closeableHttpClient;
         try {
             ThreadUtils.awaitTask(() -> {
-                doShutDown(connection, closeableHttpClient);
-                connection = null;
-                closeableHttpClient = null;
+                doShutDown(connectionToClose, closeableHttpClientToClose);
+                // only clear shared state if not superseded by a newer request
+                if (connection == connectionToClose) connection = null;
+                if (closeableHttpClient == closeableHttpClientToClose) closeableHttpClient = null;
             }, SHUTDOWN_TIMEOUT_MS);
         } catch (Exception e) {
             // ignore
@@ -151,10 +155,13 @@ public class HttpClientImpl implements HttpClient {
                              @Nullable String headerKey,
                              @Nullable String headerValue) throws IOException {
         checkNotNull(baseUrl, "baseUrl must be set before calling doRequest");
-        checkArgument(hasPendingRequest.compareAndSet(false, true),
-                "We got called on the same HttpClient again while a request is still open.");
+        long gen;
+        synchronized (requestLock) {
+            checkArgument(hasPendingRequest.compareAndSet(false, true),
+                    "We got called on the same HttpClient again while a request is still open.");
+            gen = requestGen.get();
+        }
 
-        long gen = requestGen.get();
         Socks5Proxy socks5Proxy = getSocks5Proxy(socks5ProxyProvider);
         if (ignoreSocks5Proxy || socks5Proxy == null || NetworkUtils.isLoopbackUrl(baseUrl)) {
             return requestWithoutProxy(baseUrl, param, httpMethod, headerKey, headerValue, gen);
@@ -164,10 +171,12 @@ public class HttpClientImpl implements HttpClient {
     }
 
     public void cancelPendingRequest() {
-        if (!hasPendingRequest.get()) return;
-        requestGen.incrementAndGet(); // canceled request no longer owns the pending flag
+        synchronized (requestLock) {
+            if (!hasPendingRequest.get()) return;
+            requestGen.incrementAndGet(); // canceled request no longer owns the pending flag
+            hasPendingRequest.set(false);
+        }
         shutDown();
-        hasPendingRequest.set(false);
     }
 
     private String requestWithoutProxy(String baseUrl,
@@ -184,6 +193,7 @@ public class HttpClientImpl implements HttpClient {
             URL url = new URL(spec);
             connection = (HttpURLConnection) url.openConnection();
             this.connection = connection; // expose for cancellation
+            if (requestGen.get() != gen) throw new IOException("Request was canceled");
             connection.setRequestMethod(httpMethod.name());
             connection.setConnectTimeout(connectTimeoutMs);
             connection.setReadTimeout(readTimeoutMs);
@@ -296,6 +306,7 @@ public class HttpClientImpl implements HttpClient {
                             .build())
                     .build());
             this.closeableHttpClient = httpclient; // expose for cancellation
+            if (requestGen.get() != gen) throw new IOException("Request was canceled");
 
             HttpClientContext context = HttpClientContext.create();
             context.setAttribute("socks.address", socksAddress);
