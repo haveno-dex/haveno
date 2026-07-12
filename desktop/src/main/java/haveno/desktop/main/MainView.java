@@ -234,7 +234,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"));
         availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
-        availableBalanceBox.first.setPrefWidth(112);
+        availableBalanceBox.first.setMinWidth(0);
         availableBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
             {
                 bind(model.getAvailableBalance());
@@ -327,10 +327,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         priceAndBalance.getStyleClass().add("nav-price-balance");
 
         HBox navPane = new HBox(primaryNav, priceAndBalance) {{
-            setLeftAnchor(this, 25d);
-            setRightAnchor(this, 25d);
-            setTopAnchor(this, 20d);
-            setPadding(new Insets(0, 0, 0, 0));
+            setLeftAnchor(this, 0d);
+            setRightAnchor(this, 0d);
+            setTopAnchor(this, 0d);
+            setMinHeight(68);
+            setPrefHeight(68);
+            setPadding(new Insets(1, 15, 0, 15));
             getStyleClass().add("top-navigation");
         }};
         navPane.setAlignment(Pos.CENTER);
@@ -348,7 +350,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setId("nav-secondary-container");
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
-            setTopAnchor(this, 94d);
+            setTopAnchor(this, 87d);
         }};
         secondaryNavContainer.setPickOnBounds(false);
         secondaryNavContainer.getChildren().add(secondaryNav);
@@ -357,11 +359,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             getStyleClass().add("content-pane");
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
-            setTopAnchor(this, 95d);
+            setTopAnchor(this, 68d);
             setBottomAnchor(this, 0d);
         }};
 
-        AnchorPane applicationContainer = new AnchorPane(navPane, contentContainer, secondaryNavContainer) {{
+        AnchorPane applicationContainer = new AnchorPane(contentContainer, navPane, secondaryNavContainer) {{
             setId("application-container");
         }};
 
@@ -438,10 +440,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         logo.setSmooth(true);
         logo.setCache(true);
 
-        final Pane pane = new Pane();
+        final HBox pane = new HBox(logo);
+        pane.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(pane, Priority.ALWAYS);
         pane.getStyleClass().add("nav-logo");
-        pane.getChildren().add(logo);
         return pane;
     }
 

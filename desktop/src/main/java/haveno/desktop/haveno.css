@@ -757,6 +757,12 @@ tree-table-view:focused {
     -fx-background-color: linear-gradient(-bs-content-pane-bg-top 0%, -bs-content-pane-bg-bottom 100%);
 }
 
+/* Top gap below the nav applies to the outer content container only, not the nested
+   content grids, whose own padding would otherwise be overridden by this rule. */
+#application-container > .content-pane {
+    -fx-padding: 20 0 0 0;
+}
+
 #footer-pane {
     -fx-background-color: -bs-footer-pane-background;
     -fx-font-size: 0.923em;
@@ -775,10 +781,11 @@ tree-table-view:focused {
 /* Main navigation */
 .top-navigation {
     -fx-background-color: -bs-rd-nav-background;
-    -fx-border-width: 0 0 0 0;
-    -fx-border-color: -bs-rd-nav-primary-border;
-    -fx-background-radius: 15;
-    -fx-border-radius: 15;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-color: -bs-rd-nav-bar-edge;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 8, 0, 0, 2);
 }
 
 .top-navigation .separator:vertical .line {
@@ -788,7 +795,7 @@ tree-table-view:focused {
 }
 
 .nav-logo {
-    -fx-max-width: 190;
+    -fx-max-width: 172;
     -fx-min-width: 155;
 }
 

@@ -49,6 +49,7 @@
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
     -bs-rd-nav-primary-button-hover: derive(-bs-rd-nav-primary-background, 10%);
     -bs-rd-nav-primary-border: -bs-color-primary;
+    -bs-rd-nav-bar-edge: transparent;
     -bs-rd-nav-border: #535353;
     -bs-rd-nav-border-color: rgba(255, 255, 255, 0.31);
     -bs-rd-nav-hover-text: white;
