@@ -336,19 +336,20 @@ public class GUIUtil {
 
                     String code = item.tradeCurrency.getCode();
 
+                    boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
+
                     HBox box = new HBox();
                     box.setSpacing(20);
                     box.setAlignment(Pos.CENTER_LEFT);
                     Label label1 = new AutoTooltipLabel(getCurrencyType(code));
                     label1.getStyleClass().add("currency-label-small");
-                    Label label2 = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? item.tradeCurrency.getNameAndCode() : code);
+                    Label label2 = new AutoTooltipLabel(isCrypto ? item.tradeCurrency.getNameAndCode() : code);
                     label2.getStyleClass().add("currency-label");
-                    Label label3 = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? "" : item.tradeCurrency.getName());
-                    if (!CurrencyUtil.isCryptoCurrency(code)) label3.getStyleClass().add("currency-label");
+                    Label label3 = new AutoTooltipLabel(isCrypto ? "" : item.tradeCurrency.getName());
+                    if (!isCrypto) label3.getStyleClass().add("currency-label");
                     Label label4 = new AutoTooltipLabel();
 
-                    box.getChildren().addAll(label1, label2, label3);
-                    if (!CurrencyUtil.isCryptoCurrency(code)) box.getChildren().add(label4);
+                    boolean showOfferCount = false;
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
@@ -369,13 +370,18 @@ public class GUIUtil {
                             }
 
                             if (preferences.isSortMarketCurrenciesNumerically() && item.numTrades > 0) {
-                                boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
                                 Label offersTarget = isCrypto ? label3 : label4;
                                 HBox.setMargin(offersTarget, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
                                 offersTarget.getStyleClass().add("offer-label");
                                 offersTarget.setText(item.numTrades + " " + (item.numTrades == 1 ? postFixSingle : postFixMulti));
+                                showOfferCount = true;
                             }
                     }
+
+                    // append the offer pill only when present so the row ends at real content
+                    box.getChildren().addAll(label1, label2);
+                    if (!isCrypto) box.getChildren().add(label3);
+                    if (showOfferCount) box.getChildren().add(isCrypto ? label3 : label4);
 
                     setGraphic(box);
 
@@ -445,17 +451,18 @@ public class GUIUtil {
                 if (item != null && !empty) {
 
                     String code = item.getCode();
+                    boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
 
                     HBox box = new HBox();
                     box.setSpacing(20);
                     box.setAlignment(Pos.CENTER_LEFT);
 
-                    Label label1 = new AutoTooltipLabel(getCurrencyType(item.getCode()));
+                    Label label1 = new AutoTooltipLabel(getCurrencyType(code));
                     label1.getStyleClass().add("currency-label-small");
-                    Label label2 = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? item.getNameAndCode() : code);
+                    Label label2 = new AutoTooltipLabel(isCrypto ? item.getNameAndCode() : code);
                     label2.getStyleClass().add("currency-label");
-                    Label label3 = new AutoTooltipLabel(CurrencyUtil.isCryptoCurrency(code) ? "" : item.getName());
-                    if (!CurrencyUtil.isCryptoCurrency(code)) label3.getStyleClass().add("currency-label");
+                    Label label3 = new AutoTooltipLabel(isCrypto ? "" : item.getName());
+                    if (!isCrypto) label3.getStyleClass().add("currency-label");
                     Label label4 = new AutoTooltipLabel();
 
                     Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(code));
@@ -478,7 +485,6 @@ public class GUIUtil {
                                 label1.setGraphic(currencyIcon);
                             }
 
-                            boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
                             Label offersTarget = isCrypto ? label3 : label4;
                             offerCountOptional.ifPresent(numOffers -> {
                                 HBox.setMargin(offersTarget, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
@@ -487,8 +493,10 @@ public class GUIUtil {
                             });
                     }
 
-                    box.getChildren().addAll(label1, label2, label3);
-                    if (!CurrencyUtil.isCryptoCurrency(code)) box.getChildren().add(label4);
+                    // append the offer pill only when present so the row ends at real content
+                    box.getChildren().addAll(label1, label2);
+                    if (!isCrypto) box.getChildren().add(label3);
+                    if (offerCountOptional.isPresent()) box.getChildren().add(isCrypto ? label3 : label4);
 
                     setGraphic(box);
 
