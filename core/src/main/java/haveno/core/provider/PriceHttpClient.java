@@ -29,7 +29,7 @@ public class PriceHttpClient extends HttpClientImpl {
     @Inject
     public PriceHttpClient(@Nullable Socks5ProxyProvider socks5ProxyProvider) {
         super(socks5ProxyProvider);
-        // keep the request budget below the 60s poll period so slow providers fail and rotate cleanly
+        // use short timeouts so unresponsive providers fail and rotate quickly (poll period is 60s)
         connectTimeoutMs = (int) TimeUnit.SECONDS.toMillis(30);
         readTimeoutMs = (int) TimeUnit.SECONDS.toMillis(30);
     }
