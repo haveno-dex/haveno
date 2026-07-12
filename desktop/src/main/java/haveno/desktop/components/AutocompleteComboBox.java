@@ -247,6 +247,13 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private void forceRedraw() {
         adjustVisibleRowCount();
         if (matchingListSize() > 0) {
+            // Flush the popup ListView's item count before measuring, else a stale (smaller) count
+            // caps its preferred height and a grown list (e.g. rapidly cleared filter) leaves the
+            // popup shorter than its max rows.
+            if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView) {
+                listView.applyCss();
+                listView.layout();
+            }
             comboBoxListViewSkin.getPopupContent().autosize();
             show();
             if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView) {
