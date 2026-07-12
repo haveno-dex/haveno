@@ -139,13 +139,14 @@ public class FiatOfferBookViewModel extends OfferBookViewModel {
 
     @Override
     Predicate<OfferBookListItem> getCurrencyAndMethodPredicate(OfferDirection direction,
-                                                               TradeCurrency selectedTradeCurrency) {
+                                                               TradeCurrency selectedTradeCurrency,
+                                                               boolean applyPaymentMethodFilter) {
         return offerBookListItem -> {
             Offer offer = offerBookListItem.getOffer();
             boolean directionResult = offer.getDirection() != direction;
             boolean currencyResult = (showAllTradeCurrenciesProperty.get() && offer.isFiatOffer()) ||
                     offer.getCounterCurrencyCode().equals(selectedTradeCurrency.getCode());
-            boolean paymentMethodResult = showAllPaymentMethods ||
+            boolean paymentMethodResult = !applyPaymentMethodFilter || showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();
             return directionResult && currencyResult && paymentMethodResult && notMyOfferOrShowMyOffersActivated;
