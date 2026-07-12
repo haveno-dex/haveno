@@ -37,6 +37,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
@@ -68,19 +70,20 @@ public class HttpClientImpl implements HttpClient {
     @Nullable
     private Socks5ProxyProvider socks5ProxyProvider;
     @Nullable
-    private HttpURLConnection connection;
+    private volatile HttpURLConnection connection;
     @Nullable
-    private CloseableHttpClient closeableHttpClient;
+    private volatile CloseableHttpClient closeableHttpClient;
     private static final long SHUTDOWN_TIMEOUT_MS = 5000l;
 
     @Getter
     @Setter
-    private String baseUrl;
+    private volatile String baseUrl;
     @Setter
     private boolean ignoreSocks5Proxy;
     @Getter
     private final String uid;
-    private boolean hasPendingRequest;
+    private final AtomicBoolean hasPendingRequest = new AtomicBoolean();
+    private final AtomicLong requestGen = new AtomicLong(); // bumped on cancel so a canceled request cannot clear the next request's state
 
     @Inject
     public HttpClientImpl(@Nullable Socks5ProxyProvider socks5ProxyProvider) {
@@ -121,7 +124,7 @@ public class HttpClientImpl implements HttpClient {
 
     @Override
     public boolean hasPendingRequest() {
-        return hasPendingRequest;
+        return hasPendingRequest.get();
     }
 
     @Override
@@ -143,34 +146,39 @@ public class HttpClientImpl implements HttpClient {
                              @Nullable String headerKey,
                              @Nullable String headerValue) throws IOException {
         checkNotNull(baseUrl, "baseUrl must be set before calling doRequest");
-        checkArgument(!hasPendingRequest, "We got called on the same HttpClient again while a request is still open.");
+        checkArgument(hasPendingRequest.compareAndSet(false, true),
+                "We got called on the same HttpClient again while a request is still open.");
 
-        hasPendingRequest = true;
+        long gen = requestGen.get();
         Socks5Proxy socks5Proxy = getSocks5Proxy(socks5ProxyProvider);
         if (ignoreSocks5Proxy || socks5Proxy == null || NetworkUtils.isLoopbackUrl(baseUrl)) {
-            return requestWithoutProxy(baseUrl, param, httpMethod, headerKey, headerValue);
+            return requestWithoutProxy(baseUrl, param, httpMethod, headerKey, headerValue, gen);
         } else {
-            return doRequestWithProxy(baseUrl, param, httpMethod, socks5Proxy, headerKey, headerValue);
+            return doRequestWithProxy(baseUrl, param, httpMethod, socks5Proxy, headerKey, headerValue, gen);
         }
     }
 
     public void cancelPendingRequest() {
-        if (!hasPendingRequest) return;
+        if (!hasPendingRequest.get()) return;
+        requestGen.incrementAndGet(); // canceled request no longer owns the pending flag
         shutDown();
-        hasPendingRequest = false;
+        hasPendingRequest.set(false);
     }
 
     private String requestWithoutProxy(String baseUrl,
                                        String param,
                                        HttpMethod httpMethod,
                                        @Nullable String headerKey,
-                                       @Nullable String headerValue) throws IOException {
+                                       @Nullable String headerValue,
+                                       long gen) throws IOException {
         long ts = System.currentTimeMillis();
         log.debug("requestWithoutProxy: URL={}, param={}, httpMethod={}", baseUrl, param, httpMethod);
+        HttpURLConnection connection = null;
         try {
             String spec = httpMethod == HttpMethod.GET ? baseUrl + param : baseUrl;
             URL url = new URL(spec);
             connection = (HttpURLConnection) url.openConnection();
+            this.connection = connection; // expose for cancellation
             connection.setRequestMethod(httpMethod.name());
             connection.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(120));
             connection.setReadTimeout((int) TimeUnit.SECONDS.toMillis(120));
@@ -224,11 +232,12 @@ public class HttpClientImpl implements HttpClient {
                 if (connection != null) {
                     connection.getInputStream().close();
                     connection.disconnect();
-                    connection = null;
                 }
             } catch (Throwable ignore) {
             }
-            hasPendingRequest = false;
+            // only clear shared state if not superseded by a newer request or cancel
+            if (this.connection == connection) this.connection = null;
+            if (requestGen.get() == gen) hasPendingRequest.set(false);
         }
     }
 
@@ -237,7 +246,8 @@ public class HttpClientImpl implements HttpClient {
                                       HttpMethod httpMethod,
                                       Socks5Proxy socks5Proxy,
                                       @Nullable String headerKey,
-                                      @Nullable String headerValue) throws IOException {
+                                      @Nullable String headerValue,
+                                      long gen) throws IOException {
         long ts = System.currentTimeMillis();
         log.debug("doRequestWithProxy: baseUrl={}, param={}, httpMethod={}", baseUrl, param, httpMethod);
         // This code is adapted from:
@@ -266,8 +276,10 @@ public class HttpClientImpl implements HttpClient {
         cm.setDefaultSocketConfig(SocketConfig.custom()
                 .setSocksProxyAddress(socksAddress)
                 .build());
+        CloseableHttpClient httpclient = null;
         try {
-            closeableHttpClient = checkNotNull(HttpClients.custom().setConnectionManager(cm).build());
+            httpclient = checkNotNull(HttpClients.custom().setConnectionManager(cm).build());
+            this.closeableHttpClient = httpclient; // expose for cancellation
 
             HttpClientContext context = HttpClientContext.create();
             context.setAttribute("socks.address", socksAddress);
@@ -278,7 +290,7 @@ public class HttpClientImpl implements HttpClient {
                 request.setHeader(headerKey, headerValue);
             }
 
-            try (CloseableHttpResponse httpResponse = closeableHttpClient.execute(request, context)) {
+            try (CloseableHttpResponse httpResponse = httpclient.execute(request, context)) {
                 int statusCode = httpResponse.getCode();
                 String response = "";
                 if (httpResponse.getEntity() != null) {
@@ -307,11 +319,13 @@ public class HttpClientImpl implements HttpClient {
                     ". Throwable=" + t.getMessage();
             throw new IOException(message, t);
         } finally {
-            if (closeableHttpClient != null) {
-                closeableHttpClient.close();
-                closeableHttpClient = null;
+            try {
+                if (httpclient != null) httpclient.close();
+            } catch (Throwable ignore) {
             }
-            hasPendingRequest = false;
+            // only clear shared state if not superseded by a newer request or cancel
+            if (this.closeableHttpClient == httpclient) this.closeableHttpClient = null;
+            if (requestGen.get() == gen) hasPendingRequest.set(false);
         }
     }
 
