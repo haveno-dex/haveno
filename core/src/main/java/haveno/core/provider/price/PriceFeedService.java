@@ -217,8 +217,6 @@ public class PriceFeedService {
 
         PriceProvider provider = priceProvider;
         requestAllPrices(provider, () -> {
-            baseUrlOfRespondingProvider = provider.getBaseUrl();
-
             // At applyPriceToConsumer we also check if price is not exceeding max. age for price data.
             boolean success = applyPriceToConsumer();
             if (success) {
@@ -528,6 +526,7 @@ public class PriceFeedService {
                 ThreadUtils.execute(() -> {
                     if (priceRequest != thisRequest) return; // request was canceled and replaced
                     requestInProgress.set(false);
+                    baseUrlOfRespondingProvider = provider.getBaseUrl();
                     UserThread.execute(() -> {
                         checkNotNull(result, "Result must not be null at requestAllPrices");
                         // Each currency rate has a different timestamp, depending on when
