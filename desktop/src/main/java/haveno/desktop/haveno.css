@@ -361,9 +361,10 @@
 
 .combo-box-popup .list-cell:hover {
     -fx-background-radius: 8;
+    -fx-cursor: hand;
 }
 
-.combo-box-popup > .list-view:hover {
+.combo-box-popup > .list-view {
     -fx-cursor: hand;
 }
 
