@@ -368,6 +368,12 @@
     -fx-cursor: hand;
 }
 
+/* Mirror modena's popup cell padding at descendant scope, so the skin's off-sheet measuring
+   cells get the same padding as rendered cells and the control width fits the popup exactly. */
+.combo-box-popup .list-cell {
+    -fx-padding: 4 0 4 5;
+}
+
 .combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background: -fx-selection-bar;
     -fx-background-color: -fx-selection-bar;
