@@ -27,6 +27,7 @@ import javafx.event.EventHandler;
 import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Pane;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         setEmptySkinToGetMoreControlOverListView();
         fixSpaceKey();
         setAutocompleteItems(items);
+        mimicPopupStyleBeforeFirstShow();
         reactToQueryChanges();
 
         // Store last committed value so we can restore it if nothing selected
@@ -158,6 +160,19 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private void setEmptySkinToGetMoreControlOverListView() {
         comboBoxListViewSkin = new JFXComboBoxListViewSkin<>(this);
         setSkin(comboBoxListViewSkin);
+    }
+
+    // The skin sizes the control to the popup ListView, which it keeps as a hidden child of
+    // this control until the popup adopts it on first show. Until then it is styled as a plain
+    // child instead of with the popup's ".combo-box-popup" rules, so its measured width differs
+    // and the control resizes on first open. Wrap it in a hidden pane mimicking the popup, so
+    // it always measures exactly as it will render in the popup.
+    private void mimicPopupStyleBeforeFirstShow() {
+        Pane popupMimic = new Pane(comboBoxListViewSkin.getPopupContent()); // reparents the ListView
+        popupMimic.getStyleClass().add("combo-box-popup");
+        popupMimic.setManaged(false);
+        popupMimic.setVisible(false);
+        getChildren().add(popupMimic);
     }
 
     // By default pressing [SPACE] caused editor text to reset. The solution
