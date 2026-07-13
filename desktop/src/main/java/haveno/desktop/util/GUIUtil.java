@@ -70,6 +70,7 @@ import haveno.network.p2p.P2PService;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.WeakChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -1417,6 +1418,44 @@ public class GUIUtil {
             return w > 0 && ht > 0 ? new int[]{w, ht} : null;
         } catch (IOException e) {
             return null;
+        }
+    }
+
+    // branding logos decoded once per theme + device-pixel size (never above native), kept in sync with the theme
+    private static final Map<String, Image> brandingImageCache = new HashMap<>();
+
+    // Render a branding logo crisply on HiDPI: decode the theme's PNG at device-pixel size, capped at the
+    // source so it is never upscaled, and swap it on theme toggle. Pass the fixed dimension in fitWidth or
+    // fitHeight and 0 for the other. The CSS id drives the logo only if a PNG can't be decoded.
+    public static void setBrandingLogo(ImageView logo, Preferences preferences, String lightPath, String darkPath, double fitWidth, double fitHeight) {
+        double scale = Screen.getPrimary().getOutputScaleX();
+        double pxW = fitWidth <= 0 ? 0 : Math.ceil(fitWidth * scale);
+        double pxH = fitHeight <= 0 ? 0 : Math.ceil(fitHeight * scale);
+        ChangeListener<Number> themeListener = (ov, o, n) -> updateBrandingLogo(logo, n.intValue() == 1 ? darkPath : lightPath, pxW, pxH);
+        updateBrandingLogo(logo, preferences.getCssTheme() == 1 ? darkPath : lightPath, pxW, pxH);
+
+        // weak listener (strong ref held on the ImageView) lets the logo be GC'd with its scene without leaking
+        logo.getProperties().put("brandingThemeListener", themeListener);
+        preferences.getCssThemeProperty().addListener(new WeakChangeListener<>(themeListener));
+    }
+
+    private static void updateBrandingLogo(ImageView logo, String resourcePath, double pxW, double pxH) {
+        Image image = brandingImageCache.computeIfAbsent(resourcePath + "@" + (int) pxW + "x" + (int) pxH, k -> {
+            int[] source = pngSize(resourcePath);
+            double w = source != null && pxW > source[0] ? source[0] : pxW;
+            double h = source != null && pxH > source[1] ? source[1] : pxH;
+            try (InputStream in = GUIUtil.class.getResourceAsStream(resourcePath)) {
+                if (in == null) return null;
+                Image img = new Image(in, w, h, true, true);
+                return img.isError() ? null : img;
+            } catch (IOException e) {
+                return null;
+            }
+        });
+        // drop the CSS id once decoded so the native-size -fx-image is never also loaded
+        if (image != null) {
+            logo.setImage(image);
+            logo.setId(null);
         }
     }
 
