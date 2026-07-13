@@ -82,7 +82,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
-import javafx.scene.control.Labeled;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
@@ -1392,9 +1391,9 @@ public class GUIUtil {
         return lockLabel;
     }
 
-    public static MaterialDesignIconView getLockIcon(Labeled colorSource, String glyphSize) {
+    public static MaterialDesignIconView getLockIcon(String glyphSize) {
         MaterialDesignIconView lockIcon = new MaterialDesignIconView(MaterialDesignIcon.LOCK, glyphSize);
-        lockIcon.fillProperty().bind(colorSource.textFillProperty());
+        lockIcon.getStyleClass().add("lock-icon");
         return lockIcon;
     }
 
@@ -1409,7 +1408,7 @@ public class GUIUtil {
     }
 
     private static void addPrivateOfferLockIcon(Label label, String glyphSize, double opacity) {
-        MaterialDesignIconView lockIcon = getLockIcon(label, glyphSize);
+        MaterialDesignIconView lockIcon = getLockIcon(glyphSize);
         lockIcon.setOpacity(opacity);
         label.setGraphic(lockIcon);
         label.setContentDisplay(ContentDisplay.RIGHT);

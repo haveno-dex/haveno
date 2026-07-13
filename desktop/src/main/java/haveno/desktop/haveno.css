@@ -100,6 +100,10 @@
     -fx-text-fill: -bs-rd-font-dark-gray;
 }
 
+.lock-icon {
+    -fx-fill: -bs-text-color;
+}
+
 .confirmation-text-field-as-label:readonly {
     -fx-background-color: transparent !important;
     -fx-font-size: 1.077em;
