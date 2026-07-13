@@ -351,9 +351,10 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             if (submitting[0]) return;
             submitting[0] = true;
 
-            // enter the working state before the off-thread verification so the UI stays responsive while decrypting
+            // disable controls during the off-thread verification; no working text needed since login is quick
             setControlsDisabled.accept(true);
-            showWorking.accept(Res.get("password.startup.unlocking"));
+            statusLabel.setText(""); // clear any prior error while verifying
+            statusLabel.getStyleClass().remove("error-text");
 
             passwordHandler.onPasswordEntered(passwordField.getText(), errorMessage -> UserThread.execute(() -> {
                 if (errorMessage == null) return; // accepted; keep the working state until the main view loads
