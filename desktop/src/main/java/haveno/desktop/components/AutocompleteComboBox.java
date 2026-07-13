@@ -27,6 +27,8 @@ import javafx.event.EventHandler;
 import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import org.apache.commons.lang3.StringUtils;
 
@@ -57,6 +59,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         super(items);
         setEditable(true);
         clearOnFocus();
+        showOnEditorClick();
         setEmptySkinToGetMoreControlOverListView();
         fixSpaceKey();
         setAutocompleteItems(items);
@@ -127,16 +130,17 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
                 return;
             }
 
-            // Case 2: fire if the text is empty
+            // Case 2: fire if the text is empty. A click on the editor itself keeps the
+            // blank editor focused for typing; any other dismissal restores the committed value.
             if (inputText.isEmpty()) {
                 eh.handle(e);
-                getParent().requestFocus();
-
-                // Restore the last committed value
-                UserThread.execute(() -> {
-                    getSelectionModel().select(lastCommittedValue);
-                    getEditor().setText(asString(lastCommittedValue));
-                });
+                if (!getEditor().isHover()) {
+                    getParent().requestFocus();
+                    UserThread.execute(() -> {
+                        getSelectionModel().select(lastCommittedValue);
+                        getEditor().setText(asString(lastCommittedValue));
+                    });
+                }
             }
         });
     }
@@ -151,6 +155,15 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
                 removeFilter();
                 forceRedraw();
             }
+        });
+    }
+
+    // A click on the already-focused editor lands outside the popup window and auto-hides
+    // it. Re-show it so clicking the search box always presents the list.
+    private void showOnEditorClick() {
+        getEditor().addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            if (event.getButton() == MouseButton.PRIMARY && !isShowing() && matchingListSize() > 0)
+                show();
         });
     }
 
