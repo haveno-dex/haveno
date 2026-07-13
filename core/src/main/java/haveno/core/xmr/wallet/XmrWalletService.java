@@ -1394,7 +1394,7 @@ public class XmrWalletService extends XmrWalletBase {
                     log.warn("Error opening or creating main wallet, attempt={}/{}: {}", i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
                     if (i + 1 >= MAX_SYNC_ATTEMPTS) {
                         log.warn("Failed to open or create main wallet after {} attempts: {}", MAX_SYNC_ATTEMPTS, e.getMessage());
-                        return;
+                        throw e;
                     } else {
                         HavenoUtils.waitFor(INIT_WALLET_DELAY_MS); // wait before retrying
                     }
