@@ -23,6 +23,7 @@ import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.DarkModeToggle;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Transitions;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -53,12 +54,16 @@ public class StartupShell extends StackPane {
         this.transitions = transitions;
         setId("splash");
 
+        boolean mainnet = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET;
         ImageView logo = new ImageView();
-        logo.setId(Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET ? "image-logo-splash" : "image-logo-splash-testnet");
+        logo.setId(mainnet ? "image-logo-splash" : "image-logo-splash-testnet");
         logo.setFitWidth(LOGO_FIT_WIDTH);
         logo.setPreserveRatio(true);
         logo.setSmooth(true);
-        logo.setCache(true);
+
+        // decode the splash logo at device-pixel size for crisp HiDPI rendering; keeps the CSS id as fallback
+        String splashBase = mainnet ? "/images/logo_splash" : "/images/logo_splash_testnet";
+        GUIUtil.setBrandingLogo(logo, preferences, splashBase + "_light_mode.png", splashBase + "_dark_mode.png", LOGO_FIT_WIDTH, 0);
 
         contentSlot.setAlignment(Pos.TOP_CENTER);
 

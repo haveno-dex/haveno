@@ -53,6 +53,7 @@ import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.main.support.SupportView;
 import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Transitions;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -437,7 +438,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         logo.setPreserveRatio(true);
         logo.setFitHeight(40);
         logo.setSmooth(true);
-        logo.setCache(true);
+
+        // decode the landscape logo at device-pixel size for crisp HiDPI rendering; keeps the CSS id as fallback
+        GUIUtil.setBrandingLogo(logo, preferences, "/images/logo_landscape_light_mode.png", "/images/logo_landscape_dark_mode.png", 0, 40);
 
         final HBox pane = new HBox(logo);
         pane.setAlignment(Pos.CENTER_LEFT);
