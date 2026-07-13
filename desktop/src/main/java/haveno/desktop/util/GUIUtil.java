@@ -560,10 +560,6 @@ public class GUIUtil {
         }
     }
 
-    private static String getCurrencyType(PaymentMethod method) {
-        return method.isTraditional() ? Res.get("shared.traditional") : Res.get("shared.crypto");
-    }
-
     public static ListCell<PaymentMethod> getPaymentMethodButtonCell() {
         return new ListCell<>() {
 
@@ -606,15 +602,13 @@ public class GUIUtil {
                     HBox box = new HBox();
                     box.setSpacing(20);
                     box.setAlignment(Pos.CENTER_LEFT);
-                    Label paymentType = new AutoTooltipLabel(getCurrencyType(method));
-                    paymentType.getStyleClass().add("currency-label-small");
+                    box.setPadding(new Insets(0, 0, 0, (CURRENCY_LABEL_SMALL_WIDTH - CURRENCY_GRAPHIC_ROW_SIZE) / 2)); // match the currency list's leftmost inset (logo centered in its label)
                     Label paymentMethod = new AutoTooltipLabel(Res.get(id));
                     paymentMethod.getStyleClass().add("currency-label");
                     Label offerCount = new AutoTooltipLabel();
-                    box.getChildren().addAll(paymentType, paymentMethod, offerCount);
+                    box.getChildren().addAll(paymentMethod, offerCount);
 
                     if (id.equals(GUIUtil.SHOW_ALL_FLAG)) {
-                        paymentType.setText(Res.get("shared.all"));
                         paymentMethod.setText(Res.get("list.currency.showAll"));
                     } else {
                         Optional.ofNullable(offerCounts.get(id)).ifPresent(numOffers -> {
@@ -1465,6 +1459,7 @@ public class GUIUtil {
     }
 
     public static final double CURRENCY_GRAPHIC_ROW_SIZE = 27; // currency logo size (px) in list rows; adjust to resize
+    private static final double CURRENCY_LABEL_SMALL_WIDTH = 45; // .currency-label-small -fx-pref-width
     private static final double CURRENCY_ICON_MARGIN = 1; // transparent margin (logical px) bled just outside list logos
 
     public static Node getCurrencyGraphic(String currencyCode, double size) {
