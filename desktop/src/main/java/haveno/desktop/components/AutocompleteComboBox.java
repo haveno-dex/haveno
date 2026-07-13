@@ -20,18 +20,23 @@ package haveno.desktop.components;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.skins.JFXComboBoxListViewSkin;
 import haveno.common.UserThread;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.scene.Node;
 import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.stage.PopupWindow;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,6 +48,7 @@ import java.util.stream.Collectors;
  *
  * @param <T>  type of the ComboBox item; in the simplest case this can be a String
  */
+@Slf4j
 public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private List<? extends T> list;
     private List<? extends T> extendedList;
@@ -64,6 +70,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         fixSpaceKey();
         setAutocompleteItems(items);
         mimicPopupStyleBeforeFirstShow();
+        linkPopupOwnerToCombo();
         reactToQueryChanges();
 
         // Store last committed value so we can restore it if nothing selected
@@ -158,13 +165,40 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         });
     }
 
-    // A click on the already-focused editor lands outside the popup window and auto-hides
-    // it. Re-show it so clicking the search box always presents the list.
+    // Clicking the search editor while the list is closed should open it (the editor does not
+    // toggle the popup by itself). With the popup owner node set (linkPopupOwnerToCombo) an
+    // editor click no longer auto-hides an open list, so this only opens it from closed.
     private void showOnEditorClick() {
-        getEditor().addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+        getEditor().addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
             if (event.getButton() == MouseButton.PRIMARY && !isShowing() && matchingListSize() > 0)
                 show();
         });
+    }
+
+    // The skin shows the popup with only a Window owner and no owner node, so JavaFX auto-hides
+    // it on any press outside the popup window - including clicks in the search editor, which
+    // then blink the list closed and open. Set this combo as the popup's owner node once it is
+    // created: presses inside the combo (editor, arrow) are then owner-node events and skip
+    // auto-hide, while presses elsewhere still hide the list as before.
+    private void linkPopupOwnerToCombo() {
+        comboBoxListViewSkin.getPopupContent().sceneProperty().addListener((obs, old, scene) -> {
+            if (scene != null && scene.getWindow() instanceof PopupWindow popup && popup.getOwnerNode() == null)
+                setPopupOwnerNode(popup);
+        });
+    }
+
+    // PopupWindow.ownerNode is externally read-only and only set by the Node-owner show()
+    // overload, which the combo skin never uses; set it reflectively.
+    private void setPopupOwnerNode(PopupWindow popup) {
+        try {
+            Field field = PopupWindow.class.getDeclaredField("ownerNode");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            ReadOnlyObjectWrapper<Node> ownerNode = (ReadOnlyObjectWrapper<Node>) field.get(popup);
+            ownerNode.set(this);
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            log.warn("Could not set dropdown popup owner node; list may blink on editor click", e);
+        }
     }
 
     // The ComboBox API does not provide enough control over the underlying
