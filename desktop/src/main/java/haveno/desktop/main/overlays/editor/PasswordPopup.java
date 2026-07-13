@@ -226,7 +226,7 @@ public class PasswordPopup extends Overlay<PasswordPopup> {
     protected void applyStyles() {
         super.applyStyles();
         headlineIcon.setText(null); // clear info glyph set as text by Overlay.applyStyles()
-        headlineIcon.setGraphic(GUIUtil.getLockIcon(headlineIcon, "1.5em"));
+        headlineIcon.setGraphic(GUIUtil.getLockIcon("1.5em"));
     }
 
     @Override
