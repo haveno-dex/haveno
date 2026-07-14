@@ -167,7 +167,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         final Tuple3<VBox, Label, AutocompleteComboBox<CurrencyListItem>> currencyComboBoxTuple = addTopLabelAutocompleteComboBox(Res.get("shared.currency"), 0);
         this.currencyComboBox = currencyComboBoxTuple.third;
         this.currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.oneOffer"),
-                Res.get("shared.multipleOffers"), model.preferences));
+                Res.get("shared.multipleOffers")));
         this.currencyComboBox.getStyleClass().add("input-with-border");
 
         createChart();
