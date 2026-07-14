@@ -234,7 +234,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"));
         availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
-        availableBalanceBox.first.setMinWidth(0);
         availableBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
             {
                 bind(model.getAvailableBalance());
@@ -461,7 +460,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         Label label = new Label(text);
         label.getStyleClass().add("nav-balance-label");
-        label.maxWidthProperty().bind(balanceDisplay.widthProperty());
         label.setPadding(new Insets(0, 0, 0, 0));
         VBox vBox = new VBox();
         vBox.setAlignment(Pos.CENTER_LEFT);
