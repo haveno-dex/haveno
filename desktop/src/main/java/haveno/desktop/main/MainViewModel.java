@@ -453,14 +453,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                         .useIUnderstandButton()
                         .show());
         havenoSetup.setDisplaySecurityRecommendationHandler(key -> {});
-        havenoSetup.setDisplayLocalhostHandler(key -> {
-            if (!DevEnv.isDevMode()) {
-                Popup popup = new Popup().backgroundInfo(Res.get("popup.xmrLocalNode.msg"))
-                        .dontShowAgainId(key);
-                popup.setDisplayOrderPriority(5);
-                popupQueue.add(popup);
-            }
-        });
         havenoSetup.setDisplaySignedByArbitratorHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
                 key, "popup.accountSigning.signedByArbitrator"));
         havenoSetup.setDisplaySignedByPeerHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
