@@ -42,6 +42,7 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
+import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
@@ -146,6 +147,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -1319,12 +1322,34 @@ public class GUIUtil {
         return contentColumns;
     }
 
+    private static final double CURRENCY_LOGO_DEFAULT_SIZE = 24; // currency logo size (px) outside list rows
+
     private static ImageView getCurrencyImageView(String currencyCode) {
-        return getCurrencyImageView(currencyCode, 24);
+        return getCurrencyImageView(currencyCode, CURRENCY_LOGO_DEFAULT_SIZE);
     }
 
-    // crypto logos decoded once per device-pixel size and shared across icons
-    private static final Map<String, Image> currencyImageCache = new HashMap<>();
+    // crypto logos decoded once per device-pixel size and shared across icons; concurrent for the background pre-warm
+    private static final Map<String, Image> currencyImageCache = new ConcurrentHashMap<>();
+    private static final Set<String> currencyImageMisses = ConcurrentHashMap.newKeySet(); // codes without a decodable logo
+
+    // Pre-decode all crypto logos at the sizes lists use, off the FX thread (safe while the images are
+    // unattached), so pulldowns render from cache instead of stalling on PNG decodes, whose inflate cost
+    // is O(native pixels) no matter how small the target.
+    public static void warmCurrencyIconCache() {
+        double scale = Screen.getPrimary().getOutputScaleX();
+        Thread warmer = new Thread(() -> {
+            try {
+                for (CryptoCurrency currency : CurrencyUtil.getAllSortedCryptoCurrencies()) {
+                    getCurrencyImage(currency.getCode(), currencyIconBoxPx(CURRENCY_GRAPHIC_ROW_SIZE, scale), currencyIconMarginPx(scale));
+                    getCurrencyImage(currency.getCode(), Math.ceil(CURRENCY_LOGO_DEFAULT_SIZE * scale));
+                }
+            } catch (Exception e) {
+                log.warn("Error pre-warming currency icon cache: {}", e.getMessage());
+            }
+        }, "currency-icon-warmer");
+        warmer.setDaemon(true);
+        warmer.start();
+    }
 
     private static ImageView getCurrencyImageView(String currencyCode, double size) {
         if (currencyCode == null) return null;
@@ -1352,7 +1377,8 @@ public class GUIUtil {
     private static Image getCurrencyImage(String currencyCode, int boxPx, int marginPx) {
         if (!CurrencyUtil.isCryptoCurrency(currencyCode)) return null;
         String code = currencyCode.toLowerCase();
-        return currencyImageCache.computeIfAbsent(code + "@" + boxPx + "+" + marginPx, k -> {
+        if (currencyImageMisses.contains(code)) return null; // avoid re-probing the classpath per cell update
+        Image image = currencyImageCache.computeIfAbsent(code + "@" + boxPx + "+" + marginPx, k -> {
             try (InputStream in = GUIUtil.class.getResourceAsStream("/images/" + code + "_logo.png")) {
                 if (in == null) return null;
                 Image logo = new Image(in);
@@ -1361,6 +1387,8 @@ public class GUIUtil {
                 return null;
             }
         });
+        if (image == null) currencyImageMisses.add(code);
+        return image;
     }
 
     // area-averaged downscale of src centered in a transparent boxPx square, inset by marginPx per side
@@ -1515,10 +1543,19 @@ public class GUIUtil {
         icon.setPreserveRatio(true);
         icon.setSmooth(true);
         double scale = Screen.getPrimary().getOutputScaleX();
-        Image image = getCurrencyImage(currencyCode, (int) Math.ceil(box * scale), (int) Math.ceil(CURRENCY_ICON_MARGIN * scale));
+        Image image = getCurrencyImage(currencyCode, currencyIconBoxPx(size, scale), currencyIconMarginPx(scale));
         if (image != null) icon.setImage(image);
         else icon.setId(imageId);
         return icon;
+    }
+
+    // device-pixel box and margin for a list icon; shared with the cache pre-warm so keys always match
+    private static int currencyIconBoxPx(double size, double scale) {
+        return (int) Math.ceil((size + 2 * CURRENCY_ICON_MARGIN) * scale);
+    }
+
+    private static int currencyIconMarginPx(double scale) {
+        return (int) Math.ceil(CURRENCY_ICON_MARGIN * scale);
     }
 
     public static StackPane getCurrencyIconWithBorder(String currencyCode) {

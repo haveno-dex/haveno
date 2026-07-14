@@ -63,6 +63,7 @@ import haveno.desktop.main.overlays.windows.SendAlertMessageWindow;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Transitions;
 import java.io.File;
@@ -145,6 +146,8 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     @Override
     public void start(Stage stage) {
         this.stage = stage;
+
+        GUIUtil.warmCurrencyIconCache(); // decode currency logos in the background before any pulldown needs them
 
         appLaunchedHandler.accept(this);
     }
