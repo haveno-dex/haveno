@@ -159,10 +159,31 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private void clearOnFocus() {
         getEditor().focusedProperty().addListener((observableValue, hadFocus, hasFocus) -> {
             if (!hadFocus && hasFocus) {
-                removeFilter();
-                forceRedraw();
+                // When no filter is applied the rows are already current, so keep them: replacing
+                // the items rebuilds every visible row before the popup can paint, which delays
+                // opening noticeably. Refresh the rows just after showing instead, so dynamic
+                // content (e.g. offer counts) stays as fresh as a rebuilt list.
+                if (matchingList.equals(list)) {
+                    setValue(null);
+                    getSelectionModel().clearSelection();
+                    getEditor().setText("");
+                    if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView)
+                        listView.scrollTo(0);
+                    forceRedraw();
+                    UserThread.execute(this::refreshShowingRows);
+                } else {
+                    removeFilter();
+                    forceRedraw();
+                }
             }
         });
+    }
+
+    // re-set the items so the visible rows rebuild with current dynamic content
+    private void refreshShowingRows() {
+        if (!isShowing()) return;
+        matchingList = new ArrayList<>(list);
+        setItems(FXCollections.observableList(matchingList));
     }
 
     // Clicking the search editor while the list is closed should open it (the editor does not
