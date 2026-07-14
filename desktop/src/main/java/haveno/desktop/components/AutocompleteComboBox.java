@@ -32,6 +32,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.stage.PopupWindow;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -56,6 +57,8 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private JFXComboBoxListViewSkin<T> comboBoxListViewSkin;
     private boolean selectAllShortcut = false;
     private T lastCommittedValue;
+    private double unfilteredPopupWidth = -1; // popup width measured from the full item list
+    private List<T> measuredList; // unfiltered content the pinned width was measured for
 
     public AutocompleteComboBox() {
         this(FXCollections.observableArrayList());
@@ -105,6 +108,9 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         list = items;
         extendedList = allItems;
         matchingList = new ArrayList<>(list);
+        unfilteredPopupWidth = -1;
+        measuredList = null;
+        unpinPopupWidth(); // new items: measure anew so the popup can resize
         setValue(null);
         getSelectionModel().clearSelection();
         setItems(FXCollections.observableList(matchingList));
@@ -315,6 +321,15 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private void forceRedraw() {
         adjustVisibleRowCount();
         if (matchingListSize() > 0) {
+            boolean unfiltered = matchingList.equals(list);
+            // Drop a pin measured for stale content (e.g. changed offer counts or an added
+            // currency) so a grown list re-measures instead of overflowing into a scrollbar.
+            if (unfiltered && !matchingList.equals(measuredList)) unfilteredPopupWidth = -1;
+            // Sizing the popup width runs the cell factory over the whole list several times per
+            // open, which lags the popup visibly. Reuse the width measured on the first unfiltered
+            // open while its content is unchanged; filtered rows can be wider, so those measure anew.
+            if (unfiltered && unfilteredPopupWidth > 0) setPopupPrefWidth(unfilteredPopupWidth);
+            else unpinPopupWidth();
             // Flush the popup ListView's item count before measuring, else a stale (smaller) count
             // caps its preferred height and a grown list (e.g. rapidly cleared filter) leaves the
             // popup shorter than its max rows.
@@ -327,10 +342,24 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
             if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView) {
                 listView.applyCss();
                 listView.layout();
+                if (unfiltered && unfilteredPopupWidth <= 0 && listView.getWidth() > 0) {
+                    unfilteredPopupWidth = listView.getWidth();
+                    measuredList = new ArrayList<>(matchingList);
+                    setPopupPrefWidth(unfilteredPopupWidth);
+                }
             }
         } else {
             hide();
         }
+    }
+
+    private void setPopupPrefWidth(double width) {
+        if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView)
+            listView.setPrefWidth(width);
+    }
+
+    private void unpinPopupWidth() {
+        if (comboBoxListViewSkin != null) setPopupPrefWidth(Region.USE_COMPUTED_SIZE);
     }
 
     private void adjustVisibleRowCount() {
