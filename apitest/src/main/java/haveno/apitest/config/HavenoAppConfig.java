@@ -90,8 +90,6 @@ public enum HavenoAppConfig {
 
     private static final String[] COMMON_JVM_OPTS = {
             "-XX:+ExitOnOutOfMemoryError",
-            "-XX:+HeapDumpOnOutOfMemoryError",
-            "-XX:HeapDumpPath=haveno-%p.hprof",
             "-XX:+EnableDynamicAgentLoading",
             "-Djava.net.preferIPv4Stack=true",
             "-Dfile.encoding=UTF-8",
@@ -99,14 +97,8 @@ public enum HavenoAppConfig {
             "-Dstderr.encoding=UTF-8",
     };
 
-    private static final String[] GC_JVM_OPTS = {
-            "-XX:+UseZGC",
-            "-XX:+ZGenerational",
-            "-XX:ZUncommitDelay=300",
-            "-XX:+SegmentedCodeCache",
-            "-XX:MaxMetaspaceSize=512m",
-            "-XX:ReservedCodeCacheSize=256m",
-    };
+    // GC flags
+    private static final String[] GC_JVM_OPTS = {};
 
     // Keep in sync with havenoJavaFxModuleOpens in build.gradle.
     private static final String[] DESKTOP_MODULE_OPENS = {

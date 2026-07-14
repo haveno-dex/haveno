@@ -38,8 +38,6 @@ configure(rootProject) {
         // Shared runtime flags for all Haveno JVM processes
         havenoCommonJvmArgs = [
             '-XX:+ExitOnOutOfMemoryError',
-            '-XX:+HeapDumpOnOutOfMemoryError',
-            '-XX:HeapDumpPath=haveno-%p.hprof',
             '-XX:+EnableDynamicAgentLoading',
             '-Djava.net.preferIPv4Stack=true',
             '-Dfile.encoding=UTF-8',
@@ -47,38 +45,19 @@ configure(rootProject) {
             '-Dstderr.encoding=UTF-8',
         ]
 
-        // Java 21 generational ZGC — low pause times for long-running P2P / wallet workloads.
-        // Note: ZGC uses Xmx as its soft max heap, so per-process -Xmx sizing (below) is what
-        // bounds memory; ZUncommitDelay returns idle heap to the OS.
+        // GC flags
         havenoGcJvmArgs = [
-            '-XX:+UseZGC',
-            '-XX:+ZGenerational',
-            '-XX:ZUncommitDelay=300',
-            '-XX:+SegmentedCodeCache',
-            '-XX:MaxMetaspaceSize=512m',
-            '-XX:ReservedCodeCacheSize=256m',
+            '-XX:+UseG1GC',
         ]
 
-        havenoMemory4gJvmArgs = [
-            '-XX:MaxRAM=4g',
-            '-Xms512m',
-            '-Xmx4g',
-        ]
-
-        havenoMemory512mJvmArgs = [
-            '-XX:MaxRAM=512m',
-            '-Xms128m',
-            '-Xmx512m',
-        ]
-
-        havenoHeadlessJvmArgs = havenoMemory4gJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+        // headless services (cli, daemon, relay, statsnode, inventory): JVM default heap
+        havenoHeadlessJvmArgs = havenoGcJvmArgs + havenoCommonJvmArgs + [
             '-Djava.awt.headless=true',
             '-Xss1m',
         ]
 
-        // seednode/haveno.env uses fixed 4g heap — match that profile
+        // seednode: fixed 4g heap, matching seednode/haveno.env
         havenoSeednodeJvmArgs = [
-            '-XX:MaxRAM=4g',
             '-Xms4g',
             '-Xmx4g',
         ] + havenoGcJvmArgs + havenoCommonJvmArgs + [
@@ -86,11 +65,17 @@ configure(rootProject) {
             '-Xss1m',
         ]
 
-        havenoDesktopJvmArgs = havenoMemory4gJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+        // desktop: cap the JVM RAM view to 4g so the default heap resolves to ~1g
+        havenoDesktopJvmArgs = [
+            '-XX:MaxRAM=4g',
+        ] + havenoGcJvmArgs + havenoCommonJvmArgs + [
             '-Xss1280k',
         ] + havenoJavaFxModuleOpens
 
-        havenoMonitorJvmArgs = havenoMemory512mJvmArgs + havenoGcJvmArgs + havenoCommonJvmArgs + [
+        // monitor: fixed 512m heap
+        havenoMonitorJvmArgs = [
+            '-Xmx512m',
+        ] + havenoGcJvmArgs + havenoCommonJvmArgs + [
             '-Djava.awt.headless=true',
         ]
 
@@ -262,10 +247,7 @@ configure(subprojects) {
     test {
         useJUnitPlatform()
         maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))
-        jvmArgs = rootProject.ext.havenoCommonJvmArgs + [
-            '-XX:+UseZGC',
-            '-XX:+ZGenerational',
-        ]
+        jvmArgs = rootProject.ext.havenoCommonJvmArgs + rootProject.ext.havenoGcJvmArgs
         rootProject.ext.configureJavaFxModulePathForTest(it)
     }
 
