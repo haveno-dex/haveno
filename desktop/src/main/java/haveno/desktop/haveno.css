@@ -2454,6 +2454,121 @@ textfield */
     -fx-text-fill: -bs-color-primary;
 }
 
+/********************************************************************************************************************
+ *                                                                                                                  *
+ * Welcome window                                                                                                   *
+ *                                                                                                                  *
+ ********************************************************************************************************************/
+.welcome-header-icon-box {
+    -fx-background-color: linear-gradient(to bottom right, rgba(28, 96, 220, 0.18), rgba(28, 96, 220, 0.06));
+    -fx-background-radius: 25;
+    -fx-min-height: 50;
+    -fx-pref-height: 50;
+    -fx-max-height: 50;
+}
+
+.welcome-header-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.welcome-header-title {
+    -fx-font-size: 1.4em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-color-primary;
+}
+
+.welcome-header-subtitle {
+    -fx-font-size: 0.92em;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.welcome-header-divider {
+    -fx-background-color: -bs-color-primary;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.welcome-feature-row {
+    -fx-padding: 8 24 8 24;
+}
+
+.welcome-feature-icon-box {
+    -fx-background-color: rgba(28, 96, 220, 0.08);
+    -fx-background-radius: 22;
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    -fx-min-height: 44;
+    -fx-pref-height: 44;
+    -fx-max-height: 44;
+}
+
+.welcome-feature-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.welcome-feature-icon-box.welcome-accent-trade {
+    -fx-background-color: linear-gradient(to bottom right, rgba(242, 104, 34, 0.18), rgba(242, 104, 34, 0.06));
+}
+
+.welcome-feature-icon.welcome-accent-trade {
+    -fx-fill: rgb(242, 104, 34);
+}
+
+.welcome-feature-icon-box.welcome-accent-start {
+    -fx-background-color: linear-gradient(to bottom right, rgba(62, 163, 74, 0.18), rgba(62, 163, 74, 0.06));
+}
+
+.welcome-feature-icon.welcome-accent-start {
+    -fx-fill: rgb(62, 163, 74);
+}
+
+.welcome-feature-icon-box.welcome-accent-support {
+    -fx-background-color: linear-gradient(to bottom right, rgba(126, 87, 194, 0.18), rgba(126, 87, 194, 0.06));
+}
+
+.welcome-feature-icon.welcome-accent-support {
+    -fx-fill: rgb(126, 87, 194);
+}
+
+.welcome-feature-title {
+    -fx-font-size: 0.98em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.welcome-feature-body {
+    -fx-font-size: 0.94em;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.welcome-separator {
+    -fx-background-color: -bs-rd-separator;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.welcome-warning-callout {
+    -fx-background-color: rgba(248, 178, 73, 0.10);
+    -fx-background-radius: 4;
+    -fx-border-color: rgba(248, 178, 73, 0.30);
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-padding: 10 14 10 14;
+}
+
+.welcome-warning-icon {
+    -fx-fill: rgb(248, 178, 73);
+}
+
+.welcome-warning-text {
+    -fx-font-size: 0.92em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
 .account-status-title {
     -fx-font-size: 0.769em;
     -fx-font-family: "IBM Plex Sans Medium";

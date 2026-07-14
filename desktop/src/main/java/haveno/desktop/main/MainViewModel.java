@@ -70,6 +70,7 @@ import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.main.overlays.windows.UpdateAmazonGiftCardAccountWindow;
 import haveno.desktop.main.overlays.windows.UpdateRevolutAccountWindow;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
+import haveno.desktop.main.overlays.windows.WelcomeWindow;
 import haveno.desktop.main.overlays.windows.downloadupdate.DisplayUpdateDownloadWindow;
 import haveno.desktop.main.presentation.AccountPresentation;
 import haveno.desktop.main.presentation.MarketPricePresentation;
@@ -280,25 +281,13 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         UserThread.execute(() -> getShowAppScreen().set(true));
 
-        // show welcome message 
-        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET) {
-            String key = "welcome.stagenet";
+        // show welcome window
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET || Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET) {
+            String key = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? "welcome.stagenet" : "welcome.mainnet";
             if (DontShowAgainLookup.showAgain(key)) {
                 UserThread.runAfter(() -> {
-                    new Popup().attention(Res.get("popup.attention.welcome.stagenet")).
-                            dontShowAgainId(key)
-                            .closeButtonText(Res.get("shared.iUnderstand"))
-                            .show();
-                }, 1);
-            }
-        } else if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET) {
-            String key = "welcome.mainnet";
-            boolean isReleaseLimited = HavenoUtils.isReleasedWithinDays(HavenoUtils.RELEASE_LIMIT_DAYS);
-            if (DontShowAgainLookup.showAgain(key)) {
-                UserThread.runAfter(() -> {
-                    new Popup().attention(Res.get(isReleaseLimited ? "popup.attention.welcome.mainnet.test" : "popup.attention.welcome.mainnet")).
-                            dontShowAgainId(key)
-                            .closeButtonText(Res.get("shared.iUnderstand"))
+                    new WelcomeWindow()
+                            .dontShowAgainId(key)
                             .show();
                 }, 1);
             }
