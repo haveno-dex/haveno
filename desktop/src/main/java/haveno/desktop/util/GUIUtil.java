@@ -335,8 +335,7 @@ public class GUIUtil {
     }
 
     public static Callback<ListView<CurrencyListItem>, ListCell<CurrencyListItem>> getCurrencyListItemCellFactory(String postFixSingle,
-                                                                                                                  String postFixMulti,
-                                                                                                                  Preferences preferences) {
+                                                                                                                  String postFixMulti) {
         return p -> new ListCell<>() {
             @Override
             protected void updateItem(CurrencyListItem item, boolean empty) {
@@ -379,7 +378,7 @@ public class GUIUtil {
                                 label1.setGraphic(currencyIcon);
                             }
 
-                            if (preferences.isSortMarketCurrenciesNumerically() && item.numTrades > 0) {
+                            if (item.numTrades > 0) {
                                 Label offersTarget = isCrypto ? label3 : label4;
                                 HBox.setMargin(offersTarget, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
                                 offersTarget.getStyleClass().add("offer-label");
