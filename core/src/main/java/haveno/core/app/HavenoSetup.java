@@ -142,7 +142,6 @@ public class HavenoSetup {
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final TorSetup torSetup;
     private final CoinFormatter formatter;
-    private final XmrLocalNode xmrLocalNode;
     private final AppStartupState appStartupState;
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
@@ -155,7 +154,7 @@ public class HavenoSetup {
     @Nullable
     private Consumer<String> chainFileLockedExceptionHandler,
             lockedUpFundsHandler, filterWarningHandler,
-            displaySecurityRecommendationHandler, displayLocalhostHandler,
+            displaySecurityRecommendationHandler,
             wrongOSArchitectureHandler, displaySignedByArbitratorHandler,
             displaySignedByPeerHandler, displayPeerLimitLiftedHandler, displayPeerSignerHandler,
             rejectedTxErrorMessageHandler;
@@ -242,7 +241,6 @@ public class HavenoSetup {
                        AccountAgeWitnessService accountAgeWitnessService,
                        TorSetup torSetup,
                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                       XmrLocalNode xmrLocalNode,
                        AppStartupState appStartupState,
                        Socks5ProxyProvider socks5ProxyProvider,
                        MediationManager mediationManager,
@@ -268,7 +266,6 @@ public class HavenoSetup {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torSetup = torSetup;
         this.formatter = formatter;
-        this.xmrLocalNode = xmrLocalNode;
         this.appStartupState = appStartupState;
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
@@ -348,7 +345,6 @@ public class HavenoSetup {
                 // We set that after calling the setupCompleteHandler to not trigger a popup from the dev dummy accounts
                 // in MainViewModel
                 maybeShowSecurityRecommendation();
-                maybeShowLocalhostRunningInfo();
                 maybeShowAccountSigningStateInfo();
                 maybeShowTorAddressUpgradeInformation();
                 checkInboundConnections();
@@ -640,10 +636,6 @@ public class HavenoSetup {
                     displaySecurityRecommendationHandler != null)
                 displaySecurityRecommendationHandler.accept(key);
         });
-    }
-
-    private void maybeShowLocalhostRunningInfo() {
-        maybeTriggerDisplayHandler("xmrLocalNode", displayLocalhostHandler, xmrLocalNode.shouldBeUsed());
     }
 
     private void maybeShowAccountSigningStateInfo() {
