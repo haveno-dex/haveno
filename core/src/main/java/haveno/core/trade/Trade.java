@@ -161,6 +161,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public static final int NUM_BLOCKS_DEPOSITS_FINALIZED = 30; // ~1 hour before deposits are considered finalized
     public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized, after which the multisig wallet is retained but no longer opened or synced
     public static final int NUM_BLOCKS_PAYOUT_DELETED = Config.baseCurrencyNetwork().isTestnet() ? 420 : 5040; // ~7 days before the retained multisig wallet is deleted (must be finalized first)
+    private static final BigInteger MAX_PAYOUT_TX_CHANGE = BigInteger.valueOf(100000); // max atomic units left in multisig after payout
     public static final long DEFER_PUBLISH_MS = 25000; // 25 seconds
     public static final long POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS = 120000; // 2 minutes
     private static final long KEEP_ALIVE_PERIOD_MINS = 28; // connection to monerod times out after 30 mins of inactivity
@@ -1577,22 +1578,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (!buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new IllegalArgumentException("Buyer payout address does not match contract");
         if (!sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Seller payout address does not match contract");
 
-        // verify change address is multisig's primary address
-        if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), getId(), payoutTx.getChangeAmount());
-        if (!payoutTx.getChangeAmount().equals(BigInteger.ZERO) && !payoutTx.getChangeAddress().equals(wallet.getPrimaryAddress())) throw new IllegalArgumentException("Change address is not multisig wallet's primary address");
-
-        // verify sum of outputs = destination amounts + change amount
-        if (!payoutTx.getOutputSum().equals(buyerPayoutDestination.getAmount().add(sellerPayoutDestination.getAmount()).add(payoutTx.getChangeAmount()))) throw new IllegalArgumentException("Sum of outputs != destination amounts + change amount");
-
-        // verify buyer destination amount is deposit amount + this amount - 1/2 tx costs
-        BigInteger txCost = payoutTx.getFee().add(payoutTx.getChangeAmount());
-        BigInteger txCostSplit = txCost.divide(BigInteger.valueOf(2));
-        BigInteger expectedBuyerPayout = buyerDepositAmount.add(tradeAmount).subtract(txCostSplit);
-        if (!buyerPayoutDestination.getAmount().equals(expectedBuyerPayout)) throw new IllegalArgumentException("Buyer destination amount is not deposit amount + trade amount - 1/2 tx costs, " + buyerPayoutDestination.getAmount() + " vs " + expectedBuyerPayout);
-
-        // verify seller destination amount is deposit amount - this amount - 1/2 tx costs
-        BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txCostSplit);
-        if (!sellerPayoutDestination.getAmount().equals(expectedSellerPayout)) throw new IllegalArgumentException("Seller destination amount is not deposit amount - trade amount - 1/2 tx costs, " + sellerPayoutDestination.getAmount() + " vs " + expectedSellerPayout);
+        // each trader receives their deposit amount +/- trade amount, less half the tx fee
+        BigInteger txFeeSplit = payoutTx.getFee().divide(BigInteger.valueOf(2));
+        BigInteger expectedBuyerPayout = buyerDepositAmount.add(tradeAmount).subtract(txFeeSplit);
+        BigInteger expectedSellerPayout = sellerDepositAmount.subtract(tradeAmount).subtract(txFeeSplit);
+        verifyPayoutTx(payoutTx, buyerPayoutDestination.getAmount(), sellerPayoutDestination.getAmount(), expectedBuyerPayout, expectedSellerPayout);
 
         // update payout tx
         setPayoutTx(payoutTx);
@@ -1726,30 +1716,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (buyerPayoutDestination != null && !buyerPayoutDestination.getAddress().equals(contract.getBuyerPayoutAddressString())) throw new IllegalArgumentException("Buyer payout address does not match contract");
         if (sellerPayoutDestination != null && !sellerPayoutDestination.getAddress().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Seller payout address does not match contract");
 
-        // verify change address is multisig's primary address
-        if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO) && !arbitratorSignedPayoutTx.getChangeAddress().equals(wallet.getPrimaryAddress())) throw new IllegalArgumentException("Change address is not multisig wallet's primary address");
-
-        // verify sum of outputs = destination amounts + change amount
-        BigInteger destinationSum = (buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount()).add(sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount());
-        if (!arbitratorSignedPayoutTx.getOutputSum().equals(destinationSum.add(arbitratorSignedPayoutTx.getChangeAmount()))) throw new IllegalArgumentException("Sum of outputs != destination amounts + change amount");
-
         // get actual payout amounts
         BigInteger actualBuyerAmount = buyerPayoutDestination == null ? BigInteger.ZERO : buyerPayoutDestination.getAmount();
         BigInteger actualSellerAmount = sellerPayoutDestination == null ? BigInteger.ZERO : sellerPayoutDestination.getAmount();
 
-        // verify payouts sum to unlocked balance within loss of precision due to conversion to centineros
-        BigInteger txCost = arbitratorSignedPayoutTx.getFee().add(arbitratorSignedPayoutTx.getChangeAmount()); // cost = fee + lost dust change
-        if (!arbitratorSignedPayoutTx.getChangeAmount().equals(BigInteger.ZERO)) log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), getId(), arbitratorSignedPayoutTx.getChangeAmount());
-        if (wallet.getUnlockedBalance().subtract(actualBuyerAmount.add(actualSellerAmount).add(txCost)).compareTo(BigInteger.ZERO) > 0) {
-            throw new IllegalArgumentException("The dispute payout amounts do not sum to the wallet's unlocked balance while verifying the dispute payout tx, unlocked balance=" + getWallet().getUnlockedBalance() + " vs sum payout amount=" + actualBuyerAmount.add(actualSellerAmount) + ", buyer payout=" + actualBuyerAmount + ", seller payout=" + actualSellerAmount);
-        }
-
-        // verify payout amounts
-        BigInteger[] buyerSellerPayoutTxCost = getBuyerSellerPayoutTxCost(disputeResult, txCost);
-        BigInteger expectedBuyerAmount = disputeResult.getBuyerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxCost[0]);
-        BigInteger expectedSellerAmount = disputeResult.getSellerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxCost[1]);
-        if (!expectedBuyerAmount.equals(actualBuyerAmount)) throw new IllegalArgumentException("Unexpected buyer payout: " + expectedBuyerAmount + " vs " + actualBuyerAmount);
-        if (!expectedSellerAmount.equals(actualSellerAmount)) throw new IllegalArgumentException("Unexpected seller payout: " + expectedSellerAmount + " vs " + actualSellerAmount);
+        // each trader receives their dispute payout amount, less their share of the tx fee
+        BigInteger[] buyerSellerPayoutTxFee = getBuyerSellerPayoutTxFee(disputeResult, arbitratorSignedPayoutTx.getFee());
+        BigInteger expectedBuyerAmount = disputeResult.getBuyerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxFee[0]);
+        BigInteger expectedSellerAmount = disputeResult.getSellerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxFee[1]);
+        verifyPayoutTx(arbitratorSignedPayoutTx, actualBuyerAmount, actualSellerAmount, expectedBuyerAmount, expectedSellerAmount);
 
         // check daemon connection
         verifyDaemonConnection();
@@ -1812,22 +1787,46 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return disputeTxSet;
     }
 
-    private static BigInteger[] getBuyerSellerPayoutTxCost(DisputeResult disputeResult, BigInteger payoutTxCost) {
+    private void verifyPayoutTx(MoneroTxWallet payoutTx, BigInteger buyerAmount, BigInteger sellerAmount, BigInteger expectedBuyerAmount, BigInteger expectedSellerAmount) {
+
+        // verify tx is not time-locked
+        if (!BigInteger.ZERO.equals(payoutTx.getUnlockTime())) throw new IllegalArgumentException("Payout tx unlock time must be 0");
+
+        // verify any change returns to the multisig wallet
+        BigInteger change = payoutTx.getChangeAmount();
+        if (!change.equals(BigInteger.ZERO)) {
+            log.warn("Dust left in multisig wallet for {} {}: {}", getClass().getSimpleName(), getId(), change);
+            if (!payoutTx.getChangeAddress().equals(wallet.getPrimaryAddress())) throw new IllegalArgumentException("Change address is not multisig wallet's primary address");
+        }
+
+        // verify sum of outputs = destination amounts + change amount
+        if (!payoutTx.getOutputSum().equals(buyerAmount.add(sellerAmount).add(change))) throw new IllegalArgumentException("Sum of outputs != destination amounts + change amount");
+
+        // verify tx releases the whole balance to the traders, leaving at most dust in the multisig
+        BigInteger leftInMultisig = wallet.getUnlockedBalance().subtract(buyerAmount).subtract(sellerAmount).subtract(payoutTx.getFee());
+        if (leftInMultisig.compareTo(MAX_PAYOUT_TX_CHANGE) > 0) throw new IllegalArgumentException("Payout tx does not release the multisig balance, " + leftInMultisig + " left exceeds dust limit " + MAX_PAYOUT_TX_CHANGE);
+
+        // verify each trader's payout amount
+        if (!buyerAmount.equals(expectedBuyerAmount)) throw new IllegalArgumentException("Unexpected buyer payout: " + expectedBuyerAmount + " vs " + buyerAmount);
+        if (!sellerAmount.equals(expectedSellerAmount)) throw new IllegalArgumentException("Unexpected seller payout: " + expectedSellerAmount + " vs " + sellerAmount);
+    }
+
+    private static BigInteger[] getBuyerSellerPayoutTxFee(DisputeResult disputeResult, BigInteger payoutTxFee) {
         boolean isBuyerWinner = disputeResult.getWinner() == Winner.BUYER;
         BigInteger loserAmount = isBuyerWinner ? disputeResult.getSellerPayoutAmountBeforeCost() : disputeResult.getBuyerPayoutAmountBeforeCost();
         if (loserAmount.equals(BigInteger.ZERO)) {
-            BigInteger buyerPayoutTxFee = isBuyerWinner ? payoutTxCost : BigInteger.ZERO;
-            BigInteger sellerPayoutTxFee = isBuyerWinner ? BigInteger.ZERO : payoutTxCost;
+            BigInteger buyerPayoutTxFee = isBuyerWinner ? payoutTxFee : BigInteger.ZERO;
+            BigInteger sellerPayoutTxFee = isBuyerWinner ? BigInteger.ZERO : payoutTxFee;
             return new BigInteger[] { buyerPayoutTxFee, sellerPayoutTxFee };
         } else {
             switch (disputeResult.getSubtractFeeFrom()) {
                 case BUYER_AND_SELLER:
-                    BigInteger payoutTxFeeSplit = payoutTxCost.divide(BigInteger.valueOf(2));
+                    BigInteger payoutTxFeeSplit = payoutTxFee.divide(BigInteger.valueOf(2));
                     return new BigInteger[] { payoutTxFeeSplit, payoutTxFeeSplit };
                 case BUYER_ONLY:
-                    return new BigInteger[] { payoutTxCost, BigInteger.ZERO };
+                    return new BigInteger[] { payoutTxFee, BigInteger.ZERO };
                 case SELLER_ONLY:
-                    return new BigInteger[] { BigInteger.ZERO, payoutTxCost };
+                    return new BigInteger[] { BigInteger.ZERO, payoutTxFee };
                 default:
                     throw new RuntimeException("Unsupported subtract fee from: " + disputeResult.getSubtractFeeFrom());
             }
@@ -1866,10 +1865,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (payoutTx.isFailed()) throw new IllegalStateException("Payout tx " + payoutTxId + " is failed for " + getClass().getSimpleName() + " " + getId());
 
         // verify incoming amount
-        BigInteger txCost = payoutTx.getFee();
-        BigInteger txCostSplit = txCost.divide(BigInteger.valueOf(2));
-        BigInteger expectedAmount = getBuyer().getSecurityDeposit().add(getAmount()).subtract(txCostSplit);
-        if (!payoutTx.getIncomingAmount().equals(expectedAmount)) throw new IllegalStateException("Payout tx incoming amount is not deposit amount + trade amount - 1/2 tx costs, " + payoutTx.getIncomingAmount() + " vs " + getBuyer().getSecurityDeposit().add(getAmount()).subtract(txCostSplit));
+        BigInteger txFeeSplit = payoutTx.getFee().divide(BigInteger.valueOf(2));
+        BigInteger expectedAmount = getBuyer().getSecurityDeposit().add(getAmount()).subtract(txFeeSplit);
+        if (!payoutTx.getIncomingAmount().equals(expectedAmount)) throw new IllegalStateException("Payout tx incoming amount is not deposit amount + trade amount - 1/2 tx fee, " + payoutTx.getIncomingAmount() + " vs " + expectedAmount);
 
         // update payout tx
         setPayoutTx(payoutTx);
@@ -3879,7 +3877,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         } else {
             DisputeResult disputeResult = getDisputeResult();
             if (disputeResult != null) {
-                BigInteger[] buyerSellerPayoutTxFees = getBuyerSellerPayoutTxCost(disputeResult, payoutTx.getFee());
+                BigInteger[] buyerSellerPayoutTxFees = getBuyerSellerPayoutTxFee(disputeResult, payoutTx.getFee());
                 getBuyer().setPayoutTxFee(buyerSellerPayoutTxFees[0]);
                 getSeller().setPayoutTxFee(buyerSellerPayoutTxFees[1]);
                 getBuyer().setPayoutAmount(disputeResult.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getPayoutTxFee()));
