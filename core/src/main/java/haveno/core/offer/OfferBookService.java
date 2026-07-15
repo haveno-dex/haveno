@@ -83,7 +83,7 @@ public class OfferBookService {
 
     private final static long INVALID_OFFERS_TIMEOUT_MINS = 5 * 60 * 1000; // 5 minutes
     private final static int DELAY_LOG_INVALID_OFFER_SEC = 10;
-    private static final int DUMP_STATISTICS_DELAY_SEC = 60;
+    private static final int DUMP_STATISTICS_DELAY_SEC = 30;
 
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;
