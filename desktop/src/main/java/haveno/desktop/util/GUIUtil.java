@@ -60,7 +60,6 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.main.MainView;
@@ -901,13 +900,15 @@ public class GUIUtil {
     }
 
     public static void showSelectableTextModal(String title, String text) {
-        TextArea textArea = new HavenoTextArea();
+        TextArea textArea = new TextArea();
         textArea.setText(text);
         textArea.setEditable(false);
         textArea.setWrapText(true);
         textArea.setPrefSize(800, 600);
+        textArea.getStyleClass().add("window-text-area");
 
         Scene scene = new Scene(textArea);
+        CssTheme.loadSceneStyles(scene, CssTheme.getCurrentTheme(), false);
         Stage stage = new Stage();
         if (null != title) {
             stage.setTitle(title);

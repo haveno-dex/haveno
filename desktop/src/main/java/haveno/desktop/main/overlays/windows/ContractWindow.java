@@ -36,7 +36,6 @@ import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
-import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
@@ -302,13 +301,14 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 Res.get("shared.viewContractAsJson"), 0).second;
         viewContractButton.setDefaultButton(false);
         viewContractButton.setOnAction(e -> {
-            TextArea textArea = new HavenoTextArea();
+            TextArea textArea = new TextArea();
             String contractAsJson = dispute.getContractAsJson();
             textArea.setText(contractAsJson);
             textArea.setPrefHeight(50);
             textArea.setEditable(false);
             textArea.setWrapText(true);
             textArea.setPrefSize(800, 600);
+            textArea.getStyleClass().add("window-text-area");
 
             Scene viewContractScene = new Scene(textArea);
             Stage viewContractStage = new Stage();
@@ -317,6 +317,7 @@ public class ContractWindow extends Overlay<ContractWindow> {
             if (owner == null)
                 owner = MainView.getRootContainer();
             Scene rootScene = owner.getScene();
+            viewContractScene.getStylesheets().setAll(rootScene.getStylesheets());
             viewContractStage.initOwner(rootScene.getWindow());
             viewContractStage.initModality(Modality.NONE);
             viewContractStage.initStyle(StageStyle.UTILITY);
