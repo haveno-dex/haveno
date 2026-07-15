@@ -1491,6 +1491,12 @@ textfield */
     -fx-border-color: -bs-background-gray;
 }
 
+.window-text-area {
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-border-radius: 0;
+}
+
 .text-area-popup {
     -fx-border-color: -bs-color-background-popup-blur;
 }

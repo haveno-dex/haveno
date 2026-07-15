@@ -36,7 +36,6 @@ import haveno.core.util.JsonUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.BtcWalletService;
-import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.DisplayUtils;
@@ -328,7 +327,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         String contractAsJson = contract == null ? trade.getContractAsJson() : JsonUtil.objectToJsonWithHexBytes(contract);
 
         viewContractButton.setOnAction(e -> {
-            TextArea textArea = new HavenoTextArea();
+            TextArea textArea = new TextArea();
             String data = "Trade state: " + trade.getState();
             data += "\nTrade payout state: " + trade.getPayoutState();
             data += "\nTrade dispute state: " + trade.getDisputeState();
@@ -360,6 +359,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             textArea.setEditable(false);
             textArea.setWrapText(true);
             textArea.setPrefSize(800, 600);
+            textArea.getStyleClass().add("window-text-area");
 
             Scene viewContractScene = new Scene(textArea);
             Stage viewContractStage = new Stage();
@@ -368,6 +368,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             if (owner == null)
                 owner = MainView.getRootContainer();
             Scene rootScene = owner.getScene();
+            viewContractScene.getStylesheets().setAll(rootScene.getStylesheets());
             viewContractStage.initOwner(rootScene.getWindow());
             viewContractStage.initModality(Modality.NONE);
             viewContractStage.initStyle(StageStyle.UTILITY);
