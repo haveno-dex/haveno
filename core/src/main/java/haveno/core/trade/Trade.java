@@ -1290,6 +1290,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 getMaker().getDepositTxHash(),
                 getTaker().getDepositTxHash()
         );
+        if (contract.getBuyerPayoutAddressString().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Buyer and seller payout addresses must not be equal");
         return contract;
     }
 
