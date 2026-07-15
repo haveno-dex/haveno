@@ -25,7 +25,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -43,22 +45,33 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implements searchable dropdown (an autocomplete like experience).
+ * A searchable, editable combo box: typing filters the dropdown like an autocomplete.
  *
- * Clients must use setAutocompleteItems() instead of setItems().
+ * Clients populate it with {@link #setAutocompleteItems} instead of {@code setItems}, and observe
+ * confirmed changes (a click or [ENTER], not every keystroke) via {@link #setOnChangeConfirmed}.
  *
- * @param <T>  type of the ComboBox item; in the simplest case this can be a String
+ * @param <T> type of the item; may be a plain String
  */
 @Slf4j
 public class AutocompleteComboBox<T> extends JFXComboBox<T> {
-    private List<? extends T> list;
-    private List<? extends T> extendedList;
-    private List<T> matchingList;
-    private JFXComboBoxListViewSkin<T> comboBoxListViewSkin;
-    private boolean selectAllShortcut = false;
-    private T lastCommittedValue;
-    private double unfilteredPopupWidth = -1; // popup width measured from the full item list
-    private List<T> measuredList; // unfiltered content the pinned width was measured for
+
+    private static final int MAX_VISIBLE_ROWS = 10;
+
+    private final JFXComboBoxListViewSkin<T> skin;
+    private final ListView<T> popupList; // the dropdown's ListView, exposed by the skin
+
+    private List<? extends T> items = List.of();     // full, unfiltered items
+    private List<? extends T> searchPool;            // wider pool searched once the user types (optional)
+    private List<T> shownItems = new ArrayList<>();  // items currently in the popup
+
+    private T committedValue;                        // last confirmed value, restored on an empty dismissal
+    private boolean selectingAll;                    // guards the trailing key event after ctrl/cmd+A
+    private Cursor savedSceneCursor;                 // main-scene cursor restored when the popup closes
+
+    // Measuring the popup width runs the cell factory over every row and lags each open, so it is
+    // measured once per unfiltered content set and pinned; -1 means "measure on the next unfiltered open".
+    private double pinnedWidth = -1;
+    private List<T> pinnedFor;
 
     public AutocompleteComboBox() {
         this(FXCollections.observableArrayList());
@@ -67,53 +80,35 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private AutocompleteComboBox(ObservableList<T> items) {
         super(items);
         setEditable(true);
-        clearOnFocus();
-        showOnEditorClick();
-        setEmptySkinToGetMoreControlOverListView();
-        fixSpaceKey();
+
+        // The default skin exposes no handle on the popup ListView; the JFX skin does.
+        skin = new JFXComboBoxListViewSkin<>(this);
+        setSkin(skin);
+        @SuppressWarnings("unchecked")
+        ListView<T> content = (ListView<T>) skin.getPopupContent();
+        popupList = content;
+
         setAutocompleteItems(items);
-        mimicPopupStyleBeforeFirstShow();
-        linkPopupOwnerToCombo();
-        reactToQueryChanges();
-
-        // Store last committed value so we can restore it if nothing selected
-        valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null)
-                lastCommittedValue = newVal;
-        });
-
-        // Restore last committed value when editor loses focus if no matches
-        getEditor().focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-            if (!isNowFocused) {
-                String input = getEditor().getText();
-                T matched = getConverter().fromString(input);
-
-                boolean matchFound = getItems().stream()
-                    .anyMatch(item -> item.equals(matched));
-
-                if (!matchFound) {
-                    UserThread.execute(() -> {
-                        getSelectionModel().select(lastCommittedValue);
-                        getEditor().setText(asString(lastCommittedValue));
-                    });
-                }
-            }
-        });
+        matchControlWidthToPopup();
+        keepPopupOpenOnEditorClick();
+        suppressSpaceKeyReset();
+        clearEditorOnFocusGained();
+        openPopupOnEditorClick();
+        filterAsUserTypes();
+        trackCommittedValue();
+        showHandCursorWhileOpening();
     }
 
-    /**
-     * Set the complete list of ComboBox items. Use this instead of setItems().
-     */
-    public void setAutocompleteItems(List<? extends T> items, List<? extends T> allItems) {
-        list = items;
-        extendedList = allItems;
-        matchingList = new ArrayList<>(list);
-        unfilteredPopupWidth = -1;
-        measuredList = null;
-        unpinPopupWidth(); // new items: measure anew so the popup can resize
-        setValue(null);
-        getSelectionModel().clearSelection();
-        setItems(FXCollections.observableList(matchingList));
+    // --- public API ---
+
+    /** Set the full item list (optionally with a wider pool to search while typing). Use instead of setItems(). */
+    public void setAutocompleteItems(List<? extends T> items, List<? extends T> searchPool) {
+        this.items = items;
+        this.searchPool = searchPool;
+        this.shownItems = new ArrayList<>(items);
+        invalidatePinnedWidth(); // new content: measure afresh so the popup can grow or shrink to fit
+        resetSelection();
+        setItems(FXCollections.observableList(shownItems));
         getEditor().setText("");
     }
 
@@ -122,100 +117,167 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     }
 
     /**
-     * Triggered when value change is *confirmed*. In practical terms
-     * this is when user clicks item on the dropdown or hits [ENTER]
-     * while typing in the text.
-     *
-     * This is in contrast to onAction event that is triggered
-     * on every (unconfirmed) value change. The onAction is not really
-     * suitable for the search enabled ComboBox.
+     * Run the handler when a value change is <i>confirmed</i> - a dropdown click or [ENTER] - unlike
+     * onAction, which fires on every unconfirmed change and so does not suit a searchable combo.
      */
-    public final void setOnChangeConfirmed(EventHandler<Event> eh) {
+    public final void setOnChangeConfirmed(EventHandler<Event> handler) {
         setOnHidden(e -> {
-            var inputText = getEditor().getText();
+            String text = getEditor().getText();
 
-            // Case 1: fire if input text selects (matches) an item
-            var selectedItem = getSelectionModel().getSelectedItem();
-            var inputTextItem = getConverter().fromString(inputText);
-            if (selectedItem != null && selectedItem.equals(inputTextItem)) {
-                eh.handle(e);
+            // Confirmed when the editor text resolves to the selected item.
+            T selected = getSelectionModel().getSelectedItem();
+            if (selected != null && selected.equals(getConverter().fromString(text))) {
+                handler.handle(e);
                 getParent().requestFocus();
                 return;
             }
 
-            // Case 2: fire if the text is empty. A click on the editor itself keeps the
-            // blank editor focused for typing; any other dismissal restores the committed value.
-            if (inputText.isEmpty()) {
-                eh.handle(e);
+            // An empty editor also confirms (a cleared filter). A click on the editor keeps it blank for
+            // typing; any other dismissal restores the committed value.
+            if (text.isEmpty()) {
+                handler.handle(e);
                 if (!getEditor().isHover()) {
                     getParent().requestFocus();
-                    UserThread.execute(() -> {
-                        getSelectionModel().select(lastCommittedValue);
-                        getEditor().setText(asString(lastCommittedValue));
-                    });
+                    restoreCommittedValue();
                 }
             }
         });
     }
 
-    // Clear selection and query when ComboBox gets new focus. This is usually what user
-    // wants - to have a blank slate for a new search. The primary motivation though
-    // was to work around UX glitches related to (starting) editing text when combobox
-    // had specific item selected.
-    private void clearOnFocus() {
-        getEditor().focusedProperty().addListener((observableValue, hadFocus, hasFocus) -> {
-            if (!hadFocus && hasFocus) {
-                // When no filter is applied the rows are already current, so keep them: replacing
-                // the items rebuilds every visible row before the popup can paint, which delays
-                // opening noticeably. Refresh the rows just after showing instead, so dynamic
-                // content (e.g. offer counts) stays as fresh as a rebuilt list.
-                if (matchingList.equals(list)) {
-                    setValue(null);
-                    getSelectionModel().clearSelection();
-                    getEditor().setText("");
-                    if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView)
-                        listView.scrollTo(0);
-                    forceRedraw();
-                    UserThread.execute(this::refreshShowingRows);
-                } else {
-                    removeFilter();
-                    forceRedraw();
-                }
+    // --- focus and click behavior ---
+
+    // A new focus starts a fresh search, so clear the editor. Unfiltered, the rows are already current:
+    // open first and refresh them just after painting, since rebuilding before the popup shows delays
+    // opening. Filtered, drop the filter to restore the full list.
+    private void clearEditorOnFocusGained() {
+        getEditor().focusedProperty().addListener((obs, hadFocus, hasFocus) -> {
+            if (hadFocus || !hasFocus) return;
+            if (isUnfiltered()) {
+                resetSelection();
+                getEditor().setText("");
+                popupList.scrollTo(0);
+                openPopup();
+                UserThread.execute(this::refreshShownRows);
+            } else {
+                removeFilter();
+                openPopup();
             }
         });
     }
 
-    // re-set the items so the visible rows rebuild with current dynamic content
-    private void refreshShowingRows() {
+    // Re-set the current items so the visible rows rebuild with the latest dynamic content (e.g. offer counts).
+    private void refreshShownRows() {
         if (!isShowing()) return;
-        matchingList = new ArrayList<>(list);
-        setItems(FXCollections.observableList(matchingList));
+        shownItems = new ArrayList<>(items);
+        setItems(FXCollections.observableList(shownItems));
     }
 
-    // Clicking the search editor while the list is closed should open it (the editor does not
-    // toggle the popup by itself). With the popup owner node set (linkPopupOwnerToCombo) an
-    // editor click no longer auto-hides an open list, so this only opens it from closed.
-    private void showOnEditorClick() {
-        getEditor().addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
-            if (event.getButton() == MouseButton.PRIMARY && !isShowing() && matchingListSize() > 0)
+    // The editor does not toggle the popup itself; open it on a click when closed. The popup owner node
+    // stops an editor click from auto-hiding an open popup, so this only opens it from closed.
+    private void openPopupOnEditorClick() {
+        getEditor().addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
+            if (e.getButton() == MouseButton.PRIMARY && !isShowing() && !shownItems.isEmpty())
                 show();
         });
     }
 
-    // The skin shows the popup with only a Window owner and no owner node, so JavaFX auto-hides
-    // it on any press outside the popup window - including clicks in the search editor, which
-    // then blink the list closed and open. Set this combo as the popup's owner node once it is
-    // created: presses inside the combo (editor, arrow) are then owner-node events and skip
-    // auto-hide, while presses elsewhere still hide the list as before.
-    private void linkPopupOwnerToCombo() {
-        comboBoxListViewSkin.getPopupContent().sceneProperty().addListener((obs, old, scene) -> {
+    // --- filtering ---
+
+    private void filterAsUserTypes() {
+        getEditor().addEventHandler(KeyEvent.KEY_RELEASED, e -> {
+            KeyCode code = e.getCode();
+            if (code == KeyCode.CONTROL || code == KeyCode.COMMAND || code == KeyCode.META) {
+                e.consume();
+                return;
+            }
+
+            // ctrl/cmd+A selects all; swallow the standalone 'A' that can follow the modifier.
+            if (code == KeyCode.A && (e.isControlDown() || e.isMetaDown())) {
+                getEditor().selectAll();
+                selectingAll = true;
+                e.consume();
+                return;
+            }
+            if (code == KeyCode.A && selectingAll) {
+                selectingAll = false;
+                e.consume();
+                return;
+            }
+
+            UserThread.execute(() -> {
+                String query = getEditor().getText();
+                if (items.stream().anyMatch(item -> asString(item).equalsIgnoreCase(query))) return;
+                if (query.isEmpty()) removeFilter();
+                else filterBy(query);
+                openPopup();
+            });
+        });
+    }
+
+    private void filterBy(String query) {
+        List<? extends T> pool = searchPool != null && !query.isEmpty() ? searchPool : items;
+        shownItems = pool.stream()
+                .filter(item -> StringUtils.containsIgnoreCase(asString(item), query))
+                .collect(Collectors.toList());
+        resetSelection();
+        setItems(FXCollections.observableList(shownItems));
+        int caret = Math.min(getEditor().getCaretPosition(), query.length()); // read before setText resets it
+        getEditor().setText(query);
+        getEditor().positionCaret(caret);
+    }
+
+    private void removeFilter() {
+        shownItems = new ArrayList<>(items);
+        resetSelection();
+        setItems(FXCollections.observableList(shownItems));
+        getEditor().setText("");
+    }
+
+    // --- committed value ---
+
+    // Remember the last confirmed value and restore it when the editor loses focus with unmatched text.
+    private void trackCommittedValue() {
+        valueProperty().addListener((obs, old, value) -> {
+            if (value != null) committedValue = value;
+        });
+        getEditor().focusedProperty().addListener((obs, wasFocused, focused) -> {
+            if (!focused && !getItems().contains(getConverter().fromString(getEditor().getText())))
+                restoreCommittedValue();
+        });
+    }
+
+    private void restoreCommittedValue() {
+        UserThread.execute(() -> {
+            getSelectionModel().select(committedValue);
+            getEditor().setText(asString(committedValue));
+        });
+    }
+
+    // --- popup plumbing ---
+
+    // Before the popup first shows, the skin keeps its ListView as a plain hidden child of this control
+    // and sizes the control to it; without the popup's ".combo-box-popup" styling the measured width
+    // differs, so the control would resize on first open. Nest the ListView in a hidden mimic of the
+    // popup so it always measures as it will render; the popup reparents it out on first show.
+    private void matchControlWidthToPopup() {
+        Pane popupMimic = new Pane(popupList);
+        popupMimic.getStyleClass().add("combo-box-popup");
+        popupMimic.setManaged(false);
+        popupMimic.setVisible(false);
+        getChildren().add(popupMimic);
+    }
+
+    // The skin shows the popup owned only by its window, so JavaFX auto-hides it on any press outside
+    // the window - including in the editor, which blinks the list shut then open. Make this combo the
+    // popup's owner node so presses inside the combo skip auto-hide while outside presses still dismiss it.
+    private void keepPopupOpenOnEditorClick() {
+        popupList.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null && scene.getWindow() instanceof PopupWindow popup && popup.getOwnerNode() == null)
                 setPopupOwnerNode(popup);
         });
     }
 
-    // PopupWindow.ownerNode is externally read-only and only set by the Node-owner show()
-    // overload, which the combo skin never uses; set it reflectively.
+    // PopupWindow.ownerNode is read-only except through the Node-owner show() overload the skin never uses.
     private void setPopupOwnerNode(PopupWindow popup) {
         try {
             Field field = PopupWindow.class.getDeclaredField("ownerNode");
@@ -228,149 +290,89 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         }
     }
 
-    // The ComboBox API does not provide enough control over the underlying
-    // ListView that is used as a dropdown. The only way to get this control
-    // is to set custom ListViewSkin. The default skin is null and so useless.
-    private void setEmptySkinToGetMoreControlOverListView() {
-        comboBoxListViewSkin = new JFXComboBoxListViewSkin<>(this);
-        setSkin(comboBoxListViewSkin);
-    }
-
-    // The skin sizes the control to the popup ListView, which it keeps as a hidden child of
-    // this control until the popup adopts it on first show. Until then it is styled as a plain
-    // child instead of with the popup's ".combo-box-popup" rules, so its measured width differs
-    // and the control resizes on first open. Wrap it in a hidden pane mimicking the popup, so
-    // it always measures exactly as it will render in the popup.
-    private void mimicPopupStyleBeforeFirstShow() {
-        Pane popupMimic = new Pane(comboBoxListViewSkin.getPopupContent()); // reparents the ListView
-        popupMimic.getStyleClass().add("combo-box-popup");
-        popupMimic.setManaged(false);
-        popupMimic.setVisible(false);
-        getChildren().add(popupMimic);
-    }
-
-    // By default pressing [SPACE] caused editor text to reset. The solution
-    // is to suppress relevant event on the underlying ListViewSkin.
-    private void fixSpaceKey() {
-        comboBoxListViewSkin.getPopupContent().addEventFilter(KeyEvent.ANY, (KeyEvent event) -> {
-            if (event.getCode() == KeyCode.SPACE)
-                event.consume();
+    // While the popup opens, the pointer can sweep down across the main scene before the popup window
+    // renders under it (native popup-open latency), briefly showing the arrow. Force the main scene's
+    // cursor to hand once the pointer leaves the collapsed control, so the not-yet-rendered popup area
+    // reads as a hand; restore it on close. Setting it only after the pointer exits keeps the editor's
+    // own text cursor when the collapsed control is first clicked.
+    private void showHandCursorWhileOpening() {
+        showingProperty().addListener((obs, wasShowing, showing) -> {
+            Scene scene = getScene();
+            if (scene == null) return;
+            if (showing) savedSceneCursor = scene.getCursor();
+            else {
+                scene.setCursor(savedSceneCursor);
+                savedSceneCursor = null;
+            }
+        });
+        addEventFilter(MouseEvent.MOUSE_EXITED, e -> {
+            if (isShowing() && getScene() != null) getScene().setCursor(Cursor.HAND);
         });
     }
 
-    private void filterBy(String query) {
-        matchingList = (extendedList != null && query.length() > 0 ? extendedList : list)
-                .stream()
-                .filter(item -> StringUtils.containsIgnoreCase(asString(item), query))
-                .collect(Collectors.toList());
-
-        setValue(null);
-        getSelectionModel().clearSelection();
-        setItems(FXCollections.observableList(matchingList));
-        int pos = getEditor().getCaretPosition();
-        if (pos > query.length()) pos = query.length();
-        getEditor().setText(query);
-        getEditor().positionCaret(pos);
-    }
-
-    private void reactToQueryChanges() {
-        getEditor().addEventHandler(KeyEvent.KEY_RELEASED, (KeyEvent event) -> {
-
-            // ignore ctrl and command keys
-            if (event.getCode() == KeyCode.CONTROL || event.getCode() == KeyCode.COMMAND || event.getCode() == KeyCode.META) {
-                event.consume();
-                return;
-            }
-
-            // handle select all
-            boolean isSelectAll = event.getCode() == KeyCode.A && (event.isControlDown() || event.isMetaDown());
-            if (isSelectAll) {
-                getEditor().selectAll();
-                selectAllShortcut = true;
-                event.consume();
-                return;
-            }
-            if (event.getCode() == KeyCode.A && selectAllShortcut) { // 'A' can be received after ctrl/cmd
-                selectAllShortcut = false;
-                event.consume();
-                return;
-            }
-
-            UserThread.execute(() -> {
-                String query = getEditor().getText();
-                var exactMatch = list.stream().anyMatch(item -> asString(item).equalsIgnoreCase(query));
-                if (!exactMatch) {
-                    if (query.isEmpty())
-                        removeFilter();
-                    else
-                        filterBy(query);
-                    forceRedraw();
-                }
-            });
+    // SPACE inside the popup otherwise resets the editor text; swallow it.
+    private void suppressSpaceKeyReset() {
+        popupList.addEventFilter(KeyEvent.ANY, e -> {
+            if (e.getCode() == KeyCode.SPACE) e.consume();
         });
     }
 
-    private void removeFilter() {
-        matchingList = new ArrayList<>(list);
-        setValue(null);
-        getSelectionModel().clearSelection();
-        setItems(FXCollections.observableList(matchingList));
-        getEditor().setText("");
-    }
+    // --- popup sizing and open ---
 
-    private void forceRedraw() {
-        adjustVisibleRowCount();
-        if (matchingListSize() > 0) {
-            boolean unfiltered = matchingList.equals(list);
-            // Drop a pin measured for stale content (e.g. changed offer counts or an added
-            // currency) so a grown list re-measures instead of overflowing into a scrollbar.
-            if (unfiltered && !matchingList.equals(measuredList)) unfilteredPopupWidth = -1;
-            // Sizing the popup width runs the cell factory over the whole list several times per
-            // open, which lags the popup visibly. Reuse the width measured on the first unfiltered
-            // open while its content is unchanged; filtered rows can be wider, so those measure anew.
-            if (unfiltered && unfilteredPopupWidth > 0) setPopupPrefWidth(unfilteredPopupWidth);
-            else unpinPopupWidth();
-            // Flush the popup ListView's item count before measuring, else a stale (smaller) count
-            // caps its preferred height and a grown list (e.g. rapidly cleared filter) leaves the
-            // popup shorter than its max rows.
-            if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView) {
-                listView.applyCss();
-                listView.layout();
-            }
-            comboBoxListViewSkin.getPopupContent().autosize();
-            show();
-            if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView) {
-                listView.applyCss();
-                listView.layout();
-                if (unfiltered && unfilteredPopupWidth <= 0 && listView.getWidth() > 0) {
-                    unfilteredPopupWidth = listView.getWidth();
-                    measuredList = new ArrayList<>(matchingList);
-                    setPopupPrefWidth(unfilteredPopupWidth);
-                }
-            }
-        } else {
+    // Open the popup at the right size, reusing the pinned unfiltered width to avoid re-measuring every
+    // open; filtered rows can be wider, so they size freely.
+    private void openPopup() {
+        setVisibleRowCount(Math.min(MAX_VISIBLE_ROWS, shownItems.size()));
+        if (shownItems.isEmpty()) {
             hide();
+            return;
+        }
+
+        boolean unfiltered = isUnfiltered();
+        // Re-measure when the unfiltered content changed so the popup grows or shrinks to fit instead of
+        // overflowing into a scrollbar or leaving slack.
+        if (unfiltered && !shownItems.equals(pinnedFor)) pinnedWidth = -1;
+        setPopupPrefWidth(unfiltered && pinnedWidth > 0 ? pinnedWidth : Region.USE_COMPUTED_SIZE);
+
+        // Flush the row count before the popup autosizes, else a stale (smaller) count caps its height
+        // and a freshly grown list opens shorter than its max rows.
+        popupList.applyCss();
+        popupList.layout();
+        popupList.autosize();
+        show();
+
+        // Lay out the shown popup; on the first unfiltered open also capture its width and pin it.
+        popupList.applyCss();
+        popupList.layout();
+        if (unfiltered && pinnedWidth <= 0 && popupList.getWidth() > 0) {
+            pinnedWidth = popupList.getWidth();
+            pinnedFor = new ArrayList<>(shownItems);
+            setPopupPrefWidth(pinnedWidth);
         }
     }
 
     private void setPopupPrefWidth(double width) {
-        if (comboBoxListViewSkin.getPopupContent() instanceof ListView<?> listView)
-            listView.setPrefWidth(width);
+        popupList.setPrefWidth(width);
     }
 
-    private void unpinPopupWidth() {
-        if (comboBoxListViewSkin != null) setPopupPrefWidth(Region.USE_COMPUTED_SIZE);
+    private void invalidatePinnedWidth() {
+        pinnedWidth = -1;
+        pinnedFor = null;
+        setPopupPrefWidth(Region.USE_COMPUTED_SIZE);
     }
 
-    private void adjustVisibleRowCount() {
-        setVisibleRowCount(Math.min(10, matchingListSize()));
+    // --- small helpers ---
+
+    private void resetSelection() {
+        setValue(null);
+        getSelectionModel().clearSelection();
+    }
+
+    private boolean isUnfiltered() {
+        return shownItems.equals(items);
     }
 
     private String asString(T item) {
         return getConverter().toString(item);
-    }
-
-    private int matchingListSize() {
-        return matchingList.size();
     }
 }
