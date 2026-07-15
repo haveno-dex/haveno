@@ -1081,7 +1081,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             // replace hyperlink in message with [n] reference
             work = work.replaceFirst(pattern.toString(), String.format("[%d]", messageHyperlinks.size()));
         }
-        this.message = work;
+        this.message = work.stripTrailing(); // drop trailing blank lines to avoid extra whitespace at popup bottom
         setTruncatedMessage();
     }
 
