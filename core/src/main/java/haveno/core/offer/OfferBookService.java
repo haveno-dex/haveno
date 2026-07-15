@@ -70,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
@@ -82,6 +83,7 @@ public class OfferBookService {
 
     private final static long INVALID_OFFERS_TIMEOUT_MINS = 5 * 60 * 1000; // 5 minutes
     private final static int DELAY_LOG_INVALID_OFFER_SEC = 10;
+    private static final int DUMP_STATISTICS_DELAY_SEC = 60;
 
     private final P2PService p2PService;
     private final PriceFeedService priceFeedService;
@@ -92,6 +94,8 @@ public class OfferBookService {
     private final List<Offer> validOffers = new ArrayList<Offer>();
     private final List<Offer> invalidOffers = new ArrayList<Offer>();
     private final Map<String, Timer> invalidOfferTimers = new HashMap<>();
+    private final AtomicBoolean dumpStatisticsScheduled = new AtomicBoolean();
+    private volatile boolean shutDownRequested;
 
     public interface OfferBookChangedListener {
         void onAdded(Offer offer);
@@ -176,17 +180,17 @@ public class OfferBookService {
                     addOfferBookChangedListener(new OfferBookChangedListener() {
                         @Override
                         public void onAdded(Offer offer) {
-                            doDumpStatistics();
+                            maybeDumpStatistics();
                         }
 
                         @Override
                         public void onRemoved(Offer offer) {
-                            doDumpStatistics();
+                            maybeDumpStatistics();
                         }
 
                         @Override
                         public void onRefresh(Offer offer) {
-                            doDumpStatistics();
+                            maybeDumpStatistics();
                         }
                     });
                     UserThread.runAfter(OfferBookService.this::doDumpStatistics, 1);
@@ -295,6 +299,7 @@ public class OfferBookService {
     }
 
     public void shutDown() {
+        shutDownRequested = true;
         xmrConnectionService.getKeyImagePoller().removeKeyImages(OfferBookService.class.getName());
     }
 
@@ -482,6 +487,21 @@ public class OfferBookService {
                 offer.setReservedFundsSpent(true);
             }
         }
+    }
+
+    private void maybeDumpStatistics() {
+        // Dumping serializes the whole offer book, and offer refresh messages arrive frequently
+        // from the whole network, so we batch frequent updates into one dump per interval.
+        if (!dumpStatisticsScheduled.compareAndSet(false, true)) {
+            return;
+        }
+        UserThread.runAfter(() -> {
+            dumpStatisticsScheduled.set(false);
+            if (shutDownRequested) {
+                return;
+            }
+            doDumpStatistics();
+        }, DUMP_STATISTICS_DELAY_SEC);
     }
 
     private void doDumpStatistics() {
