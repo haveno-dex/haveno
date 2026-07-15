@@ -32,6 +32,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.util.FormattingUtils;
+import haveno.core.util.JsonUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.BtcWalletService;
@@ -324,14 +325,15 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         String sellerWitnessHash = trade.getSeller().getAccountAgeWitness() == null ? "null" : Utilities.bytesAsHexString(trade.getSeller().getAccountAgeWitness().getHash());
         String sellerPubKeyRingHash = Utilities.bytesAsHexString(trade.getSeller().getPubKeyRing().getSignaturePubKeyBytes());
 
+        String contractAsJson = contract == null ? trade.getContractAsJson() : JsonUtil.objectToJsonWithHexBytes(contract);
+
         viewContractButton.setOnAction(e -> {
             TextArea textArea = new HavenoTextArea();
-            textArea.setText(trade.getContractAsJson());
             String data = "Trade state: " + trade.getState();
             data += "\nTrade payout state: " + trade.getPayoutState();
             data += "\nTrade dispute state: " + trade.getDisputeState();
             data += "\n\nContract as json:\n";
-            data += trade.getContractAsJson();
+            data += contractAsJson;
             data += "\n\nOther detail data:";
             if (!trade.isDepositsPublished()) {
                 data += "\n\n" + (trade.getMaker() == trade.getBuyer() ? "Buyer" : "Seller") + " as maker reserve tx hex: " + trade.getMaker().getReserveTxHex();
