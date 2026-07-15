@@ -87,11 +87,8 @@ public class JsonFileManager {
         File tempFile = null;
         PrintWriter printWriter = null;
         try {
-            // We must not use tempFile.deleteOnExit() here: every write creates a temp file with a
-            // new unique name, and each deleteOnExit call adds a path to a JVM-global set which is
-            // never purged, growing without bound over the lifetime of the process. The temp file
-            // is renamed on success and deleted in the finally block on failure, and deleteOnExit
-            // would not run on an abnormal termination anyway.
+            // No tempFile.deleteOnExit(): each write's unique temp path leaks into a JVM-global set that
+            // is never purged. Cleanup is handled by the rename on success and the finally block on failure.
             tempFile = File.createTempFile("temp", null, dir);
 
             printWriter = new PrintWriter(tempFile);
@@ -109,14 +106,15 @@ public class JsonFileManager {
             log.error("storageFile " + jsonFile.toString());
             t.printStackTrace();
         } finally {
+            // Close first so the temp file is unlocked (on Windows) before we try to delete it.
+            if (printWriter != null)
+                printWriter.close();
+
             if (tempFile != null && tempFile.exists()) {
                 log.warn("Temp file still exists after failed save. We will delete it now. storageFile=" + fileName);
                 if (!tempFile.delete())
                     log.error("Cannot delete temp file.");
             }
-
-            if (printWriter != null)
-                printWriter.close();
         }
     }
 }
