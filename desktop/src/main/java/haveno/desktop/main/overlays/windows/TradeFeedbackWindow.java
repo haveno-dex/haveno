@@ -1,94 +1,180 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.desktop.main.overlays.windows;
 
-import com.google.inject.Inject;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
-import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.ExternalHyperlink;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.FormBuilder;
+import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import lombok.extern.slf4j.Slf4j;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javax.annotation.Nullable;
 
-import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
-
-@Slf4j
+/**
+ * Shown after a first successful trade: a success header with icon, then rows
+ * inviting feedback and pointing to community support.
+ */
 public class TradeFeedbackWindow extends Overlay<TradeFeedbackWindow> {
-    @Inject
+
+    private static final String MATRIX_URL = "https://matrix.to/#/#haveno:monero.social";
+
+    // wrap width of row texts: window width minus window padding, row padding, icon box and gap
+    private static final double WINDOW_HORIZONTAL_PADDING = 128;
+    private static final double FEATURE_HORIZONTAL_PADDING = 48;
+    private static final double FEATURE_ICON_BOX_WIDTH = 44;
+    private static final double FEATURE_TEXT_GAP = 18;
+
     public TradeFeedbackWindow() {
-        type = Type.Confirmation;
+        type = Type.Attention;
     }
 
     @Override
     public void show() {
-        headLine(Res.get("tradeFeedbackWindow.title"));
-        //message(Res.get("tradeFeedbackWindow.msg.part1")); // TODO: this message part has padding which remaining message does not have
         hideCloseButton();
-        actionButtonText(Res.get("shared.close"));
-
+        if (actionButtonText == null) actionButtonText = Res.get("tradeFeedbackWindow.done");
         super.show();
-    }
-
-    @Override
-    protected void addMessage() {
-        super.addMessage();
-
-        AutoTooltipLabel messageLabel1 = new AutoTooltipLabel(Res.get("tradeFeedbackWindow.msg.part1"));
-        messageLabel1.setMouseTransparent(true);
-        messageLabel1.setWrapText(true);
-        GridPane.setHalignment(messageLabel1, HPos.LEFT);
-        GridPane.setHgrow(messageLabel1, Priority.ALWAYS);
-        GridPane.setRowIndex(messageLabel1, ++rowIndex);
-        GridPane.setColumnIndex(messageLabel1, 0);
-        GridPane.setColumnSpan(messageLabel1, 2);
-        gridPane.getChildren().add(messageLabel1);
-        GridPane.setMargin(messageLabel1, new Insets(10, 0, 10, 0));
-
-        AutoTooltipLabel messageLabel2 = new AutoTooltipLabel(Res.get("tradeFeedbackWindow.msg.part2"));
-        messageLabel2.setMouseTransparent(true);
-        messageLabel2.setWrapText(true);
-        GridPane.setHalignment(messageLabel2, HPos.LEFT);
-        GridPane.setHgrow(messageLabel2, Priority.ALWAYS);
-        GridPane.setRowIndex(messageLabel2, ++rowIndex);
-        GridPane.setColumnIndex(messageLabel2, 0);
-        GridPane.setColumnSpan(messageLabel2, 2);
-        gridPane.getChildren().add(messageLabel2);
-
-        HyperlinkWithIcon matrix = addHyperlinkWithIcon(gridPane, ++rowIndex, "https://matrix.to/#/#haveno:monero.social",
-                "https://matrix.to/#/%23haveno:monero.social", 40);
-        GridPane.setMargin(matrix, new Insets(-6, 0, 10, 0));
-
-        AutoTooltipLabel messageLabel3 = new AutoTooltipLabel(Res.get("tradeFeedbackWindow.msg.part3"));
-        messageLabel3.setMouseTransparent(true);
-        messageLabel3.setWrapText(true);
-        GridPane.setHalignment(messageLabel3, HPos.LEFT);
-        GridPane.setHgrow(messageLabel3, Priority.ALWAYS);
-        GridPane.setRowIndex(messageLabel3, ++rowIndex);
-        GridPane.setColumnIndex(messageLabel3, 0);
-        GridPane.setColumnSpan(messageLabel3, 2);
-        gridPane.getChildren().add(messageLabel3);
     }
 
     @Override
     protected void onShow() {
         display();
+    }
+
+    @Override
+    protected void addMessage() {
+        VBox header = createHeader(Res.get("tradeFeedbackWindow.title"), Res.get("tradeFeedbackWindow.subtitle"));
+        VBox.setMargin(header, new Insets(0, 0, 6, 0));
+
+        VBox content = new VBox(10);
+        content.getChildren().addAll(
+                header,
+                createFeatureRow(MaterialDesignIcon.STAR,
+                        "trade-feedback-accent-feedback",
+                        Res.get("tradeFeedbackWindow.feedback.title"),
+                        Res.get("tradeFeedbackWindow.feedback.body"),
+                        null, null),
+                createSeparator(),
+                createFeatureRow(MaterialDesignIcon.FORUM,
+                        "trade-feedback-accent-support",
+                        Res.get("tradeFeedbackWindow.support.title"),
+                        Res.get("tradeFeedbackWindow.support.body"),
+                        Res.get("tradeFeedbackWindow.support.link"), MATRIX_URL));
+
+        GridPane.setHalignment(content, HPos.LEFT);
+        GridPane.setHgrow(content, Priority.ALWAYS);
+        GridPane.setMargin(content, new Insets(10, 0, 0, 0));
+        GridPane.setRowIndex(content, ++rowIndex);
+        GridPane.setColumnSpan(content, 2);
+        gridPane.getChildren().add(content);
+    }
+
+    private VBox createHeader(String titleText, String subtitleText) {
+        StackPane iconBox = new StackPane(createIcon(MaterialDesignIcon.CHECK_CIRCLE, "1.9em", "trade-feedback-header-icon"));
+        iconBox.getStyleClass().add("trade-feedback-header-icon-box");
+        iconBox.setMinWidth(50);
+        iconBox.setMaxWidth(50);
+
+        Label title = new Label(titleText);
+        title.getStyleClass().add("trade-feedback-header-title");
+        title.setWrapText(true);
+
+        Label subtitle = new Label(subtitleText);
+        subtitle.getStyleClass().add("trade-feedback-header-subtitle");
+        subtitle.setWrapText(true);
+
+        VBox titleBox = new VBox(3, title, subtitle);
+        titleBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(titleBox, Priority.ALWAYS);
+
+        HBox header = new HBox(14, iconBox, titleBox);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setFillHeight(false);
+
+        Region divider = new Region();
+        divider.getStyleClass().add("trade-feedback-header-divider");
+
+        return new VBox(10, header, divider);
+    }
+
+    private HBox createFeatureRow(MaterialDesignIcon icon,
+                                  String accentClass,
+                                  String titleText,
+                                  String bodyText,
+                                  @Nullable String linkText,
+                                  @Nullable String linkUrl) {
+        double textWidth = width - WINDOW_HORIZONTAL_PADDING - FEATURE_HORIZONTAL_PADDING
+                - FEATURE_ICON_BOX_WIDTH - FEATURE_TEXT_GAP;
+
+        Text iconText = createIcon(icon, "1.65em", "trade-feedback-feature-icon");
+        iconText.getStyleClass().add(accentClass);
+        StackPane iconBox = new StackPane(iconText);
+        iconBox.getStyleClass().addAll("trade-feedback-feature-icon-box", accentClass);
+
+        Label title = new Label(titleText);
+        title.getStyleClass().add("trade-feedback-feature-title");
+        title.setWrapText(true);
+        title.setPrefWidth(textWidth);
+
+        Label body = new Label(bodyText);
+        body.getStyleClass().add("trade-feedback-feature-body");
+        body.setWrapText(true);
+        body.setPrefWidth(textWidth);
+
+        VBox textBox = new VBox(3, title, body);
+        textBox.setMinHeight(Region.USE_PREF_SIZE);
+        HBox.setHgrow(textBox, Priority.ALWAYS);
+
+        if (linkText != null) {
+            HyperlinkWithIcon link = new ExternalHyperlink(linkText);
+            link.setOnAction(e -> GUIUtil.openWebPage(linkUrl));
+            textBox.getChildren().add(link);
+        }
+
+        HBox row = new HBox(FEATURE_TEXT_GAP, iconBox, textBox);
+        row.getStyleClass().add("trade-feedback-feature-row");
+        row.setAlignment(Pos.TOP_LEFT);
+        row.setFillHeight(false);
+        row.setMinHeight(Region.USE_PREF_SIZE);
+        return row;
+    }
+
+    private Region createSeparator() {
+        Region separator = new Region();
+        separator.getStyleClass().add("trade-feedback-separator");
+        return separator;
+    }
+
+    private static Text createIcon(MaterialDesignIcon icon, String size, String styleClass) {
+        Text textIcon = FormBuilder.getIcon(icon, size);
+        textIcon.getStyleClass().add(styleClass);
+        textIcon.setMouseTransparent(true);
+        return textIcon;
     }
 }
