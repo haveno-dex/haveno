@@ -33,9 +33,11 @@ import haveno.core.trade.messages.SignContractRequest;
 import haveno.core.trade.messages.SignContractResponse;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.util.JsonUtil;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
+import monero.common.MoneroUtils;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -63,10 +65,15 @@ public class ProcessSignContractRequest extends TradeTask {
           // TODO (woodser): verify request and from maker or taker
           SignContractRequest request = (SignContractRequest) processModel.getTradeMessage();
           TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
+
+          // validate peer's payout address
+          String payoutAddress = request.getPayoutAddress();
+          if (payoutAddress == null || payoutAddress.isBlank() || !MoneroUtils.isValidAddress(payoutAddress, XmrWalletService.getMoneroNetworkType())) throw new IllegalArgumentException("Invalid payout address in sign contract request for trade " + trade.getId());
+
           sender.setDepositTxHash(request.getDepositTxHash());
           sender.setAccountId(request.getAccountId());
           sender.setPaymentAccountPayloadHash(request.getPaymentAccountPayloadHash());
-          sender.setPayoutAddressString(request.getPayoutAddress());
+          sender.setPayoutAddressString(payoutAddress);
 
           // maker sends witness signature of deposit tx hash
           if (sender == trade.getMaker()) {
