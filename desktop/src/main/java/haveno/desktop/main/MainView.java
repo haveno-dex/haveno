@@ -332,7 +332,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setTopAnchor(this, 0d);
             setMinHeight(68);
             setPrefHeight(68);
-            setPadding(new Insets(1, 15, 0, 15));
+            setPadding(new Insets(1, 10, 0, 10));
             getStyleClass().add("top-navigation");
         }};
         navPane.setAlignment(Pos.CENTER);
