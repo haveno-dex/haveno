@@ -361,11 +361,24 @@
 
 .combo-box-popup .list-cell:hover {
     -fx-background-radius: 8;
+}
+
+/* Hand over every node the pointer can land on inside the popup: the list-view chain, each cell, AND
+   every node the cell factory puts in a cell (label/text, currency icon, offer pill). macOS does not
+   reliably resolve the cursor from an ancestor, so the picked node itself must carry it. Never set it
+   on the popup root - that breaks cursor resolution for the whole popup. */
+.combo-box-popup > .list-view,
+.combo-box-popup > .list-view > .virtual-flow,
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container,
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet,
+.combo-box-popup .list-cell,
+.combo-box-popup .list-cell * {
     -fx-cursor: hand;
 }
 
-.combo-box-popup > .list-view {
-    -fx-cursor: hand;
+.combo-box-popup .scroll-bar,
+.combo-box-popup .scroll-bar * {
+    -fx-cursor: default;
 }
 
 /* Mirror modena's popup cell padding at descendant scope, so the skin's off-sheet measuring
