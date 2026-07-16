@@ -1346,6 +1346,13 @@ textfield */
     -fx-fill: -bs-text-color;
 }
 
+/* Take-offer buttons keep white text on their colored fill in all row states; without
+   an always-matching rule the fill resets to black once the row is deselected. */
+.table-view .table-row-cell #buy-button .text,
+.table-view .table-row-cell #sell-button .text {
+    -fx-fill: -bs-white;
+}
+
 .table-view .table-row-cell .copy-icon .text,
 .table-view .table-row-cell .copy-icon .text:hover {
     -fx-fill: -fx-accent;
