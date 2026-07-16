@@ -103,6 +103,8 @@
     -bs-tab-content-label-hover: rgba(0, 0, 0, 0.03);
     -bs-combobox-hover: rgba(255, 255, 255, 0.1);
     -bs-combobox-selected: rgba(21, 188, 29, 0.1);
+    -bs-combo-popup-selected: rgba(56, 128, 255, 0.15);
+    -bs-combo-popup-hover: rgba(255, 255, 255, 0.06);
     -bs-content-pane-bg-bottom: #29292a;
     -bs-scroll-pane-background: transparent;
     -bs-tab-content-area: transparent;
@@ -380,15 +382,16 @@
     -fx-border-color: -bs-color-gray-13;
 }
 
-.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
-    -fx-background: -bs-combobox-selected;
-    -fx-background-color: -bs-combobox-selected;
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected,
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:hover {
+    -fx-background: -bs-combo-popup-selected;
+    -fx-background-color: -bs-combo-popup-selected;
+    -fx-text-fill: -bs-text-color;
 }
 
-.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
-.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:hover {
-    -fx-background:-bs-combobox-hover;
-    -fx-background-color: -bs-combobox-hover;
+.combo-box-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background: -bs-combo-popup-hover;
+    -fx-background-color: -bs-combo-popup-hover;
     -fx-text-fill: -bs-text-color;
 }
 
