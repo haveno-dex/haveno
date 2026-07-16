@@ -151,29 +151,33 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
      * match the payload owner.
      */
     public boolean isValidForAddOperation() {
+        if (!isSequenceNumberInRange("ProtectedStorageEntry::isValidForAddOperation()", MAX_ADD_SEQUENCE_NUMBER))
+            return false;
+
         if (!this.isSignatureValid())
             return false;
 
-        // TODO: The code currently supports MailboxStoragePayload objects inside ProtectedStorageEntry. Fix this.
+        // A MailboxStoragePayload must be carried by a ProtectedMailboxStorageEntry, which overrides this
+        // method. One in a plain entry is never processed as a mailbox item and its receiver could never
+        // remove it, so reject it instead of storing it until its TTL.
         if (protectedStoragePayload instanceof MailboxStoragePayload) {
-            MailboxStoragePayload mailboxStoragePayload = (MailboxStoragePayload) this.getProtectedStoragePayload();
-            return mailboxStoragePayload.getSenderPubKeyForAddOperation().equals(this.getOwnerPubKey());
-
-        } else {
-            boolean result = this.ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey());
-
-            if (!result) {
-                String res1 = this.toString();
-                String res2 = "null";
-                if (protectedStoragePayload.getOwnerPubKey() != null)
-                    res2 = Utilities.encodeToHex(protectedStoragePayload.getOwnerPubKey().getEncoded(), true);
-
-                log.warn("ProtectedStorageEntry::isValidForAddOperation() failed. Entry owner does not match Payload owner:\n" +
-                        "ProtectedStorageEntry={}\nPayloadOwner={}", res1, res2);
-            }
-
-            return result;
+            log.warn("ProtectedStorageEntry::isValidForAddOperation() rejected a MailboxStoragePayload carried by a plain entry");
+            return false;
         }
+
+        boolean result = this.ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey());
+
+        if (!result) {
+            String res1 = this.toString();
+            String res2 = "null";
+            if (protectedStoragePayload.getOwnerPubKey() != null)
+                res2 = Utilities.encodeToHex(protectedStoragePayload.getOwnerPubKey().getEncoded(), true);
+
+            log.warn("ProtectedStorageEntry::isValidForAddOperation() failed. Entry owner does not match Payload owner:\n" +
+                    "ProtectedStorageEntry={}\nPayloadOwner={}", res1, res2);
+        }
+
+        return result;
     }
 
     /*
@@ -181,6 +185,14 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
      * match the payload owner.
      */
     public boolean isValidForRemoveOperation() {
+
+        // A MailboxStoragePayload must be carried by a ProtectedMailboxStorageEntry, which overrides this method
+        // and enforces receiver-only removal. Reject one smuggled into a plain entry, otherwise a captured
+        // mailbox add could be replayed as a plain remove to suppress a victim's mailbox message.
+        if (protectedStoragePayload instanceof MailboxStoragePayload) {
+            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() rejected a MailboxStoragePayload carried by a plain entry");
+            return false;
+        }
 
         // Same requirements as add()
         boolean result = this.isValidForAddOperation();
@@ -196,6 +208,25 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
         }
 
         return result;
+    }
+
+    /*
+     * Max accepted sequence numbers per operation, so an entry cannot permanently lock its payload out of
+     * future add/refresh/remove updates via integer overflow. An add is capped one below a remove so the
+     * remove of the newest entry (stored sequence number + 1) always stays in range.
+     */
+    protected static final int MAX_ADD_SEQUENCE_NUMBER = Integer.MAX_VALUE - 2;
+    protected static final int MAX_REMOVE_SEQUENCE_NUMBER = Integer.MAX_VALUE - 1;
+
+    /*
+     * Returns false for a sequence number that is negative or can no longer be superseded.
+     */
+    protected boolean isSequenceNumberInRange(String methodName, int maxSequenceNumber) {
+        if (sequenceNumber < 0 || sequenceNumber > maxSequenceNumber) {
+            log.warn("{} rejected out-of-range sequenceNumber {}", methodName, sequenceNumber);
+            return false;
+        }
+        return true;
     }
 
     /*
