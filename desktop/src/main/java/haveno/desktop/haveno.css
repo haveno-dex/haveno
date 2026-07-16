@@ -938,9 +938,14 @@ tree-table-view:focused {
     -fx-fill: -bs-rd-nav-secondary-selected;
 }
 
+.nav-balance-box {
+    -fx-spacing: 1;
+}
+
 .nav-balance-display {
     -fx-alignment: center-left;
     -fx-text-fill: -bs-rd-font-balance;
+    -fx-font-size: 1.04em;
 }
 
 .nav-price-balance {
@@ -2678,6 +2683,7 @@ textfield */
 #price-feed-combo > .list-cell {
     -fx-text-fill: -bs-rd-font-balance;
     -fx-font-family: "IBM Plex Sans";
+    -fx-font-size: 1.04em;
 }
 
 #invert-market-price {
