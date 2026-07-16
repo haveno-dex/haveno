@@ -775,13 +775,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     }
 
                     // add or re-open dispute
-                    synchronized (disputeList) {
+                    synchronized (disputeList.getList()) {
                         if (disputeList.contains(msgDispute)) throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
 
                         // update trade state (monotonic so a replayed open cannot regress a closing dispute)
                         if (!reOpen) {
                             UserThread.execute(() -> {
-                                synchronized (disputeList) {
+                                synchronized (disputeList.getList()) {
                                     disputeList.add(dispute);
                                 }
                             });
@@ -969,7 +969,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         } else {
             final Dispute finalDispute = dispute;
             UserThread.execute(() -> {
-                synchronized (disputeList) {
+                synchronized (disputeList.getList()) {
                     disputeList.add(finalDispute);
                 }
             });
