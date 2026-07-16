@@ -465,6 +465,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         label.getStyleClass().add("nav-balance-label");
         label.setPadding(new Insets(0, 0, 0, 0));
         VBox vBox = new VBox();
+        vBox.getStyleClass().add("nav-balance-box");
         vBox.setAlignment(Pos.CENTER_LEFT);
         vBox.getChildren().addAll(balanceDisplay, label);
         return new Tuple2<>(balanceDisplay, vBox);
@@ -487,6 +488,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> getMarketPriceBox() {
 
         VBox marketPriceBox = new VBox();
+        marketPriceBox.getStyleClass().add("nav-balance-box");
         marketPriceBox.setAlignment(Pos.CENTER_LEFT);
 
         ComboBox<PriceFeedComboBoxItem> priceComboBox = new JFXComboBox<>();
