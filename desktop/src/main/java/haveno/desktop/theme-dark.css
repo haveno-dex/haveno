@@ -51,6 +51,7 @@
     -bs-color-background-form-field: rgb(26, 26, 26);
     -bs-color-background-form-field-readonly: rgb(18, 18, 18);
     -bs-color-border-form-field: rgb(65, 65, 65);
+    -bs-offer-card-border: rgba(255, 255, 255, 0.08);
     -bs-login-field-border: #4c4c50;
     -bs-login-field-focus-glow: rgba(56, 128, 255, 0.36);
     -bs-login-prompt-text: #9a9a9e;

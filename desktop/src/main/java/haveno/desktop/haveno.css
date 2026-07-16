@@ -1394,8 +1394,21 @@ textfield */
 }
 
 .table-view.offer-table {
-    -fx-background-radius: 0;
-    -fx-border-radius: 0;
+    -fx-background-radius: 0 0 10 10;
+    -fx-border-radius: 0 0 10 10;
+    /* Card supplies the outer border; drop the table's own frame so it doesn't
+       double up as a second line above the column headers (light mode). */
+    -fx-box-border: transparent;
+}
+
+/* Soft card wrapping each order table so the two panels read as distinct. */
+.offer-book-card {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 14, 0, 0, 3);
 }
 
 .table-view.offer-table .column-header.first-column {
@@ -1429,8 +1442,8 @@ textfield */
 .offer-table-top {
     -fx-background-color: -bs-color-background-pane;
     -fx-padding: 15 15 5 15;
-    -fx-background-radius: 8 8 0 0;
-    -fx-border-radius: 8 8 0 0;
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-radius: 10 10 0 0;
     -fx-border-width: 0 0 0 0;
 }
 

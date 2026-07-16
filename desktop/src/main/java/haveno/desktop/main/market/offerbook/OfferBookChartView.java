@@ -936,8 +936,9 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         titleButtonBox.getChildren().addAll(titleLabel, spacer, button);
 
         VBox vBox = new VBox();
+        vBox.getStyleClass().add("offer-book-card");
         VBox.setVgrow(tableView, Priority.ALWAYS);
-        vBox.setPadding(new Insets(0, 0, 0, 0));
+        vBox.setPadding(new Insets(1)); // inset children by the border width so the card border stays visible
         vBox.setSpacing(0);
         vBox.setFillWidth(true);
         //vBox.setMinHeight(190);
