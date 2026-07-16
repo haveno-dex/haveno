@@ -408,17 +408,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // set dispute
         T disputeList = getDisputeList();
         synchronized (disputeList.getList()) {
-            if (disputeList.contains(dispute)) {
-                String msg = "We got a dispute msg that we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
-                log.warn(msg);
-                faultHandler.handleFault(msg, new DisputeAlreadyOpenException());
-                return;
-            }
 
+            // add if new; re-opening reuses the stored dispute (identified by tradeId + traderId)
             Optional<Dispute> storedDisputeOptional = findDispute(dispute);
             boolean reOpen = storedDisputeOptional.isPresent();
-
-            // add or re-open dispute
             if (reOpen) {
                 dispute = storedDisputeOptional.get();
             } else {
@@ -680,44 +673,35 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
                     // add or re-open dispute
                     synchronized (disputeList.getList()) {
-                        if (!disputeList.contains(msgDispute)) {
-                            if (!storedDisputeOptional.isPresent() || reOpen) {
-
-                                // update trade state (monotonic so a replayed open cannot regress a closing dispute)
-                                if (!reOpen) {
-                                    UserThread.execute(() -> {
-                                        synchronized (disputeList.getList()) {
-                                            disputeList.add(dispute);
-                                        }
-                                    });
+                        // add if new; re-opening reuses the stored dispute. monotonic state and the
+                        // result-guard below keep a replayed open from regressing state or nulling payout.
+                        if (!reOpen) {
+                            UserThread.execute(() -> {
+                                synchronized (disputeList.getList()) {
+                                    disputeList.add(dispute);
                                 }
-                                trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
-
-                                // reset unsigned payout tx hex, but not once the dispute is resolved so a
-                                // replayed open cannot null a pending dispute payout
-                                if (dispute.getDisputeResultProperty().get() == null) {
-                                    trade.getBuyer().setUnsignedPayoutTxHex(null);
-                                    trade.getSeller().setUnsignedPayoutTxHex(null);
-                                }
-
-                                // send dispute opened message to other peer if arbitrator
-                                if (trade.isArbitrator()) {
-                                    TradePeer senderPeer = sender == trade.getMaker() ? trade.getTaker() : trade.getMaker();
-                                    if (senderPeer != trade.getMaker() && senderPeer != trade.getTaker()) throw new RuntimeException("Sender peer is not maker or taker, address=" + senderPeer.getNodeAddress());
-                                    sendDisputeOpenedMessageToPeer(dispute, contract, senderPeer.getPubKeyRing(), opener.getUpdatedMultisigHex());
-                                }
-                                tradeManager.requestPersistence();
-                                errorMessage = null;
-                            } else {
-                                // valid case if both have opened a dispute and agent was not online
-                                log.debug("We got a dispute already open for that trade and trading peer. TradeId = {}", dispute.getTradeId());
-                            }
-
-                            // add chat message with mediation info if applicable
-                            addMediationResultMessage(dispute);
-                        } else {
-                            throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
+                            });
                         }
+                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+
+                        // reset unsigned payout tx hex, but not once the dispute is resolved so a
+                        // replayed open cannot null a pending dispute payout
+                        if (dispute.getDisputeResultProperty().get() == null) {
+                            trade.getBuyer().setUnsignedPayoutTxHex(null);
+                            trade.getSeller().setUnsignedPayoutTxHex(null);
+                        }
+
+                        // send dispute opened message to other peer if arbitrator
+                        if (trade.isArbitrator()) {
+                            TradePeer senderPeer = sender == trade.getMaker() ? trade.getTaker() : trade.getMaker();
+                            if (senderPeer != trade.getMaker() && senderPeer != trade.getTaker()) throw new RuntimeException("Sender peer is not maker or taker, address=" + senderPeer.getNodeAddress());
+                            sendDisputeOpenedMessageToPeer(dispute, contract, senderPeer.getPubKeyRing(), opener.getUpdatedMultisigHex());
+                        }
+                        tradeManager.requestPersistence();
+                        errorMessage = null;
+
+                        // add chat message with mediation info if applicable
+                        addMediationResultMessage(dispute);
                     }
                 } catch (Exception e) {
                     log.error(ExceptionUtils.getStackTrace(e));

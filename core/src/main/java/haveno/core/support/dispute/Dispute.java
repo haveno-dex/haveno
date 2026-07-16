@@ -66,7 +66,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
-@EqualsAndHashCode
+// equality by id (tradeId_traderId); mutable fields (result, chat, state) must not affect identity
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Getter
 public final class Dispute implements NetworkPayload, PersistablePayload {
 
@@ -91,6 +92,7 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     }
 
     private final String tradeId;
+    @EqualsAndHashCode.Include
     private final String id;
     private final int traderId;
     private final boolean disputeOpenerIsBuyer;
