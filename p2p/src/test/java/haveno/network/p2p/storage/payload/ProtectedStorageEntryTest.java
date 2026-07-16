@@ -159,8 +159,7 @@ public class ProtectedStorageEntryTest {
     }
 
     // TESTCASE: validForRemoveOperation() should fail if the entry is a MailboxStoragePayload wrapped in a
-    // ProtectedStorageEntry and the Entry is owned by the sender
-    // XXXBUGXXX: Currently, a mis-wrapped MailboxStoragePayload will succeed
+    // plain ProtectedStorageEntry and the Entry is owned by the sender
     @Test
     public void isValidForRemoveOperation_invalidMailboxPayloadSender() throws NoSuchAlgorithmException, CryptoException {
         KeyPair senderKeys = TestUtils.generateKeyPair();
@@ -169,8 +168,7 @@ public class ProtectedStorageEntryTest {
         ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(
                 buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic()), senderKeys, 1);
 
-        // should be assertFalse
-        assertTrue(protectedStorageEntry.isValidForRemoveOperation());
+        assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     @Test
