@@ -365,10 +365,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 }
             }
 
-            // remove duplicates
+            // remove duplicates by identity, since disputes sharing an id are equal
             for (Dispute duplicate : duplicates) {
                 log.warn("Removing duplicate dispute, tradeId={}, disputeId={}", duplicate.getTradeId(), duplicate.getId());
-                getDisputeList().remove(duplicate);
+                getDisputeList().getList().removeIf(e -> e == duplicate);
             }
             if (!duplicates.isEmpty()) requestPersistence();
         }
@@ -465,17 +465,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // set dispute
         T disputeList = getDisputeList();
         synchronized (disputeList.getList()) {
-            if (disputeList.contains(dispute)) {
-                String msg = "We got a dispute msg that we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
-                log.warn(msg);
-                faultHandler.handleFault(msg, new DisputeAlreadyOpenException());
-                return;
-            }
 
+            // add if new; re-opening reuses the stored dispute (identified by tradeId + traderId)
             Optional<Dispute> storedDisputeOptional = findDispute(dispute);
             boolean reOpen = storedDisputeOptional.isPresent();
-
-            // add or re-open dispute
             if (reOpen) {
                 dispute = storedDisputeOptional.get();
             } else {
@@ -739,9 +732,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
                     // add or re-open dispute
                     synchronized (disputeList.getList()) {
-                        if (disputeList.contains(msgDispute)) throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
-
-                        // update trade state (monotonic so a replayed open cannot regress a closing dispute)
+                        // add if new; re-opening reuses the stored dispute. monotonic state and the
+                        // result-guard below keep a replayed open from regressing state or nulling payout.
                         if (!reOpen) {
                             UserThread.execute(() -> {
                                 synchronized (disputeList.getList()) {
