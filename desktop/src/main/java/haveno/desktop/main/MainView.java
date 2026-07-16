@@ -74,6 +74,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventTarget;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
@@ -89,6 +90,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -105,6 +107,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.PopupWindow;
 import javafx.util.Duration;
 import lombok.Getter;
 import lombok.Setter;
@@ -533,6 +536,41 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         marketPriceBox.setOnMousePressed(e -> popupShowingOnPress[0] = priceComboBox.isShowing());
         marketPriceBox.setOnMouseClicked(e -> {
             if (!isDescendantOf(e.getTarget(), priceComboBox) && !popupShowingOnPress[0]) priceComboBox.show();
+        });
+
+        // pin the popup left-aligned with the selector, tucked under the provider label; the skin
+        // re-anchors it to the combo button on every combo re-layout, so re-apply when the anchors move
+        boolean[] pinned = new boolean[1];
+        boolean[] positioning = new boolean[1];
+        double[] cardOffset = {Double.NaN, Double.NaN};
+        priceComboBox.setOnShown(e -> {
+            Node card = ((ComboBoxListViewSkin<?>) priceComboBox.getSkin()).getPopupContent();
+            PopupWindow popup = (PopupWindow) card.getScene().getWindow();
+            Runnable position = () -> {
+                if (positioning[0]) return;
+                positioning[0] = true;
+                try {
+                    // card offset from the popup anchor; stable, so keep the last clean measurement
+                    Bounds onScreen = card.localToScreen(card.getLayoutBounds());
+                    if (onScreen != null && !Double.isNaN(onScreen.getMinX()) && !Double.isNaN(onScreen.getMinY())) {
+                        cardOffset[0] = onScreen.getMinX() - popup.getAnchorX();
+                        cardOffset[1] = onScreen.getMinY() - popup.getAnchorY();
+                    }
+                    Bounds selectorBounds = priceComboBox.localToScreen(priceComboBox.getBoundsInLocal());
+                    Bounds labelBounds = marketPriceLabel.localToScreen(marketPriceLabel.getBoundsInLocal());
+                    if (selectorBounds == null || labelBounds == null || Double.isNaN(cardOffset[0])) return;
+                    popup.setAnchorX(selectorBounds.getMinX() - cardOffset[0]);
+                    popup.setAnchorY(labelBounds.getMaxY() + 4 - cardOffset[1]);
+                } finally {
+                    positioning[0] = false;
+                }
+            };
+            position.run();
+            if (!pinned[0]) {
+                pinned[0] = true;
+                popup.anchorXProperty().addListener(o -> position.run());
+                popup.anchorYProperty().addListener(o -> position.run());
+            }
         });
 
         model.getMarketPriceUpdated().addListener((observable, oldValue, newValue) ->
