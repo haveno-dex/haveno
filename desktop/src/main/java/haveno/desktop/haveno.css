@@ -731,12 +731,17 @@ tree-table-view:focused {
     -fx-background-color: -bs-color-gray-ddd;
 }
 
+/* Hide scroll bar end buttons, otherwise showing as small tick marks; side padding keeps the bar's breadth */
 .scroll-bar:vertical .increment-button,
-.scroll-bar:vertical .decrement-button,
+.scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 5 0 5;
+}
+
 .scroll-bar:horizontal .increment-button,
 .scroll-bar:horizontal .decrement-button {
-    -fx-background-color: -bs-color-background-pane;
-    -fx-padding: 1;
+    -fx-background-color: transparent;
+    -fx-padding: 5 0 5 0;
 }
 
 .scroll-bar:horizontal .increment-arrow,
@@ -744,7 +749,8 @@ tree-table-view:focused {
 .scroll-bar:horizontal .decrement-arrow,
 .scroll-bar:vertical .decrement-arrow {
     -fx-shape: null;
-    -fx-background-color: -bs-color-background-pane;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
 }
 
 .scroll-bar:vertical:focused,
