@@ -73,11 +73,13 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.event.EventTarget;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -482,6 +484,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         return new Tuple2<>(balanceDisplay, vBox);
     }
 
+    private static boolean isDescendantOf(EventTarget target, Node ancestor) {
+        Node node = target instanceof Node ? (Node) target : null;
+        while (node != null && node != ancestor) node = node.getParent();
+        return node != null;
+    }
+
     private ListCell<PriceFeedComboBoxItem> getPriceFeedComboBoxListCell() {
         return new ListCell<>() {
             @Override
@@ -499,7 +507,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> getMarketPriceBox() {
 
         VBox marketPriceBox = new VBox();
-        marketPriceBox.getStyleClass().add("nav-balance-box");
+        marketPriceBox.getStyleClass().addAll("nav-balance-box", "nav-balance-box-clickable");
         marketPriceBox.setAlignment(Pos.CENTER_LEFT);
 
         ComboBox<PriceFeedComboBoxItem> priceComboBox = new JFXComboBox<>();
@@ -519,6 +527,14 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         marketPriceLabel.getStyleClass().add("nav-balance-label");
 
         marketPriceBox.getChildren().addAll(priceComboBox, marketPriceLabel);
+
+        // match balance boxes: clicks anywhere in the box open the currency selector
+        marketPriceBox.setPickOnBounds(true);
+        boolean[] popupShowingOnPress = new boolean[1];
+        marketPriceBox.setOnMousePressed(e -> popupShowingOnPress[0] = priceComboBox.isShowing());
+        marketPriceBox.setOnMouseClicked(e -> {
+            if (!isDescendantOf(e.getTarget(), priceComboBox) && !popupShowingOnPress[0]) priceComboBox.show();
+        });
 
         model.getMarketPriceUpdated().addListener((observable, oldValue, newValue) ->
                 updateMarketPriceLabel(marketPriceLabel));
