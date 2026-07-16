@@ -74,6 +74,7 @@ import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
 import haveno.network.p2p.storage.persistence.RemovedPayloadsService;
 import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
 import haveno.network.p2p.storage.persistence.SequenceNumberMap;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.time.Clock;
@@ -1073,6 +1074,23 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         return new ProtectedStorageEntry(protectedStoragePayload, ownerStoragePubKey.getPublic(), sequenceNumber, signature, this.clock);
     }
 
+    // Builds a remove entry whose signature is bound to the remove operation (over getRemoveHash), so it cannot
+    // be produced by replaying a captured add/refresh signature.
+    public ProtectedStorageEntry getProtectedStorageEntryForRemove(ProtectedStoragePayload protectedStoragePayload,
+                                                                   KeyPair ownerStoragePubKey)
+            throws CryptoException {
+        ByteArray hashOfData = get32ByteHashAsByteArray(protectedStoragePayload);
+        int sequenceNumber;
+        if (sequenceNumberMap.containsKey(hashOfData))
+            sequenceNumber = sequenceNumberMap.get(hashOfData).sequenceNr + 1;
+        else
+            sequenceNumber = 1;
+
+        byte[] removeHash = getRemoveHash(protectedStoragePayload, sequenceNumber);
+        byte[] signature = Sig.sign(ownerStoragePubKey.getPrivate(), removeHash);
+        return new ProtectedStorageEntry(protectedStoragePayload, ownerStoragePubKey.getPublic(), sequenceNumber, signature, this.clock);
+    }
+
     public RefreshOfferMessage getRefreshTTLMessage(ProtectedStoragePayload protectedStoragePayload,
                                                     KeyPair ownerStoragePubKey)
             throws CryptoException {
@@ -1255,6 +1273,19 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
      */
     public static byte[] get32ByteHash(NetworkPayload data) {
         return Hash.getSha256Hash(data.toProtoMessage().toByteArray());
+    }
+
+    // Domain separator binding a storage signature to the remove operation. The add/refresh signature is over
+    // the plain DataAndSeqNrPair hash; a remove signs this domain-separated hash instead, so a captured
+    // add/refresh signature cannot be replayed as a remove to force-cancel a maker's order.
+    private static final byte[] REMOVE_OPERATION_DOMAIN = "haveno-storage-remove".getBytes(StandardCharsets.UTF_8);
+
+    public static byte[] getRemoveHash(ProtectedStoragePayload protectedStoragePayload, int sequenceNumber) {
+        byte[] baseHash = get32ByteHash(new DataAndSeqNrPair(protectedStoragePayload, sequenceNumber));
+        byte[] domainSeparated = new byte[baseHash.length + REMOVE_OPERATION_DOMAIN.length];
+        System.arraycopy(baseHash, 0, domainSeparated, 0, baseHash.length);
+        System.arraycopy(REMOVE_OPERATION_DOMAIN, 0, domainSeparated, baseHash.length, REMOVE_OPERATION_DOMAIN.length);
+        return Hash.getSha256Hash(domainSeparated);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
