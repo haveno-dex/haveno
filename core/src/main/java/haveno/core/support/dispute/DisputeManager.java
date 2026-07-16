@@ -367,10 +367,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 }
             }
 
-            // remove duplicates
+            // remove duplicates by identity, since disputes sharing an id are equal
             for (Dispute duplicate : duplicates) {
                 log.warn("Removing duplicate dispute, tradeId={}, disputeId={}", duplicate.getTradeId(), duplicate.getId());
-                getDisputeList().remove(duplicate);
+                getDisputeList().getList().removeIf(e -> e == duplicate);
             }
             if (!duplicates.isEmpty()) requestPersistence();
         }
@@ -467,27 +467,15 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // set dispute
         T disputeList = getDisputeList();
         synchronized (disputeList.getList()) {
-            if (disputeList.contains(dispute)) {
-                String msg = "We got a dispute msg that we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
-                log.warn(msg);
-                faultHandler.handleFault(msg, new DisputeAlreadyOpenException());
-                return;
-            }
 
+            // add if new; re-opening reuses the stored dispute (identified by tradeId + traderId),
+            // keeping its ruling, which the closeDate ordering supersedes once the dispute is re-opened
             Optional<Dispute> storedDisputeOptional = findDispute(dispute);
             boolean reOpen = storedDisputeOptional.isPresent();
-
-            // add or re-open dispute; the stored ruling is kept until the arbitrator accepts the
-            // re-open, since the closeDate ordering supersedes it once the dispute is re-opened
             if (reOpen) {
                 dispute = storedDisputeOptional.get();
             } else {
-                final Dispute finalDispute = dispute;
-                UserThread.execute(() -> {
-                    synchronized (disputeList.getList()) {
-                        disputeList.add(finalDispute);
-                    }
-                });
+                addDisputeIfNew(disputeList, dispute);
             }
         }
 
@@ -776,15 +764,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
                     // add or re-open dispute
                     synchronized (disputeList.getList()) {
-                        if (disputeList.contains(msgDispute)) throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
-
-                        // update trade state (monotonic so a replayed open cannot regress a closing dispute)
+                        // add if new; re-opening reuses the stored dispute. monotonic state and the
+                        // result-guard below keep a replayed open from regressing state or nulling payout.
                         if (!reOpen) {
-                            UserThread.execute(() -> {
-                                synchronized (disputeList.getList()) {
-                                    disputeList.add(dispute);
-                                }
-                            });
+                            addDisputeIfNew(disputeList, dispute);
                         }
 
                         // update trade state; a genuine re-open resets a closed trade so a revised ruling
@@ -967,12 +950,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             dispute = storedDisputeOptional.get();
             dispute.reOpen();
         } else {
-            final Dispute finalDispute = dispute;
-            UserThread.execute(() -> {
-                synchronized (disputeList.getList()) {
-                    disputeList.add(finalDispute);
-                }
-            });
+            addDisputeIfNew(disputeList, dispute);
         }
 
         // create dispute opened message with peer dispute
@@ -1130,6 +1108,33 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     public boolean isAgent(Dispute dispute) {
         return keyRing.getPubKeyRing().equals(dispute.getAgentPubKeyRing());
+    }
+
+    // insertion is queued to the user thread, so re-check for a stored dispute at insertion time
+    // and merge into it, since a concurrent open with a different message uid can land in between
+    private void addDisputeIfNew(T disputeList, Dispute dispute) {
+        UserThread.execute(() -> {
+            synchronized (disputeList.getList()) {
+                Optional<Dispute> storedDisputeOptional = findDispute(dispute);
+                if (storedDisputeOptional.isPresent()) {
+                    log.warn("Merging duplicate dispute at insertion, tradeId={}, disputeId={}", dispute.getTradeId(), dispute.getId());
+                    mergeDuplicateDispute(dispute, storedDisputeOptional.get());
+                    requestPersistence();
+                } else {
+                    disputeList.add(dispute);
+                }
+            }
+        });
+    }
+
+    // merge a duplicate's newer ruling, payout tx id, and chat into the stored dispute; results
+    // are arbitrator-verified on ingress, so the signed closeDate ordering selects the ruling
+    private static void mergeDuplicateDispute(Dispute duplicate, Dispute stored) {
+        DisputeResult duplicateResult = duplicate.getDisputeResultProperty().get();
+        DisputeResult storedResult = stored.getDisputeResultProperty().get();
+        if (duplicateResult != null && (storedResult == null || storedResult.getCloseDate().getTime() < duplicateResult.getCloseDate().getTime())) stored.setDisputeResult(duplicateResult);
+        if (stored.getDisputePayoutTxId() == null) stored.setDisputePayoutTxId(duplicate.getDisputePayoutTxId());
+        mergeChatMessages(duplicate, stored);
     }
 
     public Optional<Dispute> findDispute(Dispute dispute) {
