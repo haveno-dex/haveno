@@ -94,7 +94,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
-import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
@@ -116,6 +115,7 @@ import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.Window;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
@@ -1193,48 +1193,29 @@ public class GUIUtil {
         }
     }
 
-    // While the popup opens, the pointer can sweep down across the main scene before the popup window
-    // renders under it (native popup-open latency), briefly showing the arrow. Force a hand cursor on
-    // the scene root while the popup is showing; restore it on close. The root carries the hand rather
-    // than the scene cursor: the popup scene copies the owner scene's cursor as it shows, and a non-null
-    // popup scene cursor breaks per-node hand resolution on macOS. A stock combo shows its popup on
-    // mouse release, so a fast sweep can exit the control before showing flips true - hence the hand is
-    // set both at show time and on pointer exit. Deferring to exit while an editable combo is still
-    // hovered keeps the editor's own text cursor when it is first clicked.
-    public static void showHandCursorWhileOpening(ComboBox<?> comboBox) {
-        Cursor[] savedRootCursor = new Cursor[1];
-        comboBox.showingProperty().addListener((obs, wasShowing, showing) -> {
-            Scene scene = comboBox.getScene();
-            if (scene == null) return;
-            if (showing) {
-                savedRootCursor[0] = scene.getRoot().getCursor();
-                if (!comboBox.isEditable() || !comboBox.isHover()) scene.getRoot().setCursor(Cursor.HAND);
-                Platform.runLater(() -> installPopupCursorRefresh(comboBox)); // popup scene exists once the skin has shown it
-            } else {
-                scene.getRoot().setCursor(savedRootCursor[0]);
-                savedRootCursor[0] = null;
-            }
-        });
-        comboBox.addEventFilter(MouseEvent.MOUSE_EXITED, e -> {
-            if (comboBox.isShowing() && comboBox.getScene() != null)
-                comboBox.getScene().getRoot().setCursor(Cursor.HAND);
-        });
-    }
-
-    private static final String POPUP_CURSOR_REFRESH = "haveno.popupCursorRefresh";
+    private static final String CURSOR_REFRESH = "haveno.cursorRefresh";
     private static Field mouseHandlerField, currCursorField, currCursorFrameField;
     private static boolean cursorCacheUnavailable;
 
-    // A scene pushes a cursor to its native window only when the resolved cursor differs from the one
-    // it cached as applied (Scene.MouseHandler), but a popup gets a FRESH native window on every show
-    // while its scene - and so the cache - is reused. Entering the popup with the system arrow (from
-    // outside the app's windows) then never triggers a push and the arrow sticks over the whole popup.
-    // Clearing the cache on every pointer entry makes the entry's own cursor update push again.
-    private static void installPopupCursorRefresh(ComboBox<?> comboBox) {
-        if (!(comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin) || skin.getPopupContent() == null) return;
-        Scene popupScene = skin.getPopupContent().getScene();
-        if (popupScene == null || popupScene.getProperties().put(POPUP_CURSOR_REFRESH, Boolean.TRUE) != null) return;
-        popupScene.addEventFilter(MouseEvent.MOUSE_ENTERED_TARGET, e -> clearAppliedCursorCache(popupScene));
+    // A scene pushes the OS cursor only when it differs from its cached last-applied value, so resets by
+    // other windows/popups stick; clearing the cache on pointer entry and move forces a correcting re-push.
+    public static void syncCursorAcrossWindows() {
+        Window.getWindows().forEach(GUIUtil::installWindowCursorRefresh);
+        Window.getWindows().addListener((ListChangeListener<Window>) change -> {
+            while (change.next()) change.getAddedSubList().forEach(GUIUtil::installWindowCursorRefresh);
+        });
+    }
+
+    private static void installWindowCursorRefresh(Window window) {
+        if (window.getProperties().put(CURSOR_REFRESH, Boolean.TRUE) != null) return;
+        window.sceneProperty().addListener((obs, oldScene, scene) -> installSceneCursorRefresh(scene));
+        installSceneCursorRefresh(window.getScene());
+    }
+
+    private static void installSceneCursorRefresh(Scene scene) {
+        if (scene == null || scene.getProperties().put(CURSOR_REFRESH, Boolean.TRUE) != null) return;
+        scene.addEventFilter(MouseEvent.MOUSE_ENTERED_TARGET, e -> clearAppliedCursorCache(scene));
+        scene.addEventFilter(MouseEvent.MOUSE_MOVED, e -> clearAppliedCursorCache(scene));
     }
 
     // Nulls Scene.mouseHandler.currCursor(Frame) so the running mouse event's tail cursor update
@@ -1258,7 +1239,7 @@ public class GUIUtil {
             currCursorFrameField.set(mouseHandler, null);
         } catch (Exception e) {
             cursorCacheUnavailable = true;
-            log.warn("Cannot clear the popup cursor cache, popups may keep a stale cursor", e);
+            log.warn("Cannot clear the scene cursor cache, windows may keep a stale cursor", e);
         }
     }
 
