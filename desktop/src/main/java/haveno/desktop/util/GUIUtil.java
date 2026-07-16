@@ -99,6 +99,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -1188,6 +1189,33 @@ public class GUIUtil {
         } else {
             comboBox.getStyleClass().remove("filled");
         }
+    }
+
+    // While the popup opens, the pointer can sweep down across the main scene before the popup window
+    // renders under it (native popup-open latency), briefly showing the arrow. Force a hand cursor on
+    // the scene root while the popup is showing; restore it on close. The root carries the hand rather
+    // than the scene cursor: the popup scene copies the owner scene's cursor as it shows, and a non-null
+    // popup scene cursor breaks per-node hand resolution on macOS. A stock combo shows its popup on
+    // mouse release, so a fast sweep can exit the control before showing flips true - hence the hand is
+    // set both at show time and on pointer exit. Deferring to exit while an editable combo is still
+    // hovered keeps the editor's own text cursor when it is first clicked.
+    public static void showHandCursorWhileOpening(ComboBox<?> comboBox) {
+        Cursor[] savedRootCursor = new Cursor[1];
+        comboBox.showingProperty().addListener((obs, wasShowing, showing) -> {
+            Scene scene = comboBox.getScene();
+            if (scene == null) return;
+            if (showing) {
+                savedRootCursor[0] = scene.getRoot().getCursor();
+                if (!comboBox.isEditable() || !comboBox.isHover()) scene.getRoot().setCursor(Cursor.HAND);
+            } else {
+                scene.getRoot().setCursor(savedRootCursor[0]);
+                savedRootCursor[0] = null;
+            }
+        });
+        comboBox.addEventFilter(MouseEvent.MOUSE_EXITED, e -> {
+            if (comboBox.isShowing() && comboBox.getScene() != null)
+                comboBox.getScene().getRoot().setCursor(Cursor.HAND);
+        });
     }
 
     public static void applyTableStyle(TableView<?> tableView) {

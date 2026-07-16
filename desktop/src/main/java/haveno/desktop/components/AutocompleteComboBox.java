@@ -20,14 +20,13 @@ package haveno.desktop.components;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.skins.JFXComboBoxListViewSkin;
 import haveno.common.UserThread;
+import haveno.desktop.util.GUIUtil;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
-import javafx.scene.Cursor;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -66,7 +65,6 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
     private T committedValue;                        // last confirmed value, restored on an empty dismissal
     private boolean selectingAll;                    // guards the trailing key event after ctrl/cmd+A
-    private Cursor savedSceneCursor;                 // main-scene cursor restored when the popup closes
 
     // Measuring the popup width runs the cell factory over every row and lags each open, so it is
     // measured once per unfiltered content set and pinned; -1 means "measure on the next unfiltered open".
@@ -96,7 +94,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         openPopupOnEditorClick();
         filterAsUserTypes();
         trackCommittedValue();
-        showHandCursorWhileOpening();
+        GUIUtil.showHandCursorWhileOpening(this);
     }
 
     // --- public API ---
@@ -288,26 +286,6 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         } catch (ReflectiveOperationException | RuntimeException e) {
             log.warn("Could not set dropdown popup owner node; list may blink on editor click", e);
         }
-    }
-
-    // While the popup opens, the pointer can sweep down across the main scene before the popup window
-    // renders under it (native popup-open latency), briefly showing the arrow. Force the main scene's
-    // cursor to hand once the pointer leaves the collapsed control, so the not-yet-rendered popup area
-    // reads as a hand; restore it on close. Setting it only after the pointer exits keeps the editor's
-    // own text cursor when the collapsed control is first clicked.
-    private void showHandCursorWhileOpening() {
-        showingProperty().addListener((obs, wasShowing, showing) -> {
-            Scene scene = getScene();
-            if (scene == null) return;
-            if (showing) savedSceneCursor = scene.getCursor();
-            else {
-                scene.setCursor(savedSceneCursor);
-                savedSceneCursor = null;
-            }
-        });
-        addEventFilter(MouseEvent.MOUSE_EXITED, e -> {
-            if (isShowing() && getScene() != null) getScene().setCursor(Cursor.HAND);
-        });
     }
 
     // SPACE inside the popup otherwise resets the editor text; swallow it.
