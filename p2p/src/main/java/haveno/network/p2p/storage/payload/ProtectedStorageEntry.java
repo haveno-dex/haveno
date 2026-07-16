@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.security.PublicKey;
 import java.time.Clock;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Getter
 @EqualsAndHashCode
@@ -46,6 +47,12 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
     private final int sequenceNumber;
     private final byte[] signature;
     private long creationTimeStamp;
+
+    // Throttle for the remove-signature-failure warning (a failed remove signature is expected from peers on
+    // an older version during a mandatory update).
+    private static final long REMOVE_SIG_WARN_INTERVAL_MS = 60_000;
+    private static final AtomicLong lastRemoveSigWarnMs = new AtomicLong(0);
+    private static final AtomicLong suppressedRemoveSigWarnCount = new AtomicLong(0);
 
     public ProtectedStorageEntry(@NotNull ProtectedStoragePayload protectedStoragePayload,
                                  @NotNull PublicKey ownerPubKey,
@@ -198,20 +205,57 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
             return false;
         }
 
-        // Same requirements as add()
-        boolean result = this.isValidForAddOperation();
-
-        if (!result) {
-            String res1 = this.toString();
-            String res2 = "null";
-            if (protectedStoragePayload.getOwnerPubKey() != null)
-                res2 = Utilities.encodeToHex(protectedStoragePayload.getOwnerPubKey().getEncoded(), true);
-
-            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() failed. Entry owner does not match Payload owner:\n" +
-                    "ProtectedStorageEntry={}\nPayloadOwner={}", res1, res2);
+        // Reject a non-superseding sequence number (as in isValidForAddOperation).
+        if (sequenceNumber < 0 || sequenceNumber == Integer.MAX_VALUE) {
+            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() rejected out-of-range sequenceNumber {}", sequenceNumber);
+            return false;
         }
 
-        return result;
+        // The entry owner must match the payload owner.
+        if (!this.ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey())) {
+            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() failed. Entry owner does not match Payload owner.\n{}", this);
+            return false;
+        }
+
+        // The signature must be bound to the remove operation (over getRemoveHash), so a captured add/refresh
+        // signature cannot be replayed as a remove to force-cancel a maker's live order.
+        return isSignatureValidForRemove();
+    }
+
+    /*
+     * Returns true if the signature is valid for a remove of the payload at this sequence number and ownerPubKey.
+     */
+    boolean isSignatureValidForRemove() {
+        try {
+            byte[] removeHash = P2PDataStorage.getRemoveHash(this.protectedStoragePayload, this.sequenceNumber);
+
+            boolean result = Sig.verify(this.ownerPubKey, removeHash, this.signature);
+
+            if (!result)
+                warnRemoveSigFailureThrottled();
+
+            return result;
+        } catch (CryptoException e) {
+            log.error("ProtectedStorageEntry::isSignatureValidForRemove() exception {}", e.toString());
+            return false;
+        }
+    }
+
+    // Keep the warning visible so a genuine replayed/corrupt removal is never silently ignored, but throttle it
+    // so removals from peers on an older version during a mandatory update cannot flood the log.
+    private void warnRemoveSigFailureThrottled() {
+        long now = System.currentTimeMillis();
+        long last = lastRemoveSigWarnMs.get();
+        if (now - last >= REMOVE_SIG_WARN_INTERVAL_MS && lastRemoveSigWarnMs.compareAndSet(last, now)) {
+            long suppressed = suppressedRemoveSigWarnCount.getAndSet(0);
+            log.warn("Rejected a removal with an invalid remove-operation signature ({}){}. Expected from peers on an older version during a mandatory update; otherwise a replayed or corrupt removal.",
+                    protectedStoragePayload.getClass().getSimpleName(),
+                    suppressed > 0 ? " (+" + suppressed + " more suppressed since last warning)" : "");
+        } else {
+            suppressedRemoveSigWarnCount.incrementAndGet();
+            log.debug("ProtectedStorageEntry::isSignatureValidForRemove() failed for {} seqNr {}",
+                    protectedStoragePayload.getClass().getSimpleName(), sequenceNumber);
+        }
     }
 
     /*
