@@ -1436,9 +1436,19 @@ textfield */
 .table-view.offer-table .table-row-cell:odd {
     -fx-background-color: -bs-color-background-row-odd;
 }
-.table-view.offer-table .table-row-cell:selected,
-.table-view.offer-table .table-row-cell:hover {
+.table-view.offer-table .table-row-cell:selected {
     -fx-background-color: -fx-selection-bar;
+}
+
+/* Row hover matches the dropdown's soft hover tint; cell borders go transparent so no grid outline
+   shows (transparent, not the tint, since the translucent tint would stack into a visible edge). */
+.table-view.offer-table .table-row-cell:hover {
+    -fx-background-color: -bs-combo-popup-hover;
+}
+.table-view.offer-table .table-row-cell:hover .table-cell {
+    -fx-background: -bs-combo-popup-hover;
+    -fx-background-color: -bs-combo-popup-hover;
+    -fx-border-color: transparent;
 }
 
 .offer-table-top {
