@@ -42,6 +42,8 @@ import haveno.desktop.components.AutoTooltipToggleButton;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.funds.FundsView;
+import haveno.desktop.main.funds.deposit.DepositView;
+import haveno.desktop.main.funds.transactions.TransactionsView;
 import haveno.desktop.main.market.MarketView;
 import haveno.desktop.main.market.offerbook.OfferBookChartView;
 import haveno.desktop.main.offer.BuyOfferView;
@@ -49,6 +51,8 @@ import haveno.desktop.main.offer.SellOfferView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.main.support.SupportView;
@@ -233,7 +237,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         model.getSelectedPriceFeedComboBoxItemProperty().addListener(selectedPriceFeedItemListener);
         priceComboBox.setItems(model.getPriceFeedComboBoxItems());
 
-        Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"));
+        Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"),
+                () -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class));
         availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
         availableBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
             {
@@ -258,7 +263,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
-        Tuple2<Label, VBox> reservedBalanceBox = getBalanceBox(Res.get("mainView.balance.reserved.short"));
+        // reserved funds are held by open offers or open trades, so go to their holder
+        Tuple2<Label, VBox> reservedBalanceBox = getBalanceBox(Res.get("mainView.balance.reserved.short"),
+                () -> navigation.navigateTo(MainView.class, PortfolioView.class,
+                        model.hasOpenOffers() ? OpenOffersView.class : PendingTradesView.class));
         reservedBalanceBox.first.textProperty().bind(model.getReservedBalance());
         reservedBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
             {
@@ -283,7 +291,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             }
         });
 
-        Tuple2<Label, VBox> pendingBalanceBox = getBalanceBox(Res.get("mainView.balance.pending.short"));
+        Tuple2<Label, VBox> pendingBalanceBox = getBalanceBox(Res.get("mainView.balance.pending.short"),
+                () -> navigation.navigateTo(MainView.class, FundsView.class, TransactionsView.class));
         pendingBalanceBox.first.textProperty().bind(model.getPendingBalance());
         pendingBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
             {
@@ -457,7 +466,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         return spacer;
     }
 
-    private Tuple2<Label, VBox> getBalanceBox(String text) {
+    private Tuple2<Label, VBox> getBalanceBox(String text, Runnable onClick) {
         Label balanceDisplay = new Label();
         balanceDisplay.getStyleClass().add("nav-balance-display");
 
@@ -465,9 +474,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         label.getStyleClass().add("nav-balance-label");
         label.setPadding(new Insets(0, 0, 0, 0));
         VBox vBox = new VBox();
-        vBox.getStyleClass().add("nav-balance-box");
+        vBox.getStyleClass().addAll("nav-balance-box", "nav-balance-box-clickable");
         vBox.setAlignment(Pos.CENTER_LEFT);
         vBox.getChildren().addAll(balanceDisplay, label);
+        vBox.setPickOnBounds(true);
+        vBox.setOnMouseClicked(e -> onClick.run());
         return new Tuple2<>(balanceDisplay, vBox);
     }
 
