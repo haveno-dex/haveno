@@ -148,6 +148,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         this.stage = stage;
 
         GUIUtil.warmCurrencyIconCache(); // decode currency logos in the background before any pulldown needs them
+        GUIUtil.syncCursorAcrossWindows(); // keep the pointer cursor correct when it crosses windows and popups
 
         appLaunchedHandler.accept(this);
     }

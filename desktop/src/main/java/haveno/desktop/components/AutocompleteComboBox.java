@@ -20,7 +20,6 @@ package haveno.desktop.components;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.skins.JFXComboBoxListViewSkin;
 import haveno.common.UserThread;
-import haveno.desktop.util.GUIUtil;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -94,7 +93,6 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         openPopupOnEditorClick();
         filterAsUserTypes();
         trackCommittedValue();
-        GUIUtil.showHandCursorWhileOpening(this);
     }
 
     // --- public API ---

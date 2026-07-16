@@ -515,7 +515,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         priceComboBox.setFocusTraversable(false);
         priceComboBox.setId("price-feed-combo");
         priceComboBox.setCellFactory(p -> getPriceFeedComboBoxListCell());
-        GUIUtil.showHandCursorWhileOpening(priceComboBox);
         ListCell<PriceFeedComboBoxItem> buttonCell = getPriceFeedComboBoxListCell();
         buttonCell.setId("price-feed-combo");
         priceComboBox.setButtonCell(buttonCell);
