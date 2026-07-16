@@ -688,6 +688,10 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return balancePresentation.getPendingBalance();
     }
 
+    boolean hasOpenOffers() {
+        return !openOfferManager.getObservableList().isEmpty();
+    }
+
 
     // Wallet
     StringProperty getXmrInfo() {

@@ -950,6 +950,17 @@ tree-table-view:focused {
     -fx-spacing: 1;
 }
 
+/* balance boxes navigate to their funds tab; hover pill drawn via insets to avoid layout shift */
+.nav-balance-box-clickable {
+    -fx-cursor: hand;
+}
+
+.nav-balance-box-clickable:hover {
+    -fx-background-color: -bs-rd-nav-button-hover;
+    -fx-background-insets: 9 -8 9 -8;
+    -fx-background-radius: 12;
+}
+
 .nav-balance-display {
     -fx-alignment: center-left;
     -fx-text-fill: -bs-rd-font-balance;
