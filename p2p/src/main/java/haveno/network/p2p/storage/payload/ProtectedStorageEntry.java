@@ -151,6 +151,14 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
      * match the payload owner.
      */
     public boolean isValidForAddOperation() {
+
+        // Reject a sequence number that can no longer be superseded, so an entry cannot permanently lock its
+        // payload out of future add/refresh/remove updates via integer overflow.
+        if (sequenceNumber < 0 || sequenceNumber == Integer.MAX_VALUE) {
+            log.warn("ProtectedStorageEntry::isValidForAddOperation() rejected out-of-range sequenceNumber {}", sequenceNumber);
+            return false;
+        }
+
         if (!this.isSignatureValid())
             return false;
 
@@ -181,6 +189,14 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
      * match the payload owner.
      */
     public boolean isValidForRemoveOperation() {
+
+        // A MailboxStoragePayload must be carried by a ProtectedMailboxStorageEntry, which overrides this method
+        // and enforces receiver-only removal. Reject one smuggled into a plain entry, otherwise a captured
+        // mailbox add could be replayed as a plain remove to suppress a victim's mailbox message.
+        if (protectedStoragePayload instanceof MailboxStoragePayload) {
+            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() rejected a MailboxStoragePayload carried by a plain entry");
+            return false;
+        }
 
         // Same requirements as add()
         boolean result = this.isValidForAddOperation();
