@@ -94,6 +94,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
@@ -133,6 +134,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -1207,6 +1209,7 @@ public class GUIUtil {
             if (showing) {
                 savedRootCursor[0] = scene.getRoot().getCursor();
                 if (!comboBox.isEditable() || !comboBox.isHover()) scene.getRoot().setCursor(Cursor.HAND);
+                Platform.runLater(() -> installPopupCursorRefresh(comboBox)); // popup scene exists once the skin has shown it
             } else {
                 scene.getRoot().setCursor(savedRootCursor[0]);
                 savedRootCursor[0] = null;
@@ -1216,6 +1219,47 @@ public class GUIUtil {
             if (comboBox.isShowing() && comboBox.getScene() != null)
                 comboBox.getScene().getRoot().setCursor(Cursor.HAND);
         });
+    }
+
+    private static final String POPUP_CURSOR_REFRESH = "haveno.popupCursorRefresh";
+    private static Field mouseHandlerField, currCursorField, currCursorFrameField;
+    private static boolean cursorCacheUnavailable;
+
+    // A scene pushes a cursor to its native window only when the resolved cursor differs from the one
+    // it cached as applied (Scene.MouseHandler), but a popup gets a FRESH native window on every show
+    // while its scene - and so the cache - is reused. Entering the popup with the system arrow (from
+    // outside the app's windows) then never triggers a push and the arrow sticks over the whole popup.
+    // Clearing the cache on every pointer entry makes the entry's own cursor update push again.
+    private static void installPopupCursorRefresh(ComboBox<?> comboBox) {
+        if (!(comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin) || skin.getPopupContent() == null) return;
+        Scene popupScene = skin.getPopupContent().getScene();
+        if (popupScene == null || popupScene.getProperties().put(POPUP_CURSOR_REFRESH, Boolean.TRUE) != null) return;
+        popupScene.addEventFilter(MouseEvent.MOUSE_ENTERED_TARGET, e -> clearAppliedCursorCache(popupScene));
+    }
+
+    // Nulls Scene.mouseHandler.currCursor(Frame) so the running mouse event's tail cursor update
+    // re-applies the resolved cursor natively. Needs --add-opens javafx.graphics/javafx.scene.
+    private static void clearAppliedCursorCache(Scene scene) {
+        if (cursorCacheUnavailable) return;
+        try {
+            if (mouseHandlerField == null) {
+                mouseHandlerField = Scene.class.getDeclaredField("mouseHandler");
+                mouseHandlerField.setAccessible(true);
+            }
+            Object mouseHandler = mouseHandlerField.get(scene);
+            if (mouseHandler == null) return;
+            if (currCursorField == null) {
+                currCursorField = mouseHandler.getClass().getDeclaredField("currCursor");
+                currCursorField.setAccessible(true);
+                currCursorFrameField = mouseHandler.getClass().getDeclaredField("currCursorFrame");
+                currCursorFrameField.setAccessible(true);
+            }
+            currCursorField.set(mouseHandler, null);
+            currCursorFrameField.set(mouseHandler, null);
+        } catch (Exception e) {
+            cursorCacheUnavailable = true;
+            log.warn("Cannot clear the popup cursor cache, popups may keep a stale cursor", e);
+        }
     }
 
     public static void applyTableStyle(TableView<?> tableView) {
