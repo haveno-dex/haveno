@@ -1451,6 +1451,17 @@ textfield */
     -fx-border-color: transparent;
 }
 
+/* Rows navigate to the offer view on click; set the hand on every pickable node
+   (ancestor-only is unreliable on macOS) and restore the default over empty rows. */
+.table-view.offer-table .table-row-cell,
+.table-view.offer-table .table-row-cell * {
+    -fx-cursor: hand;
+}
+.table-view.offer-table .table-row-cell:empty,
+.table-view.offer-table .table-row-cell:empty * {
+    -fx-cursor: default;
+}
+
 .offer-table-top {
     -fx-background-color: -bs-color-background-pane;
     -fx-padding: 15 15 5 15;
