@@ -849,7 +849,7 @@ tree-table-view:focused {
     -fx-border-color: -bs-rd-nav-primary-border;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-padding: 9 0 9 20;
+    -fx-padding: 7 0 7 20;
 }
 
 .nav-secondary {
@@ -878,7 +878,7 @@ tree-table-view:focused {
 .nav-button {
     -fx-cursor: hand;
     -fx-background-color: transparent;
-    -fx-padding: 9 15;
+    -fx-padding: 7 15;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
 }
