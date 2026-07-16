@@ -1408,6 +1408,19 @@ textfield */
     -fx-background-color: -bs-color-gray-6;
 }
 
+/* Match the row background to its cells so sub-pixel column snapping on window resize
+   can't expose the contrasting row fill as a flickering line on the row's right edge. */
+.table-view.offer-table .table-row-cell:even {
+    -fx-background-color: -bs-color-background-row-even;
+}
+.table-view.offer-table .table-row-cell:odd {
+    -fx-background-color: -bs-color-background-row-odd;
+}
+.table-view.offer-table .table-row-cell:selected,
+.table-view.offer-table .table-row-cell:hover {
+    -fx-background-color: -fx-selection-bar;
+}
+
 .offer-table-top {
     -fx-background-color: -bs-color-background-pane;
     -fx-padding: 15 15 5 15;
