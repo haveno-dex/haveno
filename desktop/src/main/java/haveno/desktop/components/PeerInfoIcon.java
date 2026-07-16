@@ -39,6 +39,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 
 import javafx.geometry.Point2D;
 
@@ -143,7 +144,12 @@ public class PeerInfoIcon extends Group {
 
         updatePeerInfoIcon();
 
-        getChildren().addAll(outerBackground, innerBackground, avatarImageView, tagPane, numTradesPane);
+        // transparent rect spans the full extent incl. badges so bounds stay constant and centering doesn't shift
+        Rectangle boundsRect = new Rectangle(scaleFactor * 34, scaleFactor * 32, Color.TRANSPARENT);
+        boundsRect.setLayoutY(scaleFactor * -2);
+        boundsRect.setMouseTransparent(true);
+
+        getChildren().addAll(boundsRect, outerBackground, innerBackground, avatarImageView, tagPane, numTradesPane);
     }
 
     protected void addMouseListener(int numTrades,
