@@ -2233,6 +2233,7 @@ textfield */
     -fx-stroke: -bs-color-gray-line;
     -fx-stroke-width: 1;
     -fx-stroke-dash-array: 2 3;
+    -fx-opacity: 0.55;
 }
 
 #charts .default-color0.chart-area-symbol {
