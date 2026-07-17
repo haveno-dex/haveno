@@ -859,7 +859,7 @@ tree-table-view:focused {
 }
 
 .nav-secondary {
-    -fx-padding: 0 14 0 0;
+    -fx-padding: 0 3 0 0;
 }
 
 .nav-separator {
@@ -1649,6 +1649,11 @@ textfield */
     -fx-background-color: -bs-color-gray-background;
     -fx-border-width: 0 0 1 0;
     -fx-border-color: -bs-rd-tab-border;
+}
+
+/* indent tabs to the content's left padding; translate because the skin mis-centers header padding */
+.jfx-tab-pane .headers-region {
+    -fx-translate-x: 15;
 }
 
 .jfx-tab-pane .headers-region .tab-selected-line {
