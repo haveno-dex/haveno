@@ -1669,6 +1669,11 @@ textfield */
     -fx-cursor: hand;
 }
 
+/* heading label-tab sits flush with the content's left inset (no leading tab pad) */
+.jfx-tab-pane .headers-region .tab:disabled .tab-container .tab-label {
+    -fx-padding: 9 14 9 0;
+}
+
 .jfx-tab-pane .depth-container {
     -fx-effect: none;
 }
