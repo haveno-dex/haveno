@@ -120,6 +120,10 @@ class DepositListItem implements FilterableListItem {
         return addressEntry.getSubaddressIndex();
     }
 
+    public boolean isBaseAddress() {
+        return addressEntry.getContext() == XmrAddressEntry.Context.BASE_ADDRESS;
+    }
+
     public String getUsage() {
         return usage;
     }

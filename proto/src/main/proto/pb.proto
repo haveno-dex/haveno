@@ -1830,6 +1830,7 @@ message PreferencesPayload {
     string sell_screen_crypto_payment_method_id = 75;
     string buy_screen_other_payment_method_id = 76;
     string sell_screen_other_payment_method_id = 77;
+    bool deposit_addresses_expanded = 78;
 }
 
 message AutoConfirmSettings {

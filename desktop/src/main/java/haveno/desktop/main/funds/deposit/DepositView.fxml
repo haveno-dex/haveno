@@ -20,16 +20,15 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.VBox?>
-<?import haveno.desktop.components.list.FilterBox?>
 <VBox fx:id="root" fx:controller="haveno.desktop.main.funds.deposit.DepositView"
       spacing="10" xmlns:fx="http://javafx.com/fxml">
     <padding>
-        <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
+        <Insets bottom="15.0" left="15.0" right="15.0" top="8.0"/>
     </padding>
-    <FilterBox fx:id="filterBox" />
+
+    <VBox fx:id="heroBox" alignment="TOP_CENTER"/>
+
     <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="addressColumn" minWidth="320"/>
@@ -38,14 +37,4 @@
             <TableColumn fx:id="usageColumn" minWidth="200"/>
         </columns>
     </TableView>
-
-    <GridPane fx:id="gridPane" hgap="5.0" vgap="5.0">
-        <padding>
-            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
-        </padding>
-
-        <columnConstraints>
-            <ColumnConstraints hgrow="SOMETIMES" minWidth="400"/>
-        </columnConstraints>
-    </GridPane>
 </VBox>

@@ -853,6 +853,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setDepositAddressesExpanded(boolean value) {
+        prefPayload.setDepositAddressesExpanded(value);
+        requestPersistence();
+    }
+
     public void setNotifyOnPreRelease(boolean value) {
         prefPayload.setNotifyOnPreRelease(value);
         requestPersistence();
@@ -929,6 +934,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     public boolean getSplitOfferOutput() {
         return prefPayload.isSplitOfferOutput();
+    }
+
+    public boolean isDepositAddressesExpanded() {
+        return prefPayload.isDepositAddressesExpanded();
     }
 
     public double getSecurityDepositAsPercent(PaymentAccount paymentAccount) {

@@ -1713,8 +1713,16 @@ public class GUIUtil {
         return getXmrQrCodePane(150, disablePaymentUriLabel ? 32 : 28, 2);
     }
 
+    private static final int BIG_QR_CODE_SIZE = 250;
+
     public static Tuple2<StackPane, ImageView> getBigXmrQrCodePane() {
-        return getXmrQrCodePane(250, disablePaymentUriLabel ? 47 : 45, 3);
+        return getBigXmrQrCodePane(BIG_QR_CODE_SIZE);
+    }
+
+    public static Tuple2<StackPane, ImageView> getBigXmrQrCodePane(int qrCodeSize) {
+        int baseLogoSize = disablePaymentUriLabel ? 47 : 45; // logo size at the default code size
+        int logoSize = (int) Math.round((double) baseLogoSize * qrCodeSize / BIG_QR_CODE_SIZE);
+        return getXmrQrCodePane(qrCodeSize, logoSize, 3);
     }
 
     private static Tuple2<StackPane, ImageView> getXmrQrCodePane(int qrCodeSize, int logoSize, int logoBorderWidth) {
@@ -1728,6 +1736,15 @@ public class GUIUtil {
         qrCodePane.setCursor(Cursor.HAND);
         qrCodePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
-        return new Tuple2<>(qrCodePane, qrCodeImageView);
+        // round the corners, with the shadow on a wrapper so the clip does not cut it off
+        Rectangle clip = new Rectangle(qrCodeSize, qrCodeSize);
+        clip.setArcWidth(Layout.ROUNDED_ARC);
+        clip.setArcHeight(Layout.ROUNDED_ARC);
+        qrCodePane.setClip(clip);
+        StackPane qrCodeWrapper = new StackPane(qrCodePane);
+        qrCodeWrapper.getStyleClass().add("qr-code-pane");
+        qrCodeWrapper.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+        return new Tuple2<>(qrCodeWrapper, qrCodeImageView);
     }
 }

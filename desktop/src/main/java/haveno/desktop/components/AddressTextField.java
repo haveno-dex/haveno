@@ -46,6 +46,7 @@ public class AddressTextField extends AnchorPane {
     private final StringProperty address = new SimpleStringProperty();
     private final StringProperty paymentLabel = new SimpleStringProperty();
     private final ObjectProperty<BigInteger> amount = new SimpleObjectProperty<>(BigInteger.ZERO);
+    private final JFXTextField textField;
     private boolean wasPrimaryButtonDown;
 
 
@@ -54,7 +55,7 @@ public class AddressTextField extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public AddressTextField(String label) {
-        JFXTextField textField = new HavenoTextField();
+        textField = new HavenoTextField();
         textField.setId("address-text-field");
         textField.setEditable(false);
         textField.setLabelFloat(true);
@@ -118,6 +119,10 @@ public class AddressTextField extends AnchorPane {
 
     public void setAddress(String address) {
         this.address.set(address);
+    }
+
+    public void setLabel(String label) {
+        textField.setPromptText(label);
     }
 
     public String getAddress() {
