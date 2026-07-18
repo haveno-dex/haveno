@@ -43,6 +43,7 @@ import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple2;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
@@ -469,6 +470,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currency.getCode());
         if (marketPrice == null || !marketPrice.isPriceAvailable()) return null;
         double fiatValue = HavenoUtils.atomicUnitsToXmr(totalBalance) * marketPrice.getPrice();
+        fiatFormat.setMaximumFractionDigits(CurrencyUtil.isPricePrecise(currency.getCode()) ? 8 : 2); // crypto/metals need more precision than fiat's 2 decimals
         return "≈ " + fiatFormat.format(fiatValue) + " " + currency.getCode();
     }
 
