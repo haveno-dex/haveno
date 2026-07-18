@@ -20,7 +20,7 @@ public class ParsingUtils {
             try {
                 return coinFormat.parse(cleanDoubleInput(input));
             } catch (Throwable t) {
-                log.warn("Exception at parseToBtc: " + t.toString());
+                log.warn("Exception at parseToCoin: " + t.toString());
                 return Coin.ZERO;
             }
         } else {

@@ -24,6 +24,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.collections.transformation.FilteredList;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 
 public class FilterBox extends HBox {
     private final InputTextField textField;
@@ -39,6 +40,13 @@ public class FilterBox extends HBox {
         textField.setMinWidth(500);
 
         getChildren().addAll(textField);
+    }
+
+    /** Let the input fill the box width and shrink to the given min, for inline placement. */
+    public void setInputFillWidth(double minWidth) {
+        textField.setMinWidth(minWidth);
+        textField.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(textField, Priority.ALWAYS);
     }
 
     public void initialize(FilteredList<? extends FilterableListItem> filteredList,

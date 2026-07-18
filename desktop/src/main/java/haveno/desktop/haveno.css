@@ -1160,6 +1160,23 @@ tree-table-view:focused {
     -fx-font-size: 0.85em;
 }
 
+/* transient notice callout; bordered so it stands out on same-color backgrounds */
+.tooltip.notice-tooltip {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-border-color: -bs-color-primary;
+    -fx-border-width: 1;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 10 16 10 14;
+    -fx-font-size: 0.923em;
+    -fx-graphic-text-gap: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 16, 0, 0, 4);
+}
+
+.notice-tooltip-icon {
+    -fx-fill: -bs-color-primary;
+}
+
 /* Same style like non editable textfield. But textfield spans a whole column in a grid, so we use generally
 textfield */
 #label-with-background {
@@ -1475,14 +1492,18 @@ textfield */
     -fx-border-color: transparent;
 }
 
-/* Rows navigate to the offer view on click; set the hand on every pickable node
+/* Rows act on click (navigate, select); set the hand on every pickable node
    (ancestor-only is unreliable on macOS) and restore the default over empty rows. */
 .table-view.offer-table .table-row-cell,
-.table-view.offer-table .table-row-cell * {
+.table-view.offer-table .table-row-cell *,
+.table-view.clickable-rows .table-row-cell,
+.table-view.clickable-rows .table-row-cell * {
     -fx-cursor: hand;
 }
 .table-view.offer-table .table-row-cell:empty,
-.table-view.offer-table .table-row-cell:empty * {
+.table-view.offer-table .table-row-cell:empty *,
+.table-view.clickable-rows .table-row-cell:empty,
+.table-view.clickable-rows .table-row-cell:empty * {
     -fx-cursor: default;
 }
 
@@ -1558,6 +1579,27 @@ textfield */
  ******************************************************************************/
 .qr-code {
     -fx-cursor: hand;
+}
+
+.qr-code-pane {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 12, 0, 0, 3);
+}
+
+.deposit-hero-title {
+    -fx-font-size: 1.462em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+
+.deposit-balance-amount {
+    -fx-font-size: 1.769em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+
+.deposit-balance-fiat {
+    -fx-font-size: 1.077em;
+    -fx-text-fill: -bs-color-gray-6;
 }
 
 /*******************************************************************************
