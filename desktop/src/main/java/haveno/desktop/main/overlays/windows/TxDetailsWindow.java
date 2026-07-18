@@ -17,54 +17,49 @@
 
 package haveno.desktop.main.overlays.windows;
 
+import com.google.inject.Inject;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
+import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.main.funds.transactions.TransactionsListItem;
-import haveno.desktop.main.overlays.Overlay;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Region;
+import haveno.desktop.util.GUIUtil;
+import javafx.scene.Node;
 import monero.wallet.model.MoneroTxWallet;
 
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelLabel;
-import static haveno.desktop.util.FormBuilder.addConfirmationLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addLabelTxIdTextField;
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.google.inject.Inject;
+/** Details of a wallet transaction, shown as a sent or received hero amount. */
+public class TxDetailsWindow extends TxHeroWindow<TxDetailsWindow> {
 
-public class TxDetailsWindow extends Overlay<TxDetailsWindow> {
-
-    private XmrWalletService xmrWalletService;
+    private final XmrWalletService xmrWalletService;
+    private final Preferences preferences;
+    private final PriceFeedService priceFeedService;
     private TransactionsListItem item;
 
     @Inject
-    public TxDetailsWindow(XmrWalletService xmrWalletService) {
+    public TxDetailsWindow(XmrWalletService xmrWalletService, Preferences preferences, PriceFeedService priceFeedService) {
         this.xmrWalletService = xmrWalletService;
+        this.preferences = preferences;
+        this.priceFeedService = priceFeedService;
     }
 
     public void show(TransactionsListItem item) {
         this.item = item;
-        rowIndex = -1;
-        width = 918;
-        if (headLine == null)
-            headLine = Res.get("txDetailsWindow.headline");
-        createGridPane();
-        gridPane.setHgap(15);
-        addHeadLine();
-        addContent();
-        addButtons();
-        applyStyles();
-        display();
+        showHeroWindow();
     }
 
+    @Override
     protected void addContent() {
         MoneroTxWallet tx = item.getTx();
+        boolean isOutgoing = tx.getOutgoingTransfer() != null;
+        BigInteger amount = isOutgoing ? tx.getOutgoingAmount() : tx.getIncomingAmount();
         String memo = tx.getNote();
         String txKey = null;
-        boolean isOutgoing = tx.getOutgoingTransfer() != null;
         if (isOutgoing) {
             try {
                 synchronized (xmrWalletService.getWalletLock()) {
@@ -75,27 +70,20 @@ public class TxDetailsWindow extends Overlay<TxDetailsWindow> {
             }
         }
 
-        // add sent or received note
-        String resKey = isOutgoing ? "txDetailsWindow.xmr.noteSent" : "txDetailsWindow.xmr.noteReceived";
-        GridPane.setColumnSpan(addMultilineLabel(gridPane, ++rowIndex, Res.get(resKey), 0), 2);
-        Region spacer = new Region();
-        spacer.setMinHeight(15);
-        gridPane.add(spacer, 0, ++rowIndex);
+        List<Node> groups = new ArrayList<>();
+        groups.add(detailRow(Res.get("shared.dateTime"), valueLabel(item.getDateString())));
+        groups.add(sheetGroup(Res.get(isOutgoing ? "txDetailsWindow.sentTo" : "txDetailsWindow.receivedWith"),
+                wrappedLabel(item.getAddressString(), "confirm-send-address"), copyIcon(item.getAddressString())));
+        if (isOutgoing) groups.add(detailRow(Res.get("funds.withdrawal.confirm.networkFee"), valueLabel(HavenoUtils.formatXmr(tx.getFee(), true))));
+        if (memo != null && !memo.isEmpty()) groups.add(sheetGroup(Res.get("funds.withdrawal.sent.note"), wrappedLabel(memo, "confirm-send-row-value")));
+        if (txKey != null && !txKey.isEmpty()) groups.add(sheetGroup(Res.get("txDetailsWindow.txKey"), wrappedLabel(txKey, "confirm-send-address"), copyIcon(txKey)));
+        groups.add(txIdGroup(tx.getHash(), xmrWalletService, preferences));
 
-        // add tx fields
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.dateTime"), item.getDateString());
-        BigInteger amount;
-        if (isOutgoing) {
-            addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("txDetailsWindow.sentTo"), item.getAddressString());
-            amount = tx.getOutgoingAmount();
-        } else {
-            addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("txDetailsWindow.receivedWith"), item.getAddressString());
-            amount = tx.getIncomingAmount();
-        }
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.amount"),  HavenoUtils.formatXmr(amount));
-        addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.txFee"), HavenoUtils.formatXmr(tx.getFee()));
-        if (memo != null && !"".equals(memo)) addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("funds.withdrawal.memoLabel"), memo);
-        if (txKey != null && !"".equals(txKey)) addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("txDetailsWindow.txKey"), txKey);
-        addLabelTxIdTextField(gridPane, ++rowIndex, Res.get("txDetailsWindow.txId"), tx.getHash());
+        String fiat = GUIUtil.getFiatText(amount, priceFeedService, preferences);
+        addHeroContent(
+                isOutgoing
+                        ? hero(MaterialDesignIcon.SEND, "confirm-send-icon", Res.get("funds.withdrawal.sent.headline"), amount, fiat)
+                        : hero(MaterialDesignIcon.ARROW_DOWN, "tx-sent-icon", Res.get("txDetailsWindow.received"), amount, fiat),
+                sheet(groups.toArray(new Node[0])));
     }
 }
