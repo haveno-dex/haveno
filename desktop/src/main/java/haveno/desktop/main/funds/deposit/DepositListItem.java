@@ -92,7 +92,8 @@ class DepositListItem implements FilterableListItem {
                 usage = Res.get("funds.deposit.baseAddress");
                 break;
             case AVAILABLE:
-                usage = numTxsWithOutputs == 0 ? Res.get("funds.deposit.unused") : Res.get("funds.deposit.usedInTx", numTxsWithOutputs);
+                usage = numTxsWithOutputs == 0 ? Res.get("funds.deposit.unused")
+                        : Res.get(numTxsWithOutputs == 1 ? "funds.deposit.usedInTx" : "funds.deposit.usedInTxs", numTxsWithOutputs);
                 break;
             case OFFER_FUNDING:
                 usage = Res.get("funds.deposit.offerFunding", addressEntry.getShortOfferId());
