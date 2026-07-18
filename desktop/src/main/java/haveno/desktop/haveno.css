@@ -159,8 +159,8 @@
     -fx-text-fill: -bs-rd-font-dark-gray;
     -fx-font-size: 0.923em;
     -fx-font-weight: normal;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
     -fx-min-height: 32;
     -fx-padding: 0 40 0 40;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 2, 0, 0, 0, 1);
@@ -546,8 +546,8 @@ tree-table-view:focused {
     -fx-min-width: 45;
     -fx-padding: 8;
     -fx-alignment: center;
-    -fx-background-radius: 6;
-    -fx-border-radius: 6;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
     -fx-background-color: derive(-bs-color-background-form-field, 15%);
 }
 
@@ -1799,6 +1799,8 @@ textfield */
 }
 
 .toggle-button-no-slider {
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
     -fx-border-width: 1px;
     -fx-border-color: -bs-color-border-form-field;
     -fx-background-insets: 0;
@@ -3095,8 +3097,8 @@ textfield */
 
 .passphrase-copy-box .jfx-button {
     -fx-padding: 5 15 5 15;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
     -fx-min-height: 0;
     -fx-font-size: 1.077em;
     -fx-font-family: "IBM Plex Sans";
