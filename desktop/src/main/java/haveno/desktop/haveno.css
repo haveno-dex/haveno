@@ -1790,6 +1790,24 @@ textfield */
     -fx-text-fill: -bs-color-gray-6;
 }
 
+/* incoming funds row links to transactions; hover pill drawn via insets to avoid layout shift */
+.deposit-incoming {
+    -fx-cursor: hand;
+}
+
+.deposit-incoming:hover,
+.deposit-incoming:pressed {
+    -fx-background-color: -bs-combo-popup-hover;
+    -fx-background-insets: -4 -12 -4 -12;
+    -fx-background-radius: 999;
+}
+
+/* pressing deepens the tint and nudges the pill down for a tactile depress */
+.deposit-incoming:pressed {
+    -fx-background-color: -bs-combo-popup-selected;
+    -fx-translate-y: 1;
+}
+
 /*******************************************************************************
  *                                                                             *
  * Textarea                                                                    *
