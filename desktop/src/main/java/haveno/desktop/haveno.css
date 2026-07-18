@@ -1437,6 +1437,73 @@ textfield */
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 14, 0, 0, 3);
 }
 
+/* Send funds — centered compose card with a balance readout and fiat estimates. */
+.send-card {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 18, 0, 0, 4);
+    -fx-padding: 30 36 34 36;
+}
+
+.send-hero-title {
+    -fx-font-size: 1.462em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+
+.send-balance-label {
+    -fx-font-size: 0.923em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.send-balance-amount {
+    -fx-font-size: 1.769em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+
+.send-balance-fiat {
+    -fx-font-size: 1.077em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.send-feedback {
+    -fx-font-size: 0.9em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.send-feedback-error {
+    -fx-text-fill: -bs-rd-error-red;
+}
+
+.send-max-link {
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-color-primary;
+    -fx-padding: 0 2 0 2;
+}
+
+.send-max-link:hover {
+    -fx-underline: true;
+}
+
+.send-field-label {
+    -fx-font-size: 0.923em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.send-address-field {
+    -fx-font-family: "IBM Plex Mono";
+    -fx-font-size: 0.923em;
+    -fx-padding: 7 34 7 14;
+}
+
+.send-valid-check {
+    -fx-fill: -bs-rd-green-dark;
+}
+
 .table-view.offer-table .column-header.first-column {
     -fx-background-radius: 0;
     -fx-border-radius: 0;
