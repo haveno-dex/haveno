@@ -58,6 +58,7 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.desktop.Navigation;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AddressTextField;
@@ -66,6 +67,9 @@ import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.components.list.FilterBox;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.funds.FundsView;
+import haveno.desktop.main.funds.transactions.TransactionsView;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.GlyphsDude;
@@ -146,6 +150,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private final XmrWalletService xmrWalletService;
     private final Preferences preferences;
     private final PriceFeedService priceFeedService;
+    private final Navigation navigation;
     private final CoinFormatter formatter;
     private final DecimalFormat fiatFormat;
     private BigInteger totalBalance = BigInteger.ZERO;
@@ -181,10 +186,12 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private DepositView(XmrWalletService xmrWalletService,
                         Preferences preferences,
                         PriceFeedService priceFeedService,
+                        Navigation navigation,
                         @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
         this.xmrWalletService = xmrWalletService;
         this.preferences = preferences;
         this.priceFeedService = priceFeedService;
+        this.navigation = navigation;
         this.formatter = formatter;
         fiatFormat = (DecimalFormat) NumberFormat.getNumberInstance(GlobalSettings.getLocale());
         fiatFormat.setMinimumFractionDigits(2);
@@ -433,10 +440,15 @@ public class DepositView extends ActivatableView<VBox, Void> {
         statusIndicator.setTooltip(statusTooltip);
         statusLabel = new AutoTooltipLabel();
         statusBox = new HBox(8, statusIndicator, statusLabel);
+        statusBox.getStyleClass().add("deposit-incoming");
         statusBox.setAlignment(Pos.CENTER);
         statusBox.setVisible(false);
         statusBox.setManaged(false);
         VBox.setMargin(statusBox, new Insets(4, 0, 0, 0));
+
+        // incoming funds are viewable in the transactions list
+        Tooltip.install(statusBox, new Tooltip(Res.get("funds.deposit.incoming.goToTransactions")));
+        statusBox.setOnMouseClicked(e -> navigation.navigateTo(MainView.class, FundsView.class, TransactionsView.class));
 
         balanceBox = new VBox(2, balanceLabel, fiatLabel, statusBox);
         balanceBox.setAlignment(Pos.CENTER);
