@@ -426,8 +426,8 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
             synchronized (xmrWalletService.getWalletLock()) {
                 xmrWalletService.getWallet().relayTx(tx);
                 xmrWalletService.getWallet().setTxNote(tx.getHash(), note); // TODO (monero-java): tx note does not persist when tx created then relayed
-                new TxWithdrawWindow(tx.getHash(), withdrawToAddress, HavenoUtils.formatXmr(receiverAmount, true), HavenoUtils.formatXmr(fee, true), xmrWalletService.getWallet().getTxNote(tx.getHash()))
-                        .show();
+                new TxWithdrawWindow(tx.getHash(), withdrawToAddress, receiverAmount, fee, xmrWalletService.getWallet().getTxNote(tx.getHash()),
+                        this::getFiatText, xmrWalletService, preferences).show();
                 log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
                 reset(); // the draft is kept across navigation, so clear it once the send completes
             }
