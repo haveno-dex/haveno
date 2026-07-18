@@ -126,7 +126,8 @@ public abstract class PaymentMethodForm {
         accountNameTextField.setEditable(isEditMode);
         accountNameTextField.setValidator(inputValidator);
         accountNameTextField.setFocusTraversable(false);
-        accountNameTextField.setText(paymentAccount.getAccountName());
+        if (paymentAccount.getAccountName() != null) // null name would trip empty-input validation on new accounts
+            accountNameTextField.setText(paymentAccount.getAccountName());
         accountNameTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             paymentAccount.setAccountName(newValue);
             updateAllInputsValid();
