@@ -59,6 +59,7 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TxWithdrawWindow;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
+import haveno.desktop.main.overlays.windows.WithdrawConfirmationWindow;
 import haveno.desktop.util.GUIUtil;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -404,33 +405,19 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
 
 
     private void popupConfirmationMessage(MoneroTxWallet tx, String note) {
-
-        // create confirmation message
         String withdrawToAddress = tx.getOutgoingTransfer().getDestinations().get(0).getAddress();
         BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
         BigInteger fee = tx.getFee();
-        String messageText = Res.get("shared.sendFundsDetailsWithFee",
-                HavenoUtils.formatXmr(receiverAmount, true),
-                withdrawToAddress,
-                HavenoUtils.formatXmr(fee, true));
-
-        // popup confirmation message
-        Popup popup = new Popup();
-        popup.headLine(Res.get("funds.withdrawal.confirmWithdrawalRequest"))
-                .confirmation(messageText)
-                .actionButtonText(Res.get("shared.yes"))
+        new WithdrawConfirmationWindow(receiverAmount, fee, withdrawToAddress, this::getFiatText)
                 .onAction(() -> {
                     if (xmrWalletService.isWalletEncrypted()) {
                         walletPasswordWindow.headLine(Res.get("walletPasswordWindow.headline")).onSuccess(() -> {
                             relayTx(tx, withdrawToAddress, receiverAmount, fee, note);
-                        }).onClose(() -> {
-                            popup.hide();
                         }).hideForgotPasswordButton().show();
                     } else {
                         relayTx(tx, withdrawToAddress, receiverAmount, fee, note);
                     }
                 })
-                .closeButtonText(Res.get("shared.cancel"))
                 .show();
     }
 
