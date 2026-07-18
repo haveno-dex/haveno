@@ -414,8 +414,11 @@
     -fx-background-color: derive(-bs-background-color, 5%);
 }
 .list-view .list-cell:hover,
+.table-view .table-cell:hover {
+    -fx-background: -bs-combo-popup-hover;
+    -fx-background-color: -bs-combo-popup-hover;
+}
 .list-view .list-cell:selected,
-.table-view .table-cell:hover,
 .table-view .table-cell:selected {
     -fx-background: -fx-accent;
     -fx-background-color: -fx-selection-bar;
@@ -1255,7 +1258,11 @@ textfield */
 .cell-faded {
     -fx-opacity: 0.4;
 }
-.table-view .table-row-cell:hover .table-cell,
+.table-view .table-row-cell:hover .table-cell {
+    -fx-background: -bs-combo-popup-hover;
+    -fx-background-color: -bs-combo-popup-hover;
+    -fx-border-color: transparent;
+}
 .table-view .table-row-cell:selected .table-cell {
     -fx-background: -fx-accent;
     -fx-background-color: -fx-selection-bar;
@@ -1662,8 +1669,8 @@ textfield */
     -fx-background-color: -fx-selection-bar;
 }
 
-/* Row hover matches the dropdown's soft hover tint; cell borders go transparent so no grid outline
-   shows (transparent, not the tint, since the translucent tint would stack into a visible edge). */
+/* Full-row hover tint incl. the filler edge; cell borders go transparent so the translucent tint
+   can't stack into a grid outline. The .offer-table specificity outweighs the dark theme's row rules. */
 .table-view.offer-table .table-row-cell:hover {
     -fx-background-color: -bs-combo-popup-hover;
 }
