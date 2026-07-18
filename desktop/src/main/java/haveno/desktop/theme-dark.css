@@ -662,11 +662,19 @@
     -fx-background-image: url("../../images/chatbg_dark.png");
 }
 
-/* brighten the withdraw-confirmation badge against the dark popup */
+/* brighten the withdraw-confirmation badges against the dark popup */
 .confirm-send-icon {
     -fx-background-color: rgba(28, 96, 220, 0.28);
 }
 
 .confirm-send-icon .glyph-icon {
     -fx-fill: derive(-bs-color-primary, 45%);
+}
+
+.tx-sent-icon {
+    -fx-background-color: rgba(62, 163, 74, 0.24);
+}
+
+.tx-sent-icon .glyph-icon {
+    -fx-fill: derive(-bs-rd-green-dark, 40%);
 }

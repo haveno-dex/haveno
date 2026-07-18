@@ -1625,6 +1625,16 @@ textfield */
     -fx-text-fill: -bs-text-color;
 }
 
+/* Withdraw success — green check badge over the same detail sheet. */
+.tx-sent-icon {
+    -fx-background-color: linear-gradient(to bottom right, rgba(62, 163, 74, 0.20), rgba(62, 163, 74, 0.07));
+    -fx-background-radius: 25;
+}
+
+.tx-sent-icon .glyph-icon {
+    -fx-fill: -bs-rd-green-dark;
+}
+
 .table-view.offer-table .column-header.first-column {
     -fx-background-radius: 0;
     -fx-border-radius: 0;
