@@ -1537,6 +1537,94 @@ textfield */
     -fx-fill: -bs-rd-green-dark;
 }
 
+/* Withdraw confirmation — hero amount over an inset detail sheet. */
+.confirm-send-icon {
+    -fx-background-color: linear-gradient(to bottom right, rgba(28, 96, 220, 0.18), rgba(28, 96, 220, 0.06));
+    -fx-background-radius: 25;
+}
+
+.confirm-send-icon .glyph-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.confirm-send-title {
+    -fx-font-size: 1.231em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+
+.confirm-send-amount {
+    -fx-font-size: 2.154em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+
+.confirm-send-fiat {
+    -fx-font-size: 1.077em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.confirm-send-sheet {
+    -fx-background-color: -bs-confirm-sheet-background;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-border-width: 1;
+    -fx-padding: 16 18 16 18;
+}
+
+.confirm-send-row-label {
+    -fx-font-size: 0.923em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.confirm-send-row-value {
+    -fx-font-size: 0.923em;
+    -fx-text-fill: -bs-text-color;
+}
+
+.confirm-send-row-fiat {
+    -fx-font-size: 0.846em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.confirm-send-total {
+    -fx-font-family: "IBM Plex Sans Medium";
+}
+
+.confirm-send-address {
+    -fx-font-family: "IBM Plex Mono";
+    -fx-font-size: 0.846em;
+    -fx-text-fill: -bs-text-color;
+}
+
+.confirm-send-divider {
+    -fx-background-color: -bs-offer-card-border;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.confirm-send-copy .glyph-icon {
+    -fx-fill: -bs-color-gray-6;
+}
+
+.confirm-send-copy:hover .glyph-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.confirm-send-cancel {
+    -fx-background-color: transparent;
+    -fx-text-fill: -bs-color-gray-6;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-cursor: hand;
+    -fx-padding: 6 16 6 16;
+}
+
+.confirm-send-cancel:hover {
+    -fx-text-fill: -bs-text-color;
+}
+
 .table-view.offer-table .column-header.first-column {
     -fx-background-radius: 0;
     -fx-border-radius: 0;
