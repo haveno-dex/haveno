@@ -51,11 +51,13 @@ import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.PasswordTextField;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.EditCustomExplorerWindow;
+import static haveno.desktop.util.FormBuilder.addAutocompleteComboBox;
 import static haveno.desktop.util.FormBuilder.addButton;
 import static haveno.desktop.util.FormBuilder.addComboBox;
 import static haveno.desktop.util.FormBuilder.addInputTextField;
@@ -104,7 +106,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private TextField xmrExplorerTextField;
     private ComboBox<String> userLanguageComboBox;
     private ComboBox<Country> userCountryComboBox;
-    private ComboBox<TradeCurrency> preferredTradeCurrencyComboBox;
+    private AutocompleteComboBox<TradeCurrency> preferredTradeCurrencyComboBox;
 
     private ToggleButton showOwnOffersInOfferBook, useAnimations, useDarkMode, sortMarketCurrenciesNumerically,
             avoidStandbyMode, useSoundForNotifications, useCustomFee, autoConfirmXmrToggle, hideNonAccountPaymentMethodsToggle, denyApiTakerToggle,
@@ -319,7 +321,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         GridPane.setColumnIndex(titledGroupBg, 2);
         GridPane.setColumnSpan(titledGroupBg, 2);
 
-        preferredTradeCurrencyComboBox = addComboBox(root, displayCurrenciesGridRowIndex++,
+        preferredTradeCurrencyComboBox = addAutocompleteComboBox(root, displayCurrenciesGridRowIndex++,
                 Res.get("setting.preferences.prefCurrency"),
                 Layout.FIRST_ROW_DISTANCE);
         GridPane.setColumnIndex(preferredTradeCurrencyComboBox, 2);
@@ -327,17 +329,17 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         preferredTradeCurrencyComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(TradeCurrency object) {
-                return object.getName() + " (" + object.getCode() + ")";
+                return object != null ? object.getName() + " (" + object.getCode() + ")" : "";
             }
 
             @Override
             public TradeCurrency fromString(String string) {
-                return null;
+                return preferredTradeCurrencyComboBox.getItems().stream()
+                        .filter(item -> toString(item).equals(string))
+                        .findAny().orElse(null);
             }
         });
 
-        preferredTradeCurrencyComboBox.setButtonCell(GUIUtil.getTradeCurrencyButtonCell("", "",
-                FXCollections.emptyObservableMap()));
         preferredTradeCurrencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory("", "",
                 FXCollections.emptyObservableMap()));
 
@@ -712,10 +714,11 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     }
 
     private void activateDisplayCurrencies() {
-        preferredTradeCurrencyComboBox.setItems(tradeCurrencies);
+        preferredTradeCurrencyComboBox.setAutocompleteItems(tradeCurrencies);
         preferredTradeCurrencyComboBox.getSelectionModel().select(preferences.getPreferredTradeCurrency());
-        preferredTradeCurrencyComboBox.setVisibleRowCount(12);
-        preferredTradeCurrencyComboBox.setOnAction(e -> {
+        preferredTradeCurrencyComboBox.getEditor().setText(
+                preferredTradeCurrencyComboBox.getConverter().toString(preferences.getPreferredTradeCurrency()));
+        preferredTradeCurrencyComboBox.setOnChangeConfirmed(e -> {
             TradeCurrency selectedItem = preferredTradeCurrencyComboBox.getSelectionModel().getSelectedItem();
             if (selectedItem != null)
                 preferences.setPreferredTradeCurrency(selectedItem);
@@ -846,7 +849,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     }
 
     private void deactivateDisplayCurrencies() {
-        preferredTradeCurrencyComboBox.setOnAction(null);
+        preferredTradeCurrencyComboBox.setOnHidden(null);
     }
 
     private void deactivateDisplayPreferences() {
