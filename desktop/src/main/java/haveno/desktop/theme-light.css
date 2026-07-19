@@ -1,6 +1,8 @@
 .root {
     -bs-color-primary: rgb(28, 96, 220);
     -bs-color-primary-dark: #0c59bd;
+    -bs-hero-primary: -bs-color-primary;
+    -bs-hero-purple: rgb(126, 87, 194);
     -bs-text-color: #000000;
     -bs-background-color: #ffffff;
     -bs-background-gray: #dddddd;

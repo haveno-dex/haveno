@@ -2782,45 +2782,76 @@ textfield */
 
 /********************************************************************************************************************
  *                                                                                                                  *
- * Welcome window                                                                                                   *
+ * Hero info windows (welcome, trade feedback, support info)                                                        *
  *                                                                                                                  *
  ********************************************************************************************************************/
-.welcome-header-icon-box {
-    -fx-background-color: linear-gradient(to bottom right, rgba(28, 96, 220, 0.18), rgba(28, 96, 220, 0.06));
+.hero-accent-primary {
+    -hero-accent: -bs-hero-primary;
+    -hero-accent-strong: rgba(28, 96, 220, 0.18);
+    -hero-accent-faint: rgba(28, 96, 220, 0.06);
+}
+
+.hero-accent-green {
+    -hero-accent: rgb(62, 163, 74);
+    -hero-accent-strong: rgba(62, 163, 74, 0.18);
+    -hero-accent-faint: rgba(62, 163, 74, 0.06);
+}
+
+.hero-accent-orange {
+    -hero-accent: rgb(242, 104, 34);
+    -hero-accent-strong: rgba(242, 104, 34, 0.18);
+    -hero-accent-faint: rgba(242, 104, 34, 0.06);
+}
+
+.hero-accent-purple {
+    -hero-accent: -bs-hero-purple;
+    -hero-accent-strong: rgba(126, 87, 194, 0.18);
+    -hero-accent-faint: rgba(126, 87, 194, 0.06);
+}
+
+.hero-accent-amber {
+    -hero-accent: rgb(248, 178, 73);
+    -hero-accent-strong: rgba(248, 178, 73, 0.18);
+    -hero-accent-faint: rgba(248, 178, 73, 0.06);
+}
+
+.hero-header-icon-box {
+    -fx-background-color: linear-gradient(to bottom right, -hero-accent-strong, -hero-accent-faint);
     -fx-background-radius: 25;
     -fx-min-height: 50;
     -fx-pref-height: 50;
     -fx-max-height: 50;
 }
 
-.welcome-header-icon {
-    -fx-fill: -bs-color-primary;
+.hero-header-icon {
+    -fx-fill: -hero-accent;
 }
 
-.welcome-header-title {
+.hero-header-title {
     -fx-font-size: 1.4em;
     -fx-font-family: "IBM Plex Sans Medium";
-    -fx-text-fill: -bs-color-primary;
+    -fx-text-fill: -hero-accent;
 }
 
-.welcome-header-subtitle {
+.hero-header-subtitle {
     -fx-font-size: 0.92em;
     -fx-text-fill: -bs-rd-font-dark;
 }
 
-.welcome-header-divider {
-    -fx-background-color: -bs-color-primary;
+.hero-header-divider {
+    -fx-background-color: -hero-accent;
+    -fx-opacity: 0.55;
     -fx-min-height: 1;
     -fx-pref-height: 1;
     -fx-max-height: 1;
 }
 
-.welcome-feature-row {
+.hero-feature-row {
     -fx-padding: 8 24 8 24;
 }
 
-.welcome-feature-icon-box {
-    -fx-background-color: rgba(28, 96, 220, 0.08);
+.hero-feature-icon-box {
+    -fx-background-color: linear-gradient(to bottom right, -hero-accent-strong, -hero-accent-faint);
     -fx-background-radius: 22;
     -fx-min-width: 44;
     -fx-pref-width: 44;
@@ -2830,46 +2861,22 @@ textfield */
     -fx-max-height: 44;
 }
 
-.welcome-feature-icon {
-    -fx-fill: -bs-color-primary;
+.hero-feature-icon {
+    -fx-fill: -hero-accent;
 }
 
-.welcome-feature-icon-box.welcome-accent-trade {
-    -fx-background-color: linear-gradient(to bottom right, rgba(242, 104, 34, 0.18), rgba(242, 104, 34, 0.06));
-}
-
-.welcome-feature-icon.welcome-accent-trade {
-    -fx-fill: rgb(242, 104, 34);
-}
-
-.welcome-feature-icon-box.welcome-accent-start {
-    -fx-background-color: linear-gradient(to bottom right, rgba(62, 163, 74, 0.18), rgba(62, 163, 74, 0.06));
-}
-
-.welcome-feature-icon.welcome-accent-start {
-    -fx-fill: rgb(62, 163, 74);
-}
-
-.welcome-feature-icon-box.welcome-accent-support {
-    -fx-background-color: linear-gradient(to bottom right, rgba(126, 87, 194, 0.18), rgba(126, 87, 194, 0.06));
-}
-
-.welcome-feature-icon.welcome-accent-support {
-    -fx-fill: rgb(126, 87, 194);
-}
-
-.welcome-feature-title {
+.hero-feature-title {
     -fx-font-size: 0.98em;
     -fx-font-family: "IBM Plex Sans Medium";
     -fx-text-fill: -bs-rd-font-dark;
 }
 
-.welcome-feature-body {
+.hero-feature-body {
     -fx-font-size: 0.94em;
     -fx-text-fill: -bs-rd-font-dark;
 }
 
-.welcome-separator {
+.hero-separator {
     -fx-background-color: -bs-rd-separator;
     -fx-min-height: 1;
     -fx-pref-height: 1;
@@ -2893,93 +2900,6 @@ textfield */
     -fx-font-size: 0.92em;
     -fx-font-family: "IBM Plex Sans Medium";
     -fx-text-fill: -bs-rd-font-dark;
-}
-
-/********************************************************************************************************************
- *                                                                                                                  *
- * Trade feedback window                                                                                            *
- *                                                                                                                  *
- ********************************************************************************************************************/
-.trade-feedback-header-icon-box {
-    -fx-background-color: linear-gradient(to bottom right, rgba(62, 163, 74, 0.20), rgba(62, 163, 74, 0.06));
-    -fx-background-radius: 25;
-    -fx-min-height: 50;
-    -fx-pref-height: 50;
-    -fx-max-height: 50;
-}
-
-.trade-feedback-header-icon {
-    -fx-fill: rgb(62, 163, 74);
-}
-
-.trade-feedback-header-title {
-    -fx-font-size: 1.4em;
-    -fx-font-family: "IBM Plex Sans Medium";
-    -fx-text-fill: rgb(62, 163, 74);
-}
-
-.trade-feedback-header-subtitle {
-    -fx-font-size: 0.92em;
-    -fx-text-fill: -bs-rd-font-dark;
-}
-
-.trade-feedback-header-divider {
-    -fx-background-color: rgba(62, 163, 74, 0.55);
-    -fx-min-height: 1;
-    -fx-pref-height: 1;
-    -fx-max-height: 1;
-}
-
-.trade-feedback-feature-row {
-    -fx-padding: 8 24 8 24;
-}
-
-.trade-feedback-feature-icon-box {
-    -fx-background-radius: 22;
-    -fx-min-width: 44;
-    -fx-pref-width: 44;
-    -fx-max-width: 44;
-    -fx-min-height: 44;
-    -fx-pref-height: 44;
-    -fx-max-height: 44;
-}
-
-.trade-feedback-feature-icon {
-    -fx-fill: -bs-rd-font-dark;
-}
-
-.trade-feedback-feature-icon-box.trade-feedback-accent-feedback {
-    -fx-background-color: linear-gradient(to bottom right, rgba(248, 178, 73, 0.20), rgba(248, 178, 73, 0.06));
-}
-
-.trade-feedback-feature-icon.trade-feedback-accent-feedback {
-    -fx-fill: rgb(248, 178, 73);
-}
-
-.trade-feedback-feature-icon-box.trade-feedback-accent-support {
-    -fx-background-color: linear-gradient(to bottom right, rgba(126, 87, 194, 0.18), rgba(126, 87, 194, 0.06));
-}
-
-.trade-feedback-feature-icon.trade-feedback-accent-support {
-    -fx-fill: rgb(126, 87, 194);
-}
-
-.trade-feedback-feature-title {
-    -fx-font-size: 0.98em;
-    -fx-font-family: "IBM Plex Sans Medium";
-    -fx-text-fill: -bs-rd-font-dark;
-}
-
-.trade-feedback-feature-body {
-    -fx-font-size: 0.94em;
-    -fx-text-fill: -bs-rd-font-dark;
-}
-
-.trade-feedback-separator {
-    -fx-background-color: -bs-rd-separator;
-    -fx-min-height: 1;
-    -fx-pref-height: 1;
-    -fx-max-height: 1;
 }
 
 .account-status-title {
