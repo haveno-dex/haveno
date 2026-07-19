@@ -1844,6 +1844,11 @@ textfield */
     -fx-border-color: -bs-background-gray;
 }
 
+.text-area.validation-error,
+.text-area.validation-error:focused {
+    -fx-border-color: -bs-rd-error-red;
+}
+
 .window-text-area {
     -fx-background-radius: 0;
     -fx-background-insets: 0;

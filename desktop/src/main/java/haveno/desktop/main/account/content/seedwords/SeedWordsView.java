@@ -34,33 +34,32 @@
 
 package haveno.desktop.main.account.content.seedwords;
 
-import com.google.common.base.Splitter;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import haveno.common.config.Config;
+import haveno.common.Timer;
+import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.user.DontShowAgainLookup;
-import haveno.core.xmr.wallet.WalletsManager;
+import haveno.core.util.validation.RestoreHeightValidator;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
+import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.SharedPresentation;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import static haveno.desktop.util.FormBuilder.addPrimaryActionButtonAFterGroup;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
+import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 import haveno.desktop.util.Layout;
-import java.io.File;
-import java.io.IOException;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -68,28 +67,29 @@ import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
-import org.bitcoinj.crypto.MnemonicCode;
-import org.bitcoinj.crypto.MnemonicException;
-import org.bitcoinj.wallet.DeterministicSeed;
-//import static javafx.beans.binding.Bindings.createBooleanBinding;
+import monero.common.MoneroUtils;
+import static javafx.beans.binding.Bindings.createBooleanBinding;
 
 @FxmlView
 public class SeedWordsView extends ActivatableView<GridPane, Void> {
-    private final WalletsManager walletsManager;
     private final OpenOfferManager openOfferManager;
     private final XmrWalletService xmrWalletService;
     private final WalletPasswordWindow walletPasswordWindow;
-    private final File storageDir;
 
     private Button restoreButton;
     private TextArea displaySeedWordsTextArea, seedWordsTextArea;
-    private DatePicker datePicker, restoreDatePicker;
+    private DatePicker datePicker;
+    private InputTextField restoreHeightInputTextField;
 
     private int gridRow = 0;
-    private ChangeListener<Boolean> seedWordsValidChangeListener;
+    private ChangeListener<Boolean> seedFocusListener;
     private final SimpleBooleanProperty seedWordsValid = new SimpleBooleanProperty(false);
     private ChangeListener<String> seedWordsTextAreaChangeListener;
     private final BooleanProperty seedWordsEdited = new SimpleBooleanProperty();
+    private Timer seedValidationTimer;
+    // cache the last async seed check so an unchanged seed does not re-run it
+    private String validatedSeed;
+    private boolean validatedSeedValid;
     private String seedWordText;
     private LocalDate walletCreationDate;
 
@@ -99,16 +99,12 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private SeedWordsView(WalletsManager walletsManager,
-                          OpenOfferManager openOfferManager,
+    private SeedWordsView(OpenOfferManager openOfferManager,
                           XmrWalletService xmrWalletService,
-                          WalletPasswordWindow walletPasswordWindow,
-                          @Named(Config.STORAGE_DIR) File storageDir) {
-        this.walletsManager = walletsManager;
+                          WalletPasswordWindow walletPasswordWindow) {
         this.openOfferManager = openOfferManager;
         this.xmrWalletService = xmrWalletService;
         this.walletPasswordWindow = walletPasswordWindow;
-        this.storageDir = storageDir;
     }
 
     @Override
@@ -123,63 +119,47 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         datePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
         datePicker.setMouseTransparent(true);
 
-        // TODO: to re-enable restore functionality:
-        // - uncomment code throughout this file
-        // - support getting wallet's restore height
-        // - support translating between date and restore height
-        // - clear XmrAddressEntries which are incompatible with new wallet and other tests
-        // - update mnemonic validation and restore calls
+        addTitledGroupBg(root, ++gridRow, 3, Res.get("seed.restore.title"), Layout.GROUP_DISTANCE);
+        seedWordsTextArea = addTopLabelTextArea(root, gridRow, Res.get("seed.seedWords"), "", Layout.FIRST_ROW_AND_GROUP_DISTANCE).second;
+        seedWordsTextArea.getStyleClass().add("wallet-seed-words");
+        seedWordsTextArea.setPrefHeight(70);
+        seedWordsTextArea.setMaxHeight(70);
 
-        // addTitledGroupBg(root, ++gridRow, 3, Res.get("seed.restore.title"), Layout.GROUP_DISTANCE);
-        // seedWordsTextArea = addTopLabelTextArea(root, gridRow, Res.get("seed.seedWords"), "", Layout.FIRST_ROW_AND_GROUP_DISTANCE).second;
-        // seedWordsTextArea.getStyleClass().add("wallet-seed-words");
-        // seedWordsTextArea.setPrefHeight(40);
-        // seedWordsTextArea.setMaxHeight(40);
-
-        // restoreDatePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
-        // restoreButton = addPrimaryActionButtonAFterGroup(root, ++gridRow, Res.get("seed.restore"));
+        restoreHeightInputTextField = addTopLabelInputTextField(root, ++gridRow, Res.get("seed.restore.height"), 10).second;
+        restoreHeightInputTextField.setValidator(new RestoreHeightValidator());
+        restoreButton = addPrimaryActionButtonAFterGroup(root, ++gridRow, Res.get("seed.restore"));
 
         addTitledGroupBg(root, ++gridRow, 1, Res.get("shared.information"), Layout.GROUP_DISTANCE);
         addMultilineLabel(root, gridRow, Res.get("account.seed.info"),
                 Layout.FIRST_ROW_AND_GROUP_DISTANCE);
 
-        seedWordsValidChangeListener = (observable, oldValue, newValue) -> {
-            if (newValue) {
-                seedWordsTextArea.getStyleClass().remove("validation-error");
-            } else {
-                seedWordsTextArea.getStyleClass().add("validation-error");
-            }
+        seedFocusListener = (observable, oldValue, focused) -> {
+            if (!focused && seedWordsEdited.get() && !seedWordsValid.get()) applySeedValidity(false);
         };
 
         seedWordsTextAreaChangeListener = (observable, oldValue, newValue) -> {
             seedWordsEdited.set(true);
-            try {
-                MnemonicCode codec = new MnemonicCode();
-                codec.check(Splitter.on(" ").splitToList(newValue));
-                seedWordsValid.set(true);
-            } catch (IOException | MnemonicException e) {
-                seedWordsValid.set(false);
-            }
+            validateSeedWords(oldValue, newValue);
         };
     }
 
     @Override
     public void activate() {
-        // seedWordsValid.addListener(seedWordsValidChangeListener);
-        // seedWordsTextArea.textProperty().addListener(seedWordsTextAreaChangeListener);
-        // restoreButton.disableProperty().bind(createBooleanBinding(() -> !seedWordsValid.get() || !seedWordsEdited.get(),
-        //         seedWordsValid, seedWordsEdited));
+        seedWordsTextArea.focusedProperty().addListener(seedFocusListener);
+        seedWordsTextArea.textProperty().addListener(seedWordsTextAreaChangeListener);
+        restoreButton.disableProperty().bind(createBooleanBinding(
+                () -> !seedWordsValid.get() || !seedWordsEdited.get() || !restoreHeightInputTextField.validationResultProperty().get().isValid,
+                seedWordsValid, seedWordsEdited, restoreHeightInputTextField.validationResultProperty()));
 
-        // restoreButton.setOnAction(e -> {
-        //     new Popup().information(Res.get("account.seed.restore.info"))
-        //             .closeButtonText(Res.get("shared.cancel"))
-        //             .actionButtonText(Res.get("account.seed.restore.ok"))
-        //             .onAction(this::onRestore)
-        //             .show();
-        // });
+        restoreButton.setOnAction(e -> {
+            new Popup().information(Res.get("account.seed.restore.info"))
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .actionButtonText(Res.get("account.seed.restore.ok"))
+                    .onAction(this::onRestore)
+                    .show();
+        });
 
-        // seedWordsTextArea.getStyleClass().remove("validation-error");
-        // restoreDatePicker.getStyleClass().remove("validation-error");
+        seedWordsTextArea.getStyleClass().remove("validation-error");
 
         String key = "showBackupWarningAtSeedPhrase";
         if (DontShowAgainLookup.showAgain(key)) {
@@ -219,20 +199,19 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
 
     @Override
     protected void deactivate() {
+        if (seedValidationTimer != null) seedValidationTimer.stop();
+        seedWordsTextArea.focusedProperty().removeListener(seedFocusListener);
+        seedWordsTextArea.textProperty().removeListener(seedWordsTextAreaChangeListener);
+        restoreButton.disableProperty().unbind();
+        restoreButton.setOnAction(null);
+
         displaySeedWordsTextArea.setText("");
+        seedWordsTextArea.setText("");
+        restoreHeightInputTextField.setText("");
         datePicker.setValue(null);
+        validatedSeed = null;
 
-        // seedWordsValid.removeListener(seedWordsValidChangeListener);
-        // seedWordsTextArea.textProperty().removeListener(seedWordsTextAreaChangeListener);
-        // restoreButton.disableProperty().unbind();
-        // restoreButton.setOnAction(null);
-
-        // seedWordsTextArea.setText("");
-
-        // restoreDatePicker.setValue(null);
-
-        // seedWordsTextArea.getStyleClass().remove("validation-error");
-        // restoreDatePicker.getStyleClass().remove("validation-error");
+        seedWordsTextArea.getStyleClass().remove("validation-error");
     }
 
     private void askForPassword() {
@@ -252,71 +231,107 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         datePicker.setValue(walletCreationDate);
     }
 
+    // Clear the error while editing, fail fast on word count, then validate the full seed off the
+    // UI thread; a paste runs instantly, typing is debounced, an unchanged seed reuses the last result.
+    private void validateSeedWords(String oldValue, String seedWords) {
+        if (seedValidationTimer != null) seedValidationTimer.stop();
+        seedWordsTextArea.getStyleClass().remove("validation-error");
+        if (!hasValidWordCount(seedWords)) {
+            seedWordsValid.set(false);
+            return;
+        }
+        if (seedWords.trim().equals(validatedSeed)) {
+            applySeedValidity(validatedSeedValid);
+            return;
+        }
+        Runnable validation = () -> new Thread(() -> {
+            boolean valid = isSeedValid(seedWords.trim());
+            UserThread.execute(() -> {
+                validatedSeed = seedWords.trim();
+                validatedSeedValid = valid;
+                if (seedWords.equals(seedWordsTextArea.getText())) applySeedValidity(valid);
+            });
+        }, "ValidateSeedWords").start();
+        if (Math.abs(seedWords.length() - oldValue.length()) > 1) validation.run();
+        else seedValidationTimer = UserThread.runAfter(validation, 300, TimeUnit.MILLISECONDS);
+    }
+
+    private void applySeedValidity(boolean valid) {
+        seedWordsValid.set(valid);
+        if (valid) seedWordsTextArea.getStyleClass().remove("validation-error");
+        else if (!seedWordsTextArea.getStyleClass().contains("validation-error")) seedWordsTextArea.getStyleClass().add("validation-error");
+    }
+
+    private boolean hasValidWordCount(String seedWords) {
+        try {
+            MoneroUtils.validateMnemonic(seedWords);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    // defer to validation at restore if the seed cannot be checked
+    private boolean isSeedValid(String seed) {
+        try {
+            return xmrWalletService.isSeedValid(seed);
+        } catch (Exception e) {
+            log.warn("Could not validate seed, deferring to restore, error={}", e.getMessage());
+            return true;
+        }
+    }
+
     private void onRestore() {
-        if (walletsManager.hasPositiveBalance()) {
+        final Long restoreHeight;
+        final LocalDate restoreDate;
+        try {
+            restoreHeight = getRestoreHeight();
+            restoreDate = getRestoreDate();
+        } catch (Exception e) {
+            new Popup().warning(Res.get("seed.restore.height.invalid")).show();
+            return;
+        }
+        BigInteger balance = xmrWalletService.getBalance();
+        if (balance != null && balance.compareTo(BigInteger.ZERO) > 0) {
             new Popup().warning(Res.get("seed.warn.walletNotEmpty.msg"))
                     .actionButtonText(Res.get("seed.warn.walletNotEmpty.restore"))
-                    .onAction(this::checkIfEncrypted)
+                    .onAction(() -> confirmRestoreHeight(restoreHeight, restoreDate))
                     .closeButtonText(Res.get("seed.warn.walletNotEmpty.emptyWallet"))
                     .show();
         } else {
-            checkIfEncrypted();
+            confirmRestoreHeight(restoreHeight, restoreDate);
         }
     }
 
-    private void checkIfEncrypted() {
-        if (walletsManager.areWalletsEncrypted()) {
-            new Popup().information(Res.get("seed.warn.notEncryptedAnymore"))
+    private void confirmRestoreHeight(Long restoreHeight, LocalDate restoreDate) {
+        if (restoreHeight == null && restoreDate == null) {
+            new Popup().information(Res.get("seed.warn.emptyRestoreHeight"))
                     .closeButtonText(Res.get("shared.no"))
                     .actionButtonText(Res.get("shared.yes"))
-                    .onAction(this::doRestoreDateCheck)
+                    .onAction(() -> doRestore(null, null))
                     .show();
         } else {
-            doRestoreDateCheck();
+            doRestore(restoreHeight, restoreDate);
         }
     }
 
-    private void doRestoreDateCheck() {
-        if (restoreDatePicker.getValue() == null) {
-            // Provide feedback when attempting to restore a wallet from seed words without specifying a date
-            new Popup().information(Res.get("seed.warn.walletDateEmpty"))
-                    .closeButtonText(Res.get("shared.no"))
-                    .actionButtonText(Res.get("shared.yes"))
-                    .onAction(this::doRestore)
-                    .show();
-        } else {
-            doRestore();
-        }
+    // Parse the restore height, or null if blank or a date was entered.
+    private Long getRestoreHeight() {
+        String text = restoreHeightInputTextField.getText() == null ? "" : restoreHeightInputTextField.getText().trim();
+        if (!text.matches("\\d+")) return null;
+        return Long.parseLong(text);
     }
 
-    private LocalDate getWalletDate() {
-        LocalDate walletDate = restoreDatePicker.getValue();
-        // Even though no current Haveno wallet could have been created before the v0.5 release date (2017.06.28),
-        // the user may want to import from a seed generated by another wallet.
-        // So use when the BIP39 standard was finalised (2013.10.09) as the oldest possible wallet date.
-        LocalDate oldestWalletDate = LocalDate.ofInstant(
-                Instant.ofEpochMilli(MnemonicCode.BIP39_STANDARDISATION_TIME_SECS * 1000),
-                TimeZone.getDefault().toZoneId());
-        if (walletDate == null) {
-            // No date was specified, perhaps the user doesn't know the wallet date
-            walletDate = oldestWalletDate;
-        } else if (walletDate.isBefore(oldestWalletDate)) {
-            walletDate = oldestWalletDate;
-        } else if (walletDate.isAfter(LocalDate.now())) {
-            walletDate = LocalDate.now();
-        }
-        return walletDate;
+    // Parse the wallet creation date to restore from, or null if blank or a height was entered.
+    private LocalDate getRestoreDate() {
+        String text = restoreHeightInputTextField.getText() == null ? "" : restoreHeightInputTextField.getText().trim();
+        if (text.isEmpty() || text.matches("\\d+")) return null;
+        LocalDate date = LocalDate.parse(text);
+        if (date.isAfter(LocalDate.now())) throw new IllegalArgumentException("Restore date cannot be in the future");
+        return date;
     }
 
-    private void doRestore() {
-        LocalDate walletDate = getWalletDate();
-        // We subtract 1 day to be sure to not have any issues with timezones. Even if we can be sure that the timezone
-        // is handled correctly it could be that the user created the wallet in one timezone and make a restore at
-        // a different timezone which could lead in the worst case that he miss the first day of the wallet transactions.
-        LocalDateTime localDateTime = walletDate.atStartOfDay().minusDays(1);
-        long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
-
-        DeterministicSeed seed = new DeterministicSeed(Splitter.on(" ").splitToList(seedWordsTextArea.getText()), null, "", date);
-        SharedPresentation.restoreSeedWords(walletsManager, openOfferManager, seed, storageDir);
+    private void doRestore(Long restoreHeight, LocalDate restoreDate) {
+        SharedPresentation.restoreSeedWords(xmrWalletService, openOfferManager, seedWordsTextArea.getText().trim(), restoreHeight, restoreDate);
     }
 }
