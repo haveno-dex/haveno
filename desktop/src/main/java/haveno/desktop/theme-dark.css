@@ -21,6 +21,9 @@
 
     /* haveno main colors */
     -bs-color-primary-dark: #0c59bd;
+    /* hero window accents, lightened for contrast on dark */
+    -bs-hero-primary: rgb(92, 148, 240);
+    -bs-hero-purple: rgb(155, 124, 216);
     -bs-text-color: white;
     -bs-background-color: black;
     -bs-background-gray: transparent;
