@@ -52,6 +52,11 @@ configure(rootProject) {
             '-XX:+UseG1GC',
         ]
 
+        // test-only: silence the CDS warning from jacoco/mockito appending to the boot classpath
+        havenoTestJvmArgs = [
+            '-Xshare:off',
+        ]
+
         // headless services (cli, daemon, relay, statsnode, inventory): JVM default heap
         havenoHeadlessJvmArgs = havenoGcJvmArgs + havenoCommonJvmArgs + [
             '-Djava.awt.headless=true',
@@ -249,7 +254,7 @@ configure(subprojects) {
     test {
         useJUnitPlatform()
         maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))
-        jvmArgs = rootProject.ext.havenoCommonJvmArgs + rootProject.ext.havenoGcJvmArgs
+        jvmArgs = rootProject.ext.havenoCommonJvmArgs + rootProject.ext.havenoGcJvmArgs + rootProject.ext.havenoTestJvmArgs
         rootProject.ext.configureJavaFxModulePathForTest(it)
     }
 
@@ -852,7 +857,7 @@ configure(project(':desktop')) {
     }
 
     test {
-        jvmArgs = rootProject.ext.havenoDesktopJvmArgs
+        jvmArgs = rootProject.ext.havenoDesktopJvmArgs + rootProject.ext.havenoTestJvmArgs
         systemProperty 'jdk.attach.allowAttachSelf', true
     }
 }
