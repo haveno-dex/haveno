@@ -262,6 +262,13 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
         selectedBridgeOption = persistedOrdinal >= 0 && persistedOrdinal < BridgeOption.values().length
                 ? BridgeOption.values()[persistedOrdinal]
                 : BridgeOption.NONE;
+
+        // fall back to no bridges if custom was selected but no usable bridges are entered
+        if (selectedBridgeOption == BridgeOption.CUSTOM && getEnteredBridgeLines().isEmpty()) {
+            selectedBridgeOption = BridgeOption.NONE;
+            preferences.setBridgeOptionOrdinal(BridgeOption.NONE.ordinal());
+        }
+
         switch (selectedBridgeOption) {
             case SNOWFLAKE:
                 toggleGroup.selectToggle(snowflakeRadioButton);
