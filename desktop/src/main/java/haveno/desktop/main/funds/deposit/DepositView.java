@@ -377,7 +377,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
                 priceFeedService.updateCounterProperty().addListener(priceChangeListener);
 
                 amountTextFieldSubscription = EasyBind.subscribe(amountTextField.textProperty(), t -> {
-                    addressTextField.setAmount(HavenoUtils.parseXmr(t));
+                    addressTextField.setAmount(HavenoUtils.parseXmrOrElse(t, BigInteger.ZERO));
                     updateQRCode();
                 });
             });
