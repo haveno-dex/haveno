@@ -139,6 +139,7 @@ public abstract class XmrWalletBase {
 
                 // set initial state
                 if (isSyncing()) log.warn("Syncing with progress while already syncing. That should never happen.");
+                syncProgressLatch = new CountDownLatch(1);
                 resetSyncProgressTimeout(initialSyncTimeoutMs);
                 isSyncingWithProgress = true;
                 syncStartHeight = null;
@@ -176,7 +177,6 @@ public abstract class XmrWalletBase {
                 }
 
                 // start polling wallet for progress
-                syncProgressLatch = new CountDownLatch(1);
                 syncProgressLooper = new TaskLooper(() -> {
 
                     // stop if wallet has changed
