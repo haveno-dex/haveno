@@ -525,12 +525,14 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     public void display() {
+        if (isDisplayed) return;
         if (owner == null)
             owner = MainView.getRootContainer();
 
         if (owner != null) {
             Scene rootScene = owner.getScene();
             if (rootScene != null) {
+                isDisplayed = true;
                 UserThread.execute(() -> {
                     Scene scene = new Scene(getRootContainer());
                     scene.getStylesheets().setAll(rootScene.getStylesheets());
@@ -582,7 +584,6 @@ public abstract class Overlay<T extends Overlay<T>> {
                     window.widthProperty().addListener(positionListener);
 
                     animateDisplay();
-                    isDisplayed = true;
                 });
             }
         }
