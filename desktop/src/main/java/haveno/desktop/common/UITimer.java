@@ -29,6 +29,7 @@ import java.time.Duration;
 public class UITimer implements Timer {
     private final Logger log = LoggerFactory.getLogger(UITimer.class);
     private haveno.common.reactfx.Timer timer;
+    private volatile boolean stopped;
 
     public UITimer() {
     }
@@ -36,6 +37,7 @@ public class UITimer implements Timer {
     @Override
     public Timer runLater(Duration delay, Runnable runnable) {
         executeDirectlyIfPossible(() -> {
+            if (stopped) return;
             if (timer == null) {
                 timer = FxTimer.create(delay, runnable);
                 timer.restart();
@@ -49,6 +51,7 @@ public class UITimer implements Timer {
     @Override
     public Timer runPeriodically(Duration interval, Runnable runnable) {
         executeDirectlyIfPossible(() -> {
+            if (stopped) return;
             if (timer == null) {
                 timer = FxTimer.createPeriodic(interval, runnable);
                 timer.restart();
@@ -61,6 +64,7 @@ public class UITimer implements Timer {
 
     @Override
     public void stop() {
+        stopped = true;
         executeDirectlyIfPossible(() -> {
             if (timer != null) {
                 timer.stop();

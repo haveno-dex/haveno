@@ -408,6 +408,7 @@ public class HavenoSetup {
         if (p2pNetworkAndWalletInitialized != null && p2pNetworkAndWalletInitialized.get()) return; // skip if already initialized
         if (startupTimeout != null) startupTimeout.stop();
         startupTimeout = UserThread.runAfter(() -> {
+            if (p2pNetworkAndWalletInitialized != null && p2pNetworkAndWalletInitialized.get()) return;
             if (p2PNetworkSetup.p2pNetworkFailed.get() || walletsSetup.walletsSetupFailed.get()) {
                 // Skip this timeout action if the p2p network or wallet setup failed
                 // since an error prompt will be shown containing the error message
