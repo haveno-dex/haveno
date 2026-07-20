@@ -338,11 +338,19 @@ public class HavenoUtils {
     }
 
     public static BigInteger parseXmr(String input) {
-        if (input == null || input.length() == 0) return BigInteger.ZERO; // TODO: throw instead?
         try {
             return new BigDecimal(input).multiply(new BigDecimal(XMR_AU_MULTIPLIER)).toBigInteger();
-        } catch (Exception e) {
-            return BigInteger.ZERO;
+        } catch (NumberFormatException | NullPointerException | ArithmeticException e) { // ArithmeticException on exponents too large for BigInteger
+            throw new NumberFormatException("Invalid XMR amount: " + input);
+        }
+    }
+
+    // parse the amount, or return the fallback when the input is blank or not a valid number
+    public static BigInteger parseXmrOrElse(String input, BigInteger fallback) {
+        try {
+            return parseXmr(input);
+        } catch (NumberFormatException e) {
+            return fallback;
         }
     }
 

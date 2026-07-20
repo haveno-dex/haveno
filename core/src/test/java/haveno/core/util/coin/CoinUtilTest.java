@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class CoinUtilTest {
@@ -51,6 +52,14 @@ public class CoinUtilTest {
         assertEquals(new BigInteger("266394780889"), au);
         assertEquals(xmrStr, "" + HavenoUtils.atomicUnitsToXmr(au));
         assertEquals(xmrStr, HavenoUtils.formatXmr(au, false));
+
+        // invalid input throws rather than silently returning zero
+        assertThrows(NumberFormatException.class, () -> HavenoUtils.parseXmr("0.123gea"));
+        assertThrows(NumberFormatException.class, () -> HavenoUtils.parseXmr(""));
+        assertThrows(NumberFormatException.class, () -> HavenoUtils.parseXmr(null));
+        assertThrows(NumberFormatException.class, () -> HavenoUtils.parseXmr("1e999999999")); // overflows BigInteger
+        assertEquals(BigInteger.ZERO, HavenoUtils.parseXmrOrElse("0.123gea", BigInteger.ZERO));
+        assertEquals(new BigInteger("266394780889"), HavenoUtils.parseXmrOrElse(xmrStr, BigInteger.ZERO));
     }
 
     @Test

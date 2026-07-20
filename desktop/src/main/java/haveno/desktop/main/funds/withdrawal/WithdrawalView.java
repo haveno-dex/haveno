@@ -116,6 +116,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     private BigInteger amount = BigInteger.ZERO;
     private boolean sendMax = false;
     private boolean sending = false;
+    private boolean amountErrorFlagged = false;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -244,15 +245,15 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
             public void onBalanceChanged(BigInteger balance) {
                 UserThread.execute(() -> {
                     updateBalanceDisplay();
-                    updateAmountFeedback();
+                    updateAmountFeedback(false);
                     updateSendButtonState();
                 });
             }
         };
         priceChangeListener = (observable, oldValue, newValue) -> {
-            if (amountInFiat && !sendMax) amount = parsedAmount(); // fiat input stays authoritative as the price moves
+            if (amountInFiat && !sendMax) amount = amountOrNull(); // fiat input stays authoritative as the price moves
             updateBalanceDisplay();
-            updateAmountFeedback();
+            updateAmountFeedback(false);
             updateSendButtonState();
         };
         addressListener = (observable, oldValue, newValue) -> {
@@ -265,17 +266,17 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         amountListener = (observable, oldValue, newValue) -> {
             if (amountField.isFocused()) {
                 sendMax = false; // disable max if amount changed while focused
-                amount = parsedAmount();
+                amount = amountOrNull();
             }
-            updateAmountFeedback();
+            updateAmountFeedback(false);
             updateSendButtonState();
         };
         amountFocusListener = (observable, oldValue, newValue) -> {
-            // reformat amount on focus out unless sending max
+            // on focus out reformat a valid amount, or flag an invalid one (leaving the input visible), unless sending max
             if (oldValue && !newValue && !sendMax) {
-                if (amount != null && amount.signum() > 0) {
-                    amountField.setText(amountInFiat ? formatXmrToFiat(amount) : HavenoUtils.formatXmr(amount));
-                } else amountField.setText("");
+                BigInteger parsed = amountOrNull();
+                if (parsed == null) updateAmountFeedback(true);
+                else amountField.setText(parsed.signum() > 0 ? (amountInFiat ? formatXmrToFiat(parsed) : HavenoUtils.formatXmr(parsed)) : "");
             }
         };
     }
@@ -283,9 +284,9 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     @Override
     protected void activate() {
         if (sending) showLoadingIndicator(); // still building the last send, keep indicating it
-        if (amountInFiat && !sendMax) amount = parsedAmount(); // price may have moved while away
+        if (amountInFiat && !sendMax) amount = amountOrNull(); // price may have moved while away
         updateBalanceDisplay();
-        updateAmountFeedback();
+        updateAmountFeedback(false);
         updateSendButtonState();
 
         addressField.textProperty().addListener(addressListener);
@@ -319,7 +320,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         amountField.setText(amountInFiat ? formatXmrToFiat(available) : HavenoUtils.formatXmr(available));
         sendMax = true; // after setText, so the text listener can't clear it while the field has focus
         amount = null; // set amount when tx created
-        updateAmountFeedback();
+        updateAmountFeedback(false);
         updateSendButtonState();
     }
 
@@ -336,7 +337,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         sendMax = false;
         amount = BigInteger.ZERO;
         amountField.setText("");
-        updateAmountFeedback();
+        updateAmountFeedback(false);
         updateSendButtonState();
     }
 
@@ -469,15 +470,23 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         if (!hasPrice && amountInFiat) setAmountCurrency(false);
     }
 
-    // show the amount in the other currency or an over-balance error below the field
-    private void updateAmountFeedback() {
+    // show the amount in the other currency, or an invalid-input / over-balance error below the field
+    private void updateAmountFeedback(boolean flagInvalid) {
         BigInteger available = xmrWalletService.getAvailableBalance();
-        BigInteger parsed = sendMax ? available : parsedAmount();
-        boolean overBalance = !sendMax && parsed.compareTo(available) > 0;
-        String content = overBalance ? Res.get("funds.withdrawal.notEnoughFunds") : (amountInFiat ? getXmrText(parsed) : getFiatText(parsed));
+        BigInteger parsed = sendMax ? available : amountOrNull();
+        boolean invalid = parsed == null; // non-blank input that isn't a number
+        boolean overBalance = !invalid && parsed.compareTo(available) > 0;
+
+        // surface the invalid error once flagged on focus out, and keep it until the input parses (mirrors the address field)
+        amountErrorFlagged = invalid && (flagInvalid || amountErrorFlagged);
+        boolean error = amountErrorFlagged || overBalance;
+        String content = amountErrorFlagged ? Res.get("validation.NaN")
+                : invalid ? null
+                : overBalance ? Res.get("funds.withdrawal.notEnoughFunds")
+                : (amountInFiat ? getXmrText(parsed) : getFiatText(parsed));
 
         amountFeedbackLabel.getStyleClass().remove("send-feedback-error");
-        if (overBalance) amountFeedbackLabel.getStyleClass().add("send-feedback-error");
+        if (error) amountFeedbackLabel.getStyleClass().add("send-feedback-error");
         amountFeedbackLabel.setText(content == null ? "" : content);
         amountFeedbackLabel.setVisible(content != null);
         amountFeedbackLabel.setManaged(content != null);
@@ -485,10 +494,10 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
 
     private void updateSendButtonState() {
         BigInteger available = xmrWalletService.getAvailableBalance();
-        BigInteger parsed = parsedAmount();
+        BigInteger parsed = amountOrNull();
         boolean amountValid = sendMax
                 ? available.signum() > 0
-                : parsed.signum() > 0 && parsed.compareTo(available) <= 0;
+                : parsed != null && parsed.signum() > 0 && parsed.compareTo(available) <= 0;
         sendButton.setDisable(!(isAddressValid() && amountValid));
     }
 
@@ -534,27 +543,28 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         return currency != null && CurrencyUtil.isPricePrecise(currency.getCode()) ? 8 : 2;
     }
 
-    // parseXmr returns 0 for empty or unparseable input
-    private static BigInteger safeParse(String input) {
-        return HavenoUtils.parseXmr(input == null ? "" : input.trim());
-    }
-
-    // the field's value as atomic XMR, converting from fiat when that's the input unit
+    // the field's value as atomic XMR (from fiat when that's the input unit); ZERO when blank, throws on malformed input
     private BigInteger parsedAmount() {
         String text = amountField.getText();
-        return amountInFiat ? parseFiatToXmr(text) : safeParse(text);
+        if (text == null || text.trim().isEmpty()) return BigInteger.ZERO;
+        return amountInFiat ? parseFiatToXmr(text) : HavenoUtils.parseXmr(text.trim());
     }
 
-    // convert fiat input to atomic XMR at the current market price, rounded to 8 decimals
+    // parsed amount, ZERO when blank, or null when the input isn't a valid number
+    private BigInteger amountOrNull() {
+        try {
+            return parsedAmount();
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    // convert fiat input to atomic XMR at the current market price, rounded to 8 decimals; throws on malformed input
     private BigInteger parseFiatToXmr(String fiatInput) {
         MarketPrice price = marketPrice();
         if (price == null || fiatInput == null || fiatInput.trim().isEmpty()) return BigInteger.ZERO;
-        try {
-            double fiatAmount = Double.parseDouble(fiatInput.trim());
-            return HavenoUtils.parseXmr(String.format(Locale.US, "%.8f", fiatAmount / price.getPrice()));
-        } catch (Exception e) {
-            return BigInteger.ZERO;
-        }
+        double fiatAmount = Double.parseDouble(fiatInput.trim());
+        return HavenoUtils.parseXmr(String.format(Locale.US, "%.8f", fiatAmount / price.getPrice()));
     }
 
     // plain fiat value, kept parseable by parseFiatToXmr (no grouping or currency code)

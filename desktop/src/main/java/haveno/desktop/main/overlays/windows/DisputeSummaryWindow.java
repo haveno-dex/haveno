@@ -364,8 +364,8 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     }
 
     private boolean isPayoutAmountValid() {
-        BigInteger buyerAmount = HavenoUtils.parseXmr(buyerPayoutAmountInputTextField.getText());
-        BigInteger sellerAmount = HavenoUtils.parseXmr(sellerPayoutAmountInputTextField.getText());
+        BigInteger buyerAmount = HavenoUtils.parseXmrOrElse(buyerPayoutAmountInputTextField.getText(), BigInteger.ZERO);
+        BigInteger sellerAmount = HavenoUtils.parseXmrOrElse(sellerPayoutAmountInputTextField.getText(), BigInteger.ZERO);
         Contract contract = dispute.getContract();
         BigInteger tradeAmount = contract.getTradeAmount();
         BigInteger expected = tradeAmount
@@ -383,7 +383,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         }
 
         BigInteger available = trade.getWalletBalance();
-        BigInteger enteredAmount = HavenoUtils.parseXmr(inputTextField.getText());
+        BigInteger enteredAmount = HavenoUtils.parseXmrOrElse(inputTextField.getText(), BigInteger.ZERO);
         if (enteredAmount.compareTo(available) > 0) {
             enteredAmount = available;
             BigInteger finalEnteredAmount = enteredAmount;

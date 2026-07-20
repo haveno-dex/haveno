@@ -69,7 +69,6 @@ import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Layout;
 import java.io.File;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -596,8 +595,11 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         autoConfTradeLimitListener = (observable, oldValue, newValue) -> {
             if (!newValue.equals(oldValue) && autoConfTradeLimitTf.getValidator().validate(newValue).isValid) {
-                BigInteger amount = HavenoUtils.parseXmr(newValue);
-                preferences.setAutoConfTradeLimit("XMR", amount.longValueExact());
+                try {
+                    preferences.setAutoConfTradeLimit("XMR", HavenoUtils.parseXmr(newValue).longValueExact());
+                } catch (NumberFormatException e) {
+                    // ignore unparseable input; the field validator flags it
+                }
             }
         };
 
