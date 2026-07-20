@@ -73,6 +73,7 @@ import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
+import haveno.core.xmr.exceptions.WalletUnavailableException;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -1133,7 +1134,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             log.warn("Cannot save wallet for {} {} because it does not exist", getClass().getSimpleName(), getShortId());
             return;
         }
-        if (wallet == null) throw new IllegalStateException("Cannot save trade wallet because it's not open for " + getClass().getSimpleName() + " " + getShortId());
+        if (wallet == null) return; // nothing to save if not open, e.g. closed while idling, and throwing would mask in-flight exceptions from finally blocks
         wallet.save();
         lastSaveTimeMs = System.currentTimeMillis();
     }
@@ -3407,9 +3408,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 resetPolling(true); // do not poll again until next period
             }
         } catch (Exception e) {
-            if (wallet == null || isShutDownStarted) return; // skip error handling if shut down or another thread force closes while polling
+            if (isShutDownStarted) return;
+            if (wallet == null && !(e instanceof WalletUnavailableException)) return; // skip error handling if another thread force closes while polling, but surface failures to open the wallet
             if (Boolean.TRUE.equals(xmrConnectionService.isConnected())) {
-                if (isExpectedWalletError(e)) {
+                if (isExpectedWalletError(e) || e instanceof WalletUnavailableException) { // wallet open failures are logged with cause on open
                     log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrConnectionService().getConnection());
                 } else {
                     log.warn("Error polling trade wallet for {} {}, errorMessage={}. Monerod={}", getClass().getSimpleName(), getShortId(), e.getMessage(), getXmrConnectionService().getConnection(), e); // include stack trace for unexpected errors
@@ -3506,7 +3508,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     throw e;
                 }
                 if (wallet == null) throw e;
-                if (!(e instanceof IllegalStateException)) {
+                if (!(e instanceof IllegalStateException || e instanceof WalletUnavailableException)) {
                     ThreadUtils.execute(() -> requestConnectionSwitchSynchronous(sourceConnection), getId()); // TODO: why do this on separate thread?
                 }
                 throw e;

@@ -38,6 +38,7 @@ import com.google.common.base.Preconditions;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.xmr.exceptions.WalletUnavailableException;
 import lombok.extern.slf4j.Slf4j;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroAccount;
@@ -102,7 +103,7 @@ public class BuyerPreparePaymentSentMessage extends TradeTask {
                             trade.getSelf().setUnsignedPayoutTxHex(payoutTx.getTxSet().getMultisigTxHex());
                             trade.requestPersistence();
                         } catch (Exception e) {
-                            if (HavenoUtils.isIllegal(e)) log.warn("Failed to create unsigned payout tx for " + trade.getClass().getSimpleName() + " " + trade.getShortId(), e); // continue to send message if illegal state
+                            if (HavenoUtils.isIllegal(e) || e instanceof WalletUnavailableException) log.warn("Failed to create unsigned payout tx for " + trade.getClass().getSimpleName() + " " + trade.getShortId(), e); // continue to send message if illegal state or wallet unavailable
                             else throw e;
                         }
                     }
