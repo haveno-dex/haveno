@@ -71,6 +71,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import monero.daemon.model.MoneroKeyImageSpentStatus;
@@ -81,7 +82,7 @@ import monero.daemon.model.MoneroKeyImageSpentStatus;
 @Slf4j
 public class OfferBookService {
 
-    private final static long INVALID_OFFERS_TIMEOUT_MINS = 5 * 60 * 1000; // 5 minutes
+    private final static long INVALID_OFFERS_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(5);
     private final static int DELAY_LOG_INVALID_OFFER_SEC = 10;
     private static final int DUMP_STATISTICS_DELAY_SEC = 30;
 
@@ -133,8 +134,11 @@ public class OfferBookService {
                             synchronized (validOffers) {
                                 try {
                                     validateOfferPayload(offerPayload);
+                                    boolean removedSuperseded = removeSupersededOffers(offerPayload);
+                                    removeInvalidOffer(offerPayload.getId());
                                     replaceValidOffer(offer);
                                     announceOfferAdded(offer);
+                                    if (removedSuperseded) refreshInvalidOffers(); // removed offers can unblock invalid offers
                                 } catch (IllegalArgumentException e) {
                                     log.warn("Ignoring illegal offer {}: {}", offerPayload.getId(), e.getMessage());
                                 } catch (Exception e) {
@@ -280,7 +284,7 @@ public class OfferBookService {
 
     public List<Offer> getOffersByCurrency(String direction, String currencyCode) {
         return getOffers().stream()
-                .filter(o -> o.getOfferPayload().getCounterCurrencyCode().equalsIgnoreCase(currencyCode) && o.getDirection().name() == direction)
+                .filter(o -> o.getOfferPayload().getCounterCurrencyCode().equalsIgnoreCase(currencyCode) && o.getDirection().name().equals(direction))
                 .collect(Collectors.toList());
     }
 
@@ -358,6 +362,7 @@ public class OfferBookService {
             for (Offer invalidOffer : new ArrayList<Offer>(invalidOffers)) {
                 try {
                     validateOfferPayload(invalidOffer.getOfferPayload());
+                    removeSupersededOffers(invalidOffer.getOfferPayload());
                     removeInvalidOffer(invalidOffer.getId());
                     replaceValidOffer(invalidOffer);
                     announceOfferAdded(invalidOffer);
@@ -379,7 +384,7 @@ public class OfferBookService {
                 if (timer != null) timer.stop();
                 timer = UserThread.runAfter(() -> {
                     removeInvalidOffer(offer.getId());
-                }, INVALID_OFFERS_TIMEOUT_MINS);
+                }, INVALID_OFFERS_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                 invalidOfferTimers.put(offer.getId(), timer);
             }
         }
@@ -432,29 +437,71 @@ public class OfferBookService {
         synchronized (validOffers) {
             int numOffersWithSharedKeyImages = 0;
             for (Offer validOffer : validOffers) {
+                OfferPayload validPayload = validOffer.getOfferPayload();
 
-                // validate that no offer has overlapping but different key images
-                if (!new HashSet<>(validOffer.getOfferPayload().getReserveTxKeyImages()).equals(new HashSet<>(offerPayload.getReserveTxKeyImages())) && 
-                        !Collections.disjoint(validOffer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) {
+                // validate that no offer has overlapping but different key images, unless superseded
+                if (hasConflictingKeyImages(offerPayload, validPayload) && !supersedes(offerPayload, validPayload)) {
                     throw new RuntimeException("Offer with overlapping but different key images already exists with offerId=" + validOffer.getId());
                 }
-    
-                // validate that no offer has same key images, payment method, and currency
-                if (!validOffer.getId().equals(offerPayload.getId()) && 
-                        validOffer.getOfferPayload().getReserveTxKeyImages().equals(offerPayload.getReserveTxKeyImages()) &&
-                        validOffer.getOfferPayload().getPaymentMethodId().equals(offerPayload.getPaymentMethodId()) &&
-                        validOffer.getOfferPayload().getBaseCurrencyCode().equals(offerPayload.getBaseCurrencyCode()) &&
-                        validOffer.getOfferPayload().getCounterCurrencyCode().equals(offerPayload.getCounterCurrencyCode())) {
+
+                // validate that no offer has same key images, payment method, and currency, unless superseded
+                if (isDuplicateClone(offerPayload, validPayload) && !supersedes(offerPayload, validPayload)) {
                     throw new RuntimeException("Offer with same key images, payment method, and currency already exists with offerId=" + validOffer.getId());
                 }
-    
-                // count offers with same key images
-                if (!validOffer.getId().equals(offerPayload.getId()) && !Collections.disjoint(validOffer.getOfferPayload().getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) numOffersWithSharedKeyImages = Math.max(2, numOffersWithSharedKeyImages + 1);
+
+                // count offers with same key images, excluding conflicting offers which are superseded
+                if (!conflictsWith(offerPayload, validPayload) && !validOffer.getId().equals(offerPayload.getId()) && !Collections.disjoint(validPayload.getReserveTxKeyImages(), offerPayload.getReserveTxKeyImages())) numOffersWithSharedKeyImages = Math.max(2, numOffersWithSharedKeyImages + 1);
             }
-    
+
             // validate max offers with same key images
-            if (numOffersWithSharedKeyImages > Restrictions.getMaxOffersWithSharedFunds()) throw new RuntimeException("More than " + Restrictions.getMaxOffersWithSharedFunds() + " offers exist with same same key images as new offerId=" + offerPayload.getId());
+            if (numOffersWithSharedKeyImages > Restrictions.getMaxOffersWithSharedFunds()) throw new RuntimeException("More than " + Restrictions.getMaxOffersWithSharedFunds() + " offers exist with same key images as new offerId=" + offerPayload.getId());
         }
+    }
+
+    // remove valid offers superseded by the given offer payload, returning true if any removed
+    private boolean removeSupersededOffers(OfferPayload offerPayload) {
+        boolean removed = false;
+        synchronized (validOffers) {
+            for (Offer validOffer : new ArrayList<Offer>(validOffers)) {
+                if (validOffer.getId().equals(offerPayload.getId())) continue;
+                if (conflictsWith(offerPayload, validOffer.getOfferPayload())) {
+                    log.info("Removing offer superseded by more recent offer, old offerId={}, new offerId={}", validOffer.getId(), offerPayload.getId());
+                    removeValidOffer(validOffer.getId());
+                    replaceInvalidOffer(validOffer); // can become valid again, e.g. if the superseding offer is removed
+                    announceOfferRemoved(validOffer);
+                    removed = true;
+                }
+            }
+        }
+        return removed;
+    }
+
+    // offers conflict if their key images overlap or they duplicate a clone, so only one can be valid
+    private static boolean conflictsWith(OfferPayload offerPayload, OfferPayload otherPayload) {
+        return hasConflictingKeyImages(offerPayload, otherPayload) || isDuplicateClone(offerPayload, otherPayload);
+    }
+
+    // key images conflict if they overlap but differ, expected when the maker re-reserves funds
+    private static boolean hasConflictingKeyImages(OfferPayload offerPayload, OfferPayload otherPayload) {
+        Set<String> keyImages = new HashSet<>(offerPayload.getReserveTxKeyImages());
+        Set<String> otherKeyImages = new HashSet<>(otherPayload.getReserveTxKeyImages());
+        return !keyImages.equals(otherKeyImages) && !Collections.disjoint(keyImages, otherKeyImages);
+    }
+
+    // cloned offers with the same key images, payment method, and currency are duplicates
+    private static boolean isDuplicateClone(OfferPayload offerPayload, OfferPayload otherPayload) {
+        return !offerPayload.getId().equals(otherPayload.getId()) &&
+                new HashSet<>(offerPayload.getReserveTxKeyImages()).equals(new HashSet<>(otherPayload.getReserveTxKeyImages())) &&
+                offerPayload.getPaymentMethodId().equals(otherPayload.getPaymentMethodId()) &&
+                offerPayload.getBaseCurrencyCode().equals(otherPayload.getBaseCurrencyCode()) &&
+                offerPayload.getCounterCurrencyCode().equals(otherPayload.getCounterCurrencyCode());
+    }
+
+    // a conflicting offer is superseded by a more recent offer from the same maker, with id as tiebreaker for determinism
+    private static boolean supersedes(OfferPayload offerPayload, OfferPayload otherPayload) {
+        if (!offerPayload.getPubKeyRing().equals(otherPayload.getPubKeyRing())) return false;
+        if (offerPayload.getDate() != otherPayload.getDate()) return offerPayload.getDate() > otherPayload.getDate();
+        return offerPayload.getId().compareTo(otherPayload.getId()) > 0;
     }
 
     private void removeKeyImages(Offer offer) {
