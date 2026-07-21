@@ -84,7 +84,6 @@ public class PriceFeedService {
     private long epochInMillisAtLastRequest;
     private long retryDelay = 0;
     private long requestTs;
-    private long lastLoopTs = System.currentTimeMillis();
     @Nullable
     private volatile String baseUrlOfRespondingProvider;
     @Nullable
@@ -199,8 +198,8 @@ public class PriceFeedService {
     private void doRequest(boolean repeatRequests) {
         if (shutDownRequested) return;
 
-        // a new request supersedes any pending retry
-        if (retryTimer != null) {
+        // a repeating request supersedes any pending retry; a one-off must not cancel the feed's only scheduler
+        if (repeatRequests && retryTimer != null) {
             retryTimer.stop();
             retryTimer = null;
         }
@@ -220,6 +219,7 @@ public class PriceFeedService {
             // At applyPriceToConsumer we also check if price is not exceeding max. age for price data.
             boolean success = applyPriceToConsumer();
             if (success) {
+                ThreadUtils.execute(() -> retryDelay = 0, THREAD_ID); // reset backoff; retryDelay is accessed on THREAD_ID
                 MarketPrice marketPrice;
                 synchronized (cache) {
                     marketPrice = cache.get(currencyCode);
@@ -267,17 +267,18 @@ public class PriceFeedService {
                 requestTimer.stop();
 
             long delay = PERIOD_SEC + new Random().nextInt(5);
+            PriceRequest pendingRequest = priceRequest;
             requestTimer = UserThread.runAfter(() -> {
                 ThreadUtils.execute(() -> {
                     if (shutDownRequested) return;
-                    // If we have not received a result from the last request. We try a new provider.
-                    if (baseUrlOfRespondingProvider == null) {
-                        final String oldBaseUrl = priceProvider.getBaseUrl();
-                        setNewPriceProvider();
-                        log.warn("We did not receive a response from provider {}. " +
-                                "We select the new provider {} and use that for a new request.", oldBaseUrl, priceProvider.getBaseUrl());
+                    if (retryTimer != null) return; // a pending retry owns the next request
+                    // rotate only if this request is still the outstanding one and went unanswered
+                    if (priceRequest == pendingRequest && baseUrlOfRespondingProvider == null) {
+                        log.warn("We did not receive a response from provider {}", priceProvider.getBaseUrl());
+                        doRetryWithNewProvider(); // rotate and back off, as for a failed request
+                    } else {
+                        doRequest(true);
                     }
-                    doRequest(true);
                 }, THREAD_ID);
             }, delay);
         }
@@ -301,12 +302,7 @@ public class PriceFeedService {
         boolean looped = setNewPriceProvider();
         if (looped) {
             log.warn("Exhausted price provider list, looping to beginning");
-            if (System.currentTimeMillis() - lastLoopTs < PERIOD_SEC * 1000) {
-                retryDelay = Math.min(retryDelay + 5, PERIOD_SEC);
-            } else {
-                retryDelay = 0;
-            }
-            lastLoopTs = System.currentTimeMillis();
+            retryDelay = Math.min(retryDelay + 5, PERIOD_SEC); // escalate until a request succeeds
             thisRetryDelay = retryDelay;
         }
         log.info("We received an error at the request from provider {}. " +
@@ -320,7 +316,7 @@ public class PriceFeedService {
         }
     }
 
-    // returns true if provider selection loops back to beginning
+    // returns true if the provider list is exhausted
     private boolean setNewPriceProvider() {
         cancelRequest();
         boolean looped = providersRepository.selectNextProviderBaseUrl();
@@ -328,6 +324,7 @@ public class PriceFeedService {
             priceProvider = new PriceProvider(httpClient, providersRepository.getBaseUrl());
         } else {
             log.warn("We cannot create a new priceProvider because new base url is empty.");
+            looped = true; // no provider to rotate to, so back off
         }
         return looped;
     }

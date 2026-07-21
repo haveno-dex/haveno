@@ -29,8 +29,8 @@ public class PriceHttpClient extends HttpClientImpl {
     @Inject
     public PriceHttpClient(@Nullable Socks5ProxyProvider socks5ProxyProvider) {
         super(socks5ProxyProvider);
-        // use short timeouts so unresponsive providers fail and rotate quickly (poll period is 60s)
-        connectTimeoutMs = (int) TimeUnit.SECONDS.toMillis(30);
-        readTimeoutMs = (int) TimeUnit.SECONDS.toMillis(30);
+        // onion connects legitimately take ~45s; a request outlasting the poll period is canceled by the price feed
+        connectTimeoutMs = (int) TimeUnit.SECONDS.toMillis(50);
+        readTimeoutMs = (int) TimeUnit.SECONDS.toMillis(50);
     }
 }
