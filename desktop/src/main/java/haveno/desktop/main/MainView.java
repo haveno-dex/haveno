@@ -344,8 +344,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
             setTopAnchor(this, 0d);
-            setMinHeight(64);
-            setPrefHeight(64);
+            setMinHeight(66);
+            setPrefHeight(66);
             setPadding(new Insets(1, 10, 0, 10));
             getStyleClass().add("top-navigation");
         }};
@@ -364,7 +364,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setId("nav-secondary-container");
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
-            setTopAnchor(this, 83d);
+            setTopAnchor(this, 85d);
         }};
         secondaryNavContainer.setPickOnBounds(false);
         secondaryNavContainer.getChildren().add(secondaryNav);
@@ -373,7 +373,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             getStyleClass().add("content-pane");
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
-            setTopAnchor(this, 64d);
+            setTopAnchor(this, 66d);
             setBottomAnchor(this, 0d);
         }};
 
