@@ -91,6 +91,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         popupList = content;
 
         setAutocompleteItems(items);
+        cellFactoryProperty().addListener((obs, old, factory) -> unpinWidth());
         matchControlWidthToPopup();
         keepPopupOpenOnEditorClick();
         suppressSpaceKeyReset();
@@ -326,14 +327,18 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         if (shownItems.equals(pinnedFor)) return;
         Callback<ListView<T>, ListCell<T>> cellFactory = popupList.getCellFactory();
         if (getScene() == null || cellFactory == null) { // not styleable yet; measure on the first open
-            pinnedWidth = -1;
-            pinnedFor = null;
-            setPopupPrefWidth(Region.USE_COMPUTED_SIZE);
+            unpinWidth();
             return;
         }
         pinnedWidth = measureContentWidth(cellFactory);
         pinnedFor = new ArrayList<>(shownItems);
         setPopupPrefWidth(pinnedWidth);
+    }
+
+    private void unpinWidth() {
+        pinnedWidth = -1;
+        pinnedFor = null;
+        setPopupPrefWidth(Region.USE_COMPUTED_SIZE);
     }
 
     // Widest row via a scratch cell in the popup mimic (skin formula: max cell + 30, floor 50), plus the scrollbar breadth when it scrolls.
