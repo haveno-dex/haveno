@@ -724,11 +724,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     if (trade != null && !trade.isPayoutPublished()) trade.setErrorMessage(errorMessage);
                 }
 
-                // use chat message instead of open dispute message for the ack
+                // ack the dispute's last chat message, which the sender awaits, but address the ack to the
+                // message sender, since the last chat message can be authored by us (e.g. when re-opening)
                 ObservableList<ChatMessage> messages = message.getDispute().getChatMessages();
                 if (!messages.isEmpty()) {
-                    ChatMessage msg = messages.get(messages.size() - 1); // send ack to sender of last chat message
-                    sendAckMessage(msg, sender.getPubKeyRing(), errorMessage == null, errorMessage);
+                    ChatMessage msg = messages.get(messages.size() - 1);
+                    sendAckMessage(message.getSenderNodeAddress(), msg, sender.getPubKeyRing(), errorMessage == null, errorMessage);
                 }
 
                 requestPersistence();
