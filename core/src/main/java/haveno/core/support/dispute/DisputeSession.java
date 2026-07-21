@@ -21,12 +21,14 @@ import haveno.core.support.SupportSession;
 import haveno.core.support.messages.ChatMessage;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
 @Slf4j
 public abstract class DisputeSession extends SupportSession {
+    @Getter
     @Nullable
     private Dispute dispute;
     private final boolean isTrader;
