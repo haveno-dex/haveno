@@ -340,6 +340,11 @@ public abstract class SupportManager {
 
     protected void sendAckMessage(SupportMessage supportMessage, PubKeyRing peersPubKeyRing,
                                   boolean result, @Nullable String errorMessage) {
+        sendAckMessage(supportMessage.getSenderNodeAddress(), supportMessage, peersPubKeyRing, result, errorMessage);
+    }
+
+    protected void sendAckMessage(NodeAddress peersNodeAddress, SupportMessage supportMessage, PubKeyRing peersPubKeyRing,
+                                  boolean result, @Nullable String errorMessage) {
         String tradeId = supportMessage.getTradeId();
         String uid = supportMessage.getUid();
         AckMessage ackMessage = new AckMessage(p2PService.getNetworkNode().getNodeAddress(),
@@ -349,7 +354,6 @@ public abstract class SupportManager {
                 tradeId,
                 result,
                 errorMessage);
-        final NodeAddress peersNodeAddress = supportMessage.getSenderNodeAddress();
         log.info("Send AckMessage for {} to peer {}. tradeId={}, uid={}",
                 ackMessage.getSourceMsgClassName(), peersNodeAddress, tradeId, uid);
         mailboxMessageService.sendEncryptedMailboxMessage(
