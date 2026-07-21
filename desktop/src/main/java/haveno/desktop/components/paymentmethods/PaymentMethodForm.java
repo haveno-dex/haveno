@@ -58,6 +58,7 @@ import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.Duration;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -145,28 +146,46 @@ public abstract class PaymentMethodForm {
     public static InfoTextField addOpenTradeDuration(GridPane gridPane,
                                                      int gridRow,
                                                      Offer offer) {
-        long hours = offer.getPaymentMethod().getMaxTradePeriod() / 3600_000;
         final Tuple3<Label, InfoTextField, VBox> labelInfoTextFieldVBoxTuple3 =
                 addTopLabelInfoTextField(gridPane, gridRow, Res.get("payment.maxPeriod"),
-                        getTimeText(hours), -Layout.FLOATING_LABEL_DISTANCE);
+                        getTimeText(offer.getPaymentMethod().getMaxTradePeriod()), -Layout.FLOATING_LABEL_DISTANCE);
         return labelInfoTextFieldVBoxTuple3.second;
     }
 
-    private static String getTimeText(long hours) {
-        String time = hours + " " + Res.get("time.hours");
-        if (hours == 1)
-            time = Res.get("time.1hour");
-        else if (hours == 24)
-            time = Res.get("time.1day");
-        else if (hours > 24)
-            time = hours / 24 + " " + Res.get("time.days");
+    private static String getTimeText(long maxTradePeriod) {
+        Duration maxTradePeriodDuration = Duration.ofMillis(maxTradePeriod);
+        
+        long hours = maxTradePeriodDuration.toHours();
+        long minutes = maxTradePeriodDuration.minusHours(hours).toMinutes();
+
+        StringBuilder textTimeBuilder = new StringBuilder();
+
+        if (hours > 0)
+        {            
+            if (hours == 1)
+                textTimeBuilder.append(Res.get("time.1hour"));
+            else if (hours == 24)
+                textTimeBuilder.append(Res.get("time.1day"));
+            else if (hours > 24)
+                textTimeBuilder.append(hours / 24 + " " + Res.get("time.days"));
+            else textTimeBuilder.append(hours + " " + Res.get("time.hours"));
+        }
+
+        if (minutes > 0)
+        {
+            if (minutes == 1)
+                textTimeBuilder.append(String.format("%2d %s", minutes, Res.get("time.minute")));
+            else
+                textTimeBuilder.append(String.format("%2d %s", minutes, Res.get("time.minutes")));
+        }
+
+        String time = textTimeBuilder.toString();
 
         return time;
     }
 
     protected String getLimitationsText() {
         final PaymentAccount paymentAccount = getPaymentAccount();
-        long hours = paymentAccount.getMaxTradePeriod() / 3600_000;
         final TradeCurrency tradeCurrency;
         if (paymentAccount.getSingleTradeCurrency() != null)
             tradeCurrency = paymentAccount.getSingleTradeCurrency();
@@ -183,12 +202,12 @@ public abstract class PaymentMethodForm {
 
         final String limitationsText = paymentAccount instanceof AssetAccount ?
                 Res.get("payment.maxPeriodAndLimitCrypto",
-                        getTimeText(hours),
+                        getTimeText(paymentAccount.getMaxTradePeriod()),
                         HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(
                             paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY, false), true))
                 :
                 Res.get("payment.maxPeriodAndLimit",
-                        getTimeText(hours),
+                        getTimeText(paymentAccount.getMaxTradePeriod()),
                         HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(
                                 paymentAccount, tradeCurrency.getCode(), OfferDirection.BUY, false), true),
                         HavenoUtils.formatXmr(accountAgeWitnessService.getMyTradeLimit(

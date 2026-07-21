@@ -81,6 +81,7 @@ import haveno.desktop.components.paymentmethods.AliPayForm;
 import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
+import haveno.desktop.components.paymentmethods.BlikForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
 import haveno.desktop.components.paymentmethods.CashAppForm;
 import haveno.desktop.components.paymentmethods.CashAtAtmForm;
@@ -705,6 +706,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new CashAppForm(paymentAccount, accountAgeWitnessService, cashAppValidator, inputValidator, root, gridRow, formatter);
             case PaymentMethod.PAYSAFE_ID:
                 return new PaysafeForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.BLIK_ID:
+                return new BlikForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

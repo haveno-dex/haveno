@@ -28,6 +28,7 @@ import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
 import haveno.core.payment.payload.AssetAccountPayload;
 import haveno.core.payment.payload.BankAccountPayload;
+import haveno.core.payment.payload.BlikAccountPayload;
 import haveno.core.payment.payload.PayByMailAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
@@ -404,7 +405,9 @@ public class SellerStep3View extends TradeStepView {
                 message = Res.get("portfolio.pending.step3_seller.postal", part1, tradeVolumeWithCode);
             } else if (paymentAccountPayload instanceof PayByMailAccountPayload) {
                     message = Res.get("portfolio.pending.step3_seller.payByMail", part1, tradeVolumeWithCode);
-            } else if (!(paymentAccountPayload instanceof WesternUnionAccountPayload) &&
+            } else if (paymentAccountPayload instanceof BlikAccountPayload)
+                message = Res.get("portfolio.pending.step3_seller.part.blik");
+            else if (!(paymentAccountPayload instanceof WesternUnionAccountPayload) &&
                     !(paymentAccountPayload instanceof HalCashAccountPayload) &&
                     !(paymentAccountPayload instanceof F2FAccountPayload) &&
                     !(paymentAccountPayload instanceof AmazonGiftCardAccountPayload)) {
