@@ -121,8 +121,10 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
 
     @Override
     public void onClose() {
-        if (model.getDataModel().getOpenOffer() == null || !HavenoUtils.openOfferManager.getOpenOffer(model.getDataModel().getOpenOffer().getId()).isPresent()) {
-            log.warn("Open offer has been removed, closing view. offerId={}", model.getDataModel().getOpenOffer() != null ? model.getDataModel().getOpenOffer().getId() : "null");
+        OpenOffer openOffer = model.getDataModel().getOpenOffer();
+        if (openOffer == null) return; // offer was published or never applied
+        if (!HavenoUtils.openOfferManager.getOpenOffer(openOffer.getId()).isPresent()) {
+            log.warn("Open offer has been removed, closing view. offerId={}", openOffer.getId());
             return;
         }
         model.onCancelEditOffer(errorMessage -> {
@@ -241,8 +243,9 @@ public class EditOfferView extends MutableOfferView<EditOfferViewModel> {
                         new Popup().warning(Res.get("editOffer.failed", message)).show();
 
                         // close view if offer is removed while editing
-                        if (model.getDataModel().getOpenOffer() == null || !HavenoUtils.openOfferManager.getOpenOffer(model.getDataModel().getOpenOffer().getId()).isPresent()) {
-                            log.warn("Open offer has been removed, closing view. offerId={}", model.getDataModel().getOpenOffer().getId());
+                        OpenOffer openOffer = model.getDataModel().getOpenOffer();
+                        if (openOffer == null || !HavenoUtils.openOfferManager.getOpenOffer(openOffer.getId()).isPresent()) {
+                            log.warn("Open offer has been removed, closing view. offerId={}", openOffer == null ? "null" : openOffer.getId());
                             close();
                         }
                     });
