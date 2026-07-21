@@ -30,9 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -45,7 +45,7 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
     @Getter
     private final IntegerProperty numOpenDisputes = new SimpleIntegerProperty();
     @Getter
-    private final Set<String> disputedTradeIds = new HashSet<>();
+    private final Set<String> disputedTradeIds = ConcurrentHashMap.newKeySet(); // accessed from the init, user, and ui threads
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +149,8 @@ public abstract class DisputeListService<T extends DisputeList<Dispute>> impleme
         if (removedList != null) {
             synchronized (removedList) {
                 removedList.forEach(dispute -> {
-                    disputedTradeIds.remove(dispute.getTradeId());
+                    // keep the trade id if another dispute for the trade remains, e.g. the peer's dispute
+                    if (disputeList.getList().stream().noneMatch(e -> e.getTradeId().equals(dispute.getTradeId()))) disputedTradeIds.remove(dispute.getTradeId());
                 });
             }
         }
