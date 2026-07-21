@@ -43,19 +43,22 @@ import haveno.network.p2p.mailbox.MailboxMessageService.DecryptedMessageWithPubK
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 @Slf4j
 public abstract class SupportManager {
+    private static final int MAX_CHAT_RETRIES = 30;
+    private static final int CHAT_RETRY_PERIOD_SEC = 10;
+
     protected final P2PService p2PService;
     protected final TradeManager tradeManager;
     protected final XmrConnectionService xmrConnectionService;
     protected final XmrWalletService xmrWalletService;
     protected final CoreNotificationService notificationService;
-    protected final Map<String, Timer> delayMsgMap = new HashMap<>();
+    protected final Map<String, Timer> delayMsgMap = new ConcurrentHashMap<>(); // accessed from network threads and the user thread
     private final Object lock = new Object();
     private final CopyOnWriteArraySet<DecryptedMessageWithPubKey> decryptedMailboxMessageWithPubKeys = new CopyOnWriteArraySet<>();
     private final CopyOnWriteArraySet<DecryptedMessageWithPubKey> decryptedDirectMessageWithPubKeys = new CopyOnWriteArraySet<>();
@@ -173,18 +176,23 @@ public abstract class SupportManager {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     protected void handle(ChatMessage chatMessage) {
+        handle(chatMessage, 0);
+    }
+
+    private void handle(ChatMessage chatMessage, int numAttempts) {
         final String tradeId = chatMessage.getTradeId();
         final String uid = chatMessage.getUid();
-        log.info("Received {} from peer {}. tradeId={}, uid={}", chatMessage.getClass().getSimpleName(), chatMessage.getSenderNodeAddress(), tradeId, uid);
+        if (numAttempts == 0) log.info("Received {} from peer {}. tradeId={}, uid={}", chatMessage.getClass().getSimpleName(), chatMessage.getSenderNodeAddress(), tradeId, uid);
         boolean channelOpen = channelOpen(chatMessage);
         if (!channelOpen) {
-            log.warn("We got a chatMessage but we don't have a matching chat. TradeId = " + tradeId);
-            if (!delayMsgMap.containsKey(uid)) {
-                Timer timer = UserThread.runAfter(() -> handle(chatMessage), 1);
-                delayMsgMap.put(uid, timer);
+            // retry periodically because the matching chat can still be pending, e.g. a dispute being processed
+            if (numAttempts == 0 && delayMsgMap.containsKey(uid)) return; // already retrying
+            if (numAttempts < MAX_CHAT_RETRIES) {
+                if (numAttempts == 0) log.warn("We got a chatMessage but we don't have a matching chat. We try again periodically. TradeId = " + tradeId);
+                delayMsgMap.put(uid, UserThread.runAfter(() -> handle(chatMessage, numAttempts + 1), CHAT_RETRY_PERIOD_SEC));
             } else {
-                String msg = "We got a chatMessage after we already repeated to apply the message after a delay. That should never happen. TradeId = " + tradeId;
-                log.warn(msg);
+                log.warn("We give up handling a chatMessage without a matching chat after {} attempts. A mailbox message is reprocessed at next startup. TradeId = {}", numAttempts, tradeId);
+                cleanupRetryMap(uid);
             }
             return;
         }
@@ -193,6 +201,7 @@ public abstract class SupportManager {
         PubKeyRing receiverPubKeyRing = getPeerPubKeyRing(chatMessage);
 
         addAndPersistChatMessage(chatMessage);
+        mailboxMessageService.removeMailboxMsg(chatMessage); // remove from mailbox only after processing
         notificationService.sendChatNotification(chatMessage);
 
         // We never get a errorMessage in that method (only if we cannot resolve the receiverPubKeyRing but then we
@@ -455,7 +464,7 @@ public abstract class SupportManager {
         if (networkEnvelope instanceof SupportMessage) {
             SupportMessage supportMessage = (SupportMessage) networkEnvelope;
             onSupportMessage(decryptedMessageWithPubKey, supportMessage);
-            mailboxMessageService.removeMailboxMsg(supportMessage);
+            if (!(supportMessage instanceof ChatMessage)) mailboxMessageService.removeMailboxMsg(supportMessage); // chat messages are removed when processed
         } else if (networkEnvelope instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) networkEnvelope;
             onAckMessage(decryptedMessageWithPubKey, ackMessage);
