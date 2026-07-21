@@ -117,7 +117,7 @@ public class ProvidersRepository {
 
             // update base url
             baseUrl = providerList.get(index);
-            log.info("Selected price provider: " + baseUrl);
+            log.debug("Selected price provider: " + baseUrl);
 
             if (providerList.size() == 1 && config.baseCurrencyNetwork.isMainnet())
                 log.warn("We only have one provider");
