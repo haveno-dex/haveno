@@ -91,8 +91,11 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -279,6 +282,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     @Override
     public void onAllServicesInitialized() {
+        mergeDuplicateDisputes(); // recover persisted duplicates before processing messages
         super.onAllServicesInitialized();
         disputeListService.onAllServicesInitialized();
 
@@ -337,6 +341,56 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     .filter(e -> e.getOpeningDate().toInstant().isBefore(safeDate))
                     .forEach(Dispute::maybeClearSensitiveData);
             requestPersistence();
+        }
+    }
+
+    // merge and remove disputes with the same id, caused by duplicate message processing
+    private void mergeDuplicateDisputes() {
+        synchronized (getDisputeList().getList()) {
+
+            // group disputes by id
+            Map<String, List<Dispute>> disputesById = new LinkedHashMap<>();
+            for (Dispute dispute : getDisputeList().getList()) disputesById.computeIfAbsent(dispute.getId(), id -> new ArrayList<>()).add(dispute);
+
+            // merge each group's chat messages into its most resolved dispute
+            List<Dispute> duplicates = new ArrayList<>();
+            for (List<Dispute> group : disputesById.values()) {
+                if (group.size() == 1) continue;
+                Dispute original = getMostResolvedDispute(group);
+                for (Dispute duplicate : group) {
+                    if (duplicate == original) continue;
+                    if (original.getDisputePayoutTxId() == null) original.setDisputePayoutTxId(duplicate.getDisputePayoutTxId());
+                    mergeChatMessages(duplicate, original);
+                    duplicates.add(duplicate);
+                }
+            }
+
+            // remove duplicates
+            for (Dispute duplicate : duplicates) {
+                log.warn("Removing duplicate dispute, tradeId={}, disputeId={}", duplicate.getTradeId(), duplicate.getId());
+                getDisputeList().remove(duplicate);
+            }
+            if (!duplicates.isEmpty()) requestPersistence();
+        }
+    }
+
+    // prefer the dispute holding the agent's resolution so it is not lost when duplicates are removed
+    private static Dispute getMostResolvedDispute(List<Dispute> disputes) {
+        return disputes.stream().filter(dispute -> dispute.getDisputeResultProperty().get() != null).findFirst()
+                .or(() -> disputes.stream().filter(Dispute::isClosed).findFirst())
+                .orElse(disputes.get(0));
+    }
+
+    private static void mergeChatMessages(Dispute from, Dispute to) {
+        List<ChatMessage> messages;
+        synchronized (from.getChatMessages()) {
+            messages = new ArrayList<>(from.getChatMessages());
+        }
+        synchronized (to.getChatMessages()) {
+            for (ChatMessage message : messages) {
+                if (to.getChatMessages().stream().noneMatch(m -> m.getUid().equals(message.getUid()))) to.addAndPersistChatMessage(message);
+            }
+            to.getChatMessages().sort(Comparator.comparingLong(ChatMessage::getDate)); // keep chronological so the last message stays the latest
         }
     }
 
