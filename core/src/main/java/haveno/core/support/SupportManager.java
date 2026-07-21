@@ -95,7 +95,7 @@ public abstract class SupportManager {
                 if (isReady()) applyMailboxMessage(decryptedMessageWithPubKey);
                 else {
                     // As decryptedMailboxMessageWithPubKeys is a CopyOnWriteArraySet we do not need to check if it was already stored
-                    decryptedDirectMessageWithPubKeys.add(decryptedMessageWithPubKey);
+                    decryptedMailboxMessageWithPubKeys.add(decryptedMessageWithPubKey);
                     tryApplyMessages();
                 }
             }
