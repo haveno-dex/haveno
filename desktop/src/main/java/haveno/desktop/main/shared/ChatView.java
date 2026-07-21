@@ -31,6 +31,7 @@ import haveno.core.locale.Res;
 import haveno.core.support.SupportManager;
 import haveno.core.support.SupportSession;
 import haveno.core.support.dispute.Attachment;
+import haveno.core.support.dispute.DisputeSession;
 import haveno.core.support.messages.ChatMessage;
 
 import haveno.network.p2p.network.Connection;
@@ -706,7 +707,13 @@ public class ChatView extends AnchorPane {
                     supportManager.getMyAddress(),
                     attachments
             );
-            supportManager.addAndPersistChatMessage(message);
+            // add to the session's dispute directly, since multiple disputes can exist for a trade
+            if (supportSession instanceof DisputeSession && ((DisputeSession) supportSession).getDispute() != null) {
+                ((DisputeSession) supportSession).getDispute().addAndPersistChatMessage(message);
+                supportManager.requestPersistence();
+            } else {
+                supportManager.addAndPersistChatMessage(message);
+            }
             return supportManager.sendChatMessage(message);
         }).orElse(null);
     }
