@@ -960,7 +960,7 @@ tree-table-view:focused {
 
 .nav-balance-box-clickable:hover {
     -fx-background-color: -bs-rd-nav-button-hover;
-    -fx-background-insets: 9 -8 9 -8;
+    -fx-background-insets: 10 -8 10 -8;
     -fx-background-radius: 12;
 }
 
