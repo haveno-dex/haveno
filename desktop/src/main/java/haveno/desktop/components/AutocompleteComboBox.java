@@ -25,8 +25,11 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -34,6 +37,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.stage.PopupWindow;
+import javafx.util.Callback;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -57,6 +61,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
     private final JFXComboBoxListViewSkin<T> skin;
     private final ListView<T> popupList; // the dropdown's ListView, exposed by the skin
+    private Pane popupMimic;             // hidden popup lookalike; also styles the width-measuring cell
 
     private List<? extends T> items = List.of();     // full, unfiltered items
     private List<? extends T> searchPool;            // wider pool searched once the user types (optional)
@@ -102,10 +107,10 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         this.items = items;
         this.searchPool = searchPool;
         this.shownItems = new ArrayList<>(items);
-        invalidatePinnedWidth(); // new content: measure afresh so the popup can grow or shrink to fit
         resetSelection();
         setItems(FXCollections.observableList(shownItems));
         getEditor().setText("");
+        pinWidth(); // new content: re-fit the popup and control so they grow or shrink to match
     }
 
     public void setAutocompleteItems(List<? extends T> items) {
@@ -256,7 +261,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     // differs, so the control would resize on first open. Nest the ListView in a hidden mimic of the
     // popup so it always measures as it will render; the popup reparents it out on first show.
     private void matchControlWidthToPopup() {
-        Pane popupMimic = new Pane(popupList);
+        popupMimic = new Pane(popupList);
         popupMimic.getStyleClass().add("combo-box-popup");
         popupMimic.setManaged(false);
         popupMimic.setVisible(false);
@@ -305,9 +310,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         }
 
         boolean unfiltered = isUnfiltered();
-        // Re-measure when the unfiltered content changed so the popup grows or shrinks to fit instead of
-        // overflowing into a scrollbar or leaving slack.
-        if (unfiltered && !shownItems.equals(pinnedFor)) pinnedWidth = -1;
+        if (unfiltered) pinWidth(); // re-measures only if the content changed since the last pin
         setPopupPrefWidth(unfiltered && pinnedWidth > 0 ? pinnedWidth : Region.USE_COMPUTED_SIZE);
 
         // Flush the row count before the popup autosizes, else a stale (smaller) count caps its height
@@ -316,25 +319,53 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         popupList.layout();
         popupList.autosize();
         show();
+    }
 
-        // Lay out the shown popup; on the first unfiltered open also capture its width and pin it.
-        popupList.applyCss();
-        popupList.layout();
-        if (unfiltered && pinnedWidth <= 0 && popupList.getWidth() > 0) {
-            pinnedWidth = popupList.getWidth();
-            pinnedFor = new ArrayList<>(shownItems);
-            setPopupPrefWidth(pinnedWidth);
+    // Pin the popup to its measured content width, not the rendered width the skin ratchets up.
+    private void pinWidth() {
+        if (shownItems.equals(pinnedFor)) return;
+        Callback<ListView<T>, ListCell<T>> cellFactory = popupList.getCellFactory();
+        if (getScene() == null || cellFactory == null) { // not styleable yet; measure on the first open
+            pinnedWidth = -1;
+            pinnedFor = null;
+            setPopupPrefWidth(Region.USE_COMPUTED_SIZE);
+            return;
         }
+        pinnedWidth = measureContentWidth(cellFactory);
+        pinnedFor = new ArrayList<>(shownItems);
+        setPopupPrefWidth(pinnedWidth);
+    }
+
+    // Widest row via a scratch cell in the popup mimic (skin formula: max cell + 30, floor 50), plus the scrollbar breadth when it scrolls.
+    private double measureContentWidth(Callback<ListView<T>, ListCell<T>> cellFactory) {
+        ListCell<T> cell = cellFactory.call(popupList);
+        cell.updateListView(popupList);
+        popupMimic.getChildren().add(cell);
+        try {
+            double width = 0;
+            for (int i = 0; i < popupList.getItems().size(); i++) {
+                cell.updateIndex(i);
+                cell.applyCss();
+                width = Math.max(width, cell.prefWidth(-1));
+            }
+            if (popupList.getItems().size() > MAX_VISIBLE_ROWS) width += scrollBarBreadth();
+            return Math.max(50, width + 30);
+        } finally {
+            popupMimic.getChildren().remove(cell);
+        }
+    }
+
+    private double scrollBarBreadth() {
+        for (Node node : popupList.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.VERTICAL)
+                return bar.prefWidth(-1);
+        }
+        return 0;
     }
 
     private void setPopupPrefWidth(double width) {
         popupList.setPrefWidth(width);
-    }
-
-    private void invalidatePinnedWidth() {
-        pinnedWidth = -1;
-        pinnedFor = null;
-        setPopupPrefWidth(Region.USE_COMPUTED_SIZE);
+        requestLayout(); // the popup adopts the ListView out of this control's tree, so re-measure explicitly
     }
 
     // --- small helpers ---
