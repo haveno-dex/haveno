@@ -179,15 +179,18 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         currencyComboBoxContainer = currencyBoxTuple.first;
         currencyComboBox = currencyBoxTuple.third;
         currencyComboBox.setPrefWidth(250);
+        currencyComboBox.setMinWidth(150);
         currencyComboBox.getStyleClass().add("input-with-border");
 
         Tuple3<VBox, Label, AutocompleteComboBox<PaymentMethod>> paymentBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByPaymentMethod"));
         paymentMethodComboBox = paymentBoxTuple.third;
         paymentMethodComboBox.setPrefWidth(250);
+        paymentMethodComboBox.setMinWidth(150);
         paymentMethodComboBox.getStyleClass().add("input-with-border");
 
         noDepositOffersToggleButton = new ToggleButton(Res.get("offerbook.filterNoDeposit"));
+        noDepositOffersToggleButton.setMinWidth(Region.USE_PREF_SIZE); // never ellipsize
         noDepositOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         Tooltip noDepositOffersTooltip = new Tooltip(Res.get("offerbook.noDepositOffers"));
         Tooltip.install(noDepositOffersToggleButton, noDepositOffersTooltip);
@@ -206,9 +209,15 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
         Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
 
-        createOfferButton = new AutoTooltipButton("");
+        createOfferButton = new AutoTooltipButton("") {
+            @Override
+            protected double computeMinWidth(double height) {
+                return computePrefWidth(height); // collapse at most to full text width, never ellipsize
+            }
+        };
         createOfferButton.setMinHeight(40);
         createOfferButton.setGraphicTextGap(10);
+        createOfferButton.setPrefWidth(300);
         createOfferButton.setStyle("-fx-padding: 7 25 7 25;");
         disabledCreateOfferButtonTooltip = new Label("");
         disabledCreateOfferButtonTooltip.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -226,6 +235,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         VBox filterBox = autoToolTipTextField.first;
         filterInputField = autoToolTipTextField.third;
         filterInputField.setPromptText(Res.get("shared.filter"));
+        filterInputField.setMinWidth(80);
         filterInputField.getStyleClass().add("input-with-border");
 
         offerToolsBox.getChildren().addAll(currencyBoxTuple.first, paymentBoxTuple.first,
@@ -1101,7 +1111,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     private TableColumn<OfferBookListItem, OfferBookListItem> getActionColumn() {
         TableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.actions")) {
             {
-                setMinWidth(180);
+                // fixed width fitting the buttons; extra space goes to the other columns
+                setMinWidth(225);
+                setMaxWidth(225);
                 setSortable(false);
             }
         };
@@ -1125,6 +1137,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     button.setGraphic(iconView);
                                     button.setGraphicTextGap(10);
                                     button.setPrefWidth(10000);
+                                    button.setStyle("-fx-min-height: 30;"); // inline to beat the 32px stylesheet floor
                                 }
     
                                 Text iconView2 = GlyphsDude.createIcon(MaterialDesignIcon.PENCIL);
@@ -1134,6 +1147,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     button2.setGraphic(iconView2);
                                     button2.setGraphicTextGap(10);
                                     button2.setPrefWidth(10000);
+                                    button2.setStyle("-fx-min-height: 30;");
                                 }
     
                                 final HBox hbox = new HBox();
@@ -1202,7 +1216,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                             iconView.setFitWidth(16);
                                         }
                                         button.setId(isSellOffer ? "buy-button" : "sell-button");
-                                        button.setStyle("-fx-text-fill: white");
+                                        button.setStyle("-fx-text-fill: white; -fx-min-height: 30;");
                                         title = Res.get(isSellOffer ? "mainView.menu.buyXmr" : "mainView.menu.sellXmr");
                                         button.setTooltip(new Tooltip(Res.get("offerbook.takeOfferButton.tooltip", model.getDirectionLabelTooltip(offer))));
                                         button.setOnAction(e -> onTakeOffer(offer));
