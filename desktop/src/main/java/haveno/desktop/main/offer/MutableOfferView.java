@@ -702,34 +702,42 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void createListeners() {
         amountFocusedListener = (o, oldValue, newValue) -> {
+            if (GUIUtil.focusLostToOverlay(amountTextField, oldValue, newValue)) return;
             model.onFocusOutAmountTextField(oldValue, newValue);
             amountTextField.setText(model.amount.get());
         };
         minAmountFocusedListener = (o, oldValue, newValue) -> {
+            if (GUIUtil.focusLostToOverlay(minAmountTextField, oldValue, newValue)) return;
             model.onFocusOutMinAmountTextField(oldValue, newValue);
             minAmountTextField.setText(model.minAmount.get());
         };
         priceFocusedListener = (o, oldValue, newValue) -> {
+            if (GUIUtil.focusLostToOverlay(fixedPriceTextField, oldValue, newValue)) return;
             model.onFocusOutPriceTextField(oldValue, newValue);
             fixedPriceTextField.setText(model.price.get());
         };
         priceAsPercentageFocusedListener = (o, oldValue, newValue) -> {
+            if (GUIUtil.focusLostToOverlay(marketBasedPriceTextField, oldValue, newValue)) return;
             model.onFocusOutPriceAsPercentageTextField(oldValue, newValue);
             marketBasedPriceTextField.setText(model.marketPriceMargin.get());
         };
         volumeFocusedListener = (o, oldValue, newValue) -> {
+            if (GUIUtil.focusLostToOverlay(volumeTextField, oldValue, newValue)) return;
             model.onFocusOutVolumeTextField(oldValue, newValue);
             volumeTextField.setText(model.volume.get());
         };
         securityDepositFocusedListener = (o, oldValue, newValue) -> {
+            if (GUIUtil.focusLostToOverlay(securityDepositInputTextField, oldValue, newValue)) return;
             model.onFocusOutSecurityDepositTextField(oldValue, newValue);
             securityDepositInputTextField.setText(model.securityDeposit.get());
         };
         triggerPriceFocusedListener = (o, oldValue, newValue) -> {
+            if (GUIUtil.focusLostToOverlay(triggerPriceInputTextField, oldValue, newValue)) return;
             model.onFocusOutTriggerPriceTextField(oldValue, newValue);
             triggerPriceInputTextField.setText(model.triggerPrice.get());
         };
         extraInfoFocusedListener = (observable, oldValue, newValue) -> {
+            if (GUIUtil.focusLostToOverlay(extraInfoTextArea, oldValue, newValue)) return;
             model.onFocusOutExtraInfoTextArea(oldValue, newValue);
 
             // avoid setting text area to empty text because blinking caret does not appear
