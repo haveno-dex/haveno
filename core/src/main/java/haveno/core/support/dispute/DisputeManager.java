@@ -59,6 +59,7 @@ import haveno.core.support.SupportManager;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Contract;
@@ -222,6 +223,23 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         message.getUid(), message.getTradeId());
             }
         });
+    }
+
+
+    @Override
+    protected void onSupportMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, SupportMessage message) {
+        super.onSupportMessage(decryptedMessageWithPubKey, message);
+        if (message instanceof DisputeClosedMessage) verifyDisputeClosedMessageSender(decryptedMessageWithPubKey, (DisputeClosedMessage) message);
+    }
+
+    // A DisputeClosedMessage is only valid from the trade's arbitrator; reject a counterparty
+    // forgery before it can clobber the stored ruling and destroy the trade's dispute state.
+    private void verifyDisputeClosedMessageSender(DecryptedMessageWithPubKey decryptedMessageWithPubKey, DisputeClosedMessage message) {
+        Trade trade = tradeManager.getTrade(message.getTradeId());
+        if (trade == null) return;
+        if (trade.getVerifiedTradePeer(decryptedMessageWithPubKey) != trade.getArbitrator()) {
+            throw new IllegalStateException("DisputeClosedMessage for trade " + message.getTradeId() + " was not sent by the trade's arbitrator");
+        }
     }
 
 
