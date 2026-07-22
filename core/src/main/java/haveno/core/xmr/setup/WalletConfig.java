@@ -224,6 +224,11 @@ public class WalletConfig extends AbstractIdleService {
         onSetupCompleted();
     }
 
+    @Override
+    protected String serviceName() {
+        return WalletConfig.class.getSimpleName(); // anonymous subclasses have no simple name
+    }
+
     protected void setupAutoSave(Wallet wallet, File walletFile) {
         wallet.autosaveToFile(walletFile, 5, TimeUnit.SECONDS, null);
     }
