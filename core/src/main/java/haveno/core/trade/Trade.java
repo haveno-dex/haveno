@@ -129,6 +129,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 import java.math.BigInteger;
+import java.security.PublicKey;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -2656,6 +2657,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (getTaker() != null && getTaker().getPubKeyRing().equals(pubKeyRing)) return getTaker();
         if (getArbitrator() != null && getArbitrator().getPubKeyRing().equals(pubKeyRing)) return getArbitrator();
         return null;
+    }
+
+    // reject a trade where the same identity holds more than one role, collapsing the 2-of-3 multisig;
+    // peers are authenticated by their signature key, so no two roles may share one
+    public void verifyPeerIdentitiesDiffer() {
+        PublicKey maker = signaturePubKeyOrNull(getMaker().getPubKeyRing());
+        PublicKey taker = signaturePubKeyOrNull(getTaker().getPubKeyRing());
+        PublicKey arbitrator = signaturePubKeyOrNull(getArbitrator().getPubKeyRing());
+        if (maker != null && maker.equals(taker)) throw new RuntimeException("Maker and taker must have different identities");
+        if (arbitrator != null && arbitrator.equals(maker)) throw new RuntimeException("Arbitrator and maker must have different identities");
+        if (arbitrator != null && arbitrator.equals(taker)) throw new RuntimeException("Arbitrator and taker must have different identities");
+    }
+
+    private static PublicKey signaturePubKeyOrNull(PubKeyRing pubKeyRing) {
+        return pubKeyRing == null ? null : pubKeyRing.getSignaturePubKey();
     }
 
     public TradePeer getVerifiedTradePeer(DecryptedMessageWithPubKey message) {

@@ -167,6 +167,9 @@ public class ProcessInitTradeRequest extends TradeTask {
             // check peer's current date
             processModel.getAccountAgeWitnessService().verifyPeersCurrentDate(new Date(sender.getCurrentDate()));
 
+            // defense-in-depth: maker, taker, and arbitrator must be distinct identities
+            trade.verifyPeerIdentitiesDiffer();
+
             // persist trade
             trade.addInitProgressStep();
             processModel.getTradeManager().requestPersistence();

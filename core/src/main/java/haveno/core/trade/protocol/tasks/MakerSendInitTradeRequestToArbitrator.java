@@ -115,6 +115,9 @@ public class MakerSendInitTradeRequestToArbitrator extends TradeTask {
         trade.getArbitrator().setNodeAddress(arbitratorNodeAddress);
         trade.getArbitrator().setPubKeyRing(processModel.getArbitrator().getPubKeyRing());
 
+        // re-check identities now that the arbitrator is known, since it was unset when the maker processed the request
+        trade.verifyPeerIdentitiesDiffer();
+
         // create request to arbitrator
         InitTradeRequest takerRequest = (InitTradeRequest) processModel.getTradeMessage(); // taker's InitTradeRequest to maker
         InitTradeRequest arbitratorRequest = new InitTradeRequest(
