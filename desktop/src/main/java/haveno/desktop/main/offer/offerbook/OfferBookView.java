@@ -73,12 +73,15 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -217,7 +220,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         };
         createOfferButton.setMinHeight(40);
         createOfferButton.setGraphicTextGap(10);
-        createOfferButton.setPrefWidth(300);
+        createOfferButton.setPrefWidth(300); // spans the actions + trader columns (225 + 60 + 15 spacer)
         createOfferButton.setStyle("-fx-padding: 7 25 7 25;");
         disabledCreateOfferButtonTooltip = new Label("");
         disabledCreateOfferButtonTooltip.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -277,6 +280,21 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         tableView.getSortOrder().add(priceColumn);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        // widen by the scrollbar width so the left edge stays aligned with the take offer buttons, which shift with it
+        tableView.skinProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null) return;
+            for (Node node : tableView.lookupAll(".scroll-bar")) {
+                if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.VERTICAL) {
+                    double baseWidth = createOfferButton.getPrefWidth();
+                    ChangeListener<Object> widthUpdater = (o, oldVal, newVal) -> UserThread.execute(() ->
+                            createOfferButton.setPrefWidth(baseWidth + (bar.isVisible() ? bar.getWidth() : 0)));
+                    bar.visibleProperty().addListener(widthUpdater);
+                    bar.widthProperty().addListener(widthUpdater);
+                    break;
+                }
+            }
+        });
         Label placeholder = new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.multipleOffers")));
         placeholder.setWrapText(true);
         tableView.setPlaceholder(placeholder);
