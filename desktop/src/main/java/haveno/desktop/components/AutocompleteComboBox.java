@@ -92,6 +92,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
         setAutocompleteItems(items);
         cellFactoryProperty().addListener((obs, old, factory) -> unpinWidth());
+        converterProperty().addListener((obs, old, converter) -> unpinWidth()); // a converter set after the items also changes row width
         matchControlWidthToPopup();
         keepPopupOpenOnEditorClick();
         suppressSpaceKeyReset();
@@ -313,6 +314,9 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         boolean unfiltered = isUnfiltered();
         if (unfiltered) pinWidth(); // re-measures only if the content changed since the last pin
         setPopupPrefWidth(unfiltered && pinnedWidth > 0 ? pinnedWidth : Region.USE_COMPUTED_SIZE);
+        // Floor the popup at the control's width via min (not pref, which feeds the control's own
+        // measurement), so a stretched control keeps a full-width popup like the skin's computed sizing.
+        popupList.setMinWidth(getWidth());
 
         // Flush the row count before the popup autosizes, else a stale (smaller) count caps its height
         // and a freshly grown list opens shorter than its max rows.
