@@ -794,6 +794,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // handle trade
             Trade trade;
             Optional<Trade> tradeOptional = getOpenOrClosedTrade(offer.getId());
+
+            // supersede open unfunded trade on new request from maker, e.g. a prior attempt failed without cleanup on this node
+            if (tradeOptional.isPresent()
+                    && hasOpenTrade(tradeOptional.get())
+                    && !tradeOptional.get().isDepositRequested()
+                    && sender.equals(tradeOptional.get().getMaker().getNodeAddress())
+                    && offer.getPubKeyRing().getSignaturePubKey().equals(decryptedMessageWithPubKey.getSignaturePubKey())) {
+                supersedeOpenTrade(tradeOptional.get());
+                tradeOptional = Optional.empty();
+            }
+
             if (tradeOptional.isPresent()) {
                 trade = tradeOptional.get();
 
@@ -1191,6 +1202,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 }
             });
         }
+    }
+
+    // remove an open unfunded trade so a new trade can be created for the same id
+    private void supersedeOpenTrade(Trade trade) {
+        log.warn("Removing open {} {} superseded by a new trade for the same id", trade.getClass().getSimpleName(), trade.getShortId());
+        trade.onSuperseded(); // keeps the shared trade-id executors for the new trade
+        removeTrade(trade);
+        trade.clearAndShutDown(); // deletes the unfunded trade's wallet
     }
 
     private void addTradeToPendingTrades(Trade trade) {
