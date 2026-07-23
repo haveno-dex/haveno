@@ -2748,7 +2748,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     public boolean isMissingUnlockedDepositTx () {
         if (!wasWalletPolledProperty.get()) getWallet(); // open and poll the wallet if needed
-        if (!wasWalletPolledProperty.get()) throw new IllegalStateException("Cannot determine if deposit tx is missing because wallet has not been polled");
+        if (!wasWalletPolledProperty.get()) throw new IllegalStateException("Cannot determine if deposit tx is missing for " + getClass().getSimpleName() + " " + getId() + " because wallet has not been polled");
         MoneroTxWallet makerDepositTx = getMakerDepositTx();
         MoneroTxWallet takerDepositTx = getTakerDepositTx();
         boolean hasUnlockedDepositTx = (makerDepositTx != null && Boolean.FALSE.equals(makerDepositTx.isLocked())) || (takerDepositTx != null && Boolean.FALSE.equals(takerDepositTx.isLocked()));
@@ -2769,7 +2769,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public boolean isDepositsUnseen() {
         if (!isDepositsSeen()) return false;
         if (!wasWalletPolledProperty.get()) getWallet(); // open and poll the wallet if needed
-        if (!wasWalletPolledProperty.get()) throw new IllegalStateException("Cannot determine if deposit tx is missing because wallet has not been polled");
+        if (!wasWalletPolledProperty.get()) throw new IllegalStateException("Cannot determine if deposit tx is missing for " + getClass().getSimpleName() + " " + getId() + " because wallet has not been polled");
         return getMakerDepositTx() == null || (!hasBuyerAsTakerWithoutDeposit() && getTakerDepositTx() == null);
     }
 
