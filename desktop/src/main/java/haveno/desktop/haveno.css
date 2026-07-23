@@ -381,9 +381,14 @@
     -fx-cursor: default;
 }
 
-/* Mirror modena's popup cell padding at descendant scope, so the skin's off-sheet measuring
-   cells get the same padding as rendered cells and the control width fits the popup exactly. */
+/* Modena's popup cell padding at descendant scope (so the skin's off-sheet measuring cells match
+   rendered cells and the control width fits the popup exactly), plus right breathing room for rows. */
 .combo-box-popup .list-cell {
+    -fx-padding: 4 8 4 5;
+}
+
+/* Nav price pulldown rows keep modena's flush right edge. */
+#price-feed-combo .combo-box-popup .list-cell {
     -fx-padding: 4 0 4 5;
 }
 
