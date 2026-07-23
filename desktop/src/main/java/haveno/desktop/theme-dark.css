@@ -681,3 +681,8 @@
 .tx-sent-icon .glyph-icon {
     -fx-fill: derive(-bs-rd-green-dark, 40%);
 }
+
+/* soften the white QR background against the dark theme */
+.qr-code-pane {
+    -fx-opacity: 0.9;
+}
