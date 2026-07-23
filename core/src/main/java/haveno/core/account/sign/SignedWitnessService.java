@@ -265,10 +265,11 @@ public class SignedWitnessService {
     }
 
     public boolean isSignedByArbitrator(AccountAgeWitness accountAgeWitness) {
+        // Require a verified arbitrator signature, not just the self-declared verificationMethod flag,
+        // otherwise a peer could self-mint an "arbitrator-signed" witness to claim the trade-limit exemption.
         return getSignedWitnessSet(accountAgeWitness).stream()
-                .map(SignedWitness::isSignedByArbitrator)
-                .findAny()
-                .orElse(false);
+                .filter(SignedWitness::isSignedByArbitrator)
+                .anyMatch(this::verifySignature);
     }
 
     public boolean isFilteredWitness(AccountAgeWitness accountAgeWitness) {

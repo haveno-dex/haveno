@@ -58,6 +58,12 @@ public class GrpcServer {
                       GrpcNotificationsService notificationsService,
                       GrpcXmrConnectionService moneroConnectionsService,
                       GrpcXmrNodeService moneroNodeService) {
+
+        // Refuse to start the API with an empty password: the server binds all interfaces and gates every
+        // wallet/trade/dispute operation behind this single password, so an empty value = unauthenticated access.
+        if (config.apiPassword == null || config.apiPassword.isBlank())
+            throw new IllegalStateException("Cannot start the gRPC API with an empty apiPassword; set --apiPassword to a strong secret");
+
         this.server = ServerBuilder.forPort(config.apiPort)
                 .addService(shutdownService)
                 .intercept(passwordAuthInterceptor)

@@ -18,6 +18,7 @@
 package haveno.core.trade.protocol.tasks;
 
 import com.google.common.base.Charsets;
+import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.offer.Offer;
@@ -167,6 +168,9 @@ public class ProcessInitTradeRequest extends TradeTask {
             // check peer's current date
             processModel.getAccountAgeWitnessService().verifyPeersCurrentDate(new Date(sender.getCurrentDate()));
 
+            // defense-in-depth: maker, taker, and arbitrator must be distinct identities
+            verifyPeerIdentitiesDiffer();
+
             // persist trade
             trade.addInitProgressStep();
             processModel.getTradeManager().requestPersistence();
@@ -174,5 +178,15 @@ public class ProcessInitTradeRequest extends TradeTask {
         } catch (Throwable t) {
             failed(t);
         }
+    }
+
+    // reject a trade where the same identity holds more than one role, collapsing the 2-of-3 multisig
+    private void verifyPeerIdentitiesDiffer() {
+        PubKeyRing maker = trade.getMaker().getPubKeyRing();
+        PubKeyRing taker = trade.getTaker().getPubKeyRing();
+        PubKeyRing arbitrator = trade.getArbitrator().getPubKeyRing();
+        if (maker != null && maker.equals(taker)) throw new RuntimeException("Maker and taker must have different identities");
+        if (arbitrator != null && arbitrator.equals(maker)) throw new RuntimeException("Arbitrator and maker must have different identities");
+        if (arbitrator != null && arbitrator.equals(taker)) throw new RuntimeException("Arbitrator and taker must have different identities");
     }
 }

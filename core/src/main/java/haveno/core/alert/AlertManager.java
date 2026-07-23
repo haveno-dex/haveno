@@ -17,7 +17,6 @@
 
 package haveno.core.alert;
 
-import com.google.common.base.Charsets;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.app.DevEnv;
@@ -32,6 +31,7 @@ import java.math.BigInteger;
 import java.security.SignatureException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -51,6 +51,12 @@ public class AlertManager {
     private final boolean useDevPrivilegeKeys;
 
     private ECKey alertSigningKey;
+
+    // Throttle for the verify-failure warning (a failed verification is expected for an alert signed by an
+    // older version during a mandatory update).
+    private static final long VERIFY_WARN_INTERVAL_MS = 60_000;
+    private static final AtomicLong lastVerifyWarnMs = new AtomicLong(0);
+    private static final AtomicLong suppressedVerifyWarnCount = new AtomicLong(0);
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -165,22 +171,39 @@ public class AlertManager {
     }
 
     private void signAndAddSignatureToAlertMessage(Alert alert) {
-        String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
-        String signatureAsBase64 = alertSigningKey.signMessage(alertMessageAsHex);
+        String signaturePayload = alert.getSignaturePayloadAsHex();
+        String signatureAsBase64 = alertSigningKey.signMessage(signaturePayload);
         alert.setSigAndPubKey(signatureAsBase64, keyRing.getSignatureKeyPair().getPublic());
     }
 
     private boolean verifySignature(Alert alert) {
-        String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
+        // Verify over the full alert payload (message + version + flags + extra data), not just the
+        // message, so a captured signature cannot be replayed with altered update metadata.
+        String signaturePayload = alert.getSignaturePayloadAsHex();
         for (String pubKeyAsHex : getPubKeyList()) {
             try {
-                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(alertMessageAsHex, alert.getSignatureAsBase64());
+                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(signaturePayload, alert.getSignatureAsBase64());
                 return true;
             } catch (SignatureException e) {
                 // ignore
             }
         }
-        log.warn("verifySignature failed");
+        warnVerifyFailureThrottled();
         return false;
+    }
+
+    // Keep the warning visible so a genuine forged/corrupt alert is never silently ignored, but throttle it
+    // so an alert signed by an older version during a mandatory update cannot flood the log.
+    private void warnVerifyFailureThrottled() {
+        long now = System.currentTimeMillis();
+        long last = lastVerifyWarnMs.get();
+        if (now - last >= VERIFY_WARN_INTERVAL_MS && lastVerifyWarnMs.compareAndSet(last, now)) {
+            long suppressed = suppressedVerifyWarnCount.getAndSet(0);
+            log.warn("Alert signature verification failed{}. Expected from an alert signed by an older version during a mandatory update; otherwise a forged or corrupt alert.",
+                    suppressed > 0 ? " (+" + suppressed + " more suppressed since last warning)" : "");
+        } else {
+            suppressedVerifyWarnCount.incrementAndGet();
+            log.debug("Alert signature verification failed");
+        }
     }
 }

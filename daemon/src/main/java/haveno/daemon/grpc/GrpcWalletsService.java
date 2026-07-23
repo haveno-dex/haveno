@@ -77,6 +77,7 @@ import haveno.proto.grpc.WalletsGrpc.WalletsImplBase;
 import static haveno.proto.grpc.WalletsGrpc.getGetAddressBalanceMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetBalancesMethod;
 import static haveno.proto.grpc.WalletsGrpc.getGetFundingAddressesMethod;
+import static haveno.proto.grpc.WalletsGrpc.getGetXmrSeedMethod;
 import static haveno.proto.grpc.WalletsGrpc.getLockWalletMethod;
 import static haveno.proto.grpc.WalletsGrpc.getRemoveWalletPasswordMethod;
 import static haveno.proto.grpc.WalletsGrpc.getSetWalletPasswordMethod;
@@ -355,6 +356,9 @@ class GrpcWalletsService extends WalletsImplBase {
 
                             put(getLockWalletMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
                             put(getUnlockWalletMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS));
+
+                            // Throttle master-seed export to blunt brute-force/scraping of the wallet seed.
+                            put(getGetXmrSeedMethod().getFullMethodName(), new GrpcCallRateMeter(1, SECONDS, 5));
                         }}
                 )));
     }

@@ -108,6 +108,7 @@ import monero.daemon.model.MoneroTx;
 import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroDestination;
+import monero.wallet.model.MoneroIncomingTransfer;
 import monero.wallet.model.MoneroMultisigSignResult;
 import monero.wallet.model.MoneroOutputQuery;
 import monero.wallet.model.MoneroOutputWallet;
@@ -1864,10 +1865,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         }
         if (payoutTx.isFailed()) throw new IllegalStateException("Payout tx " + payoutTxId + " is failed for " + getClass().getSimpleName() + " " + getId());
 
-        // verify incoming amount
+        // verify amount credited to this trade's buyer payout address (a unique per-trade subaddress),
+        // binding the tx to this trade so a coincident equal-amount payout of another trade cannot match
         BigInteger txFeeSplit = payoutTx.getFee().divide(BigInteger.valueOf(2));
         BigInteger expectedAmount = getBuyer().getSecurityDeposit().add(getAmount()).subtract(txFeeSplit);
-        if (!payoutTx.getIncomingAmount().equals(expectedAmount)) throw new IllegalStateException("Payout tx incoming amount is not deposit amount + trade amount - 1/2 tx fee, " + payoutTx.getIncomingAmount() + " vs " + expectedAmount);
+        String buyerPayoutAddress = getContract().getBuyerPayoutAddressString();
+        BigInteger incomingAmount = BigInteger.ZERO;
+        if (payoutTx.getIncomingTransfers() != null) {
+            for (MoneroIncomingTransfer transfer : payoutTx.getIncomingTransfers()) {
+                if (buyerPayoutAddress.equals(transfer.getAddress())) incomingAmount = incomingAmount.add(transfer.getAmount());
+            }
+        }
+        if (!incomingAmount.equals(expectedAmount)) throw new IllegalStateException("Payout tx " + payoutTxId + " does not credit the buyer payout address the deposit amount + trade amount - 1/2 tx fee, " + incomingAmount + " vs " + expectedAmount + " for " + getClass().getSimpleName() + " " + getId());
 
         // update payout tx
         setPayoutTx(payoutTx);
