@@ -55,6 +55,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -69,6 +70,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public abstract class NetworkNode implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(NetworkNode.class);
     private static final int CREATE_SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(120);
+    private static final long REJECTION_LOG_INTERVAL_MS = TimeUnit.SECONDS.toMillis(30);
 
     final int servicePort;
     private final NetworkProtoResolver networkProtoResolver;
@@ -81,6 +83,8 @@ public abstract class NetworkNode implements MessageListener {
     final Set<SetupListener> setupListeners = Collections.newSetFromMap(new ConcurrentHashMap<SetupListener, Boolean>());
     private final ListeningExecutorService connectionExecutor;
     private final ListeningExecutorService sendMessageExecutor;
+    private final AtomicLong lastRejectionLogTs = new AtomicLong();
+    private final AtomicInteger suppressedRejectionLogs = new AtomicInteger();
     private Server server;
 
     @Getter
@@ -322,11 +326,24 @@ public abstract class NetworkNode implements MessageListener {
 
         } catch (RejectedExecutionException exception) {
             if (!executor.isShutdown()) {
-                log.error("RejectedExecutionException at sendMessage: ", exception);
+                logSendMessageRejection(exception);
                 UserThread.execute(() -> resolveWithException(resultFuture, exception));
             }
         }
         return resultFuture;
+    }
+
+    // Rejections come in bursts when a send pool saturates, so keep the full trace but throttle it.
+    private void logSendMessageRejection(RejectedExecutionException exception) {
+        long now = System.currentTimeMillis();
+        long last = lastRejectionLogTs.get();
+        if (now - last > REJECTION_LOG_INTERVAL_MS && lastRejectionLogTs.compareAndSet(last, now)) {
+            int suppressed = suppressedRejectionLogs.getAndSet(0);
+            log.warn("RejectedExecutionException at sendMessage (send pool saturated){}: ",
+                    suppressed > 0 ? "; " + suppressed + " similar suppressed since last log" : "", exception);
+        } else {
+            suppressedRejectionLogs.incrementAndGet();
+        }
     }
 
     private void resolveWithException(SettableFuture<?> future, Throwable exception) {
