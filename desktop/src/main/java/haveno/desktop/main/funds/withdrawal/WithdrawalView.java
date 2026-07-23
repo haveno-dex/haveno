@@ -38,6 +38,7 @@ import com.google.inject.Inject;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
+import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
@@ -532,8 +533,9 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         if (atomicAmount == null || atomicAmount.signum() <= 0) return null;
         MarketPrice price = marketPrice();
         if (price == null) return null;
-        double fiatValue = HavenoUtils.atomicUnitsToXmr(atomicAmount) * price.getPrice();
-        fiatFormat.setMaximumFractionDigits(fiatMaxDecimals());
+        int decimals = fiatMaxDecimals();
+        double fiatValue = MathUtils.roundDouble(HavenoUtils.atomicUnitsToXmr(atomicAmount) * price.getPrice(), decimals);
+        fiatFormat.setMaximumFractionDigits(decimals);
         return "≈ " + fiatFormat.format(fiatValue) + " " + preferences.getPreferredTradeCurrency().getCode();
     }
 
@@ -571,8 +573,9 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     private String formatXmrToFiat(BigInteger atomicXmr) {
         MarketPrice price = marketPrice();
         if (price == null || atomicXmr == null) return "";
-        plainFiatFormat.setMaximumFractionDigits(fiatMaxDecimals());
-        return plainFiatFormat.format(HavenoUtils.atomicUnitsToXmr(atomicXmr) * price.getPrice());
+        int decimals = fiatMaxDecimals();
+        plainFiatFormat.setMaximumFractionDigits(decimals);
+        return plainFiatFormat.format(MathUtils.roundDouble(HavenoUtils.atomicUnitsToXmr(atomicXmr) * price.getPrice(), decimals));
     }
 
     private String getXmrText(BigInteger atomicAmount) {
