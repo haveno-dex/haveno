@@ -37,6 +37,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 class ProtoOutputStream {
     private static final Logger log = LoggerFactory.getLogger(ProtoOutputStream.class);
+    private static final long WRITE_LOCK_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(120);
 
     private final OutputStream outputStream;
     private final Statistic statistic;
@@ -50,7 +51,13 @@ class ProtoOutputStream {
     }
 
     void writeEnvelope(NetworkEnvelope envelope, protobuf.NetworkEnvelope proto) {
-        lock.lock();
+        // Bound the lock wait so senders cannot pile up behind a write stalled on a dead socket.
+        if (!tryToAcquireLock(WRITE_LOCK_TIMEOUT_MS)) {
+            if (!isConnectionActive.get()) {
+                return;
+            }
+            throw new HavenoRuntimeException("Timed out waiting to write " + envelope.getClass().getSimpleName() + ", connection write side appears stalled");
+        }
 
         try {
             writeEnvelopeOrThrow(envelope, proto);
@@ -71,7 +78,7 @@ class ProtoOutputStream {
     void onConnectionShutdown() {
         isConnectionActive.set(false);
 
-        boolean acquiredLock = tryToAcquireLock();
+        boolean acquiredLock = tryToAcquireLock(Connection.getShutdownTimeout());
         if (!acquiredLock) {
             return;
         }
@@ -103,11 +110,11 @@ class ProtoOutputStream {
         }
     }
 
-    private boolean tryToAcquireLock() {
-        long shutdownTimeout = Connection.getShutdownTimeout();
+    private boolean tryToAcquireLock(long timeoutMs) {
         try {
-            return lock.tryLock(shutdownTimeout, TimeUnit.MILLISECONDS);
+            return lock.tryLock(timeoutMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return false;
         }
     }
