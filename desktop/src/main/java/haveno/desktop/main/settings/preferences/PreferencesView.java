@@ -140,6 +140,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             rpcUserListener, rpcPwListener, blockNotifyPortListener, clearDataAfterDaysListener,
             autoConfTradeLimitListener, autoConfServiceAddressListener;
     private ChangeListener<Boolean> deviationFocusedListener;
+    private ChangeListener<Number> cssThemeListener;
     private final boolean displayStandbyModeFeature;
     private ChangeListener<Filter> filterChangeListener;
 
@@ -767,6 +768,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         useDarkMode.setSelected(preferences.getCssTheme() == 1);
         useDarkMode.setOnAction(e -> preferences.setCssTheme(useDarkMode.isSelected()));
+        cssThemeListener = (observable, oldValue, newValue) -> useDarkMode.setSelected(newValue.intValue() == 1);
+        preferences.getCssThemeProperty().addListener(cssThemeListener);
 
         sortMarketCurrenciesNumerically.setSelected(preferences.isSortMarketCurrenciesNumerically());
         sortMarketCurrenciesNumerically.setOnAction(e -> preferences.setSortMarketCurrenciesNumerically(sortMarketCurrenciesNumerically.isSelected()));
@@ -857,6 +860,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private void deactivateDisplayPreferences() {
         useAnimations.setOnAction(null);
         useDarkMode.setOnAction(null);
+        preferences.getCssThemeProperty().removeListener(cssThemeListener);
         sortMarketCurrenciesNumerically.setOnAction(null);
         hideNonAccountPaymentMethodsToggle.setOnAction(null);
         //denyApiTakerToggle.setOnAction(null);
