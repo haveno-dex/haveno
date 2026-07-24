@@ -32,6 +32,8 @@ sdk install java 21.0.9.fx-librca
 
 Restart the terminal for the changes to take effect.
 
+On Apple Silicon macOS, keep System Integrity Protection enabled. With SIP disabled, HotSpot can abort during VM startup before Haveno code runs. Check with `csrutil status`.
+
 ## Install dependencies using Nix
 
 Alternatively, dependencies can be installed automatically using [NixOS](https://nixos.org) or [Nix](https://nixos.org/download) on any platform:
