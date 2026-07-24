@@ -573,9 +573,11 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
      * Processes a GetDataResponse message and updates internal state. Does not broadcast updates to the P2P network
      * or domain listeners.
      */
-    public void processGetDataResponse(GetDataResponse getDataResponse, NodeAddress sender) {
+    // Returns the number of newly added items, used as progress signal to page through truncated responses.
+    public int processGetDataResponse(GetDataResponse getDataResponse, NodeAddress sender) {
         Set<ProtectedStorageEntry> protectedStorageEntries = getDataResponse.getDataSet();
         Set<PersistableNetworkPayload> persistableNetworkPayloadSet = getDataResponse.getPersistableNetworkPayloadSet();
+        AtomicInteger numAdded = new AtomicInteger();
         long ts = System.currentTimeMillis();
         protectedStorageEntries.forEach(protectedStorageEntry -> {
             // We rebroadcast high priority data after a delay for better resilience
@@ -587,8 +589,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             }
 
             // We don't broadcast here (last param) as we are only connected to the seed node and would be pointless
-            addProtectedStorageEntry(protectedStorageEntry, sender, null, false);
-
+            if (addProtectedStorageEntry(protectedStorageEntry, sender, null, false)) numAdded.incrementAndGet();
         });
         log.info("Processing {} protectedStorageEntries took {} ms.", protectedStorageEntries.size(), this.clock.millis() - ts);
 
@@ -597,23 +598,23 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             if (e instanceof ProcessOncePersistableNetworkPayload) {
                 if (bootstrapped) {
                     // re-request after reconnect: apply missed items and notify listeners
-                    addPersistableNetworkPayload(e, sender, false, false, false);
-                } else if (!initialRequestApplied || getDataResponse.isWasTruncated()) {
-                    // startup: apply once via optimized path without notifying listeners
-                    addPersistableNetworkPayloadFromInitialRequest(e);
+                    if (addPersistableNetworkPayload(e, sender, false, false, false)) numAdded.incrementAndGet();
+                } else {
+                    // startup: apply new items via optimized path, paging through truncated responses until complete.
+                    // The first response is the bulk load applied quietly; later deltas notify listeners so gaps
+                    // heal live without a restart. Duplicates are cheap no-ops so redundant responses are ok.
+                    if (addPersistableNetworkPayloadFromInitialRequest(e, initialRequestApplied)) numAdded.incrementAndGet();
                 }
             } else {
                 // We don't broadcast here as we are only connected to the seed node and would be pointless
-                addPersistableNetworkPayload(e, sender, false, false, false);
+                if (addPersistableNetworkPayload(e, sender, false, false, false)) numAdded.incrementAndGet();
             }
         });
         log.info("Processing {} persistableNetworkPayloads took {} ms.",
                 persistableNetworkPayloadSet.size(), this.clock.millis() - ts);
 
-        // We only process PersistableNetworkPayloads implementing ProcessOncePersistableNetworkPayload once. It can cause performance
-        // issues and since the data is rarely out of sync it is not worth it to apply them from multiple peers during
-        // startup.
         initialRequestApplied = true;
+        return numAdded.get();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -805,16 +806,19 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
 
     // When we receive initial data we skip several checks to improve performance. We requested only missing entries so we
     // do not need to check again if the item is contained in the map, which is a bit slow as the map can be very large.
-    // Overwriting an entry would be also no issue. We also skip notifying listeners as we get called before the domain
-    // is ready so no listeners are set anyway. We might get called twice from a redundant call later, so listeners
-    // might be added then but as we have the data already added calling them would be irrelevant as well.
-    private void addPersistableNetworkPayloadFromInitialRequest(PersistableNetworkPayload payload) {
+    // Overwriting an entry would be also no issue. The first bulk response is applied before the domain is ready so it
+    // skips notifying listeners; later paging deltas signal listeners so gaps heal live without a restart.
+    // Returns true if the payload was newly added.
+    private boolean addPersistableNetworkPayloadFromInitialRequest(PersistableNetworkPayload payload, boolean signalListeners) {
         byte[] hash = payload.getHash();
         if (payload.verifyHashSize()) {
             ByteArray hashAsByteArray = new ByteArray(hash);
-            appendOnlyDataStoreService.put(hashAsByteArray, payload);
+            boolean wasAdded = appendOnlyDataStoreService.put(hashAsByteArray, payload);
+            if (wasAdded && signalListeners) appendOnlyDataStoreListeners.forEach(e -> e.onAdded(payload));
+            return wasAdded;
         } else {
             log.warn("We got a hash exceeding our permitted size");
+            return false;
         }
     }
 

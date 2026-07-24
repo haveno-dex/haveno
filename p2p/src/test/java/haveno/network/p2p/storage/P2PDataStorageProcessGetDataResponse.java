@@ -191,10 +191,30 @@ public class P2PDataStorageProcessGetDataResponse {
                 beforeState, addFromSecondProcess, true, true, false);
     }
 
-    // TESTCASE: Second call to processGetDataResponse applies a new PNP as a re-request delta, with a listener
-    // signal but no broadcast, so gaps heal without a restart (LazyProcessed / #2182)
+    // TESTCASE: Second call to processGetDataResponse pages a new PNP during startup, applying it and signaling
+    // listeners so gaps heal without a restart (LazyProcessed)
     @Test
     public void processGetDataResponse_secondProcessAddsNewPNP_LazyProcessed() {
+        PersistableNetworkPayload addFromFirstProcess = new LazyPersistableNetworkPayloadStub(new byte[]{1});
+        GetDataResponse getDataResponse = buildGetDataResponse(addFromFirstProcess);
+
+        TestState.SavedTestState beforeState = this.testState.saveTestState(addFromFirstProcess);
+        this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
+        this.testState.verifyPersistableAdd(
+                beforeState, addFromFirstProcess, true, false, false);
+
+        PersistableNetworkPayload addFromSecondProcess = new LazyPersistableNetworkPayloadStub(new byte[]{2});
+        getDataResponse = buildGetDataResponse(addFromSecondProcess);
+        beforeState = this.testState.saveTestState(addFromSecondProcess);
+        this.testState.mockedStorage.processGetDataResponse(getDataResponse, this.peerNodeAddress);
+        this.testState.verifyPersistableAdd(
+                beforeState, addFromSecondProcess, true, true, false);
+    }
+
+    // TESTCASE: After bootstrap, a re-request applies a new PNP as a delta through the notifying path, with a
+    // listener signal but no broadcast, so gaps heal without a restart (LazyProcessed / #2182)
+    @Test
+    public void processGetDataResponse_reRequestAfterBootstrapAddsNewPNP_LazyProcessed() {
         PersistableNetworkPayload addFromFirstProcess = new LazyPersistableNetworkPayloadStub(new byte[]{1});
         GetDataResponse getDataResponse = buildGetDataResponse(addFromFirstProcess);
 

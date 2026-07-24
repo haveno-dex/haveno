@@ -38,9 +38,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 public abstract class HistoricalDataStoreService<T extends PersistableNetworkPayloadStore<? extends PersistableNetworkPayload>> extends MapStoreService<T, PersistableNetworkPayload> {
-    private ImmutableMap<String, PersistableNetworkPayloadStore<? extends PersistableNetworkPayload>> storesByVersion;
+    private ImmutableMap<String, PersistableNetworkPayloadStore<? extends PersistableNetworkPayload>> storesByVersion = ImmutableMap.of();
     // Cache to avoid that we have to recreate the historical data at each request
-    private ImmutableMap<P2PDataStorage.ByteArray, PersistableNetworkPayload> allHistoricalPayloads;
+    private ImmutableMap<P2PDataStorage.ByteArray, PersistableNetworkPayload> allHistoricalPayloads = ImmutableMap.of();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -130,13 +130,13 @@ public abstract class HistoricalDataStoreService<T extends PersistableNetworkPay
 
     @Override
     protected PersistableNetworkPayload putIfAbsent(P2PDataStorage.ByteArray hash, PersistableNetworkPayload payload) {
-        if (anyMapContainsKey(hash)) {
-            return null;
+        // Return any existing payload so callers observe Map.putIfAbsent semantics across the live and historical maps.
+        PersistableNetworkPayload previous = getMapOfLiveData().get(hash);
+        if (previous == null) previous = allHistoricalPayloads.get(hash);
+        if (previous != null) {
+            return previous;
         }
 
-        // We do not return the value from getMapOfLiveData().put as we checked before that it does not contain any value.
-        // So it will be always null. We still keep the return type as we override the method from MapStoreService which
-        // follow the Map.putIfAbsent signature.
         getMapOfLiveData().put(hash, payload);
         requestPersistence();
         return null;
