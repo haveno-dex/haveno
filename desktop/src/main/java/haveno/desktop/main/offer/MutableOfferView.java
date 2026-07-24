@@ -1034,6 +1034,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void addPaymentGroup() {
         paymentTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 1, Res.get("offerbook.createOffer"), heightAdjustment);
+        paymentTitledGroupBg.getStyleClass().add("offer-form-headline");
         GridPane.setColumnSpan(paymentTitledGroupBg, 2);
 
         HBox paymentGroupBox = new HBox();
@@ -1395,18 +1396,17 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         fundingHBox.setVisible(false);
         fundingHBox.setManaged(false);
         fundingHBox.setSpacing(10);
+        fundingHBox.setAlignment(Pos.CENTER_LEFT);
         fundFromSavingsWalletButton = new AutoTooltipButton(Res.get("shared.fundFromSavingsWalletButton"));
         fundFromSavingsWalletButton.setDefaultButton(true);
         fundFromSavingsWalletButton.getStyleClass().add("action-button");
         fundFromSavingsWalletButton.setOnAction(e -> model.fundFromSavingsWallet());
         Label label = new AutoTooltipLabel(Res.get("shared.OR"));
-        label.setPadding(new Insets(5, 0, 0, 0));
         Button fundFromExternalWalletButton = new AutoTooltipButton(Res.get("shared.fundFromExternalWalletButton"));
         fundFromExternalWalletButton.setDefaultButton(false);
         fundFromExternalWalletButton.setOnAction(e -> openWallet());
         waitingForFundsSpinner = new BusyAnimation(false);
         waitingForFundsLabel = new AutoTooltipLabel();
-        waitingForFundsLabel.setPadding(new Insets(5, 0, 0, 0));
 
         fundingHBox.getChildren().addAll(fundFromSavingsWalletButton,
                 label,
@@ -1421,6 +1421,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         placeOfferBox = new HBox();
         placeOfferBox.setSpacing(10);
+        placeOfferBox.setAlignment(Pos.CENTER_LEFT);
         GridPane.setRowIndex(placeOfferBox, gridRow);
         GridPane.setColumnSpan(placeOfferBox, 2);
         GridPane.setMargin(placeOfferBox, new Insets(5, 20, 0, 0));

@@ -53,6 +53,7 @@ import haveno.desktop.components.TextFieldWithCopyIcon;
 import haveno.desktop.components.TextFieldWithIcon;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.TxIdTextField;
+import javafx.css.PseudoClass;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -2277,6 +2278,7 @@ public class FormBuilder {
         input.setMaxWidth(Double.MAX_VALUE);
         box.setAlignment(Pos.CENTER_LEFT);
         box.getStyleClass().add("offer-input");
+        mirrorInputStateToBox(box, input);
         box.getChildren().addAll(input, label);
         return new Tuple3<>(box, input, label);
     }
@@ -2295,8 +2297,17 @@ public class FormBuilder {
         infoInputTextField.setMaxWidth(Double.MAX_VALUE);
         box.setAlignment(Pos.CENTER_LEFT);
         box.getStyleClass().add("offer-input");
+        mirrorInputStateToBox(box, input);
         box.getChildren().addAll(infoInputTextField, label);
         return new Tuple3<>(box, infoInputTextField, label);
+    }
+
+    // mirror the input's focus and validation state onto the surrounding box for border styling
+    private static void mirrorInputStateToBox(HBox box, InputTextField input) {
+        input.focusedProperty().addListener((o, oldValue, newValue) ->
+                box.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), newValue));
+        input.validationResultProperty().addListener((o, oldValue, newValue) ->
+                box.pseudoClassStateChanged(PseudoClass.getPseudoClass("error"), newValue != null && !newValue.isValid));
     }
 
     public static Tuple3<HBox, TextField, Label> getNonEditableValueBox() {
