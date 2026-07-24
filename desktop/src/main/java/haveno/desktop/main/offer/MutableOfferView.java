@@ -53,6 +53,7 @@ import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.FundWalletInfoWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
@@ -406,19 +407,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         model.onShowPayFundsScreen(() -> {
             if (!DevEnv.isDevMode()) {
-                String key = "createOfferFundWalletInfo";
-                String tradeAmountText = model.isSellOffer() ?
-                        Res.get("createOffer.createOfferFundWalletInfo.tradeAmount", model.getTradeAmount()) : "";
-
-                String message = Res.get("createOffer.createOfferFundWalletInfo.msg",
-                        model.getTotalToPayInfo(),
-                        tradeAmountText,
-                        model.getSecurityDepositInfo(),
-                        model.getTradeFee()
-                );
-                new Popup().headLine(Res.get("createOffer.createOfferFundWalletInfo.headline"))
-                        .instruction(message)
-                        .dontShowAgainId(key)
+                new FundWalletInfoWindow()
+                        .headLine(Res.get("createOffer.createOfferFundWalletInfo.headline"))
+                        .totalToPay(model.getTotalToPayInfo())
+                        .tradeAmount(model.isSellOffer() ? model.getTradeAmount() : null)
+                        .securityDeposit(model.getSecurityDepositInfo())
+                        .tradeFee(model.getTradeFee())
+                        .showReservedNote()
+                        .dontShowAgainId("createOfferFundWalletInfo")
                         .show();
             }
 
