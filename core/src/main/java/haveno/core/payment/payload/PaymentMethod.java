@@ -205,6 +205,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String VENMO_ID = "VENMO";
     public static final String PAYPAL_ID = "PAYPAL";
     public static final String PAYSAFE_ID = "PAYSAFE";
+    public static final String BLIK_ID = "BLIK";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -270,6 +271,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod CASH_APP;
     public static PaymentMethod VENMO;
     public static PaymentMethod PAYSAFE;
+    public static PaymentMethod BLIK;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
@@ -360,6 +362,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             // Thailand
             PROMPT_PAY = new PaymentMethod(PROMPT_PAY_ID, DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PromptPayAccount.SUPPORTED_CURRENCIES)),
 
+            // Poland
+            BLIK = new PaymentMethod(BLIK_ID, TimeUnit.MINUTES.toMillis(10), DEFAULT_TRADE_LIMIT_HIGH_RISK, Arrays.asList()),
+
             // Cryptos
             BLOCK_CHAINS = new PaymentMethod(BLOCK_CHAINS_ID, DAY, DEFAULT_TRADE_LIMIT_CRYPTO, Arrays.asList()),
             
@@ -430,7 +435,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 INTERAC_E_TRANSFER_ID,
                 US_POSTAL_MONEY_ORDER_ID,
                 PIX_ID,
-                WESTERN_UNION_ID);
+                WESTERN_UNION_ID,
+                BLIK_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -655,7 +661,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.CASH_APP_ID) ||
                 id.equals(PaymentMethod.PAYPAL_ID) ||
                 id.equals(PaymentMethod.VENMO_ID) ||
-                id.equals(PaymentMethod.PAYSAFE_ID);
+                id.equals(PaymentMethod.PAYSAFE_ID) ||
+                id.equals(PaymentMethod.BLIK_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {

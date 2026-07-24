@@ -888,7 +888,7 @@ message PaymentAccountPayload {
         VerseAccountPayload verse_account_payload = 39;
         CashAtAtmAccountPayload cash_at_atm_account_payload = 40;
         PayPalAccountPayload paypal_account_payload = 41;
-        PaysafeAccountPayload paysafe_account_payload = 42;
+        PaysafeAccountPayload paysafe_account_payload = 42;        
     }
 }
 
@@ -936,6 +936,7 @@ message CountryBasedPaymentAccountPayload {
         GcashAccountPayload gcash_account_payload = 22;
         MomoAccountPayload momo_account_payload = 23;
         SpeiAccountPayload spei_account_payload = 24;
+        BlikAccountPayload blik_account_payload = 25;
     }
 }
 
@@ -1276,6 +1277,10 @@ message SwiftAccountPayload {
 
 message PaysafeAccountPayload {
     string email = 1;
+}
+
+message BlikAccountPayload {
+    string extra_info = 1;
 }
 
 message PersistableEnvelope {
@@ -2012,6 +2017,7 @@ message PaymentAccountForm {
         SAME_BANK = 59;
         SPECIFIC_BANKS = 60;
         CAPITUAL = 61;
+        BLIK = 62;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

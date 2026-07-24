@@ -451,6 +451,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return getExtraDataMap().get(OfferPayload.CASHAPP_EXTRA_INFO);
         else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.CASH_AT_ATM_EXTRA_INFO))
             return getExtraDataMap().get(OfferPayload.CASH_AT_ATM_EXTRA_INFO);
+        else if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.BLIK_EXTRA_INFO))
+            return getExtraDataMap().get(OfferPayload.BLIK_EXTRA_INFO);
         else
             return "";
     }

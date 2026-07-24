@@ -99,6 +99,7 @@ import static haveno.core.payment.payload.PaymentMethod.VERSE_ID;
 import static haveno.core.payment.payload.PaymentMethod.WECHAT_PAY_ID;
 import static haveno.core.payment.payload.PaymentMethod.WESTERN_UNION_ID;
 import static haveno.core.payment.payload.PaymentMethod.hasChargebackRisk;
+import static haveno.core.payment.payload.PaymentMethod.BLIK_ID;
 
 @Slf4j
 public class PaymentAccountUtil {
@@ -288,6 +289,8 @@ public class PaymentAccountUtil {
                 return TransferwiseUsdAccount.SUPPORTED_CURRENCIES;
             case VERSE_ID:
                 return VerseAccount.SUPPORTED_CURRENCIES;
+            case BLIK_ID:
+                return BlikAccount.SUPPORTED_CURRENCIES;
             default:
                 return Collections.emptyList();
         }

@@ -26,6 +26,7 @@ import haveno.core.offer.Offer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.AssetAccountPayload;
+import haveno.core.payment.payload.BlikAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.core.payment.payload.FasterPaymentsAccountPayload;
@@ -763,7 +764,9 @@ public class BuyerStep2View extends TradeStepView {
                 message += Res.get("portfolio.pending.step2_buyer.pay", amount) +
                         refTextWarn + "\n\n" +
                         Res.get("portfolio.pending.step2_buyer.fees.swift");
-            } else {
+            } else if (paymentAccountPayload instanceof BlikAccountPayload)
+                message += Res.get("portfolio.pending.step2_buyer.pay.blik", amount);
+            else {
                 message += Res.get("portfolio.pending.step2_buyer.pay", amount) +
                         refTextWarn + "\n\n" +
                         fees;
