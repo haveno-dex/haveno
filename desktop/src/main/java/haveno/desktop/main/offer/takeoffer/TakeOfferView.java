@@ -60,6 +60,7 @@ import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
 import haveno.desktop.main.offer.SelectableView;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.FundWalletInfoWindow;
 import haveno.desktop.main.overlays.windows.GenericMessageWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
@@ -476,17 +477,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         balanceTextField.setTargetAmount(model.dataModel.getTotalToPay().get());
 
         if (!DevEnv.isDevMode() && model.dataModel.hasTotalToPay()) {
-            String tradeAmountText = model.isSeller() ? Res.get("takeOffer.takeOfferFundWalletInfo.tradeAmount", model.getTradeAmount()) : "";
-            String message = Res.get("takeOffer.takeOfferFundWalletInfo.msg",
-                    model.getTotalToPayInfo(),
-                    tradeAmountText,
-                    model.getSecurityDepositInfo(),
-                    model.getTradeFee()
-            );
-            String key = "takeOfferFundWalletInfo";
-            new Popup().headLine(Res.get("takeOffer.takeOfferFundWalletInfo.headline"))
-                    .instruction(message)
-                    .dontShowAgainId(key)
+            new FundWalletInfoWindow()
+                    .headLine(Res.get("takeOffer.takeOfferFundWalletInfo.headline"))
+                    .totalToPay(model.getTotalToPayInfo())
+                    .tradeAmount(model.isSeller() ? model.getTradeAmount() : null)
+                    .securityDeposit(model.getSecurityDepositInfo())
+                    .tradeFee(model.getTradeFee())
+                    .dontShowAgainId("takeOfferFundWalletInfo")
                     .show();
         }
 
