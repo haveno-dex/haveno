@@ -1307,6 +1307,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    private boolean isSignedStateValid(OpenOffer openOffer) {
+        try {
+            validateSignedState(openOffer);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private MoneroTxWallet getSplitOutputFundingTx(List<OpenOffer> openOffers, OpenOffer openOffer) {
         XmrAddressEntry addressEntry = xmrWalletService.getOrCreateAddressEntry(openOffer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
         return getSplitOutputFundingTx(openOffers, openOffer, openOffer.getOffer().getAmountNeeded(), addressEntry.getSubaddressIndex());
@@ -2137,11 +2146,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // We added CAPABILITIES with entry for Capability.MEDIATION in v1.1.6 and
             // Capability.REFUND_AGENT in v1.2.0 and want to rewrite a
             // persisted offer after the user has updated to 1.2.0 so their offer will be accepted by the network.
-
-            if (originalOfferPayload.getProtocolVersion() < Version.TRADE_PROTOCOL_VERSION ||
+            boolean needsRewrite = originalOfferPayload.getProtocolVersion() < Version.TRADE_PROTOCOL_VERSION ||
                     !OfferRestrictions.hasOfferMandatoryCapability(originalOffer, Capability.MEDIATION) ||
                     !OfferRestrictions.hasOfferMandatoryCapability(originalOffer, Capability.REFUND_AGENT) ||
-                    !originalOfferPayload.getOwnerNodeAddress().equals(p2PService.getAddress())) {
+                    !originalOfferPayload.getOwnerNodeAddress().equals(p2PService.getAddress());
+
+            // We also rewrite offers whose version is below the filter's minimum so they can be re-signed.
+            boolean versionTooLow = filterManager.getDisableTradeBelowVersion() != null &&
+                    Version.compare(originalOfferPayload.getVersionNr(), filterManager.getDisableTradeBelowVersion()) < 0;
+
+            if (needsRewrite || versionTooLow) {
 
                 // rebuilding forces the arbitrator to re-sign, which revalidates fees and security deposits against current rates; if they no longer conform the offer cannot be re-signed, so cancel it and let the maker recreate it
                 boolean hasBuyerAsTakerWithoutDeposit = originalOffer.hasBuyerAsTakerWithoutDeposit();
@@ -2157,6 +2171,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                 originalOfferPayload.getBuyerSecurityDepositPct() > Restrictions.getMaxSecurityDepositPct() ||
                                 originalOfferPayload.getBuyerSecurityDepositPct() != originalOfferPayload.getSellerSecurityDepositPct());
                 if (feesChanged || securityDepositChanged) {
+
+                    // keep validly signed offer grandfathered when only its version is too low
+                    if (!needsRewrite && isSignedStateValid(originalOpenOffer)) return;
+
                     log.warn("Canceling outdated offer {} because its fees or security deposits changed and it cannot be re-signed; the maker must recreate it", originalOffer.getId());
                     originalOffer.setErrorMessage("Offer was canceled because trade fees or security deposits changed and it could not be re-signed. Please recreate the offer.");
                     doCancelOffer(originalOpenOffer);
