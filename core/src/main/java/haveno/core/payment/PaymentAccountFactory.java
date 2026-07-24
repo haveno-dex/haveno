@@ -152,6 +152,8 @@ public class PaymentAccountFactory {
             // Cannot be deleted as it would break old trade history entries
             case PaymentMethod.OK_PAY_ID:
                 return new OKPayAccount();
+            case PaymentMethod.BLIK_ID:
+                return new BlikAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

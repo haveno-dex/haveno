@@ -46,8 +46,10 @@ import static haveno.core.offer.OfferPayload.PAYPAL_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.REFERRAL_ID;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
+import static haveno.core.offer.OfferPayload.BLIK_EXTRA_INFO;
 
 import haveno.core.payment.AustraliaPayidAccount;
+import haveno.core.payment.BlikAccount;
 import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.F2FAccount;
@@ -222,6 +224,10 @@ public class OfferUtil {
 
         if (paymentAccount instanceof CashAtAtmAccount) {
             extraDataMap.put(CASH_AT_ATM_EXTRA_INFO, ((CashAtAtmAccount) paymentAccount).getExtraInfo());
+        }
+
+        if (paymentAccount instanceof BlikAccount) {
+            extraDataMap.put(BLIK_EXTRA_INFO, ((BlikAccount) paymentAccount).getExtraInfo());
         }
 
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());

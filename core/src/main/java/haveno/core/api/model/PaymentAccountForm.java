@@ -119,7 +119,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         VERSE,
         SAME_BANK,
         SPECIFIC_BANKS,
-        CAPITUAL;
+        CAPITUAL,
+        BLIK;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());

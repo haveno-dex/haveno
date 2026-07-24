@@ -28,6 +28,7 @@ import haveno.core.payment.payload.AliPayAccountPayload;
 import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
 import haveno.core.payment.payload.AustraliaPayidAccountPayload;
 import haveno.core.payment.payload.BizumAccountPayload;
+import haveno.core.payment.payload.BlikAccountPayload;
 import haveno.core.payment.payload.CapitualAccountPayload;
 import haveno.core.payment.payload.CashAppAccountPayload;
 import haveno.core.payment.payload.CashAtAtmAccountPayload;
@@ -184,6 +185,8 @@ public class CoreProtoResolver implements ProtoResolver {
                                             "(PB.PaymentAccountPayload.CountryBasedPaymentAccountPayload.IfscBasedPaymentAccount). " +
                                             "messageCase=" + messageCaseIfsc);
                             }
+                        case BLIK_ACCOUNT_PAYLOAD:
+                            return BlikAccountPayload.fromProto(proto);
                         default:
                             throw new ProtobufferRuntimeException("Unknown proto message case" +
                                     "(PB.PaymentAccountPayload.CountryBasedPaymentAccountPayload)." +

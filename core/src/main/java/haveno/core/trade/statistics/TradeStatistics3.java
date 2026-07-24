@@ -215,7 +215,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         TRANSFERWISE_USD,
         ACH_TRANSFER,
         DOMESTIC_WIRE_TRANSFER,
-        PAYPAL
+        PAYPAL,
+        BLIK
     }
 
     @Getter
