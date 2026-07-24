@@ -31,7 +31,9 @@ import haveno.network.p2p.storage.payload.ProtectedStoragePayload;
 import java.math.BigInteger;
 import java.security.SignatureException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -49,6 +51,10 @@ public class AlertManager {
     private final User user;
     private final ObjectProperty<Alert> alertMessageProperty = new SimpleObjectProperty<>();
     private final boolean useDevPrivilegeKeys;
+
+    // Track verified alerts by creation time so the newest wins and removal falls back to the next newest.
+    private final Map<Alert, Long> addedAlerts = new HashMap<>();
+    private long alertMessageCreationTimeStamp = Long.MIN_VALUE;
 
     private ECKey alertSigningKey;
 
@@ -72,14 +78,7 @@ public class AlertManager {
             p2PService.addHashSetChangedListener(new HashMapChangedListener() {
                 @Override
                 public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                    protectedStorageEntries.forEach(protectedStorageEntry -> {
-                        final ProtectedStoragePayload protectedStoragePayload = protectedStorageEntry.getProtectedStoragePayload();
-                        if (protectedStoragePayload instanceof Alert) {
-                            Alert alert = (Alert) protectedStoragePayload;
-                            if (verifySignature(alert))
-                                alertMessageProperty.set(alert);
-                        }
-                    });
+                    protectedStorageEntries.forEach(AlertManager.this::onAlertAdded);
                 }
 
                 @Override
@@ -87,8 +86,7 @@ public class AlertManager {
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         final ProtectedStoragePayload protectedStoragePayload = protectedStorageEntry.getProtectedStoragePayload();
                         if (protectedStoragePayload instanceof Alert) {
-                            if (verifySignature((Alert) protectedStoragePayload))
-                                alertMessageProperty.set(null);
+                            onAlertRemoved((Alert) protectedStoragePayload);
                         }
                     });
                 }
@@ -122,6 +120,36 @@ public class AlertManager {
 
     public ReadOnlyObjectProperty<Alert> alertMessageProperty() {
         return alertMessageProperty;
+    }
+
+    private void onAlertAdded(ProtectedStorageEntry protectedStorageEntry) {
+        ProtectedStoragePayload protectedStoragePayload = protectedStorageEntry.getProtectedStoragePayload();
+        if (protectedStoragePayload instanceof Alert) {
+            Alert alert = (Alert) protectedStoragePayload;
+            if (!verifySignature(alert)) return;
+            long creationTimeStamp = protectedStorageEntry.getCreationTimeStamp();
+            addedAlerts.merge(alert, creationTimeStamp, Math::max);
+            if (creationTimeStamp > alertMessageCreationTimeStamp) setAlertMessage(alert, creationTimeStamp);
+        }
+    }
+
+    private void onAlertRemoved(Alert alert) {
+        if (!verifySignature(alert)) return;
+        addedAlerts.remove(alert);
+        if (alert.equals(alertMessageProperty.get())) setNewestAlertMessage();
+    }
+
+    private void setNewestAlertMessage() {
+        addedAlerts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .ifPresentOrElse(
+                        entry -> setAlertMessage(entry.getKey(), entry.getValue()),
+                        () -> setAlertMessage(null, Long.MIN_VALUE));
+    }
+
+    private void setAlertMessage(Alert alert, long creationTimeStamp) {
+        alertMessageProperty.set(alert);
+        alertMessageCreationTimeStamp = creationTimeStamp;
     }
 
     public boolean addAlertMessageIfKeyIsValid(Alert alert, String privKeyString) {
