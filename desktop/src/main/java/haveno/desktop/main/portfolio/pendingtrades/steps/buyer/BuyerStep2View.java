@@ -26,6 +26,7 @@ import haveno.core.offer.Offer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.AssetAccountPayload;
+import haveno.core.payment.payload.BlikAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.core.payment.payload.FasterPaymentsAccountPayload;
@@ -50,6 +51,7 @@ import haveno.desktop.components.paymentmethods.AmazonGiftCardForm;
 import haveno.desktop.components.paymentmethods.AssetsForm;
 import haveno.desktop.components.paymentmethods.AustraliaPayidForm;
 import haveno.desktop.components.paymentmethods.BizumForm;
+import haveno.desktop.components.paymentmethods.BlikForm;
 import haveno.desktop.components.paymentmethods.CapitualForm;
 import haveno.desktop.components.paymentmethods.CashAppForm;
 import haveno.desktop.components.paymentmethods.CashAtAtmForm;
@@ -462,6 +464,9 @@ public class BuyerStep2View extends TradeStepView {
             case PaymentMethod.PAYSAFE_ID:
                 paymentAccountGridRow = PaysafeForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
                 break;
+            case PaymentMethod.BLIK_ID:
+                paymentAccountGridRow = BlikForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
+                break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);
         }
@@ -763,6 +768,8 @@ public class BuyerStep2View extends TradeStepView {
                 message += Res.get("portfolio.pending.step2_buyer.pay", amount) +
                         refTextWarn + "\n\n" +
                         Res.get("portfolio.pending.step2_buyer.fees.swift");
+            } else if (paymentAccountPayload instanceof BlikAccountPayload) {
+                message += Res.get("portfolio.pending.step2_buyer.pay.blik", amount);
             } else {
                 message += Res.get("portfolio.pending.step2_buyer.pay", amount) +
                         refTextWarn + "\n\n" +
