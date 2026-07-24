@@ -2325,6 +2325,12 @@ textfield */
     -fx-translate-y: -2;
 }
 
+/* FundWalletInfoWindow */
+.fund-info-note {
+    -fx-font-size: 0.923em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
 .titled-group-bg, .titled-group-bg-active {
     -fx-body-color: -bs-color-gray-background;
     -fx-border-color: -bs-rd-separator;

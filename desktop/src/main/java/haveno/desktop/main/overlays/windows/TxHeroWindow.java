@@ -102,6 +102,10 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
     }
 
     protected static VBox hero(MaterialDesignIcon glyph, String badgeStyle, String titleText, BigInteger amount, String fiat) {
+        return hero(glyph, badgeStyle, titleText, HavenoUtils.formatXmr(amount, true), fiat);
+    }
+
+    protected static VBox hero(MaterialDesignIcon glyph, String badgeStyle, String titleText, String amountText, String fiat) {
         Label badge = new Label();
         badge.setGraphic(GlyphsDude.createIcon(glyph, "1.6em"));
         badge.getStyleClass().add(badgeStyle);
@@ -111,7 +115,7 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
 
         Label title = new AutoTooltipLabel(titleText);
         title.getStyleClass().add("confirm-send-title");
-        Label amountLabel = new AutoTooltipLabel(HavenoUtils.formatXmr(amount, true));
+        Label amountLabel = new AutoTooltipLabel(amountText);
         amountLabel.getStyleClass().add("confirm-send-amount");
 
         VBox hero = new VBox(badge, title, amountLabel);
