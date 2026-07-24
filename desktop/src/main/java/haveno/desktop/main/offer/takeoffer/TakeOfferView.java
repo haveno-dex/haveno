@@ -815,6 +815,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private void addPaymentGroup() {
         TitledGroupBg paymentAccountTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 1, Res.get("offerbook.takeOffer"));
+        paymentAccountTitledGroupBg.getStyleClass().add("offer-form-headline");
         GridPane.setColumnSpan(paymentAccountTitledGroupBg, 2);
 
         final Tuple4<ComboBox<PaymentAccount>, Label, TextField, HBox> paymentAccountTuple = addComboBoxTopLabelTextField(gridPane,
@@ -994,18 +995,17 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         fundingHBox.setVisible(false);
         fundingHBox.setManaged(false);
         fundingHBox.setSpacing(10);
+        fundingHBox.setAlignment(Pos.CENTER_LEFT);
         fundFromSavingsWalletButton = new AutoTooltipButton(Res.get("shared.fundFromSavingsWalletButton"));
         fundFromSavingsWalletButton.setDefaultButton(true);
         fundFromSavingsWalletButton.getStyleClass().add("action-button");
         fundFromSavingsWalletButton.setOnAction(e -> model.fundFromSavingsWallet());
         Label label = new AutoTooltipLabel(Res.get("shared.OR"));
-        label.setPadding(new Insets(5, 0, 0, 0));
         Button fundFromExternalWalletButton = new AutoTooltipButton(Res.get("shared.fundFromExternalWalletButton"));
         fundFromExternalWalletButton.setDefaultButton(false);
         fundFromExternalWalletButton.setOnAction(e -> openWallet());
         waitingForFundsBusyAnimation = new BusyAnimation(false);
         waitingForFundsLabel = new AutoTooltipLabel();
-        waitingForFundsLabel.setPadding(new Insets(5, 0, 0, 0));
         fundingHBox.getChildren().addAll(fundFromSavingsWalletButton,
                 label,
                 fundFromExternalWalletButton,
@@ -1018,6 +1018,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         takeOfferBox = new HBox();
         takeOfferBox.setSpacing(10);
+        takeOfferBox.setAlignment(Pos.CENTER_LEFT);
         GridPane.setRowIndex(takeOfferBox, gridRow);
         GridPane.setColumnSpan(takeOfferBox, 2);
         GridPane.setMargin(takeOfferBox, new Insets(5, 20, 0, 0));

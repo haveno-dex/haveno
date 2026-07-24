@@ -535,13 +535,24 @@ tree-table-view:focused {
 
 .offer-input {
     -fx-background-color: -bs-color-background-form-field;
-    -fx-border-color: -bs-background-gray;
+    -fx-border-color: -bs-color-border-form-field;
     -fx-pref-height: 43;
     -fx-pref-width: 310;
-    -fx-effect: innershadow(gaussian, -bs-text-color-transparent, 3, 0, 0, 0);
     -fx-background-radius: 8;
     -fx-border-radius: 8;
     -fx-alignment: center;
+}
+
+.offer-input:hover {
+    -fx-border-color: -bs-color-gray-4;
+}
+
+.offer-input:focused {
+    -fx-border-color: -bs-color-primary;
+}
+
+.offer-input:error {
+    -fx-border-color: -bs-rd-error-red;
 }
 
 .offer-input .text-field {
@@ -551,17 +562,21 @@ tree-table-view:focused {
     -fx-background-radius: 8 0 0 8;
     -fx-border-radius: 8 0 0 8;
     -fx-background-color: -bs-color-background-form-field;
+    /* pin insets so modena's :focused insets don't bleed the fill over the box border */
+    -fx-background-insets: 0;
     -fx-border-color: transparent;
 }
 
 .offer-input > .input-label {
-    -fx-font-size: 0.692em;
+    -fx-font-size: 0.769em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-color-gray-6;
     -fx-min-width: 45;
     -fx-padding: 8;
     -fx-alignment: center;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-background-color: derive(-bs-color-background-form-field, 15%);
+    -fx-background-color: -bs-color-gray-aaa;
 }
 
 .offer-input .icon {
@@ -588,7 +603,9 @@ tree-table-view:focused {
 }
 
 .offer-input-readonly > .input-label {
-    -fx-font-size: 0.692em;
+    -fx-font-size: 0.769em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-color-gray-6;
     -fx-min-width: 30;
     -fx-padding: 8;
     -fx-alignment: center;
@@ -2011,6 +2028,7 @@ textfield */
 
 #input-description-label {
     -fx-font-size: 0.846em;
+    -fx-text-fill: -bs-color-gray-6;
     -fx-alignment: center-left;
 }
 
@@ -2072,7 +2090,7 @@ textfield */
 }
 
 #trade-fee-textfield {
-    -fx-font-size: 0.9em;
+    -fx-font-size: 1.077em;
     -fx-alignment: center-right;
 }
 
@@ -2298,6 +2316,13 @@ textfield */
     -fx-font-family: "IBM Plex Sans Medium";
     -fx-text-fill: -bs-text-color;
     -fx-background-color: transparent;
+}
+
+/* page-level headline of the create/take offer forms */
+.offer-form-headline .titled-group-bg-label,
+.offer-form-headline .titled-group-bg-label-active {
+    -fx-font-size: 1.385em;
+    -fx-translate-y: -2;
 }
 
 .titled-group-bg, .titled-group-bg-active {
