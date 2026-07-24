@@ -26,6 +26,7 @@ import haveno.network.p2p.ExtendedDataSizePermission;
 import haveno.network.p2p.InitialDataRequest;
 import haveno.network.p2p.InitialDataResponse;
 import haveno.network.p2p.SupportedCapabilitiesMessage;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
@@ -34,6 +35,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -129,7 +131,9 @@ public final class GetDataResponse extends NetworkEnvelope implements SupportedC
         Set<ProtectedStorageEntry> dataSet = proto.getDataSetList().stream()
                 .map(entry -> (ProtectedStorageEntry) resolver.fromProto(entry)).collect(Collectors.toSet());
         Set<PersistableNetworkPayload> persistableNetworkPayloadSet = proto.getPersistableNetworkPayloadItemsList().stream()
-                .map(e -> (PersistableNetworkPayload) resolver.fromProto(e)).collect(Collectors.toSet());
+                .map(e -> getPersistableNetworkPayloadOrNull(e, resolver))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         return new GetDataResponse(dataSet,
                 persistableNetworkPayloadSet,
                 proto.getRequestNonce(),
@@ -137,6 +141,16 @@ public final class GetDataResponse extends NetworkEnvelope implements SupportedC
                 wasTruncated,
                 Capabilities.fromIntList(proto.getSupportedCapabilitiesList()),
                 messageVersion);
+    }
+
+    private static PersistableNetworkPayload getPersistableNetworkPayloadOrNull(protobuf.PersistableNetworkPayload proto,
+                                                                                NetworkProtoResolver resolver) {
+        try {
+            return (PersistableNetworkPayload) resolver.fromProto(proto);
+        } catch (InvalidPersistableNetworkPayloadException e) {
+            log.warn("Ignoring invalid PersistableNetworkPayload from GetDataResponse. {}", e.getMessage());
+            return null;
+        }
     }
 
     @Override
