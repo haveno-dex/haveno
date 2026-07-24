@@ -156,7 +156,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private static final long SYNC_EVERY_NUM_BLOCKS = Config.baseCurrencyNetwork().isTestnet() ? 40 : 360; // ~1/2 day
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT_MS = 600000; // 10 minutes
-    private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
+    private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS * 1000L;
     private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 5;
     public static final int NUM_BLOCKS_DEPOSITS_FINALIZED = 30; // ~1 hour before deposits are considered finalized
     public static final int NUM_BLOCKS_PAYOUT_FINALIZED = Config.baseCurrencyNetwork().isTestnet() ? 60 : 720; // ~1 day before payout is considered finalized, after which the multisig wallet is retained but no longer opened or synced
@@ -178,6 +178,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private boolean pollInProgress;
     private Subscription protocolErrorStateSubscription;
     private Subscription protocolErrorHeightSubscription;
+    @Getter
+    private volatile boolean superseded; // set when a new trade is created for the same id so this stale instance cannot act on it
     public static final String PROTOCOL_VERSION = "protocolVersion"; // key for extraDataMap in trade statistics
     public BooleanProperty wasWalletPolledProperty = new SimpleBooleanProperty(false);
     public BooleanProperty wasWalletSyncedAndPolledProperty = new SimpleBooleanProperty(false);
@@ -2086,12 +2088,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 }
             }
 
-            // shut down trade threads
+            // shut down trade threads, unless superseded since their executors are keyed by trade id and shared with the new trade
             isShutDown = true;
-            List<Runnable> shutDownThreads = new ArrayList<>();
-            shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
-            shutDownThreads.add(() -> ThreadUtils.shutDown(getTradeEventThreadId()));
-            ThreadUtils.awaitTasks(shutDownThreads);
+            if (!superseded) {
+                List<Runnable> shutDownThreads = new ArrayList<>();
+                shutDownThreads.add(() -> ThreadUtils.shutDown(getId()));
+                shutDownThreads.add(() -> ThreadUtils.shutDown(getTradeEventThreadId()));
+                ThreadUtils.awaitTasks(shutDownThreads);
+            }
             stopProtocolTimeout();
             isInitialized = false;
 
@@ -2149,6 +2153,19 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             return;
         }
 
+        // remove immediately on deposit request nack if deposit txs verified unpublished, since they are only relayed on ack
+        if (isDepositRequestFailed() && !(this instanceof ArbitratorTrade)) {
+            try {
+                if (!hasPublishedDepositTx()) {
+                    removeTradeOnError();
+                    return;
+                }
+                log.warn("Deposit tx published for {} {} despite deposit request nack, scheduling error handling", getClass().getSimpleName(), getShortId());
+            } catch (Exception e) {
+                log.warn("Could not verify deposit txs unpublished for {} {} on deposit request nack, scheduling error handling: {}", getClass().getSimpleName(), getShortId(), e.getMessage());
+            }
+        }
+
         // done if wallet already deleted
         if (!walletExists()) {
             removeTradeOnError();
@@ -2179,7 +2196,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         // listen for block confirmations to remove trade
         long startTime = System.currentTimeMillis();
         protocolErrorHeightSubscription = EasyBind.subscribe(walletHeight, lastWalletHeight -> {
-            if (isShutDown || isDepositsPublished()) return;
+            if (isShutDownStarted || isDepositsPublished()) return;
             if (lastWalletHeight.longValue() < processModel.getTradeProtocolErrorHeight() + DELETE_AFTER_NUM_BLOCKS) return;
             if (System.currentTimeMillis() - startTime < DELETE_AFTER_MS) return;
 
@@ -2187,12 +2204,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             ThreadUtils.execute(() -> {
                 try {
 
-                    // get trade's deposit txs from daemon
-                    MoneroTx makerDepositTx = getMaker().getDepositTxHash() == null ? null : xmrWalletService.getMonerod().getTx(getMaker().getDepositTxHash());
-                    MoneroTx takerDepositTx = getTaker().getDepositTxHash() == null ? null : xmrWalletService.getMonerod().getTx(getTaker().getDepositTxHash());
+                    // skip if shut down started or superseded while queued
+                    if (isShutDownStarted || superseded) return;
 
-                    // remove trade and wallet if neither deposit tx published
-                    if (makerDepositTx == null && takerDepositTx == null) {
+                    // remove trade and wallet if no deposit tx published
+                    if (!hasPublishedDepositTx()) {
                         log.warn("Deleting {} {} after protocol error", getClass().getSimpleName(), getId());
                         if (this instanceof ArbitratorTrade && (getMaker().getReserveTxHash() != null || getTaker().getReserveTxHash() != null)) {
                             processModel.getTradeManager().onMoveInvalidTradeToFailedTrades(this); // arbitrator retains trades with reserved funds for analysis and penalty
@@ -2226,6 +2242,39 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return processModel.getTradeProtocolErrorHeight() > 0;
     }
 
+    // marks this trade superseded by a new trade for the same id, stopping message processing and scheduled error handling
+    public void onSuperseded() {
+        superseded = true;
+        removeDecryptedDirectMessageListener();
+        if (protocolErrorStateSubscription != null) {
+            protocolErrorStateSubscription.unsubscribe();
+            protocolErrorStateSubscription = null;
+        }
+        if (protocolErrorHeightSubscription != null) {
+            protocolErrorHeightSubscription.unsubscribe();
+            protocolErrorHeightSubscription = null;
+        }
+    }
+
+    // completes scheduled protocol error cleanup early if the deposit txs are verified unpublished,
+    // so the wallet is deleted now and the trade is not re-initialized on restart
+    public void maybeCompleteProtocolErrorCleanup() {
+        if (!isProtocolErrorHandlingScheduled()) return;
+        if (hasPublishedDepositTx()) return;
+        deleteWallet();
+        if (walletExists()) return;
+        processModel.setTradeProtocolErrorHeight(0);
+        requestPersistence();
+    }
+
+    // checks the daemon directly since the trade state is not authoritative after errors
+    private boolean hasPublishedDepositTx() {
+        List<String> txHashes = new ArrayList<>();
+        if (getMaker().getDepositTxHash() != null) txHashes.add(getMaker().getDepositTxHash());
+        if (getTaker().getDepositTxHash() != null) txHashes.add(getTaker().getDepositTxHash());
+        return !txHashes.isEmpty() && !xmrWalletService.getMonerod().getTxs(txHashes, true).isEmpty();
+    }
+
     private void restoreDepositsPublishedTrade() {
 
         // close open offer
@@ -2244,8 +2293,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private void removeTradeOnError() {
         synchronized (removeTradeOnErrorLock) {
 
-            // skip if already shut down or removed
-            if (isShutDown || !processModel.getTradeManager().hasTrade(getId())) return;
+            // skip if shutting down, superseded, or this instance is no longer tracked
+            if (isShutDownStarted || superseded || !processModel.getTradeManager().hasTradeInstance(this)) return;
             log.warn("removeTradeOnError() for {} {}, state={}", getClass().getSimpleName(), getShortId(), getState());
 
             // force close and re-open wallet in case stuck
