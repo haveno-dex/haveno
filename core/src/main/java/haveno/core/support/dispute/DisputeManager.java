@@ -91,11 +91,15 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -113,6 +117,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     protected final DisputeListService<T> disputeListService;
     private final Config config;
     private final PriceFeedService priceFeedService;
+    private final Set<String> processedDisputeOpenedMessageUids = ConcurrentHashMap.newKeySet();
     protected String pendingOutgoingMessage;
 
     @Getter
@@ -277,6 +282,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
     @Override
     public void onAllServicesInitialized() {
+        mergeDuplicateDisputes(); // recover persisted duplicates before processing messages
         super.onAllServicesInitialized();
         disputeListService.onAllServicesInitialized();
 
@@ -335,6 +341,56 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     .filter(e -> e.getOpeningDate().toInstant().isBefore(safeDate))
                     .forEach(Dispute::maybeClearSensitiveData);
             requestPersistence();
+        }
+    }
+
+    // merge and remove disputes with the same id, caused by duplicate message processing
+    private void mergeDuplicateDisputes() {
+        synchronized (getDisputeList().getList()) {
+
+            // group disputes by id
+            Map<String, List<Dispute>> disputesById = new LinkedHashMap<>();
+            for (Dispute dispute : getDisputeList().getList()) disputesById.computeIfAbsent(dispute.getId(), id -> new ArrayList<>()).add(dispute);
+
+            // merge each group's chat messages into its most resolved dispute
+            List<Dispute> duplicates = new ArrayList<>();
+            for (List<Dispute> group : disputesById.values()) {
+                if (group.size() == 1) continue;
+                Dispute original = getMostResolvedDispute(group);
+                for (Dispute duplicate : group) {
+                    if (duplicate == original) continue;
+                    if (original.getDisputePayoutTxId() == null) original.setDisputePayoutTxId(duplicate.getDisputePayoutTxId());
+                    mergeChatMessages(duplicate, original);
+                    duplicates.add(duplicate);
+                }
+            }
+
+            // remove duplicates
+            for (Dispute duplicate : duplicates) {
+                log.warn("Removing duplicate dispute, tradeId={}, disputeId={}", duplicate.getTradeId(), duplicate.getId());
+                getDisputeList().remove(duplicate);
+            }
+            if (!duplicates.isEmpty()) requestPersistence();
+        }
+    }
+
+    // prefer the dispute holding the agent's resolution so it is not lost when duplicates are removed
+    private static Dispute getMostResolvedDispute(List<Dispute> disputes) {
+        return disputes.stream().filter(dispute -> dispute.getDisputeResultProperty().get() != null).findFirst()
+                .or(() -> disputes.stream().filter(Dispute::isClosed).findFirst())
+                .orElse(disputes.get(0));
+    }
+
+    private static void mergeChatMessages(Dispute from, Dispute to) {
+        List<ChatMessage> messages;
+        synchronized (from.getChatMessages()) {
+            messages = new ArrayList<>(from.getChatMessages());
+        }
+        synchronized (to.getChatMessages()) {
+            for (ChatMessage message : messages) {
+                if (to.getChatMessages().stream().noneMatch(m -> m.getUid().equals(message.getUid()))) to.addAndPersistChatMessage(message);
+            }
+            to.getChatMessages().sort(Comparator.comparingLong(ChatMessage::getDate)); // keep chronological so the last message stays the latest
         }
     }
 
@@ -579,7 +635,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     // arbitrator receives dispute opened message from opener, opener's peer receives from arbitrator
     protected void handle(DecryptedMessageWithPubKey decryptedMessageWithPubKey, DisputeOpenedMessage message) {
         Dispute msgDispute = message.getDispute();
-        log.info("Processing DisputeOpenedMessage with trade {}, dispute {}", message.getClass().getSimpleName(), msgDispute.getTradeId(), msgDispute.getId());
+        log.info("Processing DisputeOpenedMessage for trade {}, dispute {}", msgDispute.getTradeId(), msgDispute.getId());
 
         // get trade
         Trade trade = tradeManager.getTrade(msgDispute.getTradeId());
@@ -587,18 +643,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
             log.warn("Ignoring DisputeOpenedMessage for trade {} because it does not exist", msgDispute.getTradeId());
             return;
         }
-
-        // find existing dispute
-        Optional<Dispute> storedDisputeOptional = findDispute(msgDispute);
-
-        // determine if re-opening dispute
-        boolean reOpen = storedDisputeOptional.isPresent();
-
-        // use existing dispute or create new
-        Dispute dispute = reOpen ? storedDisputeOptional.get() : msgDispute;
-
-        // get contract
-        Contract contract = dispute.getContract();
 
         // get verified sender
         TradePeer sender = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
@@ -619,6 +663,20 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         log.warn("disputes is null");
                         return;
                     }
+
+                    // skip and re-ack if already processed, since the message can be re-delivered
+                    if (processedDisputeOpenedMessageUids.contains(message.getUid())) {
+                        log.info("Skipping DisputeOpenedMessage which was already processed, tradeId={}, uid={}", trade.getId(), message.getUid());
+                        ackDisputeOpenedMessage(message, sender, null);
+                        return;
+                    }
+
+                    // find existing dispute at processing time, since earlier messages can still be queued
+                    Optional<Dispute> storedDisputeOptional = findDispute(msgDispute);
+                    boolean reOpen = storedDisputeOptional.isPresent();
+                    Dispute dispute = reOpen ? storedDisputeOptional.get() : msgDispute;
+                    Contract contract = dispute.getContract();
+
                     dispute.setSupportType(message.getSupportType());
                     dispute.setState(Dispute.State.NEW);
 
@@ -680,60 +738,58 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
 
                     // add or re-open dispute
                     synchronized (disputeList) {
-                        if (!disputeList.contains(msgDispute)) {
-                            if (!storedDisputeOptional.isPresent() || reOpen) {
+                        if (disputeList.contains(msgDispute)) throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
 
-                                // update trade state
-                                if (reOpen) {
-                                    trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
-                                } else {
-                                    UserThread.execute(() -> {
-                                        synchronized (disputeList) {
-                                            disputeList.add(dispute);
-                                        }
-                                    });
-                                    trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
-                                }
-
-                                // reset buyer and seller unsigned payout tx hex
-                                trade.getBuyer().setUnsignedPayoutTxHex(null);
-                                trade.getSeller().setUnsignedPayoutTxHex(null);
-
-                                // send dispute opened message to other peer if arbitrator
-                                if (trade.isArbitrator()) {
-                                    TradePeer senderPeer = sender == trade.getMaker() ? trade.getTaker() : trade.getMaker();
-                                    if (senderPeer != trade.getMaker() && senderPeer != trade.getTaker()) throw new RuntimeException("Sender peer is not maker or taker, address=" + senderPeer.getNodeAddress());
-                                    sendDisputeOpenedMessageToPeer(dispute, contract, senderPeer.getPubKeyRing(), opener.getUpdatedMultisigHex());
-                                }
-                                tradeManager.requestPersistence();
-                                errorMessage = null;
-                            } else {
-                                // valid case if both have opened a dispute and agent was not online
-                                log.debug("We got a dispute already open for that trade and trading peer. TradeId = {}", dispute.getTradeId());
-                            }
-
-                            // add chat message with mediation info if applicable
-                            addMediationResultMessage(dispute);
+                        // update trade state
+                        if (reOpen) {
+                            trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                         } else {
-                            throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
+                            UserThread.execute(() -> {
+                                synchronized (disputeList) {
+                                    disputeList.add(dispute);
+                                }
+                            });
+                            trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                         }
+
+                        // reset buyer and seller unsigned payout tx hex
+                        trade.getBuyer().setUnsignedPayoutTxHex(null);
+                        trade.getSeller().setUnsignedPayoutTxHex(null);
+
+                        // send dispute opened message to other peer if arbitrator
+                        if (trade.isArbitrator()) {
+                            TradePeer senderPeer = sender == trade.getMaker() ? trade.getTaker() : trade.getMaker();
+                            if (senderPeer != trade.getMaker() && senderPeer != trade.getTaker()) throw new RuntimeException("Sender peer is not maker or taker, address=" + senderPeer.getNodeAddress());
+                            sendDisputeOpenedMessageToPeer(dispute, contract, senderPeer.getPubKeyRing(), opener.getUpdatedMultisigHex());
+                        }
+                        tradeManager.requestPersistence();
+
+                        // add chat message with mediation info if applicable
+                        addMediationResultMessage(dispute);
                     }
                 } catch (Exception e) {
                     log.error(ExceptionUtils.getStackTrace(e));
-                    errorMessage = e.getMessage();
+                    errorMessage = e.getMessage() == null ? e.toString() : e.getMessage(); // never null so failure is not mistaken for success
                     if (trade != null && !trade.isPayoutPublished()) trade.setErrorMessage(errorMessage);
                 }
 
-                // use chat message instead of open dispute message for the ack
-                ObservableList<ChatMessage> messages = message.getDispute().getChatMessages();
-                if (!messages.isEmpty()) {
-                    ChatMessage msg = messages.get(messages.size() - 1); // send ack to sender of last chat message
-                    sendAckMessage(msg, sender.getPubKeyRing(), errorMessage == null, errorMessage);
-                }
+                // record processed message on success
+                if (errorMessage == null) processedDisputeOpenedMessageUids.add(message.getUid());
 
+                ackDisputeOpenedMessage(message, sender, errorMessage);
                 requestPersistence();
             }
         }, trade.getId());
+    }
+
+    private void ackDisputeOpenedMessage(DisputeOpenedMessage message, TradePeer sender, @Nullable String errorMessage) {
+        // ack the dispute's last chat message, which the sender awaits, but address the ack to the
+        // message sender, since the last chat message can be authored by us (e.g. when re-opening)
+        ObservableList<ChatMessage> messages = message.getDispute().getChatMessages();
+        if (!messages.isEmpty()) {
+            ChatMessage msg = messages.get(messages.size() - 1);
+            sendAckMessage(message.getSenderNodeAddress(), msg, sender.getPubKeyRing(), errorMessage == null, errorMessage);
+        }
     }
 
     // arbitrator sends dispute opened message to opener's peer

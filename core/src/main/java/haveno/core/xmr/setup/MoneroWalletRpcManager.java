@@ -72,7 +72,13 @@ public class MoneroWalletRpcManager {
                     if (registeredPorts.containsKey(port)) throw new RuntimeException("Port " + port + " is already registered");
                     registeredPorts.put(port, null);
                 }
-                MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmd); // starts monero-wallet-rpc process
+                MoneroWalletRpc walletRpc;
+                try {
+                    walletRpc = new MoneroWalletRpc(cmd); // starts monero-wallet-rpc process
+                } catch (Exception e) {
+                    removePort(port); // unregister port so retries are not blocked
+                    throw e;
+                }
                 synchronized (registeredPorts) {
                     registeredPorts.put(port, walletRpc);
                 }
@@ -109,6 +115,7 @@ public class MoneroWalletRpcManager {
                         }
                         return walletRpc;
                     } catch (Exception e) {
+                        if (port != -1) removePort(port); // unregister port so retries are not blocked
                         log.warn("Unable to start monero-wallet-rpc instance on attempt {}/{} with port {}: {}", numAttempts, NUM_ALLOWED_ATTEMPTS, port, e.getMessage());
                         if (numAttempts >= NUM_ALLOWED_ATTEMPTS) throw e;
                     }

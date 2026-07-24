@@ -40,6 +40,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
+import haveno.core.xmr.exceptions.WalletUnavailableException;
 import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.model.XmrAddressEntryList;
@@ -1482,7 +1483,7 @@ public class XmrWalletService extends XmrWalletBase {
             String errorMsg = "Could not create wallet '" + config.getPath() + "': " + e.getMessage();
             log.warn(errorMsg + "\n", e);
             if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
-            throw new IllegalStateException(errorMsg);
+            throw new WalletUnavailableException(errorMsg, e);
         }
     }
 
@@ -1573,7 +1574,7 @@ public class XmrWalletService extends XmrWalletBase {
             String errorMsg = "Could not open full wallet '" + config.getPath() + "': " + e.getMessage();
             log.warn(errorMsg + "\n", e);
             if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
-            throw new IllegalStateException(errorMsg);
+            throw new WalletUnavailableException(errorMsg, e);
         }
     }
 
@@ -1613,7 +1614,7 @@ public class XmrWalletService extends XmrWalletBase {
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
             if (!isShutDownStarted) log.warn("Could not create RPC wallet '" + config.getPath() + "': " + e.getMessage() + "\n", e);
-            throw new IllegalStateException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage(), e);
+            throw new WalletUnavailableException("Could not create wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage(), e);
         }
     }
 
@@ -1714,7 +1715,7 @@ public class XmrWalletService extends XmrWalletBase {
         } catch (Exception e) {
             if (walletRpc != null) forceCloseWallet(walletRpc, config.getPath());
             if (!isShutDownStarted) log.warn("Could not open RPC wallet '{}': {}\n", config.getPath(), e.getMessage(), e);
-            throw new IllegalStateException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage(), e);
+            throw new WalletUnavailableException("Could not open wallet '" + config.getPath() + "'. Please close Haveno, stop all monero-wallet-rpc processes in your task manager, and restart Haveno.\n\nError message: " + e.getMessage(), e);
         }
     }
 
