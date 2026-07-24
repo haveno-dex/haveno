@@ -40,10 +40,11 @@ import lombok.extern.slf4j.Slf4j;
  * An append-only, encrypted, crash-safe record log.
  *
  * <p>Each record is framed as {@code [4-byte big-endian length][ciphertext]}, with
- * {@code ciphertext = Encryption.encryptPayloadWithHmac(record)}. The length prefix lives outside
- * the ciphertext so frames can be located and a torn tail truncated without decrypting. Appends
- * fsync, so a crash or failed write (e.g. disk full) can only leave a partial trailing frame; the
- * log tracks its known-good length and truncates such a tear away before the next append.
+ * {@code ciphertext = Encryption.encryptV2(record)} (legacy AES-ECB+HMAC frames are still read and
+ * the log is rewritten in the current format after replay). The length prefix lives outside the
+ * ciphertext so frames can be located and a torn tail truncated without decrypting. Appends fsync,
+ * so a crash or failed write (e.g. disk full) can only leave a partial trailing frame; the log
+ * tracks its known-good length and truncates such a tear away before the next append.
  *
  * <p>Replay ({@link #readAllValidRecords()}) self-repairs: a torn tail is truncated back to the
  * last good frame, and mid-log corruption (bad length prefix or hmac) rebuilds the log from the
@@ -100,7 +101,7 @@ public class EncryptedAppendLog {
     public void appendAll(List<byte[]> records) throws CryptoException {
         if (records.isEmpty()) return;
         List<byte[]> ciphertexts = new ArrayList<>(records.size());
-        for (byte[] record : records) ciphertexts.add(Encryption.encryptPayloadWithHmac(record, secretKey));
+        for (byte[] record : records) ciphertexts.add(Encryption.encryptV2(record, secretKey));
         synchronized (lock) {
             if (!dir.exists() && !dir.mkdir()) log.warn("make dir failed {}", dir);
             repairTailBeforeAppend();
@@ -185,6 +186,7 @@ public class EncryptedAppendLog {
             long goodLength = 0;
             boolean tornTail = false;
             boolean corrupt = false;
+            boolean hasLegacyFrames = false;
 
             try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(logFile)))) {
                 while (goodLength < fileLength) {
@@ -208,7 +210,8 @@ public class EncryptedAppendLog {
                     in.readFully(ciphertext);
                     byte[] record;
                     try {
-                        record = Encryption.decryptPayloadWithHmac(ciphertext, secretKey);
+                        if (Encryption.blobVersion(ciphertext) < Encryption.CURRENT_BLOB_VERSION) hasLegacyFrames = true;
+                        record = Encryption.decryptPayloadWithHmacAuto(ciphertext, secretKey);
                     } catch (CryptoException e) {
                         // A fully-present frame that fails its HMAC is not a torn write -> real corruption.
                         corrupt = true;
@@ -247,6 +250,18 @@ public class EncryptedAppendLog {
             } catch (IOException e) {
                 throw new RuntimeException("Could not repair " + fileName, e);
             }
+            // one-time migration: rewrite legacy frames in the current format. Best effort - the
+            // replayed records must never be lost to a failed rewrite (the log on disk is intact).
+            if (hasLegacyFrames) {
+                try {
+                    log.info("Rewriting {} to upgrade legacy encrypted frames.", fileName);
+                    rewrite(records);
+                } catch (OutOfMemoryError e) {
+                    throw e;
+                } catch (Throwable t) {
+                    log.error("Could not rewrite {} to upgrade legacy frames; keeping the existing log.", fileName, t);
+                }
+            }
             return records;
         }
     }
@@ -267,7 +282,7 @@ public class EncryptedAppendLog {
                 try (FileOutputStream fos = new FileOutputStream(tempFile);
                      DataOutputStream out = new DataOutputStream(new BufferedOutputStream(fos))) {
                     for (byte[] record : records) {
-                        byte[] ciphertext = Encryption.encryptPayloadWithHmac(record, secretKey);
+                        byte[] ciphertext = Encryption.encryptV2(record, secretKey);
                         writeFrame(out, ciphertext);
                         written += 4L + ciphertext.length;
                     }

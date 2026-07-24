@@ -132,6 +132,12 @@ public class Version {
     // Version = 1.2.0 -> TRADE_PROTOCOL_VERSION = 3
     // Do not change trade fees and bump the version in the same release; separate them (bump first so offers re-sign, change fees later so they grandfather) to avoid cancelling all offers.
     public static final int TRADE_PROTOCOL_VERSION = 3;
+
+    // Encryption format version for sent network payloads (message seals, payment account
+    // payloads): 1 = legacy AES-ECB, 2 = AES-CTR + HMAC. Old nodes cannot read newer formats,
+    // so bump only once the network has updated (filter-enforced minimum version).
+    public static final int NETWORK_ENCRYPTION_VERSION = 1;
+
     private static String p2pMessageVersion;
 
     public static String getP2PMessageVersion() {
