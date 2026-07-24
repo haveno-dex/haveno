@@ -288,11 +288,6 @@
     -fx-text-fill: -bs-color-gray-11;
 }
 
-.offer-input {
-    -fx-border-color: -bs-color-gray-2;
-    -fx-border-width: 0 0 10 0;
-}
-
 #address-text-field.jfx-text-field:readonly {
     -fx-background-color: derive(-bs-background-color, 15%);
 }
@@ -449,11 +444,6 @@
     -fx-translate-x: -0.333333em;
     -fx-background-color: transparent;
     -jfx-disable-animation: true;
-}
-
-.offer-input {
-    -fx-border-width: 0;
-    -fx-border-color: -bs-background-color;
 }
 
 .jfx-toggle-button,
