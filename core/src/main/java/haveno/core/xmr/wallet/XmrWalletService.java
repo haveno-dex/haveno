@@ -1605,8 +1605,8 @@ public class XmrWalletService extends XmrWalletBase {
             if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet '" + config.getPath() + "' because shutdown is started");
             log.info("Creating RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
             long time = System.currentTimeMillis();
-            config.setServer(connection);
             walletRpc.createWallet(config);
+            setDaemonConnection(walletRpc, connection);
             walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
             log.info("Done creating RPC wallet " + config.getPath() + " in " + (System.currentTimeMillis() - time) + " ms");
             return walletRpc;
@@ -1639,7 +1639,6 @@ public class XmrWalletService extends XmrWalletBase {
             // try opening wallet
             if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' because shutdown is started");
             log.debug("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
-            config.setServer(connection);
             try {
                 walletRpc.openWallet(config);
             } catch (Exception e) {
@@ -1708,7 +1707,8 @@ public class XmrWalletService extends XmrWalletBase {
                     throw e; // throw original exception
                 }
             }
-            if (walletRpc.getDaemonConnection() != null) walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
+            setDaemonConnection(walletRpc, connection);
+            walletRpc.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
             log.debug("Done opening RPC wallet " + config.getPath());
             return walletRpc;
         } catch (Exception e) {
@@ -1790,7 +1790,7 @@ public class XmrWalletService extends XmrWalletBase {
                 initMainWallet();
                 return; // wallet re-initializes off thread
             } else {
-                wallet.setDaemonConnection(connection);
+                setDaemonConnection(wallet, connection);
             }
 
             // update poll period

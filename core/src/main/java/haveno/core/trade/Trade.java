@@ -3138,7 +3138,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 log.info("Restarting trade wallet {} because proxy URI has changed, old={}, new={}", getId(), oldProxyUri, newProxyUri); // TODO: remove this when wallet server is not started with proxy uri
                 restartWallet();
             } else {
-                wallet.setDaemonConnection(connection);
+                setDaemonConnection(wallet, connection);
             }
 
             // sync and reprocess messages on new thread

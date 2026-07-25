@@ -25,6 +25,7 @@ import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
 import monero.wallet.MoneroWallet;
 import monero.wallet.MoneroWalletFull;
+import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroSyncResult;
 import monero.wallet.model.MoneroWalletListener;
 
@@ -306,6 +307,12 @@ public abstract class XmrWalletBase {
 
     public long getInitialSyncTimeoutMs() {
         return getRefreshPeriodMs() + 5000; // add padding to guarantee a sync cycle with monero-wallet-rpc (200 ms refresh evaluation period + sync time)
+    }
+
+    // marks the daemon trusted if applicable, which monero-wallet-rpc requires for commands like rescan spent
+    protected void setDaemonConnection(MoneroWallet wallet, MoneroRpcConnection connection) {
+        if (wallet instanceof MoneroWalletRpc) ((MoneroWalletRpc) wallet).setDaemonConnection(connection, xmrConnectionService.isTrustedDaemon(), null);
+        else wallet.setDaemonConnection(connection);
     }
 
     // --------------------------------- ABSTRACT -----------------------------
