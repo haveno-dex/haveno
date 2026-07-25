@@ -310,9 +310,9 @@ public abstract class XmrWalletBase {
     }
 
     // marks the daemon trusted if applicable, which monero-wallet-rpc requires for commands like rescan spent
-    protected void setDaemonConnection(MoneroWallet wallet, MoneroRpcConnection connection) {
-        if (wallet instanceof MoneroWalletRpc) ((MoneroWalletRpc) wallet).setDaemonConnection(connection, xmrConnectionService.isTrustedDaemon(), null);
-        else wallet.setDaemonConnection(connection);
+    protected void setDaemonConnection(MoneroWallet wallet, MoneroRpcConnection connection, boolean trustDaemon) {
+        if (wallet instanceof MoneroWalletRpc) ((MoneroWalletRpc) wallet).setDaemonConnection(connection, trustDaemon, null);
+        else wallet.setDaemonConnection(connection); // native wallets infer trust from a local address
     }
 
     // --------------------------------- ABSTRACT -----------------------------
