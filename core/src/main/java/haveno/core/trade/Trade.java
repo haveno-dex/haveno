@@ -1227,7 +1227,6 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     
                         // check for balance
                         if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
-                            log.warn("Rescanning spent outputs for {} {}", getClass().getSimpleName(), getId());
                             rescanSpent(true);
                             if (wallet.getBalance().compareTo(BigInteger.ZERO) > 0) {
                                 if (isBuyer()) {
@@ -3659,8 +3658,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             sync(); // TODO: must sync wallet after import, syncWithProgress() should still refresh even if not behind?
         }
 
-        // rescan spent if daemon is trusted
-        if (xmrConnectionService.isTrustedDaemon()) rescanSpent(logInfoLevel);
+        // rescan spent outputs to update spent status of imported outputs
+        rescanSpent(logInfoLevel);
     }
 
     private void importMultisigHexIfNeeded() {
@@ -4097,6 +4096,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     private void rescanSpent(boolean logInfoLevel) {
+        if (!xmrConnectionService.isTrustedDaemon()) return; // monero-wallet-rpc restricts rescanning spent outputs to trusted daemons
         synchronized (walletLock) {
             if (getWallet() == null) throw new IllegalStateException("Cannot rescan spent outputs because trade wallet doesn't exist for " + getClass().getSimpleName() + ", " + getId());
             if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot rescan spent outputs because trade wallet is not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
