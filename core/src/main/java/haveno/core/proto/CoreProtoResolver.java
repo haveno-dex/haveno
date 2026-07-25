@@ -86,6 +86,7 @@ import haveno.core.payment.payload.UpholdAccountPayload;
 import haveno.core.payment.payload.UpiAccountPayload;
 import haveno.core.payment.payload.VenmoAccountPayload;
 import haveno.core.payment.payload.VerseAccountPayload;
+import haveno.core.payment.payload.VippsMobilePayAccountPayload;
 import haveno.core.payment.payload.WeChatPayAccountPayload;
 import haveno.core.payment.payload.WesternUnionAccountPayload;
 import haveno.core.trade.statistics.TradeStatistics3;
@@ -187,6 +188,8 @@ public class CoreProtoResolver implements ProtoResolver {
                             }
                         case BLIK_ACCOUNT_PAYLOAD:
                             return BlikAccountPayload.fromProto(proto);
+                        case VIPPS_MOBILE_PAY_ACCOUNT_PAYLOAD:
+                            return VippsMobilePayAccountPayload.fromProto(proto);
                         default:
                             throw new ProtobufferRuntimeException("Unknown proto message case" +
                                     "(PB.PaymentAccountPayload.CountryBasedPaymentAccountPayload)." +

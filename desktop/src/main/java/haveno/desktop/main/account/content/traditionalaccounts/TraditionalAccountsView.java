@@ -135,6 +135,7 @@ import haveno.desktop.components.paymentmethods.UpholdForm;
 import haveno.desktop.components.paymentmethods.UpiForm;
 import haveno.desktop.components.paymentmethods.VenmoForm;
 import haveno.desktop.components.paymentmethods.VerseForm;
+import haveno.desktop.components.paymentmethods.VippsMobilePayForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
 import haveno.desktop.components.paymentmethods.ZelleForm;
@@ -708,6 +709,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new PaysafeForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.BLIK_ID:
                 return new BlikForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.VIPPS_MOBILEPAY_ID:
+                return new VippsMobilePayForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

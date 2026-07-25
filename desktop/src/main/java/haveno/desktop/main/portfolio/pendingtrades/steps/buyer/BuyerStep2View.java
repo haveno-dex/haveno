@@ -105,6 +105,7 @@ import haveno.desktop.components.paymentmethods.UpholdForm;
 import haveno.desktop.components.paymentmethods.UpiForm;
 import haveno.desktop.components.paymentmethods.VenmoForm;
 import haveno.desktop.components.paymentmethods.VerseForm;
+import haveno.desktop.components.paymentmethods.VippsMobilePayForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -466,6 +467,9 @@ public class BuyerStep2View extends TradeStepView {
                 break;
             case PaymentMethod.BLIK_ID:
                 paymentAccountGridRow = BlikForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.VIPPS_MOBILEPAY_ID:
+                paymentAccountGridRow = VippsMobilePayForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
                 break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);

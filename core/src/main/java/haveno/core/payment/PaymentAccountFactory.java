@@ -154,6 +154,8 @@ public class PaymentAccountFactory {
                 return new OKPayAccount();
             case PaymentMethod.BLIK_ID:
                 return new BlikAccount();
+            case PaymentMethod.VIPPS_MOBILEPAY_ID:
+                return new VippsMobilePayAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }
