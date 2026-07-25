@@ -156,6 +156,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private static final long SYNC_EVERY_NUM_BLOCKS = Config.baseCurrencyNetwork().isTestnet() ? 40 : 360; // ~1/2 day
     private static final long DELETE_AFTER_NUM_BLOCKS = 2; // if deposit requested but not published
     private static final long EXTENDED_RPC_TIMEOUT_MS = 600000; // 10 minutes
+    private static final boolean TRUST_DAEMON = true; // rescanning spent outputs requires a trusted daemon and only discloses the trade's deposit key images
     private static final long DELETE_AFTER_MS = TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS;
     private static final int NUM_CONFIRMATIONS_FOR_SCHEDULED_IMPORT = 5;
     public static final int NUM_BLOCKS_DEPOSITS_FINALIZED = 30; // ~1 hour before deposits are considered finalized
@@ -959,7 +960,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         synchronized (walletLock) {
             if (walletExists()) throw new RuntimeException("Cannot create trade wallet because it already exists");
             long time = System.currentTimeMillis();
-            wallet = xmrWalletService.createWallet(getWalletName(), isProxyApplied());
+            wallet = xmrWalletService.createWallet(getWalletName(), isProxyApplied(), TRUST_DAEMON);
             log.info("{} {} created multisig wallet in {} ms", getClass().getSimpleName(), getId(), System.currentTimeMillis() - time);
             return wallet;
         }
@@ -983,7 +984,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             else log.debug(startOpenLogMsg);
             
             // open wallet
-            wallet = xmrWalletService.openWallet(getWalletName(), isProxyApplied());
+            wallet = xmrWalletService.openWallet(getWalletName(), isProxyApplied(), TRUST_DAEMON);
 
             // backup wallet on successful open
             maybeBackupWallet();
@@ -1010,7 +1011,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 doBackupWallet();
                 if (isShutDownStarted) throw new IllegalStateException("Cannot reopen wallet for " + getClass().getSimpleName() + " " + getId() + " after backup because shut down is started");
                 if (logInfoLevel) log.info("Reopening wallet for {} {} after backup on Windows", getClass().getSimpleName(), getShortId());
-                wallet = xmrWalletService.openWallet(getWalletName(), isProxyApplied());
+                wallet = xmrWalletService.openWallet(getWalletName(), isProxyApplied(), TRUST_DAEMON);
             } else {
                 doBackupWallet();
             }
@@ -3137,7 +3138,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 log.info("Restarting trade wallet {} because proxy URI has changed, old={}, new={}", getId(), oldProxyUri, newProxyUri); // TODO: remove this when wallet server is not started with proxy uri
                 restartWallet();
             } else {
-                setDaemonConnection(wallet, connection);
+                setDaemonConnection(wallet, connection, TRUST_DAEMON);
             }
 
             // sync and reprocess messages on new thread
@@ -4096,7 +4097,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     private void rescanSpent(boolean logInfoLevel) {
-        if (!xmrConnectionService.isTrustedDaemon()) return; // monero-wallet-rpc restricts rescanning spent outputs to trusted daemons
+        if (!(wallet instanceof MoneroWalletRpc) && !xmrConnectionService.isTrustedDaemon()) return; // native wallets can only trust a local daemon
         synchronized (walletLock) {
             if (getWallet() == null) throw new IllegalStateException("Cannot rescan spent outputs because trade wallet doesn't exist for " + getClass().getSimpleName() + ", " + getId());
             if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot rescan spent outputs because trade wallet is not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
