@@ -3244,6 +3244,10 @@ textfield */
     -fx-background-color: transparent !important;
 }
 
+.flat-text-area-with-border {
+    -fx-padding: 10 14 10 14;
+}
+
 .grid-pane .text-area {
     -fx-max-height: 150 !important;
 }
