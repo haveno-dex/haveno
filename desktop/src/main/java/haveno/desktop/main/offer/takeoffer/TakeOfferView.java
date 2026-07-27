@@ -745,7 +745,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private void createListeners() {
         amountFocusedListener = (o, oldValue, newValue) -> {
-            if (GUIUtil.focusLostToOverlay(amountTextField, oldValue, newValue)) return;
+            if (GUIUtil.skipFocusOutValidation(amountTextField, cancelButton1, oldValue, newValue)) return;
             model.onFocusOutAmountTextField(oldValue, newValue, amountTextField.getText());
             amountTextField.setText(model.amount.get());
         };
@@ -760,7 +760,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             }
         };
         volumeFocusedListener = (o, oldValue, newValue) -> {
-            if (GUIUtil.focusLostToOverlay(volumeTextField, oldValue, newValue)) return;
+            if (GUIUtil.skipFocusOutValidation(volumeTextField, cancelButton1, oldValue, newValue)) return;
             model.onFocusOutVolumeTextField(oldValue, newValue);
             volumeTextField.setText(model.volume.get());
         };
