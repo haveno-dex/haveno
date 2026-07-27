@@ -831,10 +831,13 @@ public class GUIUtil {
         return MoneroUtils.getPaymentUri(txConfig);
     }
 
-    // A popup stealing window focus fires focus-out on the edited field; skip validation then, since the user has not left the field.
-    public static boolean focusLostToOverlay(Node field, boolean oldValue, boolean newValue) {
-        return oldValue && !newValue && field.getScene() != null
-                && field.getScene().getWindow() != null && !field.getScene().getWindow().isFocused();
+    // A popup stealing window focus or a click on cancel fires focus-out on the edited field;
+    // skip validation then, since the user has not left the field or the input is discarded.
+    public static boolean skipFocusOutValidation(Node field, Node cancelButton, boolean oldValue, boolean newValue) {
+        if (!oldValue || newValue || field.getScene() == null) return false;
+        Window window = field.getScene().getWindow();
+        return (window != null && !window.isFocused())
+                || (cancelButton != null && field.getScene().getFocusOwner() == cancelButton);
     }
 
     public static boolean isBootstrappedOrShowPopup(P2PService p2PService) {
