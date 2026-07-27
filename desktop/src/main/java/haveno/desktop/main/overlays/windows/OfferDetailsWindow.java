@@ -65,11 +65,11 @@ import haveno.desktop.util.Layout;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
+import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
-import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -415,15 +415,14 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             JFXButton copyButton = new JFXButton(Res.get("offerDetailsWindow.challenge.copy"), copyLabel);
             copyButton.setContentDisplay(ContentDisplay.LEFT);
             copyButton.setGraphicTextGap(8);
-            copyButton.setOnMouseClicked(e -> {
+            copyButton.setOnAction(e -> { // onAction so keyboard activation copies too
                 Utilities.copyToClipboard(offerChallenge);
                 Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
-                Node node = (Node) e.getSource();
+                Bounds bounds = copyButton.localToScreen(copyButton.getBoundsInLocal());
                 UserThread.runAfter(() -> tp.hide(), 1);
-                tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
+                tp.show(copyButton, bounds.getCenterX() + Layout.PADDING, bounds.getCenterY() + Layout.PADDING);
             });
             copyButton.setId("copy-button-thin");
-            copyButton.setFocusTraversable(false);
             vbox.getChildren().addAll(centerLabel, copyButton);
 
             // add vbox to grid pane in next column

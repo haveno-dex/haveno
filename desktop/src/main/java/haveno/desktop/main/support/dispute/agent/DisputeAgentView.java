@@ -52,6 +52,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+import haveno.desktop.util.Accessibility;
 import static haveno.desktop.util.FormBuilder.getIconForLabel;
 
 public abstract class DisputeAgentView extends DisputeView implements MultipleHolderNameDetection.Listener {
@@ -223,6 +224,7 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
         alertIconLabel.setManaged(true);
         alertIconLabel.setTooltip(new Tooltip("You have suspicious disputes where the same trader used different " +
                 "account holder names.\nClick for more information."));
+        Accessibility.asButton(alertIconLabel, alertIconLabel.getTooltip().getText());
         // Text below is for arbitrators only so no need to translate it
         alertIconLabel.setOnMouseClicked(e -> {
             String reportForAllDisputes = multipleHolderNameDetection.getReportForAllDisputes();
@@ -265,6 +267,7 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                             alertIconLabel = new Label();
                             Text icon = getIconForLabel(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE, "1.5em", alertIconLabel);
                             icon.getStyleClass().add("alert-icon");
+                            Accessibility.asButton(alertIconLabel, "Suspicious dispute detected"); // arbitrator-only, not translated
                             HBox.setMargin(alertIconLabel, new Insets(4, 0, 0, 10));
                             alertIconLabel.setMouseTransparent(false);
                             setGraphic(alertIconLabel);

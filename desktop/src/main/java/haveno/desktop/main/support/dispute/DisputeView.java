@@ -77,6 +77,7 @@ import haveno.desktop.main.overlays.windows.SendLogFilesWindow;
 import haveno.desktop.main.overlays.windows.SendPrivateNotificationWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.overlays.windows.VerifyDisputeResultSignatureWindow;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
@@ -968,6 +969,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     Button button = getRegularIconButton(MaterialDesignIcon.INFORMATION_OUTLINE);
+                                    Accessibility.setName(button, Res.get("shared.details"));
                                     JFXBadge badge = new JFXBadge(new Label(""), Pos.BASELINE_RIGHT);
                                     badge.setPosition(Pos.TOP_RIGHT);
                                     badge.setVisible(item.isNew());
@@ -1012,6 +1014,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     Button button = getRegularIconButton(MaterialDesignIcon.GAVEL);
+                                    Accessibility.setName(button, Res.get("support.process"));
                                     button.setOnAction(e -> {
                                         tableView.getSelectionModel().select(this.getIndex());
                                         handleOnProcessDispute(item);

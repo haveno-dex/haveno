@@ -56,6 +56,7 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.main.support.SupportView;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Transitions;
@@ -79,6 +80,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -455,6 +457,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         // decode the landscape logo at device-pixel size for crisp HiDPI rendering; keeps the CSS id as fallback
         GUIUtil.setBrandingLogo(logo, preferences, "/images/logo_landscape_light_mode.png", "/images/logo_landscape_dark_mode.png", 0, 40);
+        Accessibility.mute(logo);
 
         final HBox pane = new HBox(logo);
         pane.setAlignment(Pos.CENTER_LEFT);
@@ -484,6 +487,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         vBox.getChildren().addAll(balanceDisplay, label);
         vBox.setPickOnBounds(true);
         vBox.setOnMouseClicked(e -> onClick.run());
+        Accessibility.asButton(vBox, text);
         return new Tuple2<>(balanceDisplay, vBox);
     }
 
@@ -515,7 +519,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         ComboBox<PriceFeedComboBoxItem> priceComboBox = new JFXComboBox<>();
         priceComboBox.setVisibleRowCount(12);
-        priceComboBox.setFocusTraversable(false);
         priceComboBox.setId("price-feed-combo");
         priceComboBox.setCellFactory(p -> getPriceFeedComboBoxListCell());
         ListCell<PriceFeedComboBoxItem> buttonCell = getPriceFeedComboBoxListCell();
@@ -527,6 +530,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         updateMarketPriceLabel(marketPriceLabel);
 
         marketPriceLabel.getStyleClass().add("nav-balance-label");
+        Accessibility.setLabel(marketPriceLabel, priceComboBox);
 
         marketPriceBox.getChildren().addAll(priceComboBox, marketPriceLabel);
 
@@ -710,6 +714,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         splashP2PNetworkIcon.setOnMouseClicked(e -> {
             torNetworkSettingsWindow.show();
         });
+        Accessibility.asButton(splashP2PNetworkIcon, Res.get("settings.net.openTorSettingsButton"));
 
         Timer showTorNetworkSettingsTimer = UserThread.runAfter(() -> {
             showTorNetworkSettingsButton.setVisible(true);
@@ -828,9 +833,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             if (newValue) {
                 versionLabel.getStyleClass().add("version-new");
                 versionLabel.setOnMouseClicked(e -> model.onOpenDownloadWindow());
+                Accessibility.asButton(versionLabel, null); // announced by its bound text
             } else {
                 versionLabel.getStyleClass().add("version");
                 versionLabel.setOnMouseClicked(null);
+                versionLabel.setAccessibleRole(AccessibleRole.TEXT);
+                versionLabel.setFocusTraversable(false);
             }
         });
         HBox versionBox = new HBox();
@@ -857,8 +865,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         useDarkModeIcon.setOnMouseClicked(e -> {
             preferences.setCssTheme(preferences.getCssTheme() != 1);
         });
+        Accessibility.asButton(useDarkModeIcon, Res.get(preferences.getCssTheme() == 1 ? "setting.preferences.useLightMode" : "setting.preferences.useDarkMode"));
         preferences.getCssThemeProperty().addListener((observable, oldValue, newValue) -> {
             useDarkModeIcon.setId(preferences.getCssTheme() == 1 ? "image-dark-mode-toggle" : "image-light-mode-toggle");
+            Accessibility.setName(useDarkModeIcon, Res.get(preferences.getCssTheme() == 1 ? "setting.preferences.useLightMode" : "setting.preferences.useDarkMode"));
         });
 
         // P2P Network
@@ -888,6 +898,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         p2PNetworkIcon.setOnMouseClicked(e -> {
             torNetworkSettingsWindow.show();
         });
+        Accessibility.asButton(p2PNetworkIcon, Res.get("settings.net.openTorSettingsButton"));
 
         ImageView p2PNetworkStatusIcon = new ImageView();
         p2PNetworkStatusIcon.setPickOnBounds(true);
@@ -915,6 +926,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 p2PNetworkStatusIcon.setOpacity(1);
             }
         });
+        Accessibility.asButton(p2PNetworkStatusIcon, Res.get("mainView.networkStatus"));
         p2PNetworkStatusIcon.setOnMouseClicked(e -> {
             if (p2PNetworkStatusIcon.getId().equalsIgnoreCase("image-alert-round")) {
                 new Popup().warning(Res.get("popup.info.p2pStatusIndicator.red", model.getP2pConnectionSummary())).show();
@@ -944,9 +956,14 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
     private void setupBadge(JFXBadge buttonWithBadge, StringProperty badgeNumber, BooleanProperty badgeEnabled) {
         buttonWithBadge.textProperty().bind(badgeNumber);
+        // mirror the badge count for screen readers while the badge shows
+        Runnable updateBadgeHelp = () -> buttonWithBadge.getControl().setAccessibleHelp(badgeEnabled.get() ? badgeNumber.get() : null);
+        updateBadgeHelp.run();
+        badgeNumber.addListener((observable, oldValue, newValue) -> updateBadgeHelp.run());
         buttonWithBadge.setEnabled(badgeEnabled.get());
         badgeEnabled.addListener((observable, oldValue, newValue) -> UserThread.execute(() -> {
             buttonWithBadge.setEnabled(newValue);
+            updateBadgeHelp.run();
             buttonWithBadge.refreshBadge();
         }));
 

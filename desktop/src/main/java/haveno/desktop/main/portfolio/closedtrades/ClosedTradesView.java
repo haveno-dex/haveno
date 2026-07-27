@@ -47,6 +47,7 @@ import haveno.desktop.main.overlays.windows.ClosedTradesSummaryWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
@@ -702,6 +703,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                     iconButton.setStyle("-fx-cursor: hand; -fx-padding: 0 10 0 10;");
                                     iconButton.getStyleClass().add("hidden-icon-button");
                                     iconButton.setTooltip(new Tooltip(Res.get("portfolio.failed.revertToPending")));
+                                    Accessibility.nameFromTooltip(iconButton);
                                     iconButton.setOnAction(e -> onRevertTrade(trade));
                                     setGraphic(iconButton);
                                 } else {

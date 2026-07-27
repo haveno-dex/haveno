@@ -28,6 +28,7 @@ import haveno.core.user.BlockChainExplorer;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
@@ -83,6 +84,7 @@ public class TxIdTextField extends AnchorPane {
         copyLabel.setTooltip(new Tooltip(Res.get("txIdTextField.copyIcon.tooltip")));
         copyLabel.setGraphic(GUIUtil.getCopyIcon());
         copyLabel.setCursor(Cursor.HAND);
+        Accessibility.asButton(copyLabel, Res.get("txIdTextField.copyIcon.tooltip"));
         AnchorPane.setRightAnchor(copyLabel, 30.0);
 
         Tooltip tooltip = new Tooltip(Res.get("txIdTextField.blockExplorerIcon.tooltip"));
@@ -91,6 +93,7 @@ public class TxIdTextField extends AnchorPane {
         blockExplorerIcon.getStyleClass().addAll("icon", "highlight");
         blockExplorerIcon.setTooltip(tooltip);
         GlyphsDude.setIcon(blockExplorerIcon, FontAwesomeIcon.EXTERNAL_LINK);
+        Accessibility.asButton(blockExplorerIcon, Res.get("txIdTextField.blockExplorerIcon.tooltip"));
         blockExplorerIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(blockExplorerIcon, 52.0);
         AnchorPane.setTopAnchor(blockExplorerIcon, Layout.FLOATING_ICON_Y);
@@ -99,6 +102,7 @@ public class TxIdTextField extends AnchorPane {
         missingTxWarningIcon.getStyleClass().addAll("icon", "error-icon");
         GlyphsDude.setIcon(missingTxWarningIcon, FontAwesomeIcon.WARNING);
         missingTxWarningIcon.setTooltip(new Tooltip(Res.get("txIdTextField.missingTx.warning.tooltip")));
+        Accessibility.asText(missingTxWarningIcon, Res.get("txIdTextField.missingTx.warning.tooltip"));
         missingTxWarningIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(missingTxWarningIcon, 52.0);
         AnchorPane.setTopAnchor(missingTxWarningIcon, Layout.FLOATING_ICON_Y);

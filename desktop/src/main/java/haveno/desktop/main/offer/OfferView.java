@@ -28,6 +28,7 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.desktop.Navigation;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
@@ -86,6 +87,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
     @Override
     protected void initialize() {
+        Accessibility.fixTabs(root);
         navigationListener = (viewPath, data) -> {
             UserThread.execute(() -> {
                 if (viewPath.size() == 3 && viewPath.indexOf(this.getClass()) == 1) {

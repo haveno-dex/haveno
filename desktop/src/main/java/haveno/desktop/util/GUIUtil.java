@@ -1702,14 +1702,17 @@ public class GUIUtil {
     public static Label getLockLabel() {
         MaterialDesignIconView lockIcon = new MaterialDesignIconView(MaterialDesignIcon.LOCK, "16px");
         lockIcon.setFill(Color.WHITE);
+        Accessibility.mute(lockIcon);
         Label lockLabel = new Label();
         lockLabel.setGraphic(lockIcon);
+        Accessibility.asText(lockLabel, Res.get("shared.privateOffer"));
         return lockLabel;
     }
 
     public static MaterialDesignIconView getLockIcon(String glyphSize) {
         MaterialDesignIconView lockIcon = new MaterialDesignIconView(MaterialDesignIcon.LOCK, glyphSize);
         lockIcon.getStyleClass().add("lock-icon");
+        Accessibility.mute(lockIcon);
         return lockIcon;
     }
 
@@ -1729,10 +1732,13 @@ public class GUIUtil {
         label.setGraphic(lockIcon);
         label.setContentDisplay(ContentDisplay.RIGHT);
         label.setGraphicTextGap(6);
+        Accessibility.setHelp(label, Res.get("shared.privateOffer"));
     }
 
     public static MaterialDesignIconView getCopyIcon() {
-        return new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.35em");
+        MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.35em");
+        Accessibility.mute(copyIcon);
+        return copyIcon;
     }
 
     public static Tuple2<StackPane, ImageView> getSmallXmrQrCodePane() {

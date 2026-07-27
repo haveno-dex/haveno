@@ -308,6 +308,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
 
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText(Res.get("password.enterPassword"));
+        passwordField.setAccessibleHelp(Res.get("password.enterPassword")); // expose the prompt to screen readers
         passwordField.setMaxWidth(340);
         passwordField.getStyleClass().add("login-password-field");
         // PasswordField blocks cut/copy for security; allow ctrl/cmd+x to clear the selection (without clipboard)

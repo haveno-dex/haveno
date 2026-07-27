@@ -22,6 +22,7 @@ import com.jfoenix.controls.JFXTextField;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.property.SimpleStringProperty;
@@ -80,6 +81,7 @@ public class TextFieldWithCopyIcon extends AnchorPane {
                 tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
             }
         });
+        Accessibility.asButton(copyLabel, Res.get("shared.copyToClipboard"));
         textField = new JFXTextField();
         textField.setEditable(false);
         if (customStyleClass != null) textField.getStyleClass().add(customStyleClass);

@@ -17,6 +17,7 @@
 
 package haveno.desktop.components;
 
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.desktop.components.controlsfx.control.PopOver;
@@ -93,6 +94,7 @@ public class InfoInputTextField extends AnchorPane {
 
     public void setContentForPopOver(Node node, FontAwesomeIcon awesomeIcon, @Nullable String style) {
         this.node = node;
+        Accessibility.setHelpFromContent(inputTextField, node);
         GlyphsDude.setIcon(icon, awesomeIcon);
         icon.getStyleClass().removeAll("icon", "info", "warning", style);
         icon.getStyleClass().addAll("icon", style == null ? "info" : style);

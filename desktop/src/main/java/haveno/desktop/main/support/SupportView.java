@@ -51,6 +51,7 @@ import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
 import haveno.desktop.Navigation;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
@@ -124,6 +125,7 @@ public class SupportView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
+        Accessibility.fixTabs(root);
         tradersMediationDisputesTab = new Tab();
         tradersMediationDisputesTab.setClosable(false);
         //root.getTabs().add(tradersMediationDisputesTab); // hidden since mediation and refunds are not used in haveno

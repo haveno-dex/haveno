@@ -83,6 +83,9 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         super(items);
         setEditable(true);
 
+        // expose the floating prompt to screen readers
+        promptTextProperty().addListener((o, oldVal, newVal) -> setAccessibleHelp(newVal));
+
         // The default skin exposes no handle on the popup ListView; the JFX skin does.
         skin = new JFXComboBoxListViewSkin<>(this);
         setSkin(skin);

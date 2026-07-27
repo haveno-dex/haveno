@@ -386,7 +386,10 @@ public class FormBuilder {
 
         VBox vbox = getTopLabelVBox(0);
         vbox.setSpacing(2);
-        vbox.getChildren().addAll(getTopLabel(title), hbox);
+        Label label = getTopLabel(title);
+        Accessibility.setLabel(label, textField);
+        Accessibility.setName(button, Res.get("shared.edit"));
+        vbox.getChildren().addAll(label, hbox);
 
         gridPane.getChildren().add(vbox);
         GridPane.setRowIndex(vbox, rowIndex);
@@ -429,6 +432,7 @@ public class FormBuilder {
         Label label1 = addLabel(gridPane, rowIndex, title1);
         label1.getStyleClass().add("confirmation-label");
         Label label2 = addLabel(gridPane, rowIndex, title2);
+        Accessibility.setLabel(label1, label2);
         label2.getStyleClass().add("confirmation-value");
         label2.setWrapText(isWrapped);
         GridPane.setColumnIndex(label2, 1);
@@ -457,6 +461,7 @@ public class FormBuilder {
         Label label1 = addLabel(gridPane, rowIndex, title1);
         label1.getStyleClass().add("confirmation-label");
         TextField label2 = new HavenoTextField(title2);
+        Accessibility.setLabel(label1, label2);
         gridPane.getChildren().add(label2);
         label2.getStyleClass().add("confirmation-text-field-as-label");
         label2.setEditable(false);
@@ -1328,6 +1333,7 @@ public class FormBuilder {
         comboBox.setPromptText(prompt);
         comboBox.setPadding(new Insets(top, 0, 0, 12));
 
+        Accessibility.setLabel(label, comboBox);
         vBox.getChildren().addAll(label, comboBox);
 
         return new Tuple3<>(vBox, label, comboBox);
@@ -1344,6 +1350,7 @@ public class FormBuilder {
 
         final AutocompleteComboBox<T> comboBox = new AutocompleteComboBox<>();
 
+        Accessibility.setLabel(label, comboBox);
         vBox.getChildren().addAll(label, comboBox);
 
         return new Tuple3<>(vBox, label, comboBox);
@@ -1358,6 +1365,7 @@ public class FormBuilder {
         VBox vBox = getTopLabelVBox(top);
 
         final AutoTooltipTextField textField = new AutoTooltipTextField();
+        Accessibility.setLabel(label, textField);
         vBox.getChildren().addAll(label, textField);
 
         return new Tuple3<>(vBox, label, textField);
@@ -1410,6 +1418,7 @@ public class FormBuilder {
         Label label = getTopLabel(title);
         VBox vBox = getTopLabelVBox(0);
         vBox.getChildren().addAll(label, node);
+        Accessibility.setLabel(label, node);
 
         return new Tuple2<>(label, vBox);
     }
@@ -1455,6 +1464,7 @@ public class FormBuilder {
         comboBox.setLabelFloat(true);
         comboBox.getStyleClass().add("label-float");
         comboBox.setPromptText(title);
+        Accessibility.setHelp(comboBox, title);
         comboBox.setMaxWidth(Double.MAX_VALUE);
 
         // Default ComboBox does not show promptText after clear selection.
@@ -1529,6 +1539,7 @@ public class FormBuilder {
         final VBox topLabelVBox1 = getTopLabelVBox(5);
         final Label topLabel1 = getTopLabel(titleTextfield);
         final TextField textField = new HavenoTextField();
+        Accessibility.setLabel(topLabel1, textField);
         topLabelVBox1.getChildren().addAll(topLabel1, textField);
 
         final VBox topLabelVBox2 = getTopLabelVBox(5);
@@ -1537,6 +1548,7 @@ public class FormBuilder {
         comboBox.setPromptText(titleCombobox);
         comboBox.setLabelFloat(true);
         comboBox.getStyleClass().add("label-float");
+        Accessibility.setLabel(topLabel2, comboBox);
         topLabelVBox2.getChildren().addAll(topLabel2, comboBox);
 
         hBox.getChildren().addAll(topLabelVBox1, topLabelVBox2);
@@ -1598,6 +1610,7 @@ public class FormBuilder {
         JFXComboBox<T> comboBox = new JFXComboBox<>();
         GUIUtil.applyFilledStyle(comboBox);
         comboBox.setPromptText(titleCombobox);
+        Accessibility.setHelp(comboBox, titleCombobox);
         comboBox.setLabelFloat(true);
         comboBox.getStyleClass().add("label-float");
 
@@ -1605,6 +1618,7 @@ public class FormBuilder {
 
         final VBox topLabelVBox = getTopLabelVBox(5);
         final Label topLabel = getTopLabel(titleTextfield);
+        Accessibility.setLabel(topLabel, textField);
         topLabelVBox.getChildren().addAll(topLabel, textField);
 
         hBox.getChildren().addAll(comboBox, topLabelVBox);
@@ -2487,6 +2501,11 @@ public class FormBuilder {
         if (icon.fontFamily().equals(MATERIAL_DESIGN_ICONS)) {
             Button iconButton = GlyphsDude.createIconButton(icon,
                     "", iconSize, null, ContentDisplay.CENTER);
+            Accessibility.setName(iconButton, Accessibility.iconName(icon));
+            // prefer the localized tooltip as the name once one is set
+            iconButton.tooltipProperty().addListener((o, oldVal, newVal) -> {
+                if (newVal != null) Accessibility.setName(iconButton, newVal.getText());
+            });
             iconButton.setId("icon-button");
             iconButton.getGraphic().getStyleClass().add(styleClass);
             iconButton.setPrefWidth(20);

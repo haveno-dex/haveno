@@ -5,6 +5,7 @@ import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.offer.Offer;
 import haveno.core.trade.Trade;
 import haveno.core.user.Preferences;
+import haveno.desktop.util.Accessibility;
 import haveno.network.p2p.NodeAddress;
 
 import javax.annotation.Nullable;
@@ -51,5 +52,6 @@ public class PeerInfoIconSmall extends PeerInfoIconTrading {
     protected void updatePeerInfoIcon() {
         numTradesPane.setVisible(false);
         tagPane.setVisible(false);
+        Accessibility.mute(this); // decorative here, not clickable
     }
 }

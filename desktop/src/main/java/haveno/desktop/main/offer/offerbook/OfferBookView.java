@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.offer.offerbook;
 
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
@@ -206,11 +207,13 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         privateOffersToggleButton.setVisible(HavenoUtils.isGeneralPrivateOffersEnabled());
         Tooltip privateOffersTooltip = new Tooltip(Res.get("offerbook.privateOffers"));
         Tooltip.install(privateOffersToggleButton, privateOffersTooltip);
+        Accessibility.setName(privateOffersToggleButton, Res.get("offerbook.privateOffers"));
 
         matchingOffersToggleButton = GlyphsDude.createIconToggleButton(FontAwesomeIcon.USER, null, "1.4em", null);
         matchingOffersToggleButton.getStyleClass().add("toggle-button-no-slider");
         Tooltip matchingOffersTooltip = new Tooltip(Res.get("offerbook.matchingOffers"));
         Tooltip.install(matchingOffersToggleButton, matchingOffersTooltip);
+        Accessibility.setName(matchingOffersToggleButton, Res.get("offerbook.matchingOffers"));
 
         createOfferButton = new AutoTooltipButton("") {
             @Override

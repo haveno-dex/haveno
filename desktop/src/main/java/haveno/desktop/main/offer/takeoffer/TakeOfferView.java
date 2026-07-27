@@ -78,6 +78,7 @@ import static haveno.desktop.util.FormBuilder.getNonEditableValueBox;
 import static haveno.desktop.util.FormBuilder.getNonEditableValueBoxWithInfo;
 import static haveno.desktop.util.FormBuilder.getSmallIconForLabel;
 import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.Transitions;
@@ -955,6 +956,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         qrCodePane.setOnMouseClicked(e -> UserThread.runAfter(
                         () -> new QRCodeWindow(getMoneroURI()).show(),
                         200, TimeUnit.MILLISECONDS));
+        Accessibility.asButton(qrCodePane, Res.get("shared.openLargeQRWindow"));
         GridPane.setRowIndex(qrCodePane, gridRow);
         GridPane.setColumnIndex(qrCodePane, 1);
         GridPane.setRowSpan(qrCodePane, 3);

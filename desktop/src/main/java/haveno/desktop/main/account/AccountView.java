@@ -22,6 +22,7 @@ import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.desktop.Navigation;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
@@ -83,6 +84,7 @@ public class AccountView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
+        Accessibility.fixTabs(root);
 
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
 

@@ -71,6 +71,7 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.funds.FundsView;
 import haveno.desktop.main.funds.transactions.TransactionsView;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.GlyphsDude;
 import java.io.ByteArrayInputStream;
@@ -260,6 +261,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
                     pane.setOnMouseClicked(e -> UserThread.runAfter(
                                     () -> new QRCodeWindow(getPaymentUri()).show(),
                                     200, TimeUnit.MILLISECONDS));
+                    Accessibility.asButton(pane, Res.get("shared.openLargeQRWindow"));
                 }
 
                 addressTextField = new AddressTextField(Res.get("funds.deposit.mainWalletAddress"));
@@ -449,6 +451,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         // incoming funds are viewable in the transactions list
         Tooltip.install(statusBox, new Tooltip(Res.get("funds.deposit.incoming.goToTransactions")));
         statusBox.setOnMouseClicked(e -> navigation.navigateTo(MainView.class, FundsView.class, TransactionsView.class));
+        Accessibility.asButton(statusBox, Res.get("funds.deposit.incoming.goToTransactions"));
 
         balanceBox = new VBox(2, balanceLabel, fiatLabel, statusBox);
         balanceBox.setAlignment(Pos.CENTER);
