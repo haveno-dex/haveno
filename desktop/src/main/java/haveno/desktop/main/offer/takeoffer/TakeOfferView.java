@@ -370,9 +370,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             extraInfoTextArea.setMaxHeight(300);
             extraInfoTextArea.setEditable(false);
             GUIUtil.adjustHeightAutomatically(extraInfoTextArea);
-            GridPane.setRowIndex(extraInfoTextArea, gridRowNoFundingRequired);
-            GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
-            GridPane.setColumnIndex(extraInfoTextArea, 0);
+            GridPane.setColumnSpan(extraInfoTextArea.getParent(), GridPane.REMAINING); // grid child is the wrapping vbox
 
             // move up take offer buttons
             GridPane.setRowIndex(takeOfferBox, gridRowNoFundingRequired + 1);
