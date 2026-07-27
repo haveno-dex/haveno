@@ -19,9 +19,12 @@ package haveno.desktop.main.overlays.windows;
 
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.GUIUtil;
-import haveno.desktop.util.Layout;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
@@ -29,7 +32,7 @@ import static haveno.desktop.util.FormBuilder.addTextArea;
 
 public class GenericMessageWindow extends Overlay<GenericMessageWindow> {
     private String preamble;
-    private static final double MAX_TEXT_AREA_HEIGHT = 250;
+    private static final double MAX_TEXT_AREA_HEIGHT = 400;
 
     public GenericMessageWindow() {
         super();
@@ -51,16 +54,21 @@ public class GenericMessageWindow extends Overlay<GenericMessageWindow> {
 
     private void addContent() {
         if (preamble != null) {
-            Label label = addMultilineLabel(gridPane, ++rowIndex, preamble, 10);
-            label.setPrefSize(Layout.INITIAL_WINDOW_WIDTH, Layout.INITIAL_WINDOW_HEIGHT * 0.1);
+            Label label = addMultilineLabel(gridPane, ++rowIndex, preamble, 0, width);
+            GridPane.setColumnSpan(label, 2);
+            GridPane.setMargin(label, new Insets(10, 0, 0, 0));
         }
         checkNotNull(message, "message must not be null");
-        TextArea textArea = addTextArea(gridPane, ++rowIndex, "", 10);
+        TextArea textArea = addTextArea(gridPane, ++rowIndex, "");
+        GridPane.setColumnSpan(textArea, 2);
+        GridPane.setHalignment(textArea, HPos.LEFT);
+        GridPane.setHgrow(textArea, Priority.ALWAYS);
+        GridPane.setMargin(textArea, new Insets(15, 0, 0, 0));
         textArea.getStyleClass().add("flat-text-area-with-border");
         textArea.setText(message);
         textArea.setEditable(false);
         textArea.setWrapText(true);
-        textArea.setPrefWidth(Layout.INITIAL_WINDOW_WIDTH);
+        textArea.setPrefWidth(width);
         GUIUtil.adjustHeightAutomatically(textArea, MAX_TEXT_AREA_HEIGHT);
     }
 }
