@@ -81,7 +81,6 @@ import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
-import haveno.desktop.util.Transitions;
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
 import java.net.URI;
@@ -121,7 +120,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private final Navigation navigation;
     private final CoinFormatter formatter;
     private final OfferDetailsWindow offerDetailsWindow;
-    private final Transitions transitions;
 
     private ScrollPane scrollPane;
     private GridPane gridPane;
@@ -129,10 +127,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private Label noFundingRequiredLabel;
     private int gridRowNoFundingRequired;
     private TitledGroupBg payFundsTitledGroupBg;
-    private TitledGroupBg advancedOptionsGroup;
-    private VBox priceAsPercentageInputBox, amountRangeBox;
+    private VBox priceAsPercentageInputBox, amountRangeBox, tradeFeeFieldsBox;
     private HBox fundingHBox, amountValueCurrencyBox, priceValueCurrencyBox, volumeValueCurrencyBox,
-            priceAsPercentageValueCurrencyBox, minAmountValueCurrencyBox, advancedOptionsBox,
+            priceAsPercentageValueCurrencyBox, minAmountValueCurrencyBox,
             takeOfferBox, nextButtonBox, firstRowHBox;
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
     private TextArea extraInfoTextArea;
@@ -181,14 +178,12 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private TakeOfferView(TakeOfferViewModel model,
                           Navigation navigation,
                           @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
-                          OfferDetailsWindow offerDetailsWindow,
-                          Transitions transitions) {
+                          OfferDetailsWindow offerDetailsWindow) {
         super(model);
 
         this.navigation = navigation;
         this.formatter = formatter;
         this.offerDetailsWindow = offerDetailsWindow;
-        this.transitions = transitions;
     }
 
     @Override
@@ -197,7 +192,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         addGridPane();
         addPaymentGroup();
         addAmountPriceGroup();
-        addOptionsGroup();
+        addTradeFeeGroup();
 
         createListeners();
 
@@ -442,13 +437,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         offerAvailabilityLabel.setVisible(false);
         offerAvailabilityLabel.setManaged(false);
 
-        int delay = 500;
-        int diff = 100;
-
-        transitions.fadeOutAndRemove(advancedOptionsGroup, delay, (event) -> {
-        });
-        delay -= diff;
-        transitions.fadeOutAndRemove(advancedOptionsBox, delay);
+        // the fee is part of the total to pay, so its band gives way to the funding section
+        tradeFeeFieldsBox.setVisible(false);
+        tradeFeeFieldsBox.setManaged(false);
 
         model.onShowPayFundsScreen();
 
@@ -863,22 +854,14 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         addSecondRow();
     }
 
-    private void addOptionsGroup() {
-        advancedOptionsGroup = addTitledGroupBg(gridPane, ++gridRow, 1, Res.get("shared.advancedOptions"), Layout.COMPACT_GROUP_DISTANCE);
-
-        advancedOptionsBox = new HBox();
-        advancedOptionsBox.setSpacing(40);
-
-        GridPane.setRowIndex(advancedOptionsBox, gridRow);
-        GridPane.setColumnSpan(advancedOptionsBox, GridPane.REMAINING);
-        GridPane.setColumnIndex(advancedOptionsBox, 0);
-        GridPane.setHalignment(advancedOptionsBox, HPos.LEFT);
-        GridPane.setMargin(advancedOptionsBox, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
-        gridPane.getChildren().add(advancedOptionsBox);
-
-        VBox tradeFeeFieldsBox = getTradeFeeFieldsBox();
+    private void addTradeFeeGroup() {
+        // the fee is derived info rather than an option, so it stands alone below the amounts
+        tradeFeeFieldsBox = getTradeFeeFieldsBox();
         tradeFeeFieldsBox.setMinWidth(240);
-        advancedOptionsBox.getChildren().addAll(tradeFeeFieldsBox);
+        GridPane.setRowIndex(tradeFeeFieldsBox, ++gridRow);
+        GridPane.setColumnSpan(tradeFeeFieldsBox, GridPane.REMAINING);
+        GridPane.setMargin(tradeFeeFieldsBox, new Insets(8, 0, 0, 0));
+        gridPane.getChildren().add(tradeFeeFieldsBox);
     }
 
     private void addNextButtons() {
