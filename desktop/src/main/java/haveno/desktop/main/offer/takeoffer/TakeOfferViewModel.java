@@ -189,7 +189,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
 
         updateSpinnerInfo();
 
-        isTradeFeeVisible.setValue(false);
+        applyTakerFee();
     }
 
     @Override
