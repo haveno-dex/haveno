@@ -180,6 +180,7 @@ monerod3-local:
 funding-wallet-local:
 	./.localnet/monero-wallet-rpc \
 		--testnet \
+		--allow-mismatched-daemon-version \
 		--daemon-address http://localhost:28081 \
 		--rpc-bind-port 28084 \
 		--rpc-login rpc_user:abc123 \
