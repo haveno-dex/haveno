@@ -130,7 +130,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private int gridRowNoFundingRequired;
     private TitledGroupBg payFundsTitledGroupBg;
     private VBox priceAsPercentageInputBox, amountRangeBox, tradeFeeFieldsBox;
-    private Region tradeFeeSeparator;
+    private Region tradeFeeSeparator, buttonsSeparator;
     private HBox fundingHBox, amountValueCurrencyBox, priceValueCurrencyBox, volumeValueCurrencyBox,
             priceAsPercentageValueCurrencyBox, minAmountValueCurrencyBox,
             takeOfferBox, nextButtonBox, firstRowHBox;
@@ -445,6 +445,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         tradeFeeSeparator.setManaged(false);
         tradeFeeFieldsBox.setVisible(false);
         tradeFeeFieldsBox.setManaged(false);
+
+        // the buttons give way to the funding title, which takes the separator spacing of the other sections
+        buttonsSeparator.setVisible(true);
+        buttonsSeparator.setManaged(true);
+        GridPane.setMargin(buttonsSeparator, new Insets(7, 0, -12, 0));
 
         model.onShowPayFundsScreen();
 
@@ -845,13 +850,14 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         final HBox hBox = paymentAccountTuple.fourth;
         hBox.setSpacing(30);
         hBox.setAlignment(Pos.CENTER_LEFT);
-        hBox.setPadding(new Insets(10, 0, 18, 0));
+        hBox.setPadding(new Insets(10, 0, 10, 0));
 
         hBox.getChildren().add(tradeCurrencyTuple.second);
     }
 
     private void addAmountPriceGroup() {
-        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(16, 0, 0, 0));
+        // negative bottom pulls the section title closer to the separator
+        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(7, 0, -12, 0));
 
         TitledGroupBg titledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
                 Res.get("takeOffer.setAmountPrice"), Layout.COMPACT_GROUP_DISTANCE);
@@ -863,7 +869,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private void addTradeFeeGroup() {
         tradeFeeSeparator = addSeparator(gridPane, ++gridRow);
-        GridPane.setMargin(tradeFeeSeparator, new Insets(16, 0, 0, 0));
+        GridPane.setMargin(tradeFeeSeparator, new Insets(7, 0, 0, 0));
 
         // the fee is derived info rather than an option, so it stands alone below the amounts
         tradeFeeFieldsBox = getTradeFeeFieldsBox();
@@ -875,10 +881,14 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void addNextButtons() {
-        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(16, 0, 0, 0));
+        // hidden until the funding step, where it becomes the separator above the funding title
+        buttonsSeparator = addSeparator(gridPane, ++gridRow);
+        GridPane.setMargin(buttonsSeparator, new Insets(7, 0, 0, 0));
+        buttonsSeparator.setVisible(false);
+        buttonsSeparator.setManaged(false);
 
         Tuple3<Button, Button, HBox> tuple = add2ButtonsWithBox(gridPane, ++gridRow,
-                Res.get("shared.nextStep"), Res.get("shared.cancel"), 15, true);
+                Res.get("shared.nextStep"), Res.get("shared.cancel"), 10, true);
 
         nextButtonBox = tuple.third;
 
