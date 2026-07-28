@@ -86,6 +86,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -108,6 +109,7 @@ import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
 import static haveno.desktop.util.FormBuilder.addAddressTextField;
 import static haveno.desktop.util.FormBuilder.addBalanceTextField;
 import static haveno.desktop.util.FormBuilder.addFundsTextfield;
+import static haveno.desktop.util.FormBuilder.addSeparator;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelComboBox;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextField;
@@ -128,6 +130,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ScrollPane scrollPane;
     protected GridPane gridPane;
     private TitledGroupBg payFundsTitledGroupBg, setDepositTitledGroupBg, extraInfoTitledGroupBg, paymentTitledGroupBg;
+    private Region advancedOptionsSeparator, extraInfoSeparator;
     protected TitledGroupBg amountTitledGroupBg;
     private BusyAnimation waitingForFundsSpinner;
     private AutoTooltipButton nextButton, cancelButton1, cancelButton2, placeOfferButton, fundFromSavingsWalletButton;
@@ -391,22 +394,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         cancelButton1.setManaged(false);
         cancelButton1.setOnAction(null);
 
-        setDepositTitledGroupBg.setVisible(false);
-        setDepositTitledGroupBg.setManaged(false);
-
-        securityDepositAndFeeBox.setVisible(false);
-        securityDepositAndFeeBox.setManaged(false);
-
-        isPrivateOfferSlider.setVisible(false);
-        isPrivateOfferSlider.setManaged(false);
-
-        buyerAsTakerWithoutDepositSlider.setVisible(false);
-        buyerAsTakerWithoutDepositSlider.setManaged(false);
-
-        extraInfoTitledGroupBg.setVisible(false);
-        extraInfoTitledGroupBg.setManaged(false);
-        extraInfoTextArea.setVisible(false);
-        extraInfoTextArea.setManaged(false);
+        hideOptionsGroup();
+        hideExtraInfoGroup();
 
         updateQrCode();
 
@@ -1096,6 +1085,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addAmountPriceGroup() {
+        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(16, 0, 0, 0));
+
         amountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
                 Res.get("createOffer.setAmountPrice"), 25 + heightAdjustment);
         GridPane.setColumnSpan(amountTitledGroupBg, 2);
@@ -1105,6 +1096,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addOptionsGroup() {
+        advancedOptionsSeparator = addSeparator(gridPane, ++gridRow);
+        GridPane.setMargin(advancedOptionsSeparator, new Insets(16, 0, 0, 0));
+
         setDepositTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
                 Res.get("shared.advancedOptions"), 25 + heightAdjustment);
 
@@ -1182,6 +1176,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addExtraInfoGroup() {
+        extraInfoSeparator = addSeparator(gridPane, ++gridRow);
+        GridPane.setMargin(extraInfoSeparator, new Insets(16, 0, 0, 0));
 
         extraInfoTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 1,
                 Res.get("payment.shared.optionalExtra"), 25 + heightAdjustment);
@@ -1205,6 +1201,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addNextButtons() {
+        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(16, 0, 0, 0));
+
         nextButtonsGridRow = ++gridRow;
         Tuple2<Button, Button> tuple = add2ButtonsAfterGroup(gridPane, nextButtonsGridRow,
                 Res.get("shared.nextStep"), Res.get("shared.cancel"));
@@ -1246,6 +1244,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     protected void hideOptionsGroup() {
+        advancedOptionsSeparator.setVisible(false);
+        advancedOptionsSeparator.setManaged(false);
         setDepositTitledGroupBg.setVisible(false);
         setDepositTitledGroupBg.setManaged(false);
         securityDepositAndFeeBox.setVisible(false);
@@ -1257,6 +1257,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     protected void hideExtraInfoGroup() {
+        extraInfoSeparator.setVisible(false);
+        extraInfoSeparator.setManaged(false);
         extraInfoTitledGroupBg.setVisible(false);
         extraInfoTitledGroupBg.setManaged(false);
         extraInfoTextArea.setVisible(false);
