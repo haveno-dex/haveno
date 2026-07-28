@@ -71,6 +71,7 @@ import static haveno.desktop.util.FormBuilder.addBalanceTextField;
 import static haveno.desktop.util.FormBuilder.addComboBoxTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addFundsTextfield;
+import static haveno.desktop.util.FormBuilder.addSeparator;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.getEditableValueBox;
 import static haveno.desktop.util.FormBuilder.getIconForLabel;
@@ -108,6 +109,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -128,6 +130,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private int gridRowNoFundingRequired;
     private TitledGroupBg payFundsTitledGroupBg;
     private VBox priceAsPercentageInputBox, amountRangeBox, tradeFeeFieldsBox;
+    private Region tradeFeeSeparator;
     private HBox fundingHBox, amountValueCurrencyBox, priceValueCurrencyBox, volumeValueCurrencyBox,
             priceAsPercentageValueCurrencyBox, minAmountValueCurrencyBox,
             takeOfferBox, nextButtonBox, firstRowHBox;
@@ -438,6 +441,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         offerAvailabilityLabel.setManaged(false);
 
         // the fee is part of the total to pay, so its band gives way to the funding section
+        tradeFeeSeparator.setVisible(false);
+        tradeFeeSeparator.setManaged(false);
         tradeFeeFieldsBox.setVisible(false);
         tradeFeeFieldsBox.setManaged(false);
 
@@ -846,6 +851,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void addAmountPriceGroup() {
+        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(16, 0, 0, 0));
+
         TitledGroupBg titledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
                 Res.get("takeOffer.setAmountPrice"), Layout.COMPACT_GROUP_DISTANCE);
         GridPane.setColumnSpan(titledGroupBg, 2);
@@ -855,6 +862,9 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void addTradeFeeGroup() {
+        tradeFeeSeparator = addSeparator(gridPane, ++gridRow);
+        GridPane.setMargin(tradeFeeSeparator, new Insets(16, 0, 0, 0));
+
         // the fee is derived info rather than an option, so it stands alone below the amounts
         tradeFeeFieldsBox = getTradeFeeFieldsBox();
         tradeFeeFieldsBox.setMinWidth(240);
@@ -865,6 +875,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void addNextButtons() {
+        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(16, 0, 0, 0));
+
         Tuple3<Button, Button, HBox> tuple = add2ButtonsWithBox(gridPane, ++gridRow,
                 Res.get("shared.nextStep"), Res.get("shared.cancel"), 15, true);
 
