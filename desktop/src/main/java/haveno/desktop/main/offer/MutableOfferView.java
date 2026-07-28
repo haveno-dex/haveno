@@ -105,7 +105,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static haveno.desktop.main.offer.OfferViewUtil.addPayInfoEntry;
-import static haveno.desktop.util.FormBuilder.add2ButtonsAfterGroup;
+import static haveno.desktop.util.FormBuilder.add2Buttons;
 import static haveno.desktop.util.FormBuilder.addAddressTextField;
 import static haveno.desktop.util.FormBuilder.addBalanceTextField;
 import static haveno.desktop.util.FormBuilder.addFundsTextfield;
@@ -130,7 +130,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ScrollPane scrollPane;
     protected GridPane gridPane;
     private TitledGroupBg payFundsTitledGroupBg, setDepositTitledGroupBg, extraInfoTitledGroupBg, paymentTitledGroupBg;
-    private Region advancedOptionsSeparator, extraInfoSeparator;
+    private Region advancedOptionsSeparator, extraInfoSeparator, buttonsSeparator;
     protected TitledGroupBg amountTitledGroupBg;
     private BusyAnimation waitingForFundsSpinner;
     private AutoTooltipButton nextButton, cancelButton1, cancelButton2, placeOfferButton, fundFromSavingsWalletButton;
@@ -393,6 +393,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         cancelButton1.setVisible(false);
         cancelButton1.setManaged(false);
         cancelButton1.setOnAction(null);
+
+        // the buttons give way to the funding title, which takes the separator spacing of the other sections
+        buttonsSeparator.setVisible(true);
+        buttonsSeparator.setManaged(true);
+        GridPane.setMargin(buttonsSeparator, new Insets(7, 0, -12, 0));
 
         hideOptionsGroup();
         hideExtraInfoGroup();
@@ -1034,7 +1039,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         HBox paymentGroupBox = new HBox();
         paymentGroupBox.setAlignment(Pos.CENTER_LEFT);
         paymentGroupBox.setSpacing(12);
-        paymentGroupBox.setPadding(new Insets(10, 0, 18, 0));
+        paymentGroupBox.setPadding(new Insets(10, 0, 10, 0));
 
         final Tuple3<VBox, Label, ComboBox<PaymentAccount>> tradingAccountBoxTuple = addTopLabelComboBox(
                 Res.get("shared.chooseTradingAccount"), Res.get("shared.chooseTradingAccount"));
@@ -1085,7 +1090,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void addAmountPriceGroup() {
-        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(16, 0, 0, 0));
+        // negative bottom pulls the section title closer to the separator
+        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(7, 0, -12, 0));
 
         amountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
                 Res.get("createOffer.setAmountPrice"), 25 + heightAdjustment);
@@ -1097,7 +1103,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void addOptionsGroup() {
         advancedOptionsSeparator = addSeparator(gridPane, ++gridRow);
-        GridPane.setMargin(advancedOptionsSeparator, new Insets(16, 0, 0, 0));
+        GridPane.setMargin(advancedOptionsSeparator, new Insets(7, 0, -12, 0));
 
         setDepositTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
                 Res.get("shared.advancedOptions"), 25 + heightAdjustment);
@@ -1177,7 +1183,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void addExtraInfoGroup() {
         extraInfoSeparator = addSeparator(gridPane, ++gridRow);
-        GridPane.setMargin(extraInfoSeparator, new Insets(16, 0, 0, 0));
+        GridPane.setMargin(extraInfoSeparator, new Insets(7, 0, -12, 0));
 
         extraInfoTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 1,
                 Res.get("payment.shared.optionalExtra"), 25 + heightAdjustment);
@@ -1196,16 +1202,20 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
         GridPane.setColumnIndex(extraInfoTextArea, 0);
         GridPane.setHalignment(extraInfoTextArea, HPos.LEFT);
-        GridPane.setMargin(extraInfoTextArea, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 10, 0));
+        GridPane.setMargin(extraInfoTextArea, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
         gridPane.getChildren().add(extraInfoTextArea);
     }
 
     private void addNextButtons() {
-        GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(16, 0, 0, 0));
+        // hidden until the funding step, where it becomes the separator above the funding title
+        buttonsSeparator = addSeparator(gridPane, ++gridRow);
+        GridPane.setMargin(buttonsSeparator, new Insets(7, 0, 0, 0));
+        buttonsSeparator.setVisible(false);
+        buttonsSeparator.setManaged(false);
 
         nextButtonsGridRow = ++gridRow;
-        Tuple2<Button, Button> tuple = add2ButtonsAfterGroup(gridPane, nextButtonsGridRow,
-                Res.get("shared.nextStep"), Res.get("shared.cancel"));
+        Tuple2<Button, Button> tuple = add2Buttons(gridPane, nextButtonsGridRow,
+                Res.get("shared.nextStep"), Res.get("shared.cancel"), 10);
         nextButton = (AutoTooltipButton) tuple.first;
         nextButton.setMaxWidth(200);
         editOfferElements.add(nextButton);
@@ -1329,7 +1339,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private void addFundingGroup() {
         // don't increase gridRow as we removed button when this gets visible
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("createOffer.fundsBox.title"), 20 + heightAdjustment);
+                Res.get("createOffer.fundsBox.title"), 25 + heightAdjustment);
         payFundsTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(payFundsTitledGroupBg, 2);
         payFundsTitledGroupBg.setVisible(false);
