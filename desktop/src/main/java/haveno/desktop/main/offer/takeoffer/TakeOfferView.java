@@ -266,8 +266,10 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         maybeShowAccountWarning(lastPaymentAccount, model.dataModel.isBuyOffer());
 
         if (!model.isRange()) {
+
+            // hide next button, but keep cancel to abort the availability check
             nextButton.setVisible(false);
-            cancelButton1.setVisible(false);
+            nextButton.setManaged(false);
             if (model.isOfferAvailable.get())
                 showNextStepAfterAmountIsSet();
         }
