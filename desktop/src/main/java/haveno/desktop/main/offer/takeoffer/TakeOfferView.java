@@ -353,11 +353,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                     .onClose(() -> close(false))
                     .show();
 
-        if (offer.hasBuyerAsTakerWithoutDeposit() && offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
+            boolean noDeposit = offer.hasBuyerAsTakerWithoutDeposit();
 
             // attach extra info text area
-            //updateOfferElementsStyle();
-            Tuple2<Label, TextArea> extraInfoTuple = addCompactTopLabelTextArea(gridPane, ++gridRowNoFundingRequired, Res.get("payment.shared.extraInfo.noDeposit"), "");
+            Tuple2<Label, TextArea> extraInfoTuple = addCompactTopLabelTextArea(gridPane,
+                    noDeposit ? ++gridRowNoFundingRequired : gridRow + 1,
+                    Res.get(noDeposit ? "payment.shared.extraInfo.noDeposit" : "payment.shared.extraInfo.offer"), "");
             extraInfoLabel = extraInfoTuple.first;
             extraInfoLabel.setVisible(false);
             extraInfoLabel.setManaged(false);
@@ -372,9 +374,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             GUIUtil.adjustHeightAutomatically(extraInfoTextArea);
             GridPane.setColumnSpan(extraInfoTextArea.getParent(), GridPane.REMAINING); // grid child is the wrapping vbox
 
-            // move up take offer buttons
-            GridPane.setRowIndex(takeOfferBox, gridRowNoFundingRequired + 1);
-            GridPane.setMargin(takeOfferBox, new Insets(15, 0, 0, 0));
+            if (noDeposit) {
+                // move up take offer buttons
+                GridPane.setRowIndex(takeOfferBox, gridRowNoFundingRequired + 1);
+                GridPane.setMargin(takeOfferBox, new Insets(15, 0, 0, 0));
+            } else {
+                GridPane.setMargin(extraInfoTextArea.getParent(), new Insets(15, 0, 0, 0)); // separate from funding buttons
+            }
         }
     }
 
@@ -499,12 +505,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             noFundingRequiredTitledGroupBg.setManaged(true);
             noFundingRequiredLabel.setVisible(true);
             noFundingRequiredLabel.setManaged(true);
-            if (model.getOffer().getCombinedExtraInfo() != null && !model.getOffer().getCombinedExtraInfo().isEmpty()) {
-                extraInfoLabel.setVisible(true);
-                extraInfoLabel.setManaged(true);
-                extraInfoTextArea.setVisible(true);
-                extraInfoTextArea.setManaged(true);
-            }
         } else {
             payFundsTitledGroupBg.setVisible(true);
             payFundsTitledGroupBg.setManaged(true);
@@ -516,6 +516,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             qrCodePane.setManaged(true);
             balanceTextField.setVisible(true);
             balanceTextField.setManaged(true);
+        }
+
+        if (model.getOffer().getCombinedExtraInfo() != null && !model.getOffer().getCombinedExtraInfo().isEmpty()) {
+            extraInfoLabel.setVisible(true);
+            extraInfoLabel.setManaged(true);
+            extraInfoTextArea.setVisible(true);
+            extraInfoTextArea.setManaged(true);
         }
 
         totalToPayTextField.setFundsStructure(Res.get("takeOffer.fundsBox.fundsStructure",
