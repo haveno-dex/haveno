@@ -35,6 +35,7 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
@@ -48,6 +49,7 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.Navigation;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.main.offer.OfferViewModelUtil;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.editor.PasswordPopup;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -93,6 +95,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(OfferDetailsWindow.class);
 
     private final CoinFormatter formatter;
+    private final OfferUtil offerUtil;
     private final User user;
     private final KeyRing keyRing;
     private final Navigation navigation;
@@ -112,11 +115,13 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
     @Inject
     public OfferDetailsWindow(@Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                              OfferUtil offerUtil,
                               User user,
                               KeyRing keyRing,
                               Navigation navigation,
                               TradeManager tradeManager) {
         this.formatter = formatter;
+        this.offerUtil = offerUtil;
         this.user = user;
         this.keyRing = keyRing;
         this.navigation = navigation;
@@ -344,10 +349,14 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         OpenOffer myOpenOffer = HavenoUtils.openOfferManager.getOpenOffer(offer.getId()).orElse(null);
         String offerChallenge = myOpenOffer == null ? null : myOpenOffer.getChallenge();
 
+        boolean showTradeFee = placeOfferHandlerOptional.isPresent() || takeOfferHandlerOptional.isPresent();
+
         rows = 3;
         if (countryCode != null)
             rows++;
         if (!isF2F)
+            rows++;
+        if (showTradeFee)
             rows++;
         if (reservedAmount != null)
             rows++;
@@ -372,6 +381,15 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
                 " " +
                 HavenoUtils.formatXmr(takeOfferHandlerOptional.isPresent() ? offer.getOfferPayload().getSellerSecurityDepositForTradeAmount(tradeAmount) : offer.getOfferPayload().getMaxSellerSecurityDeposit(), true);
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.securityDeposit"), value);
+
+        if (showTradeFee) {
+            boolean isTaker = takeOfferHandlerOptional.isPresent();
+            BigInteger feeBasisAmount = isTaker ? tradeAmount : offer.getAmount();
+            BigInteger tradeFee = HavenoUtils.multiply(feeBasisAmount, isTaker ? offer.getTakerFeePct() : offer.getMakerFeePct());
+            addSeparator(gridPane, ++rowIndex);
+            addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("createOffer.tradeFee.descriptionXMROnly"),
+                    OfferViewModelUtil.getTradeFeeWithFiatEquivalentAndPercentage(offerUtil, tradeFee, feeBasisAmount, formatter));
+        }
 
         if (reservedAmount != null) {
             addSeparator(gridPane, ++rowIndex);
