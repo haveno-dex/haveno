@@ -129,6 +129,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private TitledGroupBg noFundingRequiredTitledGroupBg;
     private Label noFundingRequiredLabel;
     private int gridRowNoFundingRequired;
+    private double hiddenSectionsGap;
     private TitledGroupBg payFundsTitledGroupBg;
     private VBox priceAsPercentageInputBox, amountRangeBox, tradeFeeFieldsBox;
     private Region tradeFeeSeparator, buttonsSeparator;
@@ -456,7 +457,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         // the buttons give way to the funding title, which takes the separator spacing of the other sections
         buttonsSeparator.setVisible(true);
         buttonsSeparator.setManaged(true);
-        GridPane.setMargin(buttonsSeparator, new Insets(7, 0, -12, 0));
+        GridPane.setValignment(buttonsSeparator, VPos.TOP);
+        GridPane.setMargin(buttonsSeparator, new Insets(7 - hiddenSectionsGap, 0, -12, 0));
 
         model.onShowPayFundsScreen();
 
@@ -929,9 +931,12 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private void addFundingGroup() {
 
+        // the hidden fee band leaves 2 empty rows whose vgaps still space the grid, so pull the funding section up past them
+        hiddenSectionsGap = 2 * gridPane.getVgap();
+
         // no funding required title
         noFundingRequiredTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("takeOffer.fundsBox.noFundingRequiredTitle"), Layout.SEPARATED_GROUP_DISTANCE);
+                Res.get("takeOffer.fundsBox.noFundingRequiredTitle"), Layout.SEPARATED_GROUP_DISTANCE - hiddenSectionsGap);
         noFundingRequiredTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(noFundingRequiredTitledGroupBg, 2);
         noFundingRequiredTitledGroupBg.setVisible(false);
@@ -943,21 +948,21 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         noFundingRequiredLabel.setManaged(false);
         //GridPane.setRowSpan(noFundingRequiredLabel, 1);
         GridPane.setRowIndex(noFundingRequiredLabel, gridRow);
-        noFundingRequiredLabel.setPadding(new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
+        noFundingRequiredLabel.setPadding(new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE - hiddenSectionsGap, 0, 0, 0));
         GridPane.setHalignment(noFundingRequiredLabel, HPos.LEFT);
         gridPane.getChildren().add(noFundingRequiredLabel);
         gridRowNoFundingRequired = gridRow;
 
         // funding title
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("takeOffer.fundsBox.title"), Layout.SEPARATED_GROUP_DISTANCE);
+                Res.get("takeOffer.fundsBox.title"), Layout.SEPARATED_GROUP_DISTANCE - hiddenSectionsGap);
         payFundsTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(payFundsTitledGroupBg, 2);
         payFundsTitledGroupBg.setVisible(false);
         payFundsTitledGroupBg.setManaged(false);
 
         totalToPayTextField = addFundsTextfield(gridPane, gridRow,
-                Res.get("shared.totalsNeeded"), Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE);
+                Res.get("shared.totalsNeeded"), Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE - hiddenSectionsGap);
         totalToPayTextField.setVisible(false);
         totalToPayTextField.setManaged(false);
 
