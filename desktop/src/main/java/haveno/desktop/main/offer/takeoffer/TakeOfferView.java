@@ -811,6 +811,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 Res.get("shared.chooseTradingAccount"), Layout.FIRST_ROW_DISTANCE);
 
         paymentAccountsComboBox = paymentAccountTuple.first;
+        paymentAccountsComboBox.setMinWidth(250); // matches sibling fields, grows for longer names
         HBox.setMargin(paymentAccountsComboBox, new Insets(Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
         paymentAccountsComboBox.setConverter(GUIUtil.getPaymentAccountsComboBoxStringConverter());
         paymentAccountsComboBox.setCellFactory(model.getPaymentAccountListCellFactory(paymentAccountsComboBox));
