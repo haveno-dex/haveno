@@ -185,6 +185,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private OfferView.OfferActionHandler offerActionHandler;
 
     private int heightAdjustment = -5;
+    private double hiddenSectionsGap;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -398,7 +399,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         // the buttons give way to the funding title, which takes the separator spacing of the other sections
         buttonsSeparator.setVisible(true);
         buttonsSeparator.setManaged(true);
-        GridPane.setMargin(buttonsSeparator, new Insets(7, 0, -12, 0));
+        GridPane.setValignment(buttonsSeparator, VPos.TOP);
+        GridPane.setMargin(buttonsSeparator, new Insets(7 - hiddenSectionsGap, 0, -12, 0));
 
         hideOptionsGroup();
         hideExtraInfoGroup();
@@ -1338,14 +1340,18 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void addFundingGroup() {
         // don't increase gridRow as we removed button when this gets visible
+
+        // the hidden sections leave 6 empty rows whose vgaps still space the grid, so pull the funding section up past them
+        hiddenSectionsGap = 6 * gridPane.getVgap();
+
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("createOffer.fundsBox.title"), Layout.SEPARATED_GROUP_DISTANCE);
+                Res.get("createOffer.fundsBox.title"), Layout.SEPARATED_GROUP_DISTANCE - hiddenSectionsGap);
         payFundsTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(payFundsTitledGroupBg, 2);
         payFundsTitledGroupBg.setVisible(false);
 
         totalToPayTextField = addFundsTextfield(gridPane, gridRow,
-                Res.get("shared.totalsNeeded"), Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE);
+                Res.get("shared.totalsNeeded"), Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE - hiddenSectionsGap);
         totalToPayTextField.setVisible(false);
 
         Tuple2<StackPane, ImageView> qrCodeTuple = GUIUtil.getSmallXmrQrCodePane();

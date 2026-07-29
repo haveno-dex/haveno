@@ -1918,7 +1918,8 @@ public class FormBuilder {
         fundsTextField.getTextField().setPromptText(text);
         GridPane.setRowIndex(fundsTextField, rowIndex);
         GridPane.setColumnIndex(fundsTextField, 0);
-        GridPane.setMargin(fundsTextField, new Insets(top + 20, 0, 0, 0));
+        // the caption floats 16px above the field; +26 lands it where the captioned boxes' labels sit
+        GridPane.setMargin(fundsTextField, new Insets(top + 26, 0, 0, 0));
         gridPane.getChildren().add(fundsTextField);
 
         return fundsTextField;
