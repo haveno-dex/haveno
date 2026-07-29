@@ -218,9 +218,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 return computePrefWidth(height); // collapse at most to full text width, never ellipsize
             }
         };
-        createOfferButton.setMinHeight(40);
         createOfferButton.setGraphicTextGap(10);
-        createOfferButton.setPrefWidth(300); // spans the actions + trader columns (225 + 60 + 15 spacer)
+        createOfferButton.setPrefWidth(340); // overhangs the actions + trader columns (300) for emphasis
         createOfferButton.setStyle("-fx-padding: 7 25 7 25;");
         disabledCreateOfferButtonTooltip = new Label("");
         disabledCreateOfferButtonTooltip.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -281,7 +280,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         tableView.getSortOrder().add(priceColumn);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        // widen by the scrollbar width so the left edge stays aligned with the take offer buttons, which shift with it
+        // widen by the scrollbar width to keep a constant overhang past the take offer buttons, which shift with it
         tableView.skinProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue == null) return;
             for (Node node : tableView.lookupAll(".scroll-bar")) {
@@ -655,7 +654,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     public void setDirection(OfferDirection direction) {
         model.initWithDirection(direction);
-        createOfferButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode()));
+        createOfferButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode(), 26, 1));
         createOfferButton.setContentDisplay(ContentDisplay.RIGHT);
         createOfferButton.setId(direction == OfferDirection.SELL ? "sell-button-big" : "buy-button-big");
         avatarColumn.setTitle(direction == OfferDirection.SELL ? Res.get("shared.buyerUpperCase") : Res.get("shared.sellerUpperCase"));
