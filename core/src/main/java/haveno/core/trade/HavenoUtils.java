@@ -121,8 +121,11 @@ public class HavenoUtils {
     }
 
     // synchronize requests to monerod
-    private static boolean SYNC_DAEMON_REQUESTS = false; // sync long requests to daemon (e.g. refresh, update pool) // TODO: performance suffers by syncing daemon requests, but otherwise we sometimes get sporadic errors?
-    private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create txs)
+    // Remote nodes can reject or time out concurrent long requests such as wallet
+    // refreshes, pool updates, and transaction creation. Serialize those calls so
+    // create_tx does not race the wallet's background daemon requests.
+    private static boolean SYNC_DAEMON_REQUESTS = true; // sync long requests to daemon (e.g. refresh, update pool)
+    private static boolean SYNC_WALLET_REQUESTS = true; // additionally sync wallet functions to daemon (e.g. create txs)
     private static boolean SYNC_IMPORT_MULTISIG_REQUESTS = false; // sync import multisig requests to avoid concurrent imports
     private static Object DAEMON_LOCK = new Object();
     private static Object IMPORT_MULTISIG_LOCK = new Object();
