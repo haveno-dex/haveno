@@ -865,7 +865,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(7, 0, -12, 0));
 
         TitledGroupBg titledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
-                Res.get("takeOffer.setAmountPrice"), Layout.COMPACT_GROUP_DISTANCE);
+                Res.get("takeOffer.setAmountPrice"), Layout.SEPARATED_GROUP_DISTANCE);
         GridPane.setColumnSpan(titledGroupBg, 2);
 
         addAmountPriceFields();
@@ -931,7 +931,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
         // no funding required title
         noFundingRequiredTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("takeOffer.fundsBox.noFundingRequiredTitle"), Layout.COMPACT_GROUP_DISTANCE);
+                Res.get("takeOffer.fundsBox.noFundingRequiredTitle"), Layout.SEPARATED_GROUP_DISTANCE);
         noFundingRequiredTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(noFundingRequiredTitledGroupBg, 2);
         noFundingRequiredTitledGroupBg.setVisible(false);
@@ -943,21 +943,21 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         noFundingRequiredLabel.setManaged(false);
         //GridPane.setRowSpan(noFundingRequiredLabel, 1);
         GridPane.setRowIndex(noFundingRequiredLabel, gridRow);
-        noFundingRequiredLabel.setPadding(new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
+        noFundingRequiredLabel.setPadding(new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
         GridPane.setHalignment(noFundingRequiredLabel, HPos.LEFT);
         gridPane.getChildren().add(noFundingRequiredLabel);
         gridRowNoFundingRequired = gridRow;
 
         // funding title
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("takeOffer.fundsBox.title"), Layout.COMPACT_GROUP_DISTANCE);
+                Res.get("takeOffer.fundsBox.title"), Layout.SEPARATED_GROUP_DISTANCE);
         payFundsTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(payFundsTitledGroupBg, 2);
         payFundsTitledGroupBg.setVisible(false);
         payFundsTitledGroupBg.setManaged(false);
 
         totalToPayTextField = addFundsTextfield(gridPane, gridRow,
-                Res.get("shared.totalsNeeded"), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
+                Res.get("shared.totalsNeeded"), Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE);
         totalToPayTextField.setVisible(false);
         totalToPayTextField.setManaged(false);
 
@@ -1132,7 +1132,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         firstRowHBox.getChildren().addAll(amountBox, xLabel, priceBox, resultLabel, volumeBox);
         GridPane.setColumnSpan(firstRowHBox, 2);
         GridPane.setRowIndex(firstRowHBox, gridRow);
-        GridPane.setMargin(firstRowHBox, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 10, 0, 0));
+        GridPane.setMargin(firstRowHBox, new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 10, 0, 0));
         gridPane.getChildren().add(firstRowHBox);
     }
 

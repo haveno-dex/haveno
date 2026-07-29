@@ -34,6 +34,9 @@ public class Layout {
     public static final double GROUP_DISTANCE = 40d;
     public static final double COMPACT_GROUP_DISTANCE = 30d;
     public static final double GROUP_DISTANCE_WITHOUT_SEPARATOR = 20d;
+    // groups under a separator row sit closer to it, as Bisq's group borders do
+    public static final double SEPARATED_GROUP_DISTANCE = COMPACT_GROUP_DISTANCE - 5;
+    public static final double SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE = SEPARATED_GROUP_DISTANCE + FIRST_ROW_DISTANCE;
     public static final double FIRST_ROW_AND_GROUP_DISTANCE = GROUP_DISTANCE + FIRST_ROW_DISTANCE;
     public static final double COMPACT_FIRST_ROW_AND_GROUP_DISTANCE = COMPACT_GROUP_DISTANCE + FIRST_ROW_DISTANCE;
     public static final double COMPACT_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE = COMPACT_GROUP_DISTANCE + COMPACT_FIRST_ROW_DISTANCE;

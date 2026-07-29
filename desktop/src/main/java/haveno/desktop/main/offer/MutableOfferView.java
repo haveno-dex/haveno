@@ -1093,7 +1093,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setMargin(addSeparator(gridPane, ++gridRow), new Insets(7, 0, -12, 0));
 
         amountTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
-                Res.get("createOffer.setAmountPrice"), 25 + heightAdjustment);
+                Res.get("createOffer.setAmountPrice"), Layout.SEPARATED_GROUP_DISTANCE);
         GridPane.setColumnSpan(amountTitledGroupBg, 2);
 
         addAmountPriceFields();
@@ -1105,7 +1105,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setMargin(advancedOptionsSeparator, new Insets(7, 0, -12, 0));
 
         setDepositTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 2,
-                Res.get("shared.advancedOptions"), 25 + heightAdjustment);
+                Res.get("shared.advancedOptions"), Layout.SEPARATED_GROUP_DISTANCE);
 
         securityDepositAndFeeBox = new HBox();
         securityDepositAndFeeBox.setSpacing(40);
@@ -1114,7 +1114,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnSpan(securityDepositAndFeeBox, GridPane.REMAINING);
         GridPane.setColumnIndex(securityDepositAndFeeBox, 0);
         GridPane.setHalignment(securityDepositAndFeeBox, HPos.LEFT);
-        GridPane.setMargin(securityDepositAndFeeBox, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
+        GridPane.setMargin(securityDepositAndFeeBox, new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
         gridPane.getChildren().add(securityDepositAndFeeBox);
 
         VBox tradeFeeFieldsBox = getTradeFeeFieldsBox();
@@ -1185,7 +1185,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setMargin(extraInfoSeparator, new Insets(7, 0, -12, 0));
 
         extraInfoTitledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 1,
-                Res.get("payment.shared.optionalExtra"), 25 + heightAdjustment);
+                Res.get("payment.shared.optionalExtra"), Layout.SEPARATED_GROUP_DISTANCE);
         GridPane.setColumnSpan(extraInfoTitledGroupBg, 3);
 
         extraInfoTextArea = new InputTextArea();
@@ -1201,7 +1201,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
         GridPane.setColumnIndex(extraInfoTextArea, 0);
         GridPane.setHalignment(extraInfoTextArea, HPos.LEFT);
-        GridPane.setMargin(extraInfoTextArea, new Insets(Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
+        // +10 starts the bare text area at the caption line of the sibling sections
+        GridPane.setMargin(extraInfoTextArea, new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE + 10, 0, 0, 0));
         gridPane.getChildren().add(extraInfoTextArea);
     }
 
@@ -1338,15 +1339,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private void addFundingGroup() {
         // don't increase gridRow as we removed button when this gets visible
         payFundsTitledGroupBg = addTitledGroupBg(gridPane, gridRow, 3,
-                Res.get("createOffer.fundsBox.title"), 25 + heightAdjustment);
+                Res.get("createOffer.fundsBox.title"), Layout.SEPARATED_GROUP_DISTANCE);
         payFundsTitledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(payFundsTitledGroupBg, 2);
         payFundsTitledGroupBg.setVisible(false);
 
         totalToPayTextField = addFundsTextfield(gridPane, gridRow,
-                Res.get("shared.totalsNeeded"), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE);
+                Res.get("shared.totalsNeeded"), Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE);
         totalToPayTextField.setVisible(false);
-        GridPane.setMargin(totalToPayTextField, new Insets(60 + heightAdjustment, 10, 0, 0));
 
         Tuple2<StackPane, ImageView> qrCodeTuple = GUIUtil.getSmallXmrQrCodePane();
         qrCodePane = qrCodeTuple.first;
@@ -1545,7 +1545,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         firstRowHBox.getChildren().addAll(amountBox, xLabel, percentagePriceBox, resultLabel, volumeBox);
         GridPane.setColumnSpan(firstRowHBox, 2);
         GridPane.setRowIndex(firstRowHBox, gridRow);
-        GridPane.setMargin(firstRowHBox, new Insets(40 + heightAdjustment, 10, 0, 0));
+        GridPane.setMargin(firstRowHBox, new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 10, 0, 0));
         gridPane.getChildren().add(firstRowHBox);
     }
 
