@@ -593,6 +593,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         securityDepositLabel.textProperty().bind(model.securityDepositLabel);
         tradeFeeInXmrLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
+        tradeFeeInXmrLabel.visibleProperty().bind(model.isTradeFeeVisible);
+        tradeFeeDescriptionLabel.visibleProperty().bind(model.isTradeFeeVisible);
         extraInfoTextArea.textProperty().bindBidirectional(model.extraInfo);
 
         // Validation

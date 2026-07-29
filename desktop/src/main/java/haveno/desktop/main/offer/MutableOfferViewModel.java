@@ -517,6 +517,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         BigInteger makerFee = dataModel.getMaxMakerFee();
         if (makerFee == null) {
+            isTradeFeeVisible.setValue(false);
             return;
         }
 
