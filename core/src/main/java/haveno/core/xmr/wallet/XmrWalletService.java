@@ -1739,6 +1739,11 @@ public class XmrWalletService extends XmrWalletBase {
             cmd.add("--" + MONERO_NETWORK_TYPE.toString().toLowerCase());
         }
 
+        // testnet may use custom hard fork heights
+        if (MONERO_NETWORK_TYPE == MoneroNetworkType.TESTNET) {
+            cmd.add("--allow-mismatched-daemon-version");
+        }
+
         // set connection flags
         if (connection != null) {
             cmd.add("--daemon-address");
