@@ -389,6 +389,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void onShowPayFundsScreen() {
+        boolean isRestoring = model.showPayFundsScreenDisplayed.get();
+
         nextButton.setVisible(false);
         nextButton.setManaged(false);
         nextButton.setOnAction(null);
@@ -408,7 +410,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         updateQrCode();
 
         model.onShowPayFundsScreen(() -> {
-            if (!DevEnv.isDevMode()) {
+            if (!DevEnv.isDevMode() && !isRestoring) {
                 new FundWalletInfoWindow()
                         .headLine(Res.get("createOffer.createOfferFundWalletInfo.headline"))
                         .totalToPay(model.getTotalToPayInfo())
