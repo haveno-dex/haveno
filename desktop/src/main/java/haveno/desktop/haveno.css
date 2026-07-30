@@ -1841,8 +1841,11 @@ textfield */
     -fx-background-color: -bs-color-background-popup-blur;
 }
 
-.text-area-popup:focused {
-    -fx-faint-focus-color: -bs-color-background-popup-blur;
+/* the message area is focused on show for screen readers; pin one flat background so focus changes nothing visually */
+.text-area-popup, .text-area-popup:focused {
+    -fx-background-color: -bs-color-background-popup-blur;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
 }
 
 .notification-popup-bg .text-area-popup, .peer-info-popup-bg .text-area-popup {
@@ -1853,8 +1856,11 @@ textfield */
     -fx-background-color: -bs-color-background-popup;
 }
 
+.notification-popup-bg .text-area-popup, .peer-info-popup-bg .text-area-popup,
 .notification-popup-bg .text-area-popup:focused, .peer-info-popup-bg .text-area-popup:focused {
-    -fx-faint-focus-color: -bs-color-background-popup;
+    -fx-background-color: -bs-color-background-popup;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
 }
 
 /*******************************************************************************
