@@ -464,7 +464,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         triggerPriceHBox.getStyleClass().remove(activeInputStyle);
         triggerPriceHBox.getStyleClass().add(readOnlyInputStyle);
 
-        GridPane.setColumnSpan(secondRowHBox, 1);
+        GridPane.setColumnSpan(secondRowHBox, 2); // keep same span as firstRowHBox so both rows shrink consistently
         priceTypeToggleButton.setVisible(false);
         HBox.setMargin(priceTypeToggleButton, new Insets(16, -14, 0, 0));
 
@@ -1367,6 +1367,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnIndex(qrCodePane, 1);
         GridPane.setRowSpan(qrCodePane, 3);
         GridPane.setValignment(qrCodePane, VPos.BOTTOM);
+        GridPane.setHalignment(qrCodePane, HPos.RIGHT);
         GridPane.setMargin(qrCodePane, new Insets(Layout.FIRST_ROW_DISTANCE - 9, 0, 0, 10));
         gridPane.getChildren().add(qrCodePane);
 
@@ -1381,7 +1382,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                 Res.get("shared.tradeWalletBalance"));
         balanceTextField.setVisible(false);
 
-        
+        // span the funds fields across both columns, reserving a right strip for the QR code
+        for (Node field : List.of(totalToPayTextField, addressTextField, balanceTextField)) {
+            GridPane.setColumnSpan(field, 2);
+            Insets margin = GridPane.getMargin(field);
+            GridPane.setMargin(field, new Insets(margin.getTop(), 170, margin.getBottom(), margin.getLeft()));
+        }
+
         reserveExactAmountSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("shared.reserveExactAmount"), heightAdjustment);
         GridPane.setHalignment(reserveExactAmountSlider, HPos.LEFT);
         GridPane.setMargin(reserveExactAmountSlider, new Insets(-5, 0, -5, 0));
