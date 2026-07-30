@@ -179,7 +179,7 @@ public class PeerInfoIcon extends Group {
                         Res.get("peerInfo.unknownAge") :
                 null;
 
-        Accessibility.asButton(this, tooltipText);
+        Accessibility.asButton(this, null); // tag-aware name already set by refreshTag
         setOnMouseClicked(e -> {
             if (e.getButton().equals(MouseButton.PRIMARY)) {
                 new PeerInfoWithTagEditor(privateNotificationManager, trade, offer, preferences, useDevPrivilegeKeys)

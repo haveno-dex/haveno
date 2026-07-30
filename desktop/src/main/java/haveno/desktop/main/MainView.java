@@ -80,7 +80,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.scene.AccessibleRole;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -837,8 +836,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             } else {
                 versionLabel.getStyleClass().add("version");
                 versionLabel.setOnMouseClicked(null);
-                versionLabel.setAccessibleRole(AccessibleRole.TEXT);
-                versionLabel.setFocusTraversable(false);
+                Accessibility.asText(versionLabel, null); // announced by its bound text
             }
         });
         HBox versionBox = new HBox();
@@ -928,9 +926,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         });
         Accessibility.asButton(p2PNetworkStatusIcon, Res.get("mainView.networkStatus"));
         p2PNetworkStatusIcon.setOnMouseClicked(e -> {
-            if (p2PNetworkStatusIcon.getId().equalsIgnoreCase("image-alert-round")) {
+            String statusIconId = p2PNetworkStatusIcon.getId();
+            if (statusIconId == null) return; // no status yet (keyboard-activatable before the first update)
+            if (statusIconId.equalsIgnoreCase("image-alert-round")) {
                 new Popup().warning(Res.get("popup.info.p2pStatusIndicator.red", model.getP2pConnectionSummary())).show();
-            } else if (p2PNetworkStatusIcon.getId().equalsIgnoreCase("image-yellow_circle")) {
+            } else if (statusIconId.equalsIgnoreCase("image-yellow_circle")) {
                 new Popup().information(Res.get("popup.info.p2pStatusIndicator.yellow", model.getP2pConnectionSummary())).show();
             } else {
                 new Popup().information(Res.get("popup.info.p2pStatusIndicator.green", model.getP2pConnectionSummary())).show();
