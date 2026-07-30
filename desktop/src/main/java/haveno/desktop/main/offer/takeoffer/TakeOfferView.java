@@ -87,6 +87,7 @@ import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -96,6 +97,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -979,6 +981,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         GridPane.setColumnIndex(qrCodePane, 1);
         GridPane.setRowSpan(qrCodePane, 3);
         GridPane.setValignment(qrCodePane, VPos.BOTTOM);
+        GridPane.setHalignment(qrCodePane, HPos.RIGHT);
         GridPane.setMargin(qrCodePane, new Insets(Layout.FIRST_ROW_DISTANCE - 9, 0, 0, 10));
         gridPane.getChildren().add(qrCodePane);
 
@@ -992,6 +995,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         balanceTextField = addBalanceTextField(gridPane, ++gridRow, Res.get("shared.tradeWalletBalance"));
         balanceTextField.setVisible(false);
         balanceTextField.setManaged(false);
+
+        // span the funds fields across both columns, reserving a right strip for the QR code
+        for (Node field : List.of(totalToPayTextField, addressTextField, balanceTextField)) {
+            GridPane.setColumnSpan(field, 2);
+            Insets margin = GridPane.getMargin(field);
+            GridPane.setMargin(field, new Insets(margin.getTop(), 170, margin.getBottom(), margin.getLeft()));
+        }
 
         fundingHBox = new HBox();
         fundingHBox.setVisible(false);
