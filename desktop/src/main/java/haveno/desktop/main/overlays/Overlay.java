@@ -57,7 +57,6 @@ import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
-import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -77,7 +76,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
-import javafx.scene.transform.Rotate;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -633,7 +631,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
         // show at full opacity and animate only transforms; partially transparent content reads unevenly
         rootContainer.setOpacity(1);
-        Interpolator interpolator = Interpolator.SPLINE(0.25, 0.1, 0.25, 1);
+        Interpolator interpolator = Interpolator.SPLINE(0, 0, 0.2, 1); // decelerate into place
         double duration = getDuration(200);
         Timeline timeline = new Timeline();
         ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
@@ -646,26 +644,9 @@ public abstract class Overlay<T extends Overlay<T>> {
             keyFrames.add(new KeyFrame(Duration.millis(duration),
                     new KeyValue(rootContainer.translateYProperty(), -50, interpolator)
             ));
-        } else if (type.animationType == AnimationType.ScaleFromCenter) {
-            double startScale = 0.95;
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.scaleXProperty(), startScale, interpolator),
-                    new KeyValue(rootContainer.scaleYProperty(), startScale, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
-                    new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
-            ));
-        } else if (type.animationType == AnimationType.ScaleYFromCenter) {
-            double startYScale = 0.95;
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.scaleYProperty(), startYScale, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
-            ));
-        } else if (type.animationType == AnimationType.ScaleDownToCenter) {
-            double startScale = 1.05;
+        } else {
+            // warnings and errors settle down from above, all other popups settle up into place
+            double startScale = type.animationType == AnimationType.ScaleDownToCenter ? 1.04 : 0.96;
             keyFrames.add(new KeyFrame(Duration.millis(0),
                     new KeyValue(rootContainer.scaleXProperty(), startScale, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), startScale, interpolator)
@@ -675,14 +656,13 @@ public abstract class Overlay<T extends Overlay<T>> {
                     new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
             ));
         }
-        // FadeInAtCenter shows without animation
 
         timeline.play();
     }
 
     protected void animateHide(Runnable onFinishedHandler) {
-        Interpolator interpolator = Interpolator.SPLINE(0.25, 0.1, 0.25, 1);
-        double duration = getDuration(200);
+        Interpolator interpolator = Interpolator.SPLINE(0.4, 0, 1, 1); // accelerate away
+        double duration = getDuration(140);
         Timeline timeline = new Timeline();
         ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
 
@@ -696,8 +676,8 @@ public abstract class Overlay<T extends Overlay<T>> {
             keyFrames.add(new KeyFrame(Duration.millis(duration),
                     new KeyValue(rootContainer.translateYProperty(), endY, interpolator)
             ));
-        } else if (type.animationType == AnimationType.ScaleFromCenter) {
-            double endScale = 0.95;
+        } else {
+            double endScale = 0.96;
             keyFrames.add(new KeyFrame(Duration.millis(0),
                     new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
@@ -706,31 +686,6 @@ public abstract class Overlay<T extends Overlay<T>> {
                     new KeyValue(rootContainer.scaleXProperty(), endScale, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), endScale, interpolator)
             ));
-        } else if (type.animationType == AnimationType.ScaleYFromCenter) {
-            rootContainer.setRotationAxis(Rotate.X_AXIS);
-            rootContainer.getScene().setCamera(new PerspectiveCamera());
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.rotateProperty(), 0, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.rotateProperty(), -90, interpolator)
-            ));
-        } else if (type.animationType == AnimationType.ScaleDownToCenter) {
-            double endScale = 0.95;
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
-                    new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.scaleXProperty(), endScale, interpolator),
-                    new KeyValue(rootContainer.scaleYProperty(), endScale, interpolator)
-            ));
-        }
-
-        // FadeInAtCenter closes without animation
-        if (keyFrames.isEmpty()) {
-            onFinishedHandler.run();
-            return;
         }
 
         timeline.setOnFinished(e -> onFinishedHandler.run());
