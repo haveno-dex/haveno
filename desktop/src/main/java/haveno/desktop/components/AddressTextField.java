@@ -24,6 +24,7 @@ import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.property.ObjectProperty;
@@ -80,6 +81,7 @@ public class AddressTextField extends AnchorPane {
         extWalletIcon.setTooltip(new Tooltip(tooltipText));
         GlyphsDude.setIcon(extWalletIcon, FontAwesomeIcon.SIGN_IN);
         extWalletIcon.setOnMouseClicked(e -> openWallet());
+        Accessibility.asButton(extWalletIcon, tooltipText);
 
         Label copyLabel = new Label();
         copyLabel.setLayoutY(Layout.FLOATING_ICON_Y);
@@ -94,6 +96,7 @@ public class AddressTextField extends AnchorPane {
                 UserThread.runAfter(() -> tp.hide(), 1);
                 tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
         });
+        Accessibility.asButton(copyLabel, Res.get("addressTextField.copyToClipboard"));
 
         AnchorPane.setRightAnchor(copyLabel, 30.0);
         AnchorPane.setRightAnchor(extWalletIcon, 5.0);

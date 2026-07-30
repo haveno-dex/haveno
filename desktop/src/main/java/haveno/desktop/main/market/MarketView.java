@@ -32,6 +32,7 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.Navigation;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
@@ -92,6 +93,7 @@ public class MarketView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
+        Accessibility.fixTabs(root);
         offerBookTab.setText(Res.get("market.tabs.offerBook"));
         spreadTab.setText(Res.get("market.tabs.spreadCurrency"));
         spreadTabPaymentMethod.setText(Res.get("market.tabs.spreadPayment"));

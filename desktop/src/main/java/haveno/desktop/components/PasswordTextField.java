@@ -25,6 +25,9 @@ public class PasswordTextField extends JFXPasswordField {
         super();
         setLabelFloat(true);
         setMaxWidth(380);
+
+        // expose the floating prompt to screen readers
+        promptTextProperty().addListener((o, oldValue, newValue) -> setAccessibleHelp(newValue));
     }
 
     @Override

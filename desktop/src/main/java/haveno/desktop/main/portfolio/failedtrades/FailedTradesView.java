@@ -36,6 +36,7 @@ import haveno.desktop.components.list.FilterBox;
 import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import java.math.BigInteger;
@@ -511,6 +512,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
                                     iconButton.setStyle("-fx-cursor: hand;");
                                     iconButton.getStyleClass().add("hidden-icon-button");
                                     iconButton.setTooltip(new Tooltip(Res.get("portfolio.failed.revertToPending")));
+                                    Accessibility.nameFromTooltip(iconButton);
                                     iconButton.setOnAction(e -> onRevertTrade(newItem.getTrade()));
                                     setGraphic(iconButton);
                                 } else {

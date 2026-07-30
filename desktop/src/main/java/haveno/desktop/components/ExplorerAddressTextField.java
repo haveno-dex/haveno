@@ -23,6 +23,7 @@ import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -51,6 +52,7 @@ public class ExplorerAddressTextField extends AnchorPane {
         copyLabel.getStyleClass().addAll("icon", "highlight");
         copyLabel.setTooltip(new Tooltip(Res.get("explorerAddressTextField.copyToClipboard")));
         copyLabel.setGraphic(GUIUtil.getCopyIcon());
+        Accessibility.asButton(copyLabel, Res.get("explorerAddressTextField.copyToClipboard"));
         AnchorPane.setRightAnchor(copyLabel, 30.0);
 
         Tooltip tooltip = new Tooltip(Res.get("explorerAddressTextField.blockExplorerIcon.tooltip"));
@@ -59,6 +61,7 @@ public class ExplorerAddressTextField extends AnchorPane {
         missingAddressWarningIcon.getStyleClass().addAll("icon", "error-icon");
         GlyphsDude.setIcon(missingAddressWarningIcon, FontAwesomeIcon.WARNING);
         missingAddressWarningIcon.setTooltip(new Tooltip(Res.get("explorerAddressTextField.missingTx.warning.tooltip")));
+        Accessibility.asText(missingAddressWarningIcon, Res.get("explorerAddressTextField.missingTx.warning.tooltip"));
         missingAddressWarningIcon.setMinWidth(20);
         AnchorPane.setRightAnchor(missingAddressWarningIcon, 52.0);
         AnchorPane.setTopAnchor(missingAddressWarningIcon, 4.0);

@@ -29,6 +29,7 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.GlyphsDude;
 import haveno.desktop.util.Layout;
@@ -192,6 +193,7 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
             tp.show((Node) e.getSource(), e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
             UserThread.runAfter(tp::hide, 1);
         });
+        Accessibility.asButton(icon, Res.get("shared.copyToClipboard"));
         return icon;
     }
 
@@ -214,6 +216,7 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         explorerIcon.setCursor(Cursor.HAND);
         explorerIcon.setTooltip(new Tooltip(Res.get("txIdTextField.blockExplorerIcon.tooltip")));
         explorerIcon.setOnMouseClicked(e -> openBlockExplorer(txId, preferences));
+        Accessibility.asButton(explorerIcon, Res.get("txIdTextField.blockExplorerIcon.tooltip"));
 
         Label txIdLabel = wrappedLabel(txId, "confirm-send-address");
         txIdLabel.setCursor(Cursor.HAND);

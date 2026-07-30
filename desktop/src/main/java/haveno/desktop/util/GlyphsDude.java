@@ -46,11 +46,15 @@ public final class GlyphsDude {
     }
 
     public static Text createIcon(GlyphIcons icon) {
-        return factoryFor(icon).createIcon(icon);
+        Text textIcon = factoryFor(icon).createIcon(icon);
+        Accessibility.mute(textIcon); // glyph char is unreadable to screen readers
+        return textIcon;
     }
 
     public static Text createIcon(GlyphIcons icon, String size) {
-        return factoryFor(icon).createIcon(icon, size);
+        Text textIcon = factoryFor(icon).createIcon(icon, size);
+        Accessibility.mute(textIcon); // glyph char is unreadable to screen readers
+        return textIcon;
     }
 
     public static void setIcon(Labeled labeled, GlyphIcons icon) {
@@ -64,6 +68,7 @@ public final class GlyphsDude {
     public static void setLabelGlyph(Labeled labeled, GlyphIcons icon, String size) {
         labeled.setText(icon.unicode());
         labeled.setStyle("-fx-font-family: '" + icon.fontFamily() + "'; -fx-font-size: " + size + ";");
+        if (labeled instanceof Label) Accessibility.mute(labeled); // glyph char is unreadable to screen readers
     }
 
     public static void setIcon(Labeled labeled, GlyphIcons icon, ContentDisplay contentDisplay) {

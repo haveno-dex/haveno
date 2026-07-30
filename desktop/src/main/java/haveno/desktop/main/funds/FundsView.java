@@ -20,6 +20,7 @@ package haveno.desktop.main.funds;
 import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.desktop.Navigation;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
@@ -55,6 +56,7 @@ public class FundsView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
+        Accessibility.fixTabs(root);
         depositTab.setText(Res.get("funds.tab.deposit"));
         withdrawalTab.setText(Res.get("funds.tab.withdrawal"));
         transactionsTab.setText(Res.get("funds.tab.transactions"));

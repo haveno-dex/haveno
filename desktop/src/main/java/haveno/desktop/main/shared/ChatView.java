@@ -24,6 +24,7 @@ import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.TableGroupHeadline;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
@@ -296,6 +297,7 @@ public class ChatView extends AnchorPane {
                         statusInfoLabel.getStyleClass().add("small-text");
                         statusInfoLabel.setPadding(new Insets(3, 0, 0, 0));
                         copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
+                        Accessibility.asButton(copyLabel, Res.get("shared.copyToClipboard"));
                         statusHBox.setSpacing(5);
                         statusHBox.getChildren().addAll(statusIcon, statusInfoLabel);
                         messageAnchorPane.getChildren().addAll(bg, arrow, headerLabel, messageLabel, copyLabel, attachmentsBox, statusHBox);
@@ -456,6 +458,7 @@ public class ChatView extends AnchorPane {
                                         icon.setPadding(new Insets(-2, 0, 0, 0));
                                         icon.setTooltip(new Tooltip(attachment.getFileName()));
                                         icon.setOnMouseClicked(event -> onOpenAttachment(attachment));
+                                        Accessibility.asButton(icon, attachment.getFileName());
                                         attachmentsBox.getChildren().add(icon);
                                     });
                                 } else {

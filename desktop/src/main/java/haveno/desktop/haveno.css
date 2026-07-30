@@ -433,6 +433,11 @@
     -fx-background-color: -bs-background-color;
 }
 
+/* keyboard focus ring for icon controls made focusable for accessibility */
+.a11y-focusable:focus-visible {
+    -fx-effect: dropshadow(gaussian, -bs-color-primary, 6, 0.5, 0, 0);
+}
+
 .list-view:focused,
 .tree-view:focused,
 .table-view:focused,

@@ -35,6 +35,7 @@ import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
@@ -543,8 +544,11 @@ public abstract class Overlay<T extends Overlay<T>> {
                     setupKeyHandler(scene);
 
                     stage = new Stage();
-                    stage.setScene(scene);
                     Window window = rootScene.getWindow();
+                    // window name for screen readers, falling back to the app title
+                    String ownerTitle = window instanceof Stage ? ((Stage) window).getTitle() : null;
+                    stage.setTitle(headLine != null ? headLine : ownerTitle != null ? ownerTitle : "Haveno");
+                    stage.setScene(scene);
                     setModality();
                     stage.initStyle(StageStyle.TRANSPARENT);
                     stage.setOnCloseRequest(event -> {
@@ -553,6 +557,9 @@ public abstract class Overlay<T extends Overlay<T>> {
                     });
                     stage.sizeToScene();
                     stage.show();
+
+                    // focus the message, not the headline copy icon, so screen readers announce it first
+                    if (messageTextArea != null) messageTextArea.requestFocus();
 
                     layout();
 
@@ -798,6 +805,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                         tp.show(node, mouseEvent.getScreenX() + Layout.PADDING, mouseEvent.getScreenY() + Layout.PADDING);
                     }
                 });
+                Accessibility.asButton(copyLabel, Res.get("shared.copyToClipboard"));
             }
 
             switch (type) {

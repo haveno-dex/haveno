@@ -18,6 +18,8 @@
 package haveno.desktop.components;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import haveno.core.locale.Res;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import javafx.beans.property.SimpleStringProperty;
@@ -88,6 +90,7 @@ public class TitledGroupBg extends Pane {
         if (helpIcon == null) {
             helpIcon = FormBuilder.getIcon(MaterialDesignIcon.HELP_CIRCLE_OUTLINE, "1em");
             helpIcon.getStyleClass().addAll("icon", "link-icon");
+            Accessibility.asButton(helpIcon, Res.get("shared.openHelp"));
             box.getChildren().add(helpIcon);
         }
 

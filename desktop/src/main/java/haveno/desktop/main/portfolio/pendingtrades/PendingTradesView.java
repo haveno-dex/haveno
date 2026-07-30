@@ -52,6 +52,7 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
 import haveno.desktop.main.shared.ChatView;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
@@ -995,11 +996,13 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                     warnIconButton = new JFXButton("", warnIcon);
                                     warnIconButton.getStyleClass().add("hidden-icon-button");
                                     warnIconButton.setTooltip(new Tooltip(Res.get("portfolio.pending.failedTrade.warningIcon.tooltip")));
+                                    Accessibility.nameFromTooltip(warnIconButton);
                                     warnIconButton.setOnAction(e -> onShowInfoForInvalidTrade(trade));
 
                                     trashIconButton = new JFXButton("", trashIcon);
                                     trashIconButton.getStyleClass().add("hidden-icon-button");
                                     trashIconButton.setTooltip(new Tooltip(Res.get("portfolio.pending.failedTrade.moveTradeToFailedIcon.tooltip")));
+                                    Accessibility.nameFromTooltip(trashIconButton);
                                     trashIconButton.setOnAction(e -> onMoveInvalidTradeToFailedTrades(trade));
 
                                     HBox hBox = new HBox();

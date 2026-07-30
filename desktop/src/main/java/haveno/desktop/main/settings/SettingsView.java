@@ -21,6 +21,7 @@ import com.google.inject.Inject;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
@@ -56,6 +57,7 @@ public class SettingsView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
+        Accessibility.fixTabs(root);
         preferencesTab.setText(Res.get("settings.tab.preferences"));
         networkTab.setText(Res.get("settings.tab.network"));
         aboutTab.setText(Res.get("settings.tab.about"));

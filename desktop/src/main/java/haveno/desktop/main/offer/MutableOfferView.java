@@ -57,6 +57,7 @@ import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
@@ -1344,6 +1345,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         qrCodePane.setOnMouseClicked(e -> UserThread.runAfter(
                         () -> new QRCodeWindow(getMoneroURI()).show(),
                         200, TimeUnit.MILLISECONDS));
+        Accessibility.asButton(qrCodePane, Res.get("shared.openLargeQRWindow"));
         GridPane.setRowIndex(qrCodePane, gridRow);
         GridPane.setColumnIndex(qrCodePane, 1);
         GridPane.setRowSpan(qrCodePane, 3);
@@ -1606,6 +1608,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         // Fixed/Percentage toggle
         priceTypeToggleButton = getIconButton(MaterialDesignIcon.SWAP_VERTICAL);
+        priceTypeToggleButton.setTooltip(new Tooltip(Res.get("createOffer.priceTypeToggle")));
         editOfferElements.add(priceTypeToggleButton);
         HBox.setMargin(priceTypeToggleButton, new Insets(25, 1.5, 0, 0));
         priceTypeToggleButton.setOnAction((actionEvent) ->

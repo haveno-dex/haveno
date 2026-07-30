@@ -22,8 +22,10 @@ import com.jfoenix.controls.JFXTextField;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.validation.JFXInputValidator;
+import java.util.Objects;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.control.Skin;
 
 /**
@@ -48,6 +50,7 @@ public class InputTextField extends JFXTextField {
 
     private InputValidator validator;
     private String errorMessage = null;
+    private String baseAccessibleHelp = null;
 
 
     public InputValidator getValidator() {
@@ -72,6 +75,9 @@ public class InputTextField extends JFXTextField {
 
         getValidators().add(jfxValidationWrapper);
 
+        // expose the floating prompt to screen readers
+        promptTextProperty().addListener((o, oldValue, newValue) -> setBaseAccessibleHelp(newValue));
+
         validationResult.addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
                 jfxValidationWrapper.resetValidation();
@@ -86,6 +92,14 @@ public class InputTextField extends JFXTextField {
                     }
                 }
                 validate();
+
+                // announce validation errors to screen readers
+                String help = newValue.isValid ? baseAccessibleHelp
+                        : (this.errorMessage != null ? this.errorMessage : newValue.errorMessage);
+                if (!Objects.equals(help, getAccessibleHelp())) {
+                    setAccessibleHelp(help);
+                    notifyAccessibleAttributeChanged(AccessibleAttribute.HELP);
+                }
             }
         });
 
@@ -133,6 +147,12 @@ public class InputTextField extends JFXTextField {
 
     public void setInvalid(String message) {
         validationResult.set(new InputValidator.ValidationResult(false, message));
+    }
+
+    // help (prompt or popover content) restored when a validation error clears
+    public void setBaseAccessibleHelp(String help) {
+        baseAccessibleHelp = help;
+        setAccessibleHelp(help);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

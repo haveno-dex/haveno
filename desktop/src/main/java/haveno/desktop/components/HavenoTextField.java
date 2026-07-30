@@ -9,6 +9,9 @@ public class HavenoTextField extends JFXTextField {
     public HavenoTextField(String value) {
         super(value);
         GUIUtil.applyFilledStyle(this);
+
+        // expose the floating prompt to screen readers
+        promptTextProperty().addListener((o, oldValue, newValue) -> setAccessibleHelp(newValue));
     }
 
     public HavenoTextField() {

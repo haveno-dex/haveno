@@ -25,6 +25,7 @@ import haveno.core.offer.OpenOffer;
 import haveno.core.trade.Trade;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.desktop.Navigation;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
@@ -78,6 +79,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
+        Accessibility.fixTabs(root);
         root.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         failedTradesTab.setClosable(false);
 
