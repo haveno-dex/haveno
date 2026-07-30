@@ -150,11 +150,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     }
 
     public static void blurLight() {
-        transitions.blur(MainView.rootContainer, Transitions.DEFAULT_DURATION, -0.6, false, 15);
+        transitions.blur(MainView.rootContainer, 150, -0.6, false, 15); // darken quickly so popups gain contrast on show
     }
 
     public static void blurUltraLight() {
-        transitions.blur(MainView.rootContainer, Transitions.DEFAULT_DURATION, -0.6, false, 15);
+        transitions.blur(MainView.rootContainer, 150, -0.6, false, 15); // darken quickly so popups gain contrast on show
     }
 
     public static void darken() {

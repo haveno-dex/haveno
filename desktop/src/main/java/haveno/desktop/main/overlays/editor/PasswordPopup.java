@@ -199,6 +199,8 @@ public class PasswordPopup extends Overlay<PasswordPopup> {
             ));
 
             timeline.play();
+        } else {
+            gridPane.setOpacity(1); // undo the pre-show hide
         }
     }
 

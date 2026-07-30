@@ -41,6 +41,7 @@ import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.Transitions;
+import javafx.animation.AnimationTimer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -555,11 +556,26 @@ public abstract class Overlay<T extends Overlay<T>> {
                         event.consume();
                         doClose();
                     });
+                    getRootContainer().setOpacity(0); // hide until animateDisplay() to avoid a one-frame flash on show
+                    stage.setOpacity(0); // hide the native window too, else it can flash white before the first frame renders
                     stage.sizeToScene();
                     stage.show();
 
                     // focus the message, not the headline copy icon, so screen readers announce it first
                     if (messageTextArea != null) messageTextArea.requestFocus();
+
+                    // restore window opacity after the first frame has rendered
+                    Stage displayedStage = stage;
+                    new AnimationTimer() {
+                        private int frames;
+                        @Override
+                        public void handle(long now) {
+                            if (++frames > 1) {
+                                displayedStage.setOpacity(1);
+                                stop();
+                            }
+                        }
+                    }.start();
 
                     layout();
 
@@ -615,68 +631,51 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected void animateDisplay() {
         Region rootContainer = this.getRootContainer();
 
-        rootContainer.setOpacity(0);
+        // show at full opacity and animate only transforms; partially transparent content reads unevenly
+        rootContainer.setOpacity(1);
         Interpolator interpolator = Interpolator.SPLINE(0.25, 0.1, 0.25, 1);
-        double duration = getDuration(400);
+        double duration = getDuration(200);
         Timeline timeline = new Timeline();
         ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
 
         if (type.animationType == AnimationType.SlideDownFromCenterTop) {
             double startY = -rootContainer.getHeight();
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator),
                     new KeyValue(rootContainer.translateYProperty(), startY, interpolator)
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator),
                     new KeyValue(rootContainer.translateYProperty(), -50, interpolator)
             ));
         } else if (type.animationType == AnimationType.ScaleFromCenter) {
-            double startScale = 0.25;
+            double startScale = 0.95;
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator),
                     new KeyValue(rootContainer.scaleXProperty(), startScale, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), startScale, interpolator)
-
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
             ));
         } else if (type.animationType == AnimationType.ScaleYFromCenter) {
-            double startYScale = 0.25;
+            double startYScale = 0.95;
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), startYScale, interpolator)
-
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
             ));
         } else if (type.animationType == AnimationType.ScaleDownToCenter) {
-            double startScale = 1.1;
+            double startScale = 1.05;
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator),
                     new KeyValue(rootContainer.scaleXProperty(), startScale, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), startScale, interpolator)
-
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
             ));
-        } else if (type.animationType == AnimationType.FadeInAtCenter) {
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator)
-
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator)
-            ));
         }
+        // FadeInAtCenter shows without animation
 
         timeline.play();
     }
@@ -687,29 +686,23 @@ public abstract class Overlay<T extends Overlay<T>> {
         Timeline timeline = new Timeline();
         ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
 
+        // animate only transforms; partially transparent content reads unevenly
         Region rootContainer = getRootContainer();
         if (type.animationType == AnimationType.SlideDownFromCenterTop) {
             double endY = -rootContainer.getHeight();
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator),
                     new KeyValue(rootContainer.translateYProperty(), -10, interpolator)
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator),
                     new KeyValue(rootContainer.translateYProperty(), endY, interpolator)
             ));
-
-            timeline.setOnFinished(e -> onFinishedHandler.run());
-            timeline.play();
         } else if (type.animationType == AnimationType.ScaleFromCenter) {
-            double endScale = 0.25;
+            double endScale = 0.95;
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator),
                     new KeyValue(rootContainer.scaleXProperty(), endScale, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), endScale, interpolator)
             ));
@@ -717,32 +710,27 @@ public abstract class Overlay<T extends Overlay<T>> {
             rootContainer.setRotationAxis(Rotate.X_AXIS);
             rootContainer.getScene().setCamera(new PerspectiveCamera());
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.rotateProperty(), 0, interpolator),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator)
+                    new KeyValue(rootContainer.rotateProperty(), 0, interpolator)
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.rotateProperty(), -90, interpolator),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator)
+                    new KeyValue(rootContainer.rotateProperty(), -90, interpolator)
             ));
         } else if (type.animationType == AnimationType.ScaleDownToCenter) {
-            double endScale = 0.1;
+            double endScale = 0.95;
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator),
                     new KeyValue(rootContainer.scaleXProperty(), endScale, interpolator),
                     new KeyValue(rootContainer.scaleYProperty(), endScale, interpolator)
             ));
-        } else if (type.animationType == AnimationType.FadeInAtCenter) {
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.opacityProperty(), 1, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.opacityProperty(), 0, interpolator)
-            ));
+        }
+
+        // FadeInAtCenter closes without animation
+        if (keyFrames.isEmpty()) {
+            onFinishedHandler.run();
+            return;
         }
 
         timeline.setOnFinished(e -> onFinishedHandler.run());

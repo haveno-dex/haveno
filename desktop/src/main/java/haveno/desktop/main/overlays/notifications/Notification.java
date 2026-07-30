@@ -164,6 +164,8 @@ public class Notification extends Overlay<Notification> {
             ));
 
             timeline.play();
+        } else {
+            gridPane.setOpacity(1); // undo the pre-show hide
         }
     }
 

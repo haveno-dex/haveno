@@ -326,6 +326,8 @@ public class PeerInfoWithTagEditor extends Overlay<PeerInfoWithTagEditor> {
             ));
 
             timeline.play();
+        } else {
+            gridPane.setOpacity(1); // undo the pre-show hide
         }
     }
 
