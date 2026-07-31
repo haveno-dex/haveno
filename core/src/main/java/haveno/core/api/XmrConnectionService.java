@@ -732,7 +732,10 @@ public final class XmrConnectionService {
 
             // fetch txs
             if (getMonerod() == null) verifyConnection(); // will throw
-            List<MoneroTx> txs = getMonerod().getTxs(txHashes, true);
+            List<MoneroTx> txs;
+            synchronized (HavenoUtils.getDaemonLock()) {
+                txs = getMonerod().getTxs(txHashes, true);
+            }
 
             // store to cache
             for (MoneroTx tx : txs) txCache.put(tx.getHash(), Optional.of(tx));

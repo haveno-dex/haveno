@@ -69,6 +69,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -120,14 +121,21 @@ public class HavenoUtils {
         return GENERAL_PRIVATE_OFFERS_ENABLED;
     }
 
-    // synchronize requests to monerod
-    private static boolean SYNC_DAEMON_REQUESTS = false; // sync long requests to daemon (e.g. refresh, update pool) // TODO: performance suffers by syncing daemon requests, but otherwise we sometimes get sporadic errors?
+    // limit concurrent requests to monerod
+    private static final int MAX_CONCURRENT_DAEMON_REQUESTS = 50; // limit long requests to daemon (e.g. sync, refresh pool) without fully serializing them
     private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create txs)
     private static boolean SYNC_IMPORT_MULTISIG_REQUESTS = false; // sync import multisig requests to avoid concurrent imports
-    private static Object DAEMON_LOCK = new Object();
+    private static final Object[] DAEMON_LOCKS = new Object[MAX_CONCURRENT_DAEMON_REQUESTS];
+    private static final AtomicInteger DAEMON_LOCK_INDEX = new AtomicInteger();
     private static Object IMPORT_MULTISIG_LOCK = new Object();
+    static {
+        for (int i = 0; i < DAEMON_LOCKS.length; i++) DAEMON_LOCKS[i] = new Object();
+    }
+
+    // return one of a fixed pool of locks to limit concurrent daemon requests, reusing a lock already held by this thread
     public static Object getDaemonLock() {
-        return SYNC_DAEMON_REQUESTS ? DAEMON_LOCK : new Object();
+        for (Object lock : DAEMON_LOCKS) if (Thread.holdsLock(lock)) return lock;
+        return DAEMON_LOCKS[Math.floorMod(DAEMON_LOCK_INDEX.getAndIncrement(), DAEMON_LOCKS.length)];
     }
     public static Object getWalletFunctionLock() {
         return SYNC_WALLET_REQUESTS ? getDaemonLock() : new Object();

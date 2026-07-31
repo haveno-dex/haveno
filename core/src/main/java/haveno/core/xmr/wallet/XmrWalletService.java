@@ -1313,7 +1313,7 @@ public class XmrWalletService extends XmrWalletBase {
             // skip default handling if processing a synchronous connection switch (this is assumed to be called on same thread as requester)
             if (isProcessingRequestConnectionSwitchSynchronous) return;
             
-            // process off thread
+            // process off thread; notifier can hold a daemon lock, so taking walletLock here could deadlock
             ThreadUtils.submitToPool(() -> {
                 if (wasWalletSynced && !isSyncing()) {
                     onConnectionChanged(connection);

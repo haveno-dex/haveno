@@ -842,7 +842,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public void onConnectionChanged(MoneroRpcConnection connection) {
         if (isShutDown) return;
         boolean wasPolling = isPolling();
-        ThreadUtils.execute(() -> onConnectionChanged(connection, wasPolling), getId());
+        ThreadUtils.execute(() -> onConnectionChanged(connection, wasPolling), getId()); // handle off thread; notifier can hold a daemon lock, so taking walletLock here could deadlock
     }
 
     // close idle wallet periodically to prevent connection timeout with monerod
@@ -3519,7 +3519,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (logInfoLevel) log.info(startSyncLogMsg);
         else log.debug(startSyncLogMsg);
         long startTime = System.currentTimeMillis();
-        syncWithProgress(initialSyncTimeoutMs);
+        synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon to limit concurrent wallet syncs
+            syncWithProgress(initialSyncTimeoutMs);
+        }
         String doneSyncLogMsg = "Done syncing wallet for " + getShortId() + " " + getClass().getSimpleName() + " in " + (System.currentTimeMillis() - startTime) + " ms";
         if (logInfoLevel) log.info(doneSyncLogMsg);
         else log.debug(doneSyncLogMsg);
@@ -3528,34 +3530,32 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private void importMultisigHex(boolean logInfoLevel) {
         synchronized (walletLock) {
             if (getWallet() == null) throw new IllegalStateException("Cannot import multisig hex for trade wallet because it doesn't exist for " + getClass().getSimpleName() + " " + getId());
-            synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import calls full refresh
-                synchronized (HavenoUtils.getImportMultisigLock()) {
+            synchronized (HavenoUtils.getImportMultisigLock()) {
 
-                    // save wallet in case it's force restarted
-                    saveWallet();
+                // save wallet in case it's force restarted
+                saveWallet();
 
-                    // attempt import multiple times
-                    long initialSyncTimeoutMs = getInitialSyncTimeoutMs();
-                    for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
-                        MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
-                        try {
-                            if (isShutDownStarted) throw new RuntimeException("Aborting import of multisig hex for " + getClass().getSimpleName() + " " + getShortId() + " because shut down is started");
-                            doImportMultisigHex(logInfoLevel, initialSyncTimeoutMs);
-                            break;
-                        } catch (IllegalArgumentException | IllegalStateException e) {
-                            log.warn("Illegal error importing multisig hex for {} {} on attempt {}/{}: {}", getClass().getSimpleName(), getShortId(), i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
-                            throw e;
-                        } catch (Exception e) {
-                            if (isShutDownStarted) throw e;
-                            String errorMsg = String.format("Error importing multisig hex for %s %s on attempt %d/%d: %s", getClass().getSimpleName(), getId(), i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
-                            if (i < 1) log.info(errorMsg); // don't warn on first error which is common
-                            else log.warn(errorMsg);
-                            handleWalletError(e, false, false, sourceConnection, i + 1);
-                            if (isPayoutPublished()) break; // TODO: continue importing if payout published?
-                            if (i == MAX_SYNC_ATTEMPTS - 1) throw e;
-                            initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS, initialSyncTimeoutMs * 2);
-                            HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
-                        }
+                // attempt import multiple times
+                long initialSyncTimeoutMs = getInitialSyncTimeoutMs();
+                for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+                    MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
+                    try {
+                        if (isShutDownStarted) throw new RuntimeException("Aborting import of multisig hex for " + getClass().getSimpleName() + " " + getShortId() + " because shut down is started");
+                        doImportMultisigHex(logInfoLevel, initialSyncTimeoutMs);
+                        break;
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        log.warn("Illegal error importing multisig hex for {} {} on attempt {}/{}: {}", getClass().getSimpleName(), getShortId(), i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
+                        throw e;
+                    } catch (Exception e) {
+                        if (isShutDownStarted) throw e;
+                        String errorMsg = String.format("Error importing multisig hex for %s %s on attempt %d/%d: %s", getClass().getSimpleName(), getId(), i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
+                        if (i < 1) log.info(errorMsg); // don't warn on first error which is common
+                        else log.warn(errorMsg);
+                        handleWalletError(e, false, false, sourceConnection, i + 1);
+                        if (isPayoutPublished()) break; // TODO: continue importing if payout published?
+                        if (i == MAX_SYNC_ATTEMPTS - 1) throw e;
+                        initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS, initialSyncTimeoutMs * 2);
+                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                     }
                 }
             }
@@ -3648,7 +3648,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         log.info("Ingesting multisig hexes for {} {}, count={}", getClass().getSimpleName(), getShortId(), multisigHexes.size());
         long startTime = System.currentTimeMillis();
         setUnknownSyncProgress();
-        int numOutputsImported = wallet.importMultisigHex(multisigHexes, false); // import without refreshing, which is handled later
+        int numOutputsImported;
+        synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import can refresh pending rescan state
+            numOutputsImported = wallet.importMultisigHex(multisigHexes, false); // import without refreshing, which is handled later
+        }
         log.info("Done ingesting multisig hexes for {} {} in {} ms, count={}, numOutputsImported={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size(), numOutputsImported);
 
         // sync from new wallet height
@@ -4065,32 +4068,32 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     public void rescanBlockchain() {
         synchronized (walletLock) {
-            synchronized (HavenoUtils.getDaemonLock()) {
-                if (getWallet() == null) throw new IllegalStateException("Cannot rescan blockchain because trade wallet doesn't exist for " + getClass().getSimpleName() + ", " + getId());
-                if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot rescan blockchain because trade wallet is not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
-                MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
-                Long timeout = null;
-                try {
+            if (getWallet() == null) throw new IllegalStateException("Cannot rescan blockchain because trade wallet doesn't exist for " + getClass().getSimpleName() + ", " + getId());
+            if (getWallet().getDaemonConnection() == null) throw new RuntimeException("Cannot rescan blockchain because trade wallet is not connected to a Monero daemon for " + getClass().getSimpleName() + ", " + getId());
+            MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
+            Long timeout = null;
+            try {
 
-                    // extend rpc timeout for rescan
-                    if (wallet instanceof MoneroWalletRpc) {
-                        timeout = ((MoneroWalletRpc) wallet).getRpcConnection().getTimeout();
-                        ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT_MS);
-                    }
+                // extend rpc timeout for rescan
+                if (wallet instanceof MoneroWalletRpc) {
+                    timeout = ((MoneroWalletRpc) wallet).getRpcConnection().getTimeout();
+                    ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(EXTENDED_RPC_TIMEOUT_MS);
+                }
 
-                    // rescan blockchain
-                    log.warn("Rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
+                // rescan blockchain
+                log.warn("Rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
+                synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because rescan reprocesses the blockchain
                     wallet.rescanBlockchain();
-                } catch (Exception e) {
-                    log.warn("Error rescanning blockchain for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
-                    if (HavenoUtils.isUnresponsive(e)) handleWalletError(e, true, false, sourceConnection, true);
-                    throw e;
-                } finally {
+                }
+            } catch (Exception e) {
+                log.warn("Error rescanning blockchain for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
+                if (HavenoUtils.isUnresponsive(e)) handleWalletError(e, true, false, sourceConnection, true);
+                throw e;
+            } finally {
 
-                    // restore rpc timeout
-                    if (wallet instanceof MoneroWalletRpc) {
-                        ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(timeout);
-                    }
+                // restore rpc timeout
+                if (wallet instanceof MoneroWalletRpc) {
+                    ((MoneroWalletRpc) wallet).getRpcConnection().setTimeout(timeout);
                 }
             }
         }
@@ -4113,7 +4116,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // rescan spent outputs
                 if (logInfoLevel) log.info("Rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
-                wallet.rescanSpent();
+                synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because rescan queries key images
+                    wallet.rescanSpent();
+                }
                 if (logInfoLevel) log.info("Done rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
                 saveWalletIfElapsedTime();
             } catch (Exception e) {
