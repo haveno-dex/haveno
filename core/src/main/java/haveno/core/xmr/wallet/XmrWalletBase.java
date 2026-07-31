@@ -51,6 +51,7 @@ public abstract class XmrWalletBase {
     protected boolean wasWalletSynced;
     protected long lastSaveTimeMs = 0;
     protected boolean isSyncingWithoutProgress;
+    @Getter
     protected boolean isSyncingWithProgress;
     private final Object syncWithProgressLock = new Object();
     protected Long syncStartHeight;

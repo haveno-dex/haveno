@@ -1137,6 +1137,10 @@ public final class XmrConnectionService {
     private void doPollMonerod(MoneroDaemonInfo applyInfo) {
         synchronized (pollLock) {
             if (isShutDownStarted) return;
+
+            // skip fetching info while main wallet syncs so it has uninterfered access to monerod
+            if (applyInfo == null && HavenoUtils.xmrWalletService != null && HavenoUtils.xmrWalletService.isSyncingWithProgress()) return;
+
             pollInProgress = true;
             try {
 
