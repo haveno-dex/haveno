@@ -94,12 +94,8 @@ public class InputTextField extends JFXTextField {
                 validate();
 
                 // announce validation errors to screen readers
-                String help = newValue.isValid ? baseAccessibleHelp
-                        : (this.errorMessage != null ? this.errorMessage : newValue.errorMessage);
-                if (!Objects.equals(help, getAccessibleHelp())) {
-                    setAccessibleHelp(help);
-                    notifyAccessibleAttributeChanged(AccessibleAttribute.HELP);
-                }
+                applyAccessibleHelp(newValue.isValid ? baseAccessibleHelp
+                        : (this.errorMessage != null ? this.errorMessage : newValue.errorMessage));
             }
         });
 
@@ -152,7 +148,14 @@ public class InputTextField extends JFXTextField {
     // help (prompt or popover content) restored when a validation error clears
     public void setBaseAccessibleHelp(String help) {
         baseAccessibleHelp = help;
+        InputValidator.ValidationResult result = validationResult.get();
+        if (result == null || result.isValid) applyAccessibleHelp(help); // don't clobber a live error
+    }
+
+    private void applyAccessibleHelp(String help) {
+        if (Objects.equals(help, getAccessibleHelp())) return;
         setAccessibleHelp(help);
+        notifyAccessibleAttributeChanged(AccessibleAttribute.HELP);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

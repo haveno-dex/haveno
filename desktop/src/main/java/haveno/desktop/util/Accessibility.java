@@ -81,10 +81,12 @@ public final class Accessibility {
         if (tooltip != null) setName(control, tooltip.getText());
     }
 
-    // exposes an icon-styled node as readable static text (e.g. warning icons)
+    // exposes an icon-styled node as readable static text (e.g. warning icons); reverts asButton focusability
     public static void asText(Node node, String text) {
         node.setAccessibleRole(AccessibleRole.TEXT);
         setName(node, text);
+        node.setFocusTraversable(false);
+        node.getStyleClass().remove(FOCUSABLE_STYLE_CLASS);
     }
 
     // hides a decorative node (e.g. icon glyph) from screen readers; a blank
