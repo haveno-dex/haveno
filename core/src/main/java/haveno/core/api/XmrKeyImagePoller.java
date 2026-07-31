@@ -269,7 +269,10 @@ public class XmrKeyImagePoller {
             }
 
             // query key images
-            spentStatuses = keyImages.isEmpty() ? new ArrayList<MoneroKeyImageSpentStatus>() : monerod.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
+            if (keyImages.isEmpty()) spentStatuses = new ArrayList<MoneroKeyImageSpentStatus>();
+            else synchronized (HavenoUtils.getDaemonLock()) {
+                spentStatuses = monerod.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
+            }
         } catch (Exception e) {
 
             // limit error logging
