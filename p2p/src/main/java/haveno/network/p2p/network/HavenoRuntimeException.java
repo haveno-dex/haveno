@@ -18,6 +18,10 @@
 package haveno.network.p2p.network;
 
 class HavenoRuntimeException extends RuntimeException {
+    HavenoRuntimeException(String message) {
+        super(message);
+    }
+
     HavenoRuntimeException(String message, Throwable cause) {
         super(message, cause);
     }
