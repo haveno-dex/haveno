@@ -728,26 +728,31 @@ public final class XmrConnectionService {
     }
 
     public List<MoneroTx> getTxs(List<String> txHashes) {
-        synchronized (txCache) {
 
-            // fetch txs
-            if (getMonerod() == null) verifyConnection(); // will throw
-            List<MoneroTx> txs;
-            synchronized (HavenoUtils.getDaemonLock()) {
-                txs = getMonerod().getTxs(txHashes, true);
-            }
-
-            // store to cache
-            for (MoneroTx tx : txs) txCache.put(tx.getHash(), Optional.of(tx));
-
-            // schedule txs to be removed from cache
-            UserThread.runAfter(() -> {
-                synchronized (txCache) {
-                    for (MoneroTx tx : txs) txCache.remove(tx.getHash());
-                }
-            }, getRefreshPeriodMs() / 1000);
-            return txs;
+        // fetch txs outside the cache lock so cache reads are not blocked
+        MoneroDaemonRpc monerod = getMonerod();
+        if (monerod == null) {
+            verifyConnection(); // will throw if disconnected
+            monerod = getMonerod();
+            if (monerod == null) throw new RuntimeException("No connection to Monero node");
         }
+        List<MoneroTx> txs;
+        synchronized (HavenoUtils.getDaemonLock()) {
+            txs = monerod.getTxs(txHashes, true);
+        }
+
+        // store to cache
+        synchronized (txCache) {
+            for (MoneroTx tx : txs) txCache.put(tx.getHash(), Optional.of(tx));
+        }
+
+        // schedule txs to be removed from cache
+        UserThread.runAfter(() -> {
+            synchronized (txCache) {
+                for (MoneroTx tx : txs) txCache.remove(tx.getHash());
+            }
+        }, getRefreshPeriodMs() / 1000);
+        return txs;
     }
 
     public MoneroTx getTxWithCache(String txHash) {
@@ -756,22 +761,23 @@ public final class XmrConnectionService {
     }
 
     public List<MoneroTx> getTxsWithCache(List<String> txHashes) {
-        synchronized (txCache) {
-            try {
-                // get cached txs
-                List<MoneroTx> cachedTxs = new ArrayList<MoneroTx>();
-                List<String> uncachedTxHashes = new ArrayList<String>();
+        try {
+
+            // get cached txs
+            List<MoneroTx> cachedTxs = new ArrayList<MoneroTx>();
+            List<String> uncachedTxHashes = new ArrayList<String>();
+            synchronized (txCache) {
                 for (int i = 0; i < txHashes.size(); i++) {
                     if (txCache.containsKey(txHashes.get(i))) cachedTxs.add(txCache.get(txHashes.get(i)).orElse(null));
                     else uncachedTxHashes.add(txHashes.get(i));
                 }
-
-                // return txs from cache if available, otherwise fetch
-                return uncachedTxHashes.isEmpty() ? cachedTxs : getTxs(txHashes);
-            } catch (Exception e) {
-                if (!isShutDownStarted) throw e;
-                return null;
             }
+
+            // return txs from cache if available, otherwise fetch
+            return uncachedTxHashes.isEmpty() ? cachedTxs : getTxs(txHashes);
+        } catch (Exception e) {
+            if (!isShutDownStarted) throw e;
+            return null;
         }
     }
 
