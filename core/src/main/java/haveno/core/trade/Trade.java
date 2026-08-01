@@ -3485,7 +3485,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                                 else log.warn(errorMsg);
                                 handleWalletError(e, false, false, sourceConnection, i + 1);
                                 if (i == MAX_SYNC_ATTEMPTS - 1) throw e;
-                                initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS * 1000, initialSyncTimeoutMs * 2);
+                                initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS, initialSyncTimeoutMs * 2);
                                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                             }
                         }
