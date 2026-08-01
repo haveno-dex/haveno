@@ -52,7 +52,7 @@ public abstract class XmrWalletBase {
     protected long lastSaveTimeMs = 0;
     protected boolean isSyncingWithoutProgress;
     @Getter
-    protected boolean isSyncingWithProgress;
+    protected volatile boolean isSyncingWithProgress; // volatile for unsynchronized cross-thread reads
     private final Object syncWithProgressLock = new Object();
     protected Long syncStartHeight;
     protected TaskLooper syncProgressLooper;
