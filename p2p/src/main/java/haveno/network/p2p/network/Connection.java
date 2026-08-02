@@ -38,6 +38,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.inject.Inject;
+import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.InvalidProtocolBufferException;
 import haveno.common.Proto;
 import haveno.common.ThreadUtils;
@@ -920,8 +921,29 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         return;
                     }
 
-                    // Blocking read from the inputStream
-                    protobuf.NetworkEnvelope proto = protobuf.NetworkEnvelope.parseDelimitedFrom(protoInputStream);
+                    // Read the varint length prefix and enforce our size cap BEFORE
+                    // handing the body to protobuf, so an attacker cannot force a
+                    // ~64 MiB allocation per inbound message.
+                    int declaredSize = readVarInt(protoInputStream);
+                    if (declaredSize < 0) {
+                        if (stopped) return;
+                        if (protoInputStream.read() == -1) {
+                            // expected EOF on clean shutdown
+                        } else {
+                            throttleWarn("proto is null. protoInputStream.read()=" + protoInputStream.read());
+                        }
+                        shutDown(CloseConnectionReason.NO_PROTO_BUFFER_ENV);
+                        return;
+                    }
+                    if (declaredSize > MAX_PERMITTED_MESSAGE_SIZE) {
+                        String errorMessage = "Declared size out of range. declaredSize=" + declaredSize;
+                        if (reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, errorMessage))
+                            return;
+                    }
+                    CodedInputStream codedInput = CodedInputStream.newInstance(
+                            new BoundedInputStream(protoInputStream, declaredSize));
+                    codedInput.setSizeLimit(MAX_PERMITTED_MESSAGE_SIZE);
+                    protobuf.NetworkEnvelope proto = protobuf.NetworkEnvelope.parseFrom(codedInput);
 
                     long ts = System.currentTimeMillis();
 
@@ -1107,6 +1129,31 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private String getSenderNodeAddressAsString(NetworkEnvelope networkEnvelope) {
         NodeAddress nodeAddress = getSenderNodeAddress(networkEnvelope);
         return nodeAddress == null ? "null" : nodeAddress.getFullAddress();
+    }
+
+    /**
+     * Read a base-128 varint (the length prefix protobuf uses for delimited messages)
+     * from the given stream. Returns -1 on EOF before any byte is read.
+     * Throws IOException if the varint exceeds 5 bytes (i.e. would decode to a
+     * length > Integer.MAX_VALUE).
+     */
+    static int readVarInt(InputStream in) throws IOException {
+        int result = 0;
+        int shift = 0;
+        int b;
+        do {
+            b = in.read();
+            if (b < 0) {
+                if (shift == 0) return -1;
+                throw new IOException("Truncated varint");
+            }
+            if (shift == 28 && (b & 0xF0) != 0) {
+                throw new IOException("Varint too long");
+            }
+            result |= (b & 0x7F) << shift;
+            shift += 7;
+        } while ((b & 0x80) != 0);
+        return result;
     }
 
     private void throttleWarn(String msg) {
