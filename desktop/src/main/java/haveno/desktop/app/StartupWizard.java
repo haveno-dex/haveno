@@ -32,13 +32,10 @@ import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
 import javafx.animation.TranslateTransition;
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.NumberBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableBooleanValue;
 import javafx.css.PseudoClass;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -131,20 +128,22 @@ public class StartupWizard {
         contentSlot.setAlignment(Pos.TOP_CENTER);
         contentSlot.setMinHeight(MIN_PAGE_HEIGHT);
         contentSlot.setPrefHeight(PAGE_HEIGHT);
+        // fixed page width so the card keeps the same size on steps with narrow content
+        contentSlot.setPrefWidth(PAGE_WIDTH);
         contentSlot.setMaxWidth(PAGE_WIDTH);
 
         backButton = new AutoTooltipButton("< " + Res.get("tacWindow.legal.back"));
+        backButton.getStyleClass().addAll("tac-agreement-secondary-button", "tac-agreement-back-button");
         nextButton = new AutoTooltipButton();
         nextButton.setDefaultButton(true);
-        nextButton.getStyleClass().add("action-button");
+        nextButton.getStyleClass().addAll("action-button", "tac-agreement-action-button");
         quitButton = new AutoTooltipButton(Res.get("shared.shutDown"));
+        quitButton.getStyleClass().addAll("tac-agreement-secondary-button", "tac-agreement-reject-button");
 
-        // size all buttons to the widest label so they match, adapting to whatever the translated text is
-        NumberBinding buttonWidth = Bindings.max(backButton.widthProperty(),
-                Bindings.max(nextButton.widthProperty(), quitButton.widthProperty()));
-        backButton.minWidthProperty().bind(buttonWidth);
-        nextButton.minWidthProperty().bind(buttonWidth);
-        quitButton.minWidthProperty().bind(buttonWidth);
+        // fixed min widths like TacWindow so the action buttons hold one size across steps
+        nextButton.setMinWidth(190);
+        quitButton.setMinWidth(190);
+        backButton.setMinWidth(110);
 
         backButton.setOnAction(event -> showStep(previousIndex(), false));
         nextButton.setOnAction(event -> onNext());
@@ -154,20 +153,45 @@ public class StartupWizard {
             onQuit.run();
         });
 
-        HBox buttonBox = new HBox(10, backButton, quitButton, nextButton);
-        buttonBox.setAlignment(Pos.CENTER);
+        // modal-style footer: back at the left, quit/next at the right
+        HBox actionButtons = new HBox(12, quitButton, nextButton);
+        actionButtons.setAlignment(Pos.CENTER_RIGHT);
+        actionButtons.setMaxWidth(Region.USE_PREF_SIZE);
+        actionButtons.setMaxHeight(Region.USE_PREF_SIZE);
 
-        progressDots.setAlignment(Pos.CENTER);
-        progressDots.setMinHeight(8);
+        StackPane footer = new StackPane(backButton, actionButtons);
+        StackPane.setAlignment(backButton, Pos.CENTER_LEFT);
+        StackPane.setAlignment(actionButtons, Pos.CENTER_RIGHT);
+
+        Region footerSeparator = new Region();
+        footerSeparator.getStyleClass().add("tac-agreement-footer-separator");
+
+        // the pages and footer share one floating card so the wizard reads as a contained dialog
+        VBox card = new VBox(12, contentSlot, footerSeparator, footer);
+        card.getStyleClass().add("wizard-card");
+        card.setMaxWidth(Region.USE_PREF_SIZE);
 
         footerLabel.getStyleClass().add("startup-wizard-footer-label");
-        footerLabel.setMinHeight(24);
-        footerLabel.setAlignment(Pos.CENTER);
+        // unmanaged: painted below the dots without taking layout space, so appearing never re-centers the page
+        footerLabel.setManaged(false);
+        // hidden while empty so it doesn't count as content (e.g. for the shell's version bar collision check)
+        footerLabel.visibleProperty().bind(footerLabel.textProperty().isNotEmpty());
 
-        root = new VBox(12, contentSlot, progressDots, buttonBox, footerLabel);
+        // the dots ride below the card so the footer buttons can never crowd them
+        progressDots.setAlignment(Pos.CENTER);
+        progressDots.setMaxWidth(Region.USE_PREF_SIZE);
+        progressDots.setMaxHeight(Region.USE_PREF_SIZE);
+
+        root = new VBox(12, card, progressDots, footerLabel) {
+            @Override
+            protected void layoutChildren() {
+                super.layoutChildren();
+                double w = Math.min(footerLabel.prefWidth(-1), getWidth());
+                footerLabel.resizeRelocate(snapPositionX((getWidth() - w) / 2), snapPositionY(getHeight() + getSpacing()), w, footerLabel.prefHeight(w));
+            }
+        };
         root.setAlignment(Pos.TOP_CENTER);
-        root.setMaxWidth(PAGE_WIDTH);
-        VBox.setMargin(buttonBox, new Insets(5, 0, 0, 0));
+        footerLabel.textProperty().addListener((observable, oldText, newText) -> root.requestLayout());
 
         showStep(0, false);
     }
@@ -377,6 +401,7 @@ public class StartupWizard {
             progressDots.getChildren().add(dot);
         }
         if (progressDots.getChildren().size() <= 1) progressDots.getChildren().clear();
+        progressDots.setManaged(!progressDots.getChildren().isEmpty());
     }
 
     private void setControlsDisabled(boolean disabled) {

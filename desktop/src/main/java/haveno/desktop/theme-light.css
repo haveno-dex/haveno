@@ -60,6 +60,9 @@
     -bs-color-gray-background: #f2f2f2;
     -bs-content-pane-bg-top: #f2f2f2;
     -bs-content-pane-bg-bottom: #f6f6f6;
+    -bs-wizard-backdrop: #f2f2f3;
+    -bs-wizard-card-bg: #ffffff;
+    -bs-wizard-card-shadow: rgba(0, 0, 0, 0.08);
     -bs-scroll-pane-background: transparent;
     -bs-tab-content-area: transparent;
     -bs-viewport-background: transparent;

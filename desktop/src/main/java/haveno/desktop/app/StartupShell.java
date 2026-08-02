@@ -30,6 +30,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -48,12 +49,13 @@ public class StartupShell extends StackPane {
     private static final double COMPACT_LOGO_FIT_WIDTH = 190;
 
     private final StackPane appLayer = new StackPane();
-    private final StackPane overlay = new StackPane();
+    private final StackPane overlay;
     private final StackPane contentSlot = new StackPane();
     private final ImageView logo = new ImageView();
     private final Preferences preferences;
     private final Transitions transitions;
     private boolean compactBranding;
+    private double wizardOverlayBottom = -1;
 
     public StartupShell(Preferences preferences, Transitions transitions) {
         this.preferences = preferences;
@@ -88,12 +90,34 @@ public class StartupShell extends StackPane {
         StackPane.setAlignment(themeToggle, Pos.CENTER_RIGHT);
         StackPane.setMargin(themeToggle, new Insets(0, 12, 0, 0));
 
+        // spacers float the column vertically centered while there is room and collapse when there is not,
+        // so a short window clips the bottom bar area instead of the logo; padding keeps clear of the bottom bar
+        Region topSpacer = new Region();
+        Region bottomSpacer = new Region();
+        // keep a sliver of room above the logo even at minimum window height
+        topSpacer.setMinHeight(12);
+        VBox.setVgrow(topSpacer, Priority.ALWAYS);
+        VBox.setVgrow(bottomSpacer, Priority.ALWAYS);
+        VBox centerColumn = new VBox(topSpacer, column, bottomSpacer);
+        centerColumn.setPadding(new Insets(0, 0, 44, 0));
+
+        // hide the version label when the squashed column reaches the bar, so content never collides with it;
+        // the theme toggle sits clear at the right and stays available
+        overlay = new StackPane() {
+            @Override
+            protected void layoutChildren() {
+                super.layoutChildren();
+                double contentBottom = Math.max(centerColumn.localToParent(column.getBoundsInParent()).getMaxY(), wizardOverlayBottom);
+                versionLabel.setVisible(contentBottom <= bottomBar.getBoundsInParent().getMinY());
+            }
+        };
+        // re-evaluate the bar when content bounds change without a resize (e.g. a footer message appearing)
+        column.boundsInParentProperty().addListener((observable, oldBounds, newBounds) -> overlay.requestLayout());
         overlay.setId("splash");
-        overlay.getChildren().addAll(column, bottomBar);
-        // float the block vertically centered so it recenters when the window is resized;
-        // the bottom margin keeps the column clear of the bottom bar at small window heights
-        StackPane.setAlignment(column, Pos.CENTER);
-        StackPane.setMargin(column, new Insets(0, 0, 44, 0));
+        // full-window layer: never propagate content min size, or the shell would center it oversized and clip the top
+        overlay.setMinSize(0, 0);
+        overlay.getChildren().addAll(centerColumn, bottomBar);
+        StackPane.setAlignment(centerColumn, Pos.TOP_CENTER);
         StackPane.setAlignment(bottomBar, Pos.BOTTOM_CENTER);
         StackPane.setMargin(bottomBar, new Insets(0, 0, 12, 0));
 
@@ -126,11 +150,29 @@ public class StartupShell extends StackPane {
             GUIUtil.setBrandingLogo(logo, preferences, "/images/logo_splash_landscape_light_mode.png",
                     "/images/logo_splash_landscape_dark_mode.png", COMPACT_LOGO_FIT_WIDTH, 0);
             VBox.setMargin(contentSlot, new Insets(16, 0, 0, 0));
+            setWizardBackdrop(true);
         } else {
             logo.setFitWidth(LOGO_FIT_WIDTH);
             applySplashLogo();
             VBox.setMargin(contentSlot, new Insets(30, 0, 0, 0));
             contentSlot.setMinHeight(Region.USE_COMPUTED_SIZE);
+            setWizardBackdrop(false);
+        }
+    }
+
+    /** Scene-space bottom of the floating agreement card, included in the bottom-bar collision check (-1 = none). */
+    public void setWizardOverlayBottom(double bottom) {
+        if (wizardOverlayBottom == bottom) return;
+        wizardOverlayBottom = bottom;
+        overlay.requestLayout();
+    }
+
+    /** Tint the backdrop so a wizard or agreement card reads as a floating panel; compact branding keeps its tint. */
+    public void setWizardBackdrop(boolean active) {
+        if (active) {
+            if (!overlay.getStyleClass().contains("startup-wizard-backdrop")) overlay.getStyleClass().add("startup-wizard-backdrop");
+        } else if (!compactBranding) {
+            overlay.getStyleClass().remove("startup-wizard-backdrop");
         }
     }
 

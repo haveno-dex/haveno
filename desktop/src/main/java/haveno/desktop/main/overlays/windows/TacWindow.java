@@ -18,14 +18,17 @@
 package haveno.desktop.main.overlays.windows;
 
 import com.google.inject.Inject;
+import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
 import haveno.desktop.app.HavenoApp;
+import haveno.desktop.app.StartupShell;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.GUIUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
@@ -40,6 +43,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
+import javafx.stage.Window;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -53,7 +57,12 @@ public class TacWindow extends Overlay<TacWindow> {
     private static final double WINDOW_WIDTH = 900;
     private static final double WINDOW_HEIGHT = 555;
     private static final double LOGO_FIT_WIDTH = 190;
+    private static final double LOGO_GAP = 16;
     private static final double SHADOW_PADDING = 30;
+    // bottom bar zone kept clear like the shell's wizard column
+    private static final double BOTTOM_BAR_CLEARANCE = 44;
+    // minimum gap under the card: the bar hides rather than come closer, and the logo hides only below this
+    private static final double MIN_BOTTOM_GAP = 12;
     private static final double TITLE_BAR_HEIGHT = 40;
     private static final double FOOTER_HEIGHT = 48;
     private static final double GRID_HORIZONTAL_PADDING = 40;
@@ -63,6 +72,7 @@ public class TacWindow extends Overlay<TacWindow> {
     private final Preferences preferences;
     private TacContent content;
     private StackPane rootContainer;
+    private ImageView logo;
     private VBox riskPage, legalPage;
     private AutoTooltipButton backButton;
     private boolean isLegalPageVisible;
@@ -112,7 +122,7 @@ public class TacWindow extends Overlay<TacWindow> {
         windowContainer.getChildren().addAll(createTitleBar(), gridPane);
 
         // compact landscape logo above the card, matching the startup wizard branding
-        ImageView logo = new ImageView();
+        logo = new ImageView();
         logo.setId("image-logo-splash-landscape");
         logo.setFitWidth(LOGO_FIT_WIDTH);
         logo.setPreserveRatio(true);
@@ -120,7 +130,7 @@ public class TacWindow extends Overlay<TacWindow> {
         GUIUtil.setBrandingLogo(logo, preferences, "/images/logo_splash_landscape_light_mode.png",
                 "/images/logo_splash_landscape_dark_mode.png", LOGO_FIT_WIDTH, 0);
 
-        VBox column = new VBox(16, logo, windowContainer);
+        VBox column = new VBox(LOGO_GAP, logo, windowContainer);
         column.setAlignment(Pos.TOP_CENTER);
         rootContainer.getChildren().add(column);
     }
@@ -216,6 +226,53 @@ public class TacWindow extends Overlay<TacWindow> {
     @Override
     protected void onShow() {
         display();
+        setShellBackdrop(true);
+    }
+
+    @Override
+    protected void onHidden() {
+        setShellBackdrop(false);
+        StartupShell shell = getShell();
+        if (shell != null) shell.setWizardOverlayBottom(-1);
+    }
+
+    /**
+     * Center in the area above the shell's bottom bar like the wizard column; when a short window
+     * leaves no room, the bar yields first (the reported clearance edge makes the shell hide it)
+     * and the logo is dropped only once the window cannot frame even logo and card alone.
+     */
+    @Override
+    protected void layout() {
+        super.layout();
+        StartupShell shell = getShell();
+        if (stage == null || shell == null) return;
+        double sceneHeight = owner.getScene().getHeight();
+        double logoBlockHeight = logo.prefHeight(-1) + LOGO_GAP;
+        boolean logoFits = SHADOW_PADDING + logoBlockHeight + WINDOW_HEIGHT + MIN_BOTTOM_GAP <= sceneHeight;
+        if (logo.isVisible() != logoFits) {
+            logo.setVisible(logoFits);
+            logo.setManaged(logoFits);
+            stage.sizeToScene();
+        }
+        double blockHeight = WINDOW_HEIGHT + (logoFits ? logoBlockHeight : 0);
+        // flooring at the shadow padding keeps the stage top inside the scene, so title-bar clicks never land on the overlay
+        double blockTop = Math.max(SHADOW_PADDING, (sceneHeight - BOTTOM_BAR_CLEARANCE - blockHeight) / 2);
+        Window window = owner.getScene().getWindow();
+        double decorationHeight = window.getHeight() - sceneHeight;
+        if (Utilities.isWindows()) decorationHeight -= 9;
+        stage.setY(Math.round(window.getY() + decorationHeight + blockTop - SHADOW_PADDING));
+        shell.setWizardOverlayBottom(blockTop + blockHeight + MIN_BOTTOM_GAP);
+    }
+
+    // tint the splash backdrop like the wizard while the agreement is showing
+    private void setShellBackdrop(boolean active) {
+        StartupShell shell = getShell();
+        if (shell != null) shell.setWizardBackdrop(active);
+    }
+
+    private StartupShell getShell() {
+        Parent root = owner != null && owner.getScene() != null ? owner.getScene().getRoot() : null;
+        return root instanceof StartupShell ? (StartupShell) root : null;
     }
 
     private BorderPane createTitleBar() {
