@@ -167,12 +167,26 @@ public abstract class XmrWalletBase {
                 // native wallet provides sync notifications
                 if (wallet instanceof MoneroWalletFull) {
                     if (testReconnectOnStartup) HavenoUtils.waitFor(1000); // delay sync to test
-                    wallet.sync(new MoneroWalletListener() {
-                        @Override
-                        public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
-                            updateSyncProgress(height, endHeight);
+
+                    // sync in background thread so waiting can time out like rpc wallets
+                    CountDownLatch latch = syncProgressLatch;
+                    ThreadUtils.submitToPool(() -> {
+                        try {
+                            sourceWallet.sync(new MoneroWalletListener() {
+                                @Override
+                                public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
+                                    if (syncProgressLatch == latch) updateSyncProgress(height, endHeight);
+                                }
+                            });
+                        } catch (Exception e) {
+                            if (syncProgressLatch == latch && syncProgressError == null && !isShutDownStarted) syncProgressError = e;
+                        } finally {
+                            latch.countDown();
                         }
                     });
+
+                    // wait for sync to complete or timeout
+                    HavenoUtils.awaitLatch(latch);
                     onDoneSyncWithProgress();
                     return;
                 }
