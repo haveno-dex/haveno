@@ -1253,6 +1253,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 // get amount needed to reserve offer
                 BigInteger amountNeeded = openOffer.getOffer().getAmountNeeded();
 
+                // sync and poll wallet if balance appears insufficient, since polling tolerates lagging a block behind and can miss newly unlocked funds
+                if (openOffer.getScheduledTxHashes() == null && xmrWalletService.getAvailableBalance().compareTo(amountNeeded) < 0) {
+                    try {
+                        xmrWalletService.sync();
+                        xmrWalletService.doPollWallet();
+                    } catch (Exception e) {
+                        log.warn("Error syncing wallet before funding offer {}: {}", openOffer.getShortId(), e.getMessage());
+                    }
+                }
+
                 // handle split output offer
                 if (openOffer.isReserveExactAmount()) {
 
