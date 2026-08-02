@@ -23,6 +23,7 @@ import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.util.GUIUtil;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.TimeUnit;
@@ -132,7 +133,7 @@ public class StartupWizardWalletStep implements StartupWizard.Step {
         restoreHeightInfo.setWrapText(true);
         restoreHeightInfo.setMaxWidth(FIELD_WIDTH);
 
-        VBox importBox = new VBox(10, seedTextArea, restoreHeightField, restoreHeightInfo);
+        VBox importBox = new VBox(10, seedTextArea, GUIUtil.wrapWithCalendarPicker(restoreHeightField), restoreHeightInfo);
         importBox.setAlignment(Pos.TOP_CENTER);
         VBox.setMargin(importBox, new Insets(5, 0, 0, 0));
 
