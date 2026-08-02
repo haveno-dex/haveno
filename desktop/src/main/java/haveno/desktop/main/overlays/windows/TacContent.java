@@ -20,7 +20,6 @@ package haveno.desktop.main.overlays.windows;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
 import haveno.desktop.app.StartupWizard;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -52,7 +51,9 @@ public class TacContent {
         VBox page = new VBox(14);
         page.getStyleClass().add("tac-agreement-page");
         page.setMaxWidth(pageWidth);
-        page.getChildren().add(createRiskOverview());
+        VBox overview = createRiskOverview();
+        VBox.setVgrow(overview, Priority.ALWAYS);
+        page.getChildren().add(overview);
         return page;
     }
 

@@ -902,6 +902,11 @@ tree-table-view:focused {
     -fx-background-color: -bs-background-color;
 }
 
+/* tinted while the first-run wizard is showing so its card reads as a floating panel */
+#splash.startup-wizard-backdrop {
+    -fx-background-color: -bs-wizard-backdrop;
+}
+
 /* Main UI */
 #base-content-container {
     -fx-background-color: -bs-color-gray-background;
@@ -1135,6 +1140,16 @@ tree-table-view:focused {
  *                                                                             *
  ******************************************************************************/
 
+/* floating card framing the wizard pages and their modal-style footer */
+.wizard-card {
+    -fx-background-color: -bs-wizard-card-bg;
+    -fx-background-radius: 10;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-radius: 10;
+    -fx-padding: 24 28 12 28;
+    -fx-effect: dropshadow(gaussian, -bs-wizard-card-shadow, 24, 0, 0, 6);
+}
+
 .startup-wizard-footer-label {
     -fx-font-size: 0.9em;
     -fx-text-fill: -bs-color-gray-6;
@@ -1189,16 +1204,19 @@ tree-table-view:focused {
     -fx-effect: none;
 }
 
+/* styled like .wizard-card so both agreement surfaces share one look */
 .tac-agreement-window {
     -fx-font-size: 0.9em;
-    -fx-background-color: -bs-background-color;
-    -fx-background-radius: 6;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow, 18, 0, 0, 0);
+    -fx-background-color: -bs-wizard-card-bg;
+    -fx-background-radius: 10;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(gaussian, -bs-wizard-card-shadow, 24, 0, 0, 6);
 }
 
 .tac-agreement-title-bar {
     -fx-background-color: -bs-color-gray-0;
-    -fx-background-radius: 6 6 0 0;
+    -fx-background-radius: 10 10 0 0;
     -fx-min-height: 40;
     -fx-pref-height: 40;
     -fx-padding: 0 12 0 12;
@@ -1243,7 +1261,7 @@ tree-table-view:focused {
 }
 
 .wizard-choice-card {
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-wizard-card-bg;
     -fx-background-radius: 8;
     -fx-border-color: -bs-color-gray-3;
     -fx-border-radius: 8;
@@ -1505,7 +1523,8 @@ tree-table-view:focused {
     -fx-border-color: -bs-color-gray-3;
     -fx-border-width: 1;
     -fx-padding: 0 18 0 18;
-    -jfx-rippler-fill: transparent;
+    /* keep the pinned flat look on keyboard focus; the JFoenix overlay would tint from the text fill */
+    -jfx-disable-visual-focus: true;
 }
 
 .tac-agreement-secondary-button.tac-agreement-reject-button,
@@ -1515,12 +1534,12 @@ tree-table-view:focused {
 .tac-agreement-secondary-button.tac-agreement-reject-button:pressed {
     -fx-text-fill: -bs-rd-error-red;
     -fx-border-color: -bs-rd-error-red;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-wizard-card-bg;
 }
 
 .tac-agreement-secondary-button.tac-agreement-back-button {
     -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-background-color;
+    -fx-background-color: -bs-wizard-card-bg;
 }
 
 .action-button.tac-agreement-action-button {
