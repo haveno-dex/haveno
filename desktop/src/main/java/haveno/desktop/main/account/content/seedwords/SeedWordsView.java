@@ -52,8 +52,9 @@ import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addPrimaryActionButtonAFterGroup;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelDatePicker;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
+import static haveno.desktop.util.FormBuilder.addTopLabelWithVBox;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import java.math.BigInteger;
 import java.time.Instant;
@@ -125,8 +126,9 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         seedWordsTextArea.setPrefHeight(70);
         seedWordsTextArea.setMaxHeight(70);
 
-        restoreHeightInputTextField = addTopLabelInputTextField(root, ++gridRow, Res.get("seed.restore.height"), 10).second;
+        restoreHeightInputTextField = new InputTextField();
         restoreHeightInputTextField.setValidator(new RestoreHeightValidator());
+        addTopLabelWithVBox(root, ++gridRow, Res.get("seed.restore.height"), GUIUtil.wrapWithCalendarPicker(restoreHeightInputTextField), 10);
         restoreButton = addPrimaryActionButtonAFterGroup(root, ++gridRow, Res.get("seed.restore"));
 
         addTitledGroupBg(root, ++gridRow, 1, Res.get("shared.information"), Layout.GROUP_DISTANCE);

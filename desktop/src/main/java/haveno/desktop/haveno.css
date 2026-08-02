@@ -716,8 +716,82 @@ tree-table-view:focused {
     -fx-background-color: -jfx-default-color;
 }
 
-.date-picker-popup .month-year-pane {
-    -fx-background-color: -bs-color-primary-dark;
+/* calendar popup of date pickers, matching the app surfaces in both themes */
+.date-picker-popup {
+    -fx-background-color: -bs-color-gray-3, -bs-color-gray-0;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 16, 0, 0, 4);
+}
+
+.date-picker-popup > .month-year-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 8 8 2 8;
+}
+
+.date-picker-popup .spinner .button {
+    -fx-background-color: transparent;
+}
+
+.date-picker-popup .spinner .left-arrow,
+.date-picker-popup .spinner .right-arrow {
+    -fx-background-color: -bs-color-gray-6;
+}
+
+.date-picker-popup .spinner .button:hover .left-arrow,
+.date-picker-popup .spinner .button:hover .right-arrow {
+    -fx-background-color: -bs-color-primary;
+}
+
+.date-picker-popup .spinner .label {
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.date-picker-popup .calendar-grid {
+    -fx-background-color: transparent;
+    -fx-padding: 6;
+}
+
+.date-picker-popup .day-name-cell {
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.date-picker-popup .day-cell {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+    -fx-border-color: transparent;
+    -fx-text-fill: -bs-rd-font-dark;
+    -fx-cursor: hand;
+}
+
+.date-picker-popup .day-cell:hover {
+    -fx-background-color: -bs-color-gray-1;
+}
+
+.date-picker-popup .day-cell.today {
+    -fx-border-color: -bs-color-primary;
+    -fx-border-radius: 6;
+}
+
+.date-picker-popup .day-cell.selected {
+    -fx-background-color: rgba(28, 96, 220, 0.12);
+    -fx-text-fill: -bs-color-primary;
+    -fx-font-family: "IBM Plex Sans Medium";
+}
+
+.date-picker-popup .day-cell.previous-month,
+.date-picker-popup .day-cell.next-month {
+    -fx-text-fill: -bs-color-gray-4;
+}
+
+/* calendar icon opening the popup from a text field (GUIUtil.wrapWithCalendarPicker) */
+.calendar-picker-icon {
+    -fx-fill: -bs-login-prompt-text;
+}
+
+.calendar-picker-button:hover .calendar-picker-icon {
+    -fx-fill: -bs-color-primary;
 }
 
 .scroll-bar {
