@@ -57,11 +57,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -119,6 +125,8 @@ public class XmrWalletService extends XmrWalletBase {
     private static final int NUM_WALLET_BACKUPS = 3;
     private static final boolean PRINT_RPC_STACK_TRACE = false;
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
+    private static final long FORCE_CLOSE_TIMEOUT_MS = 15000; // bounded wait since native close can block draining a stalled network request
+    private static final long PENDING_CLOSE_TIMEOUT_MS = 240000; // max wait to reopen, covering wallet2's 3.5 minute rpc timeout
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
     private static final long POLL_TXS_TOLERANCE_MS = 1000 * 60 * 3; // request connection switch if txs not updated within 3 minutes
     private static final boolean TEST_STARTUP_SYNC_ERROR = false;
@@ -159,6 +167,7 @@ public class XmrWalletService extends XmrWalletBase {
     private EventThrottler logPollErrorRateThrottler = new EventThrottler(HavenoUtils.LOG_POLL_ERROR_PERIOD_MS, TimeUnit.MILLISECONDS);
     private long lastPollTxsTimestamp; 
     private final Object pollLock = new Object();
+    private final Map<String, Future<?>> pendingWalletCloses = new ConcurrentHashMap<>(); // wallets force closing in background by path
     private Long cachedHeight;
     private BigInteger cachedBalance;
     private BigInteger cachedAvailableBalance = null;
@@ -525,7 +534,40 @@ public class XmrWalletService extends XmrWalletBase {
         if (wallet instanceof MoneroWalletRpc) {
             MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, true);
         } else {
-            wallet.close(false);
+
+            // close natively in background with bounded wait, since closing can block draining a stalled network request
+            ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "force-close-wallet");
+                thread.setDaemon(true); // do not block application exit
+                return thread;
+            });
+            Future<?> closeTask = executor.submit(() -> wallet.close(false));
+            executor.shutdown();
+            if (path != null) pendingWalletCloses.put(path, closeTask);
+            try {
+                closeTask.get(FORCE_CLOSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                log.warn("Timeout force closing wallet after {} ms, path={}, will finish closing in background", FORCE_CLOSE_TIMEOUT_MS, path);
+            } catch (Exception e) {
+                log.warn("Error force closing wallet, path={}: {}", path, e.getMessage());
+            } finally {
+                if (path != null && closeTask.isDone()) pendingWalletCloses.remove(path, closeTask); // keep entry if still closing so reopening awaits it
+            }
+        }
+    }
+
+    // reopening before a background close finishes fails on the wallet keys file lock, so await any pending close
+    private void awaitPendingWalletClose(String path) {
+        if (path == null) return;
+        Future<?> pendingClose = pendingWalletCloses.remove(path);
+        if (pendingClose == null || pendingClose.isDone()) return;
+        log.warn("Waiting for wallet to finish closing in background before opening, path={}", path);
+        long startTime = System.currentTimeMillis();
+        try {
+            pendingClose.get(PENDING_CLOSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            log.info("Done waiting {} ms for wallet to close, path={}", System.currentTimeMillis() - startTime, path);
+        } catch (Exception e) {
+            log.warn("Error waiting for wallet to finish closing, path={}: {}", path, e.getMessage());
         }
     }
 
@@ -1611,6 +1653,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private MoneroWalletFull createWalletFull(MoneroWalletConfig config, boolean applyProxyUri) {
+        awaitPendingWalletClose(config.getPath());
 
         // must be connected to daemon
         if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) throw new RuntimeException("Must be connected to daemon before creating wallet");
@@ -1640,6 +1683,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private MoneroWalletFull openWalletFull(MoneroWalletConfig config, boolean applyProxyUri) {
+        awaitPendingWalletClose(config.getPath());
         MoneroWalletFull walletFull = null;
         try {
 
@@ -2104,6 +2148,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void forceCloseMainWallet() {
+        log.warn("Force closing main wallet");
         stopPolling();
         if (wallet != null) {
             MoneroWallet walletRef = wallet;
