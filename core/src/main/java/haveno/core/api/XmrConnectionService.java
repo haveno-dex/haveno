@@ -691,6 +691,10 @@ public final class XmrConnectionService {
         return downloadListener.percentageProperty();
     }
 
+    public ReadOnlyLongProperty blocksRemainingProperty() {
+        return downloadListener.blocksRemainingProperty();
+    }
+
     public int getMinBroadcastConnections() {
         return MIN_BROADCAST_CONNECTIONS;
     }
