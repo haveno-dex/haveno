@@ -2320,18 +2320,21 @@ public class XmrWalletService extends XmrWalletBase {
 
             // fetch transactions and store to cache
             // TODO: ideally wallet should sync every poll and then avoid updating from pool on fetching txs?
-            synchronized (HavenoUtils.getDaemonLock()) {
-                if (lastPollTxsTimestamp == 0) lastPollTxsTimestamp = System.currentTimeMillis(); // set initial timestamp
-                try {
-                    cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
-                    lastPollTxsTimestamp = System.currentTimeMillis();
-                } catch (Exception e) { // fetch from pool can fail
-                    if (!isShutDownStarted && wallet == sourceWallet) {
+            synchronized (walletLock) { // lock wallet to prevent concurrent close
+                if (wallet == null || isShutDownStarted) return;
+                synchronized (HavenoUtils.getDaemonLock()) {
+                    if (lastPollTxsTimestamp == 0) lastPollTxsTimestamp = System.currentTimeMillis(); // set initial timestamp
+                    try {
+                        cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
+                        lastPollTxsTimestamp = System.currentTimeMillis();
+                    } catch (Exception e) { // fetch from pool can fail
+                        if (!isShutDownStarted && wallet == sourceWallet) {
 
-                        // throttle error handling
-                        if (!logPollErrorRateThrottler.onEvent().throttled) {
-                            log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
-                            if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestConnectionSwitchSynchronous(sourceConnection));
+                            // throttle error handling
+                            if (!logPollErrorRateThrottler.onEvent().throttled) {
+                                log.warn("Error polling main wallet's transactions from the pool: {}", e.getMessage());
+                                if (System.currentTimeMillis() - lastPollTxsTimestamp > POLL_TXS_TOLERANCE_MS) ThreadUtils.submitToPool(() -> requestConnectionSwitchSynchronous(sourceConnection));
+                            }
                         }
                     }
                 }
