@@ -8,6 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
@@ -39,6 +40,7 @@ public abstract class XmrWalletBase {
     private static final String RECEIVED_ERROR_RESPONSE_MSG = "Received error response from RPC request";
     private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
     private static final long SAVE_PROGRESS_CHECK_PERIOD_MS = 10000;
+    private static final long SAVE_MAX_SYNC_TIME_FRACTION = 10; // save at most 1/10 of the time spent syncing
 
     // inherited
     protected MoneroWallet wallet;
@@ -220,11 +222,19 @@ public abstract class XmrWalletBase {
                 wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
                 syncProgressLooper.start(1000);
 
-                // save wallet periodically
+                // save wallet when height advances so scanned blocks are kept if the wallet is force closed
+                AtomicLong lastSaveHeight = new AtomicLong(walletHeight.get());
+                AtomicLong minSaveIntervalMs = new AtomicLong();
                 TaskLooper saveProgressLooper = new TaskLooper(() -> {
                     if (syncProgressError != null) return; // skip if sync errored
+                    long height = walletHeight.get();
+                    if (height <= lastSaveHeight.get()) return; // skip unless height advanced, so saves cannot queue on a stalled wallet
+                    if (System.currentTimeMillis() - lastSaveTimeMs < minSaveIntervalMs.get()) return;
                     try {
-                        saveWalletIfElapsedTime(false);
+                        long startTime = System.currentTimeMillis();
+                        saveWalletNoSync(); // skip walletLock; only safe for rpc wallets, whose requests the rpc serializes
+                        minSaveIntervalMs.set((System.currentTimeMillis() - startTime) * SAVE_MAX_SYNC_TIME_FRACTION); // back off on slow saves to bound overhead on large wallets
+                        lastSaveHeight.set(height);
                     } catch (Exception e) {
                         if (syncProgressError == null) log.warn("Error periodically saving wallet during sync with progress: {}", e.getMessage());
                     }
