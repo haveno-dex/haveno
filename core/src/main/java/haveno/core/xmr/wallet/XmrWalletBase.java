@@ -41,6 +41,7 @@ public abstract class XmrWalletBase {
     private static final long SAVE_AFTER_ELAPSED_SECONDS = 300;
     private static final long SAVE_PROGRESS_CHECK_PERIOD_MS = 10000;
     private static final long SAVE_MAX_SYNC_TIME_FRACTION = 10; // save at most 1/10 of the time spent syncing
+    private static final long SAVE_PROGRESS_NATIVE_INTERVAL_MS = 30000; // native saves complete at sync chunk boundaries, so use a fixed interval
 
     // inherited
     protected MoneroWallet wallet;
@@ -174,12 +175,17 @@ public abstract class XmrWalletBase {
                 // native wallet provides sync notifications
                 if (wallet instanceof MoneroWalletFull) {
                     if (testReconnectOnStartup) HavenoUtils.waitFor(1000); // delay sync to test
-                    wallet.sync(new MoneroWalletListener() {
-                        @Override
-                        public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
-                            updateSyncProgress(height, endHeight);
-                        }
-                    });
+                    TaskLooper saveProgressLooper = startSaveOnScanProgressLooper(); // saves interleave at native sync chunk boundaries
+                    try {
+                        wallet.sync(new MoneroWalletListener() {
+                            @Override
+                            public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
+                                updateSyncProgress(height, endHeight);
+                            }
+                        });
+                    } finally {
+                        saveProgressLooper.stop();
+                    }
                     onDoneSyncWithProgress();
                     return;
                 }
@@ -223,23 +229,7 @@ public abstract class XmrWalletBase {
                 syncProgressLooper.start(1000);
 
                 // save wallet when height advances so scanned blocks are kept if the wallet is force closed
-                AtomicLong lastSaveHeight = new AtomicLong(walletHeight.get());
-                AtomicLong minSaveIntervalMs = new AtomicLong();
-                TaskLooper saveProgressLooper = new TaskLooper(() -> {
-                    if (syncProgressError != null) return; // skip if sync errored
-                    long height = walletHeight.get();
-                    if (height <= lastSaveHeight.get()) return; // skip unless height advanced, so saves cannot queue on a stalled wallet
-                    if (System.currentTimeMillis() - lastSaveTimeMs < minSaveIntervalMs.get()) return;
-                    try {
-                        long startTime = System.currentTimeMillis();
-                        saveWalletNoSync(); // skip walletLock; only safe for rpc wallets, whose requests the rpc serializes
-                        minSaveIntervalMs.set((System.currentTimeMillis() - startTime) * SAVE_MAX_SYNC_TIME_FRACTION); // back off on slow saves to bound overhead on large wallets
-                        lastSaveHeight.set(height);
-                    } catch (Exception e) {
-                        if (syncProgressError == null) log.warn("Error periodically saving wallet during sync with progress: {}", e.getMessage());
-                    }
-                });
-                saveProgressLooper.start(SAVE_PROGRESS_CHECK_PERIOD_MS);
+                TaskLooper saveProgressLooper = startSaveOnScanProgressLooper();
 
                 // wait for sync to complete
                 try {
@@ -340,6 +330,28 @@ public abstract class XmrWalletBase {
     protected abstract void saveWalletNoSync();
 
     // ------------------------------ PRIVATE HELPERS -------------------------
+
+    // save the wallet as the scanned height advances so a force close loses less work
+    private TaskLooper startSaveOnScanProgressLooper() {
+        AtomicLong lastSaveHeight = new AtomicLong(walletHeight.get());
+        AtomicLong minSaveIntervalMs = new AtomicLong();
+        TaskLooper saveProgressLooper = new TaskLooper(() -> {
+            if (syncProgressError != null) return; // skip if sync errored
+            long height = walletHeight.get();
+            if (height <= lastSaveHeight.get()) return; // skip unless height advanced, so saves cannot queue on a stalled wallet
+            if (System.currentTimeMillis() - lastSaveTimeMs < minSaveIntervalMs.get()) return;
+            try {
+                long startTime = System.currentTimeMillis();
+                saveWalletNoSync(); // skip walletLock, which the syncing thread may hold; rpc serializes requests and native saves synchronize with sync chunks
+                minSaveIntervalMs.set(wallet instanceof MoneroWalletFull ? SAVE_PROGRESS_NATIVE_INTERVAL_MS : (System.currentTimeMillis() - startTime) * SAVE_MAX_SYNC_TIME_FRACTION); // native save duration mostly awaits the current chunk, so back off a fixed interval; rpc backs off on slow saves to bound overhead
+                lastSaveHeight.set(height);
+            } catch (Exception e) {
+                if (syncProgressError == null) log.warn("Error periodically saving wallet during sync with progress: {}", e.getMessage());
+            }
+        });
+        saveProgressLooper.start(SAVE_PROGRESS_CHECK_PERIOD_MS);
+        return saveProgressLooper;
+    }
 
     private void updateSyncProgress(Long height, long targetHeight) {
 
