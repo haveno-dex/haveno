@@ -243,7 +243,20 @@ class GrpcXmrConnectionService extends XmrConnectionsImplBase {
 
     private static String validateUri(String url) throws MalformedURLException {
         if (url.isEmpty()) throw new IllegalArgumentException("URL is required");
-        return new URL(url).toString(); // validate and return
+        // Only http(s) is meaningful for a Monero RPC endpoint. Without this
+        // gate, a gRPC caller (after authenticating against PasswordAuthInterceptor)
+        // can hand `file:`, `jar:`, `ftp:`, or arbitrary http URLs to the wallet
+        // RPC layer — including cloud IMDS addresses like
+        // http://169.254.169.254/latest/meta-data or loopback endpoints that
+        // the daemon should never be told to use as a wallet.
+        java.net.URL parsed = new URL(url);
+        String protocol = parsed.getProtocol();
+        if (protocol == null
+                || (!protocol.equalsIgnoreCase("http") && !protocol.equalsIgnoreCase("https"))) {
+            throw new IllegalArgumentException(
+                    "Monero RPC URL must be http(s); got '" + protocol + "' for " + url);
+        }
+        return parsed.toString();
     }
 
     private static String nullIfEmpty(String value) {
