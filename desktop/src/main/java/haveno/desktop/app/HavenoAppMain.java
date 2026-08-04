@@ -27,6 +27,7 @@ import haveno.core.app.HavenoExecutable;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.user.Preferences;
+import haveno.core.xmr.nodes.XmrNodes;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
 import haveno.desktop.setup.DesktopPersistedDataHost;
@@ -134,6 +135,13 @@ public class HavenoAppMain extends HavenoExecutable {
             preferences.setOfferBookChartScreenCurrencyCode(currency.getCode());
             preferences.setTradeChartsScreenCurrencyCode(currency.getCode());
         }
+        // applied before the connection service initializes, so default nodes are never contacted
+        String customNodes = startupWizardResult.getCustomMoneroNodes();
+        if (customNodes != null) {
+            preferences.setMoneroNodes(customNodes);
+            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.CUSTOM.ordinal());
+        }
+        if (startupWizardResult.getUseTorForXmr() != null) preferences.setUseTorForXmrOrdinal(startupWizardResult.getUseTorForXmr().ordinal());
         // last: force-persists the preferences, making all wizard choices durable before startup continues
         preferences.setTacAcceptedV190(true);
     }

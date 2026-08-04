@@ -1134,6 +1134,12 @@ tree-table-view:focused {
     -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 10, 0, 0, 0);
 }
 
+.login-password-field.validation-error,
+.login-password-field.validation-error:focused {
+    -fx-background-color: -bs-rd-error-red, -fx-control-inner-background;
+    -fx-effect: none;
+}
+
 /*******************************************************************************
  *                                                                             *
  * User agreement (startup wizard and TacWindow)                               *

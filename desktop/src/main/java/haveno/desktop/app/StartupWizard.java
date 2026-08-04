@@ -21,8 +21,8 @@ import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.user.Preferences;
 import haveno.desktop.components.AutoTooltipButton;
-import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.util.FormBuilder;
 import java.time.LocalDate;
 import javax.annotation.Nullable;
@@ -103,6 +103,10 @@ public class StartupWizard {
         String password;
         @Nullable
         TradeCurrency preferredTradeCurrency;
+        @Nullable
+        String customMoneroNodes;
+        @Nullable
+        Preferences.UseTorForXmr useTorForXmr;
     }
 
     public static final double PAGE_WIDTH = 800;
@@ -116,7 +120,6 @@ public class StartupWizard {
     private final StackPane contentSlot = new StackPane();
     private final HBox progressDots = new HBox(7);
     private final Button backButton, nextButton, quitButton;
-    private final Label footerLabel = new AutoTooltipLabel();
     // combined with the current step's own gate to drive the next button's disable binding
     private final BooleanProperty busy = new SimpleBooleanProperty(false);
     private int stepIndex;
@@ -149,7 +152,8 @@ public class StartupWizard {
         nextButton.setOnAction(event -> onNext());
         quitButton.setOnAction(event -> {
             setControlsDisabled(true);
-            footerLabel.setText(Res.get("password.startup.shuttingDown"));
+            // the disabled button itself reports the state, keeping the area below the dots clear
+            quitButton.setText(Res.get("password.startup.shuttingDown"));
             onQuit.run();
         });
 
@@ -171,27 +175,13 @@ public class StartupWizard {
         card.getStyleClass().add("wizard-card");
         card.setMaxWidth(Region.USE_PREF_SIZE);
 
-        footerLabel.getStyleClass().add("startup-wizard-footer-label");
-        // unmanaged: painted below the dots without taking layout space, so appearing never re-centers the page
-        footerLabel.setManaged(false);
-        // hidden while empty so it doesn't count as content (e.g. for the shell's version bar collision check)
-        footerLabel.visibleProperty().bind(footerLabel.textProperty().isNotEmpty());
-
         // the dots ride below the card so the footer buttons can never crowd them
         progressDots.setAlignment(Pos.CENTER);
         progressDots.setMaxWidth(Region.USE_PREF_SIZE);
         progressDots.setMaxHeight(Region.USE_PREF_SIZE);
 
-        root = new VBox(12, card, progressDots, footerLabel) {
-            @Override
-            protected void layoutChildren() {
-                super.layoutChildren();
-                double w = Math.min(footerLabel.prefWidth(-1), getWidth());
-                footerLabel.resizeRelocate(snapPositionX((getWidth() - w) / 2), snapPositionY(getHeight() + getSpacing()), w, footerLabel.prefHeight(w));
-            }
-        };
+        root = new VBox(12, card, progressDots);
         root.setAlignment(Pos.TOP_CENTER);
-        footerLabel.textProperty().addListener((observable, oldText, newText) -> root.requestLayout());
 
         showStep(0, false);
     }
@@ -339,7 +329,6 @@ public class StartupWizard {
         quitButton.setText(quitText != null ? quitText : Res.get("shared.shutDown"));
         backButton.setVisible(!first);
         backButton.setManaged(!first);
-        footerLabel.setText("");
         ObservableBooleanValue blocked = step.nextBlocked();
         nextButton.disableProperty().unbind();
         nextButton.disableProperty().bind(blocked == null ? busy : busy.or(blocked));
@@ -369,8 +358,9 @@ public class StartupWizard {
                 setControlsDisabled(false);
                 showStep(nextIndex, true);
             } else {
-                // keep the working state until app startup replaces this screen
-                footerLabel.setText(Res.get("startupWizard.finishing"));
+                // keep the working state until app startup replaces this screen; the disabled
+                // start button itself reports the progress
+                nextButton.setText(Res.get("startupWizard.finishing"));
                 onComplete.run();
             }
         }));
