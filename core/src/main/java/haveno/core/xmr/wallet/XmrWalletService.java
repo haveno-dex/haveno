@@ -132,6 +132,8 @@ public class XmrWalletService extends XmrWalletBase {
     private static final long POLL_TXS_TOLERANCE_MS = 1000 * 60 * 3; // request connection switch if txs not updated within 3 minutes
     private static final boolean TEST_STARTUP_SYNC_ERROR = false;
     private static final long INIT_WALLET_DELAY_MS = 5000;
+    private static final int NUM_CHECK_TX_KEY_ATTEMPTS = 3;
+    private static final long CHECK_TX_KEY_ATTEMPT_DELAY_MS = 1000;
     private static final String THREAD_ID = XmrWalletService.class.getSimpleName();
 
     public static String getMoneroBinsDir() {
@@ -937,7 +939,6 @@ public class XmrWalletService extends XmrWalletBase {
     public MoneroTx verifyTradeTx(String offerId, BigInteger tradeFeeAmount, String feeAddress, BigInteger sendAmount, String sendAddress, String txHash, String txHex, String txKey, List<String> keyImages) {
         if (txHash == null) throw new IllegalArgumentException("Cannot verify trade tx with null id");
         MoneroDaemonRpc monerod = getMonerod();
-        MoneroWallet wallet = getWallet();
         MoneroTx tx = null;
         synchronized (lock) {
             try {
@@ -972,13 +973,13 @@ public class XmrWalletService extends XmrWalletBase {
                 // verify proof to fee address
                 BigInteger actualTradeFee = BigInteger.ZERO;
                 if (tradeFeeAmount.compareTo(BigInteger.ZERO) > 0) {
-                    MoneroCheckTx tradeFeeCheck = wallet.checkTxKey(txHash, txKey, feeAddress);
+                    MoneroCheckTx tradeFeeCheck = checkTxKey(txHash, txKey, feeAddress);
                     if (!tradeFeeCheck.isGood()) throw new RuntimeException("Invalid proof to trade fee address");
                     actualTradeFee = tradeFeeCheck.getReceivedAmount();
                 }
 
                 // verify proof to transfer address
-                MoneroCheckTx transferCheck = wallet.checkTxKey(txHash, txKey, sendAddress);
+                MoneroCheckTx transferCheck = checkTxKey(txHash, txKey, sendAddress);
                 if (!transferCheck.isGood()) throw new RuntimeException("Invalid proof to transfer address");
                 BigInteger actualSendAmount = transferCheck.getReceivedAmount();
 
@@ -1011,6 +1012,20 @@ public class XmrWalletService extends XmrWalletBase {
                     System.out.println(monerod.getRpcConnection());
                     throw err.getCode().equals(-32601) ? new RuntimeException("Failed to flush tx from pool. Arbitrator must use trusted, unrestricted daemon") : err;
                 }
+            }
+        }
+    }
+
+    // check tx key with bounded retries since the request can fail transiently under load
+    private MoneroCheckTx checkTxKey(String txHash, String txKey, String address) {
+        int numAttempts = 0;
+        while (true) {
+            try {
+                return getWallet().checkTxKey(txHash, txKey, address);
+            } catch (Exception e) {
+                if (++numAttempts >= NUM_CHECK_TX_KEY_ATTEMPTS) throw e;
+                log.warn("Error checking tx key, attempt={}/{}, txHash={}: {}", numAttempts, NUM_CHECK_TX_KEY_ATTEMPTS, txHash, e.getMessage());
+                HavenoUtils.waitFor(CHECK_TX_KEY_ATTEMPT_DELAY_MS);
             }
         }
     }
