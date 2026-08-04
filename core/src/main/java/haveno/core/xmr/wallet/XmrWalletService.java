@@ -858,6 +858,7 @@ public class XmrWalletService extends XmrWalletBase {
     public void onShutDownStarted() {
         log.info("XmrWalletService.onShutDownStarted()");
         this.isShutDownStarted = true;
+        MONERO_WALLET_RPC_MANAGER.onShutDownStarted();
     }
 
     public void shutDown() {
