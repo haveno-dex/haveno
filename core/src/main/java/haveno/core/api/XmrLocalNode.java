@@ -224,7 +224,7 @@ public class XmrLocalNode {
     public void start(XmrNodeSettings settings) throws IOException {
         if (isDetected()) throw new IllegalStateException("Local Monero node already online");
 
-        log.info("Starting local Monero node: " + settings);
+        log.info(Utilities.redactSensitiveInfo("Starting local Monero node: " + settings));
 
         var args = new ArrayList<>(MONEROD_ARGS);
 

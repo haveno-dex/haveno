@@ -476,7 +476,7 @@ public class XmrWalletService extends XmrWalletBase {
             File from = new File(walletDir, fromName + postfix);
             if (!from.exists()) continue; // address file is absent on mainnet
             File to = new File(walletDir, toName + postfix);
-            if (!from.renameTo(to)) throw new RuntimeException("Failed to move wallet file " + from + " to " + to);
+            if (!from.renameTo(to)) throw new RuntimeException("Failed to move wallet file " + Utilities.redactSensitiveInfo(from.toString()) + " to " + Utilities.redactSensitiveInfo(to.toString()));
         }
     }
 
@@ -485,7 +485,7 @@ public class XmrWalletService extends XmrWalletBase {
         assertNotPath(walletName);
         for (String postfix : new String[] {"", KEYS_FILE_POSTFIX, ADDRESS_FILE_POSTFIX}) {
             File file = new File(walletDir, walletName + postfix);
-            if (file.exists() && !file.delete()) throw new RuntimeException("Failed to delete wallet file " + file);
+            if (file.exists() && !file.delete()) throw new RuntimeException("Failed to delete wallet file " + Utilities.redactSensitiveInfo(file.toString()));
         }
     }
 
@@ -508,7 +508,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
-        log.debug("Closing wallet with path={}, save={}", wallet.getPath(), save);
+        log.debug("Closing wallet with path={}, save={}", Utilities.redactSensitiveInfo(wallet.getPath()), save);
         MoneroError err = null;
         String path = wallet.getPath();
         try {
@@ -528,7 +528,7 @@ public class XmrWalletService extends XmrWalletBase {
 
     public void forceCloseWallet(MoneroWallet wallet, String path) {
         if (wallet == null) {
-            log.warn("Ignoring force close wallet because wallet is null, path={}", path);
+            log.warn("Ignoring force close wallet because wallet is null, path={}", Utilities.redactSensitiveInfo(path));
             return;
         }
         if (wallet instanceof MoneroWalletRpc) {
@@ -547,9 +547,9 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 closeTask.get(FORCE_CLOSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                log.warn("Timeout force closing wallet after {} ms, path={}, will finish closing in background", FORCE_CLOSE_TIMEOUT_MS, path);
+                log.warn("Timeout force closing wallet after {} ms, path={}, will finish closing in background", FORCE_CLOSE_TIMEOUT_MS, Utilities.redactSensitiveInfo(path));
             } catch (Exception e) {
-                log.warn("Error force closing wallet, path={}: {}", path, e.getMessage());
+                log.warn("Error force closing wallet, path={}: {}", Utilities.redactSensitiveInfo(path), e.getMessage());
             } finally {
                 if (path != null && closeTask.isDone()) pendingWalletCloses.remove(path, closeTask); // keep entry if still closing so reopening awaits it
             }
@@ -561,13 +561,13 @@ public class XmrWalletService extends XmrWalletBase {
         if (path == null) return;
         Future<?> pendingClose = pendingWalletCloses.remove(path);
         if (pendingClose == null || pendingClose.isDone()) return;
-        log.warn("Waiting for wallet to finish closing in background before opening, path={}", path);
+        log.warn("Waiting for wallet to finish closing in background before opening, path={}", Utilities.redactSensitiveInfo(path));
         long startTime = System.currentTimeMillis();
         try {
             pendingClose.get(PENDING_CLOSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            log.info("Done waiting {} ms for wallet to close, path={}", System.currentTimeMillis() - startTime, path);
+            log.info("Done waiting {} ms for wallet to close, path={}", System.currentTimeMillis() - startTime, Utilities.redactSensitiveInfo(path));
         } catch (Exception e) {
-            log.warn("Error waiting for wallet to finish closing, path={}: {}", path, e.getMessage());
+            log.warn("Error waiting for wallet to finish closing, path={}: {}", Utilities.redactSensitiveInfo(path), e.getMessage());
         }
     }
 
@@ -576,9 +576,10 @@ public class XmrWalletService extends XmrWalletBase {
         log.info("{}.deleteWallet({})", getClass().getSimpleName(), walletName);
         if (!walletExists(walletName)) throw new RuntimeException("Wallet does not exist at path: " + walletName);
         String path = walletDir.toString() + File.separator + walletName;
-        if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet cache file: " + path);
-        if (!new File(path + KEYS_FILE_POSTFIX).delete()) throw new RuntimeException("Failed to delete wallet keys file: " + path + KEYS_FILE_POSTFIX);
-        if (!new File(path + ADDRESS_FILE_POSTFIX).delete() && !Config.baseCurrencyNetwork().isMainnet()) throw new RuntimeException("Failed to delete wallet address file: " + path + ADDRESS_FILE_POSTFIX); // mainnet does not have address file by default
+        String redactedPath = Utilities.redactSensitiveInfo(path);
+        if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet cache file: " + redactedPath);
+        if (!new File(path + KEYS_FILE_POSTFIX).delete()) throw new RuntimeException("Failed to delete wallet keys file: " + redactedPath + KEYS_FILE_POSTFIX);
+        if (!new File(path + ADDRESS_FILE_POSTFIX).delete() && !Config.baseCurrencyNetwork().isMainnet()) throw new RuntimeException("Failed to delete wallet address file: " + redactedPath + ADDRESS_FILE_POSTFIX); // mainnet does not have address file by default
     }
 
     public void backupWallet(String walletName) {
@@ -1667,15 +1668,15 @@ public class XmrWalletService extends XmrWalletBase {
             if (!applyProxyUri) connection.setProxyUri(null);
 
             // create wallet
-            log.debug("Creating full wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
+            log.debug("Creating full wallet '{}' with monerod={}, proxyUri={}", Utilities.redactSensitiveInfo(config.getPath()), connection.getUri(), connection.getProxyUri());
             long time = System.currentTimeMillis();
             config.setServer(connection);
             walletFull = MoneroWalletFull.createWallet(config);
             walletFull.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
-            log.info("Done creating full wallet " + config.getPath() + " in " + (System.currentTimeMillis() - time) + " ms");
+            log.info("Done creating full wallet " + Utilities.redactSensitiveInfo(config.getPath()) + " in " + (System.currentTimeMillis() - time) + " ms");
             return walletFull;
         } catch (Exception e) {
-            String errorMsg = "Could not create wallet '" + config.getPath() + "': " + e.getMessage();
+            String errorMsg = "Could not create wallet '" + Utilities.redactSensitiveInfo(config.getPath()) + "': " + e.getMessage();
             log.warn(errorMsg + "\n", e);
             if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
             throw new IllegalStateException(errorMsg);
@@ -1694,12 +1695,12 @@ public class XmrWalletService extends XmrWalletBase {
             // try opening wallet
             config.setNetworkType(getMoneroNetworkType());
             config.setServer(connection);
-            log.debug("Opening full wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
+            log.debug("Opening full wallet '{}' with monerod={}, proxyUri={}", Utilities.redactSensitiveInfo(config.getPath()), connection.getUri(), connection.getProxyUri());
             try {
                 walletFull = MoneroWalletFull.openWallet(config);
             } catch (Exception e) {
                 if (isShutDownStarted) throw e;
-                log.warn("Failed to open full wallet '{}', attempting to use backup cache files, error={}", config.getPath(), e.getMessage());
+                log.warn("Failed to open full wallet '{}', attempting to use backup cache files, error={}", Utilities.redactSensitiveInfo(config.getPath()), e.getMessage());
                 boolean retrySuccessful = false;
                 try {
                     
@@ -1736,7 +1737,7 @@ public class XmrWalletService extends XmrWalletBase {
 
                         // retry opening wallet after cache deleted
                         try {
-                            log.warn("Failed to open full wallet '{}' using backup cache files, retrying with cache deleted", config.getPath());
+                            log.warn("Failed to open full wallet '{}' using backup cache files, retrying with cache deleted", Utilities.redactSensitiveInfo(config.getPath()));
                             walletFull = MoneroWalletFull.openWallet(config);
                             log.warn("Successfully opened full wallet after cache deleted");
                             retrySuccessful = true;
@@ -1750,7 +1751,7 @@ public class XmrWalletService extends XmrWalletBase {
                         } else {
     
                             // restore original wallet cache
-                            log.warn("Failed to open full wallet '{}' after deleting cache, restoring original cache", config.getPath());
+                            log.warn("Failed to open full wallet '{}' after deleting cache, restoring original cache", Utilities.redactSensitiveInfo(config.getPath()));
                             File cacheFile = new File(cachePath);
                             if (cacheFile.exists()) cacheFile.delete();
                             if (originalCacheBackup.exists()) originalCacheBackup.renameTo(new File(cachePath));
@@ -1764,10 +1765,10 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
             if (walletFull.getDaemonConnection() != null) walletFull.getDaemonConnection().setPrintStackTrace(PRINT_RPC_STACK_TRACE);
-            log.info("Done opening full wallet " + config.getPath());
+            log.info("Done opening full wallet " + Utilities.redactSensitiveInfo(config.getPath()));
             return walletFull;
         } catch (Exception e) {
-            String errorMsg = "Could not open full wallet '" + config.getPath() + "': " + e.getMessage();
+            String errorMsg = "Could not open full wallet '" + Utilities.redactSensitiveInfo(config.getPath()) + "': " + e.getMessage();
             log.warn(errorMsg + "\n", e);
             if (walletFull != null) forceCloseWallet(walletFull, config.getPath());
             throw new IllegalStateException(errorMsg);
@@ -1938,7 +1939,7 @@ public class XmrWalletService extends XmrWalletBase {
 
         // check if monero-wallet-rpc exists
         if (!new File(getMoneroWalletRpcPath()).exists()) {
-            String errorMessage = "monero-wallet-rpc executable doesn't exist at path " + getMoneroWalletRpcPath();
+            String errorMessage = "monero-wallet-rpc executable doesn't exist at path " + Utilities.redactSensitiveInfo(getMoneroWalletRpcPath());
             if (Utilities.isWindows()) errorMessage += ". It may have been quarantined by antivirus software; remove it from quarantine and mark it as safe, then restart Haveno";
             throw new RuntimeException(errorMessage);
         }
