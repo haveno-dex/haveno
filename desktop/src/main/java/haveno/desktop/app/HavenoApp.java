@@ -218,16 +218,19 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         // the mode step decides whether the optional setup steps after it are on the path
         StartupWizardModeStep modeStep = new StartupWizardModeStep();
         StartupWizardWalletStep walletStep = new StartupWizardWalletStep(modeStep::isQuickStart, () -> injector.getInstance(XmrWalletService.class));
+        StartupWizardNodeStep nodeStep = new StartupWizardNodeStep(modeStep::isQuickStart, injector.getInstance(Config.class));
         StartupWizardPasswordStep passwordStep = new StartupWizardPasswordStep(injector.getInstance(Config.class).passwordRequired, modeStep::isQuickStart);
         StartupWizardCurrencyStep currencyStep = new StartupWizardCurrencyStep(modeStep::isQuickStart);
         List<StartupWizard.Step> steps = createTacSteps();
         steps.add(modeStep);
         steps.add(walletStep);
+        steps.add(nodeStep);
         steps.add(passwordStep);
         steps.add(currencyStep);
         StartupWizard wizard = new StartupWizard(steps,
                 () -> onComplete.accept(new StartupWizard.Result(walletStep.getSeed(), walletStep.getRestoreHeight(),
-                        walletStep.getRestoreDate(), passwordStep.getPassword(), currencyStep.getSelectedCurrency())),
+                        walletStep.getRestoreDate(), passwordStep.getPassword(), currencyStep.getSelectedCurrency(),
+                        nodeStep.getCustomNodes(), nodeStep.getUseTorForXmr())),
                 onQuit);
         modeStep.setOnSelectionChanged(wizard::refreshNavigation);
         passwordStep.setOnStateChanged(wizard::refreshNavigation);
