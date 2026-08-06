@@ -3570,8 +3570,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private void doImportMultisigHex(boolean logInfoLevel, Long initialSyncTimeoutSec) {
 
-        // sync and poll wallet if deposits not confirmed (unless only one deposit unlocked)
-        if (!hasUnlockedTx() && (!isDepositsConfirmed() || isDepositsUnseen())) {
+        // sync and poll wallet if never polled or deposits not confirmed (unless only one deposit unlocked)
+        if (!hasUnlockedTx() && (!wasWalletPolledProperty.get() || !isDepositsConfirmed() || isDepositsUnseen())) {
             log.warn("Updating wallet before importing multisig hex for {} {} because deposits are unconfirmed or missing", getClass().getSimpleName(), getShortId());
             updateWalletAux(logInfoLevel, false, true);
             log.warn("Done updating wallet before importing multisig hex for {} {}", getClass().getSimpleName(), getShortId());
