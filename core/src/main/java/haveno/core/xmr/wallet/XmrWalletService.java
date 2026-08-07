@@ -1628,15 +1628,15 @@ public class XmrWalletService extends XmrWalletBase {
                         try {
                             doPollWallet(initialSyncTimeoutMs);
                             break;
-                        } catch (Exception e) {
+                        } catch (Exception e) { // error is logged when polling
                             if (isShutDownStarted) return;
-                            log.warn("Error polling main wallet on startup, attempt={}/{}: {}", i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
                             if (i + 1 >= MAX_SYNC_ATTEMPTS) {
-                                log.warn("Opening application without syncing main wallet");
+                                log.warn("Opening application without syncing main wallet after {} attempts, last error: {}", MAX_SYNC_ATTEMPTS, e.getMessage());
                                 HavenoUtils.setTopError("Could not sync main wallet on startup.\n\nError: " + e.getMessage());
                                 UserThread.execute(() -> onWalletServiceInitialized());
                             } else {
                                 initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS, initialSyncTimeoutMs * 2);
+                                log.warn("Retrying to sync main wallet on startup in {}s, attempt={}/{}, last error: {}", INIT_WALLET_DELAY_MS / 1000, i + 2, MAX_SYNC_ATTEMPTS, e.getMessage());
                                 HavenoUtils.waitFor(INIT_WALLET_DELAY_MS); // wait before retrying
                             }
                         }

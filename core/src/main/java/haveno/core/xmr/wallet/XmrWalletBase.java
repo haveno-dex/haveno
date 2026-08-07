@@ -422,6 +422,6 @@ public abstract class XmrWalletBase {
     }
 
     protected boolean isExpectedWalletError(Exception e) {
-        return e.getMessage() != null && (HavenoUtils.isUnresponsive(e) || e.getMessage().contains(RECEIVED_ERROR_RESPONSE_MSG)); // TODO: why does this error happen "normally"?
+        return e.getMessage() != null && (HavenoUtils.isUnresponsive(e) || HavenoUtils.isNotConnectedToDaemon(e) || e.getMessage().contains(RECEIVED_ERROR_RESPONSE_MSG)); // TODO: why does this error happen "normally"?
     }
 }
