@@ -3159,7 +3159,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
         boolean wasPolling = isPolling();
-        if (xmrConnectionService.requestConnectionSwitch(sourceConnection)) {
+        if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this)) {
             onConnectionChanged(xmrConnectionService.getConnection(), wasPolling); // change connection on same thread
             return true;
         }
@@ -3453,6 +3453,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (!offlinePoll) maybeUpdateTradePeriod(); // no update possible if offline poll
             wasWalletPolledProperty.set(true);
             if (!offlinePoll) {
+                resetDisconnectionTracking();
                 wasWalletSyncedAndPolledProperty.set(true);
                 resetPolling(true); // do not poll again until next period
             }
@@ -3470,9 +3471,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             // skip redundant error handling with update wallet
             if (!exceptionFromUpdateWallet) {
 
-                // request connection switch on failure until synced and polled
-                boolean requestConnectionSwitch = !offlinePoll && !wasWalletSyncedAndPolledProperty.get() && !HavenoUtils.isIllegal(e) && xmrConnectionService.isConnected();
-                if (HavenoUtils.isUnresponsive(e)) { // wallet can be stuck a while
+                // request connection switch on failure until synced and polled, or on sustained disconnection
+                boolean requestConnectionSwitch = !offlinePoll && !HavenoUtils.isIllegal(e) && xmrConnectionService.isConnected() && (!wasWalletSyncedAndPolledProperty.get() || isSustainedDisconnection(e));
+                if (HavenoUtils.isUnresponsive(e) || (HavenoUtils.isNotConnectedToDaemon(e) && requestConnectionSwitch)) { // wallet can be stuck a while
                     handleWalletError(e, true, false, sourceConnection, requestConnectionSwitch);
                 }
             }

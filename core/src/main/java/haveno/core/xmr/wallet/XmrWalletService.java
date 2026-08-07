@@ -2358,6 +2358,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // handle sucessful sync before wallet service initialized
             if (isFirstSync || (wasWalletSynced && !isWalletServiceInitialized())) onFirstSync();
+            resetDisconnectionTracking();
         } catch (Exception e) {
 
             // skip error handling if shut down or another thread force restarts while polling
@@ -2372,13 +2373,13 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
 
-            // handle unresponsive wallet
+            // force close wallet if unresponsive
             if (HavenoUtils.isUnresponsive(e)) {
                 forceCloseMainWallet();
             }
 
-            // request connection switch
-            if (!isWalletServiceInitialized() || HavenoUtils.isUnresponsive(e)) {
+            // request connection switch when uninitialized, unresponsive, or disconnected beyond a grace period
+            if (!isWalletServiceInitialized() || HavenoUtils.isUnresponsive(e) || isSustainedDisconnection(e)) {
                 requestConnectionSwitchSynchronous(sourceConnection);
             }
 
@@ -2458,7 +2459,7 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (requestConnectionSwitchSynchronousLock) {
             isProcessingRequestConnectionSwitchSynchronous = true;
             try {
-                if (xmrConnectionService.requestConnectionSwitch(sourceConnection)) {
+                if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this)) {
                     onConnectionChanged(xmrConnectionService.getConnection()); // handle connection change on same thread
                     return true;
                 }

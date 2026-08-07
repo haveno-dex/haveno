@@ -42,6 +42,7 @@ public abstract class XmrWalletBase {
     private static final long SAVE_PROGRESS_CHECK_PERIOD_MS = 10000;
     private static final long SAVE_MAX_SYNC_TIME_FRACTION = 10; // save at most 1/10 of the time spent syncing
     private static final long SAVE_PROGRESS_NATIVE_INTERVAL_MS = 30000; // native saves complete at sync chunk boundaries, so use a fixed interval
+    private static final long SUSTAINED_DISCONNECTION_MS = 120000; // request connection switch after this long disconnected from daemon
 
     // inherited
     protected MoneroWallet wallet;
@@ -60,6 +61,7 @@ public abstract class XmrWalletBase {
     protected Long syncStartHeight;
     protected long syncFromHeight;
     private Long lastReportedHeight;
+    private Long firstDisconnectionTimestamp;
     protected TaskLooper syncProgressLooper;
     protected CountDownLatch syncProgressLatch;
     protected Exception syncProgressError;
@@ -325,6 +327,17 @@ public abstract class XmrWalletBase {
         return getRefreshPeriodMs() + 5000; // add padding to guarantee a sync cycle with monero-wallet-rpc (200 ms refresh evaluation period + sync time)
     }
 
+    // returns whether the wallet has failed to connect to the daemon beyond a grace period, warranting a connection switch
+    protected boolean isSustainedDisconnection(Throwable e) {
+        if (!HavenoUtils.isNotConnectedToDaemon(e)) return false;
+        if (firstDisconnectionTimestamp == null) firstDisconnectionTimestamp = System.currentTimeMillis();
+        return System.currentTimeMillis() - firstDisconnectionTimestamp >= SUSTAINED_DISCONNECTION_MS;
+    }
+
+    protected void resetDisconnectionTracking() {
+        firstDisconnectionTimestamp = null;
+    }
+
     // height syncing effectively begins from, used to floor reported progress; 0 for no floor
     protected long getSyncFromHeight() {
         return 0;
@@ -365,6 +378,7 @@ public abstract class XmrWalletBase {
     }
 
     private void updateSyncProgress(Long height, long targetHeight) {
+        if (syncProgressError != null) return; // ignore late updates after this sync attempt already failed
 
         // use last height if no update, floored at the restore height while the wallet skips ahead to it
         long rawHeight = height == null ? walletHeight.get() : height;
@@ -374,6 +388,7 @@ public abstract class XmrWalletBase {
         if (height != null && !height.equals(lastReportedHeight)) {
             lastReportedHeight = height;
             resetSyncProgressTimeout(SYNC_TIMEOUT_MS); // revert to default timeout after any change
+            xmrConnectionService.reportWalletSyncProgress(this);
         }
 
         // set wallet height
