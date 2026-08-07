@@ -2369,13 +2369,13 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
 
-            // handle unresponsive wallet
-            if (HavenoUtils.isUnresponsive(e)) {
+            // force close wallet if unresponsive, or if its daemon connection is dead while monerod is reachable
+            if (HavenoUtils.isUnresponsive(e) || (HavenoUtils.isNotConnectedToDaemon(e) && Boolean.TRUE.equals(xmrConnectionService.isConnected()))) {
                 forceCloseMainWallet();
             }
 
             // request connection switch
-            if (!isWalletServiceInitialized() || HavenoUtils.isUnresponsive(e)) {
+            if (!isWalletServiceInitialized() || HavenoUtils.isUnresponsive(e) || HavenoUtils.isNotConnectedToDaemon(e)) {
                 requestConnectionSwitchSynchronous(sourceConnection);
             }
 
@@ -2455,7 +2455,7 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (requestConnectionSwitchSynchronousLock) {
             isProcessingRequestConnectionSwitchSynchronous = true;
             try {
-                if (xmrConnectionService.requestConnectionSwitch(sourceConnection)) {
+                if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this)) {
                     onConnectionChanged(xmrConnectionService.getConnection()); // handle connection change on same thread
                     return true;
                 }

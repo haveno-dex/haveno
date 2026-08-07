@@ -3109,7 +3109,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
         boolean wasPolling = isPolling();
-        if (xmrConnectionService.requestConnectionSwitch(sourceConnection)) {
+        if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this)) {
             onConnectionChanged(xmrConnectionService.getConnection(), wasPolling); // change connection on same thread
             return true;
         }
@@ -3421,7 +3421,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // request connection switch on failure until synced and polled
                 boolean requestConnectionSwitch = !offlinePoll && !wasWalletSyncedAndPolledProperty.get() && !HavenoUtils.isIllegal(e) && xmrConnectionService.isConnected();
-                if (HavenoUtils.isUnresponsive(e)) { // wallet can be stuck a while
+                if (HavenoUtils.isUnresponsive(e) || HavenoUtils.isNotConnectedToDaemon(e)) { // wallet can be stuck a while
                     handleWalletError(e, true, false, sourceConnection, requestConnectionSwitch);
                 }
             }
@@ -3685,6 +3685,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             boolean doRestartPolling = restartPolling && isPolling();
             if (doRestartPolling) stopPolling();
             if (HavenoUtils.isUnresponsive(t)) forceCloseWallet(false); // wallet can be stuck a while
+            else if (HavenoUtils.isNotConnectedToDaemon(t) && Boolean.TRUE.equals(xmrConnectionService.isConnected())) forceCloseWallet(false); // reopen to reset the wallet's daemon connection, since switching monerod is skipped while other wallets are working
             if (requestConnectionSwitch) requestConnectionSwitchSynchronous(sourceConnection);
             getWallet(); // re-open wallet if necessary
             if (doRestartPolling) {

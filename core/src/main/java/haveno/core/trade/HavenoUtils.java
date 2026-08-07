@@ -174,6 +174,10 @@ public class HavenoUtils {
         return havenoSetup.getCoreContext().isApiUser();
     }
 
+    public static boolean isWalletInitialized() {
+        return havenoSetup != null && havenoSetup.getWalletInitialized().get();
+    }
+
     public static boolean isAllDomainServicesInitialized() {
         return havenoSetup != null && havenoSetup.getAppStartupState() != null && havenoSetup.getAppStartupState().isAllDomainServicesInitialized();
     }
@@ -647,6 +651,10 @@ public class HavenoUtils {
 
     public static boolean isUnresponsive(Throwable t) {
         return isConnectionRefused(t) || isReadTimeout(t) || XmrWalletBase.isSyncWithProgressTimeout(t);
+    }
+
+    public static boolean isNotConnectedToDaemon(Throwable t) {
+        return t != null && t.getMessage() != null && (t.getMessage().contains("no connection to daemon") || t.getMessage().contains("Wallet is not connected to daemon"));
     }
 
     private static boolean isNotEnoughSigners(Throwable t) {

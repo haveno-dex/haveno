@@ -34,6 +34,7 @@ import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.setup.DownloadListener;
 import haveno.core.xmr.setup.WalletsSetup;
+import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
@@ -49,6 +50,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletionService;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -148,8 +150,14 @@ public final class XmrConnectionService {
     private static final int EXCLUDE_CONNECTION_SECONDS = 180;
     private static final int MAX_SWITCH_REQUESTS_PER_MINUTE = 2;
     private static final int SKIP_SWITCH_WITHIN_MS = 20000;
+    private static final int SKIP_SWITCH_AFTER_SYNC_PROGRESS_MS = 30000;
+    private static final int MAX_SKIP_SWITCH_PERIOD_MS = 60000;
+    private static final int SKIP_SWITCH_STREAK_RESET_MS = 300000; // denials further apart start a new streak; must cover the slowest sync timeout retry cadence
     private int numRequestsLastMinute;
     private long lastSwitchTimestamp;
+    private final Map<XmrWalletBase, Long> walletSyncProgressTimestamps = new ConcurrentHashMap<>();
+    private long firstSkippedSwitchTimestamp;
+    private long lastSkippedSwitchTimestamp;
     private Set<MoneroRpcConnection> excludedConnections = new HashSet<>();
     private static final long FALLBACK_INVOCATION_PERIOD_MS = 1000 * 30 * 1; // offer to fallback up to once every 30s
     private boolean fallbackApplied;
@@ -518,11 +526,24 @@ public final class XmrConnectionService {
         return bestConnection;
     }
 
-    public synchronized boolean requestConnectionSwitch() {
-        return requestConnectionSwitch(null);
+    public void reportWalletSyncProgress(XmrWalletBase wallet) {
+        walletSyncProgressTimestamps.put(wallet, System.currentTimeMillis());
     }
 
-    public synchronized boolean requestConnectionSwitch(MoneroRpcConnection sourceConnection) {
+    // returns whether a wallet other than the requester reported sync progress within the given period
+    private boolean hasOtherWalletSyncProgressWithin(XmrWalletBase requester, long periodMs) {
+        long now = System.currentTimeMillis();
+        for (Map.Entry<XmrWalletBase, Long> entry : walletSyncProgressTimestamps.entrySet()) {
+            if (entry.getKey() != requester && now - entry.getValue() < periodMs) return true;
+        }
+        return false;
+    }
+
+    public synchronized boolean requestConnectionSwitch() {
+        return requestConnectionSwitch(null, null);
+    }
+
+    public synchronized boolean requestConnectionSwitch(MoneroRpcConnection sourceConnection, XmrWalletBase requester) {
         log.warn("Requesting connection switch to next best monerod, source monerod={}, proxyUri={}", sourceConnection == null ? null : sourceConnection.getUri(), sourceConnection == null ? null : sourceConnection.getProxyUri());
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL) {
             log.warn("Requesting connection switch on testnet", new RuntimeException("Stack trace"));
@@ -546,17 +567,32 @@ public final class XmrConnectionService {
             return false;
         }
 
-        // skip if last switch was too recent
-        boolean skipSwitch = System.currentTimeMillis() - lastSwitchTimestamp < SKIP_SWITCH_WITHIN_MS;
-        if (skipSwitch) {
-            log.warn("Skipping switch to next best Monero connection because last switch was less than {} seconds ago", SKIP_SWITCH_WITHIN_MS / 1000);
-            return false;
+        // skip if another wallet recently made sync progress, unless requests were denied too long, since the connection may not work for all wallets
+        if (hasOtherWalletSyncProgressWithin(requester, SKIP_SWITCH_AFTER_SYNC_PROGRESS_MS)) {
+            long now = System.currentTimeMillis();
+            if (firstSkippedSwitchTimestamp == 0 || now - lastSkippedSwitchTimestamp > SKIP_SWITCH_STREAK_RESET_MS) firstSkippedSwitchTimestamp = now; // start new denial streak
+            lastSkippedSwitchTimestamp = now;
+            if (now - firstSkippedSwitchTimestamp < MAX_SKIP_SWITCH_PERIOD_MS) {
+                log.warn("Skipping switch to next best Monero connection because another wallet made sync progress within the last {} seconds", SKIP_SWITCH_AFTER_SYNC_PROGRESS_MS / 1000);
+                return false;
+            }
+            log.warn("Switching to next best Monero connection despite recent wallet sync progress because requests were denied for over {} seconds", MAX_SKIP_SWITCH_PERIOD_MS / 1000);
         }
 
-        // skip if too many requests in the last minute
-        if (numRequestsLastMinute > MAX_SWITCH_REQUESTS_PER_MINUTE) {
-            log.warn("Skipping switch to next best Monero connection because more than {} requests were made in the last minute", MAX_SWITCH_REQUESTS_PER_MINUTE);
-            return false;
+        // throttle switch frequency only after the wallet service is initialized, so startup sync retries can rotate nodes freely
+        if (HavenoUtils.isWalletInitialized()) {
+
+            // skip if last switch was too recent
+            if (System.currentTimeMillis() - lastSwitchTimestamp < SKIP_SWITCH_WITHIN_MS) {
+                log.warn("Skipping switch to next best Monero connection because last switch was less than {} seconds ago", SKIP_SWITCH_WITHIN_MS / 1000);
+                return false;
+            }
+
+            // skip if too many requests in the last minute
+            if (numRequestsLastMinute > MAX_SWITCH_REQUESTS_PER_MINUTE) {
+                log.warn("Skipping switch to next best Monero connection because more than {} requests were made in the last minute", MAX_SWITCH_REQUESTS_PER_MINUTE);
+                return false;
+            }
         }
 
         // increment request count
@@ -582,6 +618,7 @@ public final class XmrConnectionService {
 
         // switch to best connection
         lastSwitchTimestamp = System.currentTimeMillis();
+        firstSkippedSwitchTimestamp = 0;
         setConnection(bestConnection, getCachedDaemonInfo(bestConnection));
         return true;
     }

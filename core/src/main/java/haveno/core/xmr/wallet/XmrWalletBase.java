@@ -365,6 +365,7 @@ public abstract class XmrWalletBase {
     }
 
     private void updateSyncProgress(Long height, long targetHeight) {
+        if (syncProgressError != null) return; // ignore late updates after this sync attempt already failed
 
         // use last height if no update, floored at the restore height while the wallet skips ahead to it
         long rawHeight = height == null ? walletHeight.get() : height;
@@ -374,6 +375,7 @@ public abstract class XmrWalletBase {
         if (height != null && !height.equals(lastReportedHeight)) {
             lastReportedHeight = height;
             resetSyncProgressTimeout(SYNC_TIMEOUT_MS); // revert to default timeout after any change
+            xmrConnectionService.reportWalletSyncProgress(this);
         }
 
         // set wallet height
