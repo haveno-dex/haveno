@@ -2291,6 +2291,7 @@ public class XmrWalletService extends XmrWalletBase {
         }
 
         // poll wallet
+        boolean pollFailed = false;
         try {
 
             // test sync error on startup
@@ -2360,6 +2361,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (isFirstSync || (wasWalletSynced && !isWalletServiceInitialized())) onFirstSync();
             resetDisconnectionTracking();
         } catch (Exception e) {
+            pollFailed = true;
 
             // skip error handling if shut down or another thread force restarts while polling
             if (isShutDownStarted || wallet == null || wallet != sourceWallet) return;
@@ -2394,9 +2396,9 @@ public class XmrWalletService extends XmrWalletBase {
             }
             requestSaveWalletIfElapsedTime();
 
-            // cache wallet info last
+            // cache wallet info last unless poll failed
             synchronized (walletLock) {
-                if (wallet != null && !isShutDownStarted) {
+                if (!pollFailed && wallet != null && !isShutDownStarted) {
                     try {
                         cacheWalletInfo();
                     } catch (Exception e) {
@@ -2479,11 +2481,12 @@ public class XmrWalletService extends XmrWalletBase {
 
     private void cacheWalletInfo() {
         synchronized (walletLock) {
+            MoneroWallet wallet = this.wallet; // snapshot because a concurrent force close can null the field without walletLock
             if (wallet == null) {
                 log.warn("Cannot cache wallet info because wallet is null");
                 return;
             }
-            
+
             // get basic wallet info
             long height = wallet.getHeight();
             BigInteger balance = wallet.getBalance();
