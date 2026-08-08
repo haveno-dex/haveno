@@ -291,9 +291,12 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
     public void handleConnectionFault(NodeAddress nodeAddress, @Nullable Connection connection) {
         boolean doRemovePersistedPeer = false;
-        removeReportedPeer(nodeAddress);
+        // with no connections at all the fault reflects our own connectivity (e.g. OS standby),
+        // not the peer's, so we do not penalize the peer
+        boolean isOffline = networkNode.getAllConnections().isEmpty();
+        if (!isOffline) removeReportedPeer(nodeAddress);
         Optional<Peer> persistedPeerOptional = findPersistedPeer(nodeAddress);
-        if (persistedPeerOptional.isPresent()) {
+        if (persistedPeerOptional.isPresent() && !isOffline) {
             Peer persistedPeer = persistedPeerOptional.get();
             persistedPeer.onDisconnect();
             doRemovePersistedPeer = persistedPeer.tooManyFailedConnectionAttempts();
