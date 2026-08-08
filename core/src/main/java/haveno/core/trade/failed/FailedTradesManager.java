@@ -34,8 +34,10 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FailedTradesManager implements PersistedDataHost {
@@ -117,6 +119,13 @@ public class FailedTradesManager implements PersistedDataHost {
         }
     }
 
+    // repeated attempts for the same offer can accumulate multiple failed trades with the same id
+    public List<Trade> getTradesById(String id) {
+        synchronized (failedTrades.getList()) {
+            return failedTrades.stream().filter(e -> e.getId().equals(id)).collect(Collectors.toList());
+        }
+    }
+
     public Stream<Trade> getTradesStreamWithFundsLockedIn() {
         synchronized (failedTrades.getList()) {
             return failedTrades.stream()
@@ -156,7 +165,7 @@ public class FailedTradesManager implements PersistedDataHost {
         return blockingTrades.toString();
     }
 
-    private void requestPersistence() {
+    public void requestPersistence() {
         persistenceManager.requestPersistence();
     }
 }
