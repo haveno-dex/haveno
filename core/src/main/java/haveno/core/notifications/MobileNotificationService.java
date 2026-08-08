@@ -189,13 +189,15 @@ public class MobileNotificationService {
         if (!doSend)
             return false;
 
-        log.info("Send message: '{}'", message.getMessage());
+        // Drop the prior INFO-level dump of the plaintext message and the
+        // full JSON: those carry the trade/dispute text and any other
+        // sensitive fields the mobile payload would carry. Demote to debug
+        // with length-only metadata so production logs are clean by
+        // default.
+        log.debug("sendMessage type={} msgLen={}", message.getMobileMessageType(), message.getMessage().length());
 
-
-        log.info("sendMessage message={}", message);
         Gson gson = new Gson();
         String json = gson.toJson(message);
-        log.info("json " + json);
 
         StringBuilder padded = new StringBuilder(json);
         while (padded.length() % 16 != 0) {
@@ -209,9 +211,12 @@ public class MobileNotificationService {
         String iv = uuid.substring(0, 16);
 
         String cipher = mobileMessageEncryption.encrypt(json, iv);
-        log.info("key = " + mobileModel.getKey());
-        log.info("iv = " + iv);
-        log.info("encryptedJson = " + cipher);
+        // Never log the mobile AES key, the IV, or the ciphertext: the
+        // AES key is the long-lived pairing key and is sufficient on its
+        // own to decrypt every captured push payload, and the logback
+        // default root level is TRACE in desktop/daemon, so the values
+        // would otherwise be written to haveno.log by default.
+        log.debug("MobileNotification cipher length={}", cipher.length());
 
         doSendMessage(iv, cipher, useSound, resultHandler, errorHandler);
         return true;
@@ -282,10 +287,13 @@ public class MobileNotificationService {
                 "&token=" + tokenAsHex + "&" +
                 "msg=" + msgAsHex;
 
-        log.info("Send: token={}", mobileModel.getToken());
-        log.info("Send: msg={}", msg);
-        log.info("Send: isAndroid={}\nuseSound={}\ntokenAsHex={}\nmsgAsHex={}",
-                isAndroid, useSound, tokenAsHex, msgAsHex);
+        // Drop the prior INFO-level dump of the device push token and the
+        // (decoded) message body: the token is a long-lived secret that
+        // identifies the user's mobile install and the msg contains the
+        // plaintext trade/dispute text. Keep diagnostics at debug with
+        // length-only previews.
+        log.debug("Send: isAndroid={} useSound={} tokenLen={} msgLen={}",
+                isAndroid, useSound, tokenAsHex.length(), msgAsHex.length());
 
         String threadName = "sendMobileNotification-" + msgAsHex.substring(0, 5) + "...";
         ListenableFuture<String> future = executorService.submit(() -> {
