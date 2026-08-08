@@ -86,6 +86,7 @@ class RequestDataHandler implements MessageListener {
     private final Listener listener;
     private Timer timeoutTimer;
     private final int nonce = new Random().nextInt();
+    private final long creationTs = System.currentTimeMillis();
     private boolean stopped;
 
 
@@ -105,6 +106,12 @@ class RequestDataHandler implements MessageListener {
 
     public void cancel() {
         cleanup();
+    }
+
+    // A handler older than its own timeout should have resolved already, so we consider it stale
+    // (e.g. its timeout timer died in OS standby or the underlying connect is wedged).
+    boolean isStale() {
+        return System.currentTimeMillis() - creationTs > TIMEOUT * 1000;
     }
 
 
