@@ -10,12 +10,13 @@ import haveno.network.utils.Utils;
 import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
-import org.berndpruenster.netlayer.tor.TorSocket;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 
 import java.security.SecureRandom;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.Socket;
 
 import java.io.IOException;
@@ -117,9 +118,23 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     @Override
     protected Socket createSocket(NodeAddress peerNodeAddress) throws IOException {
         checkArgument(peerNodeAddress.getHostName().endsWith(".onion"), "PeerAddress is not an onion address");
-        // If streamId is null stream isolation gets deactivated.
-        // Hidden services use stream isolation by default, so we pass null.
-        return new TorSocket(peerNodeAddress.getHostName(), peerNodeAddress.getPort(), torControlHost, null);
+        Socks5Proxy proxy = getSocksProxy();
+        if (proxy == null) throw new IOException("Tor socks proxy is not ready");
+
+        // connect with the JDK socks5 client so the socks handshake honors a timeout, as netlayer's
+        // TorSocket can block indefinitely (e.g. on requests left in-flight across OS standby)
+        Socket socket = new Socket(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxy.getInetAddress(), proxy.getPort())));
+        try {
+            socket.connect(InetSocketAddress.createUnresolved(peerNodeAddress.getHostName(), peerNodeAddress.getPort()), CREATE_SOCKET_TIMEOUT);
+            socket.setTcpNoDelay(true);
+            return socket;
+        } catch (IOException e) {
+            try {
+                socket.close();
+            } catch (IOException ignored) {
+            }
+            throw e;
+        }
     }
 
     @Override

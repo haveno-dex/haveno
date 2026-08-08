@@ -58,6 +58,7 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
         try {
             checkArgument(peerNodeAddress.getHostName().endsWith(".onion"), "PeerAddress is not an onion address");
             Socket sock = new Socket(InetAddress.getLoopbackAddress(), TOR_DATA_PORT);
+            sock.setSoTimeout(CREATE_SOCKET_TIMEOUT); // bound the handshake reads; Connection sets its own timeout later
             sock.getOutputStream().write(Hex.decode("050100"));
             String response = Hex.encode(sock.getInputStream().readNBytes(2));
             if (!response.equalsIgnoreCase("0500")) {
