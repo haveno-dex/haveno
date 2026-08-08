@@ -3875,16 +3875,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private void setPayoutTx(List<MoneroTxWallet> txs, boolean poolChecked) {
 
         // collect payout info
-        boolean hasPayoutTx = false;
+        boolean hasSpentOutputs = false;
         MoneroTxWallet payoutTx = null;
         for (MoneroTxWallet tx : txs) {
             if (!Boolean.TRUE.equals(tx.isIncoming()) && !tx.isFailed()) {
                 payoutTx = tx;
-                hasPayoutTx = true;
                 break;
             } else {
                 for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-                    if (Boolean.TRUE.equals(output.isSpent())) hasPayoutTx = true; // spent outputs observed on payout published (after rescanning)
+                    if (Boolean.TRUE.equals(output.isSpent())) hasSpentOutputs = true; // spent outputs observed on payout published (after rescanning)
                 }
             }
         }
@@ -3893,9 +3892,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (payoutTx != null) {
             firstPayoutTxMissingHeight = null;
             setPayoutTx(payoutTx);
-        } else if (hasPayoutTx) {
+        } else if (poolChecked && isPayoutTxSeenElsewhere()) { // trade wallet can lag the main wallet and daemon
+            if (firstPayoutTxMissingHeight != null || !isPayoutPublished()) log.warn("Payout tx {} is missing from the trade wallet but seen by the main wallet or daemon for {} {}, setting payout state published", payoutTxId, getClass().getSimpleName(), getShortId());
             firstPayoutTxMissingHeight = null;
-            setPayoutState(PayoutState.PAYOUT_PUBLISHED);
+            if (!isPayoutPublished()) setPayoutState(PayoutState.PAYOUT_PUBLISHED);
+        } else if (hasSpentOutputs) {
+            firstPayoutTxMissingHeight = null;
+            if (!isPayoutPublished() && xmrConnectionService.isTrustedDaemon()) setPayoutState(PayoutState.PAYOUT_PUBLISHED); // spent state can be faked by a remote daemon, so it holds but never sets payout state
         } else if (poolChecked && isPayoutPublished()) { // payout tx seen then lost (e.g. reorg)
 
             // skip reverting state until confirmations
@@ -3924,6 +3927,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 log.warn("Missing payout tx for {} {} at height {}. Waiting {} confirmations before reverting state", getClass().getSimpleName(), getShortId(), walletHeight.get(), REVERT_AFTER_NUM_CONFIRMATIONS);
                 firstPayoutTxMissingHeight = walletHeight.get();
             }
+        }
+    }
+
+    // check the main wallet then the daemon for a payout tx missing from the trade wallet
+    private boolean isPayoutTxSeenElsewhere() {
+        if (payoutTxId == null) return false;
+        try {
+            if (xmrWalletService.getTx(payoutTxId) != null) return true;
+        } catch (Exception e) {
+            // ignore
+        }
+        try {
+            return xmrConnectionService.getTx(payoutTxId) != null;
+        } catch (Exception e) {
+            return false;
         }
     }
 
