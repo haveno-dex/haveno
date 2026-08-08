@@ -207,10 +207,11 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                 int numRequests = 0;
                 for (int i = 0; i < finalNodeAddresses.size() && numRequests < NUM_ADDITIONAL_SEEDS_FOR_UPDATE_REQUEST; i++) {
                     NodeAddress nodeAddress = finalNodeAddresses.get(i);
-                    nodeAddresses.remove(nodeAddress);
 
-                    // It might be that we have a prelim. request open for the same seed, if so we skip to the next.
+                    // It might be that we have a prelim. request open for the same seed, if so we skip to the next
+                    // but keep the busy node in the remaining list so failover can still reach it.
                     if (!handlerMap.containsKey(nodeAddress)) {
+                        nodeAddresses.remove(nodeAddress);
                         UserThread.runAfter(() -> requestData(nodeAddress, nodeAddresses), (i * 200 + 1), TimeUnit.MILLISECONDS);
                         numRequests++;
                     }
@@ -447,6 +448,16 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                 numTotalRequests++;
                 requestDataHandler.requestData(nodeAddress, isPreliminaryDataRequest);
             } else {
+                RequestDataHandler existingHandler = handlerMap.get(nodeAddress);
+                if (existingHandler.isStale()) {
+                    // Abandon the stale handler and request again instead of skipping the node indefinitely.
+                    log.warn("We found a stale requestDataHandshake to peer {}. We stop it and request again.", nodeAddress.getFullAddress());
+                    existingHandler.stop();
+                    handlerMap.remove(nodeAddress);
+                    requestData(nodeAddress, remainingNodeAddresses);
+                    return;
+                }
+
                 log.warn("We have started already a requestDataHandshake to peer. nodeAddress=" + nodeAddress + "\n" +
                         "We start a cleanup timer if the handler has not closed by itself in between 2 minutes.");
 
