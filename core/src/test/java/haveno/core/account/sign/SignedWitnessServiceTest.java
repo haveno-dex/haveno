@@ -111,8 +111,8 @@ public class SignedWitnessServiceTest {
         peer2KeyPair = Sig.generateKeyPair();
         peer3KeyPair = Sig.generateKeyPair();
         signature1 = arbitrator1Key.signMessage(Utilities.encodeToHex(account1DataHash)).getBytes(Charsets.UTF_8);
-        signature2 = Sig.sign(peer1KeyPair.getPrivate(), Utilities.encodeToHex(account2DataHash).getBytes(Charsets.UTF_8));
-        signature3 = Sig.sign(peer2KeyPair.getPrivate(), Utilities.encodeToHex(account3DataHash).getBytes(Charsets.UTF_8));
+        signature2 = Sig.sign(peer1KeyPair.getPrivate(), account2DataHash);
+        signature3 = Sig.sign(peer2KeyPair.getPrivate(), account3DataHash);
         date1 = getTodayMinusNDays(SIGN_AGE_1);
         date2 = getTodayMinusNDays(SIGN_AGE_2);
         date3 = getTodayMinusNDays(SIGN_AGE_3);
@@ -197,6 +197,22 @@ public class SignedWitnessServiceTest {
         assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew3));
     }
 
+    // A witness whose signature is well-formed but signed by a key other than the claimed signer must be
+    // rejected, so chain links up to an arbitrator root cannot be forged.
+    @Test
+    public void testAddValidSignerChainRejectsForgedSignature() throws Exception {
+        SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+        byte[] forgedSignature = Sig.sign(peer3KeyPair.getPrivate(), account2DataHash);
+        SignedWitness sw2Forged = new SignedWitness(TRADE, account2DataHash, forgedSignature, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2);
+        SignedWitness sw3 = new SignedWitness(TRADE, account3DataHash, signature3, signer3PubKey, witnessOwner3PubKey, date3, tradeAmount3);
+
+        signedWitnessService.addToMap(sw3);
+        signedWitnessService.addValidSignerChain(List.of(sw1, sw2Forged), signer3PubKey);
+
+        assertFalse(signedWitnessService.getSignedWitnessMapValues().contains(sw2Forged));
+        assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew3));
+    }
+
     // A valid witness which does not chain from the given signer's pub key must be rejected, so trade
     // peers cannot inject unrelated witnesses.
     @Test
@@ -267,8 +283,8 @@ public class SignedWitnessServiceTest {
         KeyPair peer1KeyPair = Sig.generateKeyPair();
         signer2PubKey = Sig.getPublicKeyBytes(peer1KeyPair.getPublic());
 
-        signature2 = Sig.sign(peer1KeyPair.getPrivate(), Utilities.encodeToHex(account2DataHash).getBytes(Charsets.UTF_8));
-        signature3 = Sig.sign(peer1KeyPair.getPrivate(), Utilities.encodeToHex(account3DataHash).getBytes(Charsets.UTF_8));
+        signature2 = Sig.sign(peer1KeyPair.getPrivate(), account2DataHash);
+        signature3 = Sig.sign(peer1KeyPair.getPrivate(), account3DataHash);
 
         SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, signer2PubKey, date1, tradeAmount1);
         SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey, signer2PubKey, date2, tradeAmount2);
@@ -292,8 +308,8 @@ public class SignedWitnessServiceTest {
         byte[] user1PubKey = Sig.getPublicKeyBytes(peer1KeyPair.getPublic());
         byte[] user2PubKey = Sig.getPublicKeyBytes(peer2KeyPair.getPublic());
 
-        signature2 = Sig.sign(peer1KeyPair.getPrivate(), Utilities.encodeToHex(account2DataHash).getBytes(Charsets.UTF_8));
-        signature3 = Sig.sign(peer2KeyPair.getPrivate(), Utilities.encodeToHex(account3DataHash).getBytes(Charsets.UTF_8));
+        signature2 = Sig.sign(peer1KeyPair.getPrivate(), account2DataHash);
+        signature3 = Sig.sign(peer2KeyPair.getPrivate(), account3DataHash);
 
         SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, user1PubKey, date1, tradeAmount1);
         SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, user1PubKey, user2PubKey, date2, tradeAmount2);
@@ -359,13 +375,9 @@ public class SignedWitnessServiceTest {
         KeyPair peer2KeyPair = Sig.generateKeyPair();
         KeyPair peer3KeyPair = Sig.generateKeyPair();
 
-        String account1DataHashAsHexString = Utilities.encodeToHex(account1DataHash);
-        String account2DataHashAsHexString = Utilities.encodeToHex(account2DataHash);
-        String account3DataHashAsHexString = Utilities.encodeToHex(account3DataHash);
-
-        byte[] signature1 = Sig.sign(peer3KeyPair.getPrivate(), account1DataHashAsHexString.getBytes(Charsets.UTF_8));
-        byte[] signature2 = Sig.sign(peer1KeyPair.getPrivate(), account2DataHashAsHexString.getBytes(Charsets.UTF_8));
-        byte[] signature3 = Sig.sign(peer2KeyPair.getPrivate(), account3DataHashAsHexString.getBytes(Charsets.UTF_8));
+        byte[] signature1 = Sig.sign(peer3KeyPair.getPrivate(), account1DataHash);
+        byte[] signature2 = Sig.sign(peer1KeyPair.getPrivate(), account2DataHash);
+        byte[] signature3 = Sig.sign(peer2KeyPair.getPrivate(), account3DataHash);
 
         byte[] signer1PubKey = Sig.getPublicKeyBytes(peer3KeyPair.getPublic());
         byte[] signer2PubKey = Sig.getPublicKeyBytes(peer1KeyPair.getPublic());
@@ -416,7 +428,7 @@ public class SignedWitnessServiceTest {
             } else {
                 signerKeyPair = signedKeyPair;
                 signedKeyPair = Sig.generateKeyPair();
-                signature = Sig.sign(signedKeyPair.getPrivate(), accountDataHashAsHexString.getBytes(Charsets.UTF_8));
+                signature = Sig.sign(signerKeyPair.getPrivate(), accountDataHash);
                 signerPubKey = Sig.getPublicKeyBytes(signerKeyPair.getPublic());
             }
             byte[] witnessOwnerPubKey = Sig.getPublicKeyBytes(signedKeyPair.getPublic());
@@ -556,7 +568,7 @@ public class SignedWitnessServiceTest {
 //        signature3 = Sig.sign(peer2KeyPair.getPrivate(), Utilities.encodeToHex(account3DataHash).getBytes(Charsets.UTF_8));
 
         // sw1 also signs sw3 (not supported yet but a possible addition for a more robust system)
-        var signature3p = Sig.sign(peer1KeyPair.getPrivate(), Utilities.encodeToHex(account3DataHash).getBytes(Charsets.UTF_8));
+        var signature3p = Sig.sign(peer1KeyPair.getPrivate(), account3DataHash);
         var signer3pPubKey = witnessOwner1PubKey;
         var date3p = date3;
         var tradeAmount3p = tradeAmount3;
