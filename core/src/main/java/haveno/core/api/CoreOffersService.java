@@ -36,6 +36,7 @@ package haveno.core.api;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import haveno.common.app.Version;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
@@ -436,7 +437,7 @@ public class CoreOffersService {
                 newOfferPayload.getAcceptedCountryCodes(),
                 newOfferPayload.getBankId(),
                 newOfferPayload.getAcceptedBankIds(),
-                offerPayload.getVersionNr(),
+                Version.VERSION, // refresh version so outdated offers are re-signed
                 offerPayload.getBlockHeightAtOfferCreation(),
                 offerPayload.getMaxTradeLimit(),
                 offerPayload.getMaxTradePeriod(),
