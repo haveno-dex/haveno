@@ -19,10 +19,12 @@ package haveno.core.trade.statistics;
 
 import com.google.protobuf.Message;
 import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import haveno.network.p2p.storage.persistence.PersistableNetworkPayloadStore;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -61,8 +63,19 @@ public class TradeStatistics3Store extends PersistableNetworkPayloadStore<TradeS
 
     public static TradeStatistics3Store fromProto(protobuf.TradeStatistics3Store proto) {
         List<TradeStatistics3> list = proto.getItemsList().stream()
-                .map(TradeStatistics3::fromProto).collect(Collectors.toList());
+                .map(TradeStatistics3Store::getTradeStatistics3OrNull)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         return new TradeStatistics3Store(list);
+    }
+
+    private static TradeStatistics3 getTradeStatistics3OrNull(protobuf.TradeStatistics3 proto) {
+        try {
+            return TradeStatistics3.fromProto(proto);
+        } catch (InvalidPersistableNetworkPayloadException e) {
+            log.warn("Ignoring invalid TradeStatistics3 from TradeStatistics3Store. {}", e.getMessage());
+            return null;
+        }
     }
 
     public boolean containsKey(P2PDataStorage.ByteArray hash) {

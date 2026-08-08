@@ -41,6 +41,7 @@ import haveno.core.util.VolumeUtil;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.DateSortedTruncatablePayload;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 import lombok.Getter;
@@ -351,15 +352,26 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     }
 
     public static TradeStatistics3 fromProto(protobuf.TradeStatistics3 proto) {
-        return new TradeStatistics3(
+        // Reconstruct the extra data as a HashMap so the recomputed hash matches the creating node (see createHash).
+        Map<String, String> extraDataMap = CollectionUtils.isEmpty(proto.getExtraDataMap()) ? null : new HashMap<>(proto.getExtraDataMap());
+        TradeStatistics3 tradeStatistics = new TradeStatistics3(
                 proto.getCurrency(),
                 proto.getPrice(),
                 proto.getAmount(),
                 proto.getPaymentMethod(),
                 proto.getDate(),
                 ProtoUtil.stringOrNullFromProto(proto.getArbitrator()),
-                CollectionUtils.isEmpty(proto.getExtraDataMap()) ? null : proto.getExtraDataMap(),
-                proto.getHash().toByteArray());
+                extraDataMap,
+                null);
+
+        // The provided hash must match the recomputed hash, else the storage key could be chosen independently of the data.
+        byte[] hashFromProto = proto.getHash().toByteArray();
+        if (!Arrays.equals(hashFromProto, tradeStatistics.getHash())) {
+            throw new InvalidPersistableNetworkPayloadException("TradeStatistics3 hash field does not match trade statistics data. " +
+                    "hashFromProto=" + Utilities.bytesAsHexString(hashFromProto) +
+                    ", computedHash=" + Utilities.bytesAsHexString(tradeStatistics.getHash()));
+        }
+        return tradeStatistics;
     }
 
 

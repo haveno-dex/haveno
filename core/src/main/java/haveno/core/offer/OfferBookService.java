@@ -433,6 +433,11 @@ public class OfferBookService {
             throw new IllegalArgumentException("Market price margin must be greater than -100% and less than 100% but was " + (marketPriceMarginPct * 100) + "% with offerId=" + offerPayload.getId());
         }
 
+        // validate fixed price is positive (market based offers have no fixed price)
+        if (!offerPayload.isUseMarketBasedPrice() && offerPayload.getPrice() <= 0) {
+            throw new IllegalArgumentException("Fixed price must be positive but was " + offerPayload.getPrice() + " with offerId=" + offerPayload.getId());
+        }
+
         // validate against existing offers
         synchronized (validOffers) {
             int numOffersWithSharedKeyImages = 0;
