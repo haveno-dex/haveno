@@ -40,6 +40,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -118,6 +119,9 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private int numRepeatedRequests = 0;
     // Counts all data requests in the current sync cycle; bounds total work regardless of progress.
     private int numTotalRequests = 0;
+    // Non-seed peers already tried in the current sync cycle; exhausting all candidates ends the
+    // cycle instead of looping over unreachable peers without pause (peers are not purged while offline).
+    private final Set<NodeAddress> attemptedNonSeedNodes = new HashSet<>();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -174,6 +178,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     }
 
     public void requestPreliminaryData() {
+        attemptedNonSeedNodes.clear();
         ArrayList<NodeAddress> nodeAddresses = new ArrayList<>(seedNodeAddresses);
         if (!nodeAddresses.isEmpty()) {
             ArrayList<NodeAddress> finalNodeAddresses = new ArrayList<>(nodeAddresses);
@@ -196,6 +201,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         checkArgument(nodeAddressOfPreliminaryDataRequest.isPresent(), "nodeAddressOfPreliminaryDataRequest must be present");
         dataUpdateRequested = true;
         isPreliminaryDataRequest = false;
+        attemptedNonSeedNodes.clear();
         List<NodeAddress> nodeAddresses = new ArrayList<>(seedNodeAddresses);
         if (!nodeAddresses.isEmpty()) {
             // We use the node we have already connected to to request again
@@ -434,8 +440,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
 
                                     boolean requested = requestFromNonSeedNodePeers();
 
-                                    // re-request after reconnect: retry until a node is reachable, else data missed while offline is only fetched on restart
-                                    if (!requested && nodeAddressOfPreliminaryDataRequest.isPresent()) {
+                                    // retry until a node is reachable, else data missed while offline or at bootstrap is only fetched on app restart
+                                    if (!requested) {
                                         restart();
                                     }
                                 } else {
@@ -488,11 +494,14 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private boolean requestFromNonSeedNodePeers() {
-        List<NodeAddress> list = getFilteredNonSeedNodeList(getSortedNodeAddresses(peerManager.getReportedPeers()), new ArrayList<>());
-        List<NodeAddress> filteredPersistedPeers = getFilteredNonSeedNodeList(getSortedNodeAddresses(peerManager.getPersistedPeers()), list);
+        List<NodeAddress> excluded = new ArrayList<>(attemptedNonSeedNodes);
+        List<NodeAddress> list = getFilteredNonSeedNodeList(getSortedNodeAddresses(peerManager.getReportedPeers()), excluded);
+        excluded.addAll(list);
+        List<NodeAddress> filteredPersistedPeers = getFilteredNonSeedNodeList(getSortedNodeAddresses(peerManager.getPersistedPeers()), excluded);
         list.addAll(filteredPersistedPeers);
 
         if (!list.isEmpty()) {
+            attemptedNonSeedNodes.addAll(list); // the failover chain consumes the whole list before any repeat pass
             NodeAddress nextCandidate = list.get(0);
             list.remove(nextCandidate);
             requestData(nextCandidate, list);
@@ -507,6 +516,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                         stopped = false;
                         numRepeatedRequests = 0; // reset the repeat limit per sync cycle
                         numTotalRequests = 0;
+                        attemptedNonSeedNodes.clear();
 
                         stopRetryTimer();
 
