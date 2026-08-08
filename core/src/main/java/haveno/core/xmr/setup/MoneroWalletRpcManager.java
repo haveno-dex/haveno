@@ -37,6 +37,7 @@ public class MoneroWalletRpcManager {
     private static final String RPC_BIND_PORT_ARGUMENT = "--rpc-bind-port";
     private static int NUM_ALLOWED_ATTEMPTS = 3; // allow this many attempts to bind to an assigned port
     private Integer startPort;
+    private volatile boolean isShutDownStarted;
     private final Map<Integer, MoneroWalletRpc> registeredPorts = new HashMap<>();
 
     /**
@@ -62,6 +63,7 @@ public class MoneroWalletRpcManager {
      * @return a client connected to the monero-wallet-rpc instance
      */
     public MoneroWalletRpc startInstance(List<String> cmd) {
+        if (isShutDownStarted) throw new MoneroError("Cannot start monero-wallet-rpc instance because shutdown is started");
         try {
 
             // register given port
@@ -72,7 +74,13 @@ public class MoneroWalletRpcManager {
                     if (registeredPorts.containsKey(port)) throw new RuntimeException("Port " + port + " is already registered");
                     registeredPorts.put(port, null);
                 }
-                MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmd); // starts monero-wallet-rpc process
+                MoneroWalletRpc walletRpc;
+                try {
+                    walletRpc = new MoneroWalletRpc(cmd); // starts monero-wallet-rpc process
+                } catch (Exception e) {
+                    removePort(port); // unregister port so retries are not blocked
+                    throw e;
+                }
                 synchronized (registeredPorts) {
                     registeredPorts.put(port, walletRpc);
                 }
@@ -109,6 +117,8 @@ public class MoneroWalletRpcManager {
                         }
                         return walletRpc;
                     } catch (Exception e) {
+                        if (port != -1) removePort(port); // unregister port so retries are not blocked
+                        if (isShutDownStarted) throw e; // skip retries and warning on shutdown
                         log.warn("Unable to start monero-wallet-rpc instance on attempt {}/{} with port {}: {}", numAttempts, NUM_ALLOWED_ATTEMPTS, port, e.getMessage());
                         if (numAttempts >= NUM_ALLOWED_ATTEMPTS) throw e;
                     }
@@ -118,6 +128,13 @@ public class MoneroWalletRpcManager {
         } catch (IOException e) {
             throw new MoneroError(e);
         }
+    }
+
+    /**
+     * Signal that shutdown has started, so failed starts are not retried or logged.
+     */
+    public void onShutDownStarted() {
+        isShutDownStarted = true;
     }
 
     /**
