@@ -54,6 +54,15 @@ public class ProtectedStorageEntryTest {
                 signature, Clock.systemDefaultZone());
     }
 
+    private static ProtectedStorageEntry buildProtectedStorageEntryForRemove(KeyPair payloadOwner, KeyPair entryOwner, int sequenceNumber) throws CryptoException {
+        ProtectedStoragePayload protectedStoragePayload = new ProtectedStoragePayloadStub(payloadOwner.getPublic());
+        byte[] removeHash = P2PDataStorage.getRemoveHash(protectedStoragePayload, sequenceNumber);
+        byte[] signature = Sig.sign(entryOwner.getPrivate(), removeHash);
+
+        return new ProtectedStorageEntry(protectedStoragePayload, entryOwner.getPublic(), sequenceNumber,
+                signature, Clock.systemDefaultZone());
+    }
+
     private static MailboxStoragePayload buildMailboxStoragePayload(PublicKey payloadSenderPubKeyForAddOperation,
                                                                     PublicKey payloadOwnerPubKey) {
 
@@ -139,13 +148,14 @@ public class ProtectedStorageEntryTest {
         assertFalse(protectedStorageEntry.isValidForAddOperation());
     }
 
-    // TESTCASE: validForRemoveOperation() should return true if the Entry owner and payload owner match
+    // TESTCASE: validForRemoveOperation() requires a remove-scoped signature from the owner; an add/refresh
+    // signature must not be replayable as a remove
     @Test
     public void isValidForRemoveOperation() throws NoSuchAlgorithmException, CryptoException {
         KeyPair ownerKeys = TestUtils.generateKeyPair();
-        ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(ownerKeys, ownerKeys, 1);
 
-        assertTrue(protectedStorageEntry.isValidForRemoveOperation());
+        assertTrue(buildProtectedStorageEntryForRemove(ownerKeys, ownerKeys, 1).isValidForRemoveOperation());
+        assertFalse(buildProtectedStorageEntry(ownerKeys, ownerKeys, 1).isValidForRemoveOperation());
     }
 
     // TESTCASE: validForRemoveOperation() should return false if the Entry owner and payload owner don't match
@@ -159,8 +169,7 @@ public class ProtectedStorageEntryTest {
     }
 
     // TESTCASE: validForRemoveOperation() should fail if the entry is a MailboxStoragePayload wrapped in a
-    // ProtectedStorageEntry and the Entry is owned by the sender
-    // XXXBUGXXX: Currently, a mis-wrapped MailboxStoragePayload will succeed
+    // plain ProtectedStorageEntry and the Entry is owned by the sender
     @Test
     public void isValidForRemoveOperation_invalidMailboxPayloadSender() throws NoSuchAlgorithmException, CryptoException {
         KeyPair senderKeys = TestUtils.generateKeyPair();
@@ -169,8 +178,7 @@ public class ProtectedStorageEntryTest {
         ProtectedStorageEntry protectedStorageEntry = buildProtectedStorageEntry(
                 buildMailboxStoragePayload(senderKeys.getPublic(), receiverKeys.getPublic()), senderKeys, 1);
 
-        // should be assertFalse
-        assertTrue(protectedStorageEntry.isValidForRemoveOperation());
+        assertFalse(protectedStorageEntry.isValidForRemoveOperation());
     }
 
     @Test
