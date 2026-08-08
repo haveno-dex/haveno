@@ -3831,9 +3831,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 payoutTx = tx;
                 hasPayoutTx = true;
                 break;
-            } else {
+            } else if (xmrConnectionService.isTrustedDaemon()) {
                 for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-                    if (Boolean.TRUE.equals(output.isSpent())) hasPayoutTx = true; // spent outputs observed on payout published (after rescanning)
+                    if (Boolean.TRUE.equals(output.isSpent())) hasPayoutTx = true; // spent outputs indicate published payout, but only trust a local daemon which cannot falsely report spent
                 }
             }
         }
