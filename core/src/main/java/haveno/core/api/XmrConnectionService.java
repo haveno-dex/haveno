@@ -56,6 +56,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -778,8 +779,11 @@ public final class XmrConnectionService {
             if (monerod == null) throw new RuntimeException("No connection to Monero node");
         }
         List<MoneroTx> txs;
-        synchronized (HavenoUtils.getDaemonLock()) {
+        ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock();
+        try {
             txs = monerod.getTxs(txHashes, true);
+        } finally {
+            HavenoUtils.releaseDaemonLock(daemonLock);
         }
 
         // store to cache

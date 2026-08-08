@@ -9,6 +9,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
@@ -88,7 +89,8 @@ public abstract class XmrWalletBase {
 
     public MoneroSyncResult syncWithTimeout(Long syncTimeoutMs) {
         synchronized (walletLock) {
-            synchronized (HavenoUtils.getDaemonLock()) {
+            ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock();
+            try {
                 ExecutorService executor = Executors.newSingleThreadExecutor();
 
                 Callable<MoneroSyncResult> task = () -> {
@@ -123,6 +125,8 @@ public abstract class XmrWalletBase {
                     saveWalletIfElapsedTime();
                     executor.shutdownNow();
                 }
+            } finally {
+                HavenoUtils.releaseDaemonLock(daemonLock);
             }
         }
     }

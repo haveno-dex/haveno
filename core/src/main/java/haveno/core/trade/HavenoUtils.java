@@ -69,7 +69,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -123,19 +125,39 @@ public class HavenoUtils {
 
     // limit concurrent requests to monerod
     private static final int MAX_CONCURRENT_DAEMON_REQUESTS = 50; // limit long requests to daemon (e.g. sync, refresh pool) without fully serializing them
+    private static final long DAEMON_LOCK_TIMEOUT_MS = 120000; // bound waits so stalled requests cannot block others indefinitely
     private static boolean SYNC_WALLET_REQUESTS = false; // additionally sync wallet functions to daemon (e.g. create txs)
     private static boolean SYNC_IMPORT_MULTISIG_REQUESTS = false; // sync import multisig requests to avoid concurrent imports
-    private static final Object[] DAEMON_LOCKS = new Object[MAX_CONCURRENT_DAEMON_REQUESTS];
+    private static final ReentrantLock[] DAEMON_LOCKS = new ReentrantLock[MAX_CONCURRENT_DAEMON_REQUESTS];
     private static final AtomicInteger DAEMON_LOCK_INDEX = new AtomicInteger();
     private static Object IMPORT_MULTISIG_LOCK = new Object();
     static {
-        for (int i = 0; i < DAEMON_LOCKS.length; i++) DAEMON_LOCKS[i] = new Object();
+        for (int i = 0; i < DAEMON_LOCKS.length; i++) DAEMON_LOCKS[i] = new ReentrantLock();
     }
 
     // return one of a fixed pool of locks to limit concurrent daemon requests, reusing a lock already held by this thread
-    public static Object getDaemonLock() {
-        for (Object lock : DAEMON_LOCKS) if (Thread.holdsLock(lock)) return lock;
+    public static ReentrantLock getDaemonLock() {
+        for (ReentrantLock lock : DAEMON_LOCKS) if (lock.isHeldByCurrentThread()) return lock;
         return DAEMON_LOCKS[Math.floorMod(DAEMON_LOCK_INDEX.getAndIncrement(), DAEMON_LOCKS.length)];
+    }
+
+    // acquire a daemon lock with bounded wait, returning null to proceed without limiting concurrency if stalled
+    public static ReentrantLock acquireDaemonLock() {
+        ReentrantLock lock = getDaemonLock();
+        try {
+            if (!lock.tryLock(DAEMON_LOCK_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                log.warn("Timed out waiting for daemon lock, proceeding without limiting concurrency");
+                return null;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
+        return lock;
+    }
+
+    public static void releaseDaemonLock(ReentrantLock lock) {
+        if (lock != null) lock.unlock();
     }
     public static Object getWalletFunctionLock() {
         return SYNC_WALLET_REQUESTS ? getDaemonLock() : new Object();
