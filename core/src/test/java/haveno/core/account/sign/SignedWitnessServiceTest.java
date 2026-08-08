@@ -208,6 +208,26 @@ public class SignedWitnessServiceTest {
         assertFalse(signedWitnessService.getSignedWitnessMapValues().contains(sw1));
     }
 
+    // A self-generated chain that chains from the signer's pub key but never reaches an arbitrator root proves
+    // nothing and must not be stored, so a malicious peer cannot use it to spam the network storage (#2424).
+    @Test
+    public void testAddValidSignerChainRejectsChainWithoutArbitratorRoot() throws Exception {
+        KeyPair keyA = Sig.generateKeyPair();
+        KeyPair keyB = Sig.generateKeyPair();
+        byte[] pubA = Sig.getPublicKeyBytes(keyA.getPublic());
+        byte[] pubB = Sig.getPublicKeyBytes(keyB.getPublic());
+        byte[] sigA = Sig.sign(keyA.getPrivate(), account1DataHash);
+        byte[] sigB = Sig.sign(keyB.getPrivate(), account2DataHash);
+
+        // seller <- keyA <- keyB, all offline keys, no arbitrator anywhere on the chain
+        SignedWitness wA = new SignedWitness(TRADE, account1DataHash, sigA, pubA, signer3PubKey, date1, tradeAmount1);
+        SignedWitness wB = new SignedWitness(TRADE, account2DataHash, sigB, pubB, pubA, date2, tradeAmount2);
+
+        signedWitnessService.addValidSignerChain(List.of(wA, wB), signer3PubKey);
+        assertFalse(signedWitnessService.getSignedWitnessMapValues().contains(wA));
+        assertFalse(signedWitnessService.getSignedWitnessMapValues().contains(wB));
+    }
+
     @Test
     public void testIsValidAccountAgeWitnessArbitratorSignatureProblem() {
         signature1 = new byte[]{1, 2, 3};
