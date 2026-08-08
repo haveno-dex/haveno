@@ -122,14 +122,20 @@ public class CoreAccountService {
         if (!StringUtils.equals(this.password, oldPassword)) throw new IllegalStateException("Incorrect password");
         if (newPassword != null && newPassword.length() < 8) throw new IllegalStateException("Password must be at least 8 characters");
 
-        // change wallet passwords before committing new account password
-        // TODO: recover if wallet password change fails
-        synchronized (listeners) {
-            for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onPasswordChanged(oldPassword, newPassword);
-        }
+        // commit the new account password to key storage first: this step is revertible (the master
+        // key is unchanged), whereas half-changed wallet passwords are not
+        keyStorage.saveKeyRing(keyRing, newPassword);
 
-        // commit new account password
-        keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
+        // change wallet passwords
+        // TODO: recover if wallet password change fails partway through the listeners
+        try {
+            synchronized (listeners) {
+                for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onPasswordChanged(oldPassword, newPassword);
+            }
+        } catch (RuntimeException e) {
+            keyStorage.saveKeyRing(keyRing, oldPassword); // revert
+            throw e;
+        }
         this.password = newPassword;
     }
 

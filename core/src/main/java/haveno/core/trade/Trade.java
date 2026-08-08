@@ -1884,7 +1884,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             // decrypt payment account payload
             getTradePeer().setPaymentAccountKey(paymentAccountKey);
             SecretKey sk = Encryption.getSecretKeyFromBytes(getTradePeer().getPaymentAccountKey());
-            byte[] decryptedPaymentAccountPayload = Encryption.decrypt(getTradePeer().getEncryptedPaymentAccountPayload(), sk);
+            byte[] decryptedPaymentAccountPayload = Encryption.decryptAuto(getTradePeer().getEncryptedPaymentAccountPayload(), sk);
             CoreNetworkProtoResolver resolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone()); // TODO: reuse resolver from elsewhere?
             PaymentAccountPayload paymentAccountPayload = resolver.fromProto(protobuf.PaymentAccountPayload.parseFrom(decryptedPaymentAccountPayload));
 
