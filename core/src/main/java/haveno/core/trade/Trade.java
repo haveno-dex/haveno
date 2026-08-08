@@ -139,6 +139,7 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -3571,8 +3572,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (logInfoLevel) log.info(startSyncLogMsg);
         else log.debug(startSyncLogMsg);
         long startTime = System.currentTimeMillis();
-        synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon to limit concurrent wallet syncs
+        ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock(); // lock on daemon to limit concurrent wallet syncs
+        try {
             syncWithProgress(initialSyncTimeoutMs);
+        } finally {
+            HavenoUtils.releaseDaemonLock(daemonLock);
         }
         String doneSyncLogMsg = "Done syncing wallet for " + getShortId() + " " + getClass().getSimpleName() + " in " + (System.currentTimeMillis() - startTime) + " ms";
         if (logInfoLevel) log.info(doneSyncLogMsg);
@@ -3702,8 +3706,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         setUnknownSyncProgress();
         try {
             int numOutputsImported;
-            synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import can refresh pending rescan state
+            ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock(); // lock on daemon because import can refresh pending rescan state
+            try {
                 numOutputsImported = wallet.importMultisigHex(multisigHexes, false); // import without refreshing, which is handled later
+            } finally {
+                HavenoUtils.releaseDaemonLock(daemonLock);
             }
             log.info("Done ingesting multisig hexes for {} {} in {} ms, count={}, numOutputsImported={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size(), numOutputsImported);
 
@@ -3776,8 +3783,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         synchronized (walletLock) {
             if (getWallet() == null) throw new IllegalStateException("Cannot get transactions from trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
             if (checkPool) {
-                synchronized (HavenoUtils.getDaemonLock()) {
+                ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock();
+                try {
                     return wallet.getTxs(query);
+                } finally {
+                    HavenoUtils.releaseDaemonLock(daemonLock);
                 }
             } else {
                 return wallet.getTxs(query);
@@ -4142,8 +4152,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // rescan blockchain
                 log.warn("Rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
-                synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because rescan reprocesses the blockchain
+                ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock(); // lock on daemon because rescan reprocesses the blockchain
+                try {
                     wallet.rescanBlockchain();
+                } finally {
+                    HavenoUtils.releaseDaemonLock(daemonLock);
                 }
             } catch (Exception e) {
                 log.warn("Error rescanning blockchain for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
@@ -4176,8 +4189,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // rescan spent outputs
                 if (logInfoLevel) log.info("Rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
-                synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because rescan queries key images
+                ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock(); // lock on daemon because rescan queries key images
+                try {
                     wallet.rescanSpent();
+                } finally {
+                    HavenoUtils.releaseDaemonLock(daemonLock);
                 }
                 if (logInfoLevel) log.info("Done rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
                 saveWalletIfElapsedTime();

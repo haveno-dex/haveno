@@ -70,6 +70,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javafx.beans.property.LongProperty;
@@ -2339,7 +2340,8 @@ public class XmrWalletService extends XmrWalletBase {
             // TODO: ideally wallet should sync every poll and then avoid updating from pool on fetching txs?
             synchronized (walletLock) { // lock wallet to prevent concurrent close
                 if (wallet == null || isShutDownStarted) return;
-                synchronized (HavenoUtils.getDaemonLock()) {
+                ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock();
+                try {
                     if (lastPollTxsTimestamp == 0) lastPollTxsTimestamp = System.currentTimeMillis(); // set initial timestamp
                     try {
                         cachedTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true));
@@ -2354,6 +2356,8 @@ public class XmrWalletService extends XmrWalletBase {
                             }
                         }
                     }
+                } finally {
+                    HavenoUtils.releaseDaemonLock(daemonLock);
                 }
             }
 

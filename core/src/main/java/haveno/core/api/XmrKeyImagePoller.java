@@ -32,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 import haveno.core.trade.HavenoUtils;
 
@@ -270,8 +271,13 @@ public class XmrKeyImagePoller {
 
             // query key images
             if (keyImages.isEmpty()) spentStatuses = new ArrayList<MoneroKeyImageSpentStatus>();
-            else synchronized (HavenoUtils.getDaemonLock()) {
-                spentStatuses = monerod.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
+            else {
+                ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock();
+                try {
+                    spentStatuses = monerod.getKeyImageSpentStatuses(keyImages); // TODO monero-java: if order of getKeyImageSpentStatuses is guaranteed, then it should take list parameter
+                } finally {
+                    HavenoUtils.releaseDaemonLock(daemonLock);
+                }
             }
         } catch (Exception e) {
 
