@@ -16,8 +16,8 @@ public class DownloadListener {
         if (!UserThread.isUserThread(Thread.currentThread())) {
             throw new IllegalStateException("DownloadListener.progress() must be called on the JavaFX Application Thread");
         }
+        this.blocksRemaining.set(blocksRemaining); // set before percentage, whose listeners read it
         this.percentage.set(percentage);
-        this.blocksRemaining.set(blocksRemaining);
         this.numUpdates.set(this.numUpdates.get() + 1);
     }
 

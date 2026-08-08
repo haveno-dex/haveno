@@ -18,97 +18,298 @@
 package haveno.desktop.main.overlays.windows;
 
 import com.google.inject.Inject;
+import haveno.common.util.Utilities;
 import haveno.core.locale.Res;
+import haveno.core.user.Preferences;
 import haveno.desktop.app.HavenoApp;
-import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.app.StartupShell;
+import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.GUIUtil;
 import javafx.geometry.Insets;
-import javafx.geometry.Rectangle2D;
+import javafx.geometry.Pos;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
-import javafx.stage.Screen;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Window;
 import lombok.extern.slf4j.Slf4j;
 
-import static haveno.desktop.util.FormBuilder.addHyperlinkWithIcon;
-
+/**
+ * The user agreement popup for existing installations (first-run installations accept the
+ * agreement in the startup wizard instead): a fixed-size card paging between the risk and
+ * legal pages of {@link TacContent}, accepted once with the agree action on the legal page.
+ */
 @Slf4j
 public class TacWindow extends Overlay<TacWindow> {
 
-    private final boolean smallScreen;
+    private static final double WINDOW_WIDTH = 900;
+    private static final double WINDOW_HEIGHT = 555;
+    private static final double LOGO_FIT_WIDTH = 190;
+    private static final double LOGO_GAP = 16;
+    private static final double SHADOW_PADDING = 30;
+    // bottom bar zone kept clear like the shell's wizard column
+    private static final double BOTTOM_BAR_CLEARANCE = 44;
+    // minimum gap under the card: the bar hides rather than come closer, and the logo hides only below this
+    private static final double MIN_BOTTOM_GAP = 12;
+    private static final double TITLE_BAR_HEIGHT = 40;
+    private static final double FOOTER_HEIGHT = 48;
+    private static final double GRID_HORIZONTAL_PADDING = 40;
+    private static final double PAGE_WIDTH = WINDOW_WIDTH - GRID_HORIZONTAL_PADDING;
+    private static final double PAGE_HEIGHT = WINDOW_HEIGHT - TITLE_BAR_HEIGHT - 24 - 20 - 1 - FOOTER_HEIGHT;
+
+    private final Preferences preferences;
+    private TacContent content;
+    private StackPane rootContainer;
+    private ImageView logo;
+    private VBox riskPage, legalPage;
+    private AutoTooltipButton backButton;
+    private boolean isLegalPageVisible;
 
     @Inject
-    public TacWindow() {
+    public TacWindow(Preferences preferences) {
+        this.preferences = preferences;
         type = Type.Attention;
-
-        Rectangle2D primaryScreenBounds = Screen.getPrimary().getVisualBounds();
-        final double primaryScreenBoundsWidth = primaryScreenBounds.getWidth();
-        smallScreen = primaryScreenBoundsWidth < 1024;
-        if (smallScreen) {
-            this.width = primaryScreenBoundsWidth * 0.8;
-            log.warn("Very small screen: primaryScreenBounds=" + primaryScreenBounds.toString());
-        } else {
-            width = 1250;
-        }
+        width = WINDOW_WIDTH;
     }
 
     @Override
     public void show() {
-        headLine(Res.get("tacWindow.headline"));
-
-        // We do not translate the tacs because of the legal nature. We would need translations checked by lawyers
-        // in each language which is too expensive atm.
-        String text = "1. In no event, unless for damages caused by acts of intent and gross negligence, damages resulting from personal injury, " +
-                "or damages ensuing from other instances where liability is required by applicable law or agreed to in writing, will any " +
-                "developer, copyright holder and/or any other party who modifies and/or conveys the software as permitted above or " +
-                "facilitates its operation, be liable for damages, including any general, special, incidental or consequential damages " +
-                "arising out of the use or inability to use the software (including but not limited to loss of data or data being " +
-                "rendered inaccurate or losses sustained by you or third parties or a failure of the software to operate with any " +
-                "other software), even if such developer, copyright holder and/or other party has been advised of the possibility of such damages.\n\n" +
-
-                "2. The user is responsible for using the software in compliance with local laws. Don't use the software if using it is not legal in your jurisdiction.\n\n" +
-
-                "3. Any " + Res.getBaseCurrencyName() + " market prices, network fee estimates, or other data obtained from servers operated by Haveno is provided on an 'as is, as available' basis without representation or warranty of any kind. It is your responsibility to verify any data provided in regards to inaccuracies or omissions.\n\n" +
-
-                "4. Any Fiat payment method carries a potential risk for bank chargeback. By accepting the \"User Agreement\" the user confirms " +
-                "to be aware of those risks and in no case will claim legal responsibility to the authors or copyright holders of the software.\n\n" +
-
-                "5. Any dispute, controversy or claim arising out of or relating to the use of the software shall be settled by arbitration in " +
-                "accordance with the Haveno arbitration rules as at present in force. The arbitration is conducted online. " +
-                "The language to be used in the arbitration proceedings shall be English if not otherwise stated.\n\n" +
-
-                "6. The user confirms that they have read and agreed to the rules regarding the trade and dispute processes:\n" +
-                "    - You must complete trades within the maximum duration specified for each payment method.\n" +
-                "    - Leave the \"reason for payment\" field empty. DO NOT put the trade ID or any other text like 'monero', 'XMR', or 'Haveno'.\n" +
-                "    - If the bank of the fiat sender charges fees, the fiat sender (" + Res.getBaseCurrencyCode() + " buyer) has to cover the fees.\n" +
-                "    - If either trader opens a dispute, the arbitrator can settle the dispute and pay out trade funds accordingly.\n" +
-                "    - In case of arbitration, you must cooperate with the arbitrator and respond to each message within 48 hours.\n" +
-                "    - The arbitrator may penalize offer makers and traders for breaching Haveno rules and the principle of acting in good faith within the network, up to the value of the security deposit.\n";
-        message(text);
-        actionButtonText(Res.get("tacWindow.agree"));
+        rowIndex = -1;
+        isLegalPageVisible = false;
+        content = new TacContent(PAGE_WIDTH);
+        actionButtonText(Res.get("tacWindow.risk.next"));
         closeButtonText(Res.get("tacWindow.disagree"));
         onClose(HavenoApp.getShutDownHandler());
-
         super.show();
     }
 
     @Override
-    protected void addMessage() {
-        super.addMessage();
-        String fontStyleClass = smallScreen ? "small-text" : "normal-text";
-        messageTextArea.getStyleClass().add(fontStyleClass);
+    protected void createGridPane() {
+        rootContainer = new StackPane();
+        rootContainer.getStyleClass().add("tac-agreement-root");
+        rootContainer.setPadding(new Insets(SHADOW_PADDING));
+        rootContainer.setPrefWidth(width + 2 * SHADOW_PADDING);
 
-        HyperlinkWithIcon hyperlinkWithIcon = addHyperlinkWithIcon(gridPane, ++rowIndex, Res.get("tacWindow.arbitrationSystem"),
-                "https://docs.haveno.exchange/overview/dispute-resolution");
-        hyperlinkWithIcon.getStyleClass().add(fontStyleClass);
-        GridPane.setMargin(hyperlinkWithIcon, new Insets(-6, 0, -20, -4));
+        VBox windowContainer = new VBox();
+        windowContainer.getStyleClass().add("tac-agreement-window");
+        windowContainer.setPrefWidth(width);
+        windowContainer.setMaxWidth(width);
+        setFixedHeight(windowContainer, WINDOW_HEIGHT);
+
+        gridPane = new GridPane();
+        gridPane.setHgap(0);
+        gridPane.setVgap(10);
+        gridPane.setPadding(new Insets(10, 20, 14, 20));
+        gridPane.setPrefWidth(width);
+
+        ColumnConstraints columnConstraints = new ColumnConstraints();
+        columnConstraints.setHgrow(Priority.ALWAYS);
+        columnConstraints.setFillWidth(true);
+        gridPane.getColumnConstraints().add(columnConstraints);
+
+        windowContainer.getChildren().addAll(createTitleBar(), gridPane);
+
+        // compact landscape logo above the card, matching the startup wizard branding
+        logo = new ImageView();
+        logo.setId("image-logo-splash-landscape");
+        logo.setFitWidth(LOGO_FIT_WIDTH);
+        logo.setPreserveRatio(true);
+        logo.setSmooth(true);
+        GUIUtil.setBrandingLogo(logo, preferences, "/images/logo_splash_landscape_light_mode.png",
+                "/images/logo_splash_landscape_dark_mode.png", LOGO_FIT_WIDTH, 0);
+
+        VBox column = new VBox(LOGO_GAP, logo, windowContainer);
+        column.setAlignment(Pos.TOP_CENTER);
+        rootContainer.getChildren().add(column);
     }
 
     @Override
-    protected void setTruncatedMessage() {
-        truncatedMessage = message;
+    protected Region getRootContainer() {
+        return rootContainer;
+    }
+
+    @Override
+    protected void addHeadLine() {
+    }
+
+    @Override
+    protected void addMessage() {
+        riskPage = content.createRiskPage();
+        setFixedHeight(riskPage, PAGE_HEIGHT);
+        legalPage = content.createLegalPage();
+        setFixedHeight(legalPage, PAGE_HEIGHT);
+
+        StackPane pageContainer = new StackPane(riskPage, legalPage);
+        pageContainer.setAlignment(Pos.TOP_LEFT);
+        setFixedHeight(pageContainer, PAGE_HEIGHT);
+        GridPane.setRowIndex(pageContainer, ++rowIndex);
+        GridPane.setHgrow(pageContainer, Priority.ALWAYS);
+        GridPane.setVgrow(pageContainer, Priority.ALWAYS);
+        gridPane.getChildren().add(pageContainer);
+    }
+
+    @Override
+    protected void addButtons() {
+        Region separator = new Region();
+        separator.getStyleClass().add("tac-agreement-footer-separator");
+        GridPane.setHgrow(separator, Priority.ALWAYS);
+        GridPane.setRowIndex(separator, ++rowIndex);
+        gridPane.getChildren().add(separator);
+
+        backButton = new AutoTooltipButton("< " + Res.get("tacWindow.legal.back"));
+        backButton.getStyleClass().addAll("tac-agreement-secondary-button", "tac-agreement-back-button");
+        backButton.setMinWidth(120);
+        backButton.setFocusTraversable(false);
+        backButton.setOnAction(event -> setLegalPageVisible(false));
+
+        Pane spacer = new Pane();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        closeButton = new AutoTooltipButton(closeButtonText);
+        closeButton.getStyleClass().addAll("tac-agreement-secondary-button", "tac-agreement-reject-button");
+        closeButton.setMinWidth(190);
+        closeButton.setFocusTraversable(false);
+        closeButton.setOnAction(event -> doClose());
+
+        actionButton = new AutoTooltipButton(actionButtonText);
+        actionButton.getStyleClass().addAll("action-button", "tac-agreement-action-button");
+        actionButton.setMinWidth(190);
+        actionButton.setDefaultButton(true);
+        actionButton.setOnAction(event -> handleAction());
+
+        HBox footer = new HBox(14, backButton, spacer, closeButton, actionButton);
+        footer.getStyleClass().add("tac-agreement-footer");
+        footer.setAlignment(Pos.CENTER_RIGHT);
+        GridPane.setHgrow(footer, Priority.ALWAYS);
+        GridPane.setRowIndex(footer, ++rowIndex);
+        gridPane.getChildren().add(footer);
+
+        setLegalPageVisible(false);
+    }
+
+    @Override
+    protected void applyStyles() {
+    }
+
+    @Override
+    protected void setupKeyHandler(Scene scene) {
+        scene.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                event.consume();
+                doClose();
+            } else if (event.getCode() == KeyCode.ENTER && actionButton != null && !actionButton.isDisabled()) {
+                event.consume();
+                actionButton.fire();
+            }
+        });
+    }
+
+    @Override
+    protected void setModality() {
+        // non-modal so the app window behind stays resizable and its theme toggle clickable
+        stage.initOwner(owner.getScene().getWindow());
+        stage.initModality(Modality.NONE);
     }
 
     @Override
     protected void onShow() {
         display();
+        setShellBackdrop(true);
+    }
+
+    @Override
+    protected void onHidden() {
+        setShellBackdrop(false);
+        StartupShell shell = getShell();
+        if (shell != null) shell.setWizardOverlayBottom(-1);
+    }
+
+    /**
+     * Center in the area above the shell's bottom bar like the wizard column; when a short window
+     * leaves no room, the bar yields first (the reported clearance edge makes the shell hide it)
+     * and the logo is dropped only once the window cannot frame even logo and card alone.
+     */
+    @Override
+    protected void layout() {
+        super.layout();
+        StartupShell shell = getShell();
+        if (stage == null || shell == null) return;
+        double sceneHeight = owner.getScene().getHeight();
+        double logoBlockHeight = logo.prefHeight(-1) + LOGO_GAP;
+        boolean logoFits = SHADOW_PADDING + logoBlockHeight + WINDOW_HEIGHT + MIN_BOTTOM_GAP <= sceneHeight;
+        if (logo.isVisible() != logoFits) {
+            logo.setVisible(logoFits);
+            logo.setManaged(logoFits);
+            stage.sizeToScene();
+        }
+        double blockHeight = WINDOW_HEIGHT + (logoFits ? logoBlockHeight : 0);
+        // flooring at the shadow padding keeps the stage top inside the scene, so title-bar clicks never land on the overlay
+        double blockTop = Math.max(SHADOW_PADDING, (sceneHeight - BOTTOM_BAR_CLEARANCE - blockHeight) / 2);
+        Window window = owner.getScene().getWindow();
+        double decorationHeight = window.getHeight() - sceneHeight;
+        if (Utilities.isWindows()) decorationHeight -= 9;
+        stage.setY(Math.round(window.getY() + decorationHeight + blockTop - SHADOW_PADDING));
+        shell.setWizardOverlayBottom(blockTop + blockHeight + MIN_BOTTOM_GAP);
+    }
+
+    // tint the splash backdrop like the wizard while the agreement is showing
+    private void setShellBackdrop(boolean active) {
+        StartupShell shell = getShell();
+        if (shell != null) shell.setWizardBackdrop(active);
+    }
+
+    private StartupShell getShell() {
+        Parent root = owner != null && owner.getScene() != null ? owner.getScene().getRoot() : null;
+        return root instanceof StartupShell ? (StartupShell) root : null;
+    }
+
+    private BorderPane createTitleBar() {
+        Label title = new Label(Res.get("tacWindow.headline"));
+        title.getStyleClass().add("tac-agreement-title");
+        title.setMaxWidth(Double.MAX_VALUE);
+        title.setAlignment(Pos.CENTER);
+
+        BorderPane titleBar = new BorderPane(title);
+        titleBar.getStyleClass().add("tac-agreement-title-bar");
+        BorderPane.setAlignment(title, Pos.CENTER);
+        return titleBar;
+    }
+
+    private void handleAction() {
+        if (!isLegalPageVisible) {
+            setLegalPageVisible(true);
+        } else {
+            hide();
+            actionHandlerOptional.ifPresent(Runnable::run);
+        }
+    }
+
+    private void setLegalPageVisible(boolean visible) {
+        isLegalPageVisible = visible;
+        riskPage.setManaged(!visible);
+        riskPage.setVisible(!visible);
+        legalPage.setManaged(visible);
+        legalPage.setVisible(visible);
+        actionButton.setText(visible ? Res.get("tacWindow.agree") : Res.get("tacWindow.risk.next"));
+        backButton.setManaged(visible);
+        backButton.setVisible(visible);
+    }
+
+    private void setFixedHeight(Region region, double height) {
+        region.setMinHeight(height);
+        region.setPrefHeight(height);
+        region.setMaxHeight(height);
     }
 }

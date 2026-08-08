@@ -19,11 +19,15 @@ package haveno.desktop.app;
 
 import haveno.common.UserThread;
 import haveno.common.app.AppModule;
+import haveno.common.app.DevEnv;
 import haveno.common.app.Version;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.core.app.AvoidStandbyModeService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
+import haveno.core.user.Preferences;
+import haveno.core.xmr.nodes.XmrNodes;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
 import haveno.desktop.setup.DesktopPersistedDataHost;
@@ -38,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 public class HavenoAppMain extends HavenoExecutable {
 
     private HavenoApp application;
+    private StartupWizard.Result startupWizardResult;
 
     public HavenoAppMain() {
         super("Haveno Desktop", "haveno-desktop", HavenoExecutable.DEFAULT_APP_NAME, Version.VERSION);
@@ -114,7 +119,31 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     protected void readAllPersisted(Runnable completeHandler) {
-        super.readAllPersisted(DesktopPersistedDataHost.getPersistedDataHosts(injector), completeHandler);
+        super.readAllPersisted(DesktopPersistedDataHost.getPersistedDataHosts(injector), () -> {
+            applyStartupWizardResult();
+            completeHandler.run();
+        });
+    }
+
+    // record the choices from the startup wizard once preferences are loaded
+    private void applyStartupWizardResult() {
+        if (startupWizardResult == null) return;
+        Preferences preferences = injector.getInstance(Preferences.class);
+        TradeCurrency currency = startupWizardResult.getPreferredTradeCurrency();
+        if (currency != null) {
+            preferences.setPreferredTradeCurrency(currency);
+            preferences.setOfferBookChartScreenCurrencyCode(currency.getCode());
+            preferences.setTradeChartsScreenCurrencyCode(currency.getCode());
+        }
+        // applied before the connection service initializes, so default nodes are never contacted
+        String customNodes = startupWizardResult.getCustomMoneroNodes();
+        if (customNodes != null) {
+            preferences.setMoneroNodes(customNodes);
+            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.CUSTOM.ordinal());
+        }
+        if (startupWizardResult.getUseTorForXmr() != null) preferences.setUseTorForXmrOrdinal(startupWizardResult.getUseTorForXmr().ordinal());
+        // last: force-persists the preferences, making all wizard choices durable before startup continues
+        preferences.setTacAcceptedV190(true);
     }
 
     @Override
@@ -141,6 +170,9 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     protected CompletableFuture<Boolean> loginAccount() {
+
+        // first run: gather the user's choices with the startup wizard before creating the account
+        if (!accountService.accountExists() && !DevEnv.isDevMode()) return runStartupWizard();
 
         // attempt default login
         CompletableFuture<Boolean> result = super.loginAccount();
@@ -176,6 +208,32 @@ public class HavenoAppMain extends HavenoExecutable {
                 // called if the user chooses to quit instead of logging in
                 () -> {
                     log.warn("Password entry cancelled, shutting down");
+                    new Thread(() -> HavenoApp.getShutDownHandler().run()).start();
+                }));
+        return loginResult;
+    }
+
+    private CompletableFuture<Boolean> runStartupWizard() {
+        CompletableFuture<Boolean> loginResult = new CompletableFuture<>();
+        Platform.setImplicitExit(false);
+        UserThread.execute(() -> application.showStartupWizard(
+
+                // create the account off the JavaFX thread (generating the keys is slow)
+                result -> new Thread(() -> {
+                    try {
+                        if (result.getWalletSeed() != null) accountService.setWalletImportDetails(result.getWalletSeed(), result.getWalletRestoreHeight(), result.getWalletRestoreDate());
+                        accountService.createAccount(result.getPassword());
+                        startupWizardResult = result;
+                        UserThread.execute(() -> loginResult.complete(accountService.isAccountOpen()));
+                    } catch (Throwable t) {
+                        log.error("Error creating account", t);
+                        UserThread.execute(() -> loginResult.completeExceptionally(t));
+                    }
+                }, "CreateAccount").start(),
+
+                // called if the user chooses to quit instead of completing the setup
+                () -> {
+                    log.warn("Startup wizard cancelled, shutting down");
                     new Thread(() -> HavenoApp.getShutDownHandler().run()).start();
                 }));
         return loginResult;

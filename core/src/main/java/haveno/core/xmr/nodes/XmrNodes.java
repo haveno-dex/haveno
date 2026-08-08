@@ -96,7 +96,8 @@ public class XmrNodes {
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "node.xmr.ru", 18081, 2, "@xmr.ru"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "xmr.stormycloud.org", 18089, 2, "@stormycloud"),
                     new XmrNode(MoneroNodesOption.PUBLIC, null, null, "ravfx.its-a-node.org", 18081, 2, "@ravfx"),
-                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "ravfx2.its-a-node.org", 18089, 2, "@ravfx")
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "ravfx2.its-a-node.org", 18089, 2, "@ravfx"),
+                    new XmrNode(MoneroNodesOption.PUBLIC, null, null, "monero.stackwallet.com", 18081, 2, "@stackwallet", "https")
                     // new XmrNode(MoneroNodesOption.PUBLIC, null, "plowsof3t5hogddwabaeiyrno25efmzfxyro2vligremt7sxpsclfaid.onion", null, 18089, 3, "@plowsof"), // onions tend to have poorer performance
                     // new XmrNode(MoneroNodesOption.PUBLIC, null, "cakexmrl7bonq7ovjka5kuwuyd3f7qnkz6z6s6dmsy3uckwra7bvggyd.onion", null, 18081, 3, "@cakewallet")
                 );

@@ -361,10 +361,10 @@ public class HavenoSetup {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void maybeShowTac(Runnable nextStep) {
-        if (!preferences.isTacAcceptedV120() && !DevEnv.isDevMode()) {
+        if (!preferences.isTacAcceptedV190() && !DevEnv.isDevMode()) {
             if (displayTacHandler != null)
                 displayTacHandler.accept(() -> {
-                    preferences.setTacAcceptedV120(true);
+                    preferences.setTacAcceptedV190(true);
                     nextStep.run();
                 });
         } else {
@@ -386,14 +386,7 @@ public class HavenoSetup {
             }
 
             // install monero-wallet-rpc
-            File moneroWalletRpcFile = new File(XmrWalletService.getMoneroWalletRpcPath());
-            String moneroWalletRpcResourcePath = "bin/" + XmrWalletService.MONERO_WALLET_RPC_NAME;
-            if (!moneroWalletRpcFile.exists() || (config.updateXmrBinaries && !FileUtil.resourceEqualToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile))) {
-                log.info("Installing monero-wallet-rpc");
-                moneroWalletRpcFile.getParentFile().mkdirs();
-                FileUtil.resourceToFile(moneroWalletRpcResourcePath, moneroWalletRpcFile);
-                moneroWalletRpcFile.setExecutable(true);
-            }
+            XmrWalletService.maybeInstallMoneroWalletRpc(config.updateXmrBinaries);
         } catch (Exception e) {
             log.warn("Failed to install Monero binaries: {}\n", e.getMessage(), e);
         }

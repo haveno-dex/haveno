@@ -60,6 +60,9 @@
     -bs-color-gray-background: #f2f2f2;
     -bs-content-pane-bg-top: #f2f2f2;
     -bs-content-pane-bg-bottom: #f6f6f6;
+    -bs-wizard-backdrop: #f2f2f3;
+    -bs-wizard-card-bg: #ffffff;
+    -bs-wizard-card-shadow: rgba(0, 0, 0, 0.08);
     -bs-scroll-pane-background: transparent;
     -bs-tab-content-area: transparent;
     -bs-viewport-background: transparent;
@@ -165,17 +168,28 @@
     -fx-image: url("../../images/logo_landscape_light_mode.png");
 }
 
+#image-logo-splash-landscape {
+    -fx-image: url("../../images/logo_splash_landscape_light_mode.png");
+}
+
+/* More saturated buy/sell colors for the depth chart only; the light green / dark red
+   lightness gap is kept for red-green colorblind separation. */
+#charts .default-color0.chart-series-area-line { -fx-stroke: #26b94e; }
+#charts .default-color1.chart-series-area-line { -fx-stroke: #da2c1a; }
+#charts .default-color0.chart-area-symbol { -fx-background-color: #26b94e, -bs-background-color; }
+#charts .default-color1.chart-area-symbol { -fx-background-color: #da2c1a, -bs-background-color; }
+
 #charts .default-color0.chart-series-area-fill {
     -fx-fill: linear-gradient(to bottom,
-        rgba(62, 163, 74, 0.55) 0%,
-        rgba(62, 163, 74, 0.0) 100%
+        rgba(38, 185, 78, 0.55) 0%,
+        rgba(38, 185, 78, 0.0) 100%
     );
 }
 
 #charts .default-color1.chart-series-area-fill {
     -fx-fill: linear-gradient(to bottom,
-        rgba(215, 48, 48, 0.55) 0%,
-        rgba(215, 48, 48, 0.0) 100%
+        rgba(218, 44, 26, 0.55) 0%,
+        rgba(218, 44, 26, 0.0) 100%
     );
 }
 

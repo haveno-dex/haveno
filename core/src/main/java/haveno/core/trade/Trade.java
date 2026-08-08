@@ -138,6 +138,7 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -3109,7 +3110,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
         boolean wasPolling = isPolling();
-        if (xmrConnectionService.requestConnectionSwitch(sourceConnection)) {
+        if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this)) {
             onConnectionChanged(xmrConnectionService.getConnection(), wasPolling); // change connection on same thread
             return true;
         }
@@ -3421,7 +3422,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // request connection switch on failure until synced and polled
                 boolean requestConnectionSwitch = !offlinePoll && !wasWalletSyncedAndPolledProperty.get() && !HavenoUtils.isIllegal(e) && xmrConnectionService.isConnected();
-                if (HavenoUtils.isUnresponsive(e)) { // wallet can be stuck a while
+                if (HavenoUtils.isUnresponsive(e) || HavenoUtils.isNotConnectedToDaemon(e)) { // wallet can be stuck a while
                     handleWalletError(e, true, false, sourceConnection, requestConnectionSwitch);
                 }
             }
@@ -3519,8 +3520,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (logInfoLevel) log.info(startSyncLogMsg);
         else log.debug(startSyncLogMsg);
         long startTime = System.currentTimeMillis();
-        synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon to limit concurrent wallet syncs
+        ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock(); // lock on daemon to limit concurrent wallet syncs
+        try {
             syncWithProgress(initialSyncTimeoutMs);
+        } finally {
+            HavenoUtils.releaseDaemonLock(daemonLock);
         }
         String doneSyncLogMsg = "Done syncing wallet for " + getShortId() + " " + getClass().getSimpleName() + " in " + (System.currentTimeMillis() - startTime) + " ms";
         if (logInfoLevel) log.info(doneSyncLogMsg);
@@ -3570,8 +3574,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private void doImportMultisigHex(boolean logInfoLevel, Long initialSyncTimeoutSec) {
 
-        // sync and poll wallet if deposits not confirmed (unless only one deposit unlocked)
-        if (!hasUnlockedTx() && (!isDepositsConfirmed() || isDepositsUnseen())) {
+        // sync and poll wallet if never polled or deposits not confirmed (unless only one deposit unlocked)
+        if (!hasUnlockedTx() && (!wasWalletPolledProperty.get() || !isDepositsConfirmed() || isDepositsUnseen())) {
             log.warn("Updating wallet before importing multisig hex for {} {} because deposits are unconfirmed or missing", getClass().getSimpleName(), getShortId());
             updateWalletAux(logInfoLevel, false, true);
             log.warn("Done updating wallet before importing multisig hex for {} {}", getClass().getSimpleName(), getShortId());
@@ -3648,22 +3652,30 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         log.info("Ingesting multisig hexes for {} {}, count={}", getClass().getSimpleName(), getShortId(), multisigHexes.size());
         long startTime = System.currentTimeMillis();
         setUnknownSyncProgress();
-        int numOutputsImported;
-        synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because import can refresh pending rescan state
-            numOutputsImported = wallet.importMultisigHex(multisigHexes, false); // import without refreshing, which is handled later
-        }
-        log.info("Done ingesting multisig hexes for {} {} in {} ms, count={}, numOutputsImported={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size(), numOutputsImported);
+        try {
+            int numOutputsImported;
+            ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock(); // lock on daemon because import can refresh pending rescan state
+            try {
+                numOutputsImported = wallet.importMultisigHex(multisigHexes, false); // import without refreshing, which is handled later
+            } finally {
+                HavenoUtils.releaseDaemonLock(daemonLock);
+            }
+            log.info("Done ingesting multisig hexes for {} {} in {} ms, count={}, numOutputsImported={}", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime, multisigHexes.size(), numOutputsImported);
 
-        // sync from new wallet height
-        walletHeight.set(wallet.getHeight()); // import detaches the blockchain to the last export point
-        if (isWalletBehind()) {
-            doSyncWithProgress(logInfoLevel, initialSyncTimeoutMs);
-        } else {
-            sync(); // TODO: must sync wallet after import, syncWithProgress() should still refresh even if not behind?
-        }
+            // sync from new wallet height
+            walletHeight.set(wallet.getHeight()); // import detaches the blockchain to the last export point
+            if (isWalletBehind()) {
+                doSyncWithProgress(logInfoLevel, initialSyncTimeoutMs);
+            } else {
+                sync(); // TODO: must sync wallet after import, syncWithProgress() should still refresh even if not behind?
+            }
 
-        // rescan spent outputs to update spent status of imported outputs
-        rescanSpent(logInfoLevel);
+            // rescan spent outputs to update spent status of imported outputs
+            rescanSpent(logInfoLevel);
+        } catch (Exception e) {
+            clearSyncProgress(); // otherwise the wallet displays as syncing forever
+            throw e;
+        }
     }
 
     private void importMultisigHexIfNeeded() {
@@ -3684,12 +3696,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         synchronized (walletLock) {
             boolean doRestartPolling = restartPolling && isPolling();
             if (doRestartPolling) stopPolling();
-            if (HavenoUtils.isUnresponsive(t)) forceCloseWallet(false); // wallet can be stuck a while
-            if (requestConnectionSwitch) requestConnectionSwitchSynchronous(sourceConnection);
-            getWallet(); // re-open wallet if necessary
-            if (doRestartPolling) {
-                HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // delay polling to avoid immediate repeat
-                maybeInitPolling(pollImmediately); // skip first poll if polling immediately
+            try {
+                if (HavenoUtils.isUnresponsive(t)) forceCloseWallet(false); // wallet can be stuck a while
+                else if (HavenoUtils.isNotConnectedToDaemon(t) && Boolean.TRUE.equals(xmrConnectionService.isConnected())) forceCloseWallet(false); // reopen to reset the wallet's daemon connection, since switching monerod is skipped while other wallets are working
+                if (requestConnectionSwitch) requestConnectionSwitchSynchronous(sourceConnection);
+                getWallet(); // re-open wallet if necessary
+            } finally {
+                if (doRestartPolling) { // restart polling even if reopening fails, so it keeps retrying
+                    HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // delay polling to avoid immediate repeat
+                    maybeInitPolling(pollImmediately); // skip first poll if polling immediately
+                }
             }
             if (pollImmediately) doPollWallet();
         }
@@ -3716,8 +3732,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         synchronized (walletLock) {
             if (getWallet() == null) throw new IllegalStateException("Cannot get transactions from trade wallet because it doesn't exist for " + getClass().getSimpleName() + ", " + getId());
             if (checkPool) {
-                synchronized (HavenoUtils.getDaemonLock()) {
+                ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock();
+                try {
                     return wallet.getTxs(query);
+                } finally {
+                    HavenoUtils.releaseDaemonLock(daemonLock);
                 }
             } else {
                 return wallet.getTxs(query);
@@ -3812,9 +3831,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 payoutTx = tx;
                 hasPayoutTx = true;
                 break;
-            } else {
+            } else if (xmrConnectionService.isTrustedDaemon()) {
                 for (MoneroOutputWallet output : tx.getOutputsWallet()) {
-                    if (Boolean.TRUE.equals(output.isSpent())) hasPayoutTx = true; // spent outputs observed on payout published (after rescanning)
+                    if (Boolean.TRUE.equals(output.isSpent())) hasPayoutTx = true; // spent outputs indicate published payout, but only trust a local daemon which cannot falsely report spent
                 }
             }
         }
@@ -4082,8 +4101,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // rescan blockchain
                 log.warn("Rescanning blockchain for {} {}", getClass().getSimpleName(), getShortId());
-                synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because rescan reprocesses the blockchain
+                ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock(); // lock on daemon because rescan reprocesses the blockchain
+                try {
                     wallet.rescanBlockchain();
+                } finally {
+                    HavenoUtils.releaseDaemonLock(daemonLock);
                 }
             } catch (Exception e) {
                 log.warn("Error rescanning blockchain for {} {}, errorMessage={}", getClass().getSimpleName(), getShortId(), e.getMessage());
@@ -4116,8 +4138,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // rescan spent outputs
                 if (logInfoLevel) log.info("Rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
-                synchronized (HavenoUtils.getDaemonLock()) { // lock on daemon because rescan queries key images
+                ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock(); // lock on daemon because rescan queries key images
+                try {
                     wallet.rescanSpent();
+                } finally {
+                    HavenoUtils.releaseDaemonLock(daemonLock);
                 }
                 if (logInfoLevel) log.info("Done rescanning spent outputs for {} {}", getClass().getSimpleName(), getShortId());
                 saveWalletIfElapsedTime();

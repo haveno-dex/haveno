@@ -42,11 +42,9 @@ import java.security.SignatureException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -311,9 +309,10 @@ public class SignedWitnessService {
         return new HashSet<>();
     }
 
-    // Stores a signer chain received in-band from a peer, keeping only witnesses with valid signatures which
-    // chain from the given signer's pub key (so peers cannot inject unrelated witnesses). Each witness is
-    // self-verifiable, so this adds no trust; it only heals gaps of data already on the network.
+    // Stores a signer chain received in-band from a peer, keeping only witnesses on a valid signer path from the
+    // given signer's pub key up to an arbitrator root (so peers cannot inject unrelated or unrooted witnesses to
+    // spam the network). Each witness is self-verifiable, so this adds no trust; it only heals gaps of data
+    // already on the network.
     public void addValidSignerChain(Collection<SignedWitness> signerChain, byte[] signerPubKey) {
         if (signerChain == null) return;
 
@@ -323,30 +322,12 @@ public class SignedWitnessService {
             byOwnerPubKey.computeIfAbsent(new P2PDataStorage.ByteArray(signedWitness.getWitnessOwnerPubKey()), k -> new HashSet<>()).add(signedWitness);
         }
 
-        // walk the chain from the signer's pub key, accepting only witnesses with valid signatures along it
+        // collect the witnesses on a valid signer path from the signer's pub key up to an arbitrator root; a chain
+        // which does not terminate at an arbitrator root proves nothing, so it is dropped rather than stored
         Set<SignedWitness> accepted = new HashSet<>();
-        Set<P2PDataStorage.ByteArray> visitedOwners = new HashSet<>();
-        Deque<byte[]> queue = new ArrayDeque<>();
-        queue.add(signerPubKey);
-        visitedOwners.add(new P2PDataStorage.ByteArray(signerPubKey));
-        while (!queue.isEmpty() && accepted.size() < MAX_SIGNER_CHAIN_SIZE) {
-            byte[] owner = queue.poll();
-            for (SignedWitness signedWitness : byOwnerPubKey.getOrDefault(new P2PDataStorage.ByteArray(owner), new HashSet<>())) {
-                if (accepted.size() >= MAX_SIGNER_CHAIN_SIZE) break;
-                if (!verifySignature(signedWitness)) {
-                    log.warn("Ignoring received signer chain witness with invalid signature {}", signedWitness.getHashAsByteArray());
-                    continue;
-                }
-                accepted.add(signedWitness);
-                // arbitrator signatures are roots, so don't walk further up from them
-                if (!signedWitness.isSignedByArbitrator() &&
-                        visitedOwners.add(new P2PDataStorage.ByteArray(signedWitness.getSignerPubKey()))) {
-                    queue.add(signedWitness.getSignerPubKey());
-                }
-            }
-        }
+        collectValidSignerPath(signerPubKey, byOwnerPubKey, new HashSet<>(), accepted);
         int numIgnored = new HashSet<>(signerChain).size() - accepted.size();
-        if (numIgnored > 0) log.warn("Ignored {} received signer chain witnesses which are invalid or do not chain from the signer's pub key", numIgnored);
+        if (numIgnored > 0) log.warn("Ignored {} received signer chain witnesses which are invalid or do not chain from the signer's pub key to an arbitrator root", numIgnored);
 
         // store the accepted witnesses; only broadcast in-tolerance witnesses, as peers reject older ones
         Clock clock = Clock.systemDefaultZone();
@@ -356,6 +337,29 @@ public class SignedWitnessService {
             p2PService.addPersistableNetworkPayload(signedWitness, signedWitness.isDateInTolerance(clock), false);
             addToMap(signedWitness);
         }
+    }
+
+    // Collects received witnesses along the first valid signer path from ownerPubKey up to an arbitrator root,
+    // using only the supplied witnesses. Returns true and fills accepted with the path if one exists. Dead-end
+    // branches add nothing, and each owner is visited once, bounding work and recursion and preventing loops.
+    private boolean collectValidSignerPath(byte[] ownerPubKey,
+                                           Map<P2PDataStorage.ByteArray, Set<SignedWitness>> byOwnerPubKey,
+                                           Set<P2PDataStorage.ByteArray> visitedOwners,
+                                           Set<SignedWitness> accepted) {
+        P2PDataStorage.ByteArray ownerKey = new P2PDataStorage.ByteArray(ownerPubKey);
+        if (visitedOwners.size() >= MAX_SIGNER_CHAIN_SIZE || !visitedOwners.add(ownerKey)) return false;
+        for (SignedWitness signedWitness : byOwnerPubKey.getOrDefault(ownerKey, new HashSet<>())) {
+            if (!verifySignature(signedWitness)) {
+                log.warn("Ignoring received signer chain witness with invalid signature {}", signedWitness.getHashAsByteArray());
+                continue;
+            }
+            if (signedWitness.isSignedByArbitrator() ||
+                    collectValidSignerPath(signedWitness.getSignerPubKey(), byOwnerPubKey, visitedOwners, accepted)) {
+                accepted.add(signedWitness);
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean publishOwnSignedWitness(SignedWitness signedWitness) {
@@ -501,9 +505,10 @@ public class SignedWitnessService {
         }
         try {
             PublicKey signaturePubKey = Sig.getPublicKeyFromBytes(signedWitness.getSignerPubKey());
-            Sig.verify(signaturePubKey, signedWitness.getAccountAgeWitnessHash(), signedWitness.getSignature());
-            verifySignatureWithDSAKeyResultCache.put(hash, true);
-            return true;
+            boolean isValid = Sig.verify(signaturePubKey, signedWitness.getAccountAgeWitnessHash(), signedWitness.getSignature());
+            if (!isValid) log.warn("verifySignature signedWitness failed. signedWitness={}", signedWitness);
+            verifySignatureWithDSAKeyResultCache.put(hash, isValid);
+            return isValid;
         } catch (CryptoException e) {
             log.warn("verifySignature signedWitness failed. signedWitness={}", signedWitness);
             log.warn("Caused by ", e);

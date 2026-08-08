@@ -76,6 +76,7 @@ import javafx.beans.value.WeakChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -85,6 +86,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -96,6 +98,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.skin.DatePickerSkin;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
@@ -111,6 +114,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
@@ -144,6 +148,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Currency;
@@ -1535,9 +1540,16 @@ public class GUIUtil {
         ChangeListener<Number> themeListener = (ov, o, n) -> updateBrandingLogo(logo, n.intValue() == 1 ? darkPath : lightPath, pxW, pxH);
         updateBrandingLogo(logo, preferences.getCssTheme() == 1 ? darkPath : lightPath, pxW, pxH);
 
+        // replace any previous branding listener so the same view can be repointed at other assets or sizes
+        @SuppressWarnings("unchecked")
+        ChangeListener<Number> prevListener = (ChangeListener<Number>) logo.getProperties().get("brandingThemeListenerWeak");
+        if (prevListener != null) preferences.getCssThemeProperty().removeListener(prevListener);
+
         // weak listener (strong ref held on the ImageView) lets the logo be GC'd with its scene without leaking
+        WeakChangeListener<Number> weakListener = new WeakChangeListener<>(themeListener);
         logo.getProperties().put("brandingThemeListener", themeListener);
-        preferences.getCssThemeProperty().addListener(new WeakChangeListener<>(themeListener));
+        logo.getProperties().put("brandingThemeListenerWeak", weakListener);
+        preferences.getCssThemeProperty().addListener(weakListener);
     }
 
     private static void updateBrandingLogo(ImageView logo, String resourcePath, double pxW, double pxH) {
@@ -1755,6 +1767,70 @@ public class GUIUtil {
         int baseLogoSize = disablePaymentUriLabel ? 47 : 45; // logo size at the default code size
         int logoSize = (int) Math.round((double) baseLogoSize * qrCodeSize / BIG_QR_CODE_SIZE);
         return getXmrQrCodePane(qrCodeSize, logoSize, 3);
+    }
+
+    /** Overlays a calendar icon on a text field which opens a date picker popup, writing the picked date as YYYY-MM-DD. */
+    public static StackPane wrapWithCalendarPicker(TextField field) {
+        // host the calendar in our own popup instead of the skin's, so its position is fully ours
+        DatePicker picker = new DatePicker();
+        Node calendar = new DatePickerSkin(picker).getPopupContent();
+        javafx.stage.Popup popup = new javafx.stage.Popup();
+        popup.setAutoHide(true);
+        popup.getContent().add(calendar);
+        popup.widthProperty().addListener((observable, oldValue, newValue) -> positionCalendarPopup(field, popup, calendar));
+        popup.heightProperty().addListener((observable, oldValue, newValue) -> positionCalendarPopup(field, popup, calendar));
+
+        picker.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) field.setText(newValue.toString());
+            popup.hide();
+        });
+        calendar.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> { // also close on re-picking the selected day
+            for (Node node = event.getTarget() instanceof Node ? (Node) event.getTarget() : null; node != null; node = node.getParent()) {
+                if (node.getStyleClass().contains("day-cell")) {
+                    popup.hide();
+                    break;
+                }
+            }
+        });
+
+        Text icon = FormBuilder.getIcon(MaterialDesignIcon.CALENDAR, "1.2em");
+        icon.getStyleClass().add("calendar-picker-icon");
+        StackPane iconButton = new StackPane(icon);
+        iconButton.getStyleClass().add("calendar-picker-button");
+        iconButton.setCursor(Cursor.HAND);
+        iconButton.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        iconButton.setPadding(new Insets(4, 12, 4, 12));
+        StackPane.setAlignment(iconButton, Pos.CENTER_RIGHT);
+        iconButton.setOnMouseClicked(event -> {
+            try {
+                picker.setValue(LocalDate.parse(field.getText().trim()));
+            } catch (Exception e) {
+                picker.setValue(null);
+            }
+            popup.getScene().getStylesheets().setAll(field.getScene().getStylesheets()); // popup scenes do not inherit styles
+            popup.show(field, 0, 0);
+            positionCalendarPopup(field, popup, calendar);
+        });
+
+        StackPane pane = new StackPane(field, iconButton);
+        pane.setMaxWidth(field.getMaxWidth()); // size with the field
+        return pane;
+    }
+
+    // pin the calendar card's right edge under the field's calendar icon, kept inside the window; below
+    // the field, or above it when there is no room. Positions by the card's bounds, not the popup
+    // window's; the drop shadow inflates the window around the card. Re-applied on size changes.
+    private static void positionCalendarPopup(TextField field, javafx.stage.Popup popup, Node calendar) {
+        if (!popup.isShowing() || field.getScene() == null) return;
+        Bounds fieldBounds = field.localToScreen(field.getLayoutBounds());
+        Bounds cardBounds = calendar.localToScreen(calendar.getLayoutBounds());
+        Window window = field.getScene().getWindow();
+        double cardY = fieldBounds.getMaxY() + 4;
+        if (cardY + cardBounds.getHeight() > window.getY() + window.getHeight() - 5)
+            cardY = fieldBounds.getMinY() - cardBounds.getHeight() - 4;
+        double cardX = Math.max(fieldBounds.getMaxX() - cardBounds.getWidth(), window.getX() + 5);
+        popup.setX(popup.getX() + cardX - cardBounds.getMinX());
+        popup.setY(popup.getY() + cardY - cardBounds.getMinY());
     }
 
     private static Tuple2<StackPane, ImageView> getXmrQrCodePane(int qrCodeSize, int logoSize, int logoBorderWidth) {

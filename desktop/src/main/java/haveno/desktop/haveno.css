@@ -716,8 +716,82 @@ tree-table-view:focused {
     -fx-background-color: -jfx-default-color;
 }
 
-.date-picker-popup .month-year-pane {
-    -fx-background-color: -bs-color-primary-dark;
+/* calendar popup of date pickers, matching the app surfaces in both themes */
+.date-picker-popup {
+    -fx-background-color: -bs-color-gray-3, -bs-color-gray-0;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 16, 0, 0, 4);
+}
+
+.date-picker-popup > .month-year-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 8 8 2 8;
+}
+
+.date-picker-popup .spinner .button {
+    -fx-background-color: transparent;
+}
+
+.date-picker-popup .spinner .left-arrow,
+.date-picker-popup .spinner .right-arrow {
+    -fx-background-color: -bs-color-gray-6;
+}
+
+.date-picker-popup .spinner .button:hover .left-arrow,
+.date-picker-popup .spinner .button:hover .right-arrow {
+    -fx-background-color: -bs-color-primary;
+}
+
+.date-picker-popup .spinner .label {
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.date-picker-popup .calendar-grid {
+    -fx-background-color: transparent;
+    -fx-padding: 6;
+}
+
+.date-picker-popup .day-name-cell {
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.date-picker-popup .day-cell {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+    -fx-border-color: transparent;
+    -fx-text-fill: -bs-rd-font-dark;
+    -fx-cursor: hand;
+}
+
+.date-picker-popup .day-cell:hover {
+    -fx-background-color: -bs-color-gray-1;
+}
+
+.date-picker-popup .day-cell.today {
+    -fx-border-color: -bs-color-primary;
+    -fx-border-radius: 6;
+}
+
+.date-picker-popup .day-cell.selected {
+    -fx-background-color: rgba(28, 96, 220, 0.12);
+    -fx-text-fill: -bs-color-primary;
+    -fx-font-family: "IBM Plex Sans Medium";
+}
+
+.date-picker-popup .day-cell.previous-month,
+.date-picker-popup .day-cell.next-month {
+    -fx-text-fill: -bs-color-gray-4;
+}
+
+/* calendar icon opening the popup from a text field (GUIUtil.wrapWithCalendarPicker) */
+.calendar-picker-icon {
+    -fx-fill: -bs-login-prompt-text;
+}
+
+.calendar-picker-button:hover .calendar-picker-icon {
+    -fx-fill: -bs-color-primary;
 }
 
 .scroll-bar {
@@ -826,6 +900,11 @@ tree-table-view:focused {
 /* Splash */
 #splash {
     -fx-background-color: -bs-background-color;
+}
+
+/* tinted while the first-run wizard is showing so its card reads as a floating panel */
+#splash.startup-wizard-backdrop {
+    -fx-background-color: -bs-wizard-backdrop;
 }
 
 /* Main UI */
@@ -1053,6 +1132,428 @@ tree-table-view:focused {
     -fx-background-insets: 0, 1.5;
     -fx-background-radius: 8, 6.5;
     -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 10, 0, 0, 0);
+}
+
+.login-password-field.validation-error,
+.login-password-field.validation-error:focused {
+    -fx-background-color: -bs-rd-error-red, -fx-control-inner-background;
+    -fx-effect: none;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * User agreement (startup wizard and TacWindow)                               *
+ *                                                                             *
+ ******************************************************************************/
+
+/* floating card framing the wizard pages and their modal-style footer */
+.wizard-card {
+    -fx-background-color: -bs-wizard-card-bg;
+    -fx-background-radius: 10;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-radius: 10;
+    -fx-padding: 24 28 12 28;
+    -fx-effect: dropshadow(gaussian, -bs-wizard-card-shadow, 24, 0, 0, 6);
+}
+
+.startup-wizard-footer-label {
+    -fx-font-size: 0.9em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+/* multi-line counterpart of .login-password-field; the .text-area prefix outranks the
+   global .text-area rules that would otherwise re-add a square border and prompt color */
+.text-area.wizard-text-area {
+    -fx-background-color: -bs-login-field-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 8, 6.5;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-prompt-text-fill: -bs-login-prompt-text;
+}
+
+.text-area.wizard-text-area:focused {
+    -fx-background-color: -bs-color-primary, -fx-control-inner-background;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 8, 6.5;
+    -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 10, 0, 0, 0);
+}
+
+.text-area.wizard-text-area.validation-error,
+.text-area.wizard-text-area.validation-error:focused {
+    -fx-background-color: -bs-rd-error-red, -fx-control-inner-background;
+    /* keep the square .text-area.validation-error border rule from adding a second border */
+    -fx-border-color: transparent;
+    -fx-effect: none;
+}
+
+.wizard-text-area .scroll-pane,
+.wizard-text-area .scroll-pane .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.wizard-text-area .scroll-pane .content {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6.5;
+    -fx-padding: 6 10 6 10;
+}
+
+.tac-agreement-root {
+    -fx-background-color: transparent;
+}
+
+/* the card draws its own shadow; keep the light-mode popup shadow off the logo above it */
+.tac-agreement-root.popup-dropshadow {
+    -fx-effect: none;
+}
+
+/* styled like .wizard-card so both agreement surfaces share one look */
+.tac-agreement-window {
+    -fx-font-size: 0.9em;
+    -fx-background-color: -bs-wizard-card-bg;
+    -fx-background-radius: 10;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(gaussian, -bs-wizard-card-shadow, 24, 0, 0, 6);
+}
+
+.tac-agreement-title-bar {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-background-radius: 10 10 0 0;
+    -fx-min-height: 40;
+    -fx-pref-height: 40;
+    -fx-padding: 0 12 0 12;
+    -fx-border-color: transparent transparent -bs-rd-separator transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.tac-agreement-title {
+    -fx-font-size: 1.28em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.wizard-header-icon-box {
+    -fx-background-color: rgba(28, 96, 220, 0.10);
+    -fx-background-radius: 28;
+    -fx-min-height: 50;
+    -fx-pref-height: 50;
+    -fx-max-height: 50;
+}
+
+.wizard-header-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.wizard-header-title {
+    -fx-font-size: 1.18em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-color-primary;
+}
+
+.wizard-header-subtitle {
+    -fx-font-size: 0.92em;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.wizard-header-divider {
+    -fx-background-color: -bs-color-primary;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.wizard-choice-card {
+    -fx-background-color: -bs-wizard-card-bg;
+    -fx-background-radius: 8;
+    -fx-border-color: -bs-color-gray-3;
+    -fx-border-radius: 8;
+    -fx-border-width: 1.5;
+    -fx-padding: 16 18 16 18;
+    -fx-cursor: hand;
+}
+
+.wizard-choice-card:hover,
+.wizard-choice-card:focused {
+    -fx-border-color: -bs-color-gray-4;
+}
+
+.wizard-choice-card:selected {
+    -fx-border-color: -bs-color-primary;
+    -fx-background-color: rgba(28, 96, 220, 0.06);
+}
+
+.wizard-choice-card:selected:focused {
+    -fx-effect: dropshadow(gaussian, -bs-login-field-focus-glow, 10, 0, 0, 0);
+}
+
+.wizard-choice-card-icon-box {
+    -fx-background-color: rgba(28, 96, 220, 0.08);
+    -fx-background-radius: 22;
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    -fx-min-height: 44;
+    -fx-pref-height: 44;
+    -fx-max-height: 44;
+}
+
+.wizard-choice-card-icon,
+.wizard-choice-card-check {
+    -fx-fill: -bs-color-primary;
+}
+
+.wizard-choice-card-title {
+    -fx-font-size: 1.02em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.wizard-choice-card-badge {
+    -fx-background-color: rgba(28, 96, 220, 0.12);
+    -fx-background-radius: 9;
+    -fx-padding: 1 8 2 8;
+    -fx-font-size: 0.75em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-color-primary;
+}
+
+.wizard-choice-card-body {
+    -fx-font-size: 0.92em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.wizard-progress-dot {
+    -fx-background-color: -bs-color-gray-3;
+    -fx-background-radius: 4;
+    -fx-min-width: 8;
+    -fx-pref-width: 8;
+    -fx-max-width: 8;
+    -fx-min-height: 8;
+    -fx-pref-height: 8;
+    -fx-max-height: 8;
+}
+
+.wizard-progress-dot-active {
+    -fx-background-color: -bs-color-primary;
+}
+
+.wizard-search-icon {
+    -fx-fill: -bs-login-prompt-text;
+}
+
+/* the .list-view prefix outranks the theme rules that would re-add a square border */
+.list-view.wizard-currency-list,
+.list-view.wizard-currency-list:focused {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-background-radius: 8;
+    -fx-background-insets: 0;
+    -fx-padding: 4;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.list-view.wizard-currency-list .list-cell,
+.list-view.wizard-currency-list .list-cell:odd,
+.list-view.wizard-currency-list .list-cell:even {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 7 14 7 14;
+    -fx-text-fill: -bs-rd-font-dark;
+    -fx-cursor: hand;
+}
+
+.list-view.wizard-currency-list .list-cell:filled:hover {
+    -fx-background-color: -bs-color-gray-1;
+}
+
+.list-view.wizard-currency-list .list-cell:filled:selected,
+.list-view.wizard-currency-list .list-cell:filled:selected:hover {
+    -fx-background-color: rgba(28, 96, 220, 0.12);
+    -fx-text-fill: -bs-color-primary;
+    -fx-font-family: "IBM Plex Sans Medium";
+}
+
+.wizard-currency-list .scroll-bar,
+.wizard-currency-list .scroll-bar .track,
+.wizard-currency-list .scroll-bar .track-background,
+.wizard-currency-list .scroll-bar .increment-button,
+.wizard-currency-list .scroll-bar .decrement-button {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-border-color: -bs-color-gray-0;
+}
+
+.wizard-currency-list .scroll-bar .thumb {
+    -fx-background-color: -bs-color-gray-3;
+}
+
+.wizard-currency-list .scroll-bar .thumb:hover {
+    -fx-background-color: -bs-color-gray-4;
+}
+
+.wizard-currency-list .scroll-bar .increment-arrow,
+.wizard-currency-list .scroll-bar .decrement-arrow {
+    -fx-background-color: -bs-color-gray-0;
+}
+
+.tac-agreement-risk-detail-row {
+    -fx-padding: 8 24 8 24;
+}
+
+.tac-agreement-risk-detail-icon-box {
+    -fx-background-color: rgba(28, 96, 220, 0.08);
+    -fx-background-radius: 22;
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    -fx-min-height: 44;
+    -fx-pref-height: 44;
+    -fx-max-height: 44;
+}
+
+.tac-agreement-risk-detail-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.tac-agreement-risk-detail-title {
+    -fx-font-size: 0.98em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-risk-detail-body {
+    -fx-font-size: 0.94em;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-separator {
+    -fx-background-color: -bs-rd-separator;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.tac-agreement-legal-scroll-pane {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+    -fx-padding: 0;
+}
+
+.tac-agreement-legal-scroll-pane .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+.tac-agreement-legal-scroll-content {
+    -fx-background-color: transparent;
+    -fx-padding: 14 16 14 16;
+}
+
+.tac-agreement-legal-scroll-pane .scroll-bar,
+.tac-agreement-legal-scroll-pane .scroll-bar .track,
+.tac-agreement-legal-scroll-pane .scroll-bar .track-background,
+.tac-agreement-legal-scroll-pane .scroll-bar .increment-button,
+.tac-agreement-legal-scroll-pane .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.tac-agreement-legal-scroll-pane .scroll-bar .thumb {
+    -fx-background-color: -bs-color-gray-3;
+}
+
+.tac-agreement-legal-scroll-pane .scroll-bar .thumb:hover {
+    -fx-background-color: -bs-color-gray-4;
+}
+
+.tac-agreement-legal-scroll-pane .scroll-bar .increment-arrow,
+.tac-agreement-legal-scroll-pane .scroll-bar .decrement-arrow {
+    -fx-background-color: transparent;
+}
+
+.tac-agreement-legal-section-number,
+.tac-agreement-legal-section-title {
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-legal-section-number {
+    -fx-min-width: 18;
+    -fx-pref-width: 18;
+}
+
+.tac-agreement-legal-section-body {
+    -fx-line-spacing: 1;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-acknowledgment {
+    -fx-background-color: rgba(28, 96, 220, 0.07);
+    -fx-background-radius: 4;
+    -fx-padding: 10 16 10 16;
+}
+
+.tac-agreement-acknowledgment-icon {
+    -fx-fill: -bs-color-primary;
+}
+
+.tac-agreement-acknowledgment-text {
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.tac-agreement-footer-separator {
+    -fx-background-color: -bs-rd-separator;
+    -fx-min-height: 1;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+.tac-agreement-footer {
+    -fx-padding: 6 0 8 0;
+}
+
+.tac-agreement-secondary-button {
+    -fx-font-size: 0.9em;
+    -fx-pref-height: 34;
+    -fx-min-height: 34;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-border-color: -bs-color-gray-3;
+    -fx-border-width: 1;
+    -fx-padding: 0 18 0 18;
+    /* keep the pinned flat look on keyboard focus; the JFoenix overlay would tint from the text fill */
+    -jfx-disable-visual-focus: true;
+}
+
+.tac-agreement-secondary-button.tac-agreement-reject-button,
+.tac-agreement-secondary-button.tac-agreement-reject-button:hover,
+.tac-agreement-secondary-button.tac-agreement-reject-button:focused,
+.tac-agreement-secondary-button.tac-agreement-reject-button:armed,
+.tac-agreement-secondary-button.tac-agreement-reject-button:pressed {
+    -fx-text-fill: -bs-rd-error-red;
+    -fx-border-color: -bs-rd-error-red;
+    -fx-background-color: -bs-wizard-card-bg;
+}
+
+.tac-agreement-secondary-button.tac-agreement-back-button {
+    -fx-text-fill: -bs-rd-font-dark;
+    -fx-background-color: -bs-wizard-card-bg;
+}
+
+.action-button.tac-agreement-action-button {
+    -fx-font-size: 0.9em;
+    -fx-pref-height: 34;
+    -fx-min-height: 34;
+    -fx-background-radius: 6;
+    -fx-padding: 0 28 0 28;
 }
 
 .text-area {
@@ -1842,6 +2343,11 @@ textfield */
  ******************************************************************************/
 .text-area {
     -fx-border-color: -bs-background-gray;
+}
+
+.text-area.validation-error,
+.text-area.validation-error:focused {
+    -fx-border-color: -bs-rd-error-red;
 }
 
 .window-text-area {

@@ -18,17 +18,14 @@
 package haveno.desktop.main;
 
 import haveno.common.UserThread;
-import haveno.common.file.FileUtil;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
-import haveno.core.xmr.wallet.WalletsManager;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.main.overlays.popups.Popup;
 import lombok.extern.slf4j.Slf4j;
-import org.bitcoinj.wallet.DeterministicSeed;
 
-import java.io.File;
-import java.util.concurrent.TimeUnit;
+import java.time.LocalDate;
 
 /**
  * This serves as shared space for static methods used from different views where no common parent view would fit as
@@ -37,46 +34,55 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public class SharedPresentation {
-    public static void restoreSeedWords(WalletsManager walletsManager,
+    public static void restoreSeedWords(XmrWalletService xmrWalletService,
                                         OpenOfferManager openOfferManager,
-                                        DeterministicSeed seed,
-                                        File storageDir) {
-        if (!openOfferManager.getObservableList().isEmpty()) {
-            UserThread.runAfter(() ->
+                                        String seedWords,
+                                        Long restoreHeight,
+                                        LocalDate restoreDate) {
+        // validate the seed off the user thread before destructive steps like removing open offers
+        new Thread(() -> {
+            boolean valid = isSeedValid(xmrWalletService, seedWords);
+            UserThread.execute(() -> {
+                if (!valid) {
+                    new Popup().warning(Res.get("seed.restore.seedInvalid")).show();
+                } else if (!openOfferManager.getObservableList().isEmpty()) {
                     new Popup().warning(Res.get("seed.restore.openOffers.warn"))
                             .actionButtonText(Res.get("shared.yes"))
-                            .onAction(() -> {
-                                openOfferManager.removeAllOpenOffers(() -> {
-                                    doRestoreSeedWords(walletsManager, seed, storageDir);
-                                });
-                            })
-                            .show(), 100, TimeUnit.MILLISECONDS);
-        } else {
-            doRestoreSeedWords(walletsManager, seed, storageDir);
+                            .onAction(() -> openOfferManager.removeAllOpenOffers(() ->
+                                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate)))
+                            .show();
+                } else {
+                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);
+                }
+            });
+        }, "ValidateSeedWords").start();
+    }
+
+    // defer to validation at wallet creation if the seed cannot be checked
+    private static boolean isSeedValid(XmrWalletService xmrWalletService, String seedWords) {
+        try {
+            return xmrWalletService.isSeedValid(seedWords);
+        } catch (Exception e) {
+            log.warn("Could not validate seed, deferring to wallet creation, error={}", e.getMessage());
+            return true;
         }
     }
 
-    private static void doRestoreSeedWords(WalletsManager walletsManager,
-                                           DeterministicSeed seed,
-                                           File storageDir) {
-        try {
-            File backup = new File(storageDir, "AddressEntryList_backup_pre_wallet_restore_" + System.currentTimeMillis());
-            FileUtil.copyFile(new File(storageDir, "AddressEntryList"), backup);
-        } catch (Throwable t) {
-            new Popup().error(Res.get("error.deleteAddressEntryListFailed", t)).show();
-        }
-
-        walletsManager.restoreSeedWords(
-                seed,
-                () -> UserThread.execute(() -> {
-                    log.info("Wallets restored with seed words");
+    private static void doRestoreSeedWords(XmrWalletService xmrWalletService, String seedWords, Long restoreHeight, LocalDate restoreDate) {
+        // restore off the user thread since wallet creation blocks on the network
+        new Thread(() -> {
+            try {
+                xmrWalletService.restoreWalletFromSeed(seedWords, restoreHeight, restoreDate);
+                UserThread.execute(() -> {
+                    log.info("Wallet restored with seed words");
                     new Popup().feedback(Res.get("seed.restore.success")).hideCloseButton().show();
                     HavenoApp.getShutDownHandler().run();
-                }),
-                throwable -> UserThread.execute(() -> {
-                    log.error(throwable.toString());
-                    new Popup().error(Res.get("seed.restore.error", Res.get("shared.errorMessageInline", throwable)))
-                            .show();
-                }));
+                });
+            } catch (Throwable t) {
+                log.error(t.toString(), t);
+                UserThread.execute(() ->
+                        new Popup().error(Res.get("seed.restore.error", Res.get("shared.errorMessageInline", t))).show());
+            }
+        }, "RestoreXmrWallet").start();
     }
 }

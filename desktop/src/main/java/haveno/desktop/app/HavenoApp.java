@@ -50,6 +50,7 @@ import haveno.core.user.Preferences;
 import haveno.core.user.StartupSettings;
 import haveno.core.user.User;
 import haveno.core.xmr.wallet.WalletsManager;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
@@ -61,6 +62,7 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.FilterWindow;
 import haveno.desktop.main.overlays.windows.SendAlertMessageWindow;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
+import haveno.desktop.main.overlays.windows.TacContent;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
@@ -167,6 +169,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
 
             startupShell.setAppContent(mainView.getRoot());
             startupShell.setContent(mainView.getStartupStatusContent());
+            startupShell.setCompactBranding(false); // restore the full splash logo if the startup wizard was shown
             mainView.setStartupOverlayFader(startupShell::fadeOutOverlay);
 
             // now unlocked: capture the current position (or migrate legacy bounds) and track future moves
@@ -199,6 +202,88 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
          * account keys (slow), so it should be run off the JavaFX thread
          */
         void onPasswordEntered(String password, Consumer<String> resultHandler);
+    }
+
+    /**
+     * Show the first-run setup wizard within the primary application window. The same window is
+     * reused for the rest of the application startup once the wizard completes.
+     *
+     * @param onComplete called with the user's choices when they have finished all steps
+     * @param onQuit     called if the user chooses to quit instead of completing the setup
+     */
+    public void showStartupWizard(Consumer<StartupWizard.Result> onComplete, Runnable onQuit) {
+        startupShell = getOrCreateShell();
+        startupShell.setCompactBranding(true);
+
+        // the mode step decides whether the optional setup steps after it are on the path
+        StartupWizardModeStep modeStep = new StartupWizardModeStep();
+        StartupWizardWalletStep walletStep = new StartupWizardWalletStep(modeStep::isQuickStart, () -> injector.getInstance(XmrWalletService.class));
+        StartupWizardNodeStep nodeStep = new StartupWizardNodeStep(modeStep::isQuickStart, injector.getInstance(Config.class));
+        StartupWizardPasswordStep passwordStep = new StartupWizardPasswordStep(injector.getInstance(Config.class).passwordRequired, modeStep::isQuickStart);
+        StartupWizardCurrencyStep currencyStep = new StartupWizardCurrencyStep(modeStep::isQuickStart);
+        List<StartupWizard.Step> steps = createTacSteps();
+        steps.add(modeStep);
+        steps.add(walletStep);
+        steps.add(nodeStep);
+        steps.add(passwordStep);
+        steps.add(currencyStep);
+        StartupWizard wizard = new StartupWizard(steps,
+                () -> onComplete.accept(new StartupWizard.Result(walletStep.getSeed(), walletStep.getRestoreHeight(),
+                        walletStep.getRestoreDate(), passwordStep.getPassword(), currencyStep.getSelectedCurrency(),
+                        nodeStep.getCustomNodes(), nodeStep.getUseTorForXmr())),
+                onQuit);
+        modeStep.setOnSelectionChanged(wizard::refreshNavigation);
+        passwordStep.setOnStateChanged(wizard::refreshNavigation);
+        startupShell.setContent(wizard.getRoot());
+        showStartupWindow();
+    }
+
+    private List<StartupWizard.Step> createTacSteps() {
+        List<StartupWizard.Step> steps = new ArrayList<>();
+        TacContent tacContent = new TacContent(StartupWizard.PAGE_WIDTH);
+        steps.add(new StartupWizard.Step() {
+            @Override
+            public Region getContent() {
+                return tacContent.createRiskPage();
+            }
+
+            @Override
+            public void validate(Consumer<Boolean> resultHandler) {
+                resultHandler.accept(true);
+            }
+
+            @Override
+            public String getNextButtonText() {
+                return Res.get("tacWindow.risk.next");
+            }
+
+            @Override
+            public String getQuitButtonText() {
+                return Res.get("tacWindow.disagree");
+            }
+        });
+        steps.add(new StartupWizard.Step() {
+            @Override
+            public Region getContent() {
+                return tacContent.createLegalPage();
+            }
+
+            @Override
+            public void validate(Consumer<Boolean> resultHandler) {
+                resultHandler.accept(true);
+            }
+
+            @Override
+            public String getNextButtonText() {
+                return Res.get("tacWindow.agree");
+            }
+
+            @Override
+            public String getQuitButtonText() {
+                return Res.get("tacWindow.disagree");
+            }
+        });
+        return steps;
     }
 
     @Override
