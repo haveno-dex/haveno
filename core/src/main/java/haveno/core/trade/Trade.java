@@ -2274,7 +2274,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         List<String> txHashes = new ArrayList<>();
         if (getMaker().getDepositTxHash() != null) txHashes.add(getMaker().getDepositTxHash());
         if (getTaker().getDepositTxHash() != null) txHashes.add(getTaker().getDepositTxHash());
-        return !txHashes.isEmpty() && !xmrWalletService.getMonerod().getTxs(txHashes, true).isEmpty();
+        return !txHashes.isEmpty() && !xmrConnectionService.getTxs(txHashes).isEmpty();
     }
 
     private void restoreDepositsPublishedTrade() {
