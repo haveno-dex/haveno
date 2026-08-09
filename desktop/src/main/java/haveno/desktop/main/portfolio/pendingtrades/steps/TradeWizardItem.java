@@ -19,61 +19,84 @@ package haveno.desktop.main.portfolio.pendingtrades.steps;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
+import haveno.desktop.util.FormBuilder;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
-import org.jetbrains.annotations.NotNull;
 
-import static haveno.desktop.util.FormBuilder.getBigIcon;
+// one step of the horizontal trade timeline: numbered circle plus title, check mark when completed
+public class TradeWizardItem extends HBox {
 
-public class TradeWizardItem extends Label {
-    private final String iconLabel;
+    public enum State {
+        DISABLED,
+        ACTIVE,
+        COMPLETED
+    }
+
+    private final Class<? extends TradeStepView> viewClass;
+    private final ObjectProperty<State> state = new SimpleObjectProperty<>(State.DISABLED);
+    private final StackPane circle;
+    private final Label numberLabel;
+    private final Label titleLabel;
+
+    public TradeWizardItem(Class<? extends TradeStepView> viewClass, String title, String iconLabel) {
+        this.viewClass = viewClass;
+
+        numberLabel = new Label(iconLabel);
+        numberLabel.getStyleClass().add("trade-step-number");
+        circle = new StackPane(numberLabel);
+        circle.getStyleClass().add("trade-step-circle");
+
+        titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("trade-step-title");
+        titleLabel.setWrapText(true);
+        titleLabel.setMaxWidth(170);
+
+        getStyleClass().add("trade-step-item");
+        setAlignment(Pos.CENTER_LEFT);
+        setSpacing(10);
+        setMouseTransparent(true);
+        getChildren().addAll(circle, titleLabel);
+    }
 
     public Class<? extends TradeStepView> getViewClass() {
         return viewClass;
     }
 
-    private final Class<? extends TradeStepView> viewClass;
-
-    public TradeWizardItem(Class<? extends TradeStepView> viewClass, String title, String iconLabel) {
-        this.viewClass = viewClass;
-        this.iconLabel = iconLabel;
-
-        setMouseTransparent(true);
-        setText(title);
-//        setPrefHeight(40);
-        setPrefWidth(360);
-        setAlignment(Pos.CENTER_LEFT);
-        setDisabled();
+    public ReadOnlyObjectProperty<State> stateProperty() {
+        return state;
     }
 
     public void setDisabled() {
-        setId("trade-wizard-item-background-disabled");
-        UserThread.execute(() -> setGraphic(getStackPane("trade-step-disabled-bg")));
+        UserThread.execute(() -> applyState(State.DISABLED));
     }
 
-
     public void setActive() {
-        setId("trade-wizard-item-background-active");
-        UserThread.execute(() -> setGraphic(getStackPane("trade-step-active-bg")));
+        UserThread.execute(() -> applyState(State.ACTIVE));
     }
 
     public void setCompleted() {
-        setId("trade-wizard-item-background-active");
-        final Text icon = getBigIcon(MaterialDesignIcon.CHECK_CIRCLE);
-        icon.getStyleClass().add("trade-step-active-bg");
-        UserThread.execute(() -> setGraphic(icon));
+        UserThread.execute(() -> applyState(State.COMPLETED));
     }
 
-    @NotNull
-    private StackPane getStackPane(String styleClass) {
-        StackPane stackPane = new StackPane();
-        final Label label = new Label(iconLabel);
-        label.getStyleClass().add("trade-step-label");
-        final Text icon = getBigIcon(MaterialDesignIcon.CIRCLE);
-        icon.getStyleClass().add(styleClass);
-        stackPane.getChildren().addAll(icon, label);
-        return stackPane;
+    private void applyState(State newState) {
+        getStyleClass().removeAll("active", "completed");
+        if (newState == State.ACTIVE) {
+            getStyleClass().add("active");
+            circle.getChildren().setAll(numberLabel);
+        } else if (newState == State.COMPLETED) {
+            getStyleClass().add("completed");
+            Text checkIcon = FormBuilder.getIcon(MaterialDesignIcon.CHECK, "1em");
+            checkIcon.getStyleClass().add("trade-step-check");
+            circle.getChildren().setAll(checkIcon);
+        } else {
+            circle.getChildren().setAll(numberLabel);
+        }
+        state.set(newState);
     }
 }

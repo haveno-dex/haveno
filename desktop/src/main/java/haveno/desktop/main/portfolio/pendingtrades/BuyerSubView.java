@@ -54,13 +54,7 @@ public class BuyerSubView extends TradeSubView {
         step3 = new TradeWizardItem(BuyerStep3View.class, Res.get("portfolio.pending.step3_buyer.waitPaymentArrived"), "3");
         step4 = new TradeWizardItem(BuyerStep4View.class, Res.get("portfolio.pending.step5.completed"), "4");
 
-        addWizardsToGridPane(step1);
-        addLineSeparatorToGridPane();
-        addWizardsToGridPane(step2);
-        addLineSeparatorToGridPane();
-        addWizardsToGridPane(step3);
-        addLineSeparatorToGridPane();
-        addWizardsToGridPane(step4);
+        addWizardItems(step1, step2, step3, step4);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

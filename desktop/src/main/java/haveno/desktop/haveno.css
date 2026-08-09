@@ -2859,26 +2859,163 @@ textfield */
     -fx-background-radius: 3px, 3px, 2px, 1px;
 }
 
-/* Pending trades */
-#trade-wizard-item-background-disabled {
+/* Pending trades — hero summary card, horizontal step timeline and support band */
+.trade-hero-card,
+.trade-support-band {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 14, 0, 0, 3);
+}
+
+.trade-hero-card {
+    -fx-padding: 18 22 18 22;
+}
+
+.trade-support-band {
+    -fx-padding: 14 22 14 22;
+}
+
+.trade-hero-amount {
+    -fx-font-size: 1.769em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+
+.trade-hero-fiat {
+    -fx-font-size: 1em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.trade-hero-chip {
+    -fx-background-color: -bs-combo-popup-hover;
+    -fx-background-radius: 999;
+    -fx-padding: 4 12 4 12;
+    -fx-font-size: 0.85em;
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.trade-hero-chat-button {
+    -fx-background-color: linear-gradient(to bottom right, -hero-accent-strong, -hero-accent-faint);
+    -fx-background-radius: 22;
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    -fx-min-height: 44;
+    -fx-pref-height: 44;
+    -fx-max-height: 44;
+    -fx-cursor: hand;
+}
+
+.trade-hero-chat-button:hover {
+    -fx-background-color: -hero-accent-strong;
+}
+
+.trade-hero-chat-icon {
+    -fx-fill: -hero-accent;
+}
+
+.trade-hero-remaining-title {
+    -fx-font-size: 0.85em;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.trade-hero-remaining-value {
+    -fx-font-size: 0.9em;
+    -fx-text-fill: -bs-text-color;
+}
+
+.trade-hero-remaining-value.error-text {
+    -fx-text-fill: -bs-rd-error-red;
+}
+
+/* slim rounded countdown bar; thickness comes from the bar/track padding */
+.trade-hero-progress > .track {
+    -fx-background-color: -bs-progress-bar-track;
+    -fx-background-radius: 999;
+    -fx-background-insets: 0;
+    -fx-padding: 3;
+}
+
+.trade-hero-progress > .bar {
+    -fx-background-color: -bs-color-primary;
+    -fx-background-radius: 999;
+    -fx-background-insets: 0;
+    -fx-padding: 3;
+}
+
+.trade-hero-progress.error > .bar {
+    -fx-background-color: -bs-rd-error-red;
+}
+
+.trade-step-item {
+    -fx-background-radius: 999;
+    -fx-padding: 5 14 5 6;
+}
+
+.trade-step-item.active {
+    -fx-background-color: -hero-accent-faint;
+}
+
+.trade-step-circle {
+    -fx-background-color: -bs-color-gray-ccc;
+    -fx-background-radius: 999;
+    -fx-min-width: 26;
+    -fx-pref-width: 26;
+    -fx-max-width: 26;
+    -fx-min-height: 26;
+    -fx-pref-height: 26;
+    -fx-max-height: 26;
+}
+
+.trade-step-item.active .trade-step-circle,
+.trade-step-item.completed .trade-step-circle {
+    -fx-background-color: -bs-color-primary-dark;
+}
+
+.trade-step-number {
+    -fx-font-size: 0.85em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: white;
+}
+
+.trade-step-check {
+    -fx-fill: white;
+}
+
+.trade-step-title {
+    -fx-font-size: 0.9em;
     -fx-text-fill: -bs-rd-font-light;
 }
 
-#trade-wizard-item-background-active {
-    -fx-text-fill: -bs-text-color;
+.trade-step-item.active .trade-step-title {
     -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
 }
 
-.trade-step-label {
-    -fx-text-fill: -bs-background-color;
+.trade-step-item.completed .trade-step-title {
+    -fx-text-fill: -bs-text-color;
 }
 
-.trade-step-disabled-bg {
-    -fx-fill: -bs-color-gray-ccc;
+.trade-step-connector {
+    -fx-background-color: -bs-rd-separator;
+    -fx-background-radius: 999;
+    -fx-min-width: 12;
+    -fx-min-height: 2;
+    -fx-pref-height: 2;
+    -fx-max-height: 2;
 }
 
-.trade-step-active-bg {
-    -fx-fill: -bs-color-primary-dark;
+.trade-step-connector.completed {
+    -fx-background-color: -bs-color-primary-dark;
+}
+
+.trade-support-title {
+    -fx-font-size: 1em;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
 }
 
 .trade-msg-state-undefined {
