@@ -44,6 +44,9 @@ public abstract class XmrWalletBase {
     private static final long SAVE_MAX_SYNC_TIME_FRACTION = 10; // save at most 1/10 of the time spent syncing
     private static final long SAVE_PROGRESS_NATIVE_INTERVAL_MS = 30000; // native saves complete at sync chunk boundaries, so use a fixed interval
     private static final long SUSTAINED_DISCONNECTION_MS = 120000; // request connection switch after this long disconnected from daemon
+    private static final int WALLET_RESTART_NUM_DISCONNECTIONS = 10; // restart wallet after this many disconnections within the window
+    private static final long WALLET_RESTART_DISCONNECTION_WINDOW_MS = 1200000; // window for counting disconnections towards a restart
+    private static final long WALLET_RESTART_BACKOFF_MS = 900000; // minimum time between disconnection restarts
 
     // inherited
     protected MoneroWallet wallet;
@@ -63,6 +66,9 @@ public abstract class XmrWalletBase {
     protected long syncFromHeight;
     private Long lastReportedHeight;
     private Long firstDisconnectionTimestamp;
+    private Long disconnectionWindowTimestamp;
+    private int numWindowDisconnections;
+    private Long lastWalletRestartTimestamp;
     protected TaskLooper syncProgressLooper;
     protected CountDownLatch syncProgressLatch;
     protected Exception syncProgressError;
@@ -340,6 +346,21 @@ public abstract class XmrWalletBase {
 
     protected void resetDisconnectionTracking() {
         firstDisconnectionTimestamp = null;
+    }
+
+    // records a disconnection and returns whether the wallet should restart to replace its native client, which can become stuck while connections are otherwise healthy
+    protected boolean shouldRestartFromDisconnections() {
+        long now = System.currentTimeMillis();
+        if (disconnectionWindowTimestamp == null || now - disconnectionWindowTimestamp > WALLET_RESTART_DISCONNECTION_WINDOW_MS) {
+            disconnectionWindowTimestamp = now;
+            numWindowDisconnections = 0;
+        }
+        numWindowDisconnections++;
+        if (numWindowDisconnections < WALLET_RESTART_NUM_DISCONNECTIONS) return false;
+        if (lastWalletRestartTimestamp != null && now - lastWalletRestartTimestamp < WALLET_RESTART_BACKOFF_MS) return false;
+        lastWalletRestartTimestamp = now;
+        disconnectionWindowTimestamp = null;
+        return true;
     }
 
     // height syncing effectively begins from, used to floor reported progress; 0 for no floor

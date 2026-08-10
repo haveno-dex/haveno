@@ -3469,8 +3469,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 }
             }
 
-            // skip redundant error handling with update wallet
-            if (!exceptionFromUpdateWallet) {
+            // restart wallet on frequent disconnections despite healthy connection, which indicates a stuck native client that switching connections cannot fix
+            boolean restartWallet = !offlinePoll && HavenoUtils.isNotConnectedToDaemon(e) && Boolean.TRUE.equals(xmrConnectionService.isConnected()) && shouldRestartFromDisconnections();
+            if (restartWallet) {
+                log.warn("Restarting wallet for {} {} after frequent disconnections while connected to daemon", getClass().getSimpleName(), getShortId());
+                handleWalletError(e, true, false, sourceConnection, false, true);
+            } else if (!exceptionFromUpdateWallet) { // skip redundant error handling with update wallet
 
                 // request connection switch on failure until synced and polled, or on sustained disconnection
                 boolean requestConnectionSwitch = !offlinePoll && !HavenoUtils.isIllegal(e) && xmrConnectionService.isConnected() && (!wasWalletSyncedAndPolledProperty.get() || isSustainedDisconnection(e));
@@ -3745,11 +3749,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     private void handleWalletError(Throwable t, boolean restartPolling, boolean pollImmediately, MoneroRpcConnection sourceConnection, boolean requestConnectionSwitch) {
+        handleWalletError(t, restartPolling, pollImmediately, sourceConnection, requestConnectionSwitch, false);
+    }
+
+    private void handleWalletError(Throwable t, boolean restartPolling, boolean pollImmediately, MoneroRpcConnection sourceConnection, boolean requestConnectionSwitch, boolean restartWallet) {
         synchronized (walletLock) {
             boolean doRestartPolling = restartPolling && isPolling();
             if (doRestartPolling) stopPolling();
             try {
-                if (HavenoUtils.isUnresponsive(t)) forceCloseWallet(false); // wallet can be stuck a while
+                if (HavenoUtils.isUnresponsive(t) || restartWallet) forceCloseWallet(false); // wallet can be stuck a while
                 if (requestConnectionSwitch) requestConnectionSwitchSynchronous(sourceConnection);
                 getWallet(); // re-open wallet if necessary
             } finally {
