@@ -785,7 +785,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     }
 
     public ObservableList<PriceFeedComboBoxItem> getPriceFeedComboBoxItems() {
-        return marketPricePresentation.getPriceFeedComboBoxItems();
+        return marketPricePresentation.getAvailablePriceFeedComboBoxItems();
     }
 
     // We keep accountPresentation support even it is not used atm. But if we add a new feature and

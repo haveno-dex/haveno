@@ -39,4 +39,10 @@ public class PriceFeedComboBoxItem {
     public void setDisplayString(String displayString) {
         this.displayStringProperty.set(displayString);
     }
+
+    // combo button renders the value via toString when it is not in the items list
+    @Override
+    public String toString() {
+        return displayStringProperty.get();
+    }
 }

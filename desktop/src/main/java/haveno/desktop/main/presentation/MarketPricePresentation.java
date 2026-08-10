@@ -56,6 +56,8 @@ public class MarketPricePresentation {
     private final PriceFeedService priceFeedService;
     @Getter
     private final ObservableList<PriceFeedComboBoxItem> priceFeedComboBoxItems = FXCollections.observableArrayList();
+    @Getter // items with a known price, shown in the selector
+    private final ObservableList<PriceFeedComboBoxItem> availablePriceFeedComboBoxItems = FXCollections.observableArrayList();
     @SuppressWarnings("FieldCanBeLocal")
     private MonadicBinding<String> marketPriceBinding;
     @SuppressWarnings({"FieldCanBeLocal", "unused"})
@@ -210,6 +212,12 @@ public class MarketPricePresentation {
                 marketPriceUpdated.set(marketPriceUpdated.get() + 1);
             }
         });
+
+        // hide currencies without a price from the selector
+        List<PriceFeedComboBoxItem> availableItems = priceFeedComboBoxItems.stream()
+                .filter(PriceFeedComboBoxItem::isPriceAvailable)
+                .collect(Collectors.toList());
+        if (!availableItems.equals(availablePriceFeedComboBoxItems)) availablePriceFeedComboBoxItems.setAll(availableItems);
     }
 
     public ObjectProperty<PriceFeedComboBoxItem> getSelectedPriceFeedComboBoxItemProperty() {
