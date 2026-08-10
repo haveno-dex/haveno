@@ -889,6 +889,7 @@ message PaymentAccountPayload {
         CashAtAtmAccountPayload cash_at_atm_account_payload = 40;
         PayPalAccountPayload paypal_account_payload = 41;
         PaysafeAccountPayload paysafe_account_payload = 42;
+        TwintAccountPayload twint_account_payload = 43;
     }
 }
 
@@ -1285,6 +1286,11 @@ message BlikAccountPayload {
 }
 
 message VippsMobilePayAccountPayload {
+    string mobile_nr = 1;
+    string holder_name = 2;
+}
+
+message TwintAccountPayload {
     string mobile_nr = 1;
     string holder_name = 2;
 }
@@ -2025,6 +2031,7 @@ message PaymentAccountForm {
         CAPITUAL = 61;
         BLIK = 62;
         VIPPS_MOBILEPAY = 63;
+        TWINT = 64;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

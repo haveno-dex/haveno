@@ -217,7 +217,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         DOMESTIC_WIRE_TRANSFER,
         PAYPAL,
         BLIK,
-        VIPPS_MOBILEPAY
+        VIPPS_MOBILEPAY,
+        TWINT
     }
 
     @Getter

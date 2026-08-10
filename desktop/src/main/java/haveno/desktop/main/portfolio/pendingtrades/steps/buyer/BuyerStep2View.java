@@ -100,6 +100,7 @@ import haveno.desktop.components.paymentmethods.SwishForm;
 import haveno.desktop.components.paymentmethods.TikkieForm;
 import haveno.desktop.components.paymentmethods.TransferwiseForm;
 import haveno.desktop.components.paymentmethods.TransferwiseUsdForm;
+import haveno.desktop.components.paymentmethods.TwintForm;
 import haveno.desktop.components.paymentmethods.USPostalMoneyOrderForm;
 import haveno.desktop.components.paymentmethods.UpholdForm;
 import haveno.desktop.components.paymentmethods.UpiForm;
@@ -470,6 +471,9 @@ public class BuyerStep2View extends TradeStepView {
                 break;
             case PaymentMethod.VIPPS_MOBILEPAY_ID:
                 paymentAccountGridRow = VippsMobilePayForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.TWINT_ID:
+                paymentAccountGridRow = TwintForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
                 break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);
