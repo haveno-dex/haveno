@@ -218,7 +218,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         PAYPAL,
         BLIK,
         VIPPS_MOBILEPAY,
-        TWINT
+        TWINT,
+        NIP
     }
 
     @Getter

@@ -75,6 +75,12 @@ public final class AccountNrValidator extends BankValidator {
                     return super.validate(input);
                 else
                     return new ValidationResult(false, Res.get("validation.accountNrFormat", "005-231289-112"));
+            case "NG":
+                length = 10;
+                if (isNumberWithFixedLength(input, length))
+                    return super.validate(input);
+                else
+                    return new ValidationResult(false, Res.get("validation.accountNr", length));
             case "NO":
                 if (input != null) {
                     length = 11;

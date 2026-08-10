@@ -99,6 +99,7 @@ import haveno.desktop.components.paymentmethods.JapanBankTransferForm;
 import haveno.desktop.components.paymentmethods.MoneseForm;
 import haveno.desktop.components.paymentmethods.MoneyBeamForm;
 import haveno.desktop.components.paymentmethods.MoneyGramForm;
+import haveno.desktop.components.paymentmethods.NipForm;
 import haveno.desktop.components.paymentmethods.GcashForm;
 import haveno.desktop.components.paymentmethods.MercadoPagoForm;
 import haveno.desktop.components.paymentmethods.MomoForm;
@@ -718,6 +719,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new VippsMobilePayForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.TWINT_ID:
                 return new TwintForm(paymentAccount, accountAgeWitnessService, twintValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.NIP_ID:
+                return new NipForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

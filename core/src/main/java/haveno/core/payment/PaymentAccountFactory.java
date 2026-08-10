@@ -158,6 +158,8 @@ public class PaymentAccountFactory {
                 return new VippsMobilePayAccount();
             case PaymentMethod.TWINT_ID:
                 return new TwintAccount();
+            case PaymentMethod.NIP_ID:
+                return new NipAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

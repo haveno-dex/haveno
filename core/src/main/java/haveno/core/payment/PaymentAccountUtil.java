@@ -102,6 +102,7 @@ import static haveno.core.payment.payload.PaymentMethod.hasChargebackRisk;
 import static haveno.core.payment.payload.PaymentMethod.BLIK_ID;
 import static haveno.core.payment.payload.PaymentMethod.VIPPS_MOBILEPAY_ID;
 import static haveno.core.payment.payload.PaymentMethod.TWINT_ID;
+import static haveno.core.payment.payload.PaymentMethod.NIP_ID;
 
 @Slf4j
 public class PaymentAccountUtil {
@@ -297,6 +298,8 @@ public class PaymentAccountUtil {
                 return VippsMobilePayAccount.SUPPORTED_CURRENCIES;
             case TWINT_ID:
                 return TwintAccount.SUPPORTED_CURRENCIES;
+            case NIP_ID:
+                return NipAccount.SUPPORTED_CURRENCIES;
             default:
                 return Collections.emptyList();
         }
