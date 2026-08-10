@@ -154,7 +154,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     final BooleanProperty showPayFundsScreenDisplayed = new SimpleBooleanProperty();
     private final BooleanProperty showTransactionPublishedScreen = new SimpleBooleanProperty();
     final BooleanProperty isWaitingForFunds = new SimpleBooleanProperty();
-    final BooleanProperty isMinSecurityDeposit = new SimpleBooleanProperty();
+    public final BooleanProperty isMinSecurityDeposit = new SimpleBooleanProperty();
 
     final ObjectProperty<InputValidator.ValidationResult> amountValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> minAmountValidationResult = new SimpleObjectProperty<>();
@@ -246,6 +246,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         addBindings();
         addListeners();
+
+        updateSecurityDeposit();
 
         updateButtonDisableState();
 
@@ -418,7 +420,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         securityDepositStringListener = (ov, oldValue, newValue) -> {
             if (!ignoreSecurityDepositStringListener) {
-                if (securityDepositValidator.validate(newValue).isValid) {
+                InputValidator.ValidationResult result = securityDepositValidator.validate(newValue);
+                if (!isMinSecurityDeposit.get())
+                    securityDepositValidationResult.set(result);
+                if (result.isValid) {
                     setSecurityDepositToModel();
                     dataModel.calculateTotalToPay();
                 }
@@ -1296,16 +1301,29 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     private void updateSecurityDeposit() {
-        isMinSecurityDeposit.set(dataModel.isMinSecurityDeposit());
+        String amountText = amount.get();
+        BigInteger amountValue = amountText == null || !amountText.isEmpty()
+                ? dataModel.getAmount().get()
+                : null;
+        BigInteger minDeposit = Restrictions.getMinSecurityDeposit();
+        double floorAsPercent = amountValue != null && amountValue.signum() > 0
+                ? CoinUtil.getAsPercentPerXmr(minDeposit, amountValue)
+                : Double.MAX_VALUE;
+        boolean percentIrrelevant = floorAsPercent > Restrictions.getMaxSecurityDepositPct();
+        isMinSecurityDeposit.set(percentIrrelevant);
         securityDepositLabel.set(getSecurityDepositLabel());
-        if (dataModel.isMinSecurityDeposit()) {
-            securityDeposit.set(HavenoUtils.formatXmr(Restrictions.getMinSecurityDeposit()));
+        if (percentIrrelevant) {
+            securityDeposit.set(HavenoUtils.formatXmr(minDeposit));
             securityDepositValidationResult.set(new ValidationResult(true));
         } else {
+            securityDepositValidator.setMinSecurityDepositAsPercent(
+                    Math.max(Restrictions.getMinSecurityDepositPct(), floorAsPercent));
             boolean hasBuyerAsTakerWithoutDeposit = dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer();
             securityDeposit.set(FormattingUtils.formatToPercent(hasBuyerAsTakerWithoutDeposit ?
                     Restrictions.getDefaultSecurityDepositPct() : // use default percent if no deposit from buyer
                     dataModel.getSecurityDepositPct().get()));
+            securityDepositValidationResult.set(
+                    securityDepositValidator.validate(securityDeposit.get()));
         }
     }
 
@@ -1326,8 +1344,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             inputDataValid = inputDataValid && triggerPriceValidationResult.get().isValid;
         }
 
-        // validating the percentage deposit value only makes sense if it is actually used
-        if (!dataModel.isMinSecurityDeposit()) {
+        // validate the deposit only while the percent field is editable
+        if (!isMinSecurityDeposit.get()) {
             inputDataValid = inputDataValid && securityDepositValidator.validate(securityDeposit.get()).isValid;
         }
 

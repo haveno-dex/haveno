@@ -54,7 +54,9 @@ import java.util.UUID;
 
 import static haveno.desktop.maker.PreferenceMakers.empty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -221,5 +223,25 @@ public class CreateOfferViewModelTest {
         assertEquals("0.00", model.marketPriceMargin.get());
         assertEquals("126.84045000", model.volume.get());
         assertEquals("12684.04500000", model.price.get());
+    }
+
+    @Test
+    public void testClearedAmountLocksSecurityDepositAtMin() {
+        assertTrue(model.isMinSecurityDeposit.get());
+
+        model.amount.set("1");
+        assertFalse(model.isMinSecurityDeposit.get());
+
+        model.amount.set("");
+        assertTrue(model.isMinSecurityDeposit.get());
+    }
+
+    @Test
+    public void testSecurityDepositLocksOnlyWhenPercentIsIrrelevant() {
+        model.amount.set("0.1");
+        assertTrue(model.isMinSecurityDeposit.get());
+
+        model.amount.set("1");
+        assertFalse(model.isMinSecurityDeposit.get());
     }
 }

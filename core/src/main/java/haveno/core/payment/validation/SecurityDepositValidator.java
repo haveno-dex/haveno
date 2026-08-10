@@ -28,6 +28,7 @@ import haveno.core.xmr.wallet.Restrictions;
 public class SecurityDepositValidator extends NumberValidator {
 
     private PaymentAccount paymentAccount;
+    private double minSecurityDepositAsPercent = Restrictions.getMinSecurityDepositPct();
 
     @Inject
     public SecurityDepositValidator() {
@@ -35,6 +36,10 @@ public class SecurityDepositValidator extends NumberValidator {
 
     public void setPaymentAccount(PaymentAccount paymentAccount) {
         this.paymentAccount = paymentAccount;
+    }
+
+    public void setMinSecurityDepositAsPercent(double minSecurityDepositAsPercent) {
+        this.minSecurityDepositAsPercent = minSecurityDepositAsPercent;
     }
 
     @Override
@@ -59,7 +64,7 @@ public class SecurityDepositValidator extends NumberValidator {
     private ValidationResult validateIfNotTooLowPercentageValue(String input) {
         try {
             double percentage = ParsingUtils.parsePercentStringToDouble(input);
-            double minPercentage = Restrictions.getMinSecurityDepositPct();
+            double minPercentage = minSecurityDepositAsPercent;
             if (percentage < minPercentage)
                 return new ValidationResult(false,
                         Res.get("validation.inputTooSmall", FormattingUtils.formatToPercentWithSymbol(minPercentage)));

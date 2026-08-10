@@ -949,6 +949,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         model.getDataModel().missingCoin.addListener(missingCoinListener);
         model.securityDepositInXMR.addListener(securityDepositInXMRListener);
         model.isMinSecurityDeposit.addListener(isMinSecurityDepositListener);
+        updateSecurityDepositLabels();
         model.getDataModel().isPrivateOffer.addListener(isPrivateOfferListener);
         model.getDataModel().buyerAsTakerWithoutDeposit.addListener(buyerAsTakerWithoutDepositListener);
         model.getDataModel().extraInfo.addListener(extraInfoListener);
