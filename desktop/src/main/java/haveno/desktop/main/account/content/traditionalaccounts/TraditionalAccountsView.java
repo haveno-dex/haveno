@@ -65,6 +65,7 @@ import haveno.core.payment.validation.PopmoneyValidator;
 import haveno.core.payment.validation.PromptPayValidator;
 import haveno.core.payment.validation.RevolutValidator;
 import haveno.core.payment.validation.SwishValidator;
+import haveno.core.payment.validation.TwintValidator;
 import haveno.core.payment.validation.TransferwiseValidator;
 import haveno.core.payment.validation.USPostalMoneyOrderValidator;
 import haveno.core.payment.validation.UpholdValidator;
@@ -130,6 +131,7 @@ import haveno.desktop.components.paymentmethods.SwishForm;
 import haveno.desktop.components.paymentmethods.TikkieForm;
 import haveno.desktop.components.paymentmethods.TransferwiseForm;
 import haveno.desktop.components.paymentmethods.TransferwiseUsdForm;
+import haveno.desktop.components.paymentmethods.TwintForm;
 import haveno.desktop.components.paymentmethods.USPostalMoneyOrderForm;
 import haveno.desktop.components.paymentmethods.UpholdForm;
 import haveno.desktop.components.paymentmethods.UpiForm;
@@ -175,6 +177,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     private final AliPayValidator aliPayValidator;
     private final PerfectMoneyValidator perfectMoneyValidator;
     private final SwishValidator swishValidator;
+    private final TwintValidator twintValidator;
     private final EmailOrMobileNrValidator zelleValidator;
     private final EmailOrMobileNrOrUsernameValidator paypalValidator;
     private final EmailOrMobileNrOrUsernameValidator venmoValidator;
@@ -209,6 +212,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                             AliPayValidator aliPayValidator,
                             PerfectMoneyValidator perfectMoneyValidator,
                             SwishValidator swishValidator,
+                            TwintValidator twintValidator,
                             EmailOrMobileNrValidator zelleValidator,
                             EmailOrMobileNrOrCashtagValidator cashAppValidator,
                             EmailOrMobileNrOrUsernameValidator emailMobileUsernameValidator,
@@ -239,6 +243,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         this.aliPayValidator = aliPayValidator;
         this.perfectMoneyValidator = perfectMoneyValidator;
         this.swishValidator = swishValidator;
+        this.twintValidator = twintValidator;
         this.zelleValidator = zelleValidator;
         this.paypalValidator = emailMobileUsernameValidator;
         this.venmoValidator = emailMobileUsernameValidator;
@@ -711,6 +716,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new BlikForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.VIPPS_MOBILEPAY_ID:
                 return new VippsMobilePayForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.TWINT_ID:
+                return new TwintForm(paymentAccount, accountAgeWitnessService, twintValidator, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

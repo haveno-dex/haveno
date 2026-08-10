@@ -81,6 +81,7 @@ import haveno.core.payment.payload.SwishAccountPayload;
 import haveno.core.payment.payload.TikkieAccountPayload;
 import haveno.core.payment.payload.TransferwiseAccountPayload;
 import haveno.core.payment.payload.TransferwiseUsdAccountPayload;
+import haveno.core.payment.payload.TwintAccountPayload;
 import haveno.core.payment.payload.USPostalMoneyOrderAccountPayload;
 import haveno.core.payment.payload.UpholdAccountPayload;
 import haveno.core.payment.payload.UpiAccountPayload;
@@ -263,6 +264,8 @@ public class CoreProtoResolver implements ProtoResolver {
                     return PayPalAccountPayload.fromProto(proto);
                 case PAYSAFE_ACCOUNT_PAYLOAD:
                     return PaysafeAccountPayload.fromProto(proto);
+                case TWINT_ACCOUNT_PAYLOAD:
+                    return TwintAccountPayload.fromProto(proto);
 
                 default:
                     throw new ProtobufferRuntimeException("Unknown proto message case(PB.PaymentAccountPayload). messageCase=" + messageCase);

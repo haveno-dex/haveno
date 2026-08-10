@@ -95,6 +95,7 @@ import haveno.core.payment.TikkieAccount;
 import haveno.core.payment.TradeLimits;
 import haveno.core.payment.TransferwiseAccount;
 import haveno.core.payment.TransferwiseUsdAccount;
+import haveno.core.payment.TwintAccount;
 import haveno.core.payment.USPostalMoneyOrderAccount;
 import haveno.core.payment.UpholdAccount;
 import haveno.core.payment.UpiAccount;
@@ -209,6 +210,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String PAYSAFE_ID = "PAYSAFE";
     public static final String BLIK_ID = "BLIK";
     public static final String VIPPS_MOBILEPAY_ID = "VIPPS_MOBILEPAY";
+    public static final String TWINT_ID = "TWINT";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -276,6 +278,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod PAYSAFE;
     public static PaymentMethod BLIK;
     public static PaymentMethod VIPPS_MOBILEPAY;
+    public static PaymentMethod TWINT;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
@@ -298,6 +301,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Norway, Denmark, Finland
             VIPPS_MOBILEPAY = new PaymentMethod(VIPPS_MOBILEPAY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VippsMobilePayAccount.SUPPORTED_CURRENCIES)),
+
+            // Switzerland
+            TWINT = new PaymentMethod(TWINT_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(TwintAccount.SUPPORTED_CURRENCIES)),
 
             // US
             ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
@@ -444,7 +450,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 PIX_ID,
                 WESTERN_UNION_ID,
                 BLIK_ID,
-                VIPPS_MOBILEPAY_ID);
+                VIPPS_MOBILEPAY_ID,
+                TWINT_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -671,7 +678,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.VENMO_ID) ||
                 id.equals(PaymentMethod.PAYSAFE_ID) ||
                 id.equals(PaymentMethod.BLIK_ID) ||
-                id.equals(PaymentMethod.VIPPS_MOBILEPAY_ID);
+                id.equals(PaymentMethod.VIPPS_MOBILEPAY_ID) ||
+                id.equals(PaymentMethod.TWINT_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {
