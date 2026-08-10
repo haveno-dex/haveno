@@ -62,6 +62,7 @@
     -bs-color-background-pane: rgb(15, 15, 15);
     -bs-color-background-row-even: rgb(19, 19, 19);
     -bs-color-background-row-odd: rgb(9, 9, 9);
+    -bs-color-background-row-hover: rgb(33, 33, 33);
     -bs-color-table-cell-dim: -bs-color-gray-ccc;
     -bs-text-color-dim1: rgb(87, 87, 87);
     -bs-text-color-dim2: rgb(130, 130, 130);
@@ -212,6 +213,10 @@
 .table-view .table-row-cell:odd .table-cell {
     -fx-background-color: -bs-color-background-row-odd;
     -fx-border-color: -bs-color-background-row-odd;
+}
+.table-view .table-row-cell:hover .table-cell {
+    -fx-background-color: -bs-color-background-row-hover;
+    -fx-border-color: -bs-color-background-row-hover;
 }
 .table-view .table-row-cell:selected .table-cell {
     -fx-background: -fx-accent;
