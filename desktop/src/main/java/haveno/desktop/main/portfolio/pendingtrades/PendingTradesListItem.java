@@ -93,4 +93,17 @@ public class PendingTradesListItem implements FilterableListItem {
         }
         return StringUtils.containsIgnoreCase(getPriceAsString(), filterString);
     }
+
+    // items are recreated on list updates, so identify by trade to keep table selection stable
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof PendingTradesListItem)) return false;
+        return trade.getId().equals(((PendingTradesListItem) obj).trade.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return trade.getId().hashCode();
+    }
 }

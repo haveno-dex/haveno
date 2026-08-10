@@ -101,6 +101,9 @@ import org.fxmisc.easybind.Subscription;
 
 @FxmlView
 public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTradesViewModel> {
+    private static final double TABLE_ROW_HEIGHT = 36;
+    private static final int MAX_VISIBLE_ROWS = 5;
+
     public interface ChatCallback {
         void onOpenChat(Trade trade);
     }
@@ -202,7 +205,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.openTrades"))));
-        tableView.setMinHeight(100);
+        tableView.setFixedCellSize(TABLE_ROW_HEIGHT);
 
         tradeIdColumn.setComparator(Comparator.comparing(o -> o.getTrade().getId()));
         dateColumn.setComparator(Comparator.comparing(o -> o.getTrade().getDate()));
@@ -290,9 +293,14 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         sortedList = new SortedList<>(filteredList);
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
-        tableView.setPrefHeight(100);
-        tableView.setMinHeight(getMinTableViewHeight());
-        tableView.setMaxHeight(200);
+
+        // fit the header plus whole rows up to a cap so rows are never partially clipped;
+        // 2px slack keeps the VirtualFlow from showing a scrollbar at an exact fit
+        tableView.prefHeightProperty().bind(Bindings.createDoubleBinding(
+                () -> getTableHeaderHeight() + TABLE_ROW_HEIGHT * Math.min(Math.max(sortedList.size(), 1), MAX_VISIBLE_ROWS) + 2,
+                sortedList, tableView.widthProperty()));
+        tableView.minHeightProperty().bind(tableView.prefHeightProperty());
+        tableView.maxHeightProperty().bind(tableView.prefHeightProperty());
 
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
         filterBox.setPromptText(Res.get("shared.filter"));
@@ -304,10 +312,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         if (scene != null) {
             scene.addEventHandler(KeyEvent.KEY_RELEASED, keyEventEventHandler);
         }
-
-        sortedList.addListener((ListChangeListener<PendingTradesListItem>) change -> {
-            tableView.setMinHeight(getMinTableViewHeight());
-        });
 
         selectedItemSubscription = EasyBind.subscribe(model.dataModel.selectedItemProperty, selectedItem -> {
             if (selectedItem != null) {
@@ -357,8 +361,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         model.getMempoolStatus().addListener(getMempoolStatusListener);
     }
 
-    private int getMinTableViewHeight() {
-        return sortedList.size() <= 1 ? 100 : 130;
+    // measured once the skin exists (width dependency triggers re-evaluation after first layout)
+    private double getTableHeaderHeight() {
+        Node header = tableView.lookup(".column-header-background");
+        return header == null ? TABLE_ROW_HEIGHT : header.prefHeight(-1);
     }
 
     @Override
