@@ -160,6 +160,8 @@ public class PaymentAccountFactory {
                 return new TwintAccount();
             case PaymentMethod.NIP_ID:
                 return new NipAccount();
+            case PaymentMethod.PAGO_MOVIL_ID:
+                return new PagoMovilAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

@@ -227,6 +227,8 @@ public class BankUtil {
                 return "Rol Único Tributario (RUT)";  // do not translate as it is used in Spanish only
             case "AR":
                 return "CUIL/CUIT"; // do not translate as it is used in Spanish only
+            case "VE":
+                return "Cédula de Identidad"; // do not translate as it is used in Spanish only
             default:
                 return Res.get("payment.personalId");
         }
@@ -240,6 +242,8 @@ public class BankUtil {
                 return "RUT";  // do not translate as it is used in spanish only
             case "AR":
                 return "CUIT";
+            case "VE":
+                return "Cédula";
             default:
                 return "ID";
         }

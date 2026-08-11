@@ -123,7 +123,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         BLIK,
         VIPPS_MOBILEPAY,
         TWINT,
-        NIP;
+        NIP,
+        PAGO_MOVIL;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
