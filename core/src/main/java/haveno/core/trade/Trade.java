@@ -3649,8 +3649,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // check if import is still needed // TODO: we once received a multisig hex which was too short, causing import to still be needed
                 if (wallet.isMultisigImportNeeded()) {
-                    String errorMessage = "Multisig import still needed for " + getClass().getSimpleName() + " " + getShortId() + " after already importing, multisigHexes=" + multisigHexes;
-                    log.warn(errorMessage);
+                    String errorMessage = "Multisig import still needed for " + getClass().getSimpleName() + " " + getShortId() + " after already importing";
+                    log.warn("{}, multisigHexes={}", errorMessage, multisigHexes); // log hexes once, excluded from thrown message
 
                     // remove shortest multisig hex if applicable
                     int maxLength = 0;
@@ -3660,7 +3660,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                         if (hex.length() > maxLength) maxLength = hex.length();
                     }
                     if (shortestMultisigHex.length() < maxLength) {
-                        log.warn("Removing multisig hex from " + getMultisigHexRole(shortestMultisigHex) + " for " + getClass().getSimpleName() + " " + getShortId() + " because it's the shortest, multisigHex=" + shortestMultisigHex);
+                        log.warn("Removing multisig hex from " + getMultisigHexRole(shortestMultisigHex) + " for " + getClass().getSimpleName() + " " + getShortId() + " because it's the shortest, length=" + shortestMultisigHex.length());
                         multisigHexes.remove(shortestMultisigHex);
                         doImportMultisigHex(logInfoLevel, multisigHexes, initialSyncTimeoutSec);
                     }
