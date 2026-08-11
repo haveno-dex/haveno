@@ -202,6 +202,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
     @Override
     public void initialize() {
         GUIUtil.applyTableStyle(tableView);
+        tableView.setFixedCellSize(32); // exact scroll positioning; estimated row heights jitter at the scroll extremes
         filterBox = new FilterBox();
         filterBox.initialize(filteredList, tableView);
         filterBox.setPromptText(Res.get("shared.filter"));
