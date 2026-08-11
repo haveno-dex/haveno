@@ -74,6 +74,7 @@ import haveno.core.payment.NationalBankAccount;
 import haveno.core.payment.NeftAccount;
 import haveno.core.payment.NequiAccount;
 import haveno.core.payment.NipAccount;
+import haveno.core.payment.PagoMovilAccount;
 import haveno.core.payment.PaxumAccount;
 import haveno.core.payment.PayseraAccount;
 import haveno.core.payment.PaytmAccount;
@@ -213,6 +214,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String VIPPS_MOBILEPAY_ID = "VIPPS_MOBILEPAY";
     public static final String TWINT_ID = "TWINT";
     public static final String NIP_ID = "NIP";
+    public static final String PAGO_MOVIL_ID = "PAGO_MOVIL";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -282,6 +284,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod VIPPS_MOBILEPAY;
     public static PaymentMethod TWINT;
     public static PaymentMethod NIP;
+    public static PaymentMethod PAGO_MOVIL;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
@@ -310,6 +313,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Nigeria
             NIP = new PaymentMethod(NIP_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(NipAccount.SUPPORTED_CURRENCIES)),
+
+            // Venezuela
+            PAGO_MOVIL = new PaymentMethod(PAGO_MOVIL_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PagoMovilAccount.SUPPORTED_CURRENCIES)),
 
             // US
             ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
@@ -458,7 +464,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 BLIK_ID,
                 VIPPS_MOBILEPAY_ID,
                 TWINT_ID,
-                NIP_ID);
+                NIP_ID,
+                PAGO_MOVIL_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -687,7 +694,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.BLIK_ID) ||
                 id.equals(PaymentMethod.VIPPS_MOBILEPAY_ID) ||
                 id.equals(PaymentMethod.TWINT_ID) ||
-                id.equals(PaymentMethod.NIP_ID);
+                id.equals(PaymentMethod.NIP_ID) ||
+                id.equals(PaymentMethod.PAGO_MOVIL_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {

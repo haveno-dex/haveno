@@ -58,6 +58,7 @@ import haveno.core.payment.payload.NationalBankAccountPayload;
 import haveno.core.payment.payload.NeftAccountPayload;
 import haveno.core.payment.payload.NequiAccountPayload;
 import haveno.core.payment.payload.NipAccountPayload;
+import haveno.core.payment.payload.PagoMovilAccountPayload;
 import haveno.core.payment.payload.OKPayAccountPayload;
 import haveno.core.payment.payload.PaxumAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -269,6 +270,8 @@ public class CoreProtoResolver implements ProtoResolver {
                     return TwintAccountPayload.fromProto(proto);
                 case NIP_ACCOUNT_PAYLOAD:
                     return NipAccountPayload.fromProto(proto);
+                case PAGO_MOVIL_ACCOUNT_PAYLOAD:
+                    return PagoMovilAccountPayload.fromProto(proto);
 
                 default:
                     throw new ProtobufferRuntimeException("Unknown proto message case(PB.PaymentAccountPayload). messageCase=" + messageCase);
