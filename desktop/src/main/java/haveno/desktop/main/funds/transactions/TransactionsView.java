@@ -40,7 +40,9 @@ import haveno.desktop.main.overlays.windows.TxDetailsWindow;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -239,10 +241,11 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void updateList() {
-        displayedTransactions.update();
-        UserThread.execute((() -> {
-            observableList.setAll(displayedTransactions);
-        }));
+        synchronized (displayedTransactions) { // wallet listeners update concurrently, so serialize and pass a snapshot to the UI thread
+            displayedTransactions.update();
+            List<TransactionsListItem> snapshot = new ArrayList<>(displayedTransactions);
+            UserThread.execute(() -> observableList.setAll(snapshot));
+        }
     }
 
     private void openTxInBlockExplorer(TransactionsListItem item) {
