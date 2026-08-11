@@ -782,7 +782,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
             // trigger recalculation of the volume
             UserThread.execute(() -> {
-                onFocusOutVolumeTextField(true, false);
+                triggerFocusOutOnVolumeTextField();
                 onFocusOutMinAmountTextField(true, false);
             });
 
@@ -910,7 +910,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
             // We want to trigger a recalculation of the volume and minAmount
             UserThread.execute(() -> {
-                onFocusOutVolumeTextField(true, false);
+                triggerFocusOutOnVolumeTextField();
                 triggerFocusOutOnAmountFields();
             });
         }
@@ -919,6 +919,12 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     public void triggerFocusOutOnAmountFields() {
         onFocusOutAmountTextField(true, false);
         onFocusOutMinAmountTextField(true, false);
+    }
+
+    // revalidate volume only if input was entered, so an untouched field is not flagged prematurely
+    private void triggerFocusOutOnVolumeTextField() {
+        if (volume.get() == null || volume.get().isEmpty()) return;
+        onFocusOutVolumeTextField(true, false);
     }
 
     public void onFocusOutPriceAsPercentageTextField(boolean oldValue, boolean newValue) {
@@ -933,7 +939,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         // We want to trigger a recalculation of the volume, as well as update trigger price validation
         UserThread.execute(() -> {
-            onFocusOutVolumeTextField(true, false);
+            triggerFocusOutOnVolumeTextField();
             onTriggerPriceTextFieldChanged();
         });
     }
