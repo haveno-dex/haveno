@@ -2505,16 +2505,17 @@ textfield */
     -jfx-rippler-fill: none;
 }
 
+/* closable tabs match regular tab height so their label sits on the shared baseline */
 .jfx-tab-pane .headers-region .tab:closable {
     -fx-border-color: transparent;
     -fx-border-width: 0;
     -fx-border-style: none;
     -fx-border-insets: 0;
-    -fx-padding: 9;
+    -fx-padding: 0 9 0 0;
 }
 
 .jfx-tab-pane .headers-region .tab:closable .tab-container .tab-label {
-    -fx-padding: 5;
+    -fx-padding: 9 5 9 14;
 }
 
 #form-header-text {

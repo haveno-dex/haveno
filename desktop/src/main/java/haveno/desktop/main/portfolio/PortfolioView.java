@@ -227,7 +227,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
                 if (editOfferView == null) {
                     editOfferView = (EditOfferView) view;
                     editOfferView.applyOpenOffer(openOffer);
-                    editOpenOfferTab = new Tab(Res.get("portfolio.tab.editOpenOffer").toUpperCase());
+                    editOpenOfferTab = new Tab(Res.get("portfolio.tab.editOpenOffer"));
                     editOfferView.setCloseHandler(() -> {
                         UserThread.execute(() -> root.getTabs().remove(editOpenOfferTab));
                     });
@@ -247,7 +247,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
                 view = viewLoader.load(viewClass);      // and load a fresh one
                 duplicateOfferView = (DuplicateOfferView) view;
                 duplicateOfferView.initWithData((OfferPayload) data);
-                duplicateOfferTab = new Tab(Res.get("portfolio.tab.duplicateOffer").toUpperCase());
+                duplicateOfferTab = new Tab(Res.get("portfolio.tab.duplicateOffer"));
                 duplicateOfferView.setCloseHandler(() -> {
                     UserThread.execute(() -> root.getTabs().remove(duplicateOfferTab));
                 });
@@ -269,7 +269,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
                 if (cloneOfferView == null) {
                     cloneOfferView = (CloneOfferView) view;
                     cloneOfferView.applyOpenOffer(openOffer);
-                    cloneOpenOfferTab = new Tab(Res.get("portfolio.tab.cloneOpenOffer").toUpperCase());
+                    cloneOpenOfferTab = new Tab(Res.get("portfolio.tab.cloneOpenOffer"));
                     cloneOfferView.setCloseHandler(() -> {
                         root.getTabs().remove(cloneOpenOfferTab);
                     });

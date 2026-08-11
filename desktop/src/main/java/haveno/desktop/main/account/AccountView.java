@@ -116,25 +116,25 @@ public class AccountView extends ActivatableView<TabPane, Void> {
         keyEventEventHandler = event -> {
             if (Utilities.isAltOrCtrlPressed(KeyCode.R, event) && arbitratorRegistrationTab == null) {
                 closeOtherExtraTabs(arbitratorRegistrationTab);
-                arbitratorRegistrationTab = new Tab(Res.get("account.tab.arbitratorRegistration").toUpperCase());
+                arbitratorRegistrationTab = new Tab(Res.get("account.tab.arbitratorRegistration"));
                 arbitratorRegistrationTab.setClosable(true);
                 root.getTabs().add(arbitratorRegistrationTab);
                 navigation.navigateTo(MainView.class, AccountView.class, ArbitratorRegistrationView.class);
             } else if (Utilities.isAltOrCtrlPressed(KeyCode.D, event) && mediatorRegistrationTab == null) {
                 closeOtherExtraTabs(mediatorRegistrationTab);
-                mediatorRegistrationTab = new Tab(Res.get("account.tab.mediatorRegistration").toUpperCase());
+                mediatorRegistrationTab = new Tab(Res.get("account.tab.mediatorRegistration"));
                 mediatorRegistrationTab.setClosable(true);
                 root.getTabs().add(mediatorRegistrationTab);
                 navigation.navigateTo(MainView.class, AccountView.class, MediatorRegistrationView.class);
             } else if (Utilities.isAltOrCtrlPressed(KeyCode.N, event) && refundAgentRegistrationTab == null) {
                 closeOtherExtraTabs(refundAgentRegistrationTab);
-                refundAgentRegistrationTab = new Tab(Res.get("account.tab.refundAgentRegistration").toUpperCase());
+                refundAgentRegistrationTab = new Tab(Res.get("account.tab.refundAgentRegistration"));
                 refundAgentRegistrationTab.setClosable(true);
                 root.getTabs().add(refundAgentRegistrationTab);
                 navigation.navigateTo(MainView.class, AccountView.class, RefundAgentRegistrationView.class);
             } else if (Utilities.isAltOrCtrlPressed(KeyCode.I, event) && signingTab == null) {
                 closeOtherExtraTabs(signingTab);
-                signingTab = new Tab(Res.get("account.tab.signing").toUpperCase());
+                signingTab = new Tab(Res.get("account.tab.signing"));
                 signingTab.setClosable(true);
                 root.getTabs().add(signingTab);
                 navigation.navigateTo(MainView.class, AccountView.class, SigningView.class);
