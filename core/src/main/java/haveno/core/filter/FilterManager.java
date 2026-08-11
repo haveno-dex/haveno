@@ -18,6 +18,7 @@
 package haveno.core.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.app.DevEnv;
@@ -454,12 +455,22 @@ public class FilterManager {
                                 Method method = paymentAccountPayload.getClass().getMethod(paymentAccountFilter.getGetMethodName());
                                 // We invoke getter methods (no args), e.g. getHolderName
                                 String valueFromInvoke = (String) method.invoke(paymentAccountPayload);
-                                return valueFromInvoke.equalsIgnoreCase(paymentAccountFilter.getValue());
+                                // compare without formatting characters so cosmetic variants (dashes, spaces, etc.) cannot evade a ban
+                                String bannedValue = normalizeBannedValue(paymentAccountFilter.getValue());
+                                return !bannedValue.isEmpty() && bannedValue.equalsIgnoreCase(normalizeBannedValue(valueFromInvoke));
                             } catch (Throwable e) {
                                 log.error(e.getMessage());
                                 return false;
                             }
                         });
+    }
+
+    @VisibleForTesting
+    static String normalizeBannedValue(String value) {
+        // strip all formatting from numeric identifiers (e.g. account and phone numbers), but only whitespace from
+        // others, since punctuation is significant in emails and usernames
+        String stripped = value.replaceAll("[^\\p{L}\\p{N}]", "");
+        return stripped.matches("\\p{N}+") ? stripped : value.replaceAll("\\s", "");
     }
 
     public boolean isWitnessSignerPubKeyBanned(String witnessSignerPubKeyAsHex) {
