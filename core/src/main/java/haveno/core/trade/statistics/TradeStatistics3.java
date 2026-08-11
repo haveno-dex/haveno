@@ -220,7 +220,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         VIPPS_MOBILEPAY,
         TWINT,
         NIP,
-        PAGO_MOVIL
+        PAGO_MOVIL,
+        QRIS
     }
 
     @Getter

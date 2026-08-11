@@ -70,6 +70,7 @@ import haveno.core.payment.payload.PerfectMoneyAccountPayload;
 import haveno.core.payment.payload.PixAccountPayload;
 import haveno.core.payment.payload.PopmoneyAccountPayload;
 import haveno.core.payment.payload.PromptPayAccountPayload;
+import haveno.core.payment.payload.QrisAccountPayload;
 import haveno.core.payment.payload.RevolutAccountPayload;
 import haveno.core.payment.payload.RtgsAccountPayload;
 import haveno.core.payment.payload.SameBankAccountPayload;
@@ -272,6 +273,8 @@ public class CoreProtoResolver implements ProtoResolver {
                     return NipAccountPayload.fromProto(proto);
                 case PAGO_MOVIL_ACCOUNT_PAYLOAD:
                     return PagoMovilAccountPayload.fromProto(proto);
+                case QRIS_ACCOUNT_PAYLOAD:
+                    return QrisAccountPayload.fromProto(proto);
 
                 default:
                     throw new ProtobufferRuntimeException("Unknown proto message case(PB.PaymentAccountPayload). messageCase=" + messageCase);

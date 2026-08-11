@@ -892,6 +892,7 @@ message PaymentAccountPayload {
         TwintAccountPayload twint_account_payload = 43;
         NipAccountPayload nip_account_payload = 44;
         PagoMovilAccountPayload pago_movil_account_payload = 45;
+        QrisAccountPayload qris_account_payload = 46;
     }
 }
 
@@ -1308,6 +1309,12 @@ message PagoMovilAccountPayload {
     string mobile_nr = 2;
     string holder_tax_id = 3;
     string bank_name = 4;
+}
+
+message QrisAccountPayload {
+    string holder_name = 1;
+    string account_nr = 2;
+    string bank_name = 3;
 }
 
 message PersistableEnvelope {
@@ -2049,6 +2056,7 @@ message PaymentAccountForm {
         TWINT = 64;
         NIP = 65;
         PAGO_MOVIL = 66;
+        QRIS = 67;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
