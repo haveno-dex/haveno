@@ -9,6 +9,7 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.trade.TradableList;
+import haveno.network.p2p.NetworkNotReadyException;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.peers.PeerManager;
 import org.junit.jupiter.api.AfterEach;
@@ -23,6 +24,7 @@ import static haveno.core.offer.OfferMaker.btcUsdOffer;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -182,6 +184,57 @@ public class OpenOfferManagerTest {
 
         manager.editOpenOfferStart(openOffer, resultHandler, null);
         assertTrue(startEditOfferSuccessful.get());
+    }
+
+    @Test
+    public void testStartEditOfferClearsEditStateOnSynchronousDeactivateException() {
+        P2PService p2PService = mock(P2PService.class);
+        OfferBookService offerBookService = mock(OfferBookService.class);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
+
+        when(p2PService.getPeerManager()).thenReturn(mock(PeerManager.class));
+
+        final OpenOfferManager manager = new OpenOfferManager(coreContext,
+                null,
+                null,
+                p2PService,
+                xmrConnectionService,
+                null,
+                null,
+                null,
+                offerBookService,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                persistenceManager,
+                signedOfferPersistenceManager,
+                null);
+
+        final OpenOffer openOffer = new OpenOffer(make(btcUsdOffer));
+        openOffer.setState(OpenOffer.State.AVAILABLE);
+
+        doThrow(new NetworkNotReadyException())
+                .when(offerBookService).deactivateOffer(any(OfferPayload.class), any(ResultHandler.class), any(ErrorMessageHandler.class));
+
+        AtomicBoolean firstEditErrorHandled = new AtomicBoolean(false);
+        manager.editOpenOfferStart(openOffer, () -> {
+        }, errorMessage -> firstEditErrorHandled.set(true));
+        assertTrue(firstEditErrorHandled.get());
+
+        doAnswer(invocation -> {
+            ((ResultHandler) invocation.getArgument(1)).handleResult();
+            return null;
+        }).when(offerBookService).deactivateOffer(any(OfferPayload.class), any(ResultHandler.class), any(ErrorMessageHandler.class));
+
+        AtomicBoolean secondEditSuccessful = new AtomicBoolean(false);
+        manager.editOpenOfferStart(openOffer, () -> secondEditSuccessful.set(true), null);
+        assertTrue(secondEditSuccessful.get());
+        verify(offerBookService, times(2)).deactivateOffer(any(OfferPayload.class), any(ResultHandler.class), any(ErrorMessageHandler.class));
     }
 
 }

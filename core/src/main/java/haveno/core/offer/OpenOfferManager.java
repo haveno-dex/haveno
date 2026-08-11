@@ -92,6 +92,7 @@ import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.DecryptedDirectMessageListener;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.NetworkNotReadyException;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
@@ -738,13 +739,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         offersToBeEdited.put(openOffer.getId(), openOffer);
 
         if (openOffer.isAvailable()) {
-            deactivateOpenOffer(openOffer,
-                    false,
-                    resultHandler,
-                    errorMessage -> {
-                        offersToBeEdited.remove(openOffer.getId());
-                        errorMessageHandler.handleErrorMessage(errorMessage);
-                    });
+            try {
+                deactivateOpenOffer(openOffer,
+                        false,
+                        resultHandler,
+                        errorMessage -> {
+                            offersToBeEdited.remove(openOffer.getId());
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                        });
+            } catch (NetworkNotReadyException e) {
+                offersToBeEdited.remove(openOffer.getId());
+                errorMessageHandler.handleErrorMessage(e.getMessage());
+            }
         } else {
             resultHandler.handleResult();
         }
