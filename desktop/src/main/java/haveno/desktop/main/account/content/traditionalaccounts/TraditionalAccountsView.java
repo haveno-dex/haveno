@@ -102,6 +102,7 @@ import haveno.desktop.components.paymentmethods.MoneyBeamForm;
 import haveno.desktop.components.paymentmethods.MoneyGramForm;
 import haveno.desktop.components.paymentmethods.NipForm;
 import haveno.desktop.components.paymentmethods.PagoMovilForm;
+import haveno.desktop.components.paymentmethods.QrisForm;
 import haveno.desktop.components.paymentmethods.GcashForm;
 import haveno.desktop.components.paymentmethods.MercadoPagoForm;
 import haveno.desktop.components.paymentmethods.MomoForm;
@@ -728,6 +729,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new NipForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.PAGO_MOVIL_ID:
                 return new PagoMovilForm(paymentAccount, accountAgeWitnessService, pagoMovilValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.QRIS_ID:
+                return new QrisForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

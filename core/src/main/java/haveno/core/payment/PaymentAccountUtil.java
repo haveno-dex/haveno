@@ -104,6 +104,7 @@ import static haveno.core.payment.payload.PaymentMethod.VIPPS_MOBILEPAY_ID;
 import static haveno.core.payment.payload.PaymentMethod.TWINT_ID;
 import static haveno.core.payment.payload.PaymentMethod.NIP_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAGO_MOVIL_ID;
+import static haveno.core.payment.payload.PaymentMethod.QRIS_ID;
 
 @Slf4j
 public class PaymentAccountUtil {
@@ -303,6 +304,8 @@ public class PaymentAccountUtil {
                 return NipAccount.SUPPORTED_CURRENCIES;
             case PAGO_MOVIL_ID:
                 return PagoMovilAccount.SUPPORTED_CURRENCIES;
+            case QRIS_ID:
+                return QrisAccount.SUPPORTED_CURRENCIES;
             default:
                 return Collections.emptyList();
         }
