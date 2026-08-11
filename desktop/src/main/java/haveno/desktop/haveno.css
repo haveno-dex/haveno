@@ -913,6 +913,32 @@ tree-table-view:focused {
     -fx-background-color: -bs-wizard-backdrop;
 }
 
+/* startup sync progress: slim flat pill in the hero accent */
+.splash-progress {
+    -fx-indeterminate-bar-length: 120;
+    -fx-indeterminate-bar-escape: true;
+    -fx-indeterminate-bar-flip: true;
+    -fx-indeterminate-bar-animation-time: 1.8;
+}
+
+.splash-progress > .track {
+    -fx-background-color: -bs-progress-bar-track;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+}
+
+.splash-progress > .bar {
+    -fx-background-color: -bs-hero-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-padding: 3;
+}
+
+/* soft glow that sweeps beyond the track edges while progress is unknown */
+.splash-progress:indeterminate > .bar {
+    -fx-background-color: linear-gradient(to right, transparent, -bs-hero-primary 35%, -bs-hero-primary 65%, transparent);
+}
+
 /* Main UI */
 #base-content-container {
     -fx-background-color: -bs-color-gray-background;

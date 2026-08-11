@@ -639,6 +639,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         xmrSyncIndicator = new ProgressBar();
         xmrSyncIndicator.setPrefWidth(305);
+        xmrSyncIndicator.getStyleClass().add("splash-progress");
         xmrSyncIndicator.progressProperty().bind(model.getCombinedSyncProgress());
 
         ImageView xmrSyncIcon = new ImageView();
