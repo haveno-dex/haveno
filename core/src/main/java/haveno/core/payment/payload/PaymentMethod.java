@@ -59,6 +59,7 @@ import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.DomesticWireTransferAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.FasterPaymentsAccount;
+import haveno.core.payment.FpsAccount;
 import haveno.core.payment.GcashAccount;
 import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.ImpsAccount;
@@ -225,6 +226,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String RAAST_ID = "RAAST";
     public static final String PAYNOW_ID = "PAYNOW";
     public static final String WERO_ID = "WERO";
+    public static final String FPS_ID = "FPS";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -300,6 +302,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod RAAST;
     public static PaymentMethod PAYNOW;
     public static PaymentMethod WERO;
+    public static PaymentMethod FPS;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
@@ -346,6 +349,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Europe
             WERO = new PaymentMethod(WERO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(WeroAccount.SUPPORTED_CURRENCIES)),
+
+            // Hong Kong
+            FPS = new PaymentMethod(FPS_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(FpsAccount.SUPPORTED_CURRENCIES)),
 
             // US
             ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
@@ -500,7 +506,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 PAPARA_ID,
                 RAAST_ID,
                 PAYNOW_ID,
-                WERO_ID);
+                WERO_ID,
+                FPS_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -735,7 +742,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.PAPARA_ID) ||
                 id.equals(PaymentMethod.RAAST_ID) ||
                 id.equals(PaymentMethod.PAYNOW_ID) ||
-                id.equals(PaymentMethod.WERO_ID);
+                id.equals(PaymentMethod.WERO_ID) ||
+                id.equals(PaymentMethod.FPS_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {
