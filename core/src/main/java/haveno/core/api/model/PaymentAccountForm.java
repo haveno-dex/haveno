@@ -125,7 +125,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         TWINT,
         NIP,
         PAGO_MOVIL,
-        QRIS;
+        QRIS,
+        PAPARA;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());

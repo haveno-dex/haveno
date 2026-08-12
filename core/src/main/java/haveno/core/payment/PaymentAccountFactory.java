@@ -164,6 +164,8 @@ public class PaymentAccountFactory {
                 return new PagoMovilAccount();
             case PaymentMethod.QRIS_ID:
                 return new QrisAccount();
+            case PaymentMethod.PAPARA_ID:
+                return new PaparaAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }
