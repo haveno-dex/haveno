@@ -88,6 +88,13 @@ public final class AccountNrValidator extends BankValidator {
                     return super.validate(input);
                 else
                     return new ValidationResult(false, Res.get("validation.accountNrFormat", "1234567890 or TR12 3456 7890 1234 5678 9012 34"));
+            case "PK":
+                input2 = input != null ? input.replaceAll("[\\s-]", "") : null;
+                // accept an 11-digit mobile number (Raast alias / Easypaisa / JazzCash) or a Pakistani IBAN
+                if (isNumberWithFixedLength(input2, 11) || new IBANValidator("PK").validate(input2).isValid)
+                    return super.validate(input);
+                else
+                    return new ValidationResult(false, Res.get("validation.accountNrFormat", "03001234567 or PK12 ABCD 1234 5678 9012 3456"));
             case "NG":
                 length = 10;
                 if (isNumberWithFixedLength(input, length))

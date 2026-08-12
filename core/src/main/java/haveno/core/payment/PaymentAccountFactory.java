@@ -166,6 +166,8 @@ public class PaymentAccountFactory {
                 return new QrisAccount();
             case PaymentMethod.PAPARA_ID:
                 return new PaparaAccount();
+            case PaymentMethod.RAAST_ID:
+                return new RaastAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }
