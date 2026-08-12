@@ -21,6 +21,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.common.UserThread;
 import haveno.network.p2p.BootstrapListener;
@@ -122,6 +123,7 @@ public class AppStartupState {
             if (newValue) {
                 applicationFullyInitialized.set(true);
                 notificationService.sendAppInitializedNotification();
+                HavenoUtils.playDeferredSounds();
                 log.info("Application fully initialized");
             } else {
                 applicationFullyInitialized.set(false);

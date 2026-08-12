@@ -66,8 +66,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -202,6 +204,10 @@ public class HavenoUtils {
 
     public static boolean isAllDomainServicesInitialized() {
         return havenoSetup != null && havenoSetup.getAppStartupState() != null && havenoSetup.getAppStartupState().isAllDomainServicesInitialized();
+    }
+
+    public static boolean isApplicationFullyInitialized() {
+        return havenoSetup != null && havenoSetup.getAppStartupState() != null && havenoSetup.getAppStartupState().isApplicationFullyInitialized();
     }
 
     @SuppressWarnings("unused")
@@ -732,9 +738,27 @@ public class HavenoUtils {
         playAudioFile("cash_register.wav");
     }
 
+    // sounds requested before the app is fully initialized, replayed once each on launch
+    private static final Set<String> deferredSounds = new LinkedHashSet<>();
+
+    public static void playDeferredSounds() {
+        List<String> fileNames;
+        synchronized (deferredSounds) {
+            fileNames = new ArrayList<>(deferredSounds);
+            deferredSounds.clear();
+        }
+        for (String fileName : fileNames) playAudioFile(fileName);
+    }
+
     private static void playAudioFile(String fileName) {
         if (isDaemon()) return; // ignore if running as daemon
         if (!preferences.getUseSoundForNotificationsProperty().get()) return; // ignore if sounds disabled
+        if (!isApplicationFullyInitialized()) { // defer sounds while catching up during startup
+            synchronized (deferredSounds) {
+                deferredSounds.add(fileName);
+            }
+            return;
+        }
         new Thread(() -> {
             try {
 
