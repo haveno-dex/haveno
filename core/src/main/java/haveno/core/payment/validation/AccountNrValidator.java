@@ -81,6 +81,13 @@ public final class AccountNrValidator extends BankValidator {
                     return super.validate(input);
                 else
                     return new ValidationResult(false, Res.get("validation.accountNr", "6 - 16"));
+            case "TR":
+                input2 = input != null ? input.replaceAll("[\\s-]", "") : null;
+                // accept a 10-digit Papara number, an 11-digit mobile number (FAST Kolay Adres) or a Turkish IBAN
+                if (isNumberInRange(input2, 10, 11) || new IBANValidator("TR").validate(input2).isValid)
+                    return super.validate(input);
+                else
+                    return new ValidationResult(false, Res.get("validation.accountNrFormat", "1234567890 or TR12 3456 7890 1234 5678 9012 34"));
             case "NG":
                 length = 10;
                 if (isNumberWithFixedLength(input, length))
