@@ -137,7 +137,6 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.text.Font;
 
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -147,6 +146,7 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
+import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 
@@ -586,14 +586,14 @@ public class BuyerStep2View extends TradeStepView {
         // add title
         addTitledGroupBg(moreConfirmationsGridPane, 0, 1,  Res.get("portfolio.pending.step1.waitForConf"), Layout.COMPACT_GROUP_DISTANCE);
 
-        // add text
-        Label label = new Label(Res.get("portfolio.pending.step2_buyer.additionalConf", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
-        label.setFont(new Font(15));
-        GridPane.setMargin(label, new Insets(20, 0, 0, 0));
-        moreConfirmationsGridPane.add(label, 0, 1, 2, 1);
+        // add text styled like the other step info blocks
+        Label label = addMultilineLabel(moreConfirmationsGridPane, 0,
+                Res.get("portfolio.pending.step2_buyer.additionalConf", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED),
+                Layout.COMPACT_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
+        GridPane.setColumnSpan(label, 2);
 
-        Tuple4<Button, BusyAnimation, Label, HBox> tuple3 = addButtonBusyAnimationLabel(moreConfirmationsGridPane, gridRow, 0,
-                Res.get("portfolio.pending.step2_buyer.showEarly"), 10);
+        Tuple4<Button, BusyAnimation, Label, HBox> tuple3 = addButtonBusyAnimationLabel(moreConfirmationsGridPane, 1, 0,
+                Res.get("portfolio.pending.step2_buyer.showEarly"), 20);
 
         // add button to show payment details
         Button showPaymentDetailsButton = tuple3.first;

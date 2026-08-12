@@ -117,8 +117,8 @@ public abstract class TradeStepView extends AnchorPane {
         scrollPane.setFitToHeight(true);
         scrollPane.setFitToWidth(true);
 
-        AnchorPane.setLeftAnchor(scrollPane, 10d);
-        AnchorPane.setRightAnchor(scrollPane, 10d);
+        AnchorPane.setLeftAnchor(scrollPane, 0d);
+        AnchorPane.setRightAnchor(scrollPane, 0d);
         AnchorPane.setTopAnchor(scrollPane, 10d);
         AnchorPane.setBottomAnchor(scrollPane, 0d);
 
@@ -128,7 +128,8 @@ public abstract class TradeStepView extends AnchorPane {
 
         gridPane.setHgap(Layout.GRID_GAP);
         gridPane.setVgap(Layout.GRID_GAP);
-        gridPane.setPadding(new Insets(0, 0, 25, 0));
+        // horizontal inset via grid padding keeps titled group negative margins inside the viewport clip
+        gridPane.setPadding(new Insets(0, 10, 25, 10));
         ColumnConstraints columnConstraints1 = new ColumnConstraints();
         columnConstraints1.setHgrow(Priority.ALWAYS);
 
