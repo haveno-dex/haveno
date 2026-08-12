@@ -189,6 +189,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
     private Long firstDepositTxMissingHeight; // height when we first saw missing deposit txs (to wait for a confirmation before reverting state)
     private Long firstPayoutTxMissingHeight; // height when we first saw missing payout tx (to wait for a confirmation before reverting state)
+    private int payoutTxScanAttempts; // attempts to scan a confirmed payout tx missing from the trade wallet
     private Object closeWalletTimerLock = new Object();
     private Timer closeWalletTimer;
     private boolean importMultisigPending;
@@ -3897,13 +3898,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         }
 
         // set payout state
+        MoneroTx payoutTxSeenElsewhere;
         if (payoutTx != null) {
             firstPayoutTxMissingHeight = null;
             setPayoutTx(payoutTx);
-        } else if (poolChecked && isPayoutTxSeenElsewhere()) { // trade wallet can lag the main wallet and daemon
+        } else if (poolChecked && (payoutTxSeenElsewhere = getPayoutTxSeenElsewhere()) != null) { // trade wallet can lag the main wallet and daemon
             if (firstPayoutTxMissingHeight != null || !isPayoutPublished()) log.warn("Payout tx {} is missing from the trade wallet but seen by the main wallet or daemon for {} {}, setting payout state published", payoutTxId, getClass().getSimpleName(), getShortId());
             firstPayoutTxMissingHeight = null;
             if (!isPayoutPublished()) setPayoutState(PayoutState.PAYOUT_PUBLISHED);
+            maybeScanPayoutTx(payoutTxSeenElsewhere);
         } else if (hasSpentOutputs) {
             firstPayoutTxMissingHeight = null;
             if (!isPayoutPublished() && xmrConnectionService.isTrustedDaemon()) setPayoutState(PayoutState.PAYOUT_PUBLISHED); // spent state can be faked by a remote daemon, so it holds but never sets payout state
@@ -3938,18 +3941,32 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         }
     }
 
-    // check the main wallet then the daemon for a payout tx missing from the trade wallet
-    private boolean isPayoutTxSeenElsewhere() {
-        if (payoutTxId == null) return false;
+    // get a payout tx missing from the trade wallet by checking the main wallet then the daemon
+    private MoneroTx getPayoutTxSeenElsewhere() {
+        if (payoutTxId == null) return null;
         try {
-            if (xmrWalletService.getTx(payoutTxId) != null) return true;
+            MoneroTx tx = xmrWalletService.getTx(payoutTxId);
+            if (tx != null) return tx;
         } catch (Exception e) {
             // ignore
         }
         try {
-            return xmrConnectionService.getTx(payoutTxId) != null;
+            return xmrConnectionService.getTx(payoutTxId);
         } catch (Exception e) {
-            return false;
+            return null;
+        }
+    }
+
+    // scan a confirmed payout tx the trade wallet has not attributed, e.g. if multisig key images were imported after its block was scanned
+    private void maybeScanPayoutTx(MoneroTx tx) {
+        if (payoutTxScanAttempts >= TradeProtocol.MAX_ATTEMPTS) return;
+        if (!Boolean.TRUE.equals(tx.isConfirmed())) return;
+        try {
+            payoutTxScanAttempts++;
+            log.warn("Scanning payout tx {} for {} {} because it is confirmed but not attributed by the trade wallet, attempt {}/{}", payoutTxId, getClass().getSimpleName(), getShortId(), payoutTxScanAttempts, TradeProtocol.MAX_ATTEMPTS);
+            wallet.scanTxs(Arrays.asList(payoutTxId));
+        } catch (Exception e) {
+            log.warn("Error scanning payout tx {} for {} {}: {}", payoutTxId, getClass().getSimpleName(), getShortId(), e.getMessage());
         }
     }
 
