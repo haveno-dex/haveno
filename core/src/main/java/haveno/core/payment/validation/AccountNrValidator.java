@@ -95,6 +95,13 @@ public final class AccountNrValidator extends BankValidator {
                     return super.validate(input);
                 else
                     return new ValidationResult(false, Res.get("validation.accountNrFormat", "03001234567 or PK12 ABCD 1234 5678 9012 3456"));
+            case "SG":
+                input2 = input != null ? input.replaceAll("[\\s-]", "") : null;
+                // accept a PayNow mobile number (optional +65 prefix) or NRIC/FIN
+                if (input2 != null && (input2.matches("(\\+?65)?[89][0-9]{7}") || input2.matches("(?i)[STFGM][0-9]{7}[A-Z]")))
+                    return super.validate(input);
+                else
+                    return new ValidationResult(false, Res.get("validation.accountNrFormat", "91234567 or S1234567A"));
             case "NG":
                 length = 10;
                 if (isNumberWithFixedLength(input, length))

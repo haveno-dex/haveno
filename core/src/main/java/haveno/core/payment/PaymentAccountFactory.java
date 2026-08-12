@@ -168,6 +168,8 @@ public class PaymentAccountFactory {
                 return new PaparaAccount();
             case PaymentMethod.RAAST_ID:
                 return new RaastAccount();
+            case PaymentMethod.PAYNOW_ID:
+                return new PayNowAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }
