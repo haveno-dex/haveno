@@ -3992,8 +3992,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (payoutTx.getNumConfirmations() >= NUM_BLOCKS_PAYOUT_FINALIZED) setPayoutStateFinalized();
         }
 
-        // revert payout state if necessary
-        if (getPayoutState() != getPayoutState(payoutTx)) setPayoutState(getPayoutState(payoutTx));
+        // revert payout state if evidenced by the tx (e.g. failed or demoted by reorg); txs without chain state cannot revert
+        PayoutState evidencedPayoutState = getPayoutState(payoutTx);
+        if (evidencedPayoutState != null && evidencedPayoutState != getPayoutState()) setPayoutState(evidencedPayoutState);
     }
 
     /**
@@ -4125,16 +4126,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS;
     }
 
+    // returns the payout state evidenced by the tx, or null if the tx carries no chain state (e.g. described txs)
     private static PayoutState getPayoutState(MoneroTx payoutTx) {
-        if (payoutTx.getHash() == null) return PayoutState.PAYOUT_UNPUBLISHED;
         if (Boolean.TRUE.equals(payoutTx.isFailed())) return PayoutState.PAYOUT_UNPUBLISHED;
         if (payoutTx.getNumConfirmations() != null) {
             if (payoutTx.getNumConfirmations() >= NUM_BLOCKS_PAYOUT_FINALIZED) return PayoutState.PAYOUT_FINALIZED;
             if (payoutTx.getNumConfirmations() >= XmrWalletService.NUM_BLOCKS_UNLOCK) return PayoutState.PAYOUT_UNLOCKED;
         }
-        if (payoutTx.isConfirmed()) return PayoutState.PAYOUT_CONFIRMED;
+        if (Boolean.TRUE.equals(payoutTx.isConfirmed())) return PayoutState.PAYOUT_CONFIRMED;
         if (Boolean.TRUE.equals(payoutTx.isRelayed()) || Boolean.TRUE.equals(payoutTx.inTxPool())) return PayoutState.PAYOUT_PUBLISHED;
-        return PayoutState.PAYOUT_UNPUBLISHED;
+        return null;
     }
 
     // TODO: wallet is sometimes missing balance or deposits, due to reorgs, specific daemon connections, not saving?
