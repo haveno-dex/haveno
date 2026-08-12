@@ -79,6 +79,7 @@ import haveno.network.p2p.network.MessageListener;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -334,20 +335,28 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             Optional<Dispute> disputeOptional = findDispute(disputeResult);
                             String uid = disputeClosedMessage.getUid();
                             if (!disputeOptional.isPresent()) {
-                                log.warn("We got a dispute closed msg but we don't have a matching dispute. " +
-                                        "That might happen when we get the DisputeClosedMessage before the dispute was created. " +
-                                        "We try again after 2 sec. to apply the DisputeClosedMessage. TradeId = " + tradeId);
                                 if (!delayMsgMap.containsKey(uid)) {
+                                    log.warn("We got a dispute closed msg but we don't have a matching dispute. " +
+                                            "That might happen when we get the DisputeClosedMessage before the dispute was created. " +
+                                            "We try again after 2 sec. to apply the DisputeClosedMessage. TradeId = " + tradeId);
                                     // We delay 2 sec. to be sure the comm. msg gets added first
                                     Timer timer = UserThread.runAfter(() -> handle(disputeClosedMessage), 2);
                                     delayMsgMap.put(uid, timer);
-                                } else {
-                                    log.warn("We got a dispute closed msg after we already repeated to apply the message after a delay. " +
-                                            "That should never happen. TradeId = " + tradeId);
+                                    return;
                                 }
-                                return;
+
+                                // register missing dispute from verified message, e.g. when the DisputeOpenedMessage was never processed
+                                log.warn("We got a dispute closed msg and still don't have a matching dispute after a delay, " +
+                                        "so we register the dispute from the verified message. TradeId = " + tradeId);
+                                try {
+                                    dispute = registerDisputeFromClosedMessage(trade, disputeClosedMessage);
+                                } catch (Exception e) {
+                                    log.warn("Failed to register dispute from DisputeClosedMessage. TradeId = " + tradeId + ", error=" + e.getMessage());
+                                    return;
+                                }
+                            } else {
+                                dispute = disputeOptional.get();
                             }
-                            dispute = disputeOptional.get();
 
                             // verify arbitrator signature of the summary text
                             String summaryText = chatMessage.getMessage();
@@ -467,6 +476,68 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
             });
             HavenoUtils.awaitLatch(initLatch);
         }, trade.getProtocol().getInitId()); // TODO: getInitId() should be private. ideally this function is moved to TradeProtocol, but logic above depends on SupportManager internals
+    }
+
+    // register dispute from a verified DisputeClosedMessage so the arbitrator's resolution applies without a locally opened dispute
+    private Dispute registerDisputeFromClosedMessage(Trade trade, DisputeClosedMessage disputeClosedMessage) {
+        DisputeResult disputeResult = disputeClosedMessage.getDisputeResult();
+
+        // verify arbitrator signatures of summary text and payout fields
+        PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
+        checkNotNull(arbitratorPubKeyRing, "Arbitrator pub key ring is null for trade " + trade.getId());
+        DisputeSummaryVerification.verifySignature(disputeResult.getChatMessage().getMessage(), arbitratorPubKeyRing);
+        checkNotNull(disputeResult.getArbitratorSignature(), "DisputeResult is missing the arbitrator's payout signature for trade " + trade.getId());
+        HavenoUtils.verifySignature(arbitratorPubKeyRing, Hash.getSha256Hash(disputeResult.getPayoutSignaturePayload()), disputeResult.getArbitratorSignature());
+
+        // verify the dispute result is in our context
+        if (disputeResult.getTraderId() != keyRing.getPubKeyRing().hashCode()) throw new IllegalArgumentException("DisputeResult trader id does not match our pub key ring, tradeId=" + trade.getId());
+
+        // create dispute with peer as opener, since ours would exist if we had opened it
+        Dispute dispute = new Dispute(new Date().getTime(),
+                trade.getId(),
+                keyRing.getPubKeyRing().hashCode(),
+                false,
+                !trade.isBuyer(),
+                !trade.isMaker(),
+                keyRing.getPubKeyRing(),
+                trade.getDate().getTime(),
+                trade.getMaxTradePeriodDate().getTime(),
+                trade.getContract(),
+                trade.getContractHash(),
+                null,
+                null,
+                trade.getContractAsJson(),
+                trade.getMaker().getContractSignature(),
+                trade.getTaker().getContractSignature(),
+                trade.getMaker().getPaymentAccountPayload(),
+                trade.getTaker().getPaymentAccountPayload(),
+                arbitratorPubKeyRing,
+                false,
+                getSupportType());
+
+        // add system message for peer-opened dispute
+        ChatMessage chatMessage = new ChatMessage(
+                getSupportType(),
+                dispute.getTradeId(),
+                keyRing.getPubKeyRing().hashCode(),
+                false,
+                Res.get("support.systemMsg", getDisputeIntroForPeer(getDisputeInfo(dispute))),
+                p2PService.getAddress());
+        chatMessage.setSystemMessage(true);
+        dispute.addAndPersistChatMessage(chatMessage);
+
+        // add dispute on user thread and wait so it's found when processing continues
+        CountDownLatch latch = new CountDownLatch(1);
+        UserThread.execute(() -> {
+            getDisputeList().add(dispute);
+            latch.countDown();
+        });
+        HavenoUtils.awaitLatch(latch);
+
+        // update trade state
+        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+        requestPersistence(trade);
+        return dispute;
     }
 
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {
