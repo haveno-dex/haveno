@@ -895,6 +895,7 @@ message PaymentAccountPayload {
         QrisAccountPayload qris_account_payload = 46;
         PaparaAccountPayload papara_account_payload = 47;
         RaastAccountPayload raast_account_payload = 48;
+        PayNowAccountPayload paynow_account_payload = 49;
     }
 }
 
@@ -1326,6 +1327,12 @@ message PaparaAccountPayload {
 }
 
 message RaastAccountPayload {
+    string holder_name = 1;
+    string account_nr = 2;
+    string bank_name = 3;
+}
+
+message PayNowAccountPayload {
     string holder_name = 1;
     string account_nr = 2;
     string bank_name = 3;
@@ -2073,6 +2080,7 @@ message PaymentAccountForm {
         QRIS = 67;
         PAPARA = 68;
         RAAST = 69;
+        PAYNOW = 70;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
