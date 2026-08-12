@@ -4323,7 +4323,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 try {
 
                     // skip unless idling or waiting for finalization
-                    if (!isIdling() || isShutDownStarted || !isInitialized || !wasWalletPolledProperty.get() || (isDepositsFinalized() && (!isPayoutPublished() || isPayoutFinalized())))  {
+                    if (isShutDownStarted || !isInitialized || !wasWalletPolledProperty.get() || !isIdling() || (isDepositsFinalized() && (!isPayoutPublished() || isPayoutFinalized())))  {
                         return;
                     }
 
