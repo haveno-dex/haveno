@@ -108,6 +108,7 @@ import static haveno.core.payment.payload.PaymentMethod.QRIS_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAPARA_ID;
 import static haveno.core.payment.payload.PaymentMethod.RAAST_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAYNOW_ID;
+import static haveno.core.payment.payload.PaymentMethod.WERO_ID;
 
 @Slf4j
 public class PaymentAccountUtil {
@@ -315,6 +316,8 @@ public class PaymentAccountUtil {
                 return RaastAccount.SUPPORTED_CURRENCIES;
             case PAYNOW_ID:
                 return PayNowAccount.SUPPORTED_CURRENCIES;
+            case WERO_ID:
+                return WeroAccount.SUPPORTED_CURRENCIES;
             default:
                 return Collections.emptyList();
         }

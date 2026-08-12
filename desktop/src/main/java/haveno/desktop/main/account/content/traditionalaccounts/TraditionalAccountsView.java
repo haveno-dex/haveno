@@ -67,6 +67,7 @@ import haveno.core.payment.validation.PromptPayValidator;
 import haveno.core.payment.validation.RevolutValidator;
 import haveno.core.payment.validation.SwishValidator;
 import haveno.core.payment.validation.TwintValidator;
+import haveno.core.payment.validation.WeroValidator;
 import haveno.core.payment.validation.TransferwiseValidator;
 import haveno.core.payment.validation.USPostalMoneyOrderValidator;
 import haveno.core.payment.validation.UpholdValidator;
@@ -146,6 +147,7 @@ import haveno.desktop.components.paymentmethods.VenmoForm;
 import haveno.desktop.components.paymentmethods.VerseForm;
 import haveno.desktop.components.paymentmethods.VippsMobilePayForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
+import haveno.desktop.components.paymentmethods.WeroForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
 import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.main.account.content.PaymentAccountsView;
@@ -185,6 +187,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     private final PerfectMoneyValidator perfectMoneyValidator;
     private final SwishValidator swishValidator;
     private final TwintValidator twintValidator;
+    private final WeroValidator weroValidator;
     private final PagoMovilValidator pagoMovilValidator;
     private final EmailOrMobileNrValidator zelleValidator;
     private final EmailOrMobileNrOrUsernameValidator paypalValidator;
@@ -221,6 +224,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                             PerfectMoneyValidator perfectMoneyValidator,
                             SwishValidator swishValidator,
                             TwintValidator twintValidator,
+                            WeroValidator weroValidator,
                             PagoMovilValidator pagoMovilValidator,
                             EmailOrMobileNrValidator zelleValidator,
                             EmailOrMobileNrOrCashtagValidator cashAppValidator,
@@ -253,6 +257,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         this.perfectMoneyValidator = perfectMoneyValidator;
         this.swishValidator = swishValidator;
         this.twintValidator = twintValidator;
+        this.weroValidator = weroValidator;
         this.pagoMovilValidator = pagoMovilValidator;
         this.zelleValidator = zelleValidator;
         this.paypalValidator = emailMobileUsernameValidator;
@@ -740,6 +745,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new RaastForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.PAYNOW_ID:
                 return new PayNowForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.WERO_ID:
+                return new WeroForm(paymentAccount, accountAgeWitnessService, weroValidator, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

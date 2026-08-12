@@ -170,6 +170,8 @@ public class PaymentAccountFactory {
                 return new RaastAccount();
             case PaymentMethod.PAYNOW_ID:
                 return new PayNowAccount();
+            case PaymentMethod.WERO_ID:
+                return new WeroAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }
