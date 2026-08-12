@@ -94,6 +94,7 @@ import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
 import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
+import haveno.desktop.components.paymentmethods.FpsForm;
 import haveno.desktop.components.paymentmethods.HalCashForm;
 import haveno.desktop.components.paymentmethods.ImpsForm;
 import haveno.desktop.components.paymentmethods.InteracETransferForm;
@@ -747,6 +748,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new PayNowForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.WERO_ID:
                 return new WeroForm(paymentAccount, accountAgeWitnessService, weroValidator, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.FPS_ID:
+                return new FpsForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

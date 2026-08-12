@@ -129,7 +129,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         PAPARA,
         RAAST,
         PAYNOW,
-        WERO;
+        WERO,
+        FPS;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
