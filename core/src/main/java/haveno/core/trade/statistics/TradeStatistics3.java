@@ -224,7 +224,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         QRIS,
         PAPARA,
         RAAST,
-        PAYNOW
+        PAYNOW,
+        WERO
     }
 
     @Getter
