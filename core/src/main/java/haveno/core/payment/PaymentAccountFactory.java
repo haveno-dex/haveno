@@ -174,6 +174,8 @@ public class PaymentAccountFactory {
                 return new WeroAccount();
             case PaymentMethod.FPS_ID:
                 return new FpsAccount();
+            case PaymentMethod.DUITNOW_ID:
+                return new DuitNowAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

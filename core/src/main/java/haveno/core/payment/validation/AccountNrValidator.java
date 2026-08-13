@@ -102,6 +102,13 @@ public final class AccountNrValidator extends BankValidator {
                     return super.validate(input);
                 else
                     return new ValidationResult(false, Res.get("validation.accountNrFormat", "91234567 or S1234567A"));
+            case "MY":
+                input2 = input != null ? input.replaceAll("[\\s-]", "") : null;
+                // accept a DuitNow proxy: Malaysian mobile number (01x or +60 prefix) or 12-digit NRIC
+                if (input2 != null && (input2.matches("01[0-9]{8,9}") || input2.matches("\\+?601[0-9]{8,9}") || input2.matches("[0-9]{12}")))
+                    return super.validate(input);
+                else
+                    return new ValidationResult(false, Res.get("validation.accountNrFormat", "0123456789, +60 12 345 6789 or 901231-14-5678"));
             case "NG":
                 length = 10;
                 if (isNumberWithFixedLength(input, length))
