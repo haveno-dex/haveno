@@ -43,6 +43,7 @@ import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
 import static haveno.desktop.util.FormBuilder.getRegularIconButton;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import java.util.Comparator;
@@ -542,6 +543,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     hyperlinkWithIcon = new HyperlinkWithIcon(item.getOffer().getShortId());
+                                    Accessibility.setName(hyperlinkWithIcon, Accessibility.spellOut(item.getOffer().getShortId()));
                                     if (model.isDeactivated(item)) {
                                         // getStyleClass().add("offer-disabled"); does not work with hyperlinkWithIcon;-(
                                         hyperlinkWithIcon.setStyle("-fx-text-fill: -bs-color-gray-3;");

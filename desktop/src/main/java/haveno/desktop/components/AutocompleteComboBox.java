@@ -20,12 +20,14 @@ package haveno.desktop.components;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.skins.JFXComboBoxListViewSkin;
 import haveno.common.UserThread;
+import haveno.common.util.Utilities;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -103,6 +105,15 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         openPopupOnEditorClick();
         filterAsUserTypes();
         trackCommittedValue();
+        selectArrowedItemText();
+    }
+
+    // Report non-editable to accessibility on mac: the editable combo maps to an AXComboBox, which
+    // VoiceOver never announces (JDK-8087757); the pop-up button role announces each arrowed item.
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        if (attribute == AccessibleAttribute.EDITABLE && Utilities.isOSX()) return false;
+        return super.queryAccessibleAttribute(attribute, parameters);
     }
 
     // --- public API ---
@@ -300,6 +311,19 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private void suppressSpaceKeyReset() {
         popupList.addEventFilter(KeyEvent.ANY, e -> {
             if (e.getCode() == KeyCode.SPACE) e.consume();
+        });
+    }
+
+    // macOS VoiceOver ignores the editable combo's value changes (JDK-8087757), so select the arrowed
+    // item's text like native mac combos; the screen reader then announces it as a selection change.
+    // The open popup redirects window key events to its list, so arrows never reach this control itself.
+    private void selectArrowedItemText() {
+        popupList.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            KeyCode code = e.getCode();
+            if (code != KeyCode.UP && code != KeyCode.DOWN && code != KeyCode.KP_UP && code != KeyCode.KP_DOWN) return;
+            UserThread.execute(() -> { // select after the skin has put the arrowed item's text in the editor
+                if (isShowing()) getEditor().selectAll();
+            });
         });
     }
 

@@ -80,6 +80,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -983,6 +984,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             this.viewClass = viewClass;
 
             this.setToggleGroup(navButtons);
+            this.setAccessibleRole(AccessibleRole.TAB_ITEM); // announced as a tab, not a checkbox
             this.getStyleClass().add("nav-button");
             this.setMinWidth(Region.USE_PREF_SIZE); // prevent squashing content
             this.setPrefWidth(Region.USE_COMPUTED_SIZE);

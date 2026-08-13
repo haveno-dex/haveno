@@ -153,8 +153,10 @@ public class EditCustomExplorerWindow extends Overlay<EditCustomExplorerWindow> 
                         if (item != null && !empty) {
                             label.setText(item.name);
                             setGraphic(pane);
+                            setAccessibleText(item.name);
                         } else {
                             setGraphic(null);
+                            setAccessibleText(null);
                         }
                     }
                 };

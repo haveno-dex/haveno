@@ -81,6 +81,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -88,6 +89,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
@@ -109,6 +111,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -162,6 +165,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static haveno.desktop.util.FormBuilder.addTopLabelComboBoxComboBox;
@@ -345,6 +349,30 @@ public class GUIUtil {
         }
     }
 
+    // graphic-only cells announce blank, so voice the row text on the cell and on its first child
+    // (and that child's graphic), where VoiceOver lands when arrowing through rows
+    private static void setAccessibleRowText(ListCell<?> cell, Pane pane, String text) {
+        cell.setAccessibleText(text);
+        if (pane.getChildren().isEmpty()) return;
+        Node first = pane.getChildren().get(0);
+        first.setAccessibleText(text);
+        if (first instanceof Labeled && ((Labeled) first).getGraphic() != null) {
+            Node graphic = ((Labeled) first).getGraphic();
+            graphic.setAccessibleRole(AccessibleRole.TEXT);
+            graphic.setAccessibleText(text);
+        }
+    }
+
+    // row text from the visible labels, for cells without a more readable phrasing of their own
+    private static void setAccessibleTextFromLabels(ListCell<?> cell, Pane pane) {
+        String joined = pane.getChildren().stream()
+                .filter(node -> node instanceof Labeled)
+                .map(node -> ((Labeled) node).getText())
+                .filter(t -> t != null && !t.isEmpty())
+                .collect(Collectors.joining(", "));
+        setAccessibleRowText(cell, pane, joined.isEmpty() ? null : joined);
+    }
+
     public static Callback<ListView<CurrencyListItem>, ListCell<CurrencyListItem>> getCurrencyListItemCellFactory(String postFixSingle,
                                                                                                                   String postFixMulti) {
         return p -> new ListCell<>() {
@@ -370,15 +398,18 @@ public class GUIUtil {
                     Label label4 = new AutoTooltipLabel();
 
                     boolean showOfferCount = false;
+                    String announced; // name-first for screen readers; the visible row leads with the code
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
                             label1.setText(Res.get("shared.all"));
                             label2.setText(Res.get("list.currency.showAll"));
+                            announced = Res.get("list.currency.showAll");
                             break;
                         case GUIUtil.EDIT_FLAG:
                             label1.setText(Res.get("shared.edit"));
                             label2.setText(Res.get("list.currency.editList"));
+                            announced = Res.get("list.currency.editList");
                             break;
                         default:
 
@@ -396,6 +427,8 @@ public class GUIUtil {
                                 offersTarget.setText(item.numTrades + " " + (item.numTrades == 1 ? postFixSingle : postFixMulti));
                                 showOfferCount = true;
                             }
+                            announced = item.tradeCurrency.getName() + ", " + Accessibility.spellOut(code)
+                                    + (showOfferCount ? ", " + (isCrypto ? label3 : label4).getText() : "");
                     }
 
                     // append the offer pill only when present so the row ends at real content
@@ -404,9 +437,11 @@ public class GUIUtil {
                     if (showOfferCount) box.getChildren().add(isCrypto ? label3 : label4);
 
                     setGraphic(box);
+                    setAccessibleRowText(this, box, announced);
 
                 } else {
                     setGraphic(null);
+                    setAccessibleText(null);
                 }
             }
         };
@@ -452,9 +487,11 @@ public class GUIUtil {
 
                     setGraphic(pane);
                     setText("");
+                    setAccessibleTextFromLabels(this, pane);
                 } else {
                     setGraphic(null);
                     setText("");
+                    setAccessibleText(null);
                 }
             }
         };
@@ -486,15 +523,18 @@ public class GUIUtil {
                     Label label4 = new AutoTooltipLabel();
 
                     Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(code));
+                    String announced; // name-first for screen readers; the visible row leads with the code
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
                             label1.setText(Res.get("shared.all"));
                             label2.setText(Res.get("list.currency.showAll"));
+                            announced = Res.get("list.currency.showAll");
                             break;
                         case GUIUtil.EDIT_FLAG:
                             label1.setText(Res.get("shared.edit"));
                             label2.setText(Res.get("list.currency.editList"));
+                            announced = Res.get("list.currency.editList");
                             break;
                         default:
 
@@ -511,6 +551,8 @@ public class GUIUtil {
                                 offersTarget.getStyleClass().add("offer-label");
                                 offersTarget.setText(numOffers + " " + (numOffers == 1 ? postFixSingle : postFixMulti));
                             });
+                            announced = item.getName() + ", " + Accessibility.spellOut(code)
+                                    + (offerCountOptional.isPresent() ? ", " + offersTarget.getText() : "");
                     }
 
                     // append the offer pill only when present so the row ends at real content
@@ -519,9 +561,11 @@ public class GUIUtil {
                     if (offerCountOptional.isPresent()) box.getChildren().add(isCrypto ? label3 : label4);
 
                     setGraphic(box);
+                    setAccessibleRowText(this, box, announced);
 
                 } else {
                     setGraphic(null);
+                    setAccessibleText(null);
                 }
             }
         };
@@ -553,9 +597,11 @@ public class GUIUtil {
                     box.getChildren().addAll(label1, label2);
 
                     setGraphic(box);
+                    setAccessibleRowText(this, box, item.getName() + ", " + Accessibility.spellOut(item.getCode()));
 
                 } else {
                     setGraphic(null);
+                    setAccessibleText(null);
                 }
             }
         };
@@ -632,9 +678,11 @@ public class GUIUtil {
                     }
 
                     setGraphic(box);
+                    setAccessibleTextFromLabels(this, box);
 
                 } else {
                     setGraphic(null);
+                    setAccessibleText(null);
                 }
             }
         };

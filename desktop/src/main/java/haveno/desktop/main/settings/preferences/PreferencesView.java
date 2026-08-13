@@ -65,6 +65,7 @@ import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
 import static haveno.desktop.util.FormBuilder.addTextFieldWithEditButton;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelListView;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Layout;
@@ -390,6 +391,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                     {
                         label.setLayoutY(5);
                         removeButton.setId("icon-button");
+                        Accessibility.setName(removeButton, Res.get("shared.remove"));
                         AnchorPane.setRightAnchor(removeButton, -30d);
                     }
 
@@ -410,8 +412,10 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                                 }
                             });
                             setGraphic(pane);
+                            setAccessibleText(label.getText());
                         } else {
                             setGraphic(null);
+                            setAccessibleText(null);
                             removeButton.setOnAction(null);
                         }
                     }
@@ -445,6 +449,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                     {
                         label.setLayoutY(5);
                         removeButton.setId("icon-button");
+                        Accessibility.setName(removeButton, Res.get("shared.remove"));
                         AnchorPane.setRightAnchor(removeButton, -30d);
                     }
 
@@ -465,8 +470,10 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                                 }
                             });
                             setGraphic(pane);
+                            setAccessibleText(label.getText());
                         } else {
                             setGraphic(null);
+                            setAccessibleText(null);
                             removeButton.setOnAction(null);
                         }
                     }

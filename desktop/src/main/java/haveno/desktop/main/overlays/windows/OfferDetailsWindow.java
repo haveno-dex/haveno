@@ -49,10 +49,12 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.Navigation;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.TextFieldWithCopyIcon;
 import haveno.desktop.main.offer.OfferViewModelUtil;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.editor.PasswordPopup;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
@@ -364,8 +366,9 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.COMPACT_GROUP_DISTANCE);
-        addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
-                Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
+        Tuple2<Label, TextFieldWithCopyIcon> offerIdTuple = addConfirmationLabelTextFieldWithCopyIcon(gridPane, rowIndex,
+                Res.get("shared.offerId"), offer.getId(), Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
+        Accessibility.setHelp(offerIdTuple.second, Accessibility.spellOut(offer.getId()));
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextFieldWithCopyIcon(gridPane, ++rowIndex, Res.get("offerDetailsWindow.makersOnion"),
                 offer.getMakerNodeAddress().getFullAddress());

@@ -695,6 +695,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                     field.setOnAction(event -> tradeDetailsWindow.show(trade));
                                     field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                 }
+                                Accessibility.setName(field, Accessibility.spellOut(trade.getShortId()));
                                 setGraphic(field);
                             }
                         };

@@ -30,6 +30,7 @@ import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.UnlockDisputeAgentRegistrationWindow;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Layout;
@@ -159,6 +160,7 @@ public abstract class AgentRegistrationView<R extends DisputeAgent, T extends Ag
                     {
                         label.setLayoutY(5);
                         removeButton.setId("icon-button");
+                        Accessibility.setName(removeButton, Res.get("shared.remove"));
                         AnchorPane.setRightAnchor(removeButton, 0d);
                     }
 
@@ -169,8 +171,10 @@ public abstract class AgentRegistrationView<R extends DisputeAgent, T extends Ag
                             label.setText(LanguageUtil.getDisplayName(item));
                             removeButton.setOnAction(e -> onRemoveLanguage(item));
                             setGraphic(pane);
+                            setAccessibleText(label.getText());
                         } else {
                             setGraphic(null);
+                            setAccessibleText(null);
                         }
                     }
                 };

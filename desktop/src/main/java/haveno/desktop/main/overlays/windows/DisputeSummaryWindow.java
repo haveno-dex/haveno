@@ -48,6 +48,7 @@ import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.Layout;
 import javafx.beans.binding.Bindings;
@@ -270,8 +271,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private void addInfoPane() {
         Contract contract = dispute.getContract();
         addTitledGroupBg(gridPane, ++rowIndex, 17, Res.get("disputeSummaryWindow.title")).getStyleClass().add("last");
-        addConfirmationLabelLabel(gridPane, rowIndex, Res.get("shared.tradeId"), dispute.getShortTradeId(),
-                Layout.TWICE_FIRST_ROW_DISTANCE);
+        Tuple2<Label, Label> tradeIdTuple = addConfirmationLabelLabel(gridPane, rowIndex, Res.get("shared.tradeId"),
+                dispute.getShortTradeId(), Layout.TWICE_FIRST_ROW_DISTANCE);
+        Accessibility.setName(tradeIdTuple.second, Accessibility.spellOut(dispute.getShortTradeId()));
         addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("disputeSummaryWindow.openDate"), DisplayUtils.formatDateTime(dispute.getOpeningDate()));
         if (dispute.isDisputeOpenerIsMaker()) {
             if (dispute.isDisputeOpenerIsBuyer())

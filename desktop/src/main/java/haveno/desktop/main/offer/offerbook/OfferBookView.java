@@ -77,6 +77,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.ComboBox;
@@ -681,7 +682,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         if (isSelected) {
             updateCurrencyComboBoxFromModel();
-            root.requestFocus();
+            Node focusOwner = root.getScene() == null ? null : root.getScene().getFocusOwner();
+            if (focusOwner == null || focusOwner.getAccessibleRole() != AccessibleRole.TAB_ITEM)
+                root.requestFocus(); // keep focus on a tab the user is navigating so screen readers announce it
             updateCreateOfferButton();
         }
         updateCreateOfferButton();

@@ -32,6 +32,7 @@ import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.list.FilterBox;
 import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import java.util.Comparator;
@@ -276,10 +277,12 @@ public class SignedOfferView extends ActivatableViewAndModel<VBox, SignedOffersV
 
                                 if (item != null && !empty) {
                                     setText(String.valueOf(item.getSignedOffer().getOfferId()));
+                                    setAccessibleText(Accessibility.spellOut(getText()));
                                     setGraphic(field);
                                 } else {
                                     setGraphic(null);
                                     setText("");
+                                    setAccessibleText(null);
                                     if (field != null)
                                         field.setOnAction(null);
                                 }

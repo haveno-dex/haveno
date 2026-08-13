@@ -344,6 +344,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     field = new HyperlinkWithIcon(item.getTradeId());
+                                    Accessibility.setName(field, Accessibility.spellOut(item.getTradeId()));
                                     field.setOnAction(event -> {
                                         Tradable tradable = item.getTradable();
                                         if (tradable instanceof Trade) {

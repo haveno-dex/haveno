@@ -38,6 +38,7 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import static haveno.desktop.util.DisplayUtils.getAccountWitnessDescription;
@@ -57,6 +58,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
@@ -139,8 +141,9 @@ public class ContractWindow extends Overlay<ContractWindow> {
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("contractWindow.title"));
-        addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.offerId"), offer.getId(),
-                Layout.TWICE_FIRST_ROW_DISTANCE);
+        Tuple2<Label, TextField> offerIdTuple = addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.offerId"),
+                offer.getId(), Layout.TWICE_FIRST_ROW_DISTANCE);
+        Accessibility.setHelp(offerIdTuple.second, Accessibility.spellOut(offer.getId()));
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("contractWindow.dates"),
                 DisplayUtils.formatDateTime(offer.getDate()) + " / " + DisplayUtils.formatDateTime(dispute.getTradeDate()));

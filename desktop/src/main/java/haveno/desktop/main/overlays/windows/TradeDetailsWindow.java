@@ -20,6 +20,7 @@ package haveno.desktop.main.overlays.windows;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.UserThread;
+import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -38,6 +39,7 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 
@@ -55,6 +57,8 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
@@ -203,8 +207,9 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.details"), Layout.COMPACT_GROUP_DISTANCE);
-        addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.tradeId"),
+        Tuple2<Label, TextField> tradeIdTuple = addConfirmationLabelTextField(gridPane, rowIndex, Res.get("shared.tradeId"),
                 trade.getId(), Layout.TWICE_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
+        Accessibility.setHelp(tradeIdTuple.second, Accessibility.spellOut(trade.getId()));
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeDate"),
                 DisplayUtils.formatDateTime(trade.getDate()));

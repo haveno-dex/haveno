@@ -12,6 +12,7 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Layout;
@@ -125,6 +126,7 @@ public abstract class PaymentAccountsView<R extends Node, M extends ActivatableW
                     {
                         label.setLayoutY(5);
                         removeButton.setId("icon-button");
+                        Accessibility.setName(removeButton, Res.get("shared.remove"));
                         AnchorPane.setRightAnchor(removeButton, 0d);
                     }
 
@@ -150,8 +152,10 @@ public abstract class PaymentAccountsView<R extends Node, M extends ActivatableW
 
                             removeButton.setOnAction(e -> onDeleteAccount(item));
                             setGraphic(pane);
+                            setAccessibleText(label.getText());
                         } else {
                             setGraphic(null);
+                            setAccessibleText(null);
                         }
                     }
                 };

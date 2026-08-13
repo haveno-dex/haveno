@@ -473,6 +473,7 @@ public class ChatView extends AnchorPane {
     
                                 // TODO There are still some cell rendering issues on updates
                                 setGraphic(messageAnchorPane);
+                                setAccessibleText(headerLabel.getText() + ". " + messageLabel.getText());
                             } else {
                                 if (sendMsgBusyAnimation != null && sendMsgBusyAnimationListener != null)
                                     sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
@@ -482,6 +483,7 @@ public class ChatView extends AnchorPane {
                                 copyLabel.setOnMouseClicked(null);
                                 messageLabel.setOnMouseClicked(null);
                                 setGraphic(null);
+                                setAccessibleText(null);
                             }
                         });
                     }

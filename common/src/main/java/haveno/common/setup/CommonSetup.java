@@ -33,6 +33,7 @@ import sun.misc.Signal;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -72,6 +73,9 @@ public class CommonSetup {
             } else if (throwable instanceof UnsupportedOperationException &&
                     "The system tray is not supported on the current platform.".equals(throwable.getMessage())) {
                 log.warn(throwable.getMessage());
+            } else if (throwable instanceof IndexOutOfBoundsException && Arrays.stream(throwable.getStackTrace())
+                    .anyMatch(element -> element.getClassName().startsWith("com.sun.glass.ui.mac.MacAccessible"))) {
+                log.warn("Ignoring JavaFX macOS accessibility bug (JDK-8235989): {}", throwable.getMessage());
             } else {
                 log.error("Uncaught Exception from thread {}, throwableClass={}, throwableMessage={}", Thread.currentThread().getName(), throwable.getClass(), throwable.getMessage());
                 log.error("Stack trace:\n" + ExceptionUtils.getStackTrace(throwable));

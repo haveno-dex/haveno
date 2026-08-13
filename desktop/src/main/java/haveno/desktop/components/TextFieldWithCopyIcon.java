@@ -105,6 +105,10 @@ public class TextFieldWithCopyIcon extends AnchorPane {
     // Getter/Setter
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public TextField getTextField() {
+        return textField;
+    }
+
     public String getText() {
         return text.get();
     }

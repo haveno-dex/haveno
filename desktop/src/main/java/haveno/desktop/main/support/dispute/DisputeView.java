@@ -1160,6 +1160,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                     Optional<Trade> tradeOptional = tradeManager.getOpenTrade(item.getTradeId());
                                     if (tradeOptional.isPresent()) {
                                         field = new HyperlinkWithIcon(item.getShortTradeId());
+                                        Accessibility.setName(field, Accessibility.spellOut(item.getShortTradeId()));
                                         field.setMouseTransparent(false);
                                         field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                         field.setOnAction(event -> tradeDetailsWindow.show(tradeOptional.get()));
@@ -1167,6 +1168,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                         setText("");
                                     } else {
                                         setText(item.getShortTradeId());
+                                        setAccessibleText(Accessibility.spellOut(item.getShortTradeId()));
                                         setGraphic(null);
                                         if (field != null)
                                             field.setOnAction(null);
@@ -1174,6 +1176,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                 } else {
                                     setGraphic(null);
                                     setText("");
+                                    setAccessibleText(null);
                                     if (field != null)
                                         field.setOnAction(null);
                                 }

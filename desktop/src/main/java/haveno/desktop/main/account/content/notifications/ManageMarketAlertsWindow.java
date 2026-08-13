@@ -26,6 +26,7 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -177,6 +178,7 @@ public class ManageMarketAlertsWindow extends Overlay<ManageMarketAlertsWindow> 
                             {
                                 removeButton.setId("icon-button");
                                 removeButton.setTooltip(new Tooltip(Res.get("shared.remove")));
+                                Accessibility.nameFromTooltip(removeButton);
                             }
 
                             @Override

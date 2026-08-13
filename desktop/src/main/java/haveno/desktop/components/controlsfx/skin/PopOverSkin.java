@@ -26,8 +26,10 @@
  */
 package haveno.desktop.components.controlsfx.skin;
 
+import haveno.core.locale.Res;
 import haveno.desktop.components.controlsfx.control.PopOver;
 import haveno.desktop.components.controlsfx.control.PopOver.ArrowLocation;
+import haveno.desktop.util.Accessibility;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
@@ -136,6 +138,7 @@ public class PopOverSkin implements Skin<PopOver> {
         closeIcon.getStyleClass().add("icon"); //$NON-NLS-1$
         closeIcon.setAlignment(CENTER_LEFT);
         closeIcon.getGraphic().setOnMouseClicked(evt -> popOver.hide());
+        Accessibility.asButton(closeIcon.getGraphic(), Res.get("shared.close"));
 
         titlePane = new StackPane();
         titlePane.getChildren().add(title);

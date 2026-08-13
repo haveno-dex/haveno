@@ -17,11 +17,13 @@
 
 package haveno.desktop.components;
 
+import haveno.common.util.Utilities;
 import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.GlyphIcons;
 import haveno.desktop.util.FormBuilder;
 import javafx.geometry.Insets;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Hyperlink;
@@ -32,6 +34,11 @@ import lombok.Getter;
 public class HyperlinkWithIcon extends Hyperlink {
     @Getter
     private Node icon;
+
+    {
+        // mac exposes no title for links, leaving them unreadable; announce as a titled button instead
+        if (Utilities.isOSX()) setAccessibleRole(AccessibleRole.BUTTON);
+    }
 
     public HyperlinkWithIcon(String text) {
         this(text, FontAwesomeIcon.INFO_CIRCLE);
