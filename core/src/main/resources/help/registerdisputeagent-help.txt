@@ -1,0 +1,28 @@
+registerdisputeagent
+
+NAME
+----
+registerdisputeagent - register a dispute agent
+
+SYNOPSIS
+--------
+registerdisputeagent
+		--dispute-agent-type=<value>
+		--registration-key=<value>
+
+DESCRIPTION
+-----------
+Registers a dispute agent on the server.  Only useful for local development.
+
+OPTIONS
+-------
+--dispute-agent-type
+		The type of dispute agent (arbitrator|mediator|refundagent).
+
+--registration-key
+		The registration key for the dispute agent.
+
+EXAMPLES
+--------
+Register a test arbitrator:
+$ ./haveno-cli --password=xyz --port=9998 registerdisputeagent --dispute-agent-type=arbitrator --registration-key=<registration-key>

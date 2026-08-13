@@ -1,0 +1,24 @@
+deletepaymentacct
+
+NAME
+----
+deletepaymentacct - delete a payment account
+
+SYNOPSIS
+--------
+deletepaymentacct
+		--payment-account-id=<value>
+
+DESCRIPTION
+-----------
+Deletes a saved payment account.
+
+OPTIONS
+-------
+--payment-account-id
+		The id of the payment account, from the getpaymentaccts method.
+
+EXAMPLES
+--------
+Delete a payment account:
+$ ./haveno-cli --password=xyz --port=9998 deletepaymentacct --payment-account-id=<payment-account-id>

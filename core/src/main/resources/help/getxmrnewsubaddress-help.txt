@@ -1,0 +1,18 @@
+getxmrnewsubaddress
+
+NAME
+----
+getxmrnewsubaddress - get new XMR wallet subaddress
+
+SYNOPSIS
+--------
+getxmrnewsubaddress
+
+DESCRIPTION
+-----------
+Creates and returns a new receiving subaddress in the Haveno XMR wallet.
+
+EXAMPLES
+--------
+Create a new subaddress:
+$ ./haveno-cli --password=xyz --port=9998 getxmrnewsubaddress

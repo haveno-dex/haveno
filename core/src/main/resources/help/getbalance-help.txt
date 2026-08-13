@@ -2,29 +2,24 @@ getbalance
 
 NAME
 ----
-getbalance - get wallet balance(s)
+getbalance - get wallet balances
 
 SYNOPSIS
 --------
 getbalance
-		[--currency-code=<btc>]
+		--currency-code=<value>
 
 DESCRIPTION
 -----------
-Returns full balance information for Haveno XMR wallets.
+Returns full balance information for the Haveno XMR wallet.
+All amounts are shown in XMR.
 
 OPTIONS
 -------
---currency-code=<btc>
-		The three letter Haveno wallet crypto currency code.
+--currency-code
+		An optional three letter Haveno wallet crypto currency code (xmr).
 
 EXAMPLES
 --------
 Show full XMR wallet balance information:
 $ ./haveno-cli --password=xyz --port=9998 getbalance
-
-Show full wallet balance information:
-$ ./haveno-cli --password=xyz --port=9998 getbalance --currency-code=bsq
-
-Show full XMR wallet balance information:
-$ ./haveno-cli --password=xyz --port=9998 getbalance --currency-code=btc

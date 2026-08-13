@@ -1,0 +1,24 @@
+opendispute
+
+NAME
+----
+opendispute - open a dispute for a trade
+
+SYNOPSIS
+--------
+opendispute
+		--trade-id=<value>
+
+DESCRIPTION
+-----------
+Opens a dispute with the arbitrator for the trade with the given id.
+
+OPTIONS
+-------
+--trade-id
+		The id of the trade.
+
+EXAMPLES
+--------
+Open a dispute:
+$ ./haveno-cli --password=xyz --port=9998 opendispute --trade-id=<trade-id>

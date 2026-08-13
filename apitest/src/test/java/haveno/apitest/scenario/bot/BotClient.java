@@ -60,7 +60,7 @@ public class BotClient {
      * @return double
      */
     public double getCurrentBTCMarketPrice(String currencyCode) {
-        return grpcClient.getBtcPrice(currencyCode);
+        return grpcClient.getXmrPrice(currencyCode);
     }
 
     /**

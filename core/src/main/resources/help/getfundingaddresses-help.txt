@@ -2,7 +2,7 @@ getfundingaddresses
 
 NAME
 ----
-getfundingaddresses - list XMR receiving address
+getfundingaddresses - get wallet funding addresses
 
 SYNOPSIS
 --------
@@ -10,8 +10,9 @@ getfundingaddresses
 
 DESCRIPTION
 -----------
-Returns a list of receiving XMR addresses.
+Returns a list of receiving addresses in the Haveno server wallet, with their balances.
 
 EXAMPLES
 --------
+Show funding addresses:
 $ ./haveno-cli --password=xyz --port=9998 getfundingaddresses

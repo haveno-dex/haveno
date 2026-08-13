@@ -149,7 +149,7 @@ public class CreateXMROffersTest extends AbstractOfferTest {
     @Order(3)
     public void testCreatePriceMarginBasedBuy1BTCOfferWithTriggerPrice() {
         double priceMarginPctInput = 1.00;
-        double mktPriceAsDouble = aliceClient.getBtcPrice(XMR);
+        double mktPriceAsDouble = aliceClient.getXmrPrice(XMR);
         String triggerPrice = calcPriceAsString(mktPriceAsDouble, Double.parseDouble("-0.001"), 8);
         var newOffer = aliceClient.createMarketBasedPricedOffer(BUY.name(),
                 XMR,

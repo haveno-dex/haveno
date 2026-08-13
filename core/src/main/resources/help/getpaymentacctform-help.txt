@@ -2,43 +2,25 @@ getpaymentacctform
 
 NAME
 ----
-getpaymentacctform - get a blank payment account form for a payment method
+getpaymentacctform - get a payment account form
 
 SYNOPSIS
 --------
 getpaymentacctform
-		--payment-method-id=<payment-method-id>
+		--payment-method-id=<value>
 
 DESCRIPTION
 -----------
-Returns a new, blank payment account form as a json file, e.g.,
+Returns a blank json payment account form for the given payment-method-id, and saves
+it to the current directory.  Edit the file, then use it as the argument to a
+createpaymentacct command.
 
-    {
-      "_COMMENTS_": [
-        "Do not manually edit the paymentMethodId field.",
-        "Edit the salt field only if you are recreating a payment account on a new installation and wish to preserve the account age."
-      ],
-      "paymentMethodId": "ZELLE",
-      "accountName": "your accountname",
-      "emailOrMobileNr": "your emailormobilenr",
-      "holderName": "your holdername",
-      "salt": ""
-    }
-
-This form is manually edited, and used as a parameter to the createpaymentacct command,
-which creates the new payment account.
+OPTIONS
+-------
+--payment-method-id
+		The id of the payment method, from the getpaymentmethods method.
 
 EXAMPLES
 --------
-To create a new ZELLE payment account,  find the payment-method-id for
-the getpaymentacctform command:
-$ ./haveno-cli --password=xyz --port=9998 getpaymentmethods
-
-Get a new, blank ZELLE payment account form:
-$ ./haveno-cli --password=xyz --port=9998 getpaymentacctform --payment-method-id=ZELLE_ID
-
-The previous command created a json file named zelle_1610818248040.json.  The timestamp
-in the file name is to ensure each generated file is uniquely named (you can rename the file).
-
-Manually edit the json file, and pass the file's path to the createpaymentacct command:
-$ ./haveno-cli --password=xyz --port=9998 createpaymentacct --payment-account-form=zelle_1610818248040.json
+Get a payment account form for SEPA:
+$ ./haveno-cli --password=xyz --port=9998 getpaymentacctform --payment-method-id=SEPA

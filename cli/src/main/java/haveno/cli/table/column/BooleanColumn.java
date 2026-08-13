@@ -115,7 +115,7 @@ public class BooleanColumn extends AbstractColumn<BooleanColumn, Boolean> {
 
     @Override
     public StringColumn asStringColumn() {
-        // We cached the formatted satoshi strings, but we did
+        // We cached the formatted boolean strings, but we did
         // not know how much padding each string needed until now.
         IntStream.range(0, stringColumn.getRows().size()).forEach(rowIndex -> {
             String unjustified = stringColumn.getRow(rowIndex);

@@ -1,0 +1,42 @@
+resolvedispute
+
+NAME
+----
+resolvedispute - resolve a dispute (arbitrator only)
+
+SYNOPSIS
+--------
+resolvedispute
+		--trade-id=<value>
+		--winner=<value>
+		--reason=<value>
+		--summary-notes=<value>
+		--custom-payout-amount=<value>
+
+DESCRIPTION
+-----------
+Resolves a dispute, paying out the trade funds.  Can only be called by the
+trade's arbitrator.
+
+OPTIONS
+-------
+--trade-id
+		The id of the disputed trade.
+
+--winner
+		The winner of the dispute (buyer|seller).
+
+--reason
+		The optional reason for the dispute resolution
+		(bank_problems|no_reply|scam|protocol_violation|other|...).  The default is other.
+
+--summary-notes
+		Optional summary notes.  Multi word notes must be double quoted.
+
+--custom-payout-amount
+		An optional custom XMR payout amount to the winner.
+
+EXAMPLES
+--------
+Resolve a dispute in favor of the buyer:
+$ ./haveno-cli --password=xyz --port=9998 resolvedispute --trade-id=<trade-id> --winner=buyer --reason=no_reply --summary-notes="seller AWOL"

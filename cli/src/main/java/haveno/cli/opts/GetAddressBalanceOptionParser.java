@@ -24,7 +24,7 @@ import static haveno.cli.opts.OptLabel.OPT_ADDRESS;
 
 public class GetAddressBalanceOptionParser extends AbstractMethodOptionParser implements MethodOpts {
 
-    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "wallet btc address")
+    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "wallet xmr address")
             .withRequiredArg();
 
     public GetAddressBalanceOptionParser(String[] args) {

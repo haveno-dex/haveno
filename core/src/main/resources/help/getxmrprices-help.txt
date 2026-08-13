@@ -1,0 +1,18 @@
+getxmrprices
+
+NAME
+----
+getxmrprices - get current market XMR prices
+
+SYNOPSIS
+--------
+getxmrprices
+
+DESCRIPTION
+-----------
+Returns the current market XMR price for all supported currencies.
+
+EXAMPLES
+--------
+Get all current XMR market prices:
+$ ./haveno-cli --password=xyz --port=9998 getxmrprices

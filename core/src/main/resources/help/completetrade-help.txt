@@ -1,0 +1,25 @@
+completetrade
+
+NAME
+----
+completetrade - complete a trade
+
+SYNOPSIS
+--------
+completetrade
+		--trade-id=<value>
+
+DESCRIPTION
+-----------
+Complete a trade after the payout is unlocked, keeping the payout in the Haveno wallet.
+The trade is moved to the closed trades list.
+
+OPTIONS
+-------
+--trade-id
+		The id of the trade.
+
+EXAMPLES
+--------
+Complete a trade:
+$ ./haveno-cli --password=xyz --port=9998 completetrade --trade-id=<trade-id>

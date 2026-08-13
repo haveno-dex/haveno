@@ -1,28 +1,27 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.cli.table.column;
 
-import static haveno.cli.CurrencyFormat.formatBsq;
-import static haveno.cli.CurrencyFormat.formatSatoshis;
+import static haveno.cli.CurrencyFormat.formatPiconeros;
 import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 
 /**
- * For displaying a mix of BSQ and BTC trade fees with appropriate precision.
+ * For displaying XMR trade fees with appropriate precision.
  */
 public class MixedTradeFeeColumn extends LongColumn {
 
@@ -32,15 +31,9 @@ public class MixedTradeFeeColumn extends LongColumn {
 
     @Override
     public void addRow(Long value) {
-        throw new UnsupportedOperationException("use public void addRow(Long value, boolean isBsq) instead");
-    }
-
-    public void addRow(Long value, boolean isBsq) {
         rows.add(value);
 
-        String s = isBsq
-                ? formatBsq(value) + " BSQ"
-                : formatSatoshis(value) + " BTC";
+        String s = formatPiconeros(value) + " XMR";
         stringColumn.addRow(s);
 
         if (isNewMaxWidth.test(s))
@@ -49,7 +42,7 @@ public class MixedTradeFeeColumn extends LongColumn {
 
     @Override
     public String getRowAsFormattedString(int rowIndex) {
-        return getRow(rowIndex).toString();
+        return formatPiconeros(getRow(rowIndex)) + " XMR";
     }
 
     @Override

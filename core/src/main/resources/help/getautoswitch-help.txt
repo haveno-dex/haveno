@@ -1,0 +1,19 @@
+getautoswitch
+
+NAME
+----
+getautoswitch - get whether connection auto switching is enabled
+
+SYNOPSIS
+--------
+getautoswitch
+
+DESCRIPTION
+-----------
+Returns true if automatically switching to the best available monero daemon
+connection is enabled, else false.
+
+EXAMPLES
+--------
+Get the auto switch setting:
+$ ./haveno-cli --password=xyz --port=9998 getautoswitch

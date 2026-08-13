@@ -2,31 +2,31 @@ gettrade
 
 NAME
 ----
-gettrade - get a buy or sell XMR trade
+gettrade - get a trade
 
 SYNOPSIS
 --------
 gettrade
-		--trade-id=<trade-id>
-		[--show-contract=<true|false>]
+		--trade-id=<value>
+		--show-contract=<value>
 
 DESCRIPTION
 -----------
-List details of a trade with the given trade-id.  If the trade has not yet been completed,
-the details can inform each side of the trade of the current phase of the trade protocol.
+Returns a summary of a trade with the given id, or the trade's full contract if
+the show-contract option is used.
 
 OPTIONS
 -------
 --trade-id
-		The ID of the trade (the full offer-id).
+		The id of the trade.
 
 --show-contract
-		Optionally display the trade's full contract details in json format.  The default = false.
+		Optionally display the trade's full contract as json (true|false, default false).
 
 EXAMPLES
 --------
-To see the summary of a trade with ID 83e8b2e2-51b6-4f39-a748-3ebd29c22aea:
-$ ./haveno-cli --password=xyz --port=9998 gettrade --trade-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea
+Get a trade summary:
+$ ./haveno-cli --password=xyz --port=9998 gettrade --trade-id=<trade-id>
 
-To see the full contract for a trade with ID 83e8b2e2-51b6-4f39-a748-3ebd29c22aea:
-$ ./haveno-cli --password=xyz --port=9998 gettrade --trade-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea --show-contract=true
+Get a trade contract:
+$ ./haveno-cli --password=xyz --port=9998 gettrade --trade-id=<trade-id> --show-contract=true

@@ -1,0 +1,36 @@
+startxmrnode
+
+NAME
+----
+startxmrnode - start the local monero node
+
+SYNOPSIS
+--------
+startxmrnode
+		--blockchain-path=<value>
+		--bootstrap-url=<value>
+		--startup-flags=<value>
+		--sync-blockchain=<value>
+
+DESCRIPTION
+-----------
+Starts the local monero node with the given settings.
+
+OPTIONS
+-------
+--blockchain-path
+		The optional path to the monero blockchain.
+
+--bootstrap-url
+		The optional url of a bootstrap monero daemon.
+
+--startup-flags
+		An optional comma delimited list of monerod startup flags.
+
+--sync-blockchain
+		Whether to sync the blockchain (true|false, default true).
+
+EXAMPLES
+--------
+Start the local monero node:
+$ ./haveno-cli --password=xyz --port=9998 startxmrnode

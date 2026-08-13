@@ -1,0 +1,18 @@
+gettradestatistics
+
+NAME
+----
+gettradestatistics - get published trade statistics
+
+SYNOPSIS
+--------
+gettradestatistics
+
+DESCRIPTION
+-----------
+Returns the trade statistics published on the Haveno network.
+
+EXAMPLES
+--------
+Get trade statistics:
+$ ./haveno-cli --password=xyz --port=9998 gettradestatistics

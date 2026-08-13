@@ -1,0 +1,18 @@
+getdisputes
+
+NAME
+----
+getdisputes - get all disputes
+
+SYNOPSIS
+--------
+getdisputes
+
+DESCRIPTION
+-----------
+Returns all disputes.
+
+EXAMPLES
+--------
+Get all disputes:
+$ ./haveno-cli --password=xyz --port=9998 getdisputes

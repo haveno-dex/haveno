@@ -1,18 +1,18 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.cli;
@@ -44,32 +44,25 @@ public class CurrencyFormat {
     // Formats numbers for internal use, i.e., grpc request parameters.
     private static final DecimalFormat INTERNAL_FIAT_DECIMAL_FORMAT = new DecimalFormat("##############0.0000");
 
-    static final BigDecimal SATOSHI_DIVISOR = new BigDecimal(100_000_000);
-    static final DecimalFormat SATOSHI_FORMAT = new DecimalFormat("###,##0.00000000", DECIMAL_FORMAT_SYMBOLS);
-    static final DecimalFormat BTC_FORMAT = new DecimalFormat("###,##0.########", DECIMAL_FORMAT_SYMBOLS);
-    static final DecimalFormat BTC_TX_FEE_FORMAT = new DecimalFormat("###,###,##0", DECIMAL_FORMAT_SYMBOLS);
+    // XMR amounts are held in atomic units (piconeros):  1 XMR = 10^12 piconeros.
+    static final BigDecimal PICONEROS_DIVISOR = new BigDecimal(1_000_000_000_000L);
+    static final DecimalFormat PICONEROS_FORMAT = new DecimalFormat("###,##0.000000000000", DECIMAL_FORMAT_SYMBOLS);
+    // Always print at least one fraction digit so whole numbers can be zero padded safely.
+    static final DecimalFormat XMR_FORMAT = new DecimalFormat("###,##0.0###########", DECIMAL_FORMAT_SYMBOLS);
 
-    static final BigDecimal BSQ_SATOSHI_DIVISOR = new BigDecimal(100);
-    static final DecimalFormat BSQ_FORMAT = new DecimalFormat("###,###,###,##0.00", DECIMAL_FORMAT_SYMBOLS);
-
-    public static String formatSatoshis(String sats) {
+    public static String formatPiconeros(String piconeros) {
         //noinspection BigDecimalMethodWithoutRoundingCalled
-        return SATOSHI_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
+        return PICONEROS_FORMAT.format(new BigDecimal(piconeros).divide(PICONEROS_DIVISOR));
     }
 
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
-    public static String formatSatoshis(long sats) {
-        return SATOSHI_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
+    public static String formatPiconeros(long piconeros) {
+        return PICONEROS_FORMAT.format(new BigDecimal(piconeros).divide(PICONEROS_DIVISOR));
     }
 
     @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
-    public static String formatBtc(long sats) {
-        return BTC_FORMAT.format(new BigDecimal(sats).divide(SATOSHI_DIVISOR));
-    }
-
-    @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
-    public static String formatBsq(long sats) {
-        return BSQ_FORMAT.format(new BigDecimal(sats).divide(BSQ_SATOSHI_DIVISOR));
+    public static String formatXmr(long piconeros) {
+        return XMR_FORMAT.format(new BigDecimal(piconeros).divide(PICONEROS_DIVISOR));
     }
 
     public static String formatInternalFiatPrice(BigDecimal price) {
@@ -81,6 +74,12 @@ public class CurrencyFormat {
     public static String formatInternalFiatPrice(double price) {
         US_LOCALE_NUMBER_FORMAT.setMinimumFractionDigits(4);
         US_LOCALE_NUMBER_FORMAT.setMaximumFractionDigits(4);
+        return US_LOCALE_NUMBER_FORMAT.format(price);
+    }
+
+    public static String formatMarketPrice(double price) {
+        US_LOCALE_NUMBER_FORMAT.setMinimumFractionDigits(4);
+        US_LOCALE_NUMBER_FORMAT.setMaximumFractionDigits(8);
         return US_LOCALE_NUMBER_FORMAT.format(price);
     }
 
@@ -98,18 +97,14 @@ public class CurrencyFormat {
         return US_LOCALE_NUMBER_FORMAT.format((double) volume / 10_000);
     }
 
-    public static long toSatoshis(String btc) {
-        if (btc.startsWith("-"))
-            throw new IllegalArgumentException(format("'%s' is not a positive number", btc));
+    public static long toPiconeros(String xmr) {
+        if (xmr.startsWith("-"))
+            throw new IllegalArgumentException(format("'%s' is not a positive number", xmr));
 
         try {
-            return new BigDecimal(btc).multiply(SATOSHI_DIVISOR).longValue();
+            return new BigDecimal(xmr).multiply(PICONEROS_DIVISOR).longValue();
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(format("'%s' is not a number", btc));
+            throw new IllegalArgumentException(format("'%s' is not a number", xmr));
         }
-    }
-
-    public static String formatFeeSatoshis(long sats) {
-        return BTC_TX_FEE_FORMAT.format(BigDecimal.valueOf(sats));
     }
 }

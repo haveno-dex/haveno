@@ -1,0 +1,24 @@
+createaccount
+
+NAME
+----
+createaccount - create a Haveno account
+
+SYNOPSIS
+--------
+createaccount
+		--account-password=<value>
+
+DESCRIPTION
+-----------
+Creates and opens a new Haveno account protected by the given password.
+
+OPTIONS
+-------
+--account-password
+		The password protecting the new Haveno account.
+
+EXAMPLES
+--------
+Create an account:
+$ ./haveno-cli --password=xyz --port=9998 createaccount --account-password=abc

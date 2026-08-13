@@ -1,0 +1,36 @@
+addconnection
+
+NAME
+----
+addconnection - add a monero daemon connection
+
+SYNOPSIS
+--------
+addconnection
+		--url=<value>
+		--connection-user=<value>
+		--connection-password=<value>
+		--priority=<value>
+
+DESCRIPTION
+-----------
+Adds a monero daemon url to the list of connections the server can use.
+
+OPTIONS
+-------
+--url
+		The url of the monero daemon.
+
+--connection-user
+		The optional username to authenticate with the monero daemon.
+
+--connection-password
+		The optional password to authenticate with the monero daemon.
+
+--priority
+		The optional connection priority.
+
+EXAMPLES
+--------
+Add a monero daemon connection:
+$ ./haveno-cli --password=xyz --port=9998 addconnection --url=http://127.0.0.1:18081

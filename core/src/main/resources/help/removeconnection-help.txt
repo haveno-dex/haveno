@@ -1,0 +1,24 @@
+removeconnection
+
+NAME
+----
+removeconnection - remove a monero daemon connection
+
+SYNOPSIS
+--------
+removeconnection
+		--url=<value>
+
+DESCRIPTION
+-----------
+Removes a monero daemon url from the list of connections the server can use.
+
+OPTIONS
+-------
+--url
+		The url of the monero daemon.
+
+EXAMPLES
+--------
+Remove a monero daemon connection:
+$ ./haveno-cli --password=xyz --port=9998 removeconnection --url=http://127.0.0.1:18081

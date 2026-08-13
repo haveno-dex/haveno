@@ -1,0 +1,18 @@
+isxmrnodeonline
+
+NAME
+----
+isxmrnodeonline - check if the local monero node is running
+
+SYNOPSIS
+--------
+isxmrnodeonline
+
+DESCRIPTION
+-----------
+Returns true if the local monero node is running, else false.
+
+EXAMPLES
+--------
+Check if the local monero node is running:
+$ ./haveno-cli --password=xyz --port=9998 isxmrnodeonline

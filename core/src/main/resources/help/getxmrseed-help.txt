@@ -1,0 +1,19 @@
+getxmrseed
+
+NAME
+----
+getxmrseed - get XMR wallet seed
+
+SYNOPSIS
+--------
+getxmrseed
+
+DESCRIPTION
+-----------
+Returns the mnemonic seed of the Haveno XMR wallet.  Keep it secret;  anyone with
+the seed can spend the wallet funds.
+
+EXAMPLES
+--------
+Show the wallet seed:
+$ ./haveno-cli --password=xyz --port=9998 getxmrseed

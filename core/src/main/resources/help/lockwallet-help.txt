@@ -2,7 +2,7 @@ lockwallet
 
 NAME
 ----
-lockwallet - lock Haveno wallet
+lockwallet - lock the wallet
 
 SYNOPSIS
 --------
@@ -10,9 +10,9 @@ lockwallet
 
 DESCRIPTION
 -----------
-Locks an unlocked wallet before an unlockwallet timeout expires.
+Removes the wallet password from memory, locking the wallet.
 
 EXAMPLES
 --------
-Immediately lock an encrypted wallet set to automatically lock in the future:
+Lock the wallet:
 $ ./haveno-cli --password=xyz --port=9998 lockwallet

@@ -1,0 +1,18 @@
+isappinitialized
+
+NAME
+----
+isappinitialized - check if the server application is initialized
+
+SYNOPSIS
+--------
+isappinitialized
+
+DESCRIPTION
+-----------
+Returns true if the server application is fully initialized, else false.
+
+EXAMPLES
+--------
+Check if the application is initialized:
+$ ./haveno-cli --password=xyz --port=9998 isappinitialized

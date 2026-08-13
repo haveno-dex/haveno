@@ -1,0 +1,18 @@
+getconnections
+
+NAME
+----
+getconnections - get all monero daemon connections
+
+SYNOPSIS
+--------
+getconnections
+
+DESCRIPTION
+-----------
+Returns all monero daemon connections the server can use.
+
+EXAMPLES
+--------
+Get all connections:
+$ ./haveno-cli --password=xyz --port=9998 getconnections

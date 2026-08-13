@@ -2,7 +2,7 @@ getpaymentaccts
 
 NAME
 ----
-getpaymentaccts - list user payment accounts
+getpaymentaccts - get payment accounts
 
 SYNOPSIS
 --------
@@ -10,8 +10,9 @@ getpaymentaccts
 
 DESCRIPTION
 -----------
-Returns the list of user payment accounts.
+Returns all saved payment accounts.
 
 EXAMPLES
 --------
+Get payment accounts:
 $ ./haveno-cli --password=xyz --port=9998 getpaymentaccts

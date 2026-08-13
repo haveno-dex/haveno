@@ -1,0 +1,28 @@
+sendchatmessage
+
+NAME
+----
+sendchatmessage - send a trade chat message
+
+SYNOPSIS
+--------
+sendchatmessage
+		--trade-id=<value>
+		--message=<value>
+
+DESCRIPTION
+-----------
+Sends a chat message to the trade peer.
+
+OPTIONS
+-------
+--trade-id
+		The id of the trade.
+
+--message
+		The chat message.  A multi word message must be double quoted.
+
+EXAMPLES
+--------
+Send a trade chat message:
+$ ./haveno-cli --password=xyz --port=9998 sendchatmessage --trade-id=<trade-id> --message="hello"

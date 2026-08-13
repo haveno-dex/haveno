@@ -1,0 +1,18 @@
+getxmrnodesettings
+
+NAME
+----
+getxmrnodesettings - get local monero node settings
+
+SYNOPSIS
+--------
+getxmrnodesettings
+
+DESCRIPTION
+-----------
+Returns the current settings of the local monero node.
+
+EXAMPLES
+--------
+Get local monero node settings:
+$ ./haveno-cli --password=xyz --port=9998 getxmrnodesettings

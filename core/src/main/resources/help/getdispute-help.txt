@@ -1,0 +1,24 @@
+getdispute
+
+NAME
+----
+getdispute - get the dispute for a trade
+
+SYNOPSIS
+--------
+getdispute
+		--trade-id=<value>
+
+DESCRIPTION
+-----------
+Returns the dispute and its chat messages for the trade with the given id.
+
+OPTIONS
+-------
+--trade-id
+		The id of the disputed trade.
+
+EXAMPLES
+--------
+Get a dispute:
+$ ./haveno-cli --password=xyz --port=9998 getdispute --trade-id=<trade-id>

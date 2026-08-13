@@ -2,20 +2,27 @@ unlockwallet
 
 NAME
 ----
-unlockwallet - unlock an encrypted Haveno wallet
+unlockwallet - unlock the wallet
 
 SYNOPSIS
 --------
 unlockwallet
-        --wallet-password=<wallet-password>
-        --timeout=<seconds>
+		--wallet-password=<value>
+		--timeout=<value>
 
 DESCRIPTION
 -----------
-Unlocks an encrypted Haveno wallet for a specified number of seconds.
-The timeout can be manually overridden with the lockwallet command.
+Stores the wallet password in memory for a number of seconds, unlocking the wallet.
+
+OPTIONS
+-------
+--wallet-password
+		The wallet password.
+
+--timeout
+		The number of seconds the wallet password is held in memory.
 
 EXAMPLES
 --------
-Unlock a wallet encrypted with the wallet-password "mypassword" for 30 seconds:
-$ ./haveno-cli --password=xyz --port=9998 unlockwallet --wallet-password=mypassword --timeout=30
+Unlock the wallet for 5 minutes:
+$ ./haveno-cli --password=xyz --port=9998 unlockwallet --wallet-password=abc --timeout=300

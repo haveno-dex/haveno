@@ -1,3 +1,20 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package haveno.cli;
 
 import static java.lang.System.out;
@@ -9,9 +26,10 @@ import static java.util.Arrays.stream;
 
  Prerequisites:
 
- - Run `./haveno-apitest --apiPassword=xyz --supportingApps=bitcoind,seednode,arbdaemon,alicedaemon,bobdaemon --shutdownAfterTests=false --enableHavenoDebugging=false`
+ - Run `./haveno-apitest --apiPassword=xyz --supportingApps=seednode,arbdaemon,alicedaemon,bobdaemon --shutdownAfterTests=false --enableHavenoDebugging=false`
 
- Note:  Test harness will not automatically generate BTC blocks to confirm transactions.
+ - Create a BCH payment account with Alice's CLI:
+   createcryptopaymentacct --account-name="BCH Account" --currency-code=bch --address=<bch-address>
 
  Never run on mainnet!
  */
@@ -20,26 +38,27 @@ public class CreateOfferSmokeTest extends AbstractCliTest {
 
     public static void main(String[] args) {
         CreateOfferSmokeTest test = new CreateOfferSmokeTest();
-        test.createBsqSwapOffer("buy");
-        test.createBsqSwapOffer("sell");
+        test.createBchOffer("buy");
+        test.createBchOffer("sell");
     }
 
-    private void createBsqSwapOffer(String direction) {
-        String[] args = createBsqSwapOfferCommand(direction, "0.01", "0.005", "0.00005");
+    private void createBchOffer(String direction) {
+        var paymentAccountId = getBchPaymentAccountId();
+        String[] args = createBchOfferCommand(paymentAccountId, direction, "0.5", "0.25", "480.50");
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
         out.println();
         CliMain.main(args);
         out.println("<<<<<");
 
-        args = getMyOffersCommand(direction, "bsq");
+        args = getMyOffersCommand(direction, "bch");
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
         out.println();
         CliMain.main(args);
         out.println("<<<<<");
 
-        args = getAvailableOffersCommand(direction, "bsq");
+        args = getAvailableOffersCommand(direction, "bch");
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
         out.println();
@@ -47,20 +66,30 @@ public class CreateOfferSmokeTest extends AbstractCliTest {
         out.println("<<<<<");
     }
 
-    private String[] createBsqSwapOfferCommand(String direction,
-                                               String amount,
-                                               String minAmount,
-                                               String fixedPrice) {
+    private String getBchPaymentAccountId() {
+        return aliceClient.getPaymentAccounts().stream()
+                .filter(a -> a.getSelectedTradeCurrency().getCode().equals("BCH"))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("no BCH payment account found, create one first"))
+                .getId();
+    }
+
+    private String[] createBchOfferCommand(String paymentAccountId,
+                                           String direction,
+                                           String amount,
+                                           String minAmount,
+                                           String fixedPrice) {
         return new String[]{
                 PASSWORD_OPT,
                 ALICE_PORT_OPT,
                 "createoffer",
-                "--swap=true",
+                "--payment-account-id=" + paymentAccountId,
                 "--direction=" + direction,
-                "--currency-code=bsq",
+                "--currency-code=bch",
                 "--amount=" + amount,
                 "--min-amount=" + minAmount,
-                "--fixed-price=" + fixedPrice
+                "--fixed-price=" + fixedPrice,
+                "--security-deposit=15.0"
         };
     }
 }

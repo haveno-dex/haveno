@@ -30,7 +30,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static haveno.cli.CurrencyFormat.formatSatoshis;
+import static haveno.cli.CurrencyFormat.formatPiconeros;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_BUYER_DEPOSIT;
 import static haveno.cli.table.builder.TableBuilderConstants.COL_HEADER_SELLER_DEPOSIT;
 import static haveno.cli.table.builder.TableType.TRADE_DETAIL_TBL;
@@ -116,7 +116,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         this.colOfferType = colSupplier.offerTypeColumn.get();
         this.colClosingStatus = colSupplier.statusDescriptionColumn.get();
 
-        // Trade detail specific columns, some in common with BSQ swap trades detail.
+        // Trade detail specific columns.
 
         this.colIsDepositPublished = colSupplier.depositPublishedColumn.get();
         this.colIsDepositConfirmed = colSupplier.depositConfirmedColumn.get();
@@ -146,21 +146,20 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
     protected final Predicate<TradeInfo> isMyOffer = (t) -> t.getOffer().getIsMyOffer();
     protected final Predicate<TradeInfo> isTaker = (t) -> t.getRole().toLowerCase().contains("taker");
     protected final Predicate<TradeInfo> isSellOffer = (t) -> t.getOffer().getDirection().equals(SELL.name());
-    protected final Predicate<TradeInfo> isBtcSeller = (t) -> (isMyOffer.test(t) && isSellOffer.test(t))
+    protected final Predicate<TradeInfo> isXmrSeller = (t) -> (isMyOffer.test(t) && isSellOffer.test(t))
             || (!isMyOffer.test(t) && !isSellOffer.test(t));
 
 
     // Column Value Functions
 
     // Crypto volumes from server are string representations of decimals.
-    // Converting them to longs ("sats") requires shifting the decimal points
-    // to left:  2 for BSQ, 8 for other cryptos.
+    // Converting them to longs requires shifting the decimal point 8 places right.
     protected final Function<TradeInfo, Long> toCryptoTradeVolumeAsLong = (t) -> new BigDecimal(t.getTradeVolume()).movePointRight(8).longValue();
 
     protected final Function<TradeInfo, String> toTradeVolumeAsString = (t) ->
             isTraditionalTrade.test(t)
                     ? t.getTradeVolume()
-                    : formatSatoshis(t.getAmount());
+                    : formatPiconeros(t.getAmount());
 
     protected final Function<TradeInfo, Long> toTradeVolumeAsLong = (t) ->
             isTraditionalTrade.test(t)
@@ -186,7 +185,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
                     ? format("%.2f%s", t.getOffer().getMarketPriceMarginPct(), "%")
                     : "N/A";
 
-    protected final Function<TradeInfo, Long> toTradeFeeBtc = (t) -> {
+    protected final Function<TradeInfo, Long> toTradeFee = (t) -> {
         var isMyOffer = t.getOffer().getIsMyOffer();
         if (isMyOffer) {
             return t.getMakerFee();
@@ -231,7 +230,7 @@ abstract class AbstractTradeListBuilder extends AbstractTableBuilder {
         if (showCryptoBuyerAddress.test(t)) {
             ContractInfo contract = t.getContract();
             boolean isBuyerMakerAndSellerTaker = contract.getIsBuyerMakerAndSellerTaker();
-            return isBuyerMakerAndSellerTaker  // (is BTC buyer / maker)
+            return isBuyerMakerAndSellerTaker  // (is XMR buyer / maker)
                     ? contract.getTakerPaymentAccountPayload().getCryptoCurrencyAccountPayload().getAddress()
                     : contract.getMakerPaymentAccountPayload().getCryptoCurrencyAccountPayload().getAddress();
         } else {

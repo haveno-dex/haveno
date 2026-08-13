@@ -2,24 +2,23 @@ getmyoffer
 
 NAME
 ----
-getmyoffer - get your offer to buy or sell XMR
+getmyoffer - get one of your offers (deprecated)
 
 SYNOPSIS
 --------
 getmyoffer
-		--offer-id=<offer-id>
+		--offer-id=<value>
 
 DESCRIPTION
 -----------
-List one of your existing offers' details.
+Returns your offer with the given id.  Deprecated;  use getoffer instead.
 
 OPTIONS
 -------
 --offer-id
-		The ID of your buy or sell offer.
+		The id of the offer.
 
 EXAMPLES
 --------
-To view your offer with ID 83e8b2e2-51b6-4f39-a748-3ebd29c22aea:
-$ ./haveno-cli --password=xyz --port=9998 getmyoffer --offer-id=83e8b2e2-51b6-4f39-a748-3ebd29c22aea
-
+Get one of your offers:
+$ ./haveno-cli --password=xyz --port=9998 getmyoffer --offer-id=<offer-id>

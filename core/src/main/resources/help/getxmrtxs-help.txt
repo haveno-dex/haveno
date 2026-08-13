@@ -1,0 +1,18 @@
+getxmrtxs
+
+NAME
+----
+getxmrtxs - get XMR wallet transactions
+
+SYNOPSIS
+--------
+getxmrtxs
+
+DESCRIPTION
+-----------
+Returns the transactions of the Haveno XMR wallet.
+
+EXAMPLES
+--------
+Show wallet transactions:
+$ ./haveno-cli --password=xyz --port=9998 getxmrtxs

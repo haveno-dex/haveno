@@ -1,0 +1,24 @@
+getchatmessages
+
+NAME
+----
+getchatmessages - get trade chat messages
+
+SYNOPSIS
+--------
+getchatmessages
+		--trade-id=<value>
+
+DESCRIPTION
+-----------
+Returns the chat messages exchanged with the trade peer.
+
+OPTIONS
+-------
+--trade-id
+		The id of the trade.
+
+EXAMPLES
+--------
+Get trade chat messages:
+$ ./haveno-cli --password=xyz --port=9998 getchatmessages --trade-id=<trade-id>

@@ -2,81 +2,71 @@ createoffer
 
 NAME
 ----
-createoffer - create offer to buy or sell XMR
+createoffer - create and place an offer to buy or sell XMR
 
 SYNOPSIS
 --------
 createoffer
-		--payment-account=<payment-acct-id>
-		--direction=<buy|sell>
-		--currency-code=<eur|usd>
-		--market-price-margin=<percent> | --fixed-price=<btc-price>
-		--amount=<btc-amount>
-		--min-amount=<btc-amount>
-		--security-deposit=<percent>
-		[--fee-currency=<btc>]
+		--payment-account-id=<value>
+		--direction=<value>
+		--currency-code=<value>
+		--amount=<value>
+		--min-amount=<value>
+		--fixed-price=<value>
+		--market-price-margin=<value>
+		--security-deposit=<value>
+		--trigger-price=<value>
+		--reserve-exact-amount=<value>
+		--extra-info=<value>
 
 DESCRIPTION
 -----------
-Create and place an offer to buy or sell XMR using a fiat account.
+Create and place an offer to buy or sell XMR, using a payment account with the given id.
 
 OPTIONS
 -------
---payment-account
-		The ID of the fiat payment account used to send or receive funds during the trade.
+--payment-account-id
+		The id of the payment account used for the offer.
 
 --direction
-		The direction of the trade (BUY or SELL).
+		The offer direction (buy|sell).
 
 --currency-code
-		The three letter code for the fiat used to buy or sell XMR, e.g., EUR, USD, BRL, ...
-
---market-price-margin
-		The % above or below market XMR price, e.g., 1.00 (1%).
-		If --market-price-margin is not present, --fixed-price must be.
-
---fixed-price
-		The fixed XMR price in fiat used to buy or sell XMR, e.g., 34000 (USD).
-		If --fixed-price is not present, --market-price-margin must be.
+		The three letter code of the currency traded for XMR, e.g., EUR, USD, BCH, ...
 
 --amount
-		The amount of XMR to buy or sell, e.g., 0.125.
+		The amount of XMR to buy or sell.
 
 --min-amount
-		The minimum amount of XMR to buy or sell, e.g., 0.006.
-		If --min-amount is not present, it defaults to the --amount value.
+		The optional minimum amount of XMR to buy or sell.  If used, the offer can be
+		taken for any amount between min-amount and amount.  The default is amount.
+
+--fixed-price
+		The fixed price of the offer.  Cannot be used with market-price-margin.
+
+--market-price-margin
+		The offer price margin (%) above or below the current market price.
+		Cannot be used with fixed-price.
 
 --security-deposit
-		The percentage of the XMR amount being traded for the security deposit, e.g., 60.0 (60%).
+		The security deposit (%) of the XMR amount both traders must deposit.
 
---fee-currency
-		The wallet currency used to pay the Haveno trade maker fee (XMR).  Default is XMR
+--trigger-price
+		The optional price at which a market priced offer is automatically deactivated.
+
+--reserve-exact-amount
+		Reserve only the exact amount needed for the offer (true|false, default false).
+		Requires an extra transaction and 10 confirmations before the offer is posted.
+
+--extra-info
+		Optional extra terms and info for the offer.  Multi word terms must be double quoted.
 
 EXAMPLES
 --------
+Create a fixed priced offer to buy 0.5 XMR for EUR:
+$ ./haveno-cli --password=xyz --port=9998 createoffer --payment-account-id=<payment-account-id> --direction=buy --currency-code=eur \
+    --amount=0.5 --fixed-price=150.75 --security-deposit=15.0
 
-To create a BUY 0.125 XMR with EUR offer
-	at the current market price,
-	using a payment account with ID 7413d263-225a-4f1b-837a-1e3094dc0d77,
-	putting up a 30 percent security deposit,
-	and paying the Haveno maker trading fee in XMR:
-$ ./haveno-cli --password=xyz --port=9998 createoffer --payment-account=7413d263-225a-4f1b-837a-1e3094dc0d77 \
-    --direction=buy \
-    --currency-code=eur \
-    --amount=0.125 \
-    --market-price-margin=0.00 \
-    --security-deposit=30.0 \
-    --fee-currency=xmr
-
-To create a SELL 0.006 XMR for USD offer
-	at a fixed price of 40,000 USD,
-	using a payment account with ID 7413d263-225a-4f1b-837a-1e3094dc0d77,
-	putting up a 25 percent security deposit,
-	and paying the Haveno maker trading fee in XMR:
-$ ./haveno-cli --password=xyz --port=9998 createoffer --payment-account=7413d263-225a-4f1b-837a-1e3094dc0d77 \
-    --direction=sell \
-    --currency-code=usd \
-    --amount=0.006 \
-    --fixed-price=40000 \
-    --security-deposit=25.0 \
-    --fee-currency=xmr
+Create a market priced offer to sell 1.0 XMR for USD at 2% above the market price:
+$ ./haveno-cli --password=xyz --port=9998 createoffer --payment-account-id=<payment-account-id> --direction=sell --currency-code=usd \
+    --amount=1.0 --market-price-margin=2.00 --security-deposit=15.0

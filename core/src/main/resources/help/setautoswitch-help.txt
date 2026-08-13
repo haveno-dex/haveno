@@ -1,0 +1,24 @@
+setautoswitch
+
+NAME
+----
+setautoswitch - enable or disable connection auto switching
+
+SYNOPSIS
+--------
+setautoswitch
+		--auto-switch=<value>
+
+DESCRIPTION
+-----------
+Enables or disables automatically switching to the best available monero daemon connection.
+
+OPTIONS
+-------
+--auto-switch
+		Whether to auto switch to the best connection (true|false).
+
+EXAMPLES
+--------
+Enable auto switching:
+$ ./haveno-cli --password=xyz --port=9998 setautoswitch --auto-switch=true
