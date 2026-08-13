@@ -231,6 +231,15 @@ public class DepositView extends ActivatableView<VBox, Void> {
             }
             String baseAddress = baseAddressEntry == null ? null : baseAddressEntry.getAddressString();
 
+            // prefetch wallet data so the first render is complete
+            Runnable prefetchedUpdate = null;
+            try {
+                prefetchedUpdate = fetchListUpdate();
+            } catch (Exception e) {
+                log.warn("Failed to fetch deposit list", e);
+            }
+            Runnable listUpdate = prefetchedUpdate;
+
             UserThread.execute(() -> {
                 tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
                 tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.deposit.noAddresses")));
@@ -334,6 +343,9 @@ public class DepositView extends ActivatableView<VBox, Void> {
                 // hide the title when the window is too short, rather than clipping it under the tabs
                 heroBox.heightProperty().addListener((o, ov, nv) -> updateHeroTitleVisibility());
                 heroContent.heightProperty().addListener((o, ov, nv) -> updateHeroTitleVisibility());
+
+                // apply the prefetched data in the same pass, so nothing pops in a frame later
+                if (listUpdate != null) listUpdate.run();
 
                 // restore the saved show/hide state; deposit to the main wallet by default
                 setAddressListVisible(preferences.isDepositAddressesExpanded());
@@ -574,6 +586,11 @@ public class DepositView extends ActivatableView<VBox, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateList() {
+        UserThread.execute(fetchListUpdate());
+    }
+
+    // gathers wallet data on the calling thread, returning a runnable which applies it on the UI thread
+    private Runnable fetchListUpdate() {
 
         // create deposit list items
         List<XmrAddressEntry> addressEntries = xmrWalletService.getAddressEntries();
@@ -609,7 +626,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
         MoneroTxWallet pendingTxFinal = fewestConfirmationsTx;
 
         // update list, keeping the shown address selected or defaulting to the main wallet
-        UserThread.execute(() -> {
+        return () -> {
 
             // update the balance block and address count
             totalBalance = totalFinal;
@@ -629,7 +646,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
                     .ifPresentOrElse(item -> tableView.getSelectionModel().select(item), () -> {
                         if (!sortedList.isEmpty()) tableView.getSelectionModel().select(0);
                     });
-        });
+        };
     }
 
     private void selectAddress(String address) {
