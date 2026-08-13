@@ -1247,7 +1247,8 @@ public final class XmrConnectionService {
                 chainHeight.set(getHeight());
 
                 // save if blockchain is syncing locally
-                boolean blockchainSyncingLocally = isConnectionLocalHost() && lastInfo.getHeight().equals(lastInfo.getHeightWithoutBootstrap()) || (lastInfo.getTargetHeight().equals(0l) && lastInfo.getHeightWithoutBootstrap().equals(0l)); // blockchain is syncing if height equals height without bootstrap, or target height and height without bootstrap both equal 0
+                Long heightWithoutBootstrap = lastInfo.getHeightWithoutBootstrap(); // null on monerod without bootstrap daemon support
+                boolean blockchainSyncingLocally = isConnectionLocalHost() && (heightWithoutBootstrap == null || lastInfo.getHeight().equals(heightWithoutBootstrap) || (lastInfo.getTargetHeight().equals(0l) && heightWithoutBootstrap.equals(0l))); // blockchain is syncing if height equals height without bootstrap, or target height and height without bootstrap both equal 0
                 preferences.getXmrNodeSettings().setSyncBlockchain(blockchainSyncingLocally); // TODO: this isn't saved until all services initialized
 
                 // throttle warnings if monerod not synced
