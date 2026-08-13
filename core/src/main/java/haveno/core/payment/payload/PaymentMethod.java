@@ -67,6 +67,7 @@ import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.ImpsAccount;
 import haveno.core.payment.InteracETransferAccount;
 import haveno.core.payment.JapanBankAccount;
+import haveno.core.payment.KaspiAccount;
 import haveno.core.payment.MbWayAccount;
 import haveno.core.payment.MercadoPagoAccount;
 import haveno.core.payment.MomoAccount;
@@ -241,6 +242,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String MIR_ID = "MIR";
     public static final String YOOMONEY_ID = "YOOMONEY";
     public static final String UKRAINE_CARD_ID = "UKRAINE_CARD";
+    public static final String KASPI_ID = "KASPI";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -324,6 +326,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod MIR;
     public static PaymentMethod YOOMONEY;
     public static PaymentMethod UKRAINE_CARD;
+    public static PaymentMethod KASPI;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
@@ -390,6 +393,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // Ukraine
             UKRAINE_CARD = new PaymentMethod(UKRAINE_CARD_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(UkraineCardAccount.SUPPORTED_CURRENCIES)),
+
+            // Kazakhstan
+            KASPI = new PaymentMethod(KASPI_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(KaspiAccount.SUPPORTED_CURRENCIES)),
 
             // US
             ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
@@ -552,7 +558,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 SBP_ID,
                 MIR_ID,
                 YOOMONEY_ID,
-                UKRAINE_CARD_ID);
+                UKRAINE_CARD_ID,
+                KASPI_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -795,7 +802,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 id.equals(PaymentMethod.SBP_ID) ||
                 id.equals(PaymentMethod.MIR_ID) ||
                 id.equals(PaymentMethod.YOOMONEY_ID) ||
-                id.equals(PaymentMethod.UKRAINE_CARD_ID);
+                id.equals(PaymentMethod.UKRAINE_CARD_ID) ||
+                id.equals(PaymentMethod.KASPI_ID);
     }
 
     public static boolean isRoundedForAtmCash(String id) {

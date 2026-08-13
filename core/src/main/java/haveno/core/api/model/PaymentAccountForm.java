@@ -137,7 +137,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         SBP,
         MIR,
         YOOMONEY,
-        UKRAINE_CARD;
+        UKRAINE_CARD,
+        KASPI;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
