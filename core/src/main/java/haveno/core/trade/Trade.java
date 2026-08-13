@@ -3428,11 +3428,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     }
                 }
 
-                // get txs from trade wallet
-                boolean checkPool = !offlinePoll && isPayoutExpected && !isPayoutConfirmed();
+                // get txs from trade wallet, skipping pool check if payout height already known
+                boolean checkPool = !offlinePoll && isPayoutExpected && !isPayoutConfirmed() && payoutHeight == null;
                 List<MoneroTxWallet> txs = null;
                 if (depositTxsUninitialized || wallet != null) { // get txs if deposits uninitialized or wallet is open
-                    txs = getTxs(checkPool);
+                    try {
+                        txs = getTxs(checkPool);
+                    } catch (Exception e) {
+                        if (!checkPool) throw e;
+                        log.warn("Error fetching txs with pool for {} {}, using stored txs, error={}", getClass().getSimpleName(), getShortId(), e.getMessage());
+                        checkPool = false;
+                        txs = getTxs(false); // stored txs need no daemon
+                    }
                 }
 
                 // txs may not be fetched if confirmed after last sync
@@ -3924,6 +3931,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
                 // revert state
                 setPayoutState(PayoutState.PAYOUT_UNPUBLISHED);
+                payoutHeight = null; // resume pool checks for re-published payout
                 String errorMsg = "The payout transaction is not seen for trade " + getShortId() + ". This can happen after a blockchain reorganization..\n\nIf the payout does not confirm automatically, you can contact support or mark the trade as failed.";
                 if (getState().ordinal() >= State.SELLER_SENT_PAYMENT_RECEIVED_MSG.ordinal()) {
                     log.warn("Reverting state of {} {} from {} to {} because payout is unseen. Possible reorg?", getClass().getSimpleName(), getId(), getState(), Trade.State.SELLER_CONFIRMED_PAYMENT_RECEIPT);
