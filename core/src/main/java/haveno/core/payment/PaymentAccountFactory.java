@@ -186,6 +186,8 @@ public class PaymentAccountFactory {
                 return new MirAccount();
             case PaymentMethod.YOOMONEY_ID:
                 return new YooMoneyAccount();
+            case PaymentMethod.UKRAINE_CARD_ID:
+                return new UkraineCardAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

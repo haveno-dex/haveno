@@ -84,6 +84,7 @@ import haveno.desktop.components.paymentmethods.PayPayForm;
 import haveno.desktop.components.paymentmethods.SbpForm;
 import haveno.desktop.components.paymentmethods.MirForm;
 import haveno.desktop.components.paymentmethods.YooMoneyForm;
+import haveno.desktop.components.paymentmethods.UkraineCardForm;
 import haveno.desktop.components.paymentmethods.FpsForm;
 import haveno.desktop.components.paymentmethods.QrisForm;
 import haveno.desktop.components.paymentmethods.NationalBankForm;
@@ -530,6 +531,9 @@ public class BuyerStep2View extends TradeStepView {
                 break;
             case PaymentMethod.YOOMONEY_ID:
                 paymentAccountGridRow = YooMoneyForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.UKRAINE_CARD_ID:
+                paymentAccountGridRow = UkraineCardForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
                 break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);
