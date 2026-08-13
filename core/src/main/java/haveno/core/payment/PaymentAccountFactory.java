@@ -180,6 +180,8 @@ public class PaymentAccountFactory {
                 return new MbWayAccount();
             case PaymentMethod.PAYPAY_ID:
                 return new PayPayAccount();
+            case PaymentMethod.SBP_ID:
+                return new SbpAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }
