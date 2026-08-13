@@ -178,6 +178,8 @@ public class PaymentAccountFactory {
                 return new DuitNowAccount();
             case PaymentMethod.MB_WAY_ID:
                 return new MbWayAccount();
+            case PaymentMethod.PAYPAY_ID:
+                return new PayPayAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

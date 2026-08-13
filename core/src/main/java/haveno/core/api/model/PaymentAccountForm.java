@@ -132,7 +132,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         WERO,
         FPS,
         DUITNOW,
-        MB_WAY;
+        MB_WAY,
+        PAYPAY;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());
