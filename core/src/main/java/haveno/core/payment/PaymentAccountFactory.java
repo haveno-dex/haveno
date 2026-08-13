@@ -182,6 +182,8 @@ public class PaymentAccountFactory {
                 return new PayPayAccount();
             case PaymentMethod.SBP_ID:
                 return new SbpAccount();
+            case PaymentMethod.MIR_ID:
+                return new MirAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }
