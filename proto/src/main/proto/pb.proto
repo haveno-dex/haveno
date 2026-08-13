@@ -952,6 +952,7 @@ message CountryBasedPaymentAccountPayload {
         VippsMobilePayAccountPayload vipps_mobile_pay_account_payload = 26;
         SbpAccountPayload sbp_account_payload = 27;
         MirAccountPayload mir_account_payload = 28;
+        YooMoneyAccountPayload yoomoney_account_payload = 29;
     }
 }
 
@@ -1378,6 +1379,11 @@ message SbpAccountPayload {
 }
 
 message MirAccountPayload {
+    string holder_name = 1;
+    string account_nr = 2;
+}
+
+message YooMoneyAccountPayload {
     string holder_name = 1;
     string account_nr = 2;
 }
@@ -2132,6 +2138,7 @@ message PaymentAccountForm {
         PAYPAY = 75;
         SBP = 76;
         MIR = 77;
+        YOOMONEY = 78;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

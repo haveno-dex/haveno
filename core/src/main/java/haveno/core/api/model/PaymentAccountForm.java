@@ -135,7 +135,8 @@ public final class PaymentAccountForm implements PersistablePayload {
         MB_WAY,
         PAYPAY,
         SBP,
-        MIR;
+        MIR,
+        YOOMONEY;
 
         public static PaymentAccountForm.FormId fromProto(protobuf.PaymentAccountForm.FormId formId) {
             return ProtoUtil.enumFromProto(PaymentAccountForm.FormId.class, formId.name());

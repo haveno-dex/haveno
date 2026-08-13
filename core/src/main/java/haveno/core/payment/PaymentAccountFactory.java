@@ -184,6 +184,8 @@ public class PaymentAccountFactory {
                 return new SbpAccount();
             case PaymentMethod.MIR_ID:
                 return new MirAccount();
+            case PaymentMethod.YOOMONEY_ID:
+                return new YooMoneyAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }
