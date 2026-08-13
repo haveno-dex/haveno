@@ -1404,6 +1404,22 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
+    public String getWalletAsString(boolean includePrivKeys) {
+        synchronized (walletLock) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Primary address: ").append(wallet.getPrimaryAddress()).append("\n");
+            sb.append("Wallet height: ").append(getHeight()).append("\n");
+            sb.append("Public view key: ").append(wallet.getPublicViewKey()).append("\n");
+            sb.append("Public spend key: ").append(wallet.getPublicSpendKey()).append("\n");
+            if (includePrivKeys) {
+                sb.append("Seed: ").append(wallet.getSeed()).append("\n");
+                sb.append("Private view key: ").append(wallet.getPrivateViewKey()).append("\n");
+                sb.append("Private spend key: ").append(wallet.getPrivateSpendKey()).append("\n");
+            }
+            return sb.toString();
+        }
+    }
+
     public List<MoneroTxWallet> getTxs(boolean includeFailed) {
         List<MoneroTxWallet> txs = getTxs();
         if (includeFailed) return txs;

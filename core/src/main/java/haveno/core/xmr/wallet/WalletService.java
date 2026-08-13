@@ -177,8 +177,6 @@ public abstract class WalletService {
         this.aesKey = aesKey;
     }
 
-    abstract String getWalletAsString(boolean includePrivKeys);
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Listener

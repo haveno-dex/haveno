@@ -75,9 +75,8 @@ public class WalletsManager {
     }
 
     public String getWalletsAsString(boolean includePrivKeys) {
-        final String baseCurrencyWalletDetails = Res.getBaseCurrencyCode() + " Wallet:\n" +
-                btcWalletService.getWalletAsString(includePrivKeys);
-        return baseCurrencyWalletDetails;
+        return Res.getBaseCurrencyCode() + " Wallet:\n" +
+                xmrWalletService.getWalletAsString(includePrivKeys);
     }
 
     public void restoreSeedWords(@Nullable DeterministicSeed seed, ResultHandler resultHandler, ExceptionHandler exceptionHandler) {
