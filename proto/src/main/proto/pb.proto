@@ -899,6 +899,7 @@ message PaymentAccountPayload {
         WeroAccountPayload wero_account_payload = 50;
         FpsAccountPayload fps_account_payload = 51;
         DuitNowAccountPayload duitnow_account_payload = 52;
+        MbWayAccountPayload mb_way_account_payload = 53;
     }
 }
 
@@ -1356,6 +1357,11 @@ message DuitNowAccountPayload {
     string holder_name = 1;
     string account_nr = 2;
     string bank_name = 3;
+}
+
+message MbWayAccountPayload {
+    string mobile_nr = 1;
+    string holder_name = 2;
 }
 
 message PersistableEnvelope {
@@ -2104,6 +2110,7 @@ message PaymentAccountForm {
         WERO = 71;
         FPS = 72;
         DUITNOW = 73;
+        MB_WAY = 74;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
