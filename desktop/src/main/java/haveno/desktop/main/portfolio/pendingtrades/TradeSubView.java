@@ -53,6 +53,7 @@ public abstract class TradeSubView extends HBox {
     private int leftGridPaneRowIndex = 0;
     Subscription viewStateSubscription;
     private PendingTradesView.ChatCallback chatCallback;
+    private Runnable closeCallback;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -151,6 +152,9 @@ public abstract class TradeSubView extends HBox {
                 }
             };
             tradeStepView.setChatCallback(chatCallback);
+            tradeStepView.setCloseCallback(() -> {
+                if (closeCallback != null) closeCallback.run();
+            });
             tradeStepView.activate();
         } catch (Exception e) {
             log.error("Creating viewClass {} caused an error {}\n", viewClass, e.getMessage(), e);
@@ -177,6 +181,10 @@ public abstract class TradeSubView extends HBox {
 
     public void setChatCallback(PendingTradesView.ChatCallback chatCallback) {
         this.chatCallback = chatCallback;
+    }
+
+    public void setCloseCallback(Runnable closeCallback) {
+        this.closeCallback = closeCallback;
     }
 }
 

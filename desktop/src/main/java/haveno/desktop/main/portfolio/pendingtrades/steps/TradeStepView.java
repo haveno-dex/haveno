@@ -94,6 +94,7 @@ public abstract class TradeStepView extends AnchorPane {
     private Popup acceptMediationResultPopup;
     private BootstrapListener bootstrapListener;
     private TradeSubView.ChatCallback chatCallback;
+    protected Runnable closeCallback;
     private ChangeListener<Boolean> pendingTradesInitializedListener;
     protected Label statusLabel;
     protected String syncStatus;
@@ -931,6 +932,10 @@ public abstract class TradeStepView extends AnchorPane {
 
     public void setChatCallback(TradeSubView.ChatCallback chatCallback) {
         this.chatCallback = chatCallback;
+    }
+
+    public void setCloseCallback(Runnable closeCallback) {
+        this.closeCallback = closeCallback;
     }
 
     protected void setSyncStatus(String text) {

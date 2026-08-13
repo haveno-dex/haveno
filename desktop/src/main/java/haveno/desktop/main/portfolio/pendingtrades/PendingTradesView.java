@@ -333,6 +333,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                     // wants to open the chat window
                     ChatCallback chatCallback = this::openChat;
                     selectedSubView.setChatCallback(chatCallback);
+                    // focus the table on close so arrow keys advance to the next trade
+                    selectedSubView.setCloseCallback(tableView::requestFocus);
                 }
 
                 updateTableSelection();

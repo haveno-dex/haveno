@@ -120,6 +120,7 @@ public class BuyerStep4View extends TradeStepView {
     }
 
     private void handleTradeCompleted() {
+        if (closeCallback != null) closeCallback.run(); // move focus off the button before it's disabled and removed
         closeButton.setDisable(true);
         model.dataModel.xmrWalletService.swapAddressEntryToAvailable(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT);
 
