@@ -951,6 +951,7 @@ message CountryBasedPaymentAccountPayload {
         BlikAccountPayload blik_account_payload = 25;
         VippsMobilePayAccountPayload vipps_mobile_pay_account_payload = 26;
         SbpAccountPayload sbp_account_payload = 27;
+        MirAccountPayload mir_account_payload = 28;
     }
 }
 
@@ -1374,6 +1375,11 @@ message PayPayAccountPayload {
 message SbpAccountPayload {
     string holder_name = 1;
     string mobile_nr = 2;
+}
+
+message MirAccountPayload {
+    string holder_name = 1;
+    string account_nr = 2;
 }
 
 message PersistableEnvelope {
@@ -2125,6 +2131,7 @@ message PaymentAccountForm {
         MB_WAY = 74;
         PAYPAY = 75;
         SBP = 76;
+        MIR = 77;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

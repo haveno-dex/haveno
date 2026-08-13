@@ -99,6 +99,7 @@ import haveno.desktop.components.paymentmethods.DuitNowForm;
 import haveno.desktop.components.paymentmethods.MbWayForm;
 import haveno.desktop.components.paymentmethods.PayPayForm;
 import haveno.desktop.components.paymentmethods.SbpForm;
+import haveno.desktop.components.paymentmethods.MirForm;
 import haveno.desktop.components.paymentmethods.FpsForm;
 import haveno.desktop.components.paymentmethods.HalCashForm;
 import haveno.desktop.components.paymentmethods.ImpsForm;
@@ -766,6 +767,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new PayPayForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.SBP_ID:
                 return new SbpForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.MIR_ID:
+                return new MirForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;
