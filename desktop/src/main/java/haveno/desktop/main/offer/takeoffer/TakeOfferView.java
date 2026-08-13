@@ -1025,7 +1025,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 waitingForFundsLabel);
 
         GridPane.setRowIndex(fundingHBox, ++gridRow);
-        GridPane.setMargin(fundingHBox, new Insets(5, 0, 0, 0));
+        GridPane.setMargin(fundingHBox, new Insets(15, 0, 0, 0));
         gridPane.getChildren().add(fundingHBox);
 
         takeOfferBox = new HBox();
@@ -1033,7 +1033,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         takeOfferBox.setAlignment(Pos.CENTER_LEFT);
         GridPane.setRowIndex(takeOfferBox, gridRow);
         GridPane.setColumnSpan(takeOfferBox, 2);
-        GridPane.setMargin(takeOfferBox, new Insets(5, 20, 0, 0));
+        GridPane.setMargin(takeOfferBox, new Insets(15, 20, 0, 0));
         gridPane.getChildren().add(takeOfferBox);
 
         takeOfferButton = new AutoTooltipButton();

@@ -1114,7 +1114,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnSpan(securityDepositAndFeeBox, GridPane.REMAINING);
         GridPane.setColumnIndex(securityDepositAndFeeBox, 0);
         GridPane.setHalignment(securityDepositAndFeeBox, HPos.LEFT);
-        GridPane.setMargin(securityDepositAndFeeBox, new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 0, 0, 0));
+        // bottom margin leaves room for the deposit field's error label
+        GridPane.setMargin(securityDepositAndFeeBox, new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 0, 16, 0));
         gridPane.getChildren().add(securityDepositAndFeeBox);
 
         VBox tradeFeeFieldsBox = getTradeFeeFieldsBox();
@@ -1123,7 +1124,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         // toggle to passphrase-protect any offer
         isPrivateOfferSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("createOffer.isPrivateOffer"));
-        isPrivateOfferSlider.setPadding(new Insets(0, 0, 0, 0));
         isPrivateOfferSlider.setOnAction(event -> {
 
             // popup info box
@@ -1150,12 +1150,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             }
         });
         GridPane.setHalignment(isPrivateOfferSlider, HPos.LEFT);
-        GridPane.setMargin(isPrivateOfferSlider, new Insets(0, 0, 0, 0));
 
         // toggle to waive the buyer deposit (no-deposit offer); only for sell offers.
         // enabling it also enables the private toggle, since a no-deposit offer requires a passphrase.
         buyerAsTakerWithoutDepositSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("createOffer.buyerAsTakerWithoutDeposit"));
-        buyerAsTakerWithoutDepositSlider.setPadding(new Insets(0, 0, 0, 0));
         buyerAsTakerWithoutDepositSlider.setOnAction(event -> {
 
             // popup info box
@@ -1177,7 +1175,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             }
         });
         GridPane.setHalignment(buyerAsTakerWithoutDepositSlider, HPos.LEFT);
-        GridPane.setMargin(buyerAsTakerWithoutDepositSlider, new Insets(0, 0, 0, 0));
     }
 
     private void addExtraInfoGroup() {
@@ -1391,10 +1388,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             GridPane.setMargin(field, new Insets(margin.getTop(), 170, margin.getBottom(), margin.getLeft()));
         }
 
-        reserveExactAmountSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("shared.reserveExactAmount"), heightAdjustment);
+        reserveExactAmountSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("shared.reserveExactAmount"));
         GridPane.setHalignment(reserveExactAmountSlider, HPos.LEFT);
-        GridPane.setMargin(reserveExactAmountSlider, new Insets(-5, 0, -5, 0));
-        reserveExactAmountSlider.setPadding(new Insets(0, 0, 0, 0));
         reserveExactAmountSlider.setVisible(false);
         reserveExactAmountSlider.setSelected(preferences.getSplitOfferOutput());
         reserveExactAmountSlider.setOnAction(event -> {
@@ -1429,7 +1424,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         GridPane.setRowIndex(fundingHBox, ++gridRow);
         GridPane.setColumnSpan(fundingHBox, 2);
-        GridPane.setMargin(fundingHBox, new Insets(5, 0, 0, 0));
+        GridPane.setMargin(fundingHBox, new Insets(15, 0, 0, 0));
         gridPane.getChildren().add(fundingHBox);
 
         placeOfferBox = new HBox();
@@ -1437,7 +1432,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         placeOfferBox.setAlignment(Pos.CENTER_LEFT);
         GridPane.setRowIndex(placeOfferBox, gridRow);
         GridPane.setColumnSpan(placeOfferBox, 2);
-        GridPane.setMargin(placeOfferBox, new Insets(5, 20, 0, 0));
+        GridPane.setMargin(placeOfferBox, new Insets(15, 20, 0, 0));
         gridPane.getChildren().add(placeOfferBox);
 
         placeOfferButton = new AutoTooltipButton();

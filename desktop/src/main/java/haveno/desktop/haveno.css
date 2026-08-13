@@ -657,6 +657,7 @@ tree-table-view:focused {
 .jfx-toggle-button:focused:selected {
     -jfx-toggle-color: -bs-color-primary-dark;
     -jfx-size: 8;
+    -fx-padding: -6 8 -6 8; /* offset skin's ripple padding to tighten stacked toggles */
 }
 
 .jfx-toggle-button:hover {
