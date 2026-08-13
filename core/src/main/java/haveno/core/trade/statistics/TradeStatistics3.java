@@ -227,7 +227,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         PAYNOW,
         WERO,
         FPS,
-        DUITNOW
+        DUITNOW,
+        MB_WAY
     }
 
     @Getter

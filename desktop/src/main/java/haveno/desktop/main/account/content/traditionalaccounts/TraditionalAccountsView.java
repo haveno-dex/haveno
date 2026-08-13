@@ -68,6 +68,7 @@ import haveno.core.payment.validation.RevolutValidator;
 import haveno.core.payment.validation.SwishValidator;
 import haveno.core.payment.validation.TwintValidator;
 import haveno.core.payment.validation.WeroValidator;
+import haveno.core.payment.validation.MbWayValidator;
 import haveno.core.payment.validation.TransferwiseValidator;
 import haveno.core.payment.validation.USPostalMoneyOrderValidator;
 import haveno.core.payment.validation.UpholdValidator;
@@ -95,6 +96,7 @@ import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
 import haveno.desktop.components.paymentmethods.DuitNowForm;
+import haveno.desktop.components.paymentmethods.MbWayForm;
 import haveno.desktop.components.paymentmethods.FpsForm;
 import haveno.desktop.components.paymentmethods.HalCashForm;
 import haveno.desktop.components.paymentmethods.ImpsForm;
@@ -190,6 +192,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
     private final SwishValidator swishValidator;
     private final TwintValidator twintValidator;
     private final WeroValidator weroValidator;
+    private final MbWayValidator mbWayValidator;
     private final PagoMovilValidator pagoMovilValidator;
     private final EmailOrMobileNrValidator zelleValidator;
     private final EmailOrMobileNrOrUsernameValidator paypalValidator;
@@ -227,6 +230,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                             SwishValidator swishValidator,
                             TwintValidator twintValidator,
                             WeroValidator weroValidator,
+                            MbWayValidator mbWayValidator,
                             PagoMovilValidator pagoMovilValidator,
                             EmailOrMobileNrValidator zelleValidator,
                             EmailOrMobileNrOrCashtagValidator cashAppValidator,
@@ -260,6 +264,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         this.swishValidator = swishValidator;
         this.twintValidator = twintValidator;
         this.weroValidator = weroValidator;
+        this.mbWayValidator = mbWayValidator;
         this.pagoMovilValidator = pagoMovilValidator;
         this.zelleValidator = zelleValidator;
         this.paypalValidator = emailMobileUsernameValidator;
@@ -753,6 +758,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new FpsForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.DUITNOW_ID:
                 return new DuitNowForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.MB_WAY_ID:
+                return new MbWayForm(paymentAccount, accountAgeWitnessService, mbWayValidator, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;
