@@ -184,6 +184,13 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         filterBox.activate();
 
         contextMenu = new ContextMenu();
+        MenuItem moveToOpenTrades = new MenuItem(Res.get("portfolio.failed.revertToPending"));
+        moveToOpenTrades.setOnAction(event -> {
+            FailedTradesListItem item = tableView.getSelectionModel().getSelectedItem();
+            if (item != null) onRevertTrade(item.getTrade());
+        });
+        contextMenu.getItems().add(moveToOpenTrades);
+
         boolean isArbitrator = user.getRegisteredArbitrator() != null;
         if (isArbitrator) {
             MenuItem item1 = new MenuItem(Res.get("support.contextmenu.penalize.msg", Res.get("shared.maker")));
@@ -215,6 +222,9 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         tableView.setRowFactory(tv -> {
             TableRow<FailedTradesListItem> row = new TableRow<>();
             row.setOnContextMenuRequested(event -> {
+                FailedTradesListItem item = row.getItem();
+                if (item == null) return;
+                moveToOpenTrades.setDisable(!item.getTrade().isDepositsPublished());
                 contextMenu.show(row, event.getScreenX(), event.getScreenY());
             });
             return row;

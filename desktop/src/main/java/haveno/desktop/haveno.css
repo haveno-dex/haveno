@@ -1620,6 +1620,11 @@ tree-table-view:focused {
     -fx-background-color: transparent;
     -fx-padding: 0;
     -fx-cursor: hand;
+    /* fixed square so the rounded hover background renders as a circle */
+    -fx-min-width: 32;
+    -fx-max-width: 32;
+    -fx-min-height: 32;
+    -fx-max-height: 32;
 }
 
 #icon-button {
