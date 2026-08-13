@@ -109,6 +109,7 @@ public class Config {
     public static final String XMR_NODE_PASSWORD = "xmrNodePassword";
     public static final String XMR_NODES = "xmrNodes";
     public static final String USE_NATIVE_XMR_WALLET = "useNativeXmrWallet";
+    public static final String XMR_STREAM_ISOLATION = "xmrStreamIsolation";
     public static final String SOCKS5_DISCOVER_MODE = "socks5DiscoverMode";
     public static final String USE_ALL_PROVIDED_NODES = "useAllProvidedNodes";
     public static final String USER_AGENT = "userAgent";
@@ -209,6 +210,7 @@ public class Config {
     public final String xmrNodePassword;
     public final String xmrNodes;
     public final boolean useNativeXmrWallet;
+    public final boolean xmrStreamIsolation;
     public final UseTorForXmr useTorForXmr;
     public final boolean useTorForXmrOptionSetExplicitly;
     public final String socks5DiscoverMode;
@@ -608,6 +610,12 @@ public class Config {
                         .ofType(boolean.class)
                         .defaultsTo(false);
 
+        ArgumentAcceptingOptionSpec<Boolean> xmrStreamIsolationOpt =
+                parser.accepts(XMR_STREAM_ISOLATION, "Sync each Monero wallet over its own Tor circuit using SOCKS stream isolation.")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(true);
+
         //noinspection rawtypes
         ArgumentAcceptingOptionSpec<Enum> useTorForXmrOpt =
                 parser.accepts(USE_TOR_FOR_XMR, "Configure TOR for Monero connections, one of: after_sync, off, or on.")
@@ -808,6 +816,7 @@ public class Config {
             this.xmrNodePassword = options.valueOf(xmrNodePasswordOpt);
             this.xmrNodes = options.valueOf(xmrNodesOpt);
             this.useNativeXmrWallet = options.valueOf(useNativeXmrWalletOpt);
+            this.xmrStreamIsolation = options.valueOf(xmrStreamIsolationOpt);
             this.useTorForXmr = (UseTorForXmr) options.valueOf(useTorForXmrOpt);
             this.useTorForXmrOptionSetExplicitly = options.has(useTorForXmrOpt);
             this.socks5DiscoverMode = options.valueOf(socks5DiscoverModeOpt);

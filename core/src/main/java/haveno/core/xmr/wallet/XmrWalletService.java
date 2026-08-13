@@ -1684,7 +1684,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // configure wallet connection
             MoneroRpcConnection connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
-            if (!applyProxyUri) connection.setProxyUri(null);
+            xmrConnectionService.applyWalletProxyUri(connection, getWalletName(config.getPath()), applyProxyUri);
 
             // create wallet
             log.debug("Creating full wallet '{}' with monerod={}, proxyUri={}", Utilities.redactSensitiveInfo(config.getPath()), connection.getUri(), connection.getProxyUri());
@@ -1709,7 +1709,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // configure wallet connection
             MoneroRpcConnection connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
-            if (!applyProxyUri) connection.setProxyUri(null);
+            xmrConnectionService.applyWalletProxyUri(connection, getWalletName(config.getPath()), applyProxyUri);
 
             // try opening wallet
             config.setNetworkType(getMoneroNetworkType());
@@ -1809,7 +1809,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // configure wallet connection
             MoneroRpcConnection connection = new MoneroRpcConnection(serviceConnection);
-            if (!applyProxyUri) connection.setProxyUri(null);
+            xmrConnectionService.applyWalletProxyUri(connection, getWalletName(config.getPath()), applyProxyUri);
 
             // start monero-wallet-rpc instance
             walletRpc = startWalletRpcInstance(port, connection);
@@ -1844,7 +1844,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // configure wallet connection
             MoneroRpcConnection connection = new MoneroRpcConnection(serviceConnection);
-            if (!applyProxyUri) connection.setProxyUri(null);
+            xmrConnectionService.applyWalletProxyUri(connection, getWalletName(config.getPath()), applyProxyUri);
 
             // start monero-wallet-rpc instance
             walletRpc = startWalletRpcInstance(port, connection);
@@ -2015,7 +2015,7 @@ public class XmrWalletService extends XmrWalletBase {
 
             // configure wallet connection
             connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
-            if (!isProxyApplied()) connection.setProxyUri(null);
+            xmrConnectionService.applyWalletProxyUri(connection, MONERO_WALLET_NAME, isProxyApplied());
 
             // ignore if no change
             if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) {

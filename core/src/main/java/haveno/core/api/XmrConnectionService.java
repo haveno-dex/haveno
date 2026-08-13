@@ -24,6 +24,8 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
+import haveno.common.crypto.Hash;
+import haveno.common.util.Utilities;
 import monero.common.NetworkUtils;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
@@ -237,9 +239,23 @@ public final class XmrConnectionService {
     }
 
     public String getProxyUri() {
+        return getProxyUri(null);
+    }
+
+    // when stream isolation is enabled, a deterministic SOCKS5 credential per isolation id
+    // gives each wallet its own Tor circuit (IsolateSOCKSAuth) without churning circuits
+    public String getProxyUri(String isolationId) {
         if (socks5ProxyProvider.getSocks5Proxy() == null) return null;
         String host = socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress();
-        return NetworkUtils.formatHostAndPort(host, socks5ProxyProvider.getSocks5Proxy().getPort());
+        String hostAndPort = NetworkUtils.formatHostAndPort(host, socks5ProxyProvider.getSocks5Proxy().getPort());
+        if (isolationId == null || !config.xmrStreamIsolation) return hostAndPort;
+        String credential = Utilities.encodeToHex(Hash.getSha256Hash(isolationId)).substring(0, 16);
+        return "socks5://" + credential + ":" + credential + "@" + hostAndPort;
+    }
+
+    // apply the daemon proxy to a wallet's connection, isolating its Tor circuit by wallet name
+    public void applyWalletProxyUri(MoneroRpcConnection connection, String walletName, boolean applyProxyUri) {
+        connection.setProxyUri(applyProxyUri ? getProxyUri(walletName) : null);
     }
 
     public void addConnectionListener(XmrConnectionListener listener) {

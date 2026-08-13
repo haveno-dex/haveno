@@ -3174,7 +3174,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
             // configure wallet connection
             connection = new MoneroRpcConnection(xmrConnectionService.getConnection());
-            if (!isProxyApplied()) connection.setProxyUri(null);
+            xmrConnectionService.applyWalletProxyUri(connection, getWalletName(), isProxyApplied());
 
             // ignore if no change
             if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) {
