@@ -232,7 +232,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         PAYPAY,
         SBP,
         MIR,
-        YOOMONEY
+        YOOMONEY,
+        UKRAINE_CARD
     }
 
     @Getter

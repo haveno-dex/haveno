@@ -116,6 +116,7 @@ import static haveno.core.payment.payload.PaymentMethod.PAYPAY_ID;
 import static haveno.core.payment.payload.PaymentMethod.SBP_ID;
 import static haveno.core.payment.payload.PaymentMethod.MIR_ID;
 import static haveno.core.payment.payload.PaymentMethod.YOOMONEY_ID;
+import static haveno.core.payment.payload.PaymentMethod.UKRAINE_CARD_ID;
 
 @Slf4j
 public class PaymentAccountUtil {
@@ -339,6 +340,8 @@ public class PaymentAccountUtil {
                 return MirAccount.SUPPORTED_CURRENCIES;
             case YOOMONEY_ID:
                 return YooMoneyAccount.SUPPORTED_CURRENCIES;
+            case UKRAINE_CARD_ID:
+                return UkraineCardAccount.SUPPORTED_CURRENCIES;
             default:
                 return Collections.emptyList();
         }

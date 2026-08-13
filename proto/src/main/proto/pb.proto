@@ -953,6 +953,7 @@ message CountryBasedPaymentAccountPayload {
         SbpAccountPayload sbp_account_payload = 27;
         MirAccountPayload mir_account_payload = 28;
         YooMoneyAccountPayload yoomoney_account_payload = 29;
+        UkraineCardAccountPayload ukraine_card_account_payload = 30;
     }
 }
 
@@ -1384,6 +1385,11 @@ message MirAccountPayload {
 }
 
 message YooMoneyAccountPayload {
+    string holder_name = 1;
+    string account_nr = 2;
+}
+
+message UkraineCardAccountPayload {
     string holder_name = 1;
     string account_nr = 2;
 }
@@ -2139,6 +2145,7 @@ message PaymentAccountForm {
         SBP = 76;
         MIR = 77;
         YOOMONEY = 78;
+        UKRAINE_CARD = 79;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
