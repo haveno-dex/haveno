@@ -56,7 +56,6 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private static final long RETRY_DELAY_SEC = 10;
     // delay before retrying another bounded sync cycle after giving up with data known incomplete
     private static final long RESYNC_DELAY_MIN = 10;
-    private static final long CLEANUP_TIMER = 120;
     // How many seeds we request the PreliminaryGetDataRequest from
     private static int NUM_SEEDS_FOR_PRELIMINARY_REQUEST = 3;
     // how many seeds additional to the first responding PreliminaryGetDataRequest seed we request the GetUpdatedDataRequest from
@@ -247,6 +246,10 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     public void onDisconnect(CloseConnectionReason closeConnectionReason, Connection connection) {
         closeHandler(connection);
 
+        // release any inbound request handler tied to the closed connection
+        GetDataRequestHandler getDataRequestHandler = getDataRequestHandlers.remove(connection.getUid());
+        if (getDataRequestHandler != null) getDataRequestHandler.stop();
+
         if (peerManager.isPeerBanned(closeConnectionReason, connection) && connection.getPeersNodeAddressOptional().isPresent()) {
             NodeAddress nodeAddress = connection.getPeersNodeAddressOptional().get();
             seedNodeAddresses.remove(nodeAddress);
@@ -297,6 +300,13 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                     return;
                 }
                 final String uid = connection.getUid();
+                GetDataRequestHandler existingHandler = getDataRequestHandlers.get(uid);
+                if (existingHandler != null && existingHandler.isStale()) {
+                    // Abandon the stale handler so the new request is served instead of dropped.
+                    log.warn("We found a stale GetDataRequestHandler for connection {}. We stop it and handle the new request.", uid);
+                    existingHandler.stop();
+                    getDataRequestHandlers.remove(uid);
+                }
                 if (!getDataRequestHandlers.containsKey(uid)) {
                     GetDataRequestHandler getDataRequestHandler = new GetDataRequestHandler(networkNode, dataStorage,
                             new GetDataRequestHandler.Listener() {
@@ -325,16 +335,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                     getDataRequestHandlers.put(uid, getDataRequestHandler);
                     getDataRequestHandler.handle(getDataRequest, connection);
                 } else {
-                    log.warn("We have already a GetDataRequestHandler for that connection started. " +
-                            "We start a cleanup timer if the handler has not closed by itself in between 2 minutes.");
-
-                    UserThread.runAfter(() -> {
-                        if (getDataRequestHandlers.containsKey(uid)) {
-                            GetDataRequestHandler handler = getDataRequestHandlers.get(uid);
-                            handler.stop();
-                            getDataRequestHandlers.remove(uid);
-                        }
-                    }, CLEANUP_TIMER);
+                    // Expected when the peer re-requests while our response is still in flight; the handler resolves or goes stale on its own.
+                    log.debug("We have already a GetDataRequestHandler for that connection started. We ignore the new request.");
                 }
             } else {
                 log.warn("We have stopped already. We ignore that onMessage call.");
@@ -464,16 +466,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                     return;
                 }
 
-                log.warn("We have started already a requestDataHandshake to peer. nodeAddress=" + nodeAddress + "\n" +
-                        "We start a cleanup timer if the handler has not closed by itself in between 2 minutes.");
-
-                UserThread.runAfter(() -> {
-                    if (handlerMap.containsKey(nodeAddress)) {
-                        RequestDataHandler handler = handlerMap.get(nodeAddress);
-                        handler.stop();
-                        handlerMap.remove(nodeAddress);
-                    }
-                }, CLEANUP_TIMER);
+                // Expected when parallel request chains overlap; the in-flight handler resolves or goes stale on its own.
+                log.debug("We have started already a requestDataHandshake to peer. nodeAddress={}", nodeAddress);
 
                 // This node is already being requested by another parallel chain, so continue
                 // failover with the next remaining seed instead of dead-ending here.
@@ -625,6 +619,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private void closeAllHandlers() {
         handlerMap.values().forEach(RequestDataHandler::cancel);
         handlerMap.clear();
+        getDataRequestHandlers.values().forEach(GetDataRequestHandler::stop);
+        getDataRequestHandlers.clear();
     }
 
 }

@@ -61,6 +61,7 @@ public class GetDataRequestHandler {
     private final Listener listener;
     private Timer timeoutTimer;
     private boolean stopped;
+    private final long creationTs = System.currentTimeMillis();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -146,6 +147,12 @@ public class GetDataRequestHandler {
 
     public void stop() {
         cleanup();
+    }
+
+    // A handler older than its own timeout should have resolved already, so we consider it stale
+    // (e.g. its timeout timer died in OS standby or the underlying send is wedged).
+    boolean isStale() {
+        return System.currentTimeMillis() - creationTs > TIMEOUT * 1000;
     }
 
 
