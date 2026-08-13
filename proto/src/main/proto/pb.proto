@@ -950,6 +950,7 @@ message CountryBasedPaymentAccountPayload {
         SpeiAccountPayload spei_account_payload = 24;
         BlikAccountPayload blik_account_payload = 25;
         VippsMobilePayAccountPayload vipps_mobile_pay_account_payload = 26;
+        SbpAccountPayload sbp_account_payload = 27;
     }
 }
 
@@ -1368,6 +1369,11 @@ message MbWayAccountPayload {
 message PayPayAccountPayload {
     string holder_name = 1;
     string account_nr = 2;
+}
+
+message SbpAccountPayload {
+    string holder_name = 1;
+    string mobile_nr = 2;
 }
 
 message PersistableEnvelope {
@@ -2118,6 +2124,7 @@ message PaymentAccountForm {
         DUITNOW = 73;
         MB_WAY = 74;
         PAYPAY = 75;
+        SBP = 76;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;

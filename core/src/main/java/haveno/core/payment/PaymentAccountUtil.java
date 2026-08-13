@@ -113,6 +113,7 @@ import static haveno.core.payment.payload.PaymentMethod.FPS_ID;
 import static haveno.core.payment.payload.PaymentMethod.DUITNOW_ID;
 import static haveno.core.payment.payload.PaymentMethod.MB_WAY_ID;
 import static haveno.core.payment.payload.PaymentMethod.PAYPAY_ID;
+import static haveno.core.payment.payload.PaymentMethod.SBP_ID;
 
 @Slf4j
 public class PaymentAccountUtil {
@@ -330,6 +331,8 @@ public class PaymentAccountUtil {
                 return MbWayAccount.SUPPORTED_CURRENCIES;
             case PAYPAY_ID:
                 return PayPayAccount.SUPPORTED_CURRENCIES;
+            case SBP_ID:
+                return SbpAccount.SUPPORTED_CURRENCIES;
             default:
                 return Collections.emptyList();
         }
