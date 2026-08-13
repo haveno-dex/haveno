@@ -92,6 +92,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -112,6 +113,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             notifyOnPreReleaseToggle;
     private int gridRow = 0;
     private int displayCurrenciesGridRowIndex = 0;
+    private GridPane optionsGridPane, currenciesGridPane;
     private InputTextField ignoreTradersListInputTextField,
             autoConfRequiredConfirmationsTf, autoConfServiceAddressTf, autoConfTradeLimitTf, clearDataAfterDaysInputTextField,
             rpcUserTextField, blockNotifyPortTextField;
@@ -228,23 +230,32 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void initializeGeneralOptions() {
+        // own grid so left column rows aren't stretched by the currency lists sharing root's rows
+        optionsGridPane = new GridPane();
+        optionsGridPane.setVgap(5);
+        ColumnConstraints columnConstraints = new ColumnConstraints();
+        columnConstraints.setHgrow(Priority.ALWAYS);
+        optionsGridPane.getColumnConstraints().add(columnConstraints);
+        GridPane.setValignment(optionsGridPane, VPos.TOP);
+        root.add(optionsGridPane, 0, 0);
+
         int titledGroupBgRowSpan = displayStandbyModeFeature ? 8 : 7;
-        TitledGroupBg titledGroupBg = addTitledGroupBg(root, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
+        TitledGroupBg titledGroupBg = addTitledGroupBg(optionsGridPane, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
         GridPane.setColumnSpan(titledGroupBg, 1);
 
-        userLanguageComboBox = addComboBox(root, gridRow,
+        userLanguageComboBox = addComboBox(optionsGridPane, gridRow,
                 Res.get("shared.language"), Layout.FIRST_ROW_DISTANCE);
-        userCountryComboBox = addComboBox(root, ++gridRow,
+        userCountryComboBox = addComboBox(optionsGridPane, ++gridRow,
                 Res.get("shared.country"));
         userCountryComboBox.setButtonCell(GUIUtil.getComboBoxButtonCell(Res.get("shared.country"), userCountryComboBox,
                 false));
 
-        Tuple2<TextField, Button> xmrExp = addTextFieldWithEditButton(root, ++gridRow, Res.get("setting.preferences.explorer"));
+        Tuple2<TextField, Button> xmrExp = addTextFieldWithEditButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.explorer"));
         xmrExplorerTextField = xmrExp.first;
         editCustomBtcExplorer = xmrExp.second;
 
         // deviation
-        deviationInputTextField = addInputTextField(root, ++gridRow,
+        deviationInputTextField = addInputTextField(optionsGridPane, ++gridRow,
                 Res.get("setting.preferences.deviation"));
         deviationListener = (observable, oldValue, newValue) -> {
             try {
@@ -267,7 +278,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         };
 
         // ignoreTraders
-        ignoreTradersListInputTextField = addInputTextField(root, ++gridRow,
+        ignoreTradersListInputTextField = addInputTextField(optionsGridPane, ++gridRow,
                 Res.get("setting.preferences.ignorePeers"));
         RegexValidator regexValidator = RegexValidatorFactory.addressRegexValidator();
         ignoreTradersListInputTextField.setValidator(regexValidator);
@@ -279,7 +290,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         };
 
         // clearDataAfterDays
-        clearDataAfterDaysInputTextField = addInputTextField(root, ++gridRow, Res.get("setting.preferences.clearDataAfterDays"));
+        clearDataAfterDaysInputTextField = addInputTextField(optionsGridPane, ++gridRow, Res.get("setting.preferences.clearDataAfterDays"));
         IntegerValidator clearDataAfterDaysValidator = new IntegerValidator();
         clearDataAfterDaysValidator.setMinValue(1);
         clearDataAfterDaysValidator.setMaxValue(Preferences.CLEAR_DATA_AFTER_DAYS_DISABLED);
@@ -296,12 +307,12 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         if (displayStandbyModeFeature) {
             // AvoidStandbyModeService feature works only on OSX & Windows
-            avoidStandbyMode = addSlideToggleButton(root, ++gridRow,
-                    Res.get("setting.preferences.avoidStandbyMode"));
+            avoidStandbyMode = addSlideToggleButton(optionsGridPane, ++gridRow,
+                    Res.get("setting.preferences.avoidStandbyMode"), 8); // top margins compensate the toggle skin's ripple overflow
         }
 
-        useSoundForNotifications = addSlideToggleButton(root, ++gridRow,
-                Res.get("setting.preferences.useSoundForNotifications"), -5); // TODO: why must negative value be used to place toggle consistently?
+        useSoundForNotifications = addSlideToggleButton(optionsGridPane, ++gridRow,
+                Res.get("setting.preferences.useSoundForNotifications"));
     }
 
     private void initializeSeparator() {
@@ -315,16 +326,26 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     }
 
     private void initializeDisplayCurrencies() {
+        // own grid so right column rows aren't shared with the left column's rows
+        currenciesGridPane = new GridPane();
+        currenciesGridPane.setHgap(5);
+        currenciesGridPane.setVgap(5);
+        for (int i = 0; i < 2; i++) {
+            ColumnConstraints columnConstraints = new ColumnConstraints();
+            columnConstraints.setHgrow(Priority.ALWAYS);
+            columnConstraints.setMinWidth(300);
+            currenciesGridPane.getColumnConstraints().add(columnConstraints);
+        }
+        GridPane.setValignment(currenciesGridPane, VPos.TOP);
+        root.add(currenciesGridPane, 2, 0, 2, 1);
 
-        TitledGroupBg titledGroupBg = addTitledGroupBg(root, displayCurrenciesGridRowIndex, 8,
+        TitledGroupBg titledGroupBg = addTitledGroupBg(currenciesGridPane, displayCurrenciesGridRowIndex, 8,
                 Res.get("setting.preferences.currenciesInList"), hideXmrAutoConf ? 0.0 :Layout.GROUP_DISTANCE);
-        GridPane.setColumnIndex(titledGroupBg, 2);
         GridPane.setColumnSpan(titledGroupBg, 2);
 
-        preferredTradeCurrencyComboBox = addAutocompleteComboBox(root, displayCurrenciesGridRowIndex++,
+        preferredTradeCurrencyComboBox = addAutocompleteComboBox(currenciesGridPane, displayCurrenciesGridRowIndex++,
                 Res.get("setting.preferences.prefCurrency"),
                 Layout.FIRST_ROW_DISTANCE);
-        GridPane.setColumnIndex(preferredTradeCurrencyComboBox, 2);
 
         preferredTradeCurrencyComboBox.setConverter(new StringConverter<>() {
             @Override
@@ -343,11 +364,10 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         preferredTradeCurrencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory("", "",
                 FXCollections.emptyObservableMap()));
 
-        Tuple3<Label, ListView<TraditionalCurrency>, VBox> traditionalTuple = addTopLabelListView(root, displayCurrenciesGridRowIndex,
+        Tuple3<Label, ListView<TraditionalCurrency>, VBox> traditionalTuple = addTopLabelListView(currenciesGridPane, displayCurrenciesGridRowIndex,
                 Res.get("setting.preferences.displayTraditional"));
 
         int listRowSpan = 6;
-        GridPane.setColumnIndex(traditionalTuple.third, 2);
         GridPane.setRowSpan(traditionalTuple.third, listRowSpan);
 
         GridPane.setValignment(traditionalTuple.third, VPos.TOP);
@@ -399,10 +419,10 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             }
         });
 
-        Tuple3<Label, ListView<CryptoCurrency>, VBox> cryptoCurrenciesTuple = addTopLabelListView(root,
+        Tuple3<Label, ListView<CryptoCurrency>, VBox> cryptoCurrenciesTuple = addTopLabelListView(currenciesGridPane,
                 displayCurrenciesGridRowIndex, Res.get("setting.preferences.displayCryptos"));
 
-        GridPane.setColumnIndex(cryptoCurrenciesTuple.third, 3);
+        GridPane.setColumnIndex(cryptoCurrenciesTuple.third, 1);
         GridPane.setRowSpan(cryptoCurrenciesTuple.third, listRowSpan);
 
         GridPane.setValignment(cryptoCurrenciesTuple.third, VPos.TOP);
@@ -454,8 +474,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             }
         });
 
-        traditionalCurrenciesComboBox = addComboBox(root, displayCurrenciesGridRowIndex + listRowSpan);
-        GridPane.setColumnIndex(traditionalCurrenciesComboBox, 2);
+        traditionalCurrenciesComboBox = addComboBox(currenciesGridPane, displayCurrenciesGridRowIndex + listRowSpan);
         GridPane.setValignment(traditionalCurrenciesComboBox, VPos.TOP);
         traditionalCurrenciesComboBox.setPromptText(Res.get("setting.preferences.addTraditional"));
         traditionalCurrenciesComboBox.setButtonCell(new ListCell<>() {
@@ -483,8 +502,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             }
         });
 
-        cryptoCurrenciesComboBox = addComboBox(root, displayCurrenciesGridRowIndex + listRowSpan);
-        GridPane.setColumnIndex(cryptoCurrenciesComboBox, 3);
+        cryptoCurrenciesComboBox = addComboBox(currenciesGridPane, displayCurrenciesGridRowIndex + listRowSpan);
+        GridPane.setColumnIndex(cryptoCurrenciesComboBox, 1);
         GridPane.setValignment(cryptoCurrenciesComboBox, VPos.TOP);
         GridPane.setMargin(cryptoCurrenciesComboBox, new Insets(Layout.FLOATING_LABEL_DISTANCE,
                 0, 0, 20));
@@ -519,17 +538,17 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     }
 
     private void initializeDisplayOptions() {
-        TitledGroupBg titledGroupBg = addTitledGroupBg(root, ++gridRow, 7, Res.get("setting.preferences.displayOptions"), Layout.GROUP_DISTANCE);
+        TitledGroupBg titledGroupBg = addTitledGroupBg(optionsGridPane, ++gridRow, 7, Res.get("setting.preferences.displayOptions"), Layout.GROUP_DISTANCE);
         GridPane.setColumnSpan(titledGroupBg, 1);
 
-        showOwnOffersInOfferBook = addSlideToggleButton(root, gridRow, Res.get("setting.preferences.showOwnOffers"), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
-        useAnimations = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.useAnimations"));
-        useDarkMode = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.useDarkMode"));
-        sortMarketCurrenciesNumerically = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.sortWithNumOffers"));
-        hideNonAccountPaymentMethodsToggle = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.onlyShowPaymentMethodsFromAccount"));
-        //denyApiTakerToggle = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.denyApiTaker")); // TODO: re-enable?
-        //notifyOnPreReleaseToggle = addSlideToggleButton(root, ++gridRow, Res.get("setting.preferences.notifyOnPreRelease"));
-        resetDontShowAgainButton = addButton(root, ++gridRow, Res.get("setting.preferences.resetAllFlags"), 0);
+        showOwnOffersInOfferBook = addSlideToggleButton(optionsGridPane, gridRow, Res.get("setting.preferences.showOwnOffers"), Layout.FIRST_ROW_AND_GROUP_DISTANCE + 10);
+        useAnimations = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.useAnimations"));
+        useDarkMode = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.useDarkMode"));
+        sortMarketCurrenciesNumerically = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.sortWithNumOffers"));
+        hideNonAccountPaymentMethodsToggle = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.onlyShowPaymentMethodsFromAccount"));
+        //denyApiTakerToggle = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.denyApiTaker")); // TODO: re-enable?
+        //notifyOnPreReleaseToggle = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.notifyOnPreRelease"));
+        resetDontShowAgainButton = addButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.resetAllFlags"), 12);
         resetDontShowAgainButton.getStyleClass().add("compact-button");
         resetDontShowAgainButton.setMaxWidth(Double.MAX_VALUE);
         GridPane.setHgrow(resetDontShowAgainButton, Priority.ALWAYS);
