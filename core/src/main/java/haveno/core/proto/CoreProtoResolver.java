@@ -69,6 +69,7 @@ import haveno.core.payment.payload.MbWayAccountPayload;
 import haveno.core.payment.payload.PayPayAccountPayload;
 import haveno.core.payment.payload.SbpAccountPayload;
 import haveno.core.payment.payload.MirAccountPayload;
+import haveno.core.payment.payload.YooMoneyAccountPayload;
 import haveno.core.payment.payload.OKPayAccountPayload;
 import haveno.core.payment.payload.PaxumAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -208,6 +209,8 @@ public class CoreProtoResolver implements ProtoResolver {
                             return SbpAccountPayload.fromProto(proto);
                         case MIR_ACCOUNT_PAYLOAD:
                             return MirAccountPayload.fromProto(proto);
+                        case YOOMONEY_ACCOUNT_PAYLOAD:
+                            return YooMoneyAccountPayload.fromProto(proto);
                         default:
                             throw new ProtobufferRuntimeException("Unknown proto message case" +
                                     "(PB.PaymentAccountPayload.CountryBasedPaymentAccountPayload)." +

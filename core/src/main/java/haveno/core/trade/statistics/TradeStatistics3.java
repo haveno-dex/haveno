@@ -231,7 +231,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         MB_WAY,
         PAYPAY,
         SBP,
-        MIR
+        MIR,
+        YOOMONEY
     }
 
     @Getter
