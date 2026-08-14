@@ -254,6 +254,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                 updateNumberOfOffers();
                 updateGroupIdColumnVisibility();
                 updateTriggerColumnVisibility();
+                GUIUtil.updateFilterPlaceholder(tableView, filteredList, filterTextField.getText());
             }
         };
     }
@@ -409,6 +410,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
             }
             return false;
         });
+        GUIUtil.updateFilterPlaceholder(tableView, filteredList, filterString);
     }
 
     private void onWidthChange(double width) {

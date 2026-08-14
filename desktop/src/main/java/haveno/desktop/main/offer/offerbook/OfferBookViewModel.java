@@ -137,6 +137,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     boolean isTabSelected;
     String filterText = "";
+    final BooleanProperty filterTextHidesOffers = new SimpleBooleanProperty();
     final BooleanProperty showAllTradeCurrenciesProperty = new SimpleBooleanProperty(true);
     final BooleanProperty disableMatchToggle = new SimpleBooleanProperty();
     final IntegerProperty maxPlacesForAmount = new SimpleIntegerProperty();
@@ -730,8 +731,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             });
 
             filteredItems.setPredicate(predicate.and(nextPredicate));
+            filterTextHidesOffers.set(filteredItems.isEmpty() && offerBook.getOfferBookListItems().stream().anyMatch(predicate));
         } else {
             filteredItems.setPredicate(predicate);
+            filterTextHidesOffers.set(false);
         }
     }
 

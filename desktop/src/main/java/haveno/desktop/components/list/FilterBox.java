@@ -19,7 +19,9 @@ package haveno.desktop.components.list;
 
 import haveno.common.UserThread;
 import haveno.desktop.components.InputTextField;
+import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.filtering.FilterableListItem;
+import javafx.beans.InvalidationListener;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.transformation.FilteredList;
 import javafx.scene.control.TableView;
@@ -29,8 +31,10 @@ import javafx.scene.layout.Priority;
 public class FilterBox extends HBox {
     private final InputTextField textField;
     private FilteredList<? extends FilterableListItem> filteredList;
+    private TableView<? extends FilterableListItem> tableView;
 
     private ChangeListener<String> listener;
+    private final InvalidationListener listListener;
 
     public FilterBox() {
         super();
@@ -38,6 +42,7 @@ public class FilterBox extends HBox {
 
         textField = new InputTextField();
         textField.setMinWidth(500);
+        listListener = observable -> GUIUtil.updateFilterPlaceholder(tableView, filteredList, textField.getText());
 
         getChildren().addAll(textField);
     }
@@ -52,6 +57,7 @@ public class FilterBox extends HBox {
     public void initialize(FilteredList<? extends FilterableListItem> filteredList,
                            TableView<? extends FilterableListItem> tableView) {
         this.filteredList = filteredList;
+        this.tableView = tableView;
         listener = (observable, oldValue, newValue) -> {
             UserThread.execute(() -> {
                 applyFilter(tableView, null);
@@ -62,17 +68,20 @@ public class FilterBox extends HBox {
     public void initializeWithCallback(FilteredList<? extends FilterableListItem> filteredList,
                                        TableView<? extends FilterableListItem> tableView, Runnable callback) {
         this.filteredList = filteredList;
+        this.tableView = tableView;
         listener = (observable, oldValue, newValue) -> applyFilter(tableView, callback);
         applyFilter(tableView, callback); // first time init
     }
 
     public void activate() {
         textField.textProperty().addListener(listener);
+        filteredList.addListener(listListener);
         applyFilteredListPredicate(textField.getText());
     }
 
     public void deactivate() {
         textField.textProperty().removeListener(listener);
+        filteredList.removeListener(listListener);
     }
 
     private void applyFilter(TableView<? extends FilterableListItem> tableView, Runnable callback) {
@@ -85,6 +94,7 @@ public class FilterBox extends HBox {
 
     private void applyFilteredListPredicate(String filterString) {
         filteredList.setPredicate(item -> item.match(filterString));
+        GUIUtil.updateFilterPlaceholder(tableView, filteredList, filterString);
     }
 
     public void setPromptText(String promptText) {

@@ -76,6 +76,7 @@ import javafx.beans.value.WeakChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -1319,6 +1320,23 @@ public class GUIUtil {
         } catch (Exception e) {
             cursorCacheUnavailable = true;
             log.warn("Cannot clear the scene cursor cache, windows may keep a stale cursor", e);
+        }
+    }
+
+    /** Show a no-match placeholder while a non-empty filter hides all rows of a non-empty list. */
+    public static void updateFilterPlaceholder(TableView<?> tableView, FilteredList<?> filteredList, String filterString) {
+        updateFilterPlaceholder(tableView, !filterString.isEmpty() && filteredList.isEmpty() && !filteredList.getSource().isEmpty());
+    }
+
+    /** Overload for views that determine externally whether the filter hides all rows. */
+    public static void updateFilterPlaceholder(TableView<?> tableView, boolean showNoMatch) {
+        Map<Object, Object> props = tableView.getProperties();
+        Node noMatch = (Node) props.computeIfAbsent("filterNoMatchPlaceholder", k -> new AutoTooltipLabel(Res.get("table.placeholder.noFilterMatch")));
+        if (showNoMatch && tableView.getPlaceholder() != noMatch) {
+            props.put("filterDefaultPlaceholder", tableView.getPlaceholder());
+            tableView.setPlaceholder(noMatch);
+        } else if (!showNoMatch && tableView.getPlaceholder() == noMatch) {
+            tableView.setPlaceholder((Node) props.get("filterDefaultPlaceholder"));
         }
     }
 

@@ -424,6 +424,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         } else {
             filterTextField.getTooltip().setText("Data matching filter string: " + filterResult.get().getDisplayString());
         }
+
+        GUIUtil.updateFilterPlaceholder(tableView, filteredList, filterString);
     }
 
     protected FilterResult getFilterResult(Dispute dispute, String filterTerm) {
