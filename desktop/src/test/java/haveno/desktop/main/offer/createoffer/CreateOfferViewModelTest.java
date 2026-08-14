@@ -79,6 +79,7 @@ public class CreateOfferViewModelTest {
         Res.setup();
 
         final XmrValidator btcValidator = new XmrValidator();
+        btcValidator.setMinValue(Restrictions.getMinTradeAmount());
         final AmountValidator8Decimals priceValidator8Decimals = new AmountValidator8Decimals();
         final AmountValidator4Decimals priceValidator4Decimals = new AmountValidator4Decimals();
 
@@ -152,80 +153,80 @@ public class CreateOfferViewModelTest {
         assertEquals("0.0", model.amount.get());
         assertNull(model.minAmount.get());
 
-        model.amount.set("0.03");
+        model.amount.set("0.30");
 
-        assertEquals("0.03", model.amount.get());
-        assertEquals("0.03", model.minAmount.get());
+        assertEquals("0.30", model.amount.get());
+        assertEquals("0.30", model.minAmount.get());
 
-        model.amount.set("0.0312");
+        model.amount.set("0.312");
 
-        assertEquals("0.0312", model.amount.get());
-        assertEquals("0.0312", model.minAmount.get());
+        assertEquals("0.312", model.amount.get());
+        assertEquals("0.312", model.minAmount.get());
 
-        model.minAmount.set("0.01");
+        model.minAmount.set("0.10");
         model.onFocusOutMinAmountTextField(true, false);
 
-        assertEquals("0.01", model.minAmount.get());
+        assertEquals("0.10", model.minAmount.get());
 
-        model.amount.set("0.0301");
+        model.amount.set("0.301");
 
-        assertEquals("0.0301", model.amount.get());
-        assertEquals("0.01", model.minAmount.get());
+        assertEquals("0.301", model.amount.get());
+        assertEquals("0.10", model.minAmount.get());
     }
 
     @Test
     public void testSyncMinAmountWithAmountWhenZeroCoinIsSet() {
-        model.amount.set("0.03");
+        model.amount.set("0.30");
 
-        assertEquals("0.03", model.amount.get());
-        assertEquals("0.03", model.minAmount.get());
+        assertEquals("0.30", model.amount.get());
+        assertEquals("0.30", model.minAmount.get());
 
         model.minAmount.set("0.00");
         model.onFocusOutMinAmountTextField(true, false);
 
-        model.amount.set("0.04");
+        model.amount.set("0.40");
 
-        assertEquals("0.04", model.amount.get());
-        assertEquals("0.04", model.minAmount.get());
+        assertEquals("0.40", model.amount.get());
+        assertEquals("0.40", model.minAmount.get());
 
     }
 
     @Test
     public void testSyncMinAmountWithAmountWhenSameValueIsSet() {
-        model.amount.set("0.03");
+        model.amount.set("0.30");
 
-        assertEquals("0.03", model.amount.get());
-        assertEquals("0.03", model.minAmount.get());
+        assertEquals("0.30", model.amount.get());
+        assertEquals("0.30", model.minAmount.get());
 
-        model.minAmount.set("0.03");
+        model.minAmount.set("0.30");
         model.onFocusOutMinAmountTextField(true, false);
 
-        model.amount.set("0.04");
+        model.amount.set("0.40");
 
-        assertEquals("0.04", model.amount.get());
-        assertEquals("0.04", model.minAmount.get());
+        assertEquals("0.40", model.amount.get());
+        assertEquals("0.40", model.minAmount.get());
     }
 
     @Test
     public void testSyncMinAmountWithAmountWhenHigherMinAmountValueIsSet() {
-        model.amount.set("0.03");
+        model.amount.set("0.30");
 
-        assertEquals("0.03", model.amount.get());
-        assertEquals("0.03", model.minAmount.get());
+        assertEquals("0.30", model.amount.get());
+        assertEquals("0.30", model.minAmount.get());
 
-        model.minAmount.set("0.05");
+        model.minAmount.set("0.50");
         model.onFocusOutMinAmountTextField(true, false);
 
-        assertEquals("0.05", model.amount.get());
-        assertEquals("0.05", model.minAmount.get());
+        assertEquals("0.50", model.amount.get());
+        assertEquals("0.50", model.minAmount.get());
     }
 
     @Test
     public void testSyncPriceMarginWithVolumeAndFixedPrice() {
-        model.amount.set("0.01");
+        model.amount.set("0.1");
         model.onFocusOutPriceAsPercentageTextField(true, false); //leave focus without changing
         assertEquals("0.00", model.marketPriceMargin.get());
-        assertEquals("126.84045000", model.volume.get());
+        assertEquals("1268.40450000", model.volume.get());
         assertEquals("12684.04500000", model.price.get());
     }
 
@@ -244,6 +245,30 @@ public class CreateOfferViewModelTest {
         model.volume.set("634.20225000");
 
         assertEquals("0.05", model.amount.get());
+    }
+
+    @Test
+    public void testVolumeBackCalculatesAmountWithUntouchedPriceMargin() {
+        model.marketPriceMargin.set(""); // view clears the bound fields to empty on currency change
+        model.price.set("");
+
+        model.volume.set("634.20225000"); // volume typed without ever focusing the margin field
+
+        assertEquals("0.00", model.marketPriceMargin.get());
+        assertEquals("12684.04500000", model.price.get());
+        assertEquals("0.05", model.amount.get());
+    }
+
+    @Test
+    public void testAmountCalculatesVolumeWithUntouchedPriceMargin() {
+        model.marketPriceMargin.set(""); // view clears the bound fields to empty on currency change
+        model.price.set("");
+
+        model.amount.set("0.1"); // amount typed without ever focusing the margin field
+
+        assertEquals("0.00", model.marketPriceMargin.get());
+        assertEquals("12684.04500000", model.price.get());
+        assertEquals("1268.40450000", model.volume.get());
     }
 
     @Test

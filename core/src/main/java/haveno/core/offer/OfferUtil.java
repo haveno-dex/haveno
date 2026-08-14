@@ -23,7 +23,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.app.Capabilities;
 import haveno.common.app.Version;
-import haveno.common.util.MathUtils;
 import static haveno.common.util.MathUtils.roundDoubleToLong;
 import static haveno.common.util.MathUtils.scaleUpByPowerOf10;
 import haveno.common.util.Utilities;
@@ -158,14 +157,6 @@ public class OfferUtil {
         } else {
             return BigInteger.ZERO;
         }
-    }
-
-    public double calculateManualPrice(double volumeAsDouble, double amountAsDouble) {
-        return volumeAsDouble / amountAsDouble;
-    }
-
-    public double calculateMarketPriceMarginPct(double manualPrice, double marketPrice) {
-        return MathUtils.roundDouble(manualPrice / marketPrice, 4);
     }
 
     public boolean isBlockChainPaymentMethod(Offer offer) {

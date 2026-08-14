@@ -496,15 +496,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     // Utils
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    double calculateMarketPriceManual(double marketPrice, double volumeAsDouble, double amountAsDouble) {
-        double manualPriceAsDouble = offerUtil.calculateManualPrice(volumeAsDouble, amountAsDouble);
-        double percentage = offerUtil.calculateMarketPriceMarginPct(manualPriceAsDouble, marketPrice);
-
-        setMarketPriceMarginPct(percentage);
-
-        return manualPriceAsDouble;
-    }
-
     void calculateVolume() {
         if (isNonZeroPrice.test(price) && isNonZeroAmount.test(amount)) {
             try {

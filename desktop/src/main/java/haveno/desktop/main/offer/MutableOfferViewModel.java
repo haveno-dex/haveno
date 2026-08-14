@@ -184,7 +184,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     protected Offer offer;
     private boolean inputIsMarketBasedPrice;
     private ChangeListener<Boolean> useMarketBasedPriceListener;
-    private boolean ignorePriceStringListener, ignoreVolumeStringListener, ignoreAmountStringListener, ignoreSecurityDepositStringListener;
+    private boolean ignorePriceStringListener, ignoreVolumeStringListener, ignoreAmountStringListener, ignoreSecurityDepositStringListener, ignoreMarketPriceMarginStringListener;
     private MarketPrice marketPrice;
     final IntegerProperty marketPriceAvailableProperty = new SimpleIntegerProperty(-1);
     private ChangeListener<Number> currenciesUpdateListener;
@@ -302,6 +302,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         amountStringListener = (ov, oldValue, newValue) -> {
             if (!ignoreAmountStringListener) {
                 if (isXmrInputValid(newValue).isValid) {
+                    applyMarketPriceIfMarginUntouched();
                     setAmountToModel();
                     dataModel.calculateVolume();
                     dataModel.calculateTotalToPay();
@@ -348,7 +349,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             updateButtonDisableState();
         };
         marketPriceMarginStringListener = (ov, oldValue, newValue) -> {
-            if (inputIsMarketBasedPrice) {
+            if (!ignoreMarketPriceMarginStringListener && inputIsMarketBasedPrice) {
                 try {
                     if (!newValue.isEmpty() && !newValue.equals("-")) {
                         double percentage = ParsingUtils.parsePercentStringToDouble(newValue);
@@ -411,6 +412,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         volumeStringListener = (ov, oldValue, newValue) -> {
             if (!ignoreVolumeStringListener) {
                 if (isVolumeInputValid(newValue).isValid) {
+                    applyMarketPriceIfMarginUntouched();
                     setVolumeToModel();
                     setPriceToModel();
                     dataModel.calculateAmount();
@@ -788,10 +790,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 triggerFocusOutOnVolumeTextField();
                 onFocusOutMinAmountTextField(true, false);
             });
-
-            if (marketPriceMargin.get() == null && amount.get() != null && volume.get() != null) {
-                updateMarketPriceToManual();
-            }
         }
     }
 
@@ -977,10 +975,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                     if (amountValidationResult.getValue() != null && amountValidationResult.getValue().isValid && minAmount.get() != null)
                         minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
                 }
-            }
-
-            if (marketPriceMargin.get() == null && amount.get() != null && volume.get() != null) {
-                updateMarketPriceToManual();
             }
 
             // trigger recalculation of security deposit
@@ -1362,30 +1356,23 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         }
     }
 
-    private void updateMarketPriceToManual() {
-        final String currencyCode = dataModel.getTradeCurrencyCode().get();
+    // treat an untouched market price margin as 0% so amount and volume calculate from the market price
+    private void applyMarketPriceIfMarginUntouched() {
+        if (!dataModel.getUseMarketBasedPrice().get()) return;
+        if (marketPriceMargin.get() != null && !marketPriceMargin.get().isEmpty()) return;
+        if (price.get() != null && !price.get().isEmpty()) return;
+        String currencyCode = dataModel.getTradeCurrencyCode().get();
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
-        if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
-            double marketPriceAsDouble = marketPrice.getPrice();
-            double amountAsDouble = ParsingUtils.parseNumberStringToDouble(amount.get());
-            double volumeAsDouble = ParsingUtils.parseNumberStringToDouble(volume.get());
-            double manualPriceAsDouble = dataModel.calculateMarketPriceManual(marketPriceAsDouble, volumeAsDouble, amountAsDouble);
-
-            int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
-                    TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
-            price.set(FormattingUtils.formatRoundedDoubleWithPrecision(manualPriceAsDouble, precision));
-            setPriceToModel();
-            dataModel.calculateTotalToPay();
-            updateButtonDisableState();
-            applyMakerFee();
-        } else {
-            marketPriceMargin.set("");
-            String id = "showNoPriceFeedAvailablePopup";
-            if (preferences.showAgain(id)) {
-                new Popup().warning(Res.get("popup.warning.noPriceFeedAvailable"))
-                        .dontShowAgainId(id)
-                        .show();
-            }
-        }
+        if (marketPrice == null || !marketPrice.isRecentExternalPriceAvailable()) return;
+        int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
+                TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
+        ignorePriceStringListener = true;
+        price.set(FormattingUtils.formatRoundedDoubleWithPrecision(marketPrice.getPrice(), precision));
+        ignorePriceStringListener = false;
+        setPriceToModel();
+        dataModel.setMarketPriceMarginPct(0);
+        ignoreMarketPriceMarginStringListener = true;
+        marketPriceMargin.set(FormattingUtils.formatRoundedDoubleWithPrecision(0, 2));
+        ignoreMarketPriceMarginStringListener = false;
     }
 }
