@@ -101,7 +101,8 @@ public class BuyerStep4View extends TradeStepView {
         closeButton.setDefaultButton(true);
         closeButton.getStyleClass().add("action-button");
         GridPane.setRowIndex(closeButton, ++gridRow);
-        GridPane.setMargin(closeButton, new Insets(Layout.GROUP_DISTANCE, 10, 0, 0));
+        // without summary fields the button is the first row under the title, so clear it
+        GridPane.setMargin(closeButton, new Insets(trade.isPaymentReceived() ? 15 : Layout.TWICE_FIRST_ROW_DISTANCE, 10, 0, 0));
         gridPane.getChildren().add(closeButton);
 
         closeButton.setOnAction(e -> {

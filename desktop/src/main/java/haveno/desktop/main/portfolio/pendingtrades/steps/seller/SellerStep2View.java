@@ -45,9 +45,9 @@ public class SellerStep2View extends TradeStepView {
         checkNotNull(model.dataModel.getTrade().getOffer(), "No offer found");
         if (model.dataModel.getSellersPaymentAccountPayload() instanceof F2FAccountPayload) {
             addTitledGroupBg(gridPane, ++gridRow, 4,
-                    Res.get("portfolio.pending.step2_seller.f2fInfo.headline"), Layout.COMPACT_GROUP_DISTANCE);
+                    Res.get("portfolio.pending.step2_seller.f2fInfo.headline"), Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
             gridRow = F2FForm.addStep2Form(gridPane, --gridRow, model.dataModel.getSellersPaymentAccountPayload(),
-                    model.dataModel.getTrade().getOffer(), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE, false);
+                    model.dataModel.getTrade().getOffer(), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR, false);
         }
     }
 

@@ -208,11 +208,15 @@ public class TradeStepInfo {
                 button.setDisable(false);
                 break;
             case TRADE_COMPLETED:
-                // hide group
+                // hide group and release its space so it doesn't stretch the step view
                 titledGroupBg.setVisible(false);
+                titledGroupBg.setManaged(false);
                 label.setVisible(false);
+                label.setManaged(false);
                 button.setVisible(false);
+                button.setManaged(false);
                 footerLabel.setVisible(false);
+                footerLabel.setManaged(false);
             default:
                 break;
         }

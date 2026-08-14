@@ -130,7 +130,7 @@ public abstract class TradeStepView extends AnchorPane {
         gridPane.setHgap(Layout.GRID_GAP);
         gridPane.setVgap(Layout.GRID_GAP);
         // horizontal inset via grid padding keeps titled group negative margins inside the viewport clip
-        gridPane.setPadding(new Insets(0, 10, 25, 10));
+        gridPane.setPadding(new Insets(0, 10, 10, 10));
         ColumnConstraints columnConstraints1 = new ColumnConstraints();
         columnConstraints1.setHgrow(Priority.ALWAYS);
 
@@ -457,11 +457,11 @@ public abstract class TradeStepView extends AnchorPane {
 
     protected void addInfoBlock() {
         final TitledGroupBg titledGroupBg = addTitledGroupBg(gridPane, ++gridRow, 1, getInfoBlockTitle(),
-                Layout.COMPACT_GROUP_DISTANCE);
+                Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
         titledGroupBg.getStyleClass().add("last");
         GridPane.setColumnSpan(titledGroupBg, 2);
 
-        infoLabel = addMultilineLabel(gridPane, gridRow, "", Layout.COMPACT_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
+        infoLabel = addMultilineLabel(gridPane, gridRow, "", Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR);
         GridPane.setColumnSpan(infoLabel, 2);
 
         statusLabel = new Label();

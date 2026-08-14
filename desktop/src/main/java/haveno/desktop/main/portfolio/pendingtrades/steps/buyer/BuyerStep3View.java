@@ -73,8 +73,8 @@ public class BuyerStep3View extends TradeStepView {
 
     @Override
     protected void addInfoBlock() {
-        addTitledGroupBg(gridPane, ++gridRow, 2, getInfoBlockTitle(), Layout.GROUP_DISTANCE);
-        infoLabel = addMultilineLabel(gridPane, gridRow, "", Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        addTitledGroupBg(gridPane, ++gridRow, 2, getInfoBlockTitle(), Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
+        infoLabel = addMultilineLabel(gridPane, gridRow, "", Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR);
         GridPane.setColumnSpan(infoLabel, 2);
         Tuple4<VBox, Label, TextFieldWithIcon, Label> tuple = addTopLabelTextFieldWithIconLabel(gridPane, ++gridRow,
                 Res.get("portfolio.pending.step3_buyer.wait.msgStateInfo.label"), 0);

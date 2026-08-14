@@ -50,7 +50,6 @@ import haveno.desktop.components.indicator.TxConfidenceIndicator;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import haveno.desktop.util.Layout;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
@@ -71,9 +70,9 @@ import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCop
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
-import static haveno.desktop.util.Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE;
-import static haveno.desktop.util.Layout.COMPACT_GROUP_DISTANCE;
+import static haveno.desktop.util.Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR;
 import static haveno.desktop.util.Layout.FLOATING_LABEL_DISTANCE;
+import static haveno.desktop.util.Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR;
 
 public class SellerStep3View extends TradeStepView {
 
@@ -185,11 +184,11 @@ public class SellerStep3View extends TradeStepView {
         addTradeInfoBlock();
 
         addTitledGroupBg(gridPane, ++gridRow, 3,
-                Res.get("portfolio.pending.step3_seller.confirmPaymentReceipt"), COMPACT_GROUP_DISTANCE);
+                Res.get("portfolio.pending.step3_seller.confirmPaymentReceipt"), GROUP_DISTANCE_WITHOUT_SEPARATOR);
 
         TextFieldWithCopyIcon field = addTopLabelTextFieldWithCopyIcon(gridPane, gridRow,
                 Res.get("portfolio.pending.step3_seller.amountToReceive"),
-                model.getFiatVolume(), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE).second;
+                model.getFiatVolume(), COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR).second;
         field.setCopyWithoutCurrencyPostFix(true);
 
         String myPaymentDetails = "";
@@ -247,7 +246,7 @@ public class SellerStep3View extends TradeStepView {
 
             GridPane.setRowIndex(hBox, gridRow);
             GridPane.setColumnIndex(hBox, 1);
-            GridPane.setMargin(hBox, new Insets(COMPACT_FIRST_ROW_AND_GROUP_DISTANCE + FLOATING_LABEL_DISTANCE,
+            GridPane.setMargin(hBox, new Insets(COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR + FLOATING_LABEL_DISTANCE,
                     0,
                     0,
                     0));

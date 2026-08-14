@@ -276,11 +276,11 @@ public class BuyerStep2View extends TradeStepView {
         paymentAccountGridPane = createGridPane();
         TitledGroupBg accountTitledGroupBg = addTitledGroupBg(paymentAccountGridPane, paymentAccountGridRow, 4,
                 Res.get("portfolio.pending.step2_buyer.startPaymentUsing", Res.get(paymentMethodId)),
-                Layout.COMPACT_GROUP_DISTANCE);
+                Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
         TextFieldWithCopyIcon field = addTopLabelTextFieldWithCopyIcon(paymentAccountGridPane, paymentAccountGridRow, 0,
                 Res.get("portfolio.pending.step2_buyer.amountToTransfer"),
                 model.getFiatVolume(),
-                Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE).second;
+                Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR).second;
         field.setCopyWithoutCurrencyPostFix(true);
 
         //preland: this fixes a textarea layout glitch // TODO: can this be removed now?
@@ -584,12 +584,12 @@ public class BuyerStep2View extends TradeStepView {
         moreConfirmationsGridPane.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
         // add title
-        addTitledGroupBg(moreConfirmationsGridPane, 0, 1,  Res.get("portfolio.pending.step1.waitForConf"), Layout.COMPACT_GROUP_DISTANCE);
+        addTitledGroupBg(moreConfirmationsGridPane, 0, 1,  Res.get("portfolio.pending.step1.waitForConf"), Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
 
         // add text styled like the other step info blocks
         Label label = addMultilineLabel(moreConfirmationsGridPane, 0,
                 Res.get("portfolio.pending.step2_buyer.additionalConf", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED),
-                Layout.COMPACT_FIRST_ROW_AND_COMPACT_GROUP_DISTANCE);
+                Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR);
         GridPane.setColumnSpan(label, 2);
 
         Tuple4<Button, BusyAnimation, Label, HBox> tuple3 = addButtonBusyAnimationLabel(moreConfirmationsGridPane, 1, 0,
