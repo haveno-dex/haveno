@@ -730,6 +730,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     // On focus out we do validation and apply the data to the model
     void onFocusOutAmountTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
+            // flag an empty field only after an amount was set, so an untouched field stays neutral
+            if ((amount.get() == null || amount.get().isEmpty()) && dataModel.getAmount().get() == null) return;
             InputValidator.ValidationResult result = isXmrInputValid(amount.get());
             amountValidationResult.set(result);
             if (result.isValid) {
@@ -795,6 +797,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     public void onFocusOutMinAmountTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
+            // flag an empty field only after a minimum amount was set, so an untouched field stays neutral
+            if ((minAmount.get() == null || minAmount.get().isEmpty()) && dataModel.getMinAmount().get() == null) return;
             InputValidator.ValidationResult result = isXmrInputValid(minAmount.get());
             minAmountValidationResult.set(result);
             if (result.isValid) {
@@ -896,6 +900,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     void onFocusOutPriceTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
+            // flag an empty field only after a price was set, so an untouched field stays neutral
+            if ((price.get() == null || price.get().isEmpty()) && dataModel.getPrice().get() == null) return;
             InputValidator.ValidationResult result = isPriceInputValid(price.get());
             priceValidationResult.set(result);
             if (result.isValid) {
@@ -948,6 +954,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     void onFocusOutVolumeTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
+            // flag an empty field only after a volume was set, so an untouched field stays neutral
+            if ((volume.get() == null || volume.get().isEmpty()) && dataModel.getVolume().get() == null) return;
             InputValidator.ValidationResult result = isVolumeInputValid(volume.get());
             volumeValidationResult.set(result);
             if (result.isValid) {
