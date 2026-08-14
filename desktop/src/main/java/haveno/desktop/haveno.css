@@ -2873,7 +2873,7 @@ textfield */
 /* page-level headline of the create/take offer forms */
 .offer-form-headline .titled-group-bg-label,
 .offer-form-headline .titled-group-bg-label-active {
-    -fx-font-size: 1.385em;
+    -fx-font-size: 1.538em;
     -fx-translate-y: -2;
 }
 
