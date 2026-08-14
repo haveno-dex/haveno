@@ -930,8 +930,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     public void onFocusOutPriceAsPercentageTextField(boolean oldValue, boolean newValue) {
         inputIsMarketBasedPrice = !oldValue && newValue;
         if (oldValue && !newValue) {
-            if (marketPriceMargin.get() == null) {
-                // field wasn't set manually
+            if (marketPriceMargin.get() == null || marketPriceMargin.get().isEmpty()) {
+                // field wasn't set manually; null initially, empty after the view clears it
                 inputIsMarketBasedPrice = true;
             }
             marketPriceMargin.set(FormattingUtils.formatRoundedDoubleWithPrecision(dataModel.getMarketPriceMarginPct() * 100, 2));

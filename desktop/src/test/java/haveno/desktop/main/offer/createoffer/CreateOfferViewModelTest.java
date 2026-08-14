@@ -109,6 +109,7 @@ public class CreateOfferViewModelTest {
         when(securityDepositValidator.validate(any())).thenReturn(new InputValidator.ValidationResult(false));
         when(accountAgeWitnessService.getMyTradeLimit(any(), any(), any(), anyBoolean())).thenReturn(100000000L);
         when(preferences.getUserCountry()).thenReturn(new Country("ES", "Spain", null));
+        when(offerUtil.getMaxTradeLimitForRelease(any(), anyString(), any(), anyBoolean())).thenReturn(HavenoUtils.xmrToAtomicUnits(10));
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
         when(tradeStats.getObservableTradeStatisticsList()).thenReturn(FXCollections.observableArrayList());
 
@@ -226,6 +227,23 @@ public class CreateOfferViewModelTest {
         assertEquals("0.00", model.marketPriceMargin.get());
         assertEquals("126.84045000", model.volume.get());
         assertEquals("12684.04500000", model.price.get());
+    }
+
+    @Test
+    public void testVolumeBackCalculatesAmountAfterTabbingPastClearedPriceMargin() {
+        model.marketPriceMargin.set(""); // view clears the bound field to empty on currency change
+        model.amount.set("0.1");
+
+        model.onFocusOutPriceAsPercentageTextField(false, true); // focus gained
+        model.onFocusOutPriceAsPercentageTextField(true, false); // tabbed out without changing
+
+        assertEquals("0.00", model.marketPriceMargin.get());
+        assertEquals("12684.04500000", model.price.get());
+        assertEquals("1268.40450000", model.volume.get());
+
+        model.volume.set("634.20225000");
+
+        assertEquals("0.05", model.amount.get());
     }
 
     @Test
