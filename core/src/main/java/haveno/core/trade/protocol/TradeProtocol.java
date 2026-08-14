@@ -966,6 +966,15 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             }
         }
 
+        // handle nack of InitTradeRequest from maker to taker, e.g. offer is already taken
+        if (!ackMessage.isSuccess() && trade.isTaker() && verifiedPeer == trade.getMaker() && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
+            if (trade.getPhase() == Trade.Phase.INIT) {
+                handleError(ackMessage.getErrorMessage());
+                return;
+            }
+            log.warn("Ignoring InitTradeRequest NACK from maker for {} {} because trade is past init, phase={}, errorMessage={}", trade.getClass().getSimpleName(), trade.getId(), trade.getPhase(), ackMessage.getErrorMessage());
+        }
+
         // handle nack of DepositRequest from arbitrator to buyer or seller
         if (ackMessage.getSourceMsgClassName().equals(DepositRequest.class.getSimpleName())) {
             if (!ackMessage.isSuccess()) {

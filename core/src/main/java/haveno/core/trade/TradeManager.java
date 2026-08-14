@@ -672,15 +672,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // get open offer
             Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOffer(request.getOfferId());
-            if (!openOfferOptional.isPresent()) return;
-            OpenOffer openOffer = openOfferOptional.get();
-            Offer offer = openOffer.getOffer();
 
-            // check availability
-            if (openOffer.getState() != OpenOffer.State.AVAILABLE) {
-                log.warn("Ignoring InitTradeRequest to maker because offer is not available, offerId={}, sender={}", request.getOfferId(), sender);
+            // reject if offer is unavailable so taker fails fast instead of timing out
+            if (!openOfferOptional.isPresent() || openOfferOptional.get().getState() != OpenOffer.State.AVAILABLE) {
+                log.warn("Rejecting InitTradeRequest to maker because offer is not available, offerId={}, sender={}", request.getOfferId(), sender);
+                Optional<Trade> existingTrade = getOpenOrClosedTrade(request.getOfferId());
+                boolean isCurrentTaker = existingTrade.isPresent() && request.getTakerPubKeyRing().equals(existingTrade.get().getTaker().getPubKeyRing());
+                if (!isCurrentTaker) sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " is already taken or unavailable", null); // skip nack on duplicate request from current taker
                 return;
             }
+            OpenOffer openOffer = openOfferOptional.get();
+            Offer offer = openOffer.getOffer();
 
             // validate challenge
             if (openOffer.getChallenge() != null && !HavenoUtils.getChallengeHash(openOffer.getChallenge()).equals(HavenoUtils.getChallengeHash(request.getChallenge()))) {
