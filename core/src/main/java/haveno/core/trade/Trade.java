@@ -1613,12 +1613,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             // verify miner fee is within tolerance unless outdated offer version
             if (getOffer().getOfferPayload().getProtocolVersion() >= 2) {
 
-                // verify fee is within tolerance by recreating payout tx
-                // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
-                log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getShortId());
-                saveWallet(); // save wallet before creating fee estimate tx
-                MoneroTxWallet feeEstimateTx = createPayoutTx();
-                HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), payoutTx.getFee());
+                // verify fee is within tolerance of estimate from tx weight, else recreate payout tx to estimate fee
+                if (payoutTx.getWeight() != null) {
+                    HavenoUtils.verifyMinerFee(xmrWalletService.getFeeEstimate(payoutTx.getWeight()), payoutTx.getFee());
+                } else {
+                    log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getShortId());
+                    saveWallet(); // save wallet before creating fee estimate tx
+                    MoneroTxWallet feeEstimateTx = createPayoutTx();
+                    HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), payoutTx.getFee());
+                }
                 log.info("Payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), getShortId());
             }
 
@@ -1748,19 +1751,23 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 throw new IllegalStateException(e.getMessage());
             }
 
-            // verify mining fee is within tolerance by recreating payout tx
-            // TODO (monero-project): creating tx will require exchanging updated multisig hex if message needs reprocessed. provide weight with describe_transfer so fee can be estimated?
-            MoneroTxWallet feeEstimateTx = null;
-            try {
-                log.info("Creating dispute fee estimate tx for {} {}", getClass().getSimpleName(), getShortId());
-                feeEstimateTx = createDisputePayoutTx(contract, disputeResult, false);
-            } catch (Exception e) {
-                if (isPayoutPublished()) log.warn("Payout tx already published for {} {}, skipping fee verification", getClass().getSimpleName(), getShortId());
-                else throw new RuntimeException("Could not recreate dispute payout tx to verify fee: " + e.getMessage(), e);
-            }
-            if (feeEstimateTx != null) {
-                HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), arbitratorSignedPayoutTx.getFee());
+            // verify miner fee is within tolerance of estimate from tx weight, else recreate payout tx to estimate fee
+            if (arbitratorSignedPayoutTx.getWeight() != null) {
+                HavenoUtils.verifyMinerFee(xmrWalletService.getFeeEstimate(arbitratorSignedPayoutTx.getWeight()), arbitratorSignedPayoutTx.getFee());
                 log.info("Dispute payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), getShortId());
+            } else {
+                MoneroTxWallet feeEstimateTx = null;
+                try {
+                    log.info("Creating dispute fee estimate tx for {} {}", getClass().getSimpleName(), getShortId());
+                    feeEstimateTx = createDisputePayoutTx(contract, disputeResult, false);
+                } catch (Exception e) {
+                    if (isPayoutPublished()) log.warn("Payout tx already published for {} {}, skipping fee verification", getClass().getSimpleName(), getShortId());
+                    else throw new RuntimeException("Could not recreate dispute payout tx to verify fee: " + e.getMessage(), e);
+                }
+                if (feeEstimateTx != null) {
+                    HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), arbitratorSignedPayoutTx.getFee());
+                    log.info("Dispute payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), getShortId());
+                }
             }
         } else {
             log.warn("Payout tx already signed for {} {}, skipping signing", getClass().getSimpleName(), getShortId());

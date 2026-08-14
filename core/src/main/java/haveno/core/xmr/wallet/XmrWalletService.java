@@ -1042,7 +1042,7 @@ public class XmrWalletService extends XmrWalletBase {
      * @param txWeight - the tx weight
      * @return the tx fee estimate
      */
-    private BigInteger getFeeEstimate(long txWeight) {
+    public BigInteger getFeeEstimate(long txWeight) {
 
         // get fee priority
         MoneroTxPriority priority;
