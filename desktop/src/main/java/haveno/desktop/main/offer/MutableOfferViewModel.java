@@ -159,6 +159,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     final ObjectProperty<InputValidator.ValidationResult> amountValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> minAmountValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> priceValidationResult = new SimpleObjectProperty<>();
+    final ObjectProperty<InputValidator.ValidationResult> marketPriceMarginValidationResult = new SimpleObjectProperty<>(new InputValidator.ValidationResult(true));
     final ObjectProperty<InputValidator.ValidationResult> triggerPriceValidationResult = new SimpleObjectProperty<>(new InputValidator.ValidationResult(true));
     final ObjectProperty<InputValidator.ValidationResult> volumeValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> securityDepositValidationResult = new SimpleObjectProperty<>();
@@ -352,10 +353,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                     if (!newValue.isEmpty() && !newValue.equals("-")) {
                         double percentage = ParsingUtils.parsePercentStringToDouble(newValue);
                         if (percentage >= 1 || percentage <= -1) {
-                            new Popup().warning(Res.get("popup.warning.tooLargePercentageValue") + "\n" +
-                                            Res.get("popup.warning.examplePercentageValue"))
-                                    .show();
+                            marketPriceMarginValidationResult.set(new InputValidator.ValidationResult(false,
+                                    Res.get("popup.warning.tooLargePercentageValue")));
                         } else {
+                            marketPriceMarginValidationResult.set(new InputValidator.ValidationResult(true));
                             final String currencyCode = dataModel.getTradeCurrencyCode().get();
                             MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
                             if (marketPrice != null && marketPrice.isRecentExternalPriceAvailable()) {
@@ -388,11 +389,11 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                                 }
                             }
                         }
+                    } else {
+                        marketPriceMarginValidationResult.set(new InputValidator.ValidationResult(true));
                     }
                 } catch (NumberFormatException t) {
-                    log.error(t.toString());
-                    t.printStackTrace();
-                    new Popup().warning(Res.get("validation.NaN")).show();
+                    marketPriceMarginValidationResult.set(new InputValidator.ValidationResult(false, Res.get("validation.NaN")));
                 } catch (Throwable t) {
                     log.error(t.toString());
                     t.printStackTrace();
@@ -403,6 +404,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         useMarketBasedPriceListener = (observable, oldValue, newValue) -> {
             if (newValue)
                 priceValidationResult.set(new InputValidator.ValidationResult(true));
+            else
+                marketPriceMarginValidationResult.set(new InputValidator.ValidationResult(true));
         };
 
         volumeStringListener = (ov, oldValue, newValue) -> {
@@ -935,6 +938,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 inputIsMarketBasedPrice = true;
             }
             marketPriceMargin.set(FormattingUtils.formatRoundedDoubleWithPrecision(dataModel.getMarketPriceMarginPct() * 100, 2));
+            marketPriceMarginValidationResult.set(new InputValidator.ValidationResult(true)); // field text is reset to the model value
         }
 
         // We want to trigger a recalculation of the volume, as well as update trigger price validation

@@ -611,6 +611,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         amountTextField.validationResultProperty().bind(model.amountValidationResult);
         minAmountTextField.validationResultProperty().bind(model.minAmountValidationResult);
         fixedPriceTextField.validationResultProperty().bind(model.priceValidationResult);
+        marketBasedPriceTextField.validationResultProperty().bind(model.marketPriceMarginValidationResult);
         triggerPriceInputTextField.validationResultProperty().bind(model.triggerPriceValidationResult);
         volumeTextField.validationResultProperty().bind(model.volumeValidationResult);
         securityDepositInputTextField.validationResultProperty().bind(model.securityDepositValidationResult);
@@ -667,6 +668,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         amountTextField.validationResultProperty().unbind();
         minAmountTextField.validationResultProperty().unbind();
         fixedPriceTextField.validationResultProperty().unbind();
+        marketBasedPriceTextField.validationResultProperty().unbind();
         triggerPriceInputTextField.validationResultProperty().unbind();
         volumeTextField.validationResultProperty().unbind();
         securityDepositInputTextField.validationResultProperty().unbind();
