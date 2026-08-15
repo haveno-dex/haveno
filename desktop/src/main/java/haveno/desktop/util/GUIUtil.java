@@ -1583,7 +1583,7 @@ public class GUIUtil {
         return icon == null ? null : new StackPane(icon);
     }
 
-    public static final double CURRENCY_GRAPHIC_ROW_SIZE = 27; // currency logo size (px) in list rows; adjust to resize
+    public static final double CURRENCY_GRAPHIC_ROW_SIZE = 25; // currency logo size (px) in list rows; adjust to resize
     private static final double CURRENCY_LABEL_SMALL_WIDTH = 45; // .currency-label-small -fx-pref-width
     private static final double CURRENCY_ICON_MARGIN = 1; // transparent margin (logical px) bled just outside list logos
 
