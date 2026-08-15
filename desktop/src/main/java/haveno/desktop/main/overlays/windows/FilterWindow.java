@@ -32,7 +32,6 @@ import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
 import static haveno.desktop.util.FormBuilder.addInputTextField;
 import static haveno.desktop.util.FormBuilder.addLabelCheckBox;
-import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -44,17 +43,14 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import org.apache.commons.lang3.StringUtils;
 
 public class FilterWindow extends Overlay<FilterWindow> {
     private final FilterManager filterManager;
     private final boolean useDevPrivilegeKeys;
-    private ScrollPane scrollPane;
 
     @Inject
     public FilterWindow(FilterManager filterManager,
@@ -64,11 +60,6 @@ public class FilterWindow extends Overlay<FilterWindow> {
         type = Type.Attention;
     }
 
-    @Override
-    protected Region getRootContainer() {
-        return scrollPane;
-    }
-
     public void show() {
         if (headLine == null)
             headLine = Res.get("filterWindow.headline");
@@ -76,14 +67,7 @@ public class FilterWindow extends Overlay<FilterWindow> {
         width = 1000;
 
         createGridPane();
-
-        scrollPane = new ScrollPane();
-        scrollPane.setContent(gridPane);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setFitToHeight(true);
-        scrollPane.setMaxHeight(700);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-
+        gridPane.setMaxHeight(Double.MAX_VALUE); // taller than the screen; the base overlay caps it with a scroll pane
         addHeadLine();
         addContent();
         applyStyles();
@@ -114,23 +98,18 @@ public class FilterWindow extends Overlay<FilterWindow> {
 
         InputTextField offerIdsTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.offers"));
-        InputTextField bannedFromTradingTF = addTopLabelInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.onions")).second;
-        InputTextField bannedFromNetworkTF = addTopLabelInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.bannedFromNetwork")).second;
-        bannedFromTradingTF.setPromptText("E.g. zqnzx6o3nifef5df.onion:9999"); // Do not translate
-        InputTextField paymentAccountFilterTF = addTopLabelInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.accounts")).second;
-        GridPane.setHalignment(paymentAccountFilterTF, HPos.RIGHT);
-        paymentAccountFilterTF.setPromptText("E.g. PERFECT_MONEY|getAccountNr|12345"); // Do not translate
+        InputTextField bannedFromTradingTF = addInputTextField(gridPane, ++rowIndex,
+                Res.get("filterWindow.onions"));
+        InputTextField bannedFromNetworkTF = addInputTextField(gridPane, ++rowIndex,
+                Res.get("filterWindow.bannedFromNetwork"));
+        InputTextField paymentAccountFilterTF = addInputTextField(gridPane, ++rowIndex,
+                Res.get("filterWindow.accounts"));
         InputTextField bannedCurrenciesTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.bannedCurrencies"));
-        InputTextField bannedPaymentMethodsTF = addTopLabelInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.bannedPaymentMethods")).second;
-        bannedPaymentMethodsTF.setPromptText("E.g. PERFECT_MONEY"); // Do not translate
-        InputTextField bannedAccountWitnessSignerPubKeysTF = addTopLabelInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.bannedAccountWitnessSignerPubKeys")).second;
-        bannedAccountWitnessSignerPubKeysTF.setPromptText("E.g. 7f66117aa084e5a2c54fe17d29dd1fee2b241257"); // Do not translate
+        InputTextField bannedPaymentMethodsTF = addInputTextField(gridPane, ++rowIndex,
+                Res.get("filterWindow.bannedPaymentMethods"));
+        InputTextField bannedAccountWitnessSignerPubKeysTF = addInputTextField(gridPane, ++rowIndex,
+                Res.get("filterWindow.bannedAccountWitnessSignerPubKeys"));
         InputTextField arbitratorsTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.arbitrators"));
         InputTextField mediatorsTF = addInputTextField(gridPane, ++rowIndex,
@@ -151,10 +130,10 @@ public class FilterWindow extends Overlay<FilterWindow> {
                 Res.get("filterWindow.disableAutoConf"));
         InputTextField disableTradeBelowVersionTF = addInputTextField(gridPane, ++rowIndex,
                 Res.get("filterWindow.disableTradeBelowVersion"));
-        InputTextField bannedPrivilegedDevPubKeysTF = addTopLabelInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.bannedPrivilegedDevPubKeys")).second;
-        InputTextField autoConfExplorersTF = addTopLabelInputTextField(gridPane, ++rowIndex,
-                Res.get("filterWindow.autoConfExplorers")).second;
+        InputTextField bannedPrivilegedDevPubKeysTF = addInputTextField(gridPane, ++rowIndex,
+                Res.get("filterWindow.bannedPrivilegedDevPubKeys"));
+        InputTextField autoConfExplorersTF = addInputTextField(gridPane, ++rowIndex,
+                Res.get("filterWindow.autoConfExplorers"));
         CheckBox disableMempoolValidationCheckBox = addLabelCheckBox(gridPane, ++rowIndex,
                 Res.get("filterWindow.disableMempoolValidation"));
         CheckBox disableApiCheckBox = addLabelCheckBox(gridPane, ++rowIndex,
@@ -190,6 +169,7 @@ public class FilterWindow extends Overlay<FilterWindow> {
         removeFilterMessageButton.setDisable(filterManager.getDevFilter() == null);
 
         Button sendButton = new AutoTooltipButton(Res.get("filterWindow.add"));
+        sendButton.getStyleClass().add("action-button");
         sendButton.setOnAction(e -> {
             String privKeyString = keyTF.getText();
             if (filterManager.canAddDevFilter(privKeyString)) {
