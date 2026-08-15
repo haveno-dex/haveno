@@ -202,7 +202,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
             scene.addEventHandler(KeyEvent.KEY_RELEASED, keyEventEventHandler);
 
         exportButton.setOnAction(event -> {
-            final ObservableList<TableColumn<TransactionsListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
+            final ObservableList<TableColumn<TransactionsListItem, ?>> tableColumns = tableView.getColumns();
             final int reportColumns = tableColumns.size();
             Function<TransactionsListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[reportColumns];

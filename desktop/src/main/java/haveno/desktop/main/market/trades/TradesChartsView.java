@@ -393,7 +393,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
     }
 
     private void exportToCsv() {
-        ObservableList<TableColumn<TradeStatistics3ListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
+        ObservableList<TableColumn<TradeStatistics3ListItem, ?>> tableColumns = tableView.getColumns();
         int reportColumns = tableColumns.size() + 1;
 
         boolean showAllTradeCurrencies = model.showAllTradeCurrenciesProperty.get();

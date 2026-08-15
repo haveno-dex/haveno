@@ -232,7 +232,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
         exportButton.setOnAction(event -> {
-            ObservableList<TableColumn<FailedTradesListItem, ?>> tableColumns = GUIUtil.getContentColumns(tableView);
+            ObservableList<TableColumn<FailedTradesListItem, ?>> tableColumns = tableView.getColumns();
             int reportColumns = tableColumns.size() - 1;    // CSV report excludes the last column (an icon)
             Function<FailedTradesListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[reportColumns];

@@ -70,12 +70,12 @@ import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccoun
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.WeakChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
@@ -95,7 +95,6 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -1346,7 +1345,6 @@ public class GUIUtil {
 
     public static void applyTableStyle(TableView<?> tableView, boolean applyRoundedArc) {
         if (applyRoundedArc) applyRoundedArc(tableView);
-        addSpacerColumns(tableView);
         applyEdgeColumnStyleClasses(tableView);
     }
 
@@ -1361,115 +1359,57 @@ public class GUIUtil {
         });
     }
 
-    private static <T> void addSpacerColumns(TableView<T> tableView) {
-        TableColumn<T, Void> leftSpacer = new TableColumn<>();
-        TableColumn<T, Void> rightSpacer = new TableColumn<>();
-
-        configureSpacerColumn(leftSpacer);
-        configureSpacerColumn(rightSpacer);
-
-        tableView.getColumns().add(0, leftSpacer);
-        tableView.getColumns().add(rightSpacer);
-    }
-
-    private static void configureSpacerColumn(TableColumn<?, ?> column) {
-        column.setPrefWidth(15);
-        column.setMaxWidth(15);
-        column.setMinWidth(15);
-        column.setReorderable(false);
-        column.setResizable(false);
-        column.setSortable(false);
-        column.setCellFactory(col -> new TableCell<>()); // empty cell
-    }
+    // side indentation carried by the edge columns' css padding (.first-column/.last-column)
+    private static final double EDGE_COLUMN_PADDING = 15;
+    private static final String EDGE_COLUMN_BASE_WIDTH = "edgeColumnBaseWidth";
 
     private static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
-        ListChangeListener<TableColumn<T, ?>> columnListener = change -> {
-            UserThread.execute(() -> {
-                updateEdgeColumnStyleClasses(tableView);
-            });
-        };
-
-        tableView.getColumns().addListener(columnListener);
-        tableView.skinProperty().addListener((obs, oldSkin, newSkin) -> {
-            if (newSkin != null) {
-                UserThread.execute(() -> {
-                    updateEdgeColumnStyleClasses(tableView);
-                });
+        InvalidationListener visibilityListener = obs -> updateEdgeColumnStyleClasses(tableView);
+        for (TableColumn<T, ?> col : tableView.getColumns()) col.visibleProperty().addListener(visibilityListener);
+        tableView.getColumns().addListener((ListChangeListener<TableColumn<T, ?>>) change -> {
+            while (change.next()) {
+                for (TableColumn<T, ?> col : change.getRemoved()) col.visibleProperty().removeListener(visibilityListener);
+                for (TableColumn<T, ?> col : change.getAddedSubList()) col.visibleProperty().addListener(visibilityListener);
             }
+            updateEdgeColumnStyleClasses(tableView);
         });
-
-        // react to size changes
-        ChangeListener<Number> sizeListener = (obs, oldVal, newVal) -> updateEdgeColumnStyleClasses(tableView);
-        tableView.heightProperty().addListener(sizeListener);
-        tableView.widthProperty().addListener(sizeListener);
-
         updateEdgeColumnStyleClasses(tableView);
     }
 
     private static <T> void updateEdgeColumnStyleClasses(TableView<T> tableView) {
-        ObservableList<TableColumn<T, ?>> columns = tableView.getColumns();
-
-        // find columns with "first-column" and "last-column" classes
-        TableColumn<T, ?> firstCol = null;
-        TableColumn<T, ?> lastCol = null;
-        for (TableColumn<T, ?> col : columns) {
-            if (col.getStyleClass().contains("first-column")) {
-                firstCol = col;
-            } else if (col.getStyleClass().contains("last-column")) {
-                lastCol = col;
-            }
+        TableColumn<T, ?> first = null;
+        TableColumn<T, ?> last = null;
+        for (TableColumn<T, ?> col : tableView.getColumns()) {
+            if (!col.isVisible()) continue;
+            if (first == null) first = col;
+            last = col;
         }
-
-        // handle if columns do not exist
-        if (firstCol == null || lastCol == null) {
-            if (firstCol != null) throw new IllegalStateException("Missing column with 'last-column'");
-            if (lastCol != null) throw new IllegalStateException("Missing column with 'first-column'");
-
-            // remove all classes
-            for (TableColumn<T, ?> col : columns) {
-                col.getStyleClass().removeAll("first-column", "last-column");
-            }
-
-            // apply first and last classes
-            if (!columns.isEmpty()) {
-                TableColumn<T, ?> first = columns.get(0);
-                TableColumn<T, ?> last = columns.get(columns.size() - 1);
-
-                if (!first.getStyleClass().contains("first-column")) {
-                    first.getStyleClass().add("first-column");
-                }
-
-                if (!last.getStyleClass().contains("last-column")) {
-                    last.getStyleClass().add("last-column");
-                }
-            }
-        } else {
-
-            // done if correct order
-            if (columns.get(0) == firstCol && columns.get(columns.size() - 1) == lastCol) {
-                return;
-            }
-
-            // set first and last columns
-            if (columns.get(0) != firstCol) {
-                columns.remove(firstCol);
-                columns.add(0, firstCol);
-            }
-            if (columns.get(columns.size() - 1) != lastCol) {
-                columns.remove(lastCol);
-                columns.add(firstCol == lastCol ? columns.size() - 1 : columns.size(), lastCol);
-            }
+        for (TableColumn<T, ?> col : tableView.getColumns()) {
+            setEdgeColumnClass(col, "first-column", col == first);
+            setEdgeColumnClass(col, "last-column", col == last);
+            updateEdgeColumnWidth(col);
         }
     }
 
-    public static <T> ObservableList<TableColumn<T, ?>> getContentColumns(TableView<T> tableView) {
-        ObservableList<TableColumn<T, ?>> contentColumns = FXCollections.observableArrayList();
-        for (TableColumn<T, ?> column : tableView.getColumns()) {
-            if (!column.getStyleClass().contains("first-column") && !column.getStyleClass().contains("last-column")) {
-                contentColumns.add(column);
-            }
+    private static void setEdgeColumnClass(TableColumn<?, ?> column, String styleClass, boolean apply) {
+        boolean applied = column.getStyleClass().contains(styleClass);
+        if (apply && !applied) column.getStyleClass().add(styleClass);
+        else if (!apply && applied) column.getStyleClass().remove(styleClass);
+    }
+
+    // fixed-width edge columns widen by the css padding so their content area is unchanged
+    private static void updateEdgeColumnWidth(TableColumn<?, ?> column) {
+        int pads = (column.getStyleClass().contains("first-column") ? 1 : 0) +
+                (column.getStyleClass().contains("last-column") ? 1 : 0);
+        Double base = (Double) column.getProperties().get(EDGE_COLUMN_BASE_WIDTH);
+        if (base == null) {
+            if (pads == 0 || column.getMinWidth() != column.getMaxWidth()) return;
+            base = column.getMinWidth();
+            column.getProperties().put(EDGE_COLUMN_BASE_WIDTH, base);
         }
-        return contentColumns;
+        column.setMinWidth(base + pads * EDGE_COLUMN_PADDING);
+        column.setMaxWidth(base + pads * EDGE_COLUMN_PADDING);
+        if (pads == 0) column.getProperties().remove(EDGE_COLUMN_BASE_WIDTH);
     }
 
     private static final double CURRENCY_LOGO_DEFAULT_SIZE = 24; // currency logo size (px) outside list rows

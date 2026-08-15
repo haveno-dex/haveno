@@ -1854,32 +1854,38 @@ textfield */
     /*-fx-padding: 3 0 2 0;*/
 }
 
-.table-view .table-cell.last-column {
-    -fx-padding: 6 0 4 0;
-}
-
 .table-view .table-cell.avatar-column {
     -fx-alignment: center;
     -fx-padding: 6 0 4 0;
 }
 
+/* edge columns carry the table's side indentation */
 .table-view .table-cell.first-column {
-    -fx-padding: 6 0 4 0;
+    -fx-padding: 6 0 4 15;
 }
 
-.table-view .column-header.last-column .label {
+.table-view .table-cell.last-column {
+    -fx-padding: 6 15 4 0;
 }
 
-.table-view .column-header.first-column {
-    -fx-padding: 0 0 0 0;
-}
-
-.table-view .column-header.last-column {
-    -fx-padding: 0 0 0 0;
+.table-view .table-cell.first-column.last-column {
+    -fx-padding: 6 15 4 15;
 }
 
 .table-view .column-header.avatar-column {
     -fx-padding: 0;
+}
+
+.table-view .column-header.first-column {
+    -fx-padding: 0 0 0 15;
+}
+
+.table-view .column-header.last-column {
+    -fx-padding: 0 15 0 0;
+}
+
+.table-view .column-header.first-column.last-column {
+    -fx-padding: 0 15 0 15;
 }
 
 .table-view .column-header.avatar-column .label {
