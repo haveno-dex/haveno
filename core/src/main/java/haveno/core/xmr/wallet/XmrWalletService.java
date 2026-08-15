@@ -163,6 +163,7 @@ public class XmrWalletService extends XmrWalletBase {
     private ChangeListener<? super Number> walletInitListener;
 
     private final Object lock = new Object();
+    private final Object addressEntryLock = new Object(); // never acquire walletLock while holding this lock
     private final Object seedValidationLock = new Object();
     private TaskLooper pollLooper;
     private boolean pollInProgress;
@@ -1106,77 +1107,101 @@ public class XmrWalletService extends XmrWalletBase {
 
     // -------------------------- ADDRESS ENTRIES -----------------------------
 
-    public synchronized XmrAddressEntry getNewAddressEntry() {
+    public XmrAddressEntry getNewAddressEntry() {
         return getNewAddressEntryAux(null, XmrAddressEntry.Context.AVAILABLE);
     }
 
-    public synchronized XmrAddressEntry getNewAddressEntry(String offerId, XmrAddressEntry.Context context) {
+    public XmrAddressEntry getNewAddressEntry(String offerId, XmrAddressEntry.Context context) {
+        synchronized (walletLock) { // wallet lock first, since a new subaddress may be created
+            synchronized (addressEntryLock) {
 
-        // try to use available and not yet used entries
-        try {
-            List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
-            if (!unusedAddressEntries.isEmpty()) return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(unusedAddressEntries.get(0), context, offerId);
-        } catch (Exception e) {
-            log.warn("Error getting new address entry based on incoming transactions: {}\n", e.getMessage(), e);
+                // try to use available and not yet used entries
+                try {
+                    List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
+                    if (!unusedAddressEntries.isEmpty()) return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(unusedAddressEntries.get(0), context, offerId);
+                } catch (Exception e) {
+                    log.warn("Error getting new address entry based on incoming transactions: {}\n", e.getMessage(), e);
+                }
+
+                // create new entry
+                return getNewAddressEntryAux(offerId, context);
+            }
         }
-
-        // create new entry
-        return getNewAddressEntryAux(offerId, context);
     }
 
     private XmrAddressEntry getNewAddressEntryAux(String offerId, XmrAddressEntry.Context context) {
         synchronized (walletLock) {
-            MoneroSubaddress subaddress = wallet.createSubaddress(0);
-            XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, offerId, null);
-            log.info("Add new XmrAddressEntry {}", entry);
-            xmrAddressEntryList.addAddressEntry(entry);
-            return entry;
+            synchronized (addressEntryLock) {
+                MoneroSubaddress subaddress = wallet.createSubaddress(0);
+                XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, offerId, null);
+                log.info("Add new XmrAddressEntry {}", entry);
+                xmrAddressEntryList.addAddressEntry(entry);
+                return entry;
+            }
         }
     }
 
-    public synchronized XmrAddressEntry getFreshAddressEntry() {
-        List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
-        if (unusedAddressEntries.isEmpty()) return getNewAddressEntry();
-        else return unusedAddressEntries.get(0);
+    public XmrAddressEntry getFreshAddressEntry() {
+        synchronized (walletLock) { // wallet lock first, since a new subaddress may be created
+            synchronized (addressEntryLock) {
+                List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
+                if (unusedAddressEntries.isEmpty()) return getNewAddressEntry();
+                else return unusedAddressEntries.get(0);
+            }
+        }
     }
 
-    public synchronized XmrAddressEntry recoverAddressEntry(String offerId, String address, XmrAddressEntry.Context context) {
-        var available = findAddressEntry(address, XmrAddressEntry.Context.AVAILABLE);
-        if (!available.isPresent()) return null;
-        return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(available.get(), context, offerId);
+    public XmrAddressEntry recoverAddressEntry(String offerId, String address, XmrAddressEntry.Context context) {
+        synchronized (addressEntryLock) {
+            var available = findAddressEntry(address, XmrAddressEntry.Context.AVAILABLE);
+            if (!available.isPresent()) return null;
+            return xmrAddressEntryList.swapAvailableToAddressEntryWithOfferId(available.get(), context, offerId);
+        }
     }
 
-    public synchronized XmrAddressEntry getOrCreateAddressEntry(String offerId, XmrAddressEntry.Context context) {
+    public XmrAddressEntry getOrCreateAddressEntry(String offerId, XmrAddressEntry.Context context) {
         Optional<XmrAddressEntry> addressEntry = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).findAny();
         if (addressEntry.isPresent()) return addressEntry.get();
-        else return getNewAddressEntry(offerId, context);
-    }
-
-    public synchronized Optional<XmrAddressEntry> getAddressEntry(String offerId, XmrAddressEntry.Context context) {
-        List<XmrAddressEntry> entries = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).collect(Collectors.toList());
-        if (entries.size() > 1) throw new RuntimeException("Multiple address entries exist with offer ID " + offerId + " and context " + context + ". That should never happen.");
-        return entries.isEmpty() ? Optional.empty() : Optional.of(entries.get(0));
-    }
-
-    public synchronized void swapAddressEntryToAvailable(String offerId, XmrAddressEntry.Context context) {
-        Optional<XmrAddressEntry> addressEntryOptional = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).findAny();
-        addressEntryOptional.ifPresent(e -> {
-            xmrAddressEntryList.swapToAvailable(e);
-            saveAddressEntryList();
-        });
-    }
-
-    public synchronized void cloneAddressEntries(String offerId, String cloneOfferId) {
-        List<XmrAddressEntry> entries = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).collect(Collectors.toList());
-        for (XmrAddressEntry entry : entries) {
-            XmrAddressEntry clonedEntry = new XmrAddressEntry(entry.getSubaddressIndex(), entry.getAddressString(), entry.getContext(), cloneOfferId, null);
-            Optional<XmrAddressEntry> existingEntry = getAddressEntry(clonedEntry.getOfferId(), clonedEntry.getContext());
-            if (existingEntry.isPresent()) continue;
-            xmrAddressEntryList.addAddressEntry(clonedEntry);
+        synchronized (walletLock) { // wallet lock first, since a new subaddress may be created
+            synchronized (addressEntryLock) {
+                addressEntry = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).findAny();
+                if (addressEntry.isPresent()) return addressEntry.get();
+                else return getNewAddressEntry(offerId, context);
+            }
         }
     }
 
-    public synchronized void resetAddressEntriesForOpenOffer(String offerId) {
+    public Optional<XmrAddressEntry> getAddressEntry(String offerId, XmrAddressEntry.Context context) {
+        synchronized (addressEntryLock) {
+            List<XmrAddressEntry> entries = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).collect(Collectors.toList());
+            if (entries.size() > 1) throw new RuntimeException("Multiple address entries exist with offer ID " + offerId + " and context " + context + ". That should never happen.");
+            return entries.isEmpty() ? Optional.empty() : Optional.of(entries.get(0));
+        }
+    }
+
+    public void swapAddressEntryToAvailable(String offerId, XmrAddressEntry.Context context) {
+        synchronized (addressEntryLock) {
+            Optional<XmrAddressEntry> addressEntryOptional = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).filter(e -> context == e.getContext()).findAny();
+            addressEntryOptional.ifPresent(e -> {
+                xmrAddressEntryList.swapToAvailable(e);
+                saveAddressEntryList();
+            });
+        }
+    }
+
+    public void cloneAddressEntries(String offerId, String cloneOfferId) {
+        synchronized (addressEntryLock) {
+            List<XmrAddressEntry> entries = getAddressEntryListAsImmutableList().stream().filter(e -> offerId.equals(e.getOfferId())).collect(Collectors.toList());
+            for (XmrAddressEntry entry : entries) {
+                XmrAddressEntry clonedEntry = new XmrAddressEntry(entry.getSubaddressIndex(), entry.getAddressString(), entry.getContext(), cloneOfferId, null);
+                Optional<XmrAddressEntry> existingEntry = getAddressEntry(clonedEntry.getOfferId(), clonedEntry.getContext());
+                if (existingEntry.isPresent()) continue;
+                xmrAddressEntryList.addAddressEntry(clonedEntry);
+            }
+        }
+    }
+
+    public void resetAddressEntriesForOpenOffer(String offerId) {
         log.info("resetAddressEntriesForOpenOffer offerId={}", offerId);
 
         // skip if failed trade is scheduled for processing // TODO: do not call this function in this case?
@@ -1193,7 +1218,7 @@ public class XmrWalletService extends XmrWalletBase {
         if (trade == null || trade.isPayoutFinalized()) swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
     }
 
-    public synchronized void swapPayoutAddressEntryToAvailable(String offerId) {
+    public void swapPayoutAddressEntryToAvailable(String offerId) {
         swapAddressEntryToAvailable(offerId, XmrAddressEntry.Context.TRADE_PAYOUT);
     }
 
