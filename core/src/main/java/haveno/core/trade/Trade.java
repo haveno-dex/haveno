@@ -1295,7 +1295,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 this instanceof MakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getMaker().getPayoutAddressString(), // maker payout address
                 this instanceof TakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getTaker().getPayoutAddressString(), // taker payout address
                 getMaker().getDepositTxHash(),
-                getTaker().getDepositTxHash()
+                getTaker().getDepositTxHash(),
+                checkNotNull(processModel.getMultisigAddress()) // binds the multisig address into the signed contract
         );
         if (contract.getBuyerPayoutAddressString().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Buyer and seller payout addresses must not be equal");
         return contract;
