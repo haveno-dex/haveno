@@ -533,6 +533,12 @@ tree-table-view:focused {
     -fx-font-size: 1em;
 }
 
+/* informational note below an input, matching the error label's rendered size but neutral */
+.field-info-label {
+    -fx-text-fill: -bs-rd-font-light;
+    -fx-font-size: 0.962em;
+}
+
 .offer-input {
     -fx-background-color: -bs-color-background-form-field;
     -fx-border-color: -bs-color-border-form-field;

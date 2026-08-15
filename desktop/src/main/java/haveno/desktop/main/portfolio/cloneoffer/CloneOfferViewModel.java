@@ -75,6 +75,7 @@ class CloneOfferViewModel extends MutableOfferViewModel<CloneOfferDataModel> {
         super.activate();
 
         dataModel.populateData();
+        updateSecurityDeposit();
 
         long triggerPriceAsLong = dataModel.getTriggerPrice();
         dataModel.setTriggerPrice(triggerPriceAsLong);
@@ -105,7 +106,8 @@ class CloneOfferViewModel extends MutableOfferViewModel<CloneOfferDataModel> {
     }
 
     public boolean isSecurityDepositValid() {
-        return securityDepositValidator.validate(securityDeposit.get()).isValid;
+        // in the locked state the field holds a fixed XMR amount, not a percentage
+        return isMinSecurityDeposit.get() || securityDepositValidator.validate(securityDeposit.get()).isValid;
     }
 
     @Override
