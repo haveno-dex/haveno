@@ -55,6 +55,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -73,10 +74,12 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
@@ -148,6 +151,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     private static int numBlurEffects = 0;
 
     protected final static double DEFAULT_WIDTH = 800;
+    private final static double CARD_INSET = 44; // shadow margin around the card, matching .popup-bg -fx-background-insets
+    private final static double CAP_MARGIN = 15; // band of the app left visible around capped popups
     protected Stage stage;
     protected GridPane gridPane;
     protected Pane owner;
@@ -172,6 +177,8 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected boolean useAnimation = true;
     protected boolean showScrollPane = false;
+    private boolean cappedToScreen;
+    private StackPane capShell;
 
     protected TextArea messageTextArea;
     protected Label headlineIcon, copyLabel, headLineLabel;
@@ -559,6 +566,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                     stage.setOpacity(0); // hide the native window too, else it can flash white before the first frame renders
                     stage.sizeToScene();
                     stage.show();
+                    constrainToScreen(scene);
 
                     // focus the message, not the headline copy icon, so screen readers announce it first
                     if (messageTextArea != null) messageTextArea.requestFocus();
@@ -583,7 +591,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                         numCenterOverlays++;
                     }
                     if (!CssTheme.isDarkTheme() || numCenterOverlays > 1) {
-                        getRootContainer().getStyleClass().add("popup-dropshadow");
+                        getDisplayContainer().getStyleClass().add("popup-dropshadow");
                     }
 
                     addEffectToBackground();
@@ -616,6 +624,64 @@ public abstract class Overlay<T extends Overlay<T>> {
         return gridPane;
     }
 
+    // the outermost visible popup node: the scroll shell when capped, else the content itself
+    private Region getDisplayContainer() {
+        return capShell != null ? capShell : getRootContainer();
+    }
+
+    // cap the stage to the app window, screen and max popup height, wrapping the content in a scroll pane so oversized popups scroll instead
+    private void constrainToScreen(Scene scene) {
+        cappedToScreen = false;
+        capShell = null;
+        Rectangle2D screenBounds = getScreenBounds();
+        double ownerWidth = owner.getWidth() > 0 ? owner.getWidth() : screenBounds.getWidth();
+        double ownerHeight = owner.getHeight() > 0 ? owner.getHeight() : screenBounds.getHeight();
+        double maxWidth = Math.min(screenBounds.getWidth(), ownerWidth) - 2 * CAP_MARGIN;
+        double maxHeight = Math.min(Math.min(screenBounds.getHeight(), ownerHeight) - 2 * CAP_MARGIN, Layout.MAX_POPUP_HEIGHT);
+        // budget the visible card, not the stage: the shadow margin around it is invisible, and the
+        // stage height saturates at the grid's max so the content's own preference is the true demand
+        Region rootContainer = getRootContainer();
+        double cardWidth = rootContainer.prefWidth(-1) - 2 * CARD_INSET;
+        double cardHeight = rootContainer.prefHeight(rootContainer.prefWidth(-1)) - 2 * CARD_INSET;
+        if (cardWidth <= maxWidth && cardHeight <= maxHeight) return;
+
+        ScrollPane scrollRoot = new ScrollPane();
+        scrollRoot.getStyleClass().add("popup-scroll-pane");
+        scrollRoot.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT); // keep the scroll bar at the styled right edge; content keeps its own orientation
+        scrollRoot.setFitToWidth(true);
+        scrollRoot.setFocusTraversable(false);
+
+        // the shell paints the card with the bar inside it; popup-bg/popup-bg-top move along to keep
+        // their text styling, while the shell style flattens their insets and shadow
+        capShell = new StackPane(scrollRoot);
+        capShell.getStyleClass().add("popup-scroll-shell");
+        for (String style : new String[]{"popup-bg", "popup-bg-top"})
+            if (rootContainer.getStyleClass().remove(style)) capShell.getStyleClass().add(style);
+        // the card edge replaces the shadow margin, so drop it from the content's padding to keep the normal card-edge distance
+        Insets padding = rootContainer.getPadding();
+        rootContainer.setPadding(new Insets(
+                Math.max(0, padding.getTop() - CARD_INSET),
+                Math.max(0, padding.getRight() - CARD_INSET),
+                Math.max(0, padding.getBottom() - CARD_INSET),
+                Math.max(0, padding.getLeft() - CARD_INSET)));
+        // a slim transparent frame around the card leaves room for its shadow, so it still reads as a card;
+        // inline style beats the .root background every scene root gets painted with
+        StackPane shadowFrame = new StackPane(capShell);
+        shadowFrame.setPadding(new Insets(CAP_MARGIN));
+        shadowFrame.setStyle("-fx-background-color: transparent;");
+        scene.setRoot(shadowFrame);
+        scrollRoot.setContent(rootContainer);
+        capShell.setPrefSize(Math.min(stage.getWidth() - 2 * CARD_INSET, maxWidth), Math.min(stage.getHeight() - 2 * CARD_INSET, maxHeight));
+        stage.sizeToScene();
+        cappedToScreen = true;
+    }
+
+    private Rectangle2D getScreenBounds() {
+        Window window = owner.getScene().getWindow();
+        return Screen.getScreensForRectangle(window.getX(), window.getY(), window.getWidth(), window.getHeight())
+                .stream().findFirst().orElse(Screen.getPrimary()).getVisualBounds();
+    }
+
 
     protected void setupKeyHandler(Scene scene) {
         if (!hideCloseButton) {
@@ -629,10 +695,9 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void animateDisplay() {
-        Region rootContainer = this.getRootContainer();
-
         // show at full opacity and animate only transforms; partially transparent content reads unevenly
-        rootContainer.setOpacity(1);
+        getRootContainer().setOpacity(1);
+        Region rootContainer = getDisplayContainer();
         Interpolator interpolator = Interpolator.SPLINE(0, 0, 0.2, 1); // decelerate into place
         double duration = getDuration(200);
         Timeline timeline = new Timeline();
@@ -644,7 +709,8 @@ public abstract class Overlay<T extends Overlay<T>> {
                     new KeyValue(rootContainer.translateYProperty(), startY, interpolator)
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.translateYProperty(), -50, interpolator)
+                    // capped cards have a flat top at the stage edge, so they settle at 0 instead of tucking the rounding away
+                    new KeyValue(rootContainer.translateYProperty(), capShell != null ? 0 : -50, interpolator)
             ));
         } else {
             // warnings and errors settle down from above, all other popups settle up into place
@@ -669,11 +735,11 @@ public abstract class Overlay<T extends Overlay<T>> {
         ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
 
         // animate only transforms; partially transparent content reads unevenly
-        Region rootContainer = getRootContainer();
+        Region rootContainer = getDisplayContainer();
         if (type.animationType == AnimationType.SlideDownFromCenterTop) {
             double endY = -rootContainer.getHeight();
             keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.translateYProperty(), -10, interpolator)
+                    new KeyValue(rootContainer.translateYProperty(), capShell != null ? 0 : -10, interpolator)
             ));
             keyFrames.add(new KeyFrame(Duration.millis(duration),
                     new KeyValue(rootContainer.translateYProperty(), endY, interpolator)
@@ -709,6 +775,13 @@ public abstract class Overlay<T extends Overlay<T>> {
                 stage.setY(Math.round(window.getY() + titleBarHeight));
             else
                 stage.setY(Math.round(window.getY() + titleBarHeight + (owner.getHeight() - stage.getHeight()) / 2));
+
+            // a popup capped to the screen must stay fully on it, even when centering on the owner would push it off
+            if (cappedToScreen) {
+                Rectangle2D screenBounds = getScreenBounds();
+                stage.setX(Math.max(screenBounds.getMinX(), Math.min(stage.getX(), screenBounds.getMaxX() - stage.getWidth())));
+                stage.setY(Math.max(screenBounds.getMinY(), Math.min(stage.getY(), screenBounds.getMaxY() - stage.getHeight())));
+            }
         }
     }
 

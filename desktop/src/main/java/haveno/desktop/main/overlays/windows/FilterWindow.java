@@ -67,7 +67,7 @@ public class FilterWindow extends Overlay<FilterWindow> {
         width = 1000;
 
         createGridPane();
-        gridPane.setMaxHeight(Double.MAX_VALUE); // taller than the screen; the base overlay caps it with a scroll pane
+        gridPane.setMaxHeight(Double.MAX_VALUE); // the base overlay caps the height with a scroll pane
         addHeadLine();
         addContent();
         applyStyles();

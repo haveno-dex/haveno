@@ -3373,6 +3373,48 @@ textfield */
     -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow, 20, 0, 0, 0);
 }
 
+/* Scroll shell for popups capped to the default window size (Overlay#constrainToScreen) */
+.scroll-pane.popup-scroll-pane,
+.popup-scroll-pane > .viewport,
+.popup-scroll-pane > .corner {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.popup-scroll-pane > .scroll-bar,
+.popup-scroll-pane > .scroll-bar .track,
+.popup-scroll-pane > .scroll-bar .track-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/* capped popups paint the card on the scroll shell: the bar sits inside it and a slim frame holds the shadow */
+.popup-scroll-shell {
+    -fx-background-color: -bs-color-background-popup-blur;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-effect: null;
+}
+
+.popup-scroll-shell.popup-dropshadow {
+    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow, 20, 0, 0, 0);
+}
+
+/* inside the capped shell, keep the standard grid-pane inset from the visible card edge (35 padding - 10 bg insets) */
+.popup-scroll-pane .grid-pane {
+    -fx-padding: 25;
+}
+
+/* Bars sit inside the card, inset from its rounded corners */
+.popup-scroll-pane > .scroll-bar:vertical {
+    -fx-padding: 8 0 8 0;
+}
+
+.popup-scroll-pane > .scroll-bar:horizontal {
+    -fx-padding: 0 8 0 8;
+}
+
 .notification-popup-headline, peer-info-popup-headline {
     -fx-font-size: 1.077em;
     /*-fx-font-weight: bold;*/
