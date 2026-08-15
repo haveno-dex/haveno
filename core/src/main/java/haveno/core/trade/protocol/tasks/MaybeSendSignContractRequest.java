@@ -175,7 +175,8 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     trade.getSelf().getPaymentAccountPayload().getHash(),
                     trade.getSelf().getPayoutAddressString(),
                     depositTx == null ? null : depositTx.getHash(),
-                    sig);
+                    sig,
+                    processModel.getMultisigAddress());
 
             // send request to trading peer
             processModel.getP2PService().sendEncryptedDirectMessage(trade.getTradePeer().getNodeAddress(), trade.getTradePeer().getPubKeyRing(), request, new SendDirectMessageListener() {
