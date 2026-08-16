@@ -240,6 +240,7 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
         final Tuple2<Label, TextArea> labelTextAreaTuple2 = addTopLabelTextArea(gridPane, ++rowIndex, Res.get("torNetworkSettingWindow.enterBridge"), Res.get("torNetworkSettingWindow.enterBridgePrompt"));
         enterBridgeLabel = labelTextAreaTuple2.first;
         bridgeEntriesTextArea = labelTextAreaTuple2.second;
+        GridPane.setColumnSpan(bridgeEntriesTextArea.getParent(), 2); // full width for long bridge lines
         bridgeEntriesTextArea.setPrefHeight(60);
 
         bridgeValidationLabel = addLabel(gridPane, ++rowIndex, "");
