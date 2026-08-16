@@ -68,6 +68,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
@@ -109,6 +110,8 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         }
     }
 
+    @FXML
+    ScrollPane tableScrollPane;
     @FXML
     TableView<ClosedTradesListItem> tableView;
     @FXML
@@ -177,6 +180,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.trades"))));
+        GUIUtil.applyTableHorizontalScroll(tableScrollPane, tableView);
 
         setTradeIdColumnCellFactory();
         setDirectionColumnCellFactory();

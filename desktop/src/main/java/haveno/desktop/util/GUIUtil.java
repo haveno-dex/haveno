@@ -76,6 +76,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.WeakChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
@@ -107,6 +108,7 @@ import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -163,6 +165,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1346,6 +1349,75 @@ public class GUIUtil {
     public static void applyTableStyle(TableView<?> tableView, boolean applyRoundedArc) {
         if (applyRoundedArc) applyRoundedArc(tableView);
         applyEdgeColumnStyleClasses(tableView);
+    }
+
+    // scrolls a constrained-resize table horizontally in its wrapping scroll pane on narrow windows:
+    // the table's min width follows the sum of visible column min widths, so the pane shows a bar and
+    // pans header and rows together instead of clipping the trailing columns; an empty table imposes
+    // no min width, so the placeholder never triggers the bar
+    public static <T> void applyTableHorizontalScroll(ScrollPane scrollPane, TableView<T> tableView) {
+        InvalidationListener updater = obs -> tableView.setMinWidth(
+                tableView.getItems() == null || tableView.getItems().isEmpty() ? 0 :
+                        tableView.getColumns().stream()
+                                .filter(TableColumn::isVisible)
+                                .mapToDouble(TableColumn::getMinWidth)
+                                .sum());
+        for (TableColumn<T, ?> column : tableView.getColumns()) {
+            column.visibleProperty().addListener(updater);
+            column.minWidthProperty().addListener(updater);
+        }
+
+        // follow rows across items list swaps; change listeners cannot be used here because they
+        // are suppressed when an empty items list is replaced by another empty list
+        ListChangeListener<T> rowListener = change -> updater.invalidated(null);
+        AtomicReference<ObservableList<T>> wiredItems = new AtomicReference<>();
+        InvalidationListener itemsSwapListener = obs -> {
+            ObservableList<T> items = tableView.getItems();
+            ObservableList<T> wired = wiredItems.getAndSet(items);
+            if (wired != items) {
+                if (wired != null) wired.removeListener(rowListener);
+                if (items != null) items.addListener(rowListener);
+            }
+            updater.invalidated(null);
+        };
+        tableView.itemsProperty().addListener(itemsSwapListener);
+        itemsSwapListener.invalidated(null);
+
+        // the constrained resize policy skips tables at their min width, leaving columns at stale
+        // stretched widths that clip the trailing ones; squeeze them to their mins explicitly
+        tableView.widthProperty().addListener((observable, oldWidth, newWidth) -> {
+            if (newWidth.doubleValue() <= tableView.getMinWidth()) {
+                TableView.ResizeFeatures<T> features = new TableView.ResizeFeatures<>(tableView, null, 0.0);
+                for (TableColumn<T, ?> column : tableView.getVisibleLeafColumns()) {
+                    features.setColumnWidth(column, column.getMinWidth());
+                }
+            }
+        });
+
+        // route horizontal scroll deltas to the scroll pane; the table consumes scroll events but cannot pan sideways
+        scrollPane.addEventFilter(ScrollEvent.SCROLL, event -> {
+            if (Math.abs(event.getDeltaX()) <= Math.abs(event.getDeltaY())) return;
+            double scrollable = tableView.getWidth() - scrollPane.getViewportBounds().getWidth();
+            if (scrollable <= 0) return;
+            double delta = event.getDeltaX() * (scrollPane.getHmax() - scrollPane.getHmin()) / scrollable;
+            scrollPane.setHvalue(Math.max(scrollPane.getHmin(),
+                    Math.min(scrollPane.getHmax(), scrollPane.getHvalue() - delta)));
+            event.consume();
+        });
+
+        // keep the table's vertical bar at the viewport edge instead of panning off screen with the table
+        InvalidationListener vbarPinner = obs -> {
+            double scrollable = tableView.getWidth() - scrollPane.getViewportBounds().getWidth();
+            double range = scrollPane.getHmax() - scrollPane.getHmin();
+            double shift = scrollable <= 0 || range <= 0 ? 0 :
+                    -(scrollPane.getHmax() - scrollPane.getHvalue()) / range * scrollable;
+            for (Node node : tableView.lookupAll(".scroll-bar")) {
+                if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.VERTICAL) bar.setTranslateX(shift);
+            }
+        };
+        scrollPane.hvalueProperty().addListener(vbarPinner);
+        scrollPane.viewportBoundsProperty().addListener(vbarPinner);
+        tableView.widthProperty().addListener(vbarPinner);
     }
 
     private static void applyRoundedArc(TableView<?> tableView) {

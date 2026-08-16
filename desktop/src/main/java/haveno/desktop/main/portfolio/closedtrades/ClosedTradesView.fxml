@@ -21,6 +21,7 @@
 <?import haveno.desktop.components.list.FilterBox?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.HBox?>
@@ -33,26 +34,30 @@
     </padding>
 
     <FilterBox fx:id="filterBox" />
-    <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
-        <columns>
-            <TableColumn fx:id="tradeIdColumn" minWidth="110" maxWidth="120"/>
-            <TableColumn fx:id="dateColumn" minWidth="170"/>
-            <TableColumn fx:id="marketColumn" minWidth="75"/>
-            <TableColumn fx:id="priceColumn" minWidth="100"/>
-            <TableColumn fx:id="deviationColumn" minWidth="70"/>
-            <TableColumn fx:id="amountColumn" minWidth="110"/>
-            <TableColumn fx:id="volumeColumn" minWidth="110"/>
-            <TableColumn fx:id="txFeeColumn" visible="false" minWidth="75"/>
-            <TableColumn fx:id="tradeFeeColumn" visible="false" minWidth="110"/>
-            <TableColumn fx:id="buyerSecurityDepositColumn" visible="false" minWidth="75"/>
-            <TableColumn fx:id="sellerSecurityDepositColumn" visible="false" minWidth="75"/>
-            <TableColumn fx:id="directionColumn" minWidth="70"/>
-            <TableColumn fx:id="stateColumn" minWidth="80"/>
-            <TableColumn fx:id="duplicateColumn" minWidth="30" maxWidth="30" sortable="false"/>
-            <TableColumn fx:id="avatarColumn" minWidth="40" maxWidth="40"/>
-            <TableColumn fx:id="removeTradeColumn" minWidth="40" maxWidth="40"/>
-        </columns>
-    </TableView>
+    <!-- scroll pane provides a horizontal bar when the window is narrower than the table's min width -->
+    <ScrollPane fx:id="tableScrollPane" fitToWidth="true" fitToHeight="true" vbarPolicy="NEVER"
+                focusTraversable="false" styleClass="table-scroll-pane" VBox.vgrow="ALWAYS">
+        <TableView fx:id="tableView">
+            <columns>
+                <TableColumn fx:id="tradeIdColumn" minWidth="110" maxWidth="120"/>
+                <TableColumn fx:id="dateColumn" minWidth="170"/>
+                <TableColumn fx:id="marketColumn" minWidth="75"/>
+                <TableColumn fx:id="priceColumn" minWidth="100"/>
+                <TableColumn fx:id="deviationColumn" minWidth="70"/>
+                <TableColumn fx:id="amountColumn" minWidth="110"/>
+                <TableColumn fx:id="volumeColumn" minWidth="110"/>
+                <TableColumn fx:id="txFeeColumn" visible="false" minWidth="75"/>
+                <TableColumn fx:id="tradeFeeColumn" visible="false" minWidth="110"/>
+                <TableColumn fx:id="buyerSecurityDepositColumn" visible="false" minWidth="75"/>
+                <TableColumn fx:id="sellerSecurityDepositColumn" visible="false" minWidth="75"/>
+                <TableColumn fx:id="directionColumn" minWidth="70"/>
+                <TableColumn fx:id="stateColumn" minWidth="80"/>
+                <TableColumn fx:id="duplicateColumn" minWidth="30" maxWidth="30" sortable="false"/>
+                <TableColumn fx:id="avatarColumn" minWidth="40" maxWidth="40"/>
+                <TableColumn fx:id="removeTradeColumn" minWidth="40" maxWidth="40"/>
+            </columns>
+        </TableView>
+    </ScrollPane>
 
     <HBox spacing="10">
         <Label fx:id="numItems"/>

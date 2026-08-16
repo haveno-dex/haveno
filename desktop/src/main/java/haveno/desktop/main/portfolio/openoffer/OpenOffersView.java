@@ -63,6 +63,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -108,6 +109,8 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         }
     }
 
+    @FXML
+    ScrollPane tableScrollPane;
     @FXML
     TableView<OpenOfferListItem> tableView;
     @FXML
@@ -197,6 +200,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.openOffers"))));
+        GUIUtil.applyTableHorizontalScroll(tableScrollPane, tableView);
 
         offerIdColumn.setComparator(Comparator.comparing(o -> o.getOffer().getId()));
         groupIdColumn.setComparator(Comparator.comparing(o -> o.getOpenOffer().getReserveTxHash() == null ? "" : o.getOpenOffer().getReserveTxHash()));

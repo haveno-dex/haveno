@@ -55,6 +55,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
@@ -71,6 +72,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     @FXML
     FilterBox filterBox;
+    @FXML
+    ScrollPane tableScrollPane;
     @FXML
     TableView<TransactionsListItem> tableView;
     @FXML
@@ -149,6 +152,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.tx.noTxAvailable")));
+        GUIUtil.applyTableHorizontalScroll(tableScrollPane, tableView);
         tableView.getStyleClass().add("non-interactive-table");
 
         setDateColumnCellFactory();

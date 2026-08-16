@@ -2554,6 +2554,13 @@ textfield */
     -fx-background-insets: 0;
 }
 
+/* transparent shell for tables that scroll horizontally on narrow windows */
+.scroll-pane.table-scroll-pane,
+.table-scroll-pane > .viewport,
+.table-scroll-pane > .corner {
+    -fx-background-color: transparent;
+}
+
 /* validation */
 .validation-error {
     -fx-text-fill: -bs-red;

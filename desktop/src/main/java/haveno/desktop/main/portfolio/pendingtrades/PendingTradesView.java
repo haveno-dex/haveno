@@ -72,12 +72,14 @@ import javafx.collections.transformation.SortedList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -125,6 +127,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             marketColumn, roleColumn, paymentMethodColumn, tradeIdColumn, dateColumn, chatColumn, moveTradeToFailedColumn;
     @FXML
     ScrollPane scrollView;
+    @FXML
+    ScrollPane tableScrollPane;
     private FilteredList<PendingTradesListItem> filteredList;
     private SortedList<PendingTradesListItem> sortedList;
     private TradeSubView selectedSubView;
@@ -206,6 +210,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.openTrades"))));
         tableView.setFixedCellSize(TABLE_ROW_HEIGHT);
+        GUIUtil.applyTableHorizontalScroll(tableScrollPane, tableView);
 
         tradeIdColumn.setComparator(Comparator.comparing(o -> o.getTrade().getId()));
         dateColumn.setComparator(Comparator.comparing(o -> o.getTrade().getDate()));
@@ -296,11 +301,12 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         // fit the header plus whole rows up to a cap so rows are never partially clipped;
         // 2px slack keeps the VirtualFlow from showing a scrollbar at an exact fit
-        tableView.prefHeightProperty().bind(Bindings.createDoubleBinding(
-                () -> getTableHeaderHeight() + TABLE_ROW_HEIGHT * Math.min(Math.max(sortedList.size(), 1), MAX_VISIBLE_ROWS) + 2,
-                sortedList, tableView.widthProperty()));
-        tableView.minHeightProperty().bind(tableView.prefHeightProperty());
-        tableView.maxHeightProperty().bind(tableView.prefHeightProperty());
+        tableScrollPane.prefHeightProperty().bind(Bindings.createDoubleBinding(
+                () -> getTableHeaderHeight() + TABLE_ROW_HEIGHT * Math.min(Math.max(sortedList.size(), 1), MAX_VISIBLE_ROWS) + 2
+                        + getTableHbarHeight(),
+                sortedList, tableView.widthProperty(), tableScrollPane.viewportBoundsProperty()));
+        tableScrollPane.minHeightProperty().bind(tableScrollPane.prefHeightProperty());
+        tableScrollPane.maxHeightProperty().bind(tableScrollPane.prefHeightProperty());
 
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
         filterBox.setPromptText(Res.get("shared.filter"));
@@ -367,6 +373,16 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private double getTableHeaderHeight() {
         Node header = tableView.lookup(".column-header-background");
         return header == null ? TABLE_ROW_HEIGHT : header.prefHeight(-1);
+    }
+
+    // headroom for the scroll pane's horizontal bar so it never eats into the fitted rows
+    private double getTableHbarHeight() {
+        for (Node node : tableScrollPane.getChildrenUnmodifiable()) {
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.HORIZONTAL) {
+                return bar.isVisible() ? bar.getHeight() : 0;
+            }
+        }
+        return 0;
     }
 
     @Override

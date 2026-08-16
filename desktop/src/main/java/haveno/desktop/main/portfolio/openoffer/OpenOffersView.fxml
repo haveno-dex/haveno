@@ -23,6 +23,7 @@
 <?import haveno.desktop.components.InputTextField?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.HBox?>
@@ -39,27 +40,31 @@
         <Pane fx:id="searchBoxSpacer"/>
         <AutoTooltipSlideToggleButton fx:id="selectToggleButton"/>
     </HBox>
-    <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
-        <columns>
-            <TableColumn fx:id="offerIdColumn" minWidth="100" maxWidth="120"/>
-            <TableColumn fx:id="groupIdColumn" minWidth="70"/>
-            <TableColumn fx:id="dateColumn" minWidth="170"/>
-            <TableColumn fx:id="marketColumn" minWidth="75"/>
-            <TableColumn fx:id="priceColumn" minWidth="100"/>
-            <TableColumn fx:id="deviationColumn" minWidth="70"/>
-            <TableColumn fx:id="triggerPriceColumn" minWidth="90"/>
-            <TableColumn fx:id="amountColumn" minWidth="110"/>
-            <TableColumn fx:id="volumeColumn" minWidth="110"/>
-            <TableColumn fx:id="paymentMethodColumn" minWidth="110" maxWidth="170"/>
-            <TableColumn fx:id="directionColumn" minWidth="70"/>
-            <TableColumn fx:id="deactivateItemColumn" minWidth="60" maxWidth="60" sortable="false"/>
-            <TableColumn fx:id="editItemColumn" minWidth="30" maxWidth="30" sortable="false"/>
-            <TableColumn fx:id="triggerIconColumn" minWidth="30" maxWidth="30" sortable="false"/>
-            <TableColumn fx:id="duplicateItemColumn" minWidth="30" maxWidth="30" sortable="false"/>
-            <TableColumn fx:id="cloneItemColumn" minWidth="30" maxWidth="30" sortable="false"/>
-            <TableColumn fx:id="removeItemColumn" minWidth="30" maxWidth="30" sortable="false"/>
-        </columns>
-    </TableView>
+    <!-- scroll pane provides a horizontal bar when the window is narrower than the table's min width -->
+    <ScrollPane fx:id="tableScrollPane" fitToWidth="true" fitToHeight="true" vbarPolicy="NEVER"
+                focusTraversable="false" styleClass="table-scroll-pane" VBox.vgrow="ALWAYS">
+        <TableView fx:id="tableView">
+            <columns>
+                <TableColumn fx:id="offerIdColumn" minWidth="100" maxWidth="120"/>
+                <TableColumn fx:id="groupIdColumn" minWidth="70"/>
+                <TableColumn fx:id="dateColumn" minWidth="170"/>
+                <TableColumn fx:id="marketColumn" minWidth="75"/>
+                <TableColumn fx:id="priceColumn" minWidth="100"/>
+                <TableColumn fx:id="deviationColumn" minWidth="70"/>
+                <TableColumn fx:id="triggerPriceColumn" minWidth="90"/>
+                <TableColumn fx:id="amountColumn" minWidth="110"/>
+                <TableColumn fx:id="volumeColumn" minWidth="110"/>
+                <TableColumn fx:id="paymentMethodColumn" minWidth="110" maxWidth="170"/>
+                <TableColumn fx:id="directionColumn" minWidth="70"/>
+                <TableColumn fx:id="deactivateItemColumn" minWidth="60" maxWidth="60" sortable="false"/>
+                <TableColumn fx:id="editItemColumn" minWidth="30" maxWidth="30" sortable="false"/>
+                <TableColumn fx:id="triggerIconColumn" minWidth="30" maxWidth="30" sortable="false"/>
+                <TableColumn fx:id="duplicateItemColumn" minWidth="30" maxWidth="30" sortable="false"/>
+                <TableColumn fx:id="cloneItemColumn" minWidth="30" maxWidth="30" sortable="false"/>
+                <TableColumn fx:id="removeItemColumn" minWidth="30" maxWidth="30" sortable="false"/>
+            </columns>
+        </TableView>
+    </ScrollPane>
     <HBox spacing="10">
         <Label fx:id="numItems"/>
         <Region fx:id="footerSpacer"/>
