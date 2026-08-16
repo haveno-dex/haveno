@@ -58,6 +58,7 @@ import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -571,13 +572,19 @@ public abstract class Overlay<T extends Overlay<T>> {
                     // focus the message, not the headline copy icon, so screen readers announce it first
                     if (messageTextArea != null) messageTextArea.requestFocus();
 
-                    // restore window opacity after the first frame has rendered
+                    // the auto-sized message height settles over the first layout pulses as its text
+                    // re-wraps, so keep re-fitting the invisible stage to the content until stable
                     Stage displayedStage = stage;
                     new AnimationTimer() {
                         private int frames;
+                        private double lastHeight;
                         @Override
                         public void handle(long now) {
-                            if (++frames > 1) {
+                            double height = displayedStage.getHeight();
+                            boolean stable = Math.abs(height - lastHeight) < 0.5;
+                            lastHeight = height;
+                            if (!stable) refitToContent();
+                            if (++frames > 1 && (stable || frames > 10)) {
                                 displayedStage.setOpacity(1);
                                 stop();
                             }
@@ -633,11 +640,8 @@ public abstract class Overlay<T extends Overlay<T>> {
     private void constrainToScreen(Scene scene) {
         cappedToScreen = false;
         capShell = null;
-        Rectangle2D screenBounds = getScreenBounds();
-        double ownerWidth = owner.getWidth() > 0 ? owner.getWidth() : screenBounds.getWidth();
-        double ownerHeight = owner.getHeight() > 0 ? owner.getHeight() : screenBounds.getHeight();
-        double maxWidth = Math.min(screenBounds.getWidth(), ownerWidth) - 2 * CAP_MARGIN;
-        double maxHeight = Math.min(Math.min(screenBounds.getHeight(), ownerHeight) - 2 * CAP_MARGIN, Layout.MAX_POPUP_HEIGHT);
+        double maxWidth = maxPopupWidth();
+        double maxHeight = maxPopupHeight();
         // budget the visible card, not the stage: the shadow margin around it is invisible, and the
         // stage height saturates at the grid's max so the content's own preference is the true demand
         Region rootContainer = getRootContainer();
@@ -674,6 +678,37 @@ public abstract class Overlay<T extends Overlay<T>> {
         capShell.setPrefSize(Math.min(stage.getWidth() - 2 * CARD_INSET, maxWidth), Math.min(stage.getHeight() - 2 * CARD_INSET, maxHeight));
         stage.sizeToScene();
         cappedToScreen = true;
+    }
+
+    private double maxPopupWidth() {
+        Rectangle2D screenBounds = getScreenBounds();
+        double ownerWidth = owner.getWidth() > 0 ? owner.getWidth() : screenBounds.getWidth();
+        return Math.min(screenBounds.getWidth(), ownerWidth) - 2 * CAP_MARGIN;
+    }
+
+    private double maxPopupHeight() {
+        Rectangle2D screenBounds = getScreenBounds();
+        double ownerHeight = owner.getHeight() > 0 ? owner.getHeight() : screenBounds.getHeight();
+        return Math.min(Math.min(screenBounds.getHeight(), ownerHeight) - 2 * CAP_MARGIN, Layout.MAX_POPUP_HEIGHT);
+    }
+
+    // re-fit the stage to the content's current preferred size; a capped shell tracks the
+    // content height within the cap budget so a shorter settle releases the unused room
+    private void refitToContent() {
+        if (capShell != null) {
+            Region rootContainer = getRootContainer();
+            capShell.setPrefHeight(Math.min(rootContainer.prefHeight(rootContainer.getWidth()), maxPopupHeight()));
+        }
+        // keep the display animation's transient root translate out of the stage size (sizeToScene adds it)
+        Parent sceneRoot = stage.getScene().getRoot();
+        double translateX = sceneRoot.getTranslateX();
+        double translateY = sceneRoot.getTranslateY();
+        sceneRoot.setTranslateX(0);
+        sceneRoot.setTranslateY(0);
+        stage.sizeToScene();
+        sceneRoot.setTranslateX(translateX);
+        sceneRoot.setTranslateY(translateY);
+        layout();
     }
 
     private Rectangle2D getScreenBounds() {
