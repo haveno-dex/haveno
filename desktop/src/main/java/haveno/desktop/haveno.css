@@ -1888,6 +1888,31 @@ textfield */
     -fx-padding: 0 15 0 15;
 }
 
+/* avatar edge columns need less indentation as their centered content carries its own slack */
+.table-view .table-cell.avatar-column.first-column {
+    -fx-padding: 6 0 4 5;
+}
+
+.table-view .table-cell.avatar-column.last-column {
+    -fx-padding: 6 5 4 0;
+}
+
+.table-view .table-cell.avatar-column.first-column.last-column {
+    -fx-padding: 6 5 4 5;
+}
+
+.table-view .column-header.avatar-column.first-column {
+    -fx-padding: 0 0 0 5;
+}
+
+.table-view .column-header.avatar-column.last-column {
+    -fx-padding: 0 5 0 0;
+}
+
+.table-view .column-header.avatar-column.first-column.last-column {
+    -fx-padding: 0 5 0 5;
+}
+
 .table-view .column-header.avatar-column .label {
     -fx-alignment: center;
 }

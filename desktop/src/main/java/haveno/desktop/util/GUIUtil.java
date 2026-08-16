@@ -1433,15 +1433,26 @@ public class GUIUtil {
 
     // side indentation carried by the edge columns' css padding (.first-column/.last-column)
     private static final double EDGE_COLUMN_PADDING = 15;
+    // avatar columns center their content with inherent slack, so their edges need less
+    private static final double AVATAR_EDGE_COLUMN_PADDING = 5;
     private static final String EDGE_COLUMN_BASE_WIDTH = "edgeColumnBaseWidth";
 
     private static <T> void applyEdgeColumnStyleClasses(TableView<T> tableView) {
-        InvalidationListener visibilityListener = obs -> updateEdgeColumnStyleClasses(tableView);
-        for (TableColumn<T, ?> col : tableView.getColumns()) col.visibleProperty().addListener(visibilityListener);
+        InvalidationListener updateListener = obs -> updateEdgeColumnStyleClasses(tableView);
+        for (TableColumn<T, ?> col : tableView.getColumns()) {
+            col.visibleProperty().addListener(updateListener);
+            col.getStyleClass().addListener(updateListener); // views may tag avatar-column after table styling
+        }
         tableView.getColumns().addListener((ListChangeListener<TableColumn<T, ?>>) change -> {
             while (change.next()) {
-                for (TableColumn<T, ?> col : change.getRemoved()) col.visibleProperty().removeListener(visibilityListener);
-                for (TableColumn<T, ?> col : change.getAddedSubList()) col.visibleProperty().addListener(visibilityListener);
+                for (TableColumn<T, ?> col : change.getRemoved()) {
+                    col.visibleProperty().removeListener(updateListener);
+                    col.getStyleClass().removeListener(updateListener);
+                }
+                for (TableColumn<T, ?> col : change.getAddedSubList()) {
+                    col.visibleProperty().addListener(updateListener);
+                    col.getStyleClass().addListener(updateListener);
+                }
             }
             updateEdgeColumnStyleClasses(tableView);
         });
@@ -1479,8 +1490,9 @@ public class GUIUtil {
             base = column.getMinWidth();
             column.getProperties().put(EDGE_COLUMN_BASE_WIDTH, base);
         }
-        column.setMinWidth(base + pads * EDGE_COLUMN_PADDING);
-        column.setMaxWidth(base + pads * EDGE_COLUMN_PADDING);
+        double padding = column.getStyleClass().contains("avatar-column") ? AVATAR_EDGE_COLUMN_PADDING : EDGE_COLUMN_PADDING;
+        column.setMinWidth(base + pads * padding);
+        column.setMaxWidth(base + pads * padding);
         if (pads == 0) column.getProperties().remove(EDGE_COLUMN_BASE_WIDTH);
     }
 
