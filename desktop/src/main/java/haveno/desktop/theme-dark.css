@@ -383,6 +383,8 @@
 
 .combo-box-popup > .list-view{
     -fx-background-color: -bs-color-background-pane;
+    /* no shadow: its effect bounds render as a faint dark rectangle behind the card */
+    -fx-effect: null;
 }
 
 .jfx-combo-box > .arrow-button > .arrow {
