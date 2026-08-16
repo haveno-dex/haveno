@@ -983,6 +983,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
     private void setRemoveTradeColumnCellFactory() {
         moveTradeToFailedColumn.setCellValueFactory((trade) -> new ReadOnlyObjectWrapper<>(trade.getValue()));
+        moveTradeToFailedColumn.getStyleClass().add("avatar-column");
         moveTradeToFailedColumn.setCellFactory(
                 new Callback<>() {
                     @Override

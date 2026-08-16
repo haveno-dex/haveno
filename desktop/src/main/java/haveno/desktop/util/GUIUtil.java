@@ -1356,12 +1356,20 @@ public class GUIUtil {
     // pans header and rows together instead of clipping the trailing columns; an empty table imposes
     // no min width, so the placeholder never triggers the bar
     public static <T> void applyTableHorizontalScroll(ScrollPane scrollPane, TableView<T> tableView) {
-        InvalidationListener updater = obs -> tableView.setMinWidth(
-                tableView.getItems() == null || tableView.getItems().isEmpty() ? 0 :
-                        tableView.getColumns().stream()
-                                .filter(TableColumn::isVisible)
-                                .mapToDouble(TableColumn::getMinWidth)
-                                .sum());
+        InvalidationListener updater = obs -> {
+            tableView.setMinWidth(
+                    tableView.getItems() == null || tableView.getItems().isEmpty() ? 0 :
+                            tableView.getColumns().stream()
+                                    .filter(TableColumn::isVisible)
+                                    .mapToDouble(TableColumn::getMinWidth)
+                                    .sum());
+            // a min width grown past the table's width does not reliably reach the pane skin,
+            // leaving trailing columns clipped without a bar; force a pane layout pass
+            if (tableView.getMinWidth() > tableView.getWidth()) UserThread.execute(() -> {
+                scrollPane.requestLayout();
+                scrollPane.layout();
+            });
+        };
         for (TableColumn<T, ?> column : tableView.getColumns()) {
             column.visibleProperty().addListener(updater);
             column.minWidthProperty().addListener(updater);
