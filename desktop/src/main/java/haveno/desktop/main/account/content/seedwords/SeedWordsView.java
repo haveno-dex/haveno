@@ -64,12 +64,16 @@ import java.util.concurrent.TimeUnit;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Region;
+import javafx.scene.text.Text;
 import monero.common.MoneroUtils;
 import static javafx.beans.binding.Bindings.createBooleanBinding;
+import static javafx.beans.binding.Bindings.createDoubleBinding;
 
 @FxmlView
 public class SeedWordsView extends ActivatableView<GridPane, Void> {
@@ -113,9 +117,8 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         addTitledGroupBg(root, gridRow, 2, Res.get("account.seed.backup.title"));
         displaySeedWordsTextArea = addTopLabelTextArea(root, gridRow, Res.get("seed.seedWords"), "", Layout.FIRST_ROW_DISTANCE).second;
         displaySeedWordsTextArea.getStyleClass().add("wallet-seed-words");
-        displaySeedWordsTextArea.setPrefHeight(70);
-        displaySeedWordsTextArea.setMaxHeight(70);
         displaySeedWordsTextArea.setEditable(false);
+        fitHeightToSeedWords(displaySeedWordsTextArea);
 
         datePicker = addTopLabelDatePicker(root, ++gridRow, Res.get("seed.date"), 10).second;
         datePicker.setMouseTransparent(true);
@@ -123,8 +126,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         addTitledGroupBg(root, ++gridRow, 3, Res.get("seed.restore.title"), Layout.GROUP_DISTANCE);
         seedWordsTextArea = addTopLabelTextArea(root, gridRow, Res.get("seed.seedWords"), "", Layout.FIRST_ROW_AND_GROUP_DISTANCE).second;
         seedWordsTextArea.getStyleClass().add("wallet-seed-words");
-        seedWordsTextArea.setPrefHeight(70);
-        seedWordsTextArea.setMaxHeight(70);
+        fitHeightToSeedWords(seedWordsTextArea);
 
         restoreHeightInputTextField = new InputTextField();
         restoreHeightInputTextField.setValidator(new RestoreHeightValidator());
@@ -143,6 +145,24 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
             seedWordsEdited.set(true);
             validateSeedWords(oldValue, newValue);
         };
+    }
+
+    // fit height to the wrapped seed words (min 2 rows) so they sit vertically centered
+    private void fitHeightToSeedWords(TextArea textArea) {
+        textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
+            if (newScene == null) return;
+            textArea.applyCss();
+            Node text = textArea.lookup(".text");
+            Region content = (Region) textArea.lookup(".content");
+            textArea.prefHeightProperty().bind(createDoubleBinding(() -> {
+                Text refLine = new Text("X");
+                refLine.setFont(textArea.getFont());
+                double textHeight = Math.max(text.getBoundsInLocal().getHeight(), 2 * refLine.getLayoutBounds().getHeight());
+                return Math.ceil(textHeight + content.getInsets().getTop() + content.getInsets().getBottom()
+                        + textArea.getInsets().getTop() + textArea.getInsets().getBottom());
+            }, text.boundsInLocalProperty()));
+            textArea.maxHeightProperty().bind(textArea.prefHeightProperty());
+        });
     }
 
     @Override
