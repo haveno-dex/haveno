@@ -42,8 +42,6 @@ import javafx.stage.Window;
 
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
@@ -59,7 +57,6 @@ import lombok.Getter;
 public class DisputeChatPopup {
     public interface ChatCallback {
         void onCloseDisputeFromChatWindow(Dispute dispute);
-        void onSendLogsFromChatWindow(Dispute dispute);
     }
 
     private Stage chatPopupStage;
@@ -118,16 +115,10 @@ public class DisputeChatPopup {
                 closeDisputeButton.setOnAction(e -> chatCallback.onCloseDisputeFromChatWindow(selectedDispute));
                 chatView.display(concreteDisputeSession, closeDisputeButton, pane.widthProperty());
             } else {
-                MenuButton menuButton = new MenuButton(Res.get("support.moreButton"));
-                MenuItem menuItem1 = new MenuItem(Res.get("support.uploadTraderChat"));
-                MenuItem menuItem2 = new MenuItem(Res.get("support.sendLogFiles"));
-                menuItem1.setOnAction(e -> doTextAttachment(chatView));
-                setChatUploadEnabledState(menuItem1);
-                menuItem2.setOnAction(e -> chatCallback.onSendLogsFromChatWindow(selectedDispute));
-                menuButton.getItems().addAll(menuItem1, menuItem2);
-                menuButton.getStyleClass().add("jfx-button");
-                menuButton.setStyle("-fx-min-width: 95; -fx-padding: 0 10 0 10;");
-                chatView.display(concreteDisputeSession, menuButton, pane.widthProperty());
+                Button uploadChatButton = new AutoTooltipButton(Res.get("support.uploadTraderChat"));
+                uploadChatButton.setOnAction(e -> doTextAttachment(chatView));
+                setChatUploadEnabledState(uploadChatButton);
+                chatView.display(concreteDisputeSession, uploadChatButton, pane.widthProperty());
             }
         }
         chatView.activate();
@@ -204,11 +195,11 @@ public class DisputeChatPopup {
         });
     }
 
-    private void setChatUploadEnabledState(MenuItem menuItem) {
+    private void setChatUploadEnabledState(Button button) {
         disputeManager.findTrade(selectedDispute).ifPresentOrElse(t -> {
-            menuItem.setDisable(t.getChatMessages().size() == 0);
+            button.setDisable(t.getChatMessages().size() == 0);
         }, () -> {
-            menuItem.setDisable(true);
+            button.setDisable(true);
         });
     }
 }

@@ -51,7 +51,6 @@ import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeSession;
 import haveno.core.support.dispute.agent.DisputeAgentLookupMap;
-import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.messages.ChatMessage;
@@ -73,7 +72,6 @@ import haveno.desktop.components.PeerInfoIconMap;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.ContractWindow;
 import haveno.desktop.main.overlays.windows.DisputeSummaryWindow;
-import haveno.desktop.main.overlays.windows.SendLogFilesWindow;
 import haveno.desktop.main.overlays.windows.SendPrivateNotificationWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.overlays.windows.VerifyDisputeResultSignatureWindow;
@@ -1518,14 +1516,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         } else {
             closeDisputeFromButton();
         }
-    }
-
-    @Override
-    public void onSendLogsFromChatWindow(Dispute dispute) {
-        if (!(disputeManager instanceof ArbitrationManager))
-            return;
-        ArbitrationManager arbitrationManager = (ArbitrationManager) disputeManager;
-        new SendLogFilesWindow(dispute.getTradeId(), dispute.getTraderId(), arbitrationManager).show();
     }
 
     private boolean canViewChatMessages(Dispute dispute) {

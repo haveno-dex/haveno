@@ -1170,20 +1170,6 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         requestPersistence();
     }
 
-    protected void addMediationLogsReceivedMessage(Dispute dispute, String logsIdentifier) {
-        String logsReceivedMessage = Res.get("support.mediatorReceivedLogs", logsIdentifier);
-        ChatMessage chatMessage = new ChatMessage(
-                getSupportType(),
-                dispute.getTradeId(),
-                keyRing.hashCode(),
-                false,
-                logsReceivedMessage,
-                p2PService.getAddress());
-        chatMessage.setSystemMessage(true);
-        dispute.addAndPersistChatMessage(chatMessage);
-        requestPersistence();
-    }
-
     // If price was going down between take offer time and open dispute time the buyer has an incentive to
     // not send the payment but to try to make a new trade with the better price. We risks to lose part of the
     // security deposit (in mediation we will always get back 0.003 BTC to keep some incentive to accept mediated

@@ -65,7 +65,7 @@ message NetworkEnvelope {
         MediatedPayoutTxSignatureMessage mediated_payout_tx_signature_message = 37;
         MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 38;
 
-        FileTransferPart file_transfer_part = 39;
+        FileTransferPart file_transfer_part = 39 [deprecated = true]; // handling removed; kept to reserve the wire format
     }
 }
 
@@ -102,7 +102,7 @@ message GetUpdatedDataRequest {
     string version = 4;
 }
 
-message FileTransferPart {
+message FileTransferPart { // Deprecated; kept to reserve the old wire format.
     NodeAddress sender_node_address = 1;
     string uid = 2;
     string trade_id = 3;
