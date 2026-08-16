@@ -579,7 +579,7 @@ public class ChatView extends AnchorPane {
                             new Popup().warning(Res.get("support.maxSize", maxSizeInKB)).show();
                         } else {
                             tempAttachments.add(new Attachment(result.getName(), filesAsBytes));
-                            inputTextArea.setText(inputTextArea.getText() + "\n[" + Res.get("support.attachment") + " " + result.getName() + "]");
+                            appendAttachmentTag(result.getName());
                         }
                     } catch (java.io.IOException e) {
                         log.error(ExceptionUtils.getStackTrace(e));
@@ -605,11 +605,17 @@ public class ChatView extends AnchorPane {
                 new Popup().warning(Res.get("support.attachmentTooLarge", (size / 1024), maxSizeInKB)).show();
             } else {
                 tempAttachments.add(new Attachment(name, filesAsBytes));
-                inputTextArea.setText(inputTextArea.getText() + "\n[" + Res.get("support.attachment") + " " + name + "]");
+                appendAttachmentTag(name);
             }
         } catch (Exception e) {
             log.error(ExceptionUtils.getStackTrace(e));
         }
+    }
+
+    // append the attachment tag to the input text area, without a leading newline when empty
+    private void appendAttachmentTag(String name) {
+        String text = inputTextArea.getText();
+        inputTextArea.setText((text.isEmpty() ? "" : text + "\n") + "[" + Res.get("support.attachment") + " " + name + "]");
     }
 
     private void copyChatMessagesToClipboard(Button sourceBtn) {
