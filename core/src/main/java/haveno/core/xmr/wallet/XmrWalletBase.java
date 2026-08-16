@@ -196,11 +196,13 @@ public abstract class XmrWalletBase {
                             sourceWallet.sync(new MoneroWalletListener() {
                                 @Override
                                 public void onSyncProgress(long height, long startHeight, long endHeight, double percentDone, String message) {
-                                    if (syncProgressLatch == latch) updateSyncProgress(height, endHeight);
+                                    if (syncProgressLatch != latch || latch.getCount() == 0) return; // skip stale updates after release
+                                    updateSyncProgress(height, endHeight);
+                                    if (height >= endHeight - 1) latch.countDown(); // release at target height like rpc wallets instead of waiting for refresh to return
                                 }
                             });
                         } catch (Exception e) {
-                            if (syncProgressLatch == latch && syncProgressError == null && !isShutDownStarted) syncProgressError = e;
+                            if (latch.getCount() > 0 && syncProgressLatch == latch && syncProgressError == null && !isShutDownStarted) syncProgressError = e; // errors after release are moot
                         } finally {
                             saveProgressLooper.stop();
                             latch.countDown();
