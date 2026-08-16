@@ -410,7 +410,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
 
             // add label
             Label label = addLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.challenge"), 0);
-            label.getStyleClass().addAll("confirmation-label", "regular-text-color");
+            label.getStyleClass().add("confirmation-label");
             GridPane.setHalignment(label, HPos.LEFT);
             GridPane.setValignment(label, VPos.TOP);
 
