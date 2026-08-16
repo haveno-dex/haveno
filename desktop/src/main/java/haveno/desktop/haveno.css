@@ -3570,6 +3570,11 @@ textfield */
     -fx-background-color: none;
 }
 
+/* keep the arrow button unpainted too, or the themes' :focused fill shows as a patch around the caret */
+#price-feed-combo > .arrow-button {
+    -fx-background-color: none;
+}
+
 #price-feed-combo > .list-cell {
     -fx-text-fill: -bs-rd-font-balance;
     -fx-font-family: "IBM Plex Sans";
