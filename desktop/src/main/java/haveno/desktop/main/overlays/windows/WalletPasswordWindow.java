@@ -29,7 +29,6 @@ import haveno.core.util.validation.RestoreHeightValidator;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.PasswordTextField;
 import haveno.desktop.main.SharedPresentation;
@@ -40,6 +39,7 @@ import static haveno.desktop.util.FormBuilder.addPrimaryActionButton;
 import static haveno.desktop.util.FormBuilder.addTextArea;
 import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 import haveno.desktop.util.Layout;
+import haveno.desktop.util.validation.JFXInputValidator;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
@@ -55,10 +55,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroUtils;
 
@@ -71,6 +69,7 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
     private Button unlockButton;
     private WalletPasswordHandler passwordHandler;
     private PasswordTextField passwordTextField;
+    private JFXInputValidator errorValidator;
     private Button forgotPasswordButton;
     private Button restoreButton;
     private TextArea seedWordsTextArea;
@@ -178,36 +177,24 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
 
     private void addInputFields() {
         passwordTextField = addPasswordTextField(gridPane, ++rowIndex, Res.get("password.enterPassword"), Layout.FLOATING_LABEL_DISTANCE);
-        GridPane.setColumnSpan(passwordTextField, 1);
-        GridPane.setHalignment(passwordTextField, HPos.LEFT);
-        changeListener = (observable, oldValue, newValue) -> unlockButton.setDisable(!passwordTextField.validate());
+        passwordTextField.setMaxWidth(Double.MAX_VALUE); // span the full popup width
+        errorValidator = new JFXInputValidator();
+        passwordTextField.getValidators().add(errorValidator);
+        changeListener = (observable, oldValue, newValue) -> {
+            errorValidator.resetValidation();
+            passwordTextField.validate(); // clear any shown error while editing
+            unlockButton.setDisable(newValue.isEmpty());
+        };
         passwordTextField.textProperty().addListener(changeListener);
     }
 
     @Override
     protected void addButtons() {
-        BusyAnimation busyAnimation = new BusyAnimation(false);
-        Label deriveStatusLabel = new AutoTooltipLabel();
-
         unlockButton = new AutoTooltipButton(Res.get("shared.unlock"));
         unlockButton.setDefaultButton(true);
         unlockButton.getStyleClass().add("action-button");
         unlockButton.setDisable(true);
-        unlockButton.setOnAction(e -> {
-            String password = passwordTextField.getText();
-            checkArgument(password.length() < 500, Res.get("password.tooLong"));
-            try {
-                accountService.verifyPassword(password);
-                if (passwordHandler != null) passwordHandler.onSuccess();
-                hide();
-            } catch (IncorrectPasswordException e2) {
-                busyAnimation.stop();
-                deriveStatusLabel.setText("");
-                new Popup()
-                        .warning(Res.get("password.wrongPw"))
-                        .onClose(this::blurAgain).show();
-            }
-        });
+        unlockButton.setOnAction(e -> onUnlock());
 
         forgotPasswordButton = new AutoTooltipButton(Res.get("password.forgotPassword"));
         forgotPasswordButton.setOnAction(e -> {
@@ -222,25 +209,30 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
             closeHandlerOptional.ifPresent(Runnable::run);
         });
 
-        HBox hBox = new HBox();
-        hBox.setMinWidth(560);
-        hBox.setPadding(new Insets(0, 0, 0, 0));
-        hBox.setSpacing(10);
-        GridPane.setRowIndex(hBox, ++rowIndex);
+        HBox hBox = new HBox(10);
         hBox.setAlignment(Pos.CENTER_LEFT);
+        GridPane.setRowIndex(hBox, ++rowIndex);
         hBox.getChildren().add(unlockButton);
         if (!hideForgotPasswordButton)
             hBox.getChildren().add(forgotPasswordButton);
         if (!hideCloseButton)
             hBox.getChildren().add(cancelButton);
-        hBox.getChildren().addAll(busyAnimation, deriveStatusLabel);
         gridPane.getChildren().add(hBox);
+    }
 
-
-        ColumnConstraints columnConstraints1 = new ColumnConstraints();
-        columnConstraints1.setHalignment(HPos.LEFT);
-        columnConstraints1.setHgrow(Priority.ALWAYS);
-        gridPane.getColumnConstraints().addAll(columnConstraints1);
+    private void onUnlock() {
+        String password = passwordTextField.getText();
+        checkArgument(password.length() < 500, Res.get("password.tooLong"));
+        try {
+            accountService.verifyPassword(password);
+            if (passwordHandler != null) passwordHandler.onSuccess();
+            hide();
+        } catch (IncorrectPasswordException e) {
+            errorValidator.applyErrorMessage(Res.get("password.startup.wrongPw"));
+            passwordTextField.validate(); // show the error inline below the field
+            passwordTextField.selectAll();
+            passwordTextField.requestFocus();
+        }
     }
 
     private void showRestoreScreen() {
