@@ -26,7 +26,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.control.ListCell;
@@ -39,6 +41,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.stage.PopupWindow;
+import javafx.stage.Screen;
 import javafx.util.Callback;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -77,6 +80,9 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private double pinnedWidth = -1;
     private List<T> pinnedFor;
 
+    private boolean popupAbove;       // popup side chosen at open, kept while showing
+    private boolean popupSideDecided; // reset between opens; a press can show the popup before openPopup runs
+
     public AutocompleteComboBox() {
         this(FXCollections.observableArrayList());
     }
@@ -100,6 +106,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         converterProperty().addListener((obs, old, converter) -> unpinWidth()); // a converter set after the items also changes row width
         matchControlWidthToPopup();
         keepPopupOpenOnEditorClick();
+        redecidePopupSideOnHide();
         suppressSpaceKeyReset();
         clearEditorOnFocusGained();
         openPopupOnEditorClick();
@@ -294,6 +301,14 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         });
     }
 
+    // The popup side is re-decided per open. A mouse press shows the popup before openPopup runs, so
+    // isShowing() cannot tell a fresh open from a filter update; track the decision explicitly instead.
+    private void redecidePopupSideOnHide() {
+        showingProperty().addListener((obs, was, showing) -> {
+            if (!showing) popupSideDecided = false;
+        });
+    }
+
     // PopupWindow.ownerNode is read-only except through the Node-owner show() overload the skin never uses.
     private void setPopupOwnerNode(PopupWindow popup) {
         try {
@@ -350,7 +365,58 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         popupList.applyCss();
         popupList.layout();
         popupList.autosize();
+        fitRowsToScreenSpace();
         show();
+        realignOpenPopup(); // after show, so fresh opens and while-open updates land on the same anchor
+    }
+
+    // An open popup's window is not re-placed for a new size until the skin's next reconfigure, so a
+    // keystroke could leave a shrunken list at a stale anchor; re-anchor it to the kept side's edge.
+    private void realignOpenPopup() {
+        if (popupList.getScene() == null
+                || !(popupList.getScene().getWindow() instanceof PopupWindow popup)
+                || !popup.isShowing()) return;
+        Bounds field = localToScreen(getBoundsInLocal());
+        if (field == null) return;
+        double height = popupList.getLayoutBounds().getHeight(); // the card renders at the window anchor on this skin
+        popup.setAnchorY(popupAbove ? field.getMinY() - height : field.getMaxY());
+    }
+
+    // A popup taller than the space under the control gets flipped above the field by the skin. Stay
+    // below, capped to fit, while at least half the rows stay visible; else open toward the roomier
+    // side. The side is chosen at open and kept while showing, so filtering does not toss the list
+    // across the field.
+    private void fitRowsToScreenSpace() {
+        Bounds field = localToScreen(getBoundsInLocal());
+        if (field == null) return;
+        Rectangle2D screen = screenVisualBounds(field);
+        double gap = popupList.getTranslateY(); // css offsets the card this far from the field
+        double prefHeight = popupList.prefHeight(-1);
+        double spaceBelow = screen.getMaxY() - field.getMaxY() - gap;
+
+        int desired = getVisibleRowCount();
+        double insets = popupList.getInsets().getTop() + popupList.getInsets().getBottom();
+        double rowHeight = (prefHeight - insets) / desired;
+        int below = (int) ((spaceBelow - insets) / rowHeight);
+        int above = (int) Math.min((field.getMinY() - screen.getMinY() - gap - insets) / rowHeight, desired);
+        if (!popupSideDecided) {
+            popupAbove = prefHeight > spaceBelow && below < (desired + 1) / 2 && above > below;
+            popupSideDecided = true;
+        }
+
+        int rows = Math.max(1, popupAbove ? above : Math.min(desired, below));
+        if (rows != desired) {
+            setVisibleRowCount(rows);
+            popupList.applyCss();
+            popupList.layout();
+            popupList.autosize();
+        }
+    }
+
+    private Rectangle2D screenVisualBounds(Bounds screenBounds) {
+        List<Screen> screens = Screen.getScreensForRectangle(
+                screenBounds.getMinX(), screenBounds.getMinY(), screenBounds.getWidth(), screenBounds.getHeight());
+        return (screens.isEmpty() ? Screen.getPrimary() : screens.get(0)).getVisualBounds();
     }
 
     // Pin the popup to its measured content width, not the rendered width the skin ratchets up.
