@@ -1053,6 +1053,12 @@ public class XmrWalletService extends XmrWalletBase {
             priority = PROTOCOL_FEE_PRIORITY;
         }
 
+        // fall back to lowest priority if wallet cannot determine, e.g. on internal daemon error
+        if (priority == MoneroTxPriority.DEFAULT) {
+            log.warn("Wallet returned default fee priority, falling back to {}", MoneroTxPriority.UNIMPORTANT);
+            priority = MoneroTxPriority.UNIMPORTANT;
+        }
+
         // get fee estimates per kB from daemon
         MoneroFeeEstimate feeEstimates = getMonerod().getFeeEstimate();
         BigInteger baseFeeEstimate = feeEstimates.getFees().get(priority.ordinal() - 1);
