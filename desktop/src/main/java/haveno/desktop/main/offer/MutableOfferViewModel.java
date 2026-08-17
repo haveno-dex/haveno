@@ -115,9 +115,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     public final StringProperty amount = new SimpleStringProperty();
     public final StringProperty minAmount = new SimpleStringProperty();
-    protected final StringProperty securityDeposit = new SimpleStringProperty();
-    final StringProperty securityDepositInXMR = new SimpleStringProperty();
-    final StringProperty securityDepositLabel = new SimpleStringProperty();
+    public final StringProperty securityDeposit = new SimpleStringProperty();
+    public final StringProperty minSecurityDepositMessage = new SimpleStringProperty();
+    public final StringProperty securityDepositLabel = new SimpleStringProperty();
 
     // Price in the viewModel is always dependent on fiat/crypto: Fiat Fiat/BTC, for cryptos we use inverted price.
     // The domain (dataModel) uses always the same price model (otherCurrencyBTC)
@@ -154,7 +154,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     final BooleanProperty showPayFundsScreenDisplayed = new SimpleBooleanProperty();
     private final BooleanProperty showTransactionPublishedScreen = new SimpleBooleanProperty();
     final BooleanProperty isWaitingForFunds = new SimpleBooleanProperty();
-    final BooleanProperty isMinSecurityDeposit = new SimpleBooleanProperty();
+    public final BooleanProperty isMinSecurityDeposit = new SimpleBooleanProperty();
 
     final ObjectProperty<InputValidator.ValidationResult> amountValidationResult = new SimpleObjectProperty<>();
     final ObjectProperty<InputValidator.ValidationResult> minAmountValidationResult = new SimpleObjectProperty<>();
@@ -247,6 +247,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         addBindings();
         addListeners();
 
+        updateSecurityDeposit();
         updateButtonDisableState();
 
         updateMarketPriceAvailable();
@@ -418,7 +419,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
         securityDepositStringListener = (ov, oldValue, newValue) -> {
             if (!ignoreSecurityDepositStringListener) {
-                if (securityDepositValidator.validate(newValue).isValid) {
+                InputValidator.ValidationResult result = securityDepositValidator.validate(newValue);
+                if (!isMinSecurityDeposit.get())
+                    securityDepositValidationResult.set(result);
+                if (result.isValid) {
                     setSecurityDepositToModel();
                     dataModel.calculateTotalToPay();
                 }
@@ -429,10 +433,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         amountListener = (ov, oldValue, newValue) -> {
             if (newValue != null) {
                 amount.set(HavenoUtils.formatXmr(newValue));
-                securityDepositInXMR.set(HavenoUtils.formatXmr(dataModel.getSecurityDeposit(), true));
             } else {
                 amount.set("");
-                securityDepositInXMR.set("");
             }
 
             applyMakerFee();
@@ -470,13 +472,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         securityDepositAsDoubleListener = (ov, oldValue, newValue) -> {
             if (newValue != null) {
                 securityDeposit.set(FormattingUtils.formatToPercent((double) newValue));
-                if (dataModel.getAmount().get() != null) {
-                    securityDepositInXMR.set(HavenoUtils.formatXmr(dataModel.getSecurityDeposit(), true));
-                }
                 updateSecurityDeposit();
             } else {
                 securityDeposit.set("");
-                securityDepositInXMR.set("");
+                minSecurityDepositMessage.set("");
             }
         };
 
@@ -1074,15 +1073,9 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     public String getSecurityDepositLabel() {
         return dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer() ? Res.get("createOffer.myDeposit") :
-                dataModel.isMinSecurityDeposit() ? Res.get("createOffer.minSecurityDepositUsed") :
+                isMinSecurityDeposit.get() ? Res.get("createOffer.minSecurityDepositUsed") :
                 Preferences.USE_SYMMETRIC_SECURITY_DEPOSIT ? Res.get("createOffer.setDepositForBothTraders") :
                 dataModel.isBuyOffer() ? Res.get("createOffer.setDepositAsBuyer") : Res.get("createOffer.setDeposit");
-    }
-
-    public String getSecurityDepositPopOverLabel(String depositInXMR) {
-        return dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer() ? Res.get("createOffer.myDepositInfo", depositInXMR) :
-                dataModel.isBuyOffer() ? Res.get("createOffer.securityDepositInfoAsBuyer", depositInXMR) :
-                Res.get("createOffer.securityDepositInfo", depositInXMR);
     }
 
     public String getSecurityDepositInfo() {
@@ -1295,18 +1288,32 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         isWaitingForFunds.set(!waitingForFundsText.get().isEmpty());
     }
 
-    private void updateSecurityDeposit() {
-        isMinSecurityDeposit.set(dataModel.isMinSecurityDeposit());
+    protected void updateSecurityDeposit() {
+        String amountText = amount.get();
+        BigInteger amountValue = amountText != null && amountText.isEmpty() ? null : dataModel.getAmount().get();
+        double floorAsPercent = amountValue != null && amountValue.signum() > 0
+                ? CoinUtil.getAsPercentPerXmr(Restrictions.getMinSecurityDeposit(), amountValue)
+                : Double.MAX_VALUE;
+        boolean percentIrrelevant = floorAsPercent >= Restrictions.getMaxSecurityDepositPct();
+        isMinSecurityDeposit.set(percentIrrelevant);
         securityDepositLabel.set(getSecurityDepositLabel());
-        if (dataModel.isMinSecurityDeposit()) {
+        if (percentIrrelevant) {
             securityDeposit.set(HavenoUtils.formatXmr(Restrictions.getMinSecurityDeposit()));
             securityDepositValidationResult.set(new ValidationResult(true));
         } else {
+            // percents below the floor stay valid; the data model floors the actual deposit at the min XMR amount
             boolean hasBuyerAsTakerWithoutDeposit = dataModel.buyerAsTakerWithoutDeposit.get() && dataModel.isSellOffer();
             securityDeposit.set(FormattingUtils.formatToPercent(hasBuyerAsTakerWithoutDeposit ?
                     Restrictions.getDefaultSecurityDepositPct() : // use default percent if no deposit from buyer
                     dataModel.getSecurityDepositPct().get()));
+            securityDepositValidationResult.set(securityDepositValidator.validate(securityDeposit.get()));
         }
+
+        // note when the min deposit will override the entered percent
+        boolean floorBinds = !percentIrrelevant && amountValue != null && amountValue.signum() > 0 &&
+                dataModel.getSecurityDeposit().compareTo(Restrictions.getMinSecurityDeposit()) <= 0;
+        minSecurityDepositMessage.set(floorBinds ? Res.get("createOffer.minSecurityDepositApplied",
+                HavenoUtils.formatXmr(Restrictions.getMinSecurityDeposit(), true)) : "");
     }
 
     void updateButtonDisableState() {
@@ -1326,8 +1333,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
             inputDataValid = inputDataValid && triggerPriceValidationResult.get().isValid;
         }
 
-        // validating the percentage deposit value only makes sense if it is actually used
-        if (!dataModel.isMinSecurityDeposit()) {
+        // validating the percentage deposit value only makes sense while the field holds a percentage
+        if (!isMinSecurityDeposit.get()) {
             inputDataValid = inputDataValid && securityDepositValidator.validate(securityDeposit.get()).isValid;
         }
 

@@ -721,10 +721,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 GUIUtil.canCreateOrTakeOfferOrShowPopup(user, navigation);
     }
 
-    public boolean isMinSecurityDeposit() {
-        return getSecurityDeposit().compareTo(Restrictions.getMinSecurityDeposit()) <= 0;
-    }
-
     public ReadOnlyObjectProperty<String> getExtraInfo() {
         return extraInfo;
     }

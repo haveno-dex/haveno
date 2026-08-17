@@ -120,6 +120,7 @@ import static haveno.desktop.util.FormBuilder.getIconButton;
 import static haveno.desktop.util.FormBuilder.getIconForLabel;
 import static haveno.desktop.util.FormBuilder.getSmallIconForLabel;
 import static haveno.desktop.util.FormBuilder.getTradeInputBox;
+import static javafx.beans.binding.Bindings.createBooleanBinding;
 import static javafx.beans.binding.Bindings.createStringBinding;
 
 public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> extends ActivatableViewAndModel<AnchorPane, M> implements ClosableView, SelectableView {
@@ -149,7 +150,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private Label amountDescriptionLabel, priceCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, marketBasedPriceLabel, percentagePriceDescriptionLabel, tradeFeeDescriptionLabel,
             resultLabel, tradeFeeInXmrLabel, xLabel, fakeXLabel, securityDepositLabel,
-            securityDepositPercentageLabel, triggerPriceCurrencyLabel, triggerPriceDescriptionLabel;
+            securityDepositPercentageLabel, minSecurityDepositLabel, triggerPriceCurrencyLabel, triggerPriceDescriptionLabel;
     protected Label amountBtcLabel, volumeCurrencyLabel, minAmountBtcLabel;
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
     private ComboBox<TradeCurrency> currencyComboBox;
@@ -167,7 +168,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             isMinSecurityDepositListener, isPrivateOfferListener, buyerAsTakerWithoutDepositListener, triggerPriceFocusedListener, extraInfoFocusedListener;
     private ChangeListener<BigInteger> missingCoinListener;
     private ChangeListener<String> tradeCurrencyCodeListener, errorMessageListener,
-            marketPriceMarginListener, volumeListener, securityDepositInXMRListener, extraInfoListener;
+            marketPriceMarginListener, volumeListener, extraInfoListener;
     private ChangeListener<Number> marketPriceAvailableListener;
     private EventHandler<ActionEvent> currencyComboBoxSelectionHandler, paymentAccountsComboBoxSelectionHandler;
     private OfferView.CloseHandler closeHandler;
@@ -177,8 +178,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private final List<Node> editOfferElements = new ArrayList<>();
     private final HashMap<String, Boolean> paymentAccountWarningDisplayed = new HashMap<>();
     private boolean zelleWarningDisplayed, fasterPaymentsWarningDisplayed, isActivated;
-    private InfoInputTextField marketBasedPriceInfoInputTextField, volumeInfoInputTextField,
-            securityDepositInfoInputTextField, triggerPriceInfoInputTextField;
+    private InfoInputTextField marketBasedPriceInfoInputTextField, volumeInfoInputTextField, triggerPriceInfoInputTextField;
     private Text xIcon, fakeXIcon;
 
     @Setter
@@ -595,6 +595,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         addressTextField.amountAsProperty().bind(model.getDataModel().getMissingCoin());
         securityDepositInputTextField.textProperty().bindBidirectional(model.securityDeposit);
         securityDepositLabel.textProperty().bind(model.securityDepositLabel);
+        minSecurityDepositLabel.textProperty().bind(model.minSecurityDepositMessage);
+        // show the note only while the field has no validation error, which renders in the same place
+        minSecurityDepositLabel.visibleProperty().bind(model.minSecurityDepositMessage.isNotEmpty()
+                .and(createBooleanBinding(() -> model.securityDepositValidationResult.get() == null || model.securityDepositValidationResult.get().isValid,
+                        model.securityDepositValidationResult)));
+        minSecurityDepositLabel.managedProperty().bind(minSecurityDepositLabel.visibleProperty());
         tradeFeeInXmrLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
         tradeFeeInXmrLabel.visibleProperty().bind(model.isTradeFeeVisible);
@@ -648,6 +654,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         addressTextField.amountAsProperty().unbind();
         securityDepositInputTextField.textProperty().unbindBidirectional(model.securityDeposit);
         securityDepositLabel.textProperty().unbind();
+        minSecurityDepositLabel.textProperty().unbind();
+        minSecurityDepositLabel.visibleProperty().unbind();
+        minSecurityDepositLabel.managedProperty().unbind();
         tradeFeeInXmrLabel.textProperty().unbind();
         tradeFeeDescriptionLabel.textProperty().unbind();
         tradeFeeInXmrLabel.visibleProperty().unbind();
@@ -799,14 +808,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             }
         };
 
-        securityDepositInXMRListener = (observable, oldValue, newValue) -> {
-            if (!newValue.equals("")) {
-                updateSecurityDepositLabels();
-            } else {
-                securityDepositInfoInputTextField.setContentForInfoPopOver(null);
-            }
-        };
-
         volumeListener = (observable, oldValue, newValue) -> {
             if (!newValue.equals("") && CurrencyUtil.isFiatCurrency(model.tradeCurrencyCode.get())) {
                 Label popOverLabel = OfferViewUtil.createPopOverLabel(Res.get("offerbook.info.roundedFiatVolume"));
@@ -908,10 +909,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             securityDepositPercentageLabel.setText("%");
             securityDepositInputTextField.setDisable(model.getDataModel().buyerAsTakerWithoutDeposit.get());
         }
-        if (model.securityDepositInXMR.get() != null && !model.securityDepositInXMR.get().equals("")) {
-            Label depositInBTCInfo = OfferViewUtil.createPopOverLabel(model.getSecurityDepositPopOverLabel(model.securityDepositInXMR.get()));
-            securityDepositInfoInputTextField.setContentForInfoPopOver(depositInBTCInfo);
-        }
     }
 
     private void updateQrCode() {
@@ -947,8 +944,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         model.marketPriceMargin.addListener(marketPriceMarginListener);
         model.volume.addListener(volumeListener);
         model.getDataModel().missingCoin.addListener(missingCoinListener);
-        model.securityDepositInXMR.addListener(securityDepositInXMRListener);
         model.isMinSecurityDeposit.addListener(isMinSecurityDepositListener);
+        updateSecurityDepositLabels();
         model.getDataModel().isPrivateOffer.addListener(isPrivateOfferListener);
         model.getDataModel().buyerAsTakerWithoutDeposit.addListener(buyerAsTakerWithoutDepositListener);
         model.getDataModel().extraInfo.addListener(extraInfoListener);
@@ -983,7 +980,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         model.marketPriceMargin.removeListener(marketPriceMarginListener);
         model.volume.removeListener(volumeListener);
         model.getDataModel().missingCoin.removeListener(missingCoinListener);
-        model.securityDepositInXMR.removeListener(securityDepositInXMRListener);
         model.isMinSecurityDeposit.removeListener(isMinSecurityDepositListener);
         model.getDataModel().isPrivateOffer.removeListener(isPrivateOfferListener);
         model.getDataModel().buyerAsTakerWithoutDeposit.removeListener(buyerAsTakerWithoutDepositListener);
@@ -1321,10 +1317,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private VBox getSecurityDepositBox() {
-        Tuple3<HBox, InfoInputTextField, Label> tuple = getEditableValueBoxWithInfo(
+        Tuple3<HBox, InputTextField, Label> tuple = getEditableValueBox(
                 Res.get("createOffer.securityDeposit.prompt"));
-        securityDepositInfoInputTextField = tuple.second;
-        securityDepositInputTextField = securityDepositInfoInputTextField.getInputTextField();
+        securityDepositInputTextField = tuple.second;
         securityDepositPercentageLabel = tuple.third;
         // getEditableValueBox delivers BTC, so we overwrite it with %
         securityDepositPercentageLabel.setText("%");
@@ -1336,6 +1331,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         editOfferElements.add(securityDepositInputTextField);
         editOfferElements.add(securityDepositPercentageLabel);
+
+        minSecurityDepositLabel = new Label();
+        minSecurityDepositLabel.getStyleClass().add("field-info-label");
+        minSecurityDepositLabel.setWrapText(true);
+        depositBox.getChildren().add(minSecurityDepositLabel);
 
         return depositBox;
     }
