@@ -124,7 +124,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     @Override
     protected void cleanup() {
         if (textArea != null)
-            textArea.scrollTopProperty().addListener(changeListener);
+            textArea.scrollTopProperty().removeListener(changeListener);
     }
 
     @Override
