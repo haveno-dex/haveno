@@ -1448,6 +1448,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 return Res.get("support.preparing");
             case DISPUTE_REQUESTED:
                 return Res.get("support.requested");
+            case DISPUTE_CLOSED:
+                return Res.get("support.closed");
             default:
                 return Res.get("support.open");
         }
@@ -1519,6 +1521,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     }
 
     private boolean canViewChatMessages(Dispute dispute) {
-        return disputeManager.canSendChatMessages(dispute) || dispute.isClosed();
+        if (disputeManager.canSendChatMessages(dispute) || dispute.isClosed()) return true;
+        Trade trade = tradeManager.getTrade(dispute.getTradeId());
+        return trade != null && trade.isPayoutPublished(); // ticket can remain open after payout is published
     }
 }
