@@ -248,7 +248,11 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         synchronized (displayedTransactions) { // wallet listeners update concurrently, so serialize and pass a snapshot to the UI thread
             displayedTransactions.update();
             List<TransactionsListItem> snapshot = new ArrayList<>(displayedTransactions);
-            UserThread.execute(() -> observableList.setAll(snapshot));
+            UserThread.execute(() -> {
+                observableList.setAll(snapshot);
+                // hide the memo column when no transaction has a memo
+                memoColumn.setVisible(snapshot.stream().anyMatch(item -> item.getMemo() != null && !item.getMemo().isEmpty()));
+            });
         }
     }
 
