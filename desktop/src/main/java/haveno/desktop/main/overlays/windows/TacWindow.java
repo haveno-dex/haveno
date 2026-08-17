@@ -218,7 +218,7 @@ public class TacWindow extends Overlay<TacWindow> {
 
     @Override
     protected void setModality() {
-        // non-modal so the app window behind stays resizable and its theme toggle clickable
+        // skip the base input block so the theme toggle behind stays clickable
         stage.initOwner(owner.getScene().getWindow());
         stage.initModality(Modality.NONE);
     }

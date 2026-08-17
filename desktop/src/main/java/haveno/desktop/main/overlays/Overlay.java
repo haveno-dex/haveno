@@ -51,6 +51,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
@@ -68,6 +69,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
+import javafx.scene.input.InputEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -100,6 +102,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static javafx.scene.input.MouseEvent.MOUSE_CLICKED;
+import static javafx.scene.input.MouseEvent.MOUSE_PRESSED;
 
 @Slf4j
 public abstract class Overlay<T extends Overlay<T>> {
@@ -200,6 +203,9 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected Optional<Runnable> secondaryActionHandlerOptional = Optional.<Runnable>empty();
     protected ChangeListener<Number> positionListener;
     private ListChangeListener<String> stylesheetsListener;
+    private EventHandler<InputEvent> ownerInputFilter;
+    private ChangeListener<Boolean> contentDemandListener;
+    private double lastContentDemand;
 
     protected Timer centerTime;
     protected Type type = Type.Undefined;
@@ -272,6 +278,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             else
                 log.warn("Stage is null");
 
+            removeListeners();
             cleanup();
             onHidden();
         });
@@ -280,9 +287,16 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected void onHidden() {
     }
 
+    // subclass teardown hook; base teardown runs unconditionally in removeListeners()
     protected void cleanup() {
+    }
+
+    private void removeListeners() {
         if (centerTime != null)
             centerTime.stop();
+
+        if (contentDemandListener != null)
+            getRootContainer().needsLayoutProperty().removeListener(contentDemandListener);
 
         if (owner == null)
             owner = MainView.getRootContainer();
@@ -290,6 +304,8 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (rootScene != null) {
             if (stylesheetsListener != null)
                 rootScene.getStylesheets().removeListener(stylesheetsListener);
+            if (ownerInputFilter != null)
+                rootScene.removeEventFilter(InputEvent.ANY, ownerInputFilter);
             Window window = rootScene.getWindow();
             if (window != null && positionListener != null) {
                 window.xProperty().removeListener(positionListener);
@@ -606,20 +622,29 @@ public abstract class Overlay<T extends Overlay<T>> {
                     // On Linux the owner stage does not move the child stage as it does on Mac
                     // So we need to apply centerPopup. Further with fast movements the handler loses
                     // the latest position, with a delay it fixes that.
-                    // Also on Mac sometimes the popups are positioned outside of the main app, so keep it for all OS
+                    // Also on Mac sometimes the popups are positioned outside of the main app, so keep it for all OS.
+                    // Re-fitting rather than just centering also tracks the owner window's size while it is resized.
                     positionListener = (observable, oldValue, newValue) -> {
                         if (stage != null) {
-                            layout();
+                            refitToContent();
                             if (centerTime != null)
                                 centerTime.stop();
 
-                            centerTime = UserThread.runAfter(this::layout, 3);
+                            centerTime = UserThread.runAfter(this::refitToContent, 3);
                         }
                     };
                     window.xProperty().addListener(positionListener);
                     window.yProperty().addListener(positionListener);
                     window.widthProperty().addListener(positionListener);
                     window.heightProperty().addListener(positionListener);
+
+                    // content can settle taller after the initial fit (fonts, styled rows), so watch
+                    // layout requests for the popup's lifetime and re-fit when its height demand changes
+                    lastContentDemand = 0;
+                    contentDemandListener = (observable, oldValue, needsLayout) -> {
+                        if (needsLayout) UserThread.execute(this::refitIfDemandChanged);
+                    };
+                    getRootContainer().needsLayoutProperty().addListener(contentDemandListener);
 
                     animateDisplay();
                 });
@@ -642,12 +667,12 @@ public abstract class Overlay<T extends Overlay<T>> {
         capShell = null;
         double maxWidth = maxPopupWidth();
         double maxHeight = maxPopupHeight();
-        // budget the visible card, not the stage: the shadow margin around it is invisible, and the
-        // stage height saturates at the grid's max so the content's own preference is the true demand
+        // budget the whole stage against the viewport: subclass styling (e.g. grid-pane's background)
+        // can paint well outside the standard card inset, so no invisible-margin grace is assumed
         Region rootContainer = getRootContainer();
-        double cardWidth = rootContainer.prefWidth(-1) - 2 * CARD_INSET;
-        double cardHeight = rootContainer.prefHeight(rootContainer.prefWidth(-1)) - 2 * CARD_INSET;
-        if (cardWidth <= maxWidth && cardHeight <= maxHeight) return;
+        double stageWidth = rootContainer.prefWidth(-1);
+        double stageHeight = rootContainer.prefHeight(stageWidth);
+        if (stageWidth <= maxWidth + 2 * CAP_MARGIN && stageHeight <= maxHeight + 2 * CAP_MARGIN) return;
 
         ScrollPane scrollRoot = new ScrollPane();
         scrollRoot.getStyleClass().add("popup-scroll-pane");
@@ -655,12 +680,13 @@ public abstract class Overlay<T extends Overlay<T>> {
         scrollRoot.setFitToWidth(true);
         scrollRoot.setFocusTraversable(false);
 
-        // the shell paints the card with the bar inside it; popup-bg/popup-bg-top move along to keep
-        // their text styling, while the shell style flattens their insets and shadow
+        // the shell paints the card with the bar inside it; the popup-bg and dropshadow styles move
+        // along to keep their text styling, while the shell style flattens their insets and shadow
         capShell = new StackPane(scrollRoot);
         capShell.getStyleClass().add("popup-scroll-shell");
-        for (String style : new String[]{"popup-bg", "popup-bg-top"})
+        for (String style : new String[]{"popup-bg", "popup-bg-top", "popup-dropshadow"})
             if (rootContainer.getStyleClass().remove(style)) capShell.getStyleClass().add(style);
+        rootContainer.setTranslateY(0); // clear the top-anchor settle offset if the cap engages mid-display
         // the card edge replaces the shadow margin, so drop it from the content's padding to keep the normal card-edge distance
         Insets padding = rootContainer.getPadding();
         rootContainer.setPadding(new Insets(
@@ -680,24 +706,31 @@ public abstract class Overlay<T extends Overlay<T>> {
         cappedToScreen = true;
     }
 
+    // budget against the owner's scene, not the owner region: a region can overflow its viewport
     private double maxPopupWidth() {
         Rectangle2D screenBounds = getScreenBounds();
-        double ownerWidth = owner.getWidth() > 0 ? owner.getWidth() : screenBounds.getWidth();
+        Scene ownerScene = owner.getScene();
+        double ownerWidth = ownerScene != null && ownerScene.getWidth() > 0 ? ownerScene.getWidth() : screenBounds.getWidth();
         return Math.min(screenBounds.getWidth(), ownerWidth) - 2 * CAP_MARGIN;
     }
 
     private double maxPopupHeight() {
         Rectangle2D screenBounds = getScreenBounds();
-        double ownerHeight = owner.getHeight() > 0 ? owner.getHeight() : screenBounds.getHeight();
+        Scene ownerScene = owner.getScene();
+        double ownerHeight = ownerScene != null && ownerScene.getHeight() > 0 ? ownerScene.getHeight() : screenBounds.getHeight();
         return Math.min(Math.min(screenBounds.getHeight(), ownerHeight) - 2 * CAP_MARGIN, Layout.MAX_POPUP_HEIGHT);
     }
 
-    // re-fit the stage to the content's current preferred size; a capped shell tracks the
-    // content height within the cap budget so a shorter settle releases the unused room
+    // re-fit the stage to the content and the cap budget: engage the cap once the content outgrows
+    // the budget, else track both so a capped popup resizes with its content and the owner window
     private void refitToContent() {
-        if (capShell != null) {
+        if (capShell == null) {
+            constrainToScreen(stage.getScene()); // no-op while the content still fits
+        } else {
             Region rootContainer = getRootContainer();
-            capShell.setPrefHeight(Math.min(rootContainer.prefHeight(rootContainer.getWidth()), maxPopupHeight()));
+            double cardWidth = Math.max(rootContainer.prefWidth(-1), rootContainer.minWidth(-1)) - 2 * CARD_INSET;
+            capShell.setPrefSize(Math.min(cardWidth, maxPopupWidth()),
+                    Math.min(rootContainer.prefHeight(rootContainer.getWidth()), maxPopupHeight()));
         }
         // keep the display animation's transient root translate out of the stage size (sizeToScene adds it)
         Parent sceneRoot = stage.getScene().getRoot();
@@ -709,6 +742,17 @@ public abstract class Overlay<T extends Overlay<T>> {
         sceneRoot.setTranslateX(translateX);
         sceneRoot.setTranslateY(translateY);
         layout();
+    }
+
+    // re-fit only when the content's height demand actually changed, so refit-triggered
+    // layout passes cannot re-schedule themselves forever
+    private void refitIfDemandChanged() {
+        if (stage == null || !stage.isShowing()) return;
+        Region rootContainer = getRootContainer();
+        double demand = rootContainer.prefHeight(rootContainer.prefWidth(-1));
+        if (Math.abs(demand - lastContentDemand) < 0.5) return;
+        lastContentDemand = demand;
+        refitToContent();
     }
 
     private Rectangle2D getScreenBounds() {
@@ -804,12 +848,12 @@ public abstract class Overlay<T extends Overlay<T>> {
             double titleBarHeight = window.getHeight() - rootScene.getHeight();
             if (Utilities.isWindows())
                 titleBarHeight -= 9;
-            stage.setX(Math.round(window.getX() + (owner.getWidth() - stage.getWidth()) / 2));
+            stage.setX(Math.round(window.getX() + (rootScene.getWidth() - stage.getWidth()) / 2));
 
             if (type.animationType == AnimationType.SlideDownFromCenterTop)
                 stage.setY(Math.round(window.getY() + titleBarHeight));
             else
-                stage.setY(Math.round(window.getY() + titleBarHeight + (owner.getHeight() - stage.getHeight()) / 2));
+                stage.setY(Math.round(window.getY() + titleBarHeight + (rootScene.getHeight() - stage.getHeight()) / 2));
 
             // a popup capped to the screen must stay fully on it, even when centering on the owner would push it off
             if (cappedToScreen) {
@@ -891,7 +935,13 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected void setModality() {
         stage.initOwner(owner.getScene().getWindow());
-        stage.initModality(Modality.WINDOW_MODAL);
+        stage.initModality(Modality.NONE); // non-modal keeps the owner window movable and resizable
+        // emulate modality by blocking the owner's input, bouncing focus back to the popup on click
+        ownerInputFilter = event -> {
+            event.consume();
+            if (event.getEventType() == MOUSE_PRESSED && stage != null) stage.requestFocus();
+        };
+        owner.getScene().addEventFilter(InputEvent.ANY, ownerInputFilter);
     }
 
     protected void removeEffectFromBackground() {
