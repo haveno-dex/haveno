@@ -724,6 +724,14 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                         CurrencyUtil.getNameAndCode(offerBookListItem.getOffer().getBaseCurrencyCode()).toLowerCase().contains(filterText.toLowerCase());
             });
 
+            // filter price and amounts
+            nextPredicate = nextPredicate.or(offerBookListItem -> {
+                Offer offer = offerBookListItem.getOffer();
+                return (offer.getPrice() != null && formatPrice(offer, false).contains(filterText)) ||
+                        formatAmount(offer, false).contains(filterText) ||
+                        formatVolume(offer, false).toLowerCase().contains(filterText.toLowerCase());
+            });
+
             // filter extra info
             nextPredicate = nextPredicate.or(offerBookListItem -> {
                 return offerBookListItem.getOffer().getCombinedExtraInfo() != null &&
