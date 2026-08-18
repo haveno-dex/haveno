@@ -1955,6 +1955,23 @@ textfield */
     -fx-opacity: 0;
 }
 
+/* invisible-background bar as in combo popups: just the pill thumb, full travel except the bottom inset that keeps it clear of the table's rounded clip */
+.table-view > .virtual-flow > .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 3 0;
+}
+
+.table-view > .virtual-flow > .scroll-bar:vertical .track,
+.table-view > .virtual-flow > .scroll-bar:vertical .track-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/* offer cards are lighter than the default table background; use the even-row color so the transparent scrollbar lane blends with the rows */
+.offer-book-card .table-view {
+    -fx-background-color: -bs-color-background-row-even;
+}
+
 .offer-table .table-row-cell {
     -fx-border-color: -bs-background-color;
     -fx-table-cell-border-color: -bs-background-color;
