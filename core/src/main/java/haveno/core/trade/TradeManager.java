@@ -103,7 +103,6 @@ import haveno.network.p2p.network.TorNetworkNode;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -482,14 +481,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // get all trades
             List<Trade> trades = getAllTrades();
 
+            // remove trades duplicated across stores by an interrupted move
+            removeDuplicateTrades(trades);
+
             // initialize trades in parallel
             int threadPoolSize = 10;
             Set<Runnable> initTradeTasks = new HashSet<Runnable>();
-            Set<String> uids = new HashSet<String>();
             Set<Trade> tradesToSkip = new HashSet<Trade>();
             Set<Trade> uninitializedTrades = new HashSet<Trade>();
             for (Trade trade : trades) {
-                initTradeTasks.add(getInitTradeTask(trade, trades, tradesToSkip, uninitializedTrades, uids));
+                initTradeTasks.add(getInitTradeTask(trade, tradesToSkip, uninitializedTrades));
             };
             ThreadUtils.awaitTasks(initTradeTasks, threadPoolSize);
             log.info("Done initializing trades");
@@ -545,18 +546,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
-    private Runnable getInitTradeTask(Trade trade, Collection<Trade> trades, Set<Trade> tradesToSkip, Set<Trade> uninitializedTrades, Set<String> uids) {
+    private Runnable getInitTradeTask(Trade trade, Set<Trade> tradesToSkip, Set<Trade> uninitializedTrades) {
         return () -> {
             try {
-
-                // check for duplicate uid
-                synchronized (uids) {
-                    if (!uids.add(trade.getUid())) {
-                        log.warn("Found trade with duplicate uid, skipping. That should never happen. {} {}, uid={}", trade.getClass().getSimpleName(), trade.getId(), trade.getUid());
-                        tradesToSkip.add(trade);
-                        return;
-                    }
-                }
 
                 // skip if failed and error handling not scheduled
                 if (failedTradesManager.getObservableList().contains(trade)) {
@@ -589,8 +581,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 // initialize trade
                 initTrade(trade);
 
-                // record if protocol didn't initialize
-                if (!trade.isDepositsPublished()) {
+                // record if protocol didn't initialize, except closed trades, which are terminal
+                if (!trade.isDepositsPublished() && !closedTradableManager.getClosedTrades().contains(trade)) {
                     synchronized (uninitializedTrades) {
                         uninitializedTrades.add(trade);
                     }
@@ -603,6 +595,38 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 }
             }
         };
+    }
+
+    // remove trades with duplicate uids from their stores, which can happen when a move between stores is
+    // interrupted by shutdown before both stores are flushed. keep the closed copy over pending over failed,
+    // since protocol error handling re-converges a kept pending copy to the correct store on init
+    private void removeDuplicateTrades(List<Trade> trades) {
+        Map<String, Trade> tradesByUid = new HashMap<String, Trade>();
+        for (Trade trade : new ArrayList<Trade>(trades)) {
+            Trade other = tradesByUid.get(trade.getUid());
+            if (other == null) {
+                tradesByUid.put(trade.getUid(), trade);
+                continue;
+            }
+            Trade duplicate = getStorePriority(trade) > getStorePriority(other) ? other : trade;
+            if (duplicate == other) tradesByUid.put(trade.getUid(), trade);
+            log.warn("Removing {} {} with duplicate uid from its store. That should never happen. uid={}", duplicate.getClass().getSimpleName(), duplicate.getId(), duplicate.getUid());
+            removeDuplicateTrade(duplicate);
+            trades.remove(duplicate);
+        }
+    }
+
+    private int getStorePriority(Trade trade) {
+        if (closedTradableManager.getClosedTrades().contains(trade)) return 2;
+        if (failedTradesManager.getObservableList().contains(trade)) return 0;
+        return 1; // pending
+    }
+
+    // remove a duplicate trade from whichever store holds it
+    private void removeDuplicateTrade(Trade trade) {
+        if (closedTradableManager.getClosedTrades().contains(trade)) closedTradableManager.removeTrade(trade);
+        else if (failedTradesManager.getObservableList().contains(trade)) failedTradesManager.removeTrade(trade);
+        else removeTrade(trade);
     }
 
     private void initTrade(Trade trade) {

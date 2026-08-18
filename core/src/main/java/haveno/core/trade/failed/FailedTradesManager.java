@@ -89,6 +89,11 @@ public class FailedTradesManager implements PersistedDataHost {
 
     public void add(Trade trade) {
         synchronized (failedTrades.getList()) {
+            // reject a second copy of an already listed trade so the store cannot hold duplicates
+            if (failedTrades.stream().anyMatch(t -> t != trade && t.getUid().equals(trade.getUid()))) {
+                log.warn("Not adding {} {} to failed trades because a copy with the same uid exists", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
             if (failedTrades.add(trade)) {
                 requestPersistence();
             }
