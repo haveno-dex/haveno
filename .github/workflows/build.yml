@@ -109,6 +109,9 @@ jobs:
       - name: Package Haveno Installer
         run: ./gradlew packageInstallers
         working-directory: .
+      - name: Build Daemon JAR
+        run: ./gradlew :daemon:shadowJar
+        working-directory: .
 
       # get version from jar
       - name: Set Version Unix
@@ -156,6 +159,27 @@ jobs:
           Copy-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/release-windows
           Move-Item -Path desktop\build\temp-*/binaries\desktop-*.jar.SHA-256 -Destination ${{ github.workspace }}/haveno-v${{ env.VERSION }}-windows-SNAPSHOT-all.jar.SHA-256
         shell: powershell
+      - name: Move Daemon JAR for Linux
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Linux' }}
+        run: |
+            mkdir ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}
+            mv daemon/build/libs/daemon-all.jar ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}/daemon-linux-${{ matrix.arch }}.jar
+            sha256sum ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}/daemon-linux-${{ matrix.arch }}.jar > ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}/daemon-linux-${{ matrix.arch }}.jar.SHA-256
+        shell: bash
+      - name: Move Daemon JAR for macOS
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'MacOS' }}
+        run: |
+            mkdir ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}
+            mv daemon/build/libs/daemon-all.jar ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}/daemon-macos-${{ matrix.arch }}.jar
+            shasum -a 256 ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}/daemon-macos-${{ matrix.arch }}.jar > ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}/daemon-macos-${{ matrix.arch }}.jar.SHA-256
+        shell: bash
+      - name: Move Daemon JAR on Windows
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Windows' }}
+        run: |
+          mkdir ${{ github.workspace }}/release-daemon-windows
+          Move-Item -Path daemon\build\libs\daemon-all.jar -Destination ${{ github.workspace }}/release-daemon-windows/daemon-windows.jar
+          Get-FileHash ${{ github.workspace }}/release-daemon-windows/daemon-windows.jar -Algorithm SHA256 | ForEach-Object { $_.Hash } > ${{ github.workspace }}/release-daemon-windows/daemon-windows.jar.SHA-256
+        shell: powershell
 
       # Windows artifacts
       - uses: actions/upload-artifact@v4
@@ -202,6 +226,28 @@ jobs:
           name: haveno-linux-${{ matrix.arch }}-flatpak
           path: ${{ github.workspace }}/release-linux-flatpak
 
+      # Daemon artifacts
+      - uses: actions/upload-artifact@v4
+        name: "Daemon - Linux artifact"
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Linux' }}
+        with:
+          name: daemon-linux-${{ matrix.arch }}
+          path: ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        name: "Daemon - macOS artifact"
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'MacOS' }}
+        with:
+          name: daemon-macos-${{ matrix.arch }}
+          path: ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        name: "Daemon - Windows artifact"
+        if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Windows' }}
+        with:
+          name: daemon-windows
+          path: ${{ github.workspace }}/release-daemon-windows
+
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
@@ -232,6 +278,18 @@ jobs:
             # Windows
             ${{ github.workspace }}/release-windows/haveno-v${{ env.VERSION }}-windows-x86_64-installer.exe
             ${{ github.workspace }}/haveno-v${{ env.VERSION }}-windows-SNAPSHOT-all.jar.SHA-256
+
+            # Daemon JARs
+            ${{ github.workspace }}/release-daemon-linux-x86_64/daemon-linux-x86_64.jar
+            ${{ github.workspace }}/release-daemon-linux-x86_64/daemon-linux-x86_64.jar.SHA-256
+            ${{ github.workspace }}/release-daemon-linux-aarch64/daemon-linux-aarch64.jar
+            ${{ github.workspace }}/release-daemon-linux-aarch64/daemon-linux-aarch64.jar.SHA-256
+            ${{ github.workspace }}/release-daemon-macos-x86_64/daemon-macos-x86_64.jar
+            ${{ github.workspace }}/release-daemon-macos-x86_64/daemon-macos-x86_64.jar.SHA-256
+            ${{ github.workspace }}/release-daemon-macos-aarch64/daemon-macos-aarch64.jar
+            ${{ github.workspace }}/release-daemon-macos-aarch64/daemon-macos-aarch64.jar.SHA-256
+            ${{ github.workspace }}/release-daemon-windows/daemon-windows.jar
+            ${{ github.workspace }}/release-daemon-windows/daemon-windows.jar.SHA-256
 
 # https://git-scm.com/docs/git-tag      - git-tag Docu
 #
