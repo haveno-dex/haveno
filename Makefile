@@ -498,6 +498,11 @@ haveno-daemon-stagenet:
 		--apiPort=3204 \
 		--useNativeXmrWallet=false \
 
+# expose the stagenet daemon API to grpc-web clients at http://localhost:8080
+envoy-stagenet:
+	@command -v envoy >/dev/null || { echo "ERROR: envoy is required (e.g. brew install envoy)"; exit 1; }
+	envoy -c config/envoy.stagenet.yaml
+
 # Mainnet network
 
 monerod:
@@ -600,6 +605,11 @@ haveno-desktop-mainnet:
 		--apiPort=1201 \
 		--useNativeXmrWallet=false \
 		--ignoreLocalXmrNode=false \
+
+# expose the mainnet daemon API to grpc-web clients at http://localhost:8080
+envoy-mainnet:
+	@command -v envoy >/dev/null || { echo "ERROR: envoy is required (e.g. brew install envoy)"; exit 1; }
+	envoy -c config/envoy.yaml
 
 user1-daemon-mainnet:
 	./haveno-daemon$(APP_EXT) \
