@@ -157,7 +157,7 @@ public class AmazonGiftCardForm extends PaymentMethodForm {
             put("IT", "https://www.amazon.it");
             put("NL", "https://www.amazon.nl");
             put("ES", "https://www.amazon.es");
-            put("UK", "https://www.amazon.co.uk");
+            put("GB", "https://www.amazon.co.uk");
             put("IN", "https://www.amazon.in");
             put("JP", "https://www.amazon.co.jp");
             put("SA", "https://www.amazon.sa");

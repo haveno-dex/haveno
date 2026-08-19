@@ -346,6 +346,11 @@ public abstract class PaymentAccount implements PersistablePayload {
     @NonNull
     public abstract List<TradeCurrency> getSupportedCurrencies();
 
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return null; // support all countries by default
+    }
+
     // ---------------------------- SERIALIZATION -----------------------------
 
     public String toJson() {
@@ -510,17 +515,16 @@ public abstract class PaymentAccount implements PersistablePayload {
         case CONTACT:
             processValidationResult(new InputValidator().validate(value));
             break;
-        case COUNTRY:
-            if (this instanceof CountryBasedPaymentAccount) {
-                List<Country> supportedCountries = ((CountryBasedPaymentAccount) this).getSupportedCountries();
-                if (supportedCountries != null && !supportedCountries.isEmpty()) {
-                    List<String> supportedCountryCodes = CountryUtil.getCountryCodes(supportedCountries);
-                    if (!supportedCountryCodes.contains(value)) throw new IllegalArgumentException("Country is not supported by " + getPaymentMethod().getId() + ": " + value);
-                    return;
-                }
+        case COUNTRY: {
+            List<Country> supportedCountries = getSupportedCountries();
+            if (supportedCountries != null && !supportedCountries.isEmpty()) {
+                List<String> supportedCountryCodes = CountryUtil.getCountryCodes(supportedCountries);
+                if (!supportedCountryCodes.contains(value)) throw new IllegalArgumentException("Country is not supported by " + getPaymentMethod().getId() + ": " + value);
+                return;
             }
             if (!CountryUtil.findCountryByCode(value).isPresent()) throw new IllegalArgumentException("Invalid country code: " + value);
             break;
+        }
         case CLABE: {
             RegexValidator clabeValidator = new RegexValidator(); // Mexican CLABE: 18 digits (https://en.wikipedia.org/wiki/CLABE)
             clabeValidator.setPattern("[0-9]{18}");
@@ -746,7 +750,8 @@ public abstract class PaymentAccount implements PersistablePayload {
         case COUNTRY:
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel(Res.get("shared.country"));
-            if (this instanceof CountryBasedPaymentAccount) field.setSupportedCountries(((CountryBasedPaymentAccount) this).getSupportedCountries());
+            List<Country> countries = getSupportedCountries();
+            if (countries != null && !countries.isEmpty()) field.setSupportedCountries(countries);
             break;
         case CLABE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);

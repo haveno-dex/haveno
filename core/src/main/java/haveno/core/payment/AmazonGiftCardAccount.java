@@ -17,9 +17,11 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
@@ -69,6 +71,27 @@ public final class AmazonGiftCardAccount extends PaymentAccount {
     @Override
     public @NotNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    public List<Country> getSupportedCountries() {
+        return CountryUtil.getAllAmazonGiftCardCountries();
+    }
+
+    @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        super.validateFormField(form, fieldId, value);
+
+        // currency is tied to the country's amazon site
+        if (fieldId == PaymentAccountFormField.FieldId.TRADE_CURRENCIES) {
+            String countryCode = form.getValue(PaymentAccountFormField.FieldId.COUNTRY);
+            if (countryCode == null || countryCode.isEmpty()) return;
+            String expectedCurrencyCode = CurrencyUtil.getCurrencyByCountryCode(countryCode).getCode();
+            List<String> currencyCodes = commaDelimitedCodesToList.apply(value);
+            if (currencyCodes.size() != 1 || !currencyCodes.get(0).equals(expectedCurrencyCode)) {
+                throw new IllegalArgumentException("Currency must be " + expectedCurrencyCode + " for country " + countryCode);
+            }
+        }
     }
 
     @Override
