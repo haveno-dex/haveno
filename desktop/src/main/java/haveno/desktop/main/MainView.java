@@ -138,6 +138,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private ProgressBar xmrSyncIndicator;
     private Label xmrSplashInfo;
     private Popup p2PNetworkWarnMsgPopup, xmrNetworkWarnMsgPopup;
+    private String lastP2PNetworkWarnMsg;
+    private long lastP2PNetworkWarnMsgPopupTime;
+    private static final long P2P_NETWORK_WARN_MSG_POPUP_THROTTLE_MS = 10 * 60 * 1000;
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
     private final Preferences preferences;
     private static final int networkIconSize = 20;
@@ -889,6 +892,14 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         p2PNetworkLabel.idProperty().bind(model.getP2pNetworkLabelId());
         model.getP2pNetworkWarnMsg().addListener((ov, oldValue, newValue) -> {
             if (newValue != null) {
+                // throttle repeats of the same warning to avoid repeatedly stealing focus while connectivity flaps
+                if (newValue.equals(lastP2PNetworkWarnMsg)) {
+                    if (p2PNetworkWarnMsgPopup != null && p2PNetworkWarnMsgPopup.isDisplayed()) return;
+                    if (System.currentTimeMillis() - lastP2PNetworkWarnMsgPopupTime < P2P_NETWORK_WARN_MSG_POPUP_THROTTLE_MS) return;
+                }
+                lastP2PNetworkWarnMsg = newValue;
+                lastP2PNetworkWarnMsgPopupTime = System.currentTimeMillis();
+                if (p2PNetworkWarnMsgPopup != null && p2PNetworkWarnMsgPopup.isDisplayed()) p2PNetworkWarnMsgPopup.hide();
                 p2PNetworkWarnMsgPopup = new Popup().warning(newValue);
                 p2PNetworkWarnMsgPopup.show();
             } else if (p2PNetworkWarnMsgPopup != null) {
