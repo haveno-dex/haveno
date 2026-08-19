@@ -212,6 +212,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         tableView.setFixedCellSize(TABLE_ROW_HEIGHT);
         GUIUtil.applyTableHorizontalScroll(tableScrollPane, tableView);
 
+        // an empty detail pane still claims its default height, so keep it out of the layout
+        scrollView.visibleProperty().bind(scrollView.contentProperty().isNotNull());
+        scrollView.managedProperty().bind(scrollView.visibleProperty());
+
         tradeIdColumn.setComparator(Comparator.comparing(o -> o.getTrade().getId()));
         dateColumn.setComparator(Comparator.comparing(o -> o.getTrade().getDate()));
         volumeColumn.setComparator(Comparator.comparing(o -> o.getTrade().getVolume(), Comparator.nullsFirst(Comparator.naturalOrder())));
@@ -306,7 +310,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                         + getTableHbarHeight(),
                 sortedList, tableView.widthProperty(), tableScrollPane.viewportBoundsProperty()));
         tableScrollPane.minHeightProperty().bind(tableScrollPane.prefHeightProperty());
-        tableScrollPane.maxHeightProperty().bind(tableScrollPane.prefHeightProperty());
+        // with no trades there is no detail view to make room for, so fill the height like the sibling tabs
+        tableScrollPane.maxHeightProperty().bind(Bindings.when(Bindings.isEmpty(sortedList))
+                .then(Double.MAX_VALUE).otherwise(tableScrollPane.prefHeightProperty()));
 
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
         filterBox.setPromptText(Res.get("shared.filter"));
@@ -404,7 +410,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private void removeSelectedSubView() {
         if (selectedSubView != null) {
             selectedSubView.deactivate();
-            root.getChildren().remove(selectedSubView);
+            scrollView.setContent(null);
             selectedSubView = null;
         }
     }
