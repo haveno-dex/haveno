@@ -280,7 +280,7 @@ public final class XmrConnectionService {
 
     private void addConnection(MoneroRpcConnection connection, boolean addToEncryptedList) {
         accountService.checkAccountOpen();
-        applySslPolicy(connection);
+        applySslPolicy(connection, false);
         synchronized (connections) {
             if (getConnection(connection.getUri()) != null) throw new IllegalArgumentException("Connection already exists with URI: " + connection.getUri());
             connections.add(connection);
@@ -361,7 +361,7 @@ public final class XmrConnectionService {
                     isConnected = false;
                     connectionList.setCurrentConnectionUri(null);
                 } else {
-                    applySslPolicy(connection);
+                    applySslPolicy(connection, true);
                     monerod = new MoneroDaemonRpc(connection);
                     isConnected = connection.isConnected();
                     synchronized (connections) {
@@ -922,19 +922,21 @@ public final class XmrConnectionService {
      * a malicious node cannot steal funds; TLS verification adds little here. It also can't be
      * enforced in practice, since monerod's default serves a self-signed certificate that no
      * certificate authority can validate. We therefore disable verification, but warn once and
-     * recommend Tor when connecting to a remote clearnet node over HTTPS.
+     * recommend Tor when a remote clearnet HTTPS node becomes the active connection.
      *
      * @param connection the connection to configure (no-op if null)
+     * @param warnIfInsecure warn if the connection is remote clearnet HTTPS (true when it becomes active)
      */
-    private void applySslPolicy(MoneroRpcConnection connection) {
+    private void applySslPolicy(MoneroRpcConnection connection, boolean warnIfInsecure) {
         if (connection == null) return;
         connection.setSslVerify(false);
+        if (!warnIfInsecure) return;
         String uri = connection.getUri();
         boolean isRemoteHttps = uri != null && uri.toLowerCase().startsWith("https:") && !connection.isOnion() && !NetworkUtils.isLocalHost(uri);
         if (isRemoteHttps) {
             synchronized (warnedInsecureConnections) {
                 if (warnedInsecureConnections.add(uri)) {
-                    log.warn("Connecting to remote Monero node {} over HTTPS without verifying its TLS certificate. " +
+                    log.warn("Using remote Monero node {} over HTTPS without verifying its TLS certificate. " +
                             "Prefer a Tor onion node, or a node you run or trust, for better privacy.", uri);
                 }
             }
