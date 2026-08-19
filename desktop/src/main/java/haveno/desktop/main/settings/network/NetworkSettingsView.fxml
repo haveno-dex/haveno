@@ -45,6 +45,9 @@
 
     <TitledGroupBg fx:id="btcHeader" GridPane.rowSpan="5"/>
     <VBox GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
+        <GridPane.margin>
+            <Insets top="10.0"/>
+        </GridPane.margin>
         <AutoTooltipLabel fx:id="moneroConnectionsLabel" styleClass="small-text"/>
         <TableView fx:id="moneroConnectionsTableView">
             <columns>

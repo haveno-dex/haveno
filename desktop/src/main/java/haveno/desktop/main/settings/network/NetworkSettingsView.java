@@ -56,8 +56,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.geometry.VPos;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableColumn;
@@ -201,12 +199,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         // TODO: hiding button to rescan outputs until supported
         rescanOutputsLabel.setVisible(false);
         rescanOutputsButton.setVisible(false);
-
-        GridPane.setMargin(moneroConnectionsLabel, new Insets(4, 0, 0, 0));
-        GridPane.setValignment(moneroConnectionsLabel, VPos.TOP);
-
-        GridPane.setMargin(p2PPeersLabel, new Insets(4, 0, 0, 0));
-        GridPane.setValignment(p2PPeersLabel, VPos.TOP);
 
         moneroConnectionAddressColumn.setSortType(TableColumn.SortType.ASCENDING);
         moneroConnectionConnectedColumn.setSortType(TableColumn.SortType.DESCENDING);
