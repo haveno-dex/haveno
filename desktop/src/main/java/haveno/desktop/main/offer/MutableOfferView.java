@@ -172,6 +172,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private ChangeListener<Number> marketPriceAvailableListener;
     private EventHandler<ActionEvent> currencyComboBoxSelectionHandler, paymentAccountsComboBoxSelectionHandler;
     private OfferView.CloseHandler closeHandler;
+    private Popup fundingAddressPopup;
 
     protected int gridRow = 0;
     protected int nextButtonsGridRow; // grid row of the next buttons; reused by the edit and clone views for their action buttons
@@ -356,7 +357,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     // called from parent as the view does not get notified when the tab is closed
     public void onClose() {
         // we use model.placeOfferCompleted to not react on close which was triggered by a successful placeOffer
-        if (model.getDataModel().getUnallocatedBalance().get().compareTo(BigInteger.ZERO) > 0 && !model.placeOfferCompleted.get()) {
+        BigInteger unallocatedBalance = model.getDataModel().getUnallocatedBalance().get();
+        if (unallocatedBalance != null && unallocatedBalance.compareTo(BigInteger.ZERO) > 0 && !model.placeOfferCompleted.get()) {
             model.getDataModel().swapTradeToSavings();
         }
     }
@@ -389,6 +391,26 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     }
 
     private void onShowPayFundsScreen() {
+
+        // fetch the funding address off thread with option to cancel, since the wallet may be busy
+        if (model.getDataModel().getAddressEntry() == null) {
+            if (fundingAddressPopup != null) return; // already waiting
+            fundingAddressPopup = new Popup();
+            fundingAddressPopup.headLine(Res.get("shared.fundingAddress.headline"))
+                    .message(Res.get("shared.fundingAddress.msg"))
+                    .showBusyAnimation()
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> fundingAddressPopup = null)
+                    .show();
+            model.getDataModel().requestAddressEntry(addressEntry -> {
+                if (fundingAddressPopup == null) return; // canceled
+                fundingAddressPopup.hide();
+                fundingAddressPopup = null;
+                if (addressEntry != null) onShowPayFundsScreen();
+            });
+            return;
+        }
+
         boolean isRestoring = model.showPayFundsScreenDisplayed.get();
 
         nextButton.setVisible(false);
@@ -407,6 +429,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         hideOptionsGroup();
         hideExtraInfoGroup();
 
+        addressTextField.setAddress(model.getAddressAsString());
         updateQrCode();
 
         model.onShowPayFundsScreen(() -> {
@@ -1493,7 +1516,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     @NotNull
     private String getMoneroURI() {
         return GUIUtil.getMoneroURI(
-                addressTextField.getAddress(),
+                model.getAddressAsString(),
                 model.getDataModel().getMissingCoin().get(),
                 model.getPaymentLabel());
     }

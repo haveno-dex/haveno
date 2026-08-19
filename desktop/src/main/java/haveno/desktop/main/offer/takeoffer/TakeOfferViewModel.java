@@ -221,8 +221,6 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         marketPriceMargin = FormattingUtils.formatToPercent(offer.getMarketPriceMarginPct());
         paymentLabel = Res.get("takeOffer.fundsBox.paymentLabel", offer.getShortId());
 
-        checkNotNull(dataModel.getAddressEntry(), "dataModel.getAddressEntry() must not be null");
-
         errorMessage.set(offer.getErrorMessage());
 
         xmrValidator.setMaxValue(offer.getAmount());

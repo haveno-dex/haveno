@@ -47,7 +47,6 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -62,8 +61,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -131,7 +132,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected long triggerPrice;
     @Getter
     protected boolean reserveExactAmount;
-    private XmrBalanceListener xmrBalanceListener;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -178,6 +178,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     @Override
     public void activate() {
+        activated = true;
         addListeners();
 
         fillPaymentAccounts();
@@ -190,16 +191,17 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     @Override
     protected void deactivate() {
+        activated = false;
         removeListeners();
     }
 
     private void addListeners() {
-        if (xmrBalanceListener != null) xmrWalletService.addBalanceListener(xmrBalanceListener);
+        if (balanceListener != null) xmrWalletService.addBalanceListener(balanceListener);
         user.getPaymentAccountsAsObservable().addListener(paymentAccountsChangeListener);
     }
 
     private void removeListeners() {
-        if (xmrBalanceListener != null) xmrWalletService.removeBalanceListener(xmrBalanceListener);
+        if (balanceListener != null) xmrWalletService.removeBalanceListener(balanceListener);
         user.getPaymentAccountsAsObservable().removeListener(paymentAccountsChangeListener);
     }
 
@@ -210,15 +212,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     // called before activate()
     public boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency, boolean initAddressEntry) {
-        if (initAddressEntry) {
-            addressEntry = xmrWalletService.getOrCreateAddressEntry(offerId, XmrAddressEntry.Context.OFFER_FUNDING);
-            xmrBalanceListener = new XmrBalanceListener(getAddressEntry().getSubaddressIndex()) {
-                @Override
-                public void onBalanceChanged(BigInteger balance) {
-                    updateBalances();
-                }
-            };
-        }
+        if (initAddressEntry) requestAddressEntry(null);
 
         this.direction = direction;
         this.tradeCurrency = tradeCurrency;
@@ -263,6 +257,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return true;
     }
 
+    void requestAddressEntry(@Nullable Consumer<XmrAddressEntry> resultHandler) {
+        requestAddressEntry(offerId, resultHandler);
+    }
+
     @NotNull
     private Optional<PaymentAccount> getAnyPaymentAccount() {
         if (CurrencyUtil.isFiatCurrency(tradeCurrency.getCode())) {
@@ -291,10 +289,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         // update remaining balance
         UserThread.await(() -> {
             missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), unallocatedBalance.get()));
-            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), unallocatedBalance.get()));
-            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
-                showWalletFundedNotification.set(true);
-            }
+            updateFundedState(unallocatedBalance.get());
         });
     }
 

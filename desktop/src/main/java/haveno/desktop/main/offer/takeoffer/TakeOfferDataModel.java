@@ -43,7 +43,6 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinUtil;
-import haveno.core.xmr.listeners.XmrBalanceListener;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
@@ -64,6 +63,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -96,7 +96,6 @@ class TakeOfferDataModel extends OfferDataModel {
     @Getter
     protected final StringProperty warningMessage = new SimpleStringProperty();
 
-    private XmrBalanceListener balanceListener;
     private PaymentAccount paymentAccount;
     private boolean isTabSelected;
     protected boolean allowAmountUpdate = true;
@@ -139,6 +138,8 @@ class TakeOfferDataModel extends OfferDataModel {
 
     @Override
     protected void activate() {
+        activated = true;
+
         // when leaving screen we reset state
         offer.setState(Offer.State.UNKNOWN);
 
@@ -173,6 +174,7 @@ class TakeOfferDataModel extends OfferDataModel {
 
     @Override
     protected void deactivate() {
+        activated = false;
         removeListeners();
         if (offer != null) {
             offer.cancelAvailabilityRequest();
@@ -188,8 +190,7 @@ class TakeOfferDataModel extends OfferDataModel {
     void initWithData(Offer offer) {
         this.offer = offer;
         tradePrice = offer.getPrice();
-        addressEntry = xmrWalletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
-        checkNotNull(addressEntry, "addressEntry must not be null");
+        requestAddressEntry(null);
 
         ObservableList<PaymentAccount> possiblePaymentAccounts = getPossiblePaymentAccounts();
         checkArgument(!possiblePaymentAccounts.isEmpty(), "possiblePaymentAccounts.isEmpty()");
@@ -202,16 +203,13 @@ class TakeOfferDataModel extends OfferDataModel {
         calculateVolume();
         calculateTotalToPay();
 
-        balanceListener = new XmrBalanceListener(addressEntry.getSubaddressIndex()) {
-            @Override
-            public void onBalanceChanged(BigInteger balance) {
-                updateBalances();
-            }
-        };
-
         offer.resetState();
 
         priceFeedService.setCurrencyCode(offer.getCounterCurrencyCode());
+    }
+
+    void requestAddressEntry(@Nullable Consumer<XmrAddressEntry> resultHandler) {
+        requestAddressEntry(offer.getId(), resultHandler);
     }
 
     // We don't want that the fee gets updated anymore after we show the funding screen.
@@ -241,15 +239,13 @@ class TakeOfferDataModel extends OfferDataModel {
     }
 
     protected void updateBalances() {
+        if (addressEntry == null) return;
         super.updateBalances();
 
         // update remaining balance
         UserThread.await(() -> {
             missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), unallocatedBalance.get()));
-            isXmrWalletFunded.set(offerUtil.isBalanceSufficient(totalToPay.get(), availableBalance.get()));
-            if (totalToPay.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
-                showWalletFundedNotification.set(true);
-            }
+            updateFundedState(availableBalance.get());
         });
     }
 
@@ -378,11 +374,11 @@ class TakeOfferDataModel extends OfferDataModel {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void addListeners() {
-        xmrWalletService.addBalanceListener(balanceListener);
+        if (balanceListener != null) xmrWalletService.addBalanceListener(balanceListener);
     }
 
     private void removeListeners() {
-        xmrWalletService.removeBalanceListener(balanceListener);
+        if (balanceListener != null) xmrWalletService.removeBalanceListener(balanceListener);
     }
 
 

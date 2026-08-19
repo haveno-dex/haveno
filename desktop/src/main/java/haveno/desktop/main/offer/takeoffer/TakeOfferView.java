@@ -160,6 +160,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private StackPane qrCodePane;
     private BusyAnimation waitingForFundsBusyAnimation, offerAvailabilityBusyAnimation;
     private Notification walletFundedNotification;
+    private Popup fundingAddressPopup;
     private OfferView.CloseHandler closeHandler;
     private Subscription balanceSubscription,
             showTransactionPublishedScreenSubscription, showWarningInvalidXmrDecimalPlacesSubscription,
@@ -346,7 +347,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         priceTextField.setText(model.getPrice());
         priceAsPercentageTextField.setText(model.marketPriceMargin);
         addressTextField.setPaymentLabel(model.getPaymentLabel());
-        addressTextField.setAddress(model.dataModel.getAddressEntry().getAddressString());
 
         if (offer.isFiatOffer()) {
             Label popOverLabel = OfferViewUtil.createPopOverLabel(Res.get("offerbook.info.roundedFiatVolume"));
@@ -436,6 +436,29 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void onShowPayFundsScreen() {
+
+        // fetch the funding address off thread with option to cancel, since the wallet may be busy
+        if (model.dataModel.getAddressEntry() == null) {
+            if (fundingAddressPopup != null) return; // already waiting
+            fundingAddressPopup = new Popup();
+            fundingAddressPopup.headLine(Res.get("shared.fundingAddress.headline"))
+                    .message(Res.get("shared.fundingAddress.msg"))
+                    .showBusyAnimation()
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> {
+                        fundingAddressPopup = null;
+                        close(false);
+                    })
+                    .show();
+            model.dataModel.requestAddressEntry(addressEntry -> {
+                if (fundingAddressPopup == null) return; // canceled
+                fundingAddressPopup.hide();
+                fundingAddressPopup = null;
+                if (addressEntry != null) onShowPayFundsScreen();
+            });
+            return;
+        }
+
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
 
         nextButton.setVisible(false);
@@ -533,6 +556,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         totalToPayTextField.setFundsStructure(Res.get("takeOffer.fundsBox.fundsStructure",
                 model.getSecurityDepositWithCode(), model.getTakerFeePercentage()));
         totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
+
+        addressTextField.setAddress(model.dataModel.getAddressEntry().getAddressString());
 
         if (model.dataModel.getIsXmrWalletFunded().get() && model.dataModel.hasTotalToPay()) {
             if (walletFundedNotification == null) {

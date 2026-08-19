@@ -108,7 +108,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     protected final OfferUtil offerUtil;
 
     private String amountDescription;
-    private String addressAsString;
     private final String paymentLabel;
     private boolean createOfferInProgress;
     public boolean createOfferCanceled;
@@ -601,9 +600,6 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
     boolean initWithData(OfferDirection direction, TradeCurrency tradeCurrency, boolean initAddressEntry) {
         boolean result = dataModel.initWithData(direction, tradeCurrency, initAddressEntry);
-        if (dataModel.getAddressEntry() != null) {
-            addressAsString = dataModel.getAddressEntry().getAddressString();
-        }
         if (dataModel.paymentAccount != null)
             xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getMaxTradeLimit(dataModel.getTradeCurrencyCode().get()));
         xmrValidator.setMaxTradeLimit(dataModel.getMaxTradeLimit());
@@ -1137,7 +1133,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     public String getAddressAsString() {
-        return addressAsString;
+        return dataModel.getAddressEntry() == null ? null : dataModel.getAddressEntry().getAddressString();
     }
 
     public String getPaymentLabel() {
