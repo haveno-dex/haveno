@@ -30,6 +30,7 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.TxIdTextField;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -121,9 +122,10 @@ public class MarketPricePresentation {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // create price feed items
+        // create price feed items sorted by code, fiat before cryptos
         List<PriceFeedComboBoxItem> currencyItems = uniqueCurrencyCodeBases
                 .stream()
+                .sorted(Comparator.comparing(CurrencyUtil::isCryptoCurrency).thenComparing(Comparator.naturalOrder()))
                 .map(currencyCodeBase -> new PriceFeedComboBoxItem(currencyCodeBase))
                 .collect(Collectors.toList());
         priceFeedComboBoxItems.setAll(currencyItems);
