@@ -14,4 +14,5 @@ Returns the Haveno server version.
 
 EXAMPLES
 --------
+Get the server version:
 $ ./haveno-cli --password=xyz --port=9998 getversion

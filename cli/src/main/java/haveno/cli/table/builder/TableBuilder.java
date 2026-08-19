@@ -1,18 +1,18 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.cli.table.builder;
@@ -26,8 +26,12 @@ import static java.util.Collections.singletonList;
 /**
  * Table builder factory.  It is not conventionally named TableBuilderFactory because
  * it has no static factory methods.  The number of static fields and methods in the
- * {@code haveno.cli.table} are kept to a minimum in an effort o reduce class load time
- * in the session-less CLI.
+ * {@code haveno.cli.table} are kept to a minimum in an effort keep the API simple.
+ *
+ * A builder instance is created via a constructor taking two arguments:  a
+ * {@code TableType} and a {@code List<protobuf.Message>} -- the data to be displayed
+ * in the console in tabular form.  The instance's {@code build()} method returns the
+ * {@code Table} instance for the given {@code TableType} and protobuf {@code List}.
  */
 public class TableBuilder extends AbstractTableBuilder {
 
@@ -44,8 +48,6 @@ public class TableBuilder extends AbstractTableBuilder {
         switch (tableType) {
             case ADDRESS_BALANCE_TBL:
                 return new AddressBalanceTableBuilder(protos).build();
-            case BTC_BALANCE_TBL:
-                return new BtcBalanceTableBuilder(protos).build();
             case CLOSED_TRADES_TBL:
                 return new ClosedTradeTableBuilder(protos).build();
             case FAILED_TRADES_TBL:
@@ -58,8 +60,10 @@ public class TableBuilder extends AbstractTableBuilder {
                 return new PaymentAccountTableBuilder(protos).build();
             case TRADE_DETAIL_TBL:
                 return new TradeDetailTableBuilder(protos).build();
-            case TRANSACTION_TBL:
-                return new TransactionTableBuilder(protos).build();
+            case XMR_BALANCE_TBL:
+                return new XmrBalanceTableBuilder(protos).build();
+            case XMR_TX_TBL:
+                return new XmrTxTableBuilder(protos).build();
             default:
                 throw new IllegalArgumentException("invalid cli table type " + tableType.name());
         }

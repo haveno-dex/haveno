@@ -2,7 +2,7 @@ stop
 
 NAME
 ----
-stop - stop the server
+stop - shut down the server
 
 SYNOPSIS
 --------
@@ -10,13 +10,9 @@ stop
 
 DESCRIPTION
 -----------
-Shutdown the RPC server.
-
-OPTIONS
--------
+Send a shutdown request to the Haveno server.
 
 EXAMPLES
 --------
-To shutdown the server:
+Shut down the server:
 $ ./haveno-cli --password=xyz --port=9998 stop
-

@@ -1,0 +1,24 @@
+unregisterdisputeagent
+
+NAME
+----
+unregisterdisputeagent - unregister a dispute agent
+
+SYNOPSIS
+--------
+unregisterdisputeagent
+		--dispute-agent-type=<value>
+
+DESCRIPTION
+-----------
+Unregisters a dispute agent from the server.
+
+OPTIONS
+-------
+--dispute-agent-type
+		The type of dispute agent (arbitrator|mediator|refundagent).
+
+EXAMPLES
+--------
+Unregister an arbitrator:
+$ ./haveno-cli --password=xyz --port=9998 unregisterdisputeagent --dispute-agent-type=arbitrator

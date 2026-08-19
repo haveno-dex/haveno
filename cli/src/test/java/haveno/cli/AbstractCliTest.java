@@ -153,14 +153,13 @@ public abstract class AbstractCliTest {
     }
 
 
-    protected void editOfferPriceMargin(OfferInfo offer, String priceMargin, boolean enable) {
+    protected void editOfferPriceMargin(OfferInfo offer, String priceMargin) {
         String[] args = new String[]{
                 PASSWORD_OPT,
                 ALICE_PORT_OPT,
                 "editoffer",
                 "--offer-id=" + offer.getId(),
-                "--market-price-margin=" + priceMargin,
-                "--enable=" + enable
+                "--market-price-margin=" + priceMargin
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
@@ -169,14 +168,13 @@ public abstract class AbstractCliTest {
         out.println("<<<<<");
     }
 
-    protected void editOfferTriggerPrice(OfferInfo offer, String triggerPrice, boolean enable) {
+    protected void editOfferTriggerPrice(OfferInfo offer, String triggerPrice) {
         String[] args = new String[]{
                 PASSWORD_OPT,
                 ALICE_PORT_OPT,
                 "editoffer",
                 "--offer-id=" + offer.getId(),
-                "--trigger-price=" + triggerPrice,
-                "--enable=" + enable
+                "--trigger-price=" + triggerPrice
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
@@ -187,16 +185,14 @@ public abstract class AbstractCliTest {
 
     protected void editOfferPriceMarginAndTriggerPrice(OfferInfo offer,
                                                        String priceMargin,
-                                                       String triggerPrice,
-                                                       boolean enable) {
+                                                       String triggerPrice) {
         String[] args = new String[]{
                 PASSWORD_OPT,
                 ALICE_PORT_OPT,
                 "editoffer",
                 "--offer-id=" + offer.getId(),
                 "--market-price-margin=" + priceMargin,
-                "--trigger-price=" + triggerPrice,
-                "--enable=" + enable
+                "--trigger-price=" + triggerPrice
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
@@ -205,14 +201,13 @@ public abstract class AbstractCliTest {
         out.println("<<<<<");
     }
 
-    protected void editOfferFixedPrice(OfferInfo offer, String fixedPrice, boolean enable) {
+    protected void editOfferFixedPrice(OfferInfo offer, String fixedPrice) {
         String[] args = new String[]{
                 PASSWORD_OPT,
                 ALICE_PORT_OPT,
                 "editoffer",
                 "--offer-id=" + offer.getId(),
-                "--fixed-price=" + fixedPrice,
-                "--enable=" + enable
+                "--fixed-price=" + fixedPrice
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
@@ -224,7 +219,7 @@ public abstract class AbstractCliTest {
     protected void disableOffers(List<OfferInfo> offers) {
         out.println("Disable Offers");
         for (OfferInfo offer : offers) {
-            editOfferEnable(offer, false);
+            setOfferActivation(offer, false);
             sleep(5);
         }
     }
@@ -232,18 +227,17 @@ public abstract class AbstractCliTest {
     protected void enableOffers(List<OfferInfo> offers) {
         out.println("Enable Offers");
         for (OfferInfo offer : offers) {
-            editOfferEnable(offer, true);
+            setOfferActivation(offer, true);
             sleep(5);
         }
     }
 
-    protected void editOfferEnable(OfferInfo offer, boolean enable) {
+    protected void setOfferActivation(OfferInfo offer, boolean enable) {
         String[] args = new String[]{
                 PASSWORD_OPT,
                 ALICE_PORT_OPT,
-                "editoffer",
-                "--offer-id=" + offer.getId(),
-                "--enable=" + enable
+                enable ? "activateoffer" : "deactivateoffer",
+                "--offer-id=" + offer.getId()
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));

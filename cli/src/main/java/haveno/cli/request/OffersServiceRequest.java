@@ -1,24 +1,27 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.cli.request;
 
 import haveno.cli.GrpcStubs;
+import haveno.proto.grpc.ActivateOfferRequest;
 import haveno.proto.grpc.CancelOfferRequest;
+import haveno.proto.grpc.DeactivateOfferRequest;
+import haveno.proto.grpc.EditOfferRequest;
 import haveno.proto.grpc.GetMyOfferRequest;
 import haveno.proto.grpc.GetMyOffersRequest;
 import haveno.proto.grpc.GetOfferRequest;
@@ -49,8 +52,7 @@ public class OffersServiceRequest {
                                             long minAmount,
                                             String fixedPrice,
                                             double securityDepositPct,
-                                            String paymentAcctId,
-                                            String makerFeeCurrencyCode) {
+                                            String paymentAcctId) {
         return createOffer(direction,
                 currencyCode,
                 amount,
@@ -73,6 +75,32 @@ public class OffersServiceRequest {
                                  double securityDepositPct,
                                  String paymentAcctId,
                                  String triggerPrice) {
+        return createOffer(direction,
+                currencyCode,
+                amount,
+                minAmount,
+                useMarketBasedPrice,
+                fixedPrice,
+                marketPriceMarginPct,
+                securityDepositPct,
+                paymentAcctId,
+                triggerPrice,
+                false,
+                "");
+    }
+
+    public OfferInfo createOffer(String direction,
+                                 String currencyCode,
+                                 long amount,
+                                 long minAmount,
+                                 boolean useMarketBasedPrice,
+                                 String fixedPrice,
+                                 double marketPriceMarginPct,
+                                 double securityDepositPct,
+                                 String paymentAcctId,
+                                 String triggerPrice,
+                                 boolean reserveExactAmount,
+                                 String extraInfo) {
         var request = PostOfferRequest.newBuilder()
                 .setDirection(direction)
                 .setCurrencyCode(currencyCode)
@@ -84,8 +112,47 @@ public class OffersServiceRequest {
                 .setSecurityDepositPct(securityDepositPct)
                 .setPaymentAccountId(paymentAcctId)
                 .setTriggerPrice(triggerPrice)
+                .setReserveExactAmount(reserveExactAmount)
+                .setExtraInfo(extraInfo)
                 .build();
         return grpcStubs.offersService.postOffer(request).getOffer();
+    }
+
+    public OfferInfo editOffer(String offerId,
+                               String currencyCode,
+                               String price,
+                               boolean useMarketBasedPrice,
+                               double marketPriceMarginPct,
+                               String triggerPrice,
+                               String paymentAcctId,
+                               String extraInfo) {
+        var request = EditOfferRequest.newBuilder()
+                .setOfferId(offerId)
+                .setCurrencyCode(currencyCode)
+                .setPrice(price)
+                .setUseMarketBasedPrice(useMarketBasedPrice)
+                .setMarketPriceMarginPct(marketPriceMarginPct)
+                .setTriggerPrice(triggerPrice)
+                .setPaymentAccountId(paymentAcctId)
+                .setExtraInfo(extraInfo)
+                .build();
+        return grpcStubs.offersService.editOffer(request).getOffer();
+    }
+
+    public void activateOffer(String offerId) {
+        var request = ActivateOfferRequest.newBuilder()
+                .setOfferId(offerId)
+                .build();
+        //noinspection ResultOfMethodCallIgnored
+        grpcStubs.offersService.activateOffer(request);
+    }
+
+    public void deactivateOffer(String offerId) {
+        var request = DeactivateOfferRequest.newBuilder()
+                .setOfferId(offerId)
+                .build();
+        //noinspection ResultOfMethodCallIgnored
+        grpcStubs.offersService.deactivateOffer(request);
     }
 
     public void cancelOffer(String offerId) {
@@ -103,6 +170,8 @@ public class OffersServiceRequest {
         return grpcStubs.offersService.getOffer(request).getOffer();
     }
 
+    @Deprecated // Since 5-Dec-2021.
+    // Endpoint to be removed from future version.  Use getOffer service method instead.
     public OfferInfo getMyOffer(String offerId) {
         var request = GetMyOfferRequest.newBuilder()
                 .setId(offerId)
@@ -122,7 +191,7 @@ public class OffersServiceRequest {
         ArrayList<OfferInfo> offers = new ArrayList<>();
         offers.addAll(getOffers(BUY.name(), currencyCode));
         offers.addAll(getOffers(SELL.name(), currencyCode));
-        return offers.isEmpty() ? offers : sortOffersByDate(offers);
+        return sortOffersByDate(offers);
     }
 
     public List<OfferInfo> getOffersSortedByDate(String direction, String currencyCode) {
@@ -142,17 +211,12 @@ public class OffersServiceRequest {
         ArrayList<OfferInfo> offers = new ArrayList<>();
         offers.addAll(getMyOffers(BUY.name(), currencyCode));
         offers.addAll(getMyOffers(SELL.name(), currencyCode));
-        return offers.isEmpty() ? offers : sortOffersByDate(offers);
+        return sortOffersByDate(offers);
     }
 
     public List<OfferInfo> getMyOffersSortedByDate(String direction, String currencyCode) {
         var offers = getMyOffers(direction, currencyCode);
         return offers.isEmpty() ? offers : sortOffersByDate(offers);
-    }
-
-    public OfferInfo getMostRecentOffer(String direction, String currencyCode) {
-        List<OfferInfo> offers = getOffersSortedByDate(direction, currencyCode);
-        return offers.isEmpty() ? null : offers.get(offers.size() - 1);
     }
 
     public List<OfferInfo> sortOffersByDate(List<OfferInfo> offerInfoList) {

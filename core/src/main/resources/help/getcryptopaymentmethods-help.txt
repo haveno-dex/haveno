@@ -1,0 +1,18 @@
+getcryptopaymentmethods
+
+NAME
+----
+getcryptopaymentmethods - get supported crypto payment methods
+
+SYNOPSIS
+--------
+getcryptopaymentmethods
+
+DESCRIPTION
+-----------
+Returns the ids of all supported cryptocurrency payment methods.
+
+EXAMPLES
+--------
+Get supported crypto payment methods:
+$ ./haveno-cli --password=xyz --port=9998 getcryptopaymentmethods

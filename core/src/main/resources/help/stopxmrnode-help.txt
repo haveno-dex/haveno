@@ -1,0 +1,18 @@
+stopxmrnode
+
+NAME
+----
+stopxmrnode - stop the local monero node
+
+SYNOPSIS
+--------
+stopxmrnode
+
+DESCRIPTION
+-----------
+Stops the local monero node.
+
+EXAMPLES
+--------
+Stop the local monero node:
+$ ./haveno-cli --password=xyz --port=9998 stopxmrnode

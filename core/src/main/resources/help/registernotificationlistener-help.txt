@@ -1,0 +1,19 @@
+registernotificationlistener
+
+NAME
+----
+registernotificationlistener - listen for server notifications
+
+SYNOPSIS
+--------
+registernotificationlistener
+
+DESCRIPTION
+-----------
+Registers a notification listener and prints server notifications, e.g., trade
+updates and chat messages, until the connection is closed with ctrl-c.
+
+EXAMPLES
+--------
+Listen for notifications:
+$ ./haveno-cli --password=xyz --port=9998 registernotificationlistener

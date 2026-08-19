@@ -1,0 +1,47 @@
+editoffer
+
+NAME
+----
+editoffer - edit an existing offer
+
+SYNOPSIS
+--------
+editoffer
+		--offer-id=<value>
+		--fixed-price=<value>
+		--market-price-margin=<value>
+		--trigger-price=<value>
+		--payment-account-id=<value>
+		--extra-info=<value>
+
+DESCRIPTION
+-----------
+Edit an existing offer, changing its price details, payment account, or extra info.
+
+OPTIONS
+-------
+--offer-id
+		The id of the offer being edited.
+
+--fixed-price
+		The optional new fixed price.  Cannot be used with market-price-margin.
+
+--market-price-margin
+		The optional new price margin (%).  Cannot be used with fixed-price.
+
+--trigger-price
+		The optional new price at which a market priced offer is deactivated.
+
+--payment-account-id
+		The optional id of a different payment account to be used for the offer.
+
+--extra-info
+		The optional new extra terms and info for the offer.
+
+EXAMPLES
+--------
+Change an offer to a fixed price:
+$ ./haveno-cli --password=xyz --port=9998 editoffer --offer-id=<offer-id> --fixed-price=150.00
+
+Change an offer's market price margin:
+$ ./haveno-cli --password=xyz --port=9998 editoffer --offer-id=<offer-id> --market-price-margin=1.50

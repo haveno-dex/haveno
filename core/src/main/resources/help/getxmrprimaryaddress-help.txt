@@ -1,0 +1,18 @@
+getxmrprimaryaddress
+
+NAME
+----
+getxmrprimaryaddress - get XMR wallet primary address
+
+SYNOPSIS
+--------
+getxmrprimaryaddress
+
+DESCRIPTION
+-----------
+Returns the primary address of the Haveno XMR wallet.
+
+EXAMPLES
+--------
+Show the primary address:
+$ ./haveno-cli --password=xyz --port=9998 getxmrprimaryaddress

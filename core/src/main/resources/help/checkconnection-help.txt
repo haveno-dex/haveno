@@ -1,0 +1,18 @@
+checkconnection
+
+NAME
+----
+checkconnection - check the current monero daemon connection
+
+SYNOPSIS
+--------
+checkconnection
+
+DESCRIPTION
+-----------
+Checks and returns the status of the monero daemon connection currently used by the server.
+
+EXAMPLES
+--------
+Check the current connection:
+$ ./haveno-cli --password=xyz --port=9998 checkconnection

@@ -20,6 +20,7 @@ package haveno.cli.request;
 import haveno.cli.GrpcStubs;
 import haveno.proto.grpc.CreateCryptoCurrencyPaymentAccountRequest;
 import haveno.proto.grpc.CreatePaymentAccountRequest;
+import haveno.proto.grpc.DeletePaymentAccountRequest;
 import haveno.proto.grpc.GetCryptoCurrencyPaymentMethodsRequest;
 import haveno.proto.grpc.GetPaymentAccountFormAsJsonRequest;
 import haveno.proto.grpc.GetPaymentAccountsRequest;
@@ -90,6 +91,14 @@ public class PaymentAccountsServiceRequest {
                 .setTradeInstant(tradeInstant)
                 .build();
         return grpcStubs.paymentAccountsService.createCryptoCurrencyPaymentAccount(request).getPaymentAccount();
+    }
+
+    public void deletePaymentAccount(String paymentAccountId) {
+        var request = DeletePaymentAccountRequest.newBuilder()
+                .setPaymentAccountId(paymentAccountId)
+                .build();
+        //noinspection ResultOfMethodCallIgnored
+        grpcStubs.paymentAccountsService.deletePaymentAccount(request);
     }
 
     public List<PaymentMethod> getCryptoPaymentMethods() {

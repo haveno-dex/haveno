@@ -1,57 +1,47 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.cli.table.column;
 
 import java.math.BigDecimal;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static haveno.cli.table.column.Column.JUSTIFICATION.RIGHT;
 
 /**
- * For displaying crypto volume with appropriate precision.
+ * For displaying crypto currency volumes, which are held in units of 10^-8.
  */
 public class CryptoVolumeColumn extends LongColumn {
 
-    public enum DISPLAY_MODE {
-        CRYPTO_VOLUME,
-        BSQ_VOLUME,
-    }
-
-    private final DISPLAY_MODE displayMode;
-
     // The default CryptoVolumeColumn JUSTIFICATION is RIGHT.
-    public CryptoVolumeColumn(String name, DISPLAY_MODE displayMode) {
-        this(name, RIGHT, displayMode);
+    public CryptoVolumeColumn(String name) {
+        this(name, RIGHT);
     }
 
-    public CryptoVolumeColumn(String name,
-                               JUSTIFICATION justification,
-                               DISPLAY_MODE displayMode) {
+    public CryptoVolumeColumn(String name, JUSTIFICATION justification) {
         super(name, justification);
-        this.displayMode = displayMode;
     }
 
     @Override
     public void addRow(Long value) {
         rows.add(value);
 
-        String s = toFormattedString.apply(value, displayMode);
+        String s = toFormattedString.apply(value);
         stringColumn.addRow(s);
 
         if (isNewMaxWidth.test(s))
@@ -60,7 +50,7 @@ public class CryptoVolumeColumn extends LongColumn {
 
     @Override
     public String getRowAsFormattedString(int rowIndex) {
-        return toFormattedString.apply(getRow(rowIndex), displayMode);
+        return toFormattedString.apply(getRow(rowIndex));
     }
 
     @Override
@@ -75,14 +65,6 @@ public class CryptoVolumeColumn extends LongColumn {
         return this.stringColumn;
     }
 
-    private final BiFunction<Long, DISPLAY_MODE, String> toFormattedString = (value, displayMode) -> {
-        switch (displayMode) {
-            case CRYPTO_VOLUME:
-                return value > 0 ? new BigDecimal(value).movePointLeft(8).toString() : "";
-            case BSQ_VOLUME:
-                return value > 0 ? new BigDecimal(value).movePointLeft(2).toString() : "";
-            default:
-                throw new IllegalStateException("invalid display mode: " + displayMode);
-        }
-    };
+    private final Function<Long, String> toFormattedString = (value) ->
+            value > 0 ? new BigDecimal(value).movePointLeft(8).toString() : "";
 }

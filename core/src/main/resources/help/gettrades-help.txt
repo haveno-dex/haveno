@@ -1,0 +1,27 @@
+gettrades
+
+NAME
+----
+gettrades - get open, closed, or failed trades
+
+SYNOPSIS
+--------
+gettrades
+		--category=<value>
+
+DESCRIPTION
+-----------
+Returns all open (default), closed, or failed trades.
+
+OPTIONS
+-------
+--category
+		The category of trades (open|closed|failed).  The default is open.
+
+EXAMPLES
+--------
+Get open trades:
+$ ./haveno-cli --password=xyz --port=9998 gettrades
+
+Get closed trades:
+$ ./haveno-cli --password=xyz --port=9998 gettrades --category=closed

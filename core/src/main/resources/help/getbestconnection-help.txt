@@ -1,0 +1,18 @@
+getbestconnection
+
+NAME
+----
+getbestconnection - get the best monero daemon connection
+
+SYNOPSIS
+--------
+getbestconnection
+
+DESCRIPTION
+-----------
+Returns the best available monero daemon connection.
+
+EXAMPLES
+--------
+Get the best connection:
+$ ./haveno-cli --password=xyz --port=9998 getbestconnection

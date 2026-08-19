@@ -1,0 +1,26 @@
+createxmrsweeptxs
+
+NAME
+----
+createxmrsweeptxs - create but do not relay XMR sweep transactions
+
+SYNOPSIS
+--------
+createxmrsweeptxs
+		--address=<value>
+
+DESCRIPTION
+-----------
+Creates one or more transactions sweeping all wallet funds to an XMR address,
+without relaying them.  The returned tx metadata can be passed to the relayxmrtxs
+method to broadcast them.
+
+OPTIONS
+-------
+--address
+		The destination XMR address.
+
+EXAMPLES
+--------
+Create sweep transactions:
+$ ./haveno-cli --password=xyz --port=9998 createxmrsweeptxs --address=<xmr-address>

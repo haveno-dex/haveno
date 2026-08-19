@@ -1,0 +1,36 @@
+createcryptopaymentacct
+
+NAME
+----
+createcryptopaymentacct - create a cryptocurrency payment account
+
+SYNOPSIS
+--------
+createcryptopaymentacct
+		--account-name=<value>
+		--currency-code=<value>
+		--address=<value>
+		--trade-instant=<value>
+
+DESCRIPTION
+-----------
+Create a cryptocurrency payment account for trading XMR with another cryptocurrency.
+
+OPTIONS
+-------
+--account-name
+		The name of the cryptocurrency payment account.
+
+--currency-code
+		The code of the cryptocurrency, e.g., BCH, BTC, ETH, ...
+
+--address
+		The cryptocurrency address used to receive funds.
+
+--trade-instant
+		Optionally create an instant trade account (true|false, default false).
+
+EXAMPLES
+--------
+Create a BCH payment account:
+$ ./haveno-cli --password=xyz --port=9998 createcryptopaymentacct --account-name="My BCH Account" --currency-code=bch --address=<bch-address>

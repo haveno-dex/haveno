@@ -1,0 +1,18 @@
+getconnection
+
+NAME
+----
+getconnection - get the current monero daemon connection
+
+SYNOPSIS
+--------
+getconnection
+
+DESCRIPTION
+-----------
+Returns the monero daemon connection currently used by the server.
+
+EXAMPLES
+--------
+Get the current connection:
+$ ./haveno-cli --password=xyz --port=9998 getconnection

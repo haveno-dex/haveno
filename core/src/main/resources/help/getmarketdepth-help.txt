@@ -1,0 +1,24 @@
+getmarketdepth
+
+NAME
+----
+getmarketdepth - get market depth for a currency
+
+SYNOPSIS
+--------
+getmarketdepth
+		--currency-code=<value>
+
+DESCRIPTION
+-----------
+Returns the offer book depth (prices and cumulative XMR amounts) for the given currency-code.
+
+OPTIONS
+-------
+--currency-code
+		The three letter code of the currency, e.g., EUR, USD, BCH, ...
+
+EXAMPLES
+--------
+Get the XMR/EUR market depth:
+$ ./haveno-cli --password=xyz --port=9998 getmarketdepth --currency-code=eur

@@ -13,9 +13,9 @@ import static protobuf.OfferDirection.BUY;
 
  Prerequisites:
 
- - Run `./haveno-apitest --apiPassword=xyz --supportingApps=bitcoind,seednode,arbdaemon,alicedaemon,bobdesktop  --shutdownAfterTests=false --enableHavenoDebugging=false`
+ - Run `./haveno-apitest --apiPassword=xyz --supportingApps=seednode,arbdaemon,alicedaemon,bobdesktop  --shutdownAfterTests=false --enableHavenoDebugging=false`
 
- - Create some XMR offers with Alice's UI or CLI.
+ - Create some BCH offers with Alice's UI or CLI.
 
  - Watch Alice's offers being edited in Bob's UI.
 
@@ -28,16 +28,16 @@ public class EditXmrOffersSmokeTest extends AbstractCliTest {
 
         test.doOfferPriceEdits();
 
-        List<OfferInfo> offers = test.getMyCryptoOffers("xmr");
+        List<OfferInfo> offers = test.getMyCryptoOffers("bch");
         test.disableOffers(offers);
 
         test.sleep(6);
 
-        offers = test.getMyCryptoOffers("xmr");
+        offers = test.getMyCryptoOffers("bch");
         test.enableOffers(offers);
 
         // A final look after last edit.
-        test.getMyCryptoOffers("xmr");
+        test.getMyCryptoOffers("bch");
     }
 
     private void doOfferPriceEdits() {
@@ -48,52 +48,52 @@ public class EditXmrOffersSmokeTest extends AbstractCliTest {
     }
 
     private void editPriceMargin() {
-        var offers = getMyCryptoOffers("xmr");
-        out.println("Edit XMR offers' price margin");
+        var offers = getMyCryptoOffers("bch");
+        out.println("Edit BCH offers' price margin");
         var margins = randomMarginBasedPrices.apply(-301, 300);
         for (int i = 0; i < offers.size(); i++) {
             String randomMargin = margins.get(new Random().nextInt(margins.size()));
-            editOfferPriceMargin(offers.get(i), randomMargin, new Random().nextBoolean());
+            editOfferPriceMargin(offers.get(i), randomMargin);
             sleep(5);
         }
     }
 
     private void editTriggerPrice() {
-        var offers = getMyCryptoOffers("xmr");
-        out.println("Edit XMR offers' trigger price");
+        var offers = getMyCryptoOffers("bch");
+        out.println("Edit BCH offers' trigger price");
         for (int i = 0; i < offers.size(); i++) {
             var offer = offers.get(i);
             if (offer.getUseMarketBasedPrice()) {
-                // Trigger price is hardcode to be a bit above or below xmr mkt price at runtime.
+                // Trigger price is hardcoded to be a bit above or below the bch mkt price at runtime.
                 // It could be looked up and calculated instead.
                 var newTriggerPrice = offer.getDirection().equals(BUY.name()) ? "0.0039" : "0.005";
-                editOfferTriggerPrice(offer, newTriggerPrice, true);
+                editOfferTriggerPrice(offer, newTriggerPrice);
                 sleep(5);
             }
         }
     }
 
     private void editPriceMarginAndTriggerPrice() {
-        var offers = getMyCryptoOffers("xmr");
-        out.println("Edit XMR offers' price margin and trigger price");
+        var offers = getMyCryptoOffers("bch");
+        out.println("Edit BCH offers' price margin and trigger price");
         for (int i = 0; i < offers.size(); i++) {
             var offer = offers.get(i);
             if (offer.getUseMarketBasedPrice()) {
-                // Trigger price is hardcode to be a bit above or below xmr mkt price at runtime.
+                // Trigger price is hardcoded to be a bit above or below the bch mkt price at runtime.
                 // It could be looked up and calculated instead.
                 var newTriggerPrice = offer.getDirection().equals(BUY.name()) ? "0.0038" : "0.0051";
-                editOfferPriceMarginAndTriggerPrice(offer, "0.05", newTriggerPrice, true);
+                editOfferPriceMarginAndTriggerPrice(offer, "0.05", newTriggerPrice);
                 sleep(5);
             }
         }
     }
 
     private void editFixedPrice() {
-        var offers = getMyCryptoOffers("xmr");
-        out.println("Edit XMR offers' fixed price");
+        var offers = getMyCryptoOffers("bch");
+        out.println("Edit BCH offers' fixed price");
         for (int i = 0; i < offers.size(); i++) {
             String randomFixedPrice = randomFixedCryptoPrice.apply(0.004, 0.0075);
-            editOfferFixedPrice(offers.get(i), randomFixedPrice, new Random().nextBoolean());
+            editOfferFixedPrice(offers.get(i), randomFixedPrice);
             sleep(5);
         }
     }

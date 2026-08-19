@@ -1,0 +1,24 @@
+deactivateoffer
+
+NAME
+----
+deactivateoffer - deactivate an offer
+
+SYNOPSIS
+--------
+deactivateoffer
+		--offer-id=<value>
+
+DESCRIPTION
+-----------
+Deactivate an offer, removing it from the offer book without canceling it.
+
+OPTIONS
+-------
+--offer-id
+		The id of the offer.
+
+EXAMPLES
+--------
+Deactivate an offer:
+$ ./haveno-cli --password=xyz --port=9998 deactivateoffer --offer-id=<offer-id>

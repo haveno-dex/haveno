@@ -2,32 +2,27 @@ getmyoffers
 
 NAME
 ----
-getmyoffers - get your own buy or sell XMR offers for a fiat currency
+getmyoffers - get your offers
 
 SYNOPSIS
 --------
 getmyoffers
-		--direction=<buy|sell>
-		--currency-code=<eur|usd>
+		--direction=<value>
+		--currency-code=<value>
 
 DESCRIPTION
 -----------
-List your existing offers for a direction (SELL|BUY) and currency (EUR|GBP|USD|BRL|...).
+Returns your offers with the given direction and currency-code.
 
 OPTIONS
 -------
 --direction
-		The direction of the offer (BUY or SELL).
+		The offer direction (buy|sell).
 
 --currency-code
-		The three letter code for the fiat used to buy or sell XMR, e.g., EUR, USD, BRL, ...
+		The three letter code of the currency traded for XMR, e.g., EUR, USD, BCH, ...
 
 EXAMPLES
 --------
-List all of your existing BUY offers for BRL:
-$ ./haveno-cli --password=xyz --port=9998 getmyoffers --direction=buy --currency-code=brl
-
-List all of your existing SELL offers for EUR:
-$ ./haveno-cli --password=xyz --port=9998 getmyoffers --direction=sell --currency-code=eur
-
-
+Get your offers to sell XMR for USD:
+$ ./haveno-cli --password=xyz --port=9998 getmyoffers --direction=sell --currency-code=usd

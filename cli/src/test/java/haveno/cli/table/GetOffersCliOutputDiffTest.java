@@ -34,10 +34,10 @@ public class GetOffersCliOutputDiffTest extends AbstractCliTest {
         test.getAvailableSellXmrOffers();
          */
 
-        test.getMyBuyBsqOffers();
-        test.getMySellBsqOffers();
-        test.getAvailableBuyBsqOffers();
-        test.getAvailableSellBsqOffers();
+        test.getMyBuyBchOffers();
+        test.getMySellBchOffers();
+        test.getAvailableBuyBchOffers();
+        test.getAvailableSellBchOffers();
     }
 
     public GetOffersCliOutputDiffTest() {
@@ -84,24 +84,24 @@ public class GetOffersCliOutputDiffTest extends AbstractCliTest {
         printAndCheckDiffs(offers, SELL.name(), "XMR");
     }
 
-    private void getMyBuyBsqOffers() {
-        var myOffers = aliceClient.getMyOffers(BUY.name(), "BSQ");
-        printAndCheckDiffs(myOffers, BUY.name(), "BSQ");
+    private void getMyBuyBchOffers() {
+        var myOffers = aliceClient.getMyOffers(BUY.name(), "BCH");
+        printAndCheckDiffs(myOffers, BUY.name(), "BCH");
     }
 
-    private void getMySellBsqOffers() {
-        var myOffers = aliceClient.getMyOffers(SELL.name(), "BSQ");
-        printAndCheckDiffs(myOffers, SELL.name(), "BSQ");
+    private void getMySellBchOffers() {
+        var myOffers = aliceClient.getMyOffers(SELL.name(), "BCH");
+        printAndCheckDiffs(myOffers, SELL.name(), "BCH");
     }
 
-    private void getAvailableBuyBsqOffers() {
-        var offers = bobClient.getOffers(BUY.name(), "BSQ");
-        printAndCheckDiffs(offers, BUY.name(), "BSQ");
+    private void getAvailableBuyBchOffers() {
+        var offers = bobClient.getOffers(BUY.name(), "BCH");
+        printAndCheckDiffs(offers, BUY.name(), "BCH");
     }
 
-    private void getAvailableSellBsqOffers() {
-        var offers = bobClient.getOffers(SELL.name(), "BSQ");
-        printAndCheckDiffs(offers, SELL.name(), "BSQ");
+    private void getAvailableSellBchOffers() {
+        var offers = bobClient.getOffers(SELL.name(), "BCH");
+        printAndCheckDiffs(offers, SELL.name(), "BCH");
     }
 
     private void printAndCheckDiffs(List<OfferInfo> offers,

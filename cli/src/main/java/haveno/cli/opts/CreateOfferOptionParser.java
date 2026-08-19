@@ -23,11 +23,14 @@ import joptsimple.OptionSpec;
 import static haveno.cli.opts.OptLabel.OPT_AMOUNT;
 import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
 import static haveno.cli.opts.OptLabel.OPT_DIRECTION;
+import static haveno.cli.opts.OptLabel.OPT_EXTRA_INFO;
 import static haveno.cli.opts.OptLabel.OPT_FIXED_PRICE;
 import static haveno.cli.opts.OptLabel.OPT_MIN_AMOUNT;
 import static haveno.cli.opts.OptLabel.OPT_MKT_PRICE_MARGIN;
 import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_ID;
+import static haveno.cli.opts.OptLabel.OPT_RESERVE_EXACT_AMOUNT;
 import static haveno.cli.opts.OptLabel.OPT_SECURITY_DEPOSIT;
+import static haveno.cli.opts.OptLabel.OPT_TRIGGER_PRICE;
 import static joptsimple.internal.Strings.EMPTY;
 
 public class CreateOfferOptionParser extends AbstractMethodOptionParser implements MethodOpts {
@@ -43,22 +46,38 @@ public class CreateOfferOptionParser extends AbstractMethodOptionParser implemen
     final OptionSpec<String> currencyCodeOpt = parser.accepts(OPT_CURRENCY_CODE, "currency code (xmr|eur|usd|...)")
             .withRequiredArg();
 
-    final OptionSpec<String> amountOpt = parser.accepts(OPT_AMOUNT, "amount of btc to buy or sell")
+    final OptionSpec<String> amountOpt = parser.accepts(OPT_AMOUNT, "amount of xmr to buy or sell")
             .withRequiredArg();
 
-    final OptionSpec<String> minAmountOpt = parser.accepts(OPT_MIN_AMOUNT, "minimum amount of btc to buy or sell")
+    final OptionSpec<String> minAmountOpt = parser.accepts(OPT_MIN_AMOUNT, "minimum amount of xmr to buy or sell")
             .withOptionalArg();
 
-    final OptionSpec<String> mktPriceMarginPctOpt = parser.accepts(OPT_MKT_PRICE_MARGIN, "market btc price margin (%)")
+    final OptionSpec<String> mktPriceMarginPctOpt = parser.accepts(OPT_MKT_PRICE_MARGIN, "market price margin (%)")
             .withOptionalArg()
             .defaultsTo("0.00");
 
-    final OptionSpec<String> fixedPriceOpt = parser.accepts(OPT_FIXED_PRICE, "fixed btc price")
+    final OptionSpec<String> fixedPriceOpt = parser.accepts(OPT_FIXED_PRICE, "fixed offer price")
             .withOptionalArg()
             .defaultsTo("0");
 
     final OptionSpec<String> securityDepositPctOpt = parser.accepts(OPT_SECURITY_DEPOSIT, "maker security deposit (%)")
             .withRequiredArg();
+
+    final OptionSpec<String> triggerPriceOpt = parser.accepts(OPT_TRIGGER_PRICE,
+                    "optional trigger price to deactivate market priced offer")
+            .withOptionalArg()
+            .defaultsTo("0");
+
+    final OptionSpec<Boolean> reserveExactAmountOpt = parser.accepts(OPT_RESERVE_EXACT_AMOUNT,
+                    "reserve exact amount needed for the offer")
+            .withOptionalArg()
+            .ofType(boolean.class)
+            .defaultsTo(Boolean.FALSE);
+
+    final OptionSpec<String> extraInfoOpt = parser.accepts(OPT_EXTRA_INFO,
+                    "optional extra terms and info for the offer; multi word terms must be double quoted")
+            .withOptionalArg()
+            .defaultsTo(EMPTY);
 
     public CreateOfferOptionParser(String[] args) {
         super(args);
@@ -79,7 +98,7 @@ public class CreateOfferOptionParser extends AbstractMethodOptionParser implemen
             throw new IllegalArgumentException("no currency code specified");
 
         if (!options.has(amountOpt) || options.valueOf(amountOpt).isEmpty())
-            throw new IllegalArgumentException("no btc amount specified");
+            throw new IllegalArgumentException("no xmr amount specified");
 
         if (!options.has(paymentAccountIdOpt) || options.valueOf(paymentAccountIdOpt).isEmpty())
             throw new IllegalArgumentException("no payment account id specified");
@@ -140,5 +159,17 @@ public class CreateOfferOptionParser extends AbstractMethodOptionParser implemen
 
     public double getSecurityDepositPct() {
         return Double.valueOf(options.valueOf(securityDepositPctOpt));
+    }
+
+    public String getTriggerPrice() {
+        return options.has(triggerPriceOpt) ? options.valueOf(triggerPriceOpt) : "0";
+    }
+
+    public boolean getReserveExactAmount() {
+        return options.has(reserveExactAmountOpt) && options.valueOf(reserveExactAmountOpt);
+    }
+
+    public String getExtraInfo() {
+        return options.has(extraInfoOpt) ? options.valueOf(extraInfoOpt) : "";
     }
 }

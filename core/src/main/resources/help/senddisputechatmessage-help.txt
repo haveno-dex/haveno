@@ -1,0 +1,28 @@
+senddisputechatmessage
+
+NAME
+----
+senddisputechatmessage - send a dispute chat message
+
+SYNOPSIS
+--------
+senddisputechatmessage
+		--dispute-id=<value>
+		--message=<value>
+
+DESCRIPTION
+-----------
+Sends a chat message to the dispute with the given dispute id (not trade id).
+
+OPTIONS
+-------
+--dispute-id
+		The id of the dispute, from the getdispute method.
+
+--message
+		The chat message.  A multi word message must be double quoted.
+
+EXAMPLES
+--------
+Send a dispute chat message:
+$ ./haveno-cli --password=xyz --port=9998 senddisputechatmessage --dispute-id=<dispute-id> --message="hello"

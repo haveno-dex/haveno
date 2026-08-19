@@ -1,0 +1,18 @@
+closeaccount
+
+NAME
+----
+closeaccount - close the Haveno account
+
+SYNOPSIS
+--------
+closeaccount
+
+DESCRIPTION
+-----------
+Closes the open Haveno account.
+
+EXAMPLES
+--------
+Close the account:
+$ ./haveno-cli --password=xyz --port=9998 closeaccount

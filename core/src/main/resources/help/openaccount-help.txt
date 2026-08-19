@@ -1,0 +1,24 @@
+openaccount
+
+NAME
+----
+openaccount - open the Haveno account
+
+SYNOPSIS
+--------
+openaccount
+		--account-password=<value>
+
+DESCRIPTION
+-----------
+Opens the existing Haveno account with the given password.
+
+OPTIONS
+-------
+--account-password
+		The Haveno account password.
+
+EXAMPLES
+--------
+Open the account:
+$ ./haveno-cli --password=xyz --port=9998 openaccount --account-password=abc

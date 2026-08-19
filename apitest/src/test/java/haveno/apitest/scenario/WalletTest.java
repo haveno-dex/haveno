@@ -18,7 +18,7 @@
 package haveno.apitest.scenario;
 
 import haveno.apitest.method.MethodTest;
-import haveno.apitest.method.wallet.BtcWalletTest;
+import haveno.apitest.method.wallet.XmrWalletTest;
 import haveno.apitest.method.wallet.WalletProtectionTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
@@ -56,11 +56,11 @@ public class WalletTest extends MethodTest {
 
     @Test
     @Order(1)
-    public void testBtcWalletFunding(final TestInfo testInfo) {
-        BtcWalletTest btcWalletTest = new BtcWalletTest();
+    public void testXmrWalletFunding(final TestInfo testInfo) {
+        XmrWalletTest xmrWalletTest = new XmrWalletTest();
 
-        btcWalletTest.testInitialBtcBalances(testInfo);
-        btcWalletTest.testFundAlicesBtcWallet(testInfo);
+        xmrWalletTest.testInitialXmrBalances(testInfo);
+        xmrWalletTest.testFundAlicesXmrWallet(testInfo);
     }
 
     @Test

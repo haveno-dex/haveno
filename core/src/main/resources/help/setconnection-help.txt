@@ -1,0 +1,24 @@
+setconnection
+
+NAME
+----
+setconnection - set the current monero daemon connection
+
+SYNOPSIS
+--------
+setconnection
+		--url=<value>
+
+DESCRIPTION
+-----------
+Sets the monero daemon connection used by the server.
+
+OPTIONS
+-------
+--url
+		The url of the monero daemon.
+
+EXAMPLES
+--------
+Set the current connection:
+$ ./haveno-cli --password=xyz --port=9998 setconnection --url=http://127.0.0.1:18081

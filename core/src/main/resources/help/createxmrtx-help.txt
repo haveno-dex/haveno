@@ -1,0 +1,25 @@
+createxmrtx
+
+NAME
+----
+createxmrtx - create but do not relay an XMR transaction
+
+SYNOPSIS
+--------
+createxmrtx
+		--destinations=<value>
+
+DESCRIPTION
+-----------
+Creates an XMR transaction with one or more destinations, without relaying it.
+The returned tx metadata can be passed to the relayxmrtxs method to broadcast it.
+
+OPTIONS
+-------
+--destinations
+		A comma delimited list of address:xmr-amount destination pairs.
+
+EXAMPLES
+--------
+Create a transaction paying two destinations:
+$ ./haveno-cli --password=xyz --port=9998 createxmrtx --destinations=<xmr-address>:0.1,<xmr-address>:0.25

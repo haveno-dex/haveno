@@ -1,0 +1,19 @@
+deleteaccount
+
+NAME
+----
+deleteaccount - delete the Haveno account
+
+SYNOPSIS
+--------
+deleteaccount
+
+DESCRIPTION
+-----------
+Permanently deletes the Haveno account and all of its data, then shuts down the server.
+Make a backup with the backupaccount method before deleting the account.
+
+EXAMPLES
+--------
+Delete the account:
+$ ./haveno-cli --password=xyz --port=9998 deleteaccount

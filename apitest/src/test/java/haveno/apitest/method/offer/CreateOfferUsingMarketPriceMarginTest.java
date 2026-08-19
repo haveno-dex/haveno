@@ -252,7 +252,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
     @Order(5)
     public void testCreateUSDBTCBuyOfferWithTriggerPrice() {
         PaymentAccount usdAccount = createDummyF2FAccount(aliceClient, "US");
-        double mktPriceAsDouble = aliceClient.getBtcPrice("usd");
+        double mktPriceAsDouble = aliceClient.getXmrPrice("usd");
         String triggerPrice = calcPriceAsString(mktPriceAsDouble, Double.parseDouble("1000.9999"), 4);
         var newOffer = aliceClient.createMarketBasedPricedOffer(BUY.name(),
                 "usd",
@@ -276,7 +276,7 @@ public class CreateOfferUsingMarketPriceMarginTest extends AbstractOfferTest {
     private void assertCalculatedPriceIsCorrect(OfferInfo offer, double priceMarginPctInput) {
         assertTrue(() -> {
             String counterCurrencyCode = offer.getCounterCurrencyCode();
-            double mktPrice = aliceClient.getBtcPrice(counterCurrencyCode);
+            double mktPrice = aliceClient.getXmrPrice(counterCurrencyCode);
             double priceAsDouble = Double.parseDouble(offer.getPrice());
             double expectedDiffPct = scaleDownByPowerOf10(priceMarginPctInput, 2);
             double actualDiffPct = offer.getDirection().equals(BUY.name())

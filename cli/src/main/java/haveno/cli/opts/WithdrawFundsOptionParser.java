@@ -30,7 +30,7 @@ public class WithdrawFundsOptionParser extends AbstractMethodOptionParser implem
     final OptionSpec<String> tradeIdOpt = parser.accepts(OPT_TRADE_ID, "id of trade")
             .withRequiredArg();
 
-    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "destination btc address")
+    final OptionSpec<String> addressOpt = parser.accepts(OPT_ADDRESS, "destination xmr address")
             .withRequiredArg();
 
     final OptionSpec<String> memoOpt = parser.accepts(OPT_MEMO, "optional tx memo")

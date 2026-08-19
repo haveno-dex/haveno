@@ -49,7 +49,7 @@ public class LongRunningOfferDeactivationTest extends AbstractOfferTest {
     @Order(1)
     public void testSellOfferAutoDisable(final TestInfo testInfo) {
         PaymentAccount paymentAcct = createDummyF2FAccount(aliceClient, "US");
-        double mktPriceAsDouble = aliceClient.getBtcPrice("USD");
+        double mktPriceAsDouble = aliceClient.getXmrPrice("USD");
         String triggerPrice = calcPriceAsString(mktPriceAsDouble, -50.0000, 4);
         log.info("Current USD mkt price = {}  Trigger Price = {}", mktPriceAsDouble, triggerPrice);
         OfferInfo offer = aliceClient.createMarketBasedPricedOffer(SELL.name(),
@@ -72,7 +72,7 @@ public class LongRunningOfferDeactivationTest extends AbstractOfferTest {
         while (++numIterations < MAX_ITERATIONS) {
             offer = aliceClient.getOffer(offer.getId());
 
-            var mktPrice = aliceClient.getBtcPrice("USD");
+            var mktPrice = aliceClient.getXmrPrice("USD");
             if (offer.getIsActivated()) {
                 log.info("Offer still enabled at mkt price {} > {} trigger price",
                         mktPrice,
@@ -95,7 +95,7 @@ public class LongRunningOfferDeactivationTest extends AbstractOfferTest {
     @Order(2)
     public void testBuyOfferAutoDisable(final TestInfo testInfo) {
         PaymentAccount paymentAcct = createDummyF2FAccount(aliceClient, "US");
-        double mktPriceAsDouble = aliceClient.getBtcPrice("USD");
+        double mktPriceAsDouble = aliceClient.getXmrPrice("USD");
         String triggerPrice = calcPriceAsString(mktPriceAsDouble, 50.0000, 4);
         log.info("Current USD mkt price = {}  Trigger Price = {}", mktPriceAsDouble, triggerPrice);
         OfferInfo offer = aliceClient.createMarketBasedPricedOffer(BUY.name(),
@@ -119,7 +119,7 @@ public class LongRunningOfferDeactivationTest extends AbstractOfferTest {
         while (++numIterations < MAX_ITERATIONS) {
             offer = aliceClient.getOffer(offer.getId());
 
-            var mktPrice = aliceClient.getBtcPrice("USD");
+            var mktPrice = aliceClient.getXmrPrice("USD");
             if (offer.getIsActivated()) {
                 log.info("Offer still enabled at mkt price {} < {} trigger price",
                         mktPrice,

@@ -1,0 +1,18 @@
+isaccountopen
+
+NAME
+----
+isaccountopen - check if the Haveno account is open
+
+SYNOPSIS
+--------
+isaccountopen
+
+DESCRIPTION
+-----------
+Returns true if the Haveno account is open, else false.
+
+EXAMPLES
+--------
+Check if the account is open:
+$ ./haveno-cli --password=xyz --port=9998 isaccountopen

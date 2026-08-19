@@ -1,0 +1,24 @@
+activateoffer
+
+NAME
+----
+activateoffer - activate a deactivated offer
+
+SYNOPSIS
+--------
+activateoffer
+		--offer-id=<value>
+
+DESCRIPTION
+-----------
+Activate a deactivated offer, making it available in the offer book again.
+
+OPTIONS
+-------
+--offer-id
+		The id of the offer.
+
+EXAMPLES
+--------
+Activate an offer:
+$ ./haveno-cli --password=xyz --port=9998 activateoffer --offer-id=<offer-id>

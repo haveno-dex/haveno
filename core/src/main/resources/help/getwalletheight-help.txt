@@ -1,0 +1,18 @@
+getwalletheight
+
+NAME
+----
+getwalletheight - get XMR wallet sync height
+
+SYNOPSIS
+--------
+getwalletheight
+
+DESCRIPTION
+-----------
+Returns the block height the Haveno XMR wallet is synced to.
+
+EXAMPLES
+--------
+Show the wallet height:
+$ ./haveno-cli --password=xyz --port=9998 getwalletheight

@@ -1,31 +1,37 @@
 /*
- * This file is part of Bisq.
+ * This file is part of Haveno.
  *
- * Bisq is free software: you can redistribute it and/or modify it
+ * Haveno is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * Bisq is distributed in the hope that it will be useful, but WITHOUT
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
  * License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package haveno.cli;
 
+import haveno.proto.grpc.AccountGrpc;
 import haveno.proto.grpc.DisputeAgentsGrpc;
+import haveno.proto.grpc.DisputesGrpc;
+import haveno.proto.grpc.GetTradeStatisticsGrpc;
 import haveno.proto.grpc.GetVersionGrpc;
 import haveno.proto.grpc.HelpGrpc;
+import haveno.proto.grpc.NotificationsGrpc;
 import haveno.proto.grpc.OffersGrpc;
 import haveno.proto.grpc.PaymentAccountsGrpc;
 import haveno.proto.grpc.PriceGrpc;
 import haveno.proto.grpc.ShutdownServerGrpc;
 import haveno.proto.grpc.TradesGrpc;
 import haveno.proto.grpc.WalletsGrpc;
+import haveno.proto.grpc.XmrConnectionsGrpc;
+import haveno.proto.grpc.XmrNodeGrpc;
 import io.grpc.CallCredentials;
 import io.grpc.ManagedChannelBuilder;
 
@@ -33,15 +39,21 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class GrpcStubs {
 
+    public final AccountGrpc.AccountBlockingStub accountService;
     public final DisputeAgentsGrpc.DisputeAgentsBlockingStub disputeAgentsService;
+    public final DisputesGrpc.DisputesBlockingStub disputesService;
     public final HelpGrpc.HelpBlockingStub helpService;
     public final GetVersionGrpc.GetVersionBlockingStub versionService;
+    public final NotificationsGrpc.NotificationsBlockingStub notificationsService;
     public final OffersGrpc.OffersBlockingStub offersService;
     public final PaymentAccountsGrpc.PaymentAccountsBlockingStub paymentAccountsService;
     public final PriceGrpc.PriceBlockingStub priceService;
     public final ShutdownServerGrpc.ShutdownServerBlockingStub shutdownService;
+    public final GetTradeStatisticsGrpc.GetTradeStatisticsBlockingStub tradeStatisticsService;
     public final TradesGrpc.TradesBlockingStub tradesService;
     public final WalletsGrpc.WalletsBlockingStub walletsService;
+    public final XmrConnectionsGrpc.XmrConnectionsBlockingStub xmrConnectionsService;
+    public final XmrNodeGrpc.XmrNodeBlockingStub xmrNodeService;
 
     public GrpcStubs(String apiHost, int apiPort, String apiPassword) {
         CallCredentials credentials = new PasswordCallCredentials(apiPassword);
@@ -55,14 +67,20 @@ public final class GrpcStubs {
             }
         }));
 
+        this.accountService = AccountGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.disputeAgentsService = DisputeAgentsGrpc.newBlockingStub(channel).withCallCredentials(credentials);
+        this.disputesService = DisputesGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.helpService = HelpGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.versionService = GetVersionGrpc.newBlockingStub(channel).withCallCredentials(credentials);
+        this.notificationsService = NotificationsGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.offersService = OffersGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.paymentAccountsService = PaymentAccountsGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.priceService = PriceGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.shutdownService = ShutdownServerGrpc.newBlockingStub(channel).withCallCredentials(credentials);
+        this.tradeStatisticsService = GetTradeStatisticsGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.tradesService = TradesGrpc.newBlockingStub(channel).withCallCredentials(credentials);
         this.walletsService = WalletsGrpc.newBlockingStub(channel).withCallCredentials(credentials);
+        this.xmrConnectionsService = XmrConnectionsGrpc.newBlockingStub(channel).withCallCredentials(credentials);
+        this.xmrNodeService = XmrNodeGrpc.newBlockingStub(channel).withCallCredentials(credentials);
     }
 }

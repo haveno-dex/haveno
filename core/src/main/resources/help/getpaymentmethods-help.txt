@@ -2,7 +2,7 @@ getpaymentmethods
 
 NAME
 ----
-getpaymentmethods - list fiat payment methods
+getpaymentmethods - get supported payment methods
 
 SYNOPSIS
 --------
@@ -10,8 +10,9 @@ getpaymentmethods
 
 DESCRIPTION
 -----------
-Returns a list of currently supported fiat payment method IDs.
+Returns the ids of all supported traditional payment methods.
 
 EXAMPLES
 --------
+Get supported payment methods:
 $ ./haveno-cli --password=xyz --port=9998 getpaymentmethods

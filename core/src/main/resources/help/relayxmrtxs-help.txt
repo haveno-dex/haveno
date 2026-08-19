@@ -1,0 +1,25 @@
+relayxmrtxs
+
+NAME
+----
+relayxmrtxs - relay previously created XMR transactions
+
+SYNOPSIS
+--------
+relayxmrtxs
+		--metadatas=<value>
+
+DESCRIPTION
+-----------
+Relays transactions created with the createxmrtx or createxmrsweeptxs methods,
+and returns their tx hashes.
+
+OPTIONS
+-------
+--metadatas
+		A comma delimited list of tx metadata from createxmrtx or createxmrsweeptxs.
+
+EXAMPLES
+--------
+Relay a created transaction:
+$ ./haveno-cli --password=xyz --port=9998 relayxmrtxs --metadatas=<tx-metadata>

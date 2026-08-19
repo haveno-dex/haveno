@@ -1,0 +1,28 @@
+backupaccount
+
+NAME
+----
+backupaccount - back up the Haveno account to a zip file
+
+SYNOPSIS
+--------
+backupaccount
+		--backup-file=<value>
+
+DESCRIPTION
+-----------
+Downloads a zip archive of the Haveno account data and saves it to disk.
+
+OPTIONS
+-------
+--backup-file
+		An optional path to the backup zip file to be written.  The default is
+		haveno-account-backup_<timestamp>.zip in the current directory.
+
+EXAMPLES
+--------
+Back up the account:
+$ ./haveno-cli --password=xyz --port=9998 backupaccount
+
+Back up the account to a specific file:
+$ ./haveno-cli --password=xyz --port=9998 backupaccount --backup-file=/tmp/haveno-backup.zip

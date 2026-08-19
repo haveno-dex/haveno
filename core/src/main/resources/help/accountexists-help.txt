@@ -1,0 +1,18 @@
+accountexists
+
+NAME
+----
+accountexists - check if a Haveno account exists
+
+SYNOPSIS
+--------
+accountexists
+
+DESCRIPTION
+-----------
+Returns true if a Haveno account has been created on the server, else false.
+
+EXAMPLES
+--------
+Check if an account exists:
+$ ./haveno-cli --password=xyz --port=9998 accountexists

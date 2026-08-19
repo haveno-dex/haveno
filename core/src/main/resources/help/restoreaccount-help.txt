@@ -1,0 +1,25 @@
+restoreaccount
+
+NAME
+----
+restoreaccount - restore the Haveno account from a backup zip file
+
+SYNOPSIS
+--------
+restoreaccount
+		--backup-file=<value>
+
+DESCRIPTION
+-----------
+Uploads a zip archive created by the backupaccount method, replacing the server
+account data.  Restart the server before using the restored account.
+
+OPTIONS
+-------
+--backup-file
+		The path to the backup zip file to be restored.
+
+EXAMPLES
+--------
+Restore the account:
+$ ./haveno-cli --password=xyz --port=9998 restoreaccount --backup-file=/tmp/haveno-backup.zip

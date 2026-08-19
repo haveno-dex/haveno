@@ -1,0 +1,24 @@
+confirmpaymentsent
+
+NAME
+----
+confirmpaymentsent - confirm payment has been sent
+
+SYNOPSIS
+--------
+confirmpaymentsent
+		--trade-id=<value>
+
+DESCRIPTION
+-----------
+Confirm the trade's payment has been sent to the seller.
+
+OPTIONS
+-------
+--trade-id
+		The id of the trade.
+
+EXAMPLES
+--------
+Confirm payment sent:
+$ ./haveno-cli --password=xyz --port=9998 confirmpaymentsent --trade-id=<trade-id>
