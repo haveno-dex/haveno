@@ -19,6 +19,8 @@ package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.PaymentAccountPayload;
@@ -29,6 +31,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
 import java.util.List;
+import javax.annotation.Nullable;
 
 @EqualsAndHashCode(callSuper = true)
 public final class SwishAccount extends PaymentAccount {
@@ -55,6 +58,12 @@ public final class SwishAccount extends PaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return List.of(CountryUtil.findCountryByCode("SE").get());
     }
 
     @Override

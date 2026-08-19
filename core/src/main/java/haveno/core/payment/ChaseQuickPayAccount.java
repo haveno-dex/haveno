@@ -18,6 +18,8 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.payload.ChaseQuickPayAccountPayload;
@@ -27,6 +29,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
 import java.util.List;
+import javax.annotation.Nullable;
 
 // Removed due to QuickPay becoming Zelle
 // Cannot be deleted as it would break old trade history entries
@@ -49,6 +52,12 @@ public final class ChaseQuickPayAccount extends PaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return List.of(CountryUtil.findCountryByCode("US").get());
     }
 
     @Override

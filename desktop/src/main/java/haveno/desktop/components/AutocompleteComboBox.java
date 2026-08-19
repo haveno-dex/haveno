@@ -49,6 +49,8 @@ import org.apache.commons.lang3.StringUtils;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -71,6 +73,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private List<? extends T> items = List.of();     // full, unfiltered items
     private List<? extends T> searchPool;            // wider pool searched once the user types (optional)
     private List<T> shownItems = new ArrayList<>();  // items currently in the popup
+    private Function<String, Predicate<T>> queryFilter; // custom query-to-item matcher (optional)
 
     private T committedValue;                        // last confirmed value, restored on an empty dismissal
     private boolean selectingAll;                    // guards the trailing key event after ctrl/cmd+A
@@ -138,6 +141,11 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
     public void setAutocompleteItems(List<? extends T> items) {
         setAutocompleteItems(items, null);
+    }
+
+    /** Override how a typed query matches items (e.g. to search countries or currencies); default matches the display string. */
+    public void setQueryFilter(Function<String, Predicate<T>> queryFilter) {
+        this.queryFilter = queryFilter;
     }
 
     /**
@@ -240,8 +248,10 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
     private void filterBy(String query) {
         List<? extends T> pool = searchPool != null && !query.isEmpty() ? searchPool : items;
+        Predicate<T> matchesQuery = queryFilter != null ? queryFilter.apply(query)
+                : item -> StringUtils.containsIgnoreCase(asString(item), query);
         shownItems = pool.stream()
-                .filter(item -> StringUtils.containsIgnoreCase(asString(item), query))
+                .filter(matchesQuery)
                 .collect(Collectors.toList());
         resetSelection();
         setItems(FXCollections.observableList(shownItems));

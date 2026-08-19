@@ -24,7 +24,10 @@ import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.OfferRestrictions;
 import haveno.core.payment.AmazonGiftCardAccount;
 import haveno.core.payment.AustraliaPayidAccount;
@@ -171,8 +174,14 @@ import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
@@ -524,6 +533,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 .sorted()
                 .collect(Collectors.toList());
         paymentMethodComboBox.setAutocompleteItems(FXCollections.observableArrayList(list));
+        paymentMethodComboBox.setQueryFilter(getPaymentMethodQueryFilter(list));
         paymentMethodComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(PaymentMethod paymentMethod) {
@@ -567,6 +577,37 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 GridPane.setRowSpan(accountTitledGroupBg, paymentMethodForm.getRowSpan() + 1);
             }
         });
+    }
+
+    // A query naming a country shows only methods supporting it; otherwise it matches method names and currencies.
+    private static Function<String, Predicate<PaymentMethod>> getPaymentMethodQueryFilter(List<PaymentMethod> methods) {
+        Map<PaymentMethod, String> currencyTextByMethod = new HashMap<>();
+        Map<PaymentMethod, Set<String>> countryCodesByMethod = new HashMap<>();
+        for (PaymentMethod method : methods) {
+            PaymentAccount account = PaymentAccountFactory.getPaymentAccount(method);
+            currencyTextByMethod.put(method, account.getSupportedCurrencies().stream()
+                    .map(TradeCurrency::getCodeAndName).collect(Collectors.joining(" ")));
+            List<Country> countries = account.getSupportedCountries();
+            if (countries != null) countryCodesByMethod.put(method, countries.stream().map(country -> country.code).collect(Collectors.toSet()));
+        }
+        return query -> {
+            Set<String> queriedCountryCodes = CountryUtil.getAllCountries().stream()
+                    .filter(country -> countryMatches(country, query))
+                    .map(country -> country.code).collect(Collectors.toSet());
+            return method -> {
+                if (StringUtils.containsIgnoreCase(Res.get(method.getId()), query)) return true;
+                Set<String> supported = countryCodesByMethod.get(method);
+                if (!queriedCountryCodes.isEmpty()) return supported != null && supported.stream().anyMatch(queriedCountryCodes::contains);
+                return StringUtils.containsIgnoreCase(currencyTextByMethod.get(method), query);
+            };
+        };
+    }
+
+    // A query names a country when it matches the code or leads the name or one of its words.
+    private static boolean countryMatches(Country country, String query) {
+        if (country.code.equalsIgnoreCase(query) || StringUtils.startsWithIgnoreCase(country.name, query)) return true;
+        for (String word : country.name.split(" ")) if (StringUtils.startsWithIgnoreCase(word, query)) return true;
+        return false;
     }
 
     // Select account form

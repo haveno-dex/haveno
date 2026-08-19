@@ -18,6 +18,8 @@
 package haveno.core.payment;
 
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.Country;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.TradeCurrency;
@@ -28,6 +30,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
 import java.util.List;
+import javax.annotation.Nullable;
 
 //TODO missing support for selected trade currency
 @EqualsAndHashCode(callSuper = true)
@@ -55,6 +58,12 @@ public final class PopmoneyAccount extends PaymentAccount {
     @Override
     public @NonNull List<TradeCurrency> getSupportedCurrencies() {
         return SUPPORTED_CURRENCIES;
+    }
+
+    @Override
+    @Nullable
+    public List<Country> getSupportedCountries() {
+        return List.of(CountryUtil.findCountryByCode("US").get());
     }
 
     @Override

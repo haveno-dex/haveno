@@ -78,12 +78,6 @@ public abstract class CountryBasedPaymentAccount extends PaymentAccount {
     }
 
     @Override
-    @Nullable
-    public List<Country> getSupportedCountries() {
-        return null; // support all countries by default
-    }
-
-    @Override
     public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
         switch (fieldId) {
         case ACCOUNT_NR:
