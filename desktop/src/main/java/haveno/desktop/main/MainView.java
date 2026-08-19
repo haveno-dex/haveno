@@ -369,7 +369,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setId("nav-secondary-container");
             setLeftAnchor(this, 0d);
             setRightAnchor(this, 0d);
-            setTopAnchor(this, 85d);
+            setTopAnchor(this, 82d); // nav height + content-pane top gap; underline must meet the subtab divider
         }};
         secondaryNavContainer.setPickOnBounds(false);
         secondaryNavContainer.getChildren().add(secondaryNav);

@@ -952,7 +952,7 @@ tree-table-view:focused {
 /* Top gap below the nav applies to the outer content container only, not the nested
    content grids, whose own padding would otherwise be overridden by this rule. */
 #application-container > .content-pane {
-    -fx-padding: 20 0 0 0;
+    -fx-padding: 17 0 0 0;
 }
 
 #footer-pane {
@@ -1061,7 +1061,7 @@ tree-table-view:focused {
 
 .nav-secondary-button {
     -fx-cursor: hand;
-    -fx-padding: 9 2 9 2;
+    -fx-padding: 8 2 8 2;
     -fx-border-insets: 0 12 1 12;
     -fx-border-color: transparent;
     -fx-border-width: 0 0 1px 0;
@@ -2537,7 +2537,7 @@ textfield */
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
     -fx-text-fill: -bs-rd-font-light;
-    -fx-padding: 9 14;
+    -fx-padding: 8 14;
     -fx-font-size: .95em;
     -fx-font-weight: normal;
     -fx-cursor: hand;
@@ -2546,7 +2546,7 @@ textfield */
 /* heading label-tab sits flush with the content's left inset (no leading tab pad);
    no top pad so the regular tabs set the header height (divider matches label-less headers) */
 .jfx-tab-pane .headers-region .tab:disabled .tab-container .tab-label {
-    -fx-padding: 0 14 9 0;
+    -fx-padding: 0 14 8 0;
 }
 
 .jfx-tab-pane .depth-container {
@@ -2571,7 +2571,7 @@ textfield */
 }
 
 .jfx-tab-pane .headers-region .tab:closable .tab-container .tab-label {
-    -fx-padding: 9 5 9 14;
+    -fx-padding: 8 5 8 14;
 }
 
 #form-header-text {
