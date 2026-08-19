@@ -77,6 +77,7 @@ public abstract class CountryBasedPaymentAccount extends PaymentAccount {
         ((CountryBasedPaymentAccountPayload) paymentAccountPayload).setAcceptedCountryCodes(CountryUtil.getCountryCodes(acceptedCountries));
     }
 
+    @Override
     @Nullable
     public List<Country> getSupportedCountries() {
         return null; // support all countries by default
