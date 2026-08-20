@@ -22,6 +22,7 @@ import haveno.common.app.Capabilities;
 import haveno.common.app.Capability;
 import haveno.common.crypto.Hash;
 import haveno.common.proto.ProtoUtil;
+import haveno.common.util.DateUtil;
 import haveno.common.util.Utilities;
 import haveno.core.trade.HavenoUtils;
 import haveno.network.p2p.storage.P2PDataStorage;
@@ -134,9 +135,9 @@ public class SignedWitness implements ProcessOncePersistableNetworkPayload, Pers
 
     @Override
     public boolean isDateInTolerance(Clock clock) {
-        // We don't allow older or newer than 1 day.
-        // Preventing forward dating is also important to protect against a sophisticated attack
-        return Math.abs(clock.millis() - date) <= TOLERANCE;
+        // We don't allow older or newer than 1 day; forward dating also protects against a sophisticated attack.
+        // The date is peer controlled, so avoid a difference check: Math.abs(now - date) can overflow and accept.
+        return DateUtil.isWithinTolerance(date, clock.millis(), TOLERANCE);
     }
 
     @Override
