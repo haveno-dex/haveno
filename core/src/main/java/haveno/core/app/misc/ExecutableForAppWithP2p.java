@@ -43,7 +43,6 @@ import haveno.common.config.Config;
 import haveno.common.file.JsonFileManager;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
-import haveno.common.setup.GracefulShutDownHandler;
 import haveno.common.util.Profiler;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.app.AvoidStandbyModeService;
@@ -102,17 +101,24 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
 
     // We don't use the gracefulShutDown implementation of the super class as we have a limited set of modules
     @Override
-    public void gracefulShutDown(ResultHandler resultHandler) {
+    public final void gracefulShutDown(ResultHandler resultHandler) {
+        gracefulShutDown(resultHandler, HavenoExecutable.EXIT_SUCCESS);
+    }
+
+    private void gracefulShutDown(ResultHandler resultHandler, int requestedExitStatus) {
         log.info("Starting graceful shut down of {}", getClass().getSimpleName());
 
-        // ignore if shut down started
-        if (isShutDownStarted) {
-            log.info("Ignoring call to gracefulShutDown, already started");
+        // repeated requests join the shutdown in progress and get notified on completion
+        if (!beginGracefulShutDown(resultHandler)) {
+            if (requestedExitStatus != HavenoExecutable.EXIT_SUCCESS) {
+                log.warn("A shutdown is already in progress. We keep the exit status of that shutdown and " +
+                        "do not apply the requested exit status {}.", requestedExitStatus);
+            }
             return;
         }
-        isShutDownStarted = true;
 
         try {
+            shutDownAdditionalServices();
             if (injector != null) {
 
                 // notify trade protocols and wallets to prepare for shut down
@@ -147,8 +153,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
 
                                 // done shutting down
                                 log.info("Graceful shutdown completed. Exiting now.");
-                                resultHandler.handleResult();
-                                UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
+                                completeShutDown(requestedExitStatus, 1, TimeUnit.SECONDS);
                             });
                         });
                     });
@@ -166,29 +171,29 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                 // we wait max 5 sec.
                 UserThread.runAfter(() -> {
                     PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
-                        resultHandler.handleResult();
                         log.warn("Graceful shutdown caused a timeout. Exiting now.");
-                        UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_SUCCESS), 1);
+                        completeShutDown(requestedExitStatus, 1, TimeUnit.SECONDS);
                     });
                 }, 5);
             } else {
-                UserThread.runAfter(() -> {
-                    resultHandler.handleResult();
-                    System.exit(HavenoExecutable.EXIT_SUCCESS);
-                }, 1);
+                completeShutDown(requestedExitStatus, 1, TimeUnit.SECONDS);
             }
         } catch (Throwable t) {
-            log.info("App shutdown failed with exception: {}\n", t.getMessage(), t);
+            log.error("App shutdown failed with exception: {}\n", t.getMessage(), t);
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
-                resultHandler.handleResult();
                 log.info("Graceful shutdown resulted in an error. Exiting now.");
-                UserThread.runAfter(() -> System.exit(HavenoExecutable.EXIT_FAILURE), 1);
+                completeShutDown(HavenoExecutable.EXIT_FAILURE, 1, TimeUnit.SECONDS);
             });
 
         }
     }
 
-    public void startShutDownInterval(GracefulShutDownHandler gracefulShutDownHandler) {
+    // Hook for node-specific services which must shut down before the common routine; may run before
+    // applyInjector if a termination signal arrives early.
+    protected void shutDownAdditionalServices() {
+    }
+
+    public void startShutDownInterval() {
         if (DevEnv.isDevMode() || injector.getInstance(Config.class).useLocalhostForP2P) {
             return;
         }
@@ -218,7 +223,7 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                                     "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n",
                             SHUTDOWN_INTERVAL / 3600000);
 
-                    shutDown(gracefulShutDownHandler);
+                    shutDown();
                 }
 
             }, CHECK_SHUTDOWN_SEC);
@@ -243,13 +248,13 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                                     "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n",
                             target,
                             ZonedDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).toString());
-                    shutDown(gracefulShutDownHandler);
+                    shutDown();
                 }
             }, TimeUnit.MINUTES.toSeconds(10));
         }, TimeUnit.HOURS.toSeconds(2));
     }
 
-    protected void checkMemory(Config config, GracefulShutDownHandler gracefulShutDownHandler) {
+    protected void checkMemory(Config config) {
         int maxMemory = config.maxMemory;
         UserThread.runPeriodically(() -> {
             Profiler.printSystemLoad();
@@ -277,18 +282,15 @@ public abstract class ExecutableForAppWithP2p extends HavenoExecutable {
                                         "We are over our memory limit ({}) and trigger a shutdown. usedMemory: {} MB. freeMemory: {} MB" +
                                         "\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n",
                                 maxMemory, usedMemory, Profiler.getFreeMemoryInMB());
-                        shutDown(gracefulShutDownHandler);
+                        shutDown();
                     }
                 }, 5);
             }
         }, CHECK_MEMORY_PERIOD_SEC);
     }
 
-    protected void shutDown(GracefulShutDownHandler gracefulShutDownHandler) {
+    protected void shutDown() {
         stopped = true;
-        gracefulShutDownHandler.gracefulShutDown(() -> {
-            log.info("Shutdown complete");
-            System.exit(1);
-        });
+        gracefulShutDown(() -> log.info("Shutdown complete"), HavenoExecutable.EXIT_FAILURE);
     }
 }
