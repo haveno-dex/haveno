@@ -26,7 +26,6 @@ import haveno.common.app.Capabilities;
 import haveno.common.app.Capability;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
-import haveno.common.handlers.ResultHandler;
 import haveno.core.app.TorSetup;
 import haveno.core.app.misc.ExecutableForAppWithP2p;
 import haveno.core.app.misc.ModuleForAppWithP2p;
@@ -58,7 +57,7 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
     protected int doExecute() {
         super.doExecute();
 
-        checkMemory(config, this);
+        checkMemory(config);
 
         return keepRunning();
     }
@@ -148,7 +147,7 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
                 boolean preventPeriodicShutdownAtSeedNode = injector.getInstance(Key.get(boolean.class,
                         Names.named(Config.PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE)));
                 if (!preventPeriodicShutdownAtSeedNode) {
-                    startShutDownInterval(SeedNodeMain.this);
+                    startShutDownInterval();
                 }
                 UserThread.runAfter(() -> setupConnectionLossCheck(), 60);
             }
@@ -181,15 +180,18 @@ public class SeedNodeMain extends ExecutableForAppWithP2p {
                 // We set a flag to clear tor cache files at re-start. We cannot clear it now as Tor is used and
                 // that can cause problems.
                 injector.getInstance(User.class).getCookie().putAsBoolean(CookieKey.CLEAN_TOR_DIR_AT_RESTART, true);
-                shutDown(this);
+                shutDown();
             }
         }, CHECK_CONNECTION_LOSS_SEC);
 
     }
 
     @Override
-    public void gracefulShutDown(ResultHandler resultHandler) {
-        seedNode.shutDown();
-        super.gracefulShutDown(resultHandler);
+    protected void shutDownAdditionalServices() {
+        // a termination signal can arrive after the JVM shutdown hook is registered but before
+        // applyInjector assigned seedNode
+        if (seedNode != null) {
+            seedNode.shutDown();
+        }
     }
 }
