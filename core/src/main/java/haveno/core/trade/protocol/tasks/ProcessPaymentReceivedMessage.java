@@ -111,10 +111,11 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             // store the signer chain sent in-band so we can validate the signed witness locally (#2182)
             processModel.getAccountAgeWitnessService().addValidSignerChain(message.getSignerChain(), trade.getSeller().getPubKeyRing().getSignaturePubKeyBytes());
 
-            // buyer republishes signed witness for resilience
+            // buyer republishes signed witness for resilience; the data is peer controlled, so it is
+            // accepted only if it matches the witness the seller was supposed to create for that trade
             SignedWitness signedWitness = message.getBuyerSignedWitness();
             if (signedWitness != null && trade instanceof BuyerTrade) {
-                processModel.getAccountAgeWitnessService().publishOwnSignedWitness(signedWitness);
+                processModel.getAccountAgeWitnessService().publishOwnSignedWitness(signedWitness, trade);
             }
 
             // complete

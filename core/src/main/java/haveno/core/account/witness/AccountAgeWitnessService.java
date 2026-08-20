@@ -18,6 +18,7 @@
 package haveno.core.account.witness;
 
 import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
 import haveno.common.UserThread;
@@ -48,6 +49,7 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.arbitration.TraderDataItem;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.user.User;
@@ -763,8 +765,39 @@ public class AccountAgeWitnessService {
         return Optional.empty();
     }
 
-    public boolean publishOwnSignedWitness(SignedWitness signedWitness) {
-        return signedWitnessService.publishOwnSignedWitness(signedWitness);
+    // Called by the buyer with its seller-signed witness from the PaymentReceivedMessage; all fields are
+    // peer controlled, so validated trade data restricts acceptance to the witness expected for that trade.
+    public boolean publishOwnSignedWitness(SignedWitness signedWitness, Trade trade) {
+        try {
+            Contract contract = checkNotNull(trade.getContract(), "contract must not be null");
+            PubKeyRing buyerPubKeyRing = checkNotNull(contract.getBuyerPubKeyRing(), "buyerPubKeyRing must not be null");
+            PubKeyRing sellerPubKeyRing = checkNotNull(contract.getSellerPubKeyRing(), "sellerPubKeyRing must not be null");
+            PaymentAccountPayload myPaymentAccountPayload = checkNotNull(trade.getSelf().getPaymentAccountPayload(),
+                    "myPaymentAccountPayload must not be null");
+            BigInteger tradeAmount = checkNotNull(trade.getAmount(), "tradeAmount must not be null");
+
+            byte[] witnessOwnerPubKey = keyRing.getPubKeyRing().getSignaturePubKeyBytes();
+            byte[] signerPubKey = signedWitness.getSignerPubKey();
+            checkArgument(Arrays.equals(buyerPubKeyRing.getSignaturePubKeyBytes(), witnessOwnerPubKey),
+                    "Buyer signature must be witnessOwnerPubKey");
+            checkArgument(Arrays.equals(sellerPubKeyRing.getSignaturePubKeyBytes(), signerPubKey),
+                    "Seller signature must be signerPubKey");
+
+            byte[] accountAgeWitnessHash = signedWitness.getAccountAgeWitnessHash();
+            AccountAgeWitness myWitness = getMyWitness(myPaymentAccountPayload);
+            checkArgument(Arrays.equals(accountAgeWitnessHash, myWitness.getHash()),
+                    "The witness hash is not matching");
+
+            return signedWitnessService.publishOwnSignedWitness(signedWitness,
+                    tradeAmount,
+                    myWitness,
+                    signerPubKey,
+                    witnessOwnerPubKey,
+                    trade.getDate().getTime());
+        } catch (Exception e) {
+            log.warn("Failed to publish signedWitness received in trade {}, exception {}", trade.getId(), e.toString());
+        }
+        return false;
     }
 
     // Arbitrator signing
