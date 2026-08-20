@@ -51,6 +51,11 @@ public class ApplyFilter extends TradeTask {
             } else if (filterManager.isPaymentMethodBanned(checkNotNull(trade.getOffer()).getPaymentMethod())) {
                 failed("Payment method is banned.\n" +
                         "Payment method=" + trade.getOffer().getPaymentMethod().getId());
+            } else if (trade.getTradePeer() != null &&
+                    trade.getTradePeer().getPaymentAccountPayload() != null &&
+                    filterManager.arePeersPaymentAccountDataBanned(trade.getTradePeer().getPaymentAccountPayload())) {
+                failed("Other trader is banned by their trading account data.\n" +
+                        "paymentAccountPayload=" + trade.getTradePeer().getPaymentAccountPayload().getPaymentDetails());
             } else if (filterManager.requireUpdateToNewVersionForTrading()) {
                 failed("Your version of Haveno is not compatible for trading anymore. " +
                         "Please update to the latest Haveno version.");
