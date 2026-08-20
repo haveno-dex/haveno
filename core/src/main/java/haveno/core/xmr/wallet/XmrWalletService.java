@@ -195,6 +195,7 @@ public class XmrWalletService extends XmrWalletBase {
         this.useNativeXmrWallet = useNativeXmrWallet;
         this.xmrConnectionService = xmrConnectionService; // TODO: super's is null unless set here from injection
         HavenoUtils.xmrWalletService = this;
+        MONERO_WALLET_RPC_MANAGER.onStartUp(); // clear the shared manager's shutdown state, which persists across in-process restarts
 
         // set monero logging
         if (MONERO_LOG_LEVEL >= 0) MoneroUtils.setLogLevel(MONERO_LOG_LEVEL);

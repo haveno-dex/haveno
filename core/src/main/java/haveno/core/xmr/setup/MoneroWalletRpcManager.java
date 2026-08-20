@@ -131,6 +131,13 @@ public class MoneroWalletRpcManager {
     }
 
     /**
+     * Signal that startup has begun, so instances can start after an in-process restart.
+     */
+    public void onStartUp() {
+        isShutDownStarted = false;
+    }
+
+    /**
      * Signal that shutdown has started, so failed starts are not retried or logged.
      */
     public void onShutDownStarted() {
