@@ -450,6 +450,15 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         }
     }
 
+    // Used by subclasses with their own shutdown routine to notify handlers and schedule the exit.
+    protected void completeShutDown(int status, long delay, TimeUnit timeUnit) {
+        try {
+            notifyGracefulShutDownComplete();
+        } finally {
+            CommonSetup.exitAfter(status, delay, timeUnit);
+        }
+    }
+
     private void completeShutdown(int exitCode, boolean systemExit) {
         if (!isReadOnly) {
             // If user tried to downgrade we do not write the persistable data to avoid data corruption
