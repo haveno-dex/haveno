@@ -27,6 +27,7 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.util.DateUtil;
 import haveno.common.util.MathUtils;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
@@ -627,10 +628,12 @@ public class AccountAgeWitnessService {
     }
 
     public boolean verifyPeersCurrentDate(Date peersCurrentDate) {
-        boolean result = Math.abs(peersCurrentDate.getTime() - new Date().getTime()) <= TimeUnit.DAYS.toMillis(1);
+        // The peer's date is untrusted, so use overflow-safe bounds instead of a difference check.
+        long now = clock.millis();
+        boolean result = DateUtil.isWithinTolerance(peersCurrentDate.getTime(), now, TimeUnit.DAYS.toMillis(1));
         if (!result) {
-            String msg = "Peers current date is further than 1 day off to our current date. " +
-                    "PeersCurrentDate=" + peersCurrentDate + "; myCurrentDate=" + new Date();
+            String msg = "Peers current date is further than 1 day off from our current date. " +
+                    "PeersCurrentDate=" + peersCurrentDate + "; myCurrentDate=" + new Date(now);
             throw new RuntimeException(msg);
         }
         return result;
