@@ -72,6 +72,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Nullable;
 import java.io.Console;
 import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -101,6 +102,9 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected Config config;
     @Getter
     protected boolean isShutDownStarted;
+    private final Object shutdownLock = new Object();
+    private final List<ResultHandler> shutdownResultHandlers = new ArrayList<>();
+    private boolean isShutdownComplete;
     private boolean isReadOnly;
     private Thread keepRunningThread;
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
@@ -331,27 +335,26 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     public void gracefulShutDown(ResultHandler onShutdown, boolean systemExit) {
         log.info("Starting graceful shut down of {}", getClass().getSimpleName());
 
-        // ignore if shut down started
-        if (isShutDownStarted) {
-            log.info("Ignoring call to gracefulShutDown, already started");
-            return;
-        }
-        isShutDownStarted = true;
-
+        // consume shutdownCompletedHandler so it runs once even when repeated requests join
         ResultHandler resultHandler;
-        if (shutdownCompletedHandler != null) {
-            resultHandler = () -> {
-                shutdownCompletedHandler.run();
+        synchronized (shutdownLock) {
+            Runnable completedHandler = shutdownCompletedHandler;
+            shutdownCompletedHandler = null;
+            resultHandler = completedHandler == null ? onShutdown : () -> {
+                completedHandler.run();
                 onShutdown.handleResult();
             };
-        } else {
-            resultHandler = onShutdown;
+        }
+
+        // repeated requests join the shutdown in progress and get notified on completion
+        if (!beginGracefulShutDown(resultHandler)) {
+            return;
         }
 
         if (injector == null) {
             log.info("Shut down called before injector was created");
-            resultHandler.handleResult();
-            System.exit(EXIT_SUCCESS);
+            completeShutdown(EXIT_SUCCESS, systemExit);
+            return;
         }
 
         try {
@@ -386,7 +389,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                         // done shutting down
                         log.info("Graceful shutdown completed. Exiting now.");
                         module.close(injector);
-                        completeShutdown(resultHandler, EXIT_SUCCESS, systemExit);
+                        completeShutdown(EXIT_SUCCESS, systemExit);
                     });
                 });
 
@@ -401,23 +404,65 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             });
         } catch (Throwable t) {
             log.error("App shutdown failed with exception: {}\n", t.getMessage(), t);
-            completeShutdown(resultHandler, EXIT_FAILURE, systemExit);
+            completeShutdown(EXIT_FAILURE, systemExit);
         }
     }
 
-    private void completeShutdown(ResultHandler resultHandler, int exitCode, boolean systemExit) {
+    // Registers the caller's handler and returns whether the caller must run the shutdown routine.
+    protected boolean beginGracefulShutDown(ResultHandler resultHandler) {
+        synchronized (shutdownLock) {
+            if (!isShutdownComplete) {
+                shutdownResultHandlers.add(resultHandler);
+                if (isShutDownStarted) {
+                    log.info("Joining graceful shutdown already in progress");
+                    return false;
+                }
+
+                isShutDownStarted = true;
+                return true;
+            }
+        }
+
+        notifyShutdownResultHandler(resultHandler);
+        return false;
+    }
+
+    protected void notifyGracefulShutDownComplete() {
+        List<ResultHandler> resultHandlers;
+        synchronized (shutdownLock) {
+            if (isShutdownComplete) {
+                return;
+            }
+
+            isShutdownComplete = true;
+            resultHandlers = List.copyOf(shutdownResultHandlers);
+            shutdownResultHandlers.clear();
+        }
+
+        resultHandlers.forEach(this::notifyShutdownResultHandler);
+    }
+
+    private void notifyShutdownResultHandler(ResultHandler resultHandler) {
+        try {
+            resultHandler.handleResult();
+        } catch (Throwable t) {
+            log.error("Shutdown completion handler failed", t);
+        }
+    }
+
+    private void completeShutdown(int exitCode, boolean systemExit) {
         if (!isReadOnly) {
             // If user tried to downgrade we do not write the persistable data to avoid data corruption
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                 log.info("Graceful shutdown flushed persistence. Exiting now.");
-                resultHandler.handleResult();
+                notifyGracefulShutDownComplete();
                 if (systemExit)
-                    UserThread.runAfter(() -> System.exit(exitCode), 1);
+                    CommonSetup.exitAfter(exitCode, 100, TimeUnit.MILLISECONDS);
             });
         } else {
-            resultHandler.handleResult();
+            notifyGracefulShutDownComplete();
             if (systemExit)
-                UserThread.runAfter(() -> System.exit(exitCode), 1);
+                CommonSetup.exitAfter(exitCode, 100, TimeUnit.MILLISECONDS);
         }
     }
 
