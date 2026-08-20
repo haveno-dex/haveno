@@ -95,6 +95,11 @@ class TradesChartsViewModel extends ActivatableViewModel {
     final Map<TickUnit, Map<Long, Long>> usdAveragePriceMapsPerTickUnit = new HashMap<>();
     private boolean fillTradeCurrenciesOnActivateCalled;
     private volatile boolean deactivateCalled;
+    // Async refilter, chart and USD-map results apply only if the generation taken at start is still
+    // current, so a superseded result is dropped. Counters are only touched on the user thread.
+    private int refilterGeneration;
+    private int chartGeneration;
+    private int usdGeneration;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -149,6 +154,10 @@ class TradesChartsViewModel extends ActivatableViewModel {
     @Override
     protected void deactivate() {
         deactivateCalled = true;
+        // bump the generations so any in-flight result is dropped instead of repopulating the model
+        ++refilterGeneration;
+        ++chartGeneration;
+        ++usdGeneration;
         synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
             tradeStatisticsManager.getObservableTradeStatisticsList().removeListener(listChangeListener);
         }
@@ -197,6 +206,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     private void applyAsyncUsdAveragePriceMapsPerTickUnit(CompletableFuture<Boolean> completeFuture) {
         long ts = System.currentTimeMillis();
+        int generation = ++usdGeneration;
         ChartCalculations.getUsdAveragePriceMapsPerTickUnit(tradeStatisticsManager.getObservableTradeStatisticsList())
                 .whenComplete((usdAveragePriceMapsPerTickUnit, throwable) -> {
                     if (deactivateCalled) {
@@ -208,6 +218,11 @@ class TradesChartsViewModel extends ActivatableViewModel {
                         return;
                     }
                     UserThread.execute(() -> {
+                        if (generation != usdGeneration) {
+                            // a later activation superseded this result; drop it
+                            completeFuture.complete(false);
+                            return;
+                        }
                         this.usdAveragePriceMapsPerTickUnit.clear();
                         this.usdAveragePriceMapsPerTickUnit.putAll(usdAveragePriceMapsPerTickUnit);
                         log.debug("applyAsyncUsdAveragePriceMapsPerTickUnit took {}", System.currentTimeMillis() - ts);
@@ -224,6 +239,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
                                                                             @Nullable CompletableFuture<Boolean> completeFuture) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         long ts = System.currentTimeMillis();
+        int generation = ++refilterGeneration;
         ChartCalculations.getTradeStatisticsForCurrency(tradeStatisticsManager.getObservableTradeStatisticsList(),
                 currencyCode,
                 showAllTradeCurrenciesProperty.get())
@@ -233,6 +249,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
                     }
                     if (throwable != null) {
                         log.error("Error at applyAsyncTradeStatisticsForCurrency. {}", throwable.toString());
+                        future.completeExceptionally(throwable);
                         if (completeFuture != null) {
                             completeFuture.completeExceptionally(throwable);
                         }
@@ -240,6 +257,14 @@ class TradesChartsViewModel extends ActivatableViewModel {
                     }
 
                     UserThread.execute(() -> {
+                        if (generation != refilterGeneration) {
+                            // a newer refilter superseded this one; complete false so callers skip the chart update
+                            if (completeFuture != null) {
+                                completeFuture.complete(false);
+                            }
+                            future.complete(false);
+                            return;
+                        }
                         tradeStatisticsByCurrency.setAll(list);
                         log.debug("applyAsyncTradeStatisticsForCurrency took {}", System.currentTimeMillis() - ts);
                         if (completeFuture != null) {
@@ -253,6 +278,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     private void applyAsyncChartData() {
         long ts = System.currentTimeMillis();
+        int generation = ++chartGeneration;
         ChartCalculations.getUpdateChartResult(new ArrayList<>(tradeStatisticsByCurrency),
                 tickUnit,
                 usdAveragePriceMapsPerTickUnit,
@@ -266,6 +292,10 @@ class TradesChartsViewModel extends ActivatableViewModel {
                         return;
                     }
                     UserThread.execute(() -> {
+                        if (generation != chartGeneration) {
+                            // a newer chart calculation superseded this one
+                            return;
+                        }
                         itemsPerInterval.clear();
                         itemsPerInterval.putAll(updateChartResult.getItemsPerInterval());
 
