@@ -50,6 +50,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.security.KeyPair;
+import java.time.Clock;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -101,7 +102,7 @@ public class AccountAgeWitnessServiceTest {
         when(arbitratorManager.isPublicKeyInList(any())).thenReturn(true);
         AppendOnlyDataStoreService appendOnlyDataStoreService = mock(AppendOnlyDataStoreService.class);
         filterManager = mock(FilterManager.class);
-        signedWitnessService = new SignedWitnessService(keyRing, p2pService, arbitratorManager, null, appendOnlyDataStoreService, null, filterManager);
+        signedWitnessService = new SignedWitnessService(keyRing, p2pService, arbitratorManager, null, appendOnlyDataStoreService, null, filterManager, Clock.systemDefaultZone());
         service = new AccountAgeWitnessService(null, null, null, signedWitnessService, chargeBackRisk, null, dataStoreService, null, filterManager);
     }
 
