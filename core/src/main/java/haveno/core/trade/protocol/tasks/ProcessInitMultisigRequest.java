@@ -80,7 +80,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
           // adopt arbitrator's final trade price, verifying it is within tolerance of our price
           if (sender == trade.getArbitrator() && request.getTradePrice() > 0 && request.getTradePrice() != trade.getPrice().getValue()) {
             try {
-              trade.getOffer().verifyTradePrice(request.getTradePrice());
+              trade.getOffer().verifyTradePrice(request.getTradePrice(), true);
               trade.setPrice(request.getTradePrice());
             } catch (TradePriceOutOfToleranceException e) {
               failed(e.getMessage());

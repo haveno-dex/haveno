@@ -223,6 +223,11 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public void verifyTradePrice(long price) throws TradePriceOutOfToleranceException,
             MarketPriceNotAvailableException, IllegalArgumentException {
+        verifyTradePrice(price, false);
+    }
+
+    public void verifyTradePrice(long price, boolean refreshPriceOnFailure) throws TradePriceOutOfToleranceException,
+            MarketPriceNotAvailableException, IllegalArgumentException {
         if (!isUseMarketBasedPrice()) {
             checkArgument(price == getFixedPrice(),
                     "Takers price does not match offer price. " +
@@ -243,6 +248,19 @@ public class Offer implements NetworkPayload, PersistablePayload {
                 getShortId(), getCounterCurrencyCode(), price, offerPrice.getValue(),
                 deviation * 100 + "%");
         if (deviation > PRICE_TOLERANCE) {
+
+            // refresh market prices and re-verify once, since cached price can lag the peer's
+            if (refreshPriceOnFailure) {
+                log.warn("Trade price is out of tolerance, refreshing market prices and re-verifying. offerId={}", getShortId());
+                try {
+                    priceFeedService.requestAllPrices();
+                } catch (Exception e) {
+                    log.warn("Error refreshing market prices to re-verify trade price for offer {}: {}", getShortId(), e.getMessage());
+                }
+                verifyTradePrice(price, false);
+                return;
+            }
+
             String msg = TRADE_PRICE_OUT_OF_TOLERANCE_MSG + "\n" +
                     "tradePrice=" + tradePrice.getValue() + "\n" +
                     "offerPrice=" + offerPrice.getValue();

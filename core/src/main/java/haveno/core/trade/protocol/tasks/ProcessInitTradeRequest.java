@@ -75,7 +75,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                 // check trade price
                 try {
                     long tradePrice = request.getTradePrice();
-                    offer.verifyTradePrice(tradePrice);
+                    offer.verifyTradePrice(tradePrice, true);
                     trade.setPrice(tradePrice);
                 } catch (TradePriceOutOfToleranceException e) {
                     failed(e.getMessage());
@@ -100,7 +100,7 @@ public class ProcessInitTradeRequest extends TradeTask {
 
                     // arbitrator sets the final trade price, verifying the maker's and taker's price is within tolerance
                     try {
-                        offer.verifyTradePrice(request.getTradePrice());
+                        offer.verifyTradePrice(request.getTradePrice(), true);
                         trade.setPrice(offer.getPrice().getValue());
                     } catch (TradePriceOutOfToleranceException e) {
                         failed(e.getMessage());
@@ -129,7 +129,7 @@ public class ProcessInitTradeRequest extends TradeTask {
 
                 // adopt the arbitrator's final trade price if within tolerance
                 try {
-                    offer.verifyTradePrice(request.getTradePrice());
+                    offer.verifyTradePrice(request.getTradePrice(), true);
                     trade.setPrice(request.getTradePrice());
                 } catch (TradePriceOutOfToleranceException e) {
                     failed(e.getMessage());
