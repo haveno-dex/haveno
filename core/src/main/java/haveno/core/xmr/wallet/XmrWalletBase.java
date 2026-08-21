@@ -71,6 +71,8 @@ public abstract class XmrWalletBase {
     private Long lastWalletRestartTimestamp;
     protected TaskLooper syncProgressLooper;
     protected CountDownLatch syncProgressLatch;
+    private volatile CountDownLatch backgroundRefreshLatch; // released when the native background sync returns, which can outlive the latch release at target height
+    private volatile MoneroWallet backgroundRefreshWallet; // wallet the background refresh belongs to, to skip stale waits after the wallet is replaced
     protected Exception syncProgressError;
     protected Timer syncProgressTimeout;
     protected long syncProgressTargetHeight;
@@ -97,6 +99,7 @@ public abstract class XmrWalletBase {
 
     public MoneroSyncResult syncWithTimeout(Long syncTimeoutMs) {
         synchronized (walletLock) {
+            awaitBackgroundRefresh(); // otherwise this sync serializes behind it and its work counts against the timeout
             ReentrantLock daemonLock = HavenoUtils.acquireDaemonLock();
             try {
                 ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -139,6 +142,21 @@ public abstract class XmrWalletBase {
         }
     }
 
+    // wait for a released native background sync to finish refreshing, e.g. processing the tx pool
+    private void awaitBackgroundRefresh() {
+        CountDownLatch latch = backgroundRefreshLatch;
+        if (latch == null || latch.getCount() == 0 || backgroundRefreshWallet != wallet) return; // a stale refresh belongs to a replaced wallet
+        log.info("Waiting for background sync to finish before syncing");
+        long startTime = System.currentTimeMillis();
+        try {
+            if (!latch.await(SYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS)) log.warn("Timed out waiting for background sync to finish before syncing");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for background sync to finish", e); // abort instead of starting a sync which can race wallet closure
+        }
+        log.info("Done waiting for background sync in {} ms", System.currentTimeMillis() - startTime);
+    }
+
     protected void setUnknownSyncProgress() {
         UserThread.execute(() -> syncProgressListener.progress(0, -1));
     }
@@ -153,6 +171,10 @@ public abstract class XmrWalletBase {
 
     public void syncWithProgress(Long initialSyncTimeoutMs) {
         synchronized (syncWithProgressLock) {
+
+            // drain a released background refresh so this sync does not serialize behind it, snapshotting the wallet afterwards in case it was replaced while waiting
+            awaitBackgroundRefresh();
+
             MoneroWallet sourceWallet = wallet;
             try {
 
@@ -190,6 +212,9 @@ public abstract class XmrWalletBase {
 
                     // sync in background thread so waiting can time out like rpc wallets
                     CountDownLatch latch = syncProgressLatch;
+                    CountDownLatch refreshLatch = new CountDownLatch(1);
+                    backgroundRefreshWallet = sourceWallet;
+                    backgroundRefreshLatch = refreshLatch;
                     TaskLooper saveProgressLooper = startSaveOnScanProgressLooper(); // saves interleave at native sync chunk boundaries
                     ThreadUtils.submitToPool(() -> {
                         try {
@@ -205,6 +230,7 @@ public abstract class XmrWalletBase {
                             if (latch.getCount() > 0 && syncProgressLatch == latch && syncProgressError == null && !isShutDownStarted) syncProgressError = e; // errors after release are moot
                         } finally {
                             saveProgressLooper.stop();
+                            refreshLatch.countDown();
                             latch.countDown();
                         }
                     });

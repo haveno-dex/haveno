@@ -187,6 +187,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public BooleanProperty wasWalletPolledProperty = new SimpleBooleanProperty(false);
     public BooleanProperty wasWalletSyncedAndPolledProperty = new SimpleBooleanProperty(false);
     private static final long MISSING_TXS_DELAY_MS = Config.baseCurrencyNetwork().isTestnet() ? 5000 : 30000;
+    private static final long DIRECT_SYNC_TIMEOUT_MS = 60000; // direct sync only refreshes after catching up, so fail fast
     private Long firstDepositTxMissingHeight; // height when we first saw missing deposit txs (to wait for a confirmation before reverting state)
     private Long firstPayoutTxMissingHeight; // height when we first saw missing payout tx (to wait for a confirmation before reverting state)
     private int payoutTxScanAttempts; // attempts to scan a confirmed payout tx missing from the trade wallet
@@ -3736,9 +3737,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             // sync from new wallet height
             walletHeight.set(wallet.getHeight()); // import detaches the blockchain to the last export point
             if (isWalletBehind()) {
-                doSyncWithProgress(logInfoLevel, initialSyncTimeoutMs);
+                doSyncWithProgress(logInfoLevel, initialSyncTimeoutMs); // catch-up reprocesses blocks with the imported info; rescanning spent and pool queries cover the rest
             } else {
-                sync(); // TODO: must sync wallet after import, syncWithProgress() should still refresh even if not behind?
+                sync(); // refresh directly since there are no blocks to reprocess
             }
 
             // rescan spent outputs to update spent status of imported outputs
@@ -3792,9 +3793,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public MoneroSyncResult sync() {
         synchronized (walletLock) {
             if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + ", " + getId());
+
+            // catch up with progress-based sync first, whose timeout extends while progressing, unlike the direct sync's fixed timeout
+            walletHeight.set(wallet.getHeight());
+            if (isWalletBehind()) doSyncWithProgress(true, null);
+
             log.info("Syncing wallet directly for {} {}", getClass().getSimpleName(), getShortId());
             long startTime = System.currentTimeMillis();
-            MoneroSyncResult result = super.sync();
+            MoneroSyncResult result = super.syncWithTimeout(DIRECT_SYNC_TIMEOUT_MS); // shorter timeout to fail fast, since only refreshing after catch-up
             log.info("Done syncing wallet directly for {} {} in {} ms", getClass().getSimpleName(), getShortId(), System.currentTimeMillis() - startTime);
             return result;
         }
