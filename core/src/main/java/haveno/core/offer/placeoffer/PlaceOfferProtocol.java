@@ -163,8 +163,8 @@ public class PlaceOfferProtocol {
     }
 
     private synchronized void handleError(String errorMessage) {
-        if (timeoutTimer != null) {
-            taskRunner.cancel();
+        if (errorMessageHandler != null) {
+            if (taskRunner != null) taskRunner.cancel();
             if (!model.getOpenOffer().isCanceled()) {
                 model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
             }

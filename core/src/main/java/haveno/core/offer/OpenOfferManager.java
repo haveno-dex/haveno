@@ -138,7 +138,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private static final long REPUBLISH_AGAIN_AT_STARTUP_DELAY_SEC = 30;
     private static final long REPUBLISH_INTERVAL_MS = TimeUnit.MINUTES.toMillis(30);
     private static final long REFRESH_INTERVAL_MS = OfferPayload.TTL / 2;
-    private static final int NUM_ATTEMPTS_THRESHOLD = 5; // process offer only on republish cycle after this many attempts
+    private static final int NUM_ATTEMPTS_THRESHOLD = 5; // process offer at reduced frequency after this many attempts
+    private static final long RETRY_PROCESSING_INTERVAL_MS = TimeUnit.MINUTES.toMillis(10); // retry processing offers with too many attempts at this interval
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final String OPEN_OFFER_GROUP_KEY_IMAGE_ID = OpenOffer.class.getSimpleName();
     private static final String SIGNED_OFFER_KEY_IMAGE_GROUP_ID = SignedOffer.class.getSimpleName();
@@ -456,7 +457,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     @Override
                     public void onNewBlock(long height) {
 
-                        // process each offer on new block a few times, then rely on period republish
+                        // process each offer on new block a few times, then retry periodically
                         processOffers(true, (transaction) -> {}, (errorMessage) -> {
                             log.warn("Error processing offers on new block {}: {}", height, errorMessage);
                         });
@@ -1136,7 +1137,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             synchronized (processOffersLock) {
                 List<OpenOffer> openOffers = getOpenOffers();
                 for (OpenOffer offer : openOffers) {
-                    if (skipOffersWithTooManyAttempts && offer.getNumProcessingAttempts() > NUM_ATTEMPTS_THRESHOLD) continue; // skip offers with too many attempts
+                    if (skipOffersWithTooManyAttempts && offer.getNumProcessingAttempts() > NUM_ATTEMPTS_THRESHOLD &&
+                            System.currentTimeMillis() - offer.getLastProcessingAttemptMs() < RETRY_PROCESSING_INTERVAL_MS) continue; // throttle offers with too many attempts
                     CountDownLatch latch = new CountDownLatch(1);
                     processOffer(openOffers, offer, (transaction) -> {
                         latch.countDown();
@@ -1166,6 +1168,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
         // process offer
         openOffer.setProcessing(true);
+        openOffer.setLastProcessingAttemptMs(System.currentTimeMillis());
         doProcessOffer(openOffers, openOffer, (transaction) -> {
             openOffer.setProcessing(false);
             resultHandler.handleResult(transaction);

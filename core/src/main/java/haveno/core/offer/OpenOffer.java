@@ -113,6 +113,9 @@ public final class OpenOffer implements Tradable {
     transient int numProcessingAttempts = 0;
     @Getter
     @Setter
+    transient long lastProcessingAttemptMs = 0;
+    @Getter
+    @Setter
     private boolean deactivatedByTrigger;
     @Getter
     @Setter
