@@ -46,7 +46,6 @@ import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
 import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
 import haveno.desktop.util.GUIUtil;
-import static haveno.desktop.util.Layout.INITIAL_WINDOW_HEIGHT;
 import haveno.network.p2p.NodeAddress;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -54,8 +53,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -127,14 +124,6 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private ListChangeListener<CurrencyListItem> currencyListItemsListener;
     private final double dataLimitFactor = 3;
     private final double initialOfferTableViewHeight = 83; // decrease as MainView's content-pane's top anchor increases
-    private final double offerTableExtraMarginBottom = 0;
-    private final Function<Double, Double> offerTableViewHeight = (screenSize) -> {
-        // initial visible row count=5, header height=30
-        double pixelsPerOfferTableRow = (initialOfferTableViewHeight - offerTableExtraMarginBottom) / 5.0;
-        int extraRows = screenSize <= INITIAL_WINDOW_HEIGHT ? 0 : (int) ((screenSize - INITIAL_WINDOW_HEIGHT) / pixelsPerOfferTableRow);
-        return extraRows == 0 ? initialOfferTableViewHeight : Math.ceil(initialOfferTableViewHeight + ((extraRows + 1) * pixelsPerOfferTableRow));
-    };
-    private ChangeListener<Number> havenoWindowVerticalSizeListener;
     private ChangeListener<Number> priceFeedUpdateCounterListener;
     private Timer priceRefreshTimer;
 
@@ -189,6 +178,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         bottomHBox.setSpacing(10);
         bottomHBox.setAlignment(Pos.CENTER);
         VBox.setMargin(bottomHBox, new Insets(-5, 0, 0, 0));
+        VBox.setVgrow(bottomHBox, Priority.ALWAYS); // fill remaining height so the cards end at the view's bottom padding
         HBox.setHgrow(tupleBuy.second, Priority.ALWAYS);
         HBox.setHgrow(tupleSell.second, Priority.ALWAYS);
         tupleBuy.second.setUserData(OfferDirection.BUY.name());
@@ -294,9 +284,6 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
         model.priceFeedService.updateCounterProperty().addListener(priceFeedUpdateCounterListener);
 
-        root.getScene().heightProperty().addListener(havenoWindowVerticalSizeListener);
-        layout();
-
         updateChartData();
     }
 
@@ -330,8 +317,6 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
         sellTableRowSelectionListener = (observable, oldValue, newValue) -> model.goToOfferView(OfferDirection.SELL);
         buyTableRowSelectionListener = (observable, oldValue, newValue) -> model.goToOfferView(OfferDirection.BUY);
-
-        havenoWindowVerticalSizeListener = (observable, oldValue, newValue) -> layout();
 
         // Market prices update ~once per minute; refresh the prices, chart and tables.
         // Debounced to collapse the burst of updates from a single price request cycle.
@@ -947,15 +932,4 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         return new Tuple4<>(tableView, vBox, button, titleLabel);
     }
 
-    private void layout() {
-        UserThread.runAfter(() -> {
-            if (root.getScene() != null) {
-                double newTableViewHeight = offerTableViewHeight.apply(root.getScene().getHeight());
-                if (buyOfferTableView.getHeight() != newTableViewHeight) {
-                    buyOfferTableView.setMinHeight(newTableViewHeight);
-                    sellOfferTableView.setMinHeight(newTableViewHeight);
-                }
-            }
-        }, 100, TimeUnit.MILLISECONDS);
-    }
 }
