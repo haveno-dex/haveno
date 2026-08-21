@@ -798,6 +798,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 if (newValue != null && !newValue.isEmpty()) {
                     xmrInfoLabel.setId("splash-error-state-msg");
                     if (!xmrInfoLabel.getStyleClass().contains("error-text")) xmrInfoLabel.getStyleClass().add("error-text");
+                    if (xmrNetworkWarnMsgPopup != null) xmrNetworkWarnMsgPopup.hide(); // hide replaced popup so it cannot linger
                     xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
                     xmrNetworkWarnMsgPopup.show();
                 } else {

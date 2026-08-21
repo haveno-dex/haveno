@@ -569,6 +569,12 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 getP2pNetworkLabelId().set("footer-pane");
             }
         });
+
+        // clear stale startup warning if peers connected before this watcher was registered
+        if (p2PService.getNumConnectedPeers().get() > 0) {
+            getP2pNetworkWarnMsg().set(null);
+            getP2pNetworkLabelId().set("footer-pane");
+        }
     }
 
     private void showPopupIfInvalidXmrConfig() {
