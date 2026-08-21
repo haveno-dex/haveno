@@ -241,6 +241,8 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     private ExecutorService writeToDiskExecutor;
     public final AtomicBoolean initCalled = new AtomicBoolean(false);
     public final AtomicBoolean readCalled = new AtomicBoolean(false);
+    // Set when a read found a pre-v2 (legacy-encrypted or unencrypted) file, to trigger a re-persist.
+    private volatile boolean lastReadWasLegacyFormat;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -342,6 +344,12 @@ public class PersistenceManager<T extends PersistableEnvelope> {
                 UserThread.execute(() -> {
                     resultHandler.accept(persisted);
 
+                    // re-encrypt legacy-format files in the current format once the host applied the data
+                    if (lastReadWasLegacyFormat) {
+                        lastReadWasLegacyFormat = false;
+                        requestPersistence();
+                    }
+
                     GcUtil.maybeReleaseMemory();
                 });
             } else {
@@ -412,16 +420,29 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         return null;
     }
 
-    // Reads an encrypted store in two streaming passes so we never hold the whole decrypted payload in
-    // memory (which previously caused OutOfMemoryError on large stores such as ClosedTrades). Pass 1
-    // verifies the hmac and returns the payload length; pass 2 re-reads and parses only the verified
-    // payload bytes, re-checking the hmac over the bytes it actually parsed (the file could in theory
-    // change between the two opens, e.g. through an external backup/sync tool - pass 1's verification
-    // covered a different read). A file that is not a valid encrypted store (e.g. a legacy unencrypted
-    // one) makes pass 1 throw CryptoException, in which case we fall back to reading it without
-    // decryption. The raw FileInputStreams are buffered because CipherInputStream pulls from the
-    // underlying stream in 512-byte chunks - unbuffered, a large store costs ~2000 read syscalls per MB.
+    // Reads an encrypted store in two streaming passes so the whole decrypted payload is never in
+    // memory: pass 1 verifies, pass 2 re-reads, parses and re-checks over the bytes actually read
+    // (the file could change between the two opens). A file that is not a valid encrypted store
+    // falls back to a plain read. Streams are buffered (CipherInputStream reads 512-byte chunks);
+    // reads in a format older than the current one set a flag so the store is re-persisted.
     private protobuf.PersistableEnvelope readEncrypted(File storageFile, SecretKey symmetricKey) throws Exception {
+        int formatVersion;
+        try (InputStream headStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
+            formatVersion = Encryption.blobVersion(headStream);
+        }
+        if (formatVersion > 0) {
+            try {
+                // versioned formats dispatch here (v2 is the only one so far)
+                protobuf.PersistableEnvelope proto = readEncryptedV2(storageFile, symmetricKey);
+                if (formatVersion < Encryption.CURRENT_BLOB_VERSION) lastReadWasLegacyFormat = true;
+                return proto;
+            } catch (CryptoException e) {
+                // a legacy blob can collide with the magic (p = 2^-32); try the legacy read
+                // before treating the file as corrupt
+                log.warn("Store {} looks like v{} but failed verification, attempting legacy read", storageFile.getName(), formatVersion);
+            }
+        }
+        lastReadWasLegacyFormat = true;
         long payloadLength;
         try (InputStream verifyStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
             payloadLength = Encryption.verifyPayloadWithHmacStream(verifyStream, symmetricKey);
@@ -435,10 +456,8 @@ public class PersistenceManager<T extends PersistableEnvelope> {
              InputStream decryptStream = Encryption.decryptStream(parseStream, symmetricKey)) {
             Mac mac = Encryption.createHmac(symmetricKey);
             InputStream payloadStream = new MacUpdatingInputStream(ByteStreams.limit(decryptStream, payloadLength), mac);
-            // The previous read used parseFrom(byte[]), whose array decoder imposes no message size limit.
-            // The stream decoder defaults to a 64 MB limit, so we lift it explicitly; otherwise a large but
-            // valid store (the very case this streaming read exists for) would throw "Protocol message too
-            // large" and be wrongly moved to backup_of_corrupted_data.
+            // The stream decoder defaults to a 64 MB limit (the old array decoder had none); lift it
+            // so a large but valid store is not wrongly moved to backup_of_corrupted_data.
             CodedInputStream codedInput = CodedInputStream.newInstance(payloadStream);
             codedInput.setSizeLimit(Integer.MAX_VALUE);
             protobuf.PersistableEnvelope proto = protobuf.PersistableEnvelope.parseFrom(codedInput);
@@ -450,6 +469,26 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             if (!MessageDigest.isEqual(mac.doFinal(), expectedHmac)) {
                 throw new IOException("Storage file " + storageFile.getName() + " changed while it was being read");
             }
+            return proto;
+        }
+    }
+
+    // Two-pass v2 read: pass 1 verifies the tag over the raw stream, pass 2 parses plaintext from a
+    // stream that re-verifies the tag over the ciphertext it actually delivered before signaling EOF
+    // (so a file change between the two opens cannot go unnoticed).
+    private protobuf.PersistableEnvelope readEncryptedV2(File storageFile, SecretKey symmetricKey) throws Exception {
+        try (InputStream verifyStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
+            Encryption.verifyV2Stream(verifyStream, symmetricKey);
+        }
+        try (InputStream parseStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE);
+             InputStream payloadStream = Encryption.decryptV2Stream(parseStream, symmetricKey)) {
+            // The stream decoder defaults to a 64 MB limit; lift it so a large but valid store is not
+            // wrongly treated as corrupt.
+            CodedInputStream codedInput = CodedInputStream.newInstance(payloadStream);
+            codedInput.setSizeLimit(Integer.MAX_VALUE);
+            protobuf.PersistableEnvelope proto = protobuf.PersistableEnvelope.parseFrom(codedInput);
+            // Consume to EOF so the stream verifies the tag over this same read.
+            ByteStreams.exhaust(payloadStream);
             return proto;
         }
     }
@@ -584,12 +623,9 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             fileOutputStream = new FileOutputStream(tempFile);
 
             if (keyRing != null) {
-                // Stream the encryption directly to disk with constant memory: the proto is written
-                // through the hmac and the cipher in two passes, so neither a serialized byte[] nor
-                // an encrypted byte[] of the whole store is ever built. The array-building variants
-                // could throw OutOfMemoryError for large stores and silently leave the on-disk file
-                // frozen at the last successful write.
-                Encryption.encryptPayloadWithHmacToStream(serialized::writeTo, keyRing.getSymmetricKey(), fileOutputStream);
+                // Stream the encryption to disk with constant memory; building full byte[]s here
+                // previously threw OutOfMemoryError and froze the on-disk file for large stores.
+                Encryption.encryptV2ToStream(serialized::writeTo, keyRing.getSymmetricKey(), fileOutputStream);
             } else {
                 serialized.writeDelimitedTo(fileOutputStream);
             }

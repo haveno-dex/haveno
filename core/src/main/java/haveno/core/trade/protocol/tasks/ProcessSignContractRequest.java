@@ -23,7 +23,6 @@ import haveno.common.app.Version;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.PubKeyRing;
-import haveno.common.crypto.ScryptUtil;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.Contract;
@@ -103,13 +102,15 @@ public class ProcessSignContractRequest extends TradeTask {
           if (!trade.isArbitrator()) {
 
               // generate random key to encrypt payment account payload
-              byte[] decryptionKey = ScryptUtil.getKeyCrypterScrypt().deriveKey(UUID.randomUUID().toString()).getKey();
+              byte[] decryptionKey = Encryption.generateSecretKey(256).getEncoded();
               trade.getSelf().setPaymentAccountKey(decryptionKey);
 
-              // encrypt payment account payload
+              // encrypt payment account payload; v1 is sent until the network can receive v2
               byte[] unencrypted = trade.getSelf().getPaymentAccountPayload().toProtoMessage().toByteArray();
               SecretKey sk = Encryption.getSecretKeyFromBytes(trade.getSelf().getPaymentAccountKey());
-              encryptedPaymentAccountPayload = Encryption.encrypt(unencrypted, sk);
+              encryptedPaymentAccountPayload = Version.NETWORK_ENCRYPTION_VERSION >= 2
+                      ? Encryption.encryptV2(unencrypted, sk)
+                      : Encryption.encrypt(unencrypted, sk);
           }
 
           // create response with contract signature
