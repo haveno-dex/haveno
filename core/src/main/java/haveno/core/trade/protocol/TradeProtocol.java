@@ -1144,6 +1144,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private void handleSecondMakerInitTradeRequestNack(AckMessage ackMessage) {
         log.warn("Maker received 2nd NACK to InitTradeRequest from arbitrator for {} {}, messageUid={}, errorMessage={}", trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid(), ackMessage.getErrorMessage());
 
+        // nack taker's InitTradeRequest so taker fails fast instead of timing out
+        if (processModel.getTradeMessage() instanceof InitTradeRequest && trade.getTaker().getNodeAddress() != null) {
+            sendAckMessage(trade.getTaker().getNodeAddress(), (InitTradeRequest) processModel.getTradeMessage(), false, ackMessage.getErrorMessage());
+        }
+
         // skip removing offer if nack is acceptable
         if (isAcceptableInitTradeRequestNack(ackMessage)) {
             log.warn("Not removing offer {} on 2nd InitTradeRequest NACK from arbitrator because the NACK is for an acceptable reason, errorMessage={}", trade.getOffer().getShortId(), ackMessage.getErrorMessage());
