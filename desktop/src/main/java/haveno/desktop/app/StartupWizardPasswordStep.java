@@ -33,11 +33,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javax.annotation.Nullable;
 
-/**
- * Wizard step to protect the new account with a password. Optional unless the app was
- * started with --passwordRequired; leaving the fields empty skips password protection.
- * Skipped on a quick start unless a password is required.
- */
+// Wizard step to protect the new account with a password. Optional unless started with --passwordRequired; empty
+// fields skip protection. Skipped on a quick start unless a password is required.
 public class StartupWizardPasswordStep implements StartupWizard.Step {
 
     private static final double FIELD_WIDTH = 340;

@@ -29,10 +29,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
-/**
- * Wizard step to choose between starting right away with sensible defaults and a custom
- * setup; a quick start skips the remaining optional steps and completes the wizard.
- */
+// Wizard step to choose between starting right away with sensible defaults and a custom setup;
+// a quick start skips the remaining optional steps and completes the wizard.
 public class StartupWizardModeStep implements StartupWizard.Step {
 
     private static final double CARD_GAP = 20;

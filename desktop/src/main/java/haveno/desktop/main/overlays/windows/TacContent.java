@@ -30,11 +30,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 
-/**
- * The user agreement content, shared by the startup wizard and {@link TacWindow}: an informational
- * risk overview page and a legal terms page. Accepting happens once, by choosing the host's
- * agree action on the terms page.
- */
+// The user agreement content, shared by the startup wizard and TacWindow: an informational risk overview page
+// and a legal terms page. Accepting happens once, by choosing the host's agree action on the terms page.
 public class TacContent {
 
     private static final double DETAIL_ICON_BOX_WIDTH = 44;

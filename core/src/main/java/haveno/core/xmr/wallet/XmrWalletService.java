@@ -439,16 +439,8 @@ public class XmrWalletService extends XmrWalletBase {
         return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
     }
 
-    /**
-     * Restore the main wallet from the given seed, replacing the current wallet. The restored
-     * wallet is fully created and saved before the current wallet is backed up and replaced, so
-     * an invalid seed or lost connection leaves the current wallet intact. The restored wallet is
-     * reopened on next startup; the caller is responsible for shutting down afterwards.
-     *
-     * @param seed the 25-word Monero seed to restore from
-     * @param restoreHeight the block height to start scanning from, or null to use the restore date
-     * @param restoreDate the wallet creation date to start scanning from, or null to use the restore height
-     */
+    // Restore the main wallet from the given seed, scanning from restoreHeight or else restoreDate. The restored wallet
+    // is fully created and saved before the current one is backed up and replaced, so failure leaves the current wallet intact.
     public void restoreWalletFromSeed(String seed, Long restoreHeight, LocalDate restoreDate) {
         if (!isSeedValid(seed)) throw new IllegalArgumentException("Invalid wallet seed");
         synchronized (walletLock) {

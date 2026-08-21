@@ -204,13 +204,8 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         void onPasswordEntered(String password, Consumer<String> resultHandler);
     }
 
-    /**
-     * Show the first-run setup wizard within the primary application window. The same window is
-     * reused for the rest of the application startup once the wizard completes.
-     *
-     * @param onComplete called with the user's choices when they have finished all steps
-     * @param onQuit     called if the user chooses to quit instead of completing the setup
-     */
+    // Show the first-run setup wizard within the primary application window, which is reused for the rest of startup
+    // once the wizard completes. Calls onComplete with the user's choices, or onQuit if the user chooses to quit.
     public void showStartupWizard(Consumer<StartupWizard.Result> onComplete, Runnable onQuit) {
         startupShell = getOrCreateShell();
         startupShell.setCompactBranding(true);

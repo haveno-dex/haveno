@@ -597,9 +597,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         };
     }
 
-    // remove trades with duplicate uids from their stores, which can happen when a move between stores is
-    // interrupted by shutdown before both stores are flushed. keep the closed copy over pending over failed,
-    // since protocol error handling re-converges a kept pending copy to the correct store on init
+    // remove trades with duplicate uids from their stores, which can happen when a move between stores is interrupted
+    // by shutdown. keep the closed copy over pending over failed; error handling re-converges a kept pending copy on init
     private void removeDuplicateTrades(List<Trade> trades) {
         Map<String, Trade> tradesByUid = new HashMap<String, Trade>();
         for (Trade trade : new ArrayList<Trade>(trades)) {

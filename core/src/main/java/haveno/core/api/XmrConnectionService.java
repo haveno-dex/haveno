@@ -915,18 +915,8 @@ public final class XmrConnectionService {
         return connection != null && NetworkUtils.isLocalHost(connection.getUri());
     }
 
-    /**
-     * Apply TLS verification policy to a Monero daemon connection.
-     *
-     * A Monero node never holds the user's keys and its data is validated by the wallet, so
-     * a malicious node cannot steal funds; TLS verification adds little here. It also can't be
-     * enforced in practice, since monerod's default serves a self-signed certificate that no
-     * certificate authority can validate. We therefore disable verification, but warn once and
-     * recommend Tor when a remote clearnet HTTPS node becomes the active connection.
-     *
-     * @param connection the connection to configure (no-op if null)
-     * @param warnIfInsecure warn if the connection is remote clearnet HTTPS (true when it becomes active)
-     */
+    // Disable TLS verification: a node never holds the user's keys, its data is validated by the wallet, and monerod's
+    // default self-signed cert cannot be CA-validated. Warn and recommend Tor if warnIfInsecure and remote clearnet HTTPS.
     private void applySslPolicy(MoneroRpcConnection connection, boolean warnIfInsecure) {
         if (connection == null) return;
         connection.setSslVerify(false);

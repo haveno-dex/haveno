@@ -339,9 +339,8 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         });
     }
 
-    // macOS VoiceOver ignores the editable combo's value changes (JDK-8087757), so select the arrowed
-    // item's text like native mac combos; the screen reader then announces it as a selection change.
-    // The open popup redirects window key events to its list, so arrows never reach this control itself.
+    // macOS VoiceOver ignores the editable combo's value changes (JDK-8087757), so select the arrowed item's text in
+    // the popup's key filter, like native mac combos; the screen reader then announces it as a selection change.
     private void selectArrowedItemText() {
         popupList.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             KeyCode code = e.getCode();
@@ -392,10 +391,8 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         popup.setAnchorY(popupAbove ? field.getMinY() - height : field.getMaxY());
     }
 
-    // A popup taller than the space under the control gets flipped above the field by the skin. Stay
-    // below, capped to fit, while at least half the rows stay visible; else open toward the roomier
-    // side. The side is chosen at open and kept while showing, so filtering does not toss the list
-    // across the field.
+    // Stay below the field (the skin flips a too-tall popup above), capped to fit while at least half the rows stay
+    // visible, else open toward the roomier side; the side is kept while showing so filtering does not flip the list.
     private void fitRowsToScreenSpace() {
         Bounds field = localToScreen(getBoundsInLocal());
         if (field == null) return;

@@ -46,11 +46,8 @@ import javafx.stage.Modality;
 import javafx.stage.Window;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * The user agreement popup for existing installations (first-run installations accept the
- * agreement in the startup wizard instead): a fixed-size card paging between the risk and
- * legal pages of {@link TacContent}, accepted once with the agree action on the legal page.
- */
+// The user agreement popup for existing installations (first-run installations accept in the startup wizard):
+// a fixed-size card paging between the risk and legal pages of TacContent, accepted once on the legal page.
 @Slf4j
 public class TacWindow extends Overlay<TacWindow> {
 
@@ -236,11 +233,8 @@ public class TacWindow extends Overlay<TacWindow> {
         if (shell != null) shell.setWizardOverlayBottom(-1);
     }
 
-    /**
-     * Center in the area above the shell's bottom bar like the wizard column; when a short window
-     * leaves no room, the bar yields first (the reported clearance edge makes the shell hide it)
-     * and the logo is dropped only once the window cannot frame even logo and card alone.
-     */
+    // Center in the area above the shell's bottom bar like the wizard column; on short windows the bar yields first
+    // (its reported clearance edge makes the shell hide it), then the logo once logo and card alone cannot fit.
     @Override
     protected void layout() {
         super.layout();

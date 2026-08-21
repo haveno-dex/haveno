@@ -1351,10 +1351,8 @@ public class GUIUtil {
         applyEdgeColumnStyleClasses(tableView);
     }
 
-    // scrolls a constrained-resize table horizontally in its wrapping scroll pane on narrow windows:
-    // the table's min width follows the sum of visible column min widths, so the pane shows a bar and
-    // pans header and rows together instead of clipping the trailing columns; an empty table imposes
-    // no min width, so the placeholder never triggers the bar
+    // scrolls a constrained-resize table horizontally in its wrapping scroll pane on narrow windows: the table's min
+    // width follows the sum of visible column min widths, so the pane pans header and rows together instead of clipping
     public static <T> void applyTableHorizontalScroll(ScrollPane scrollPane, TableView<T> tableView) {
         InvalidationListener updater = obs -> {
             tableView.setMinWidth(
@@ -1915,9 +1913,8 @@ public class GUIUtil {
         return pane;
     }
 
-    // pin the calendar card's right edge under the field's calendar icon, kept inside the window; below
-    // the field, or above it when there is no room. Positions by the card's bounds, not the popup
-    // window's; the drop shadow inflates the window around the card. Re-applied on size changes.
+    // pin the calendar card's right edge under the field's calendar icon, kept inside the window; below the field, or
+    // above when there is no room. Positions by the card's bounds since the drop shadow inflates the popup window.
     private static void positionCalendarPopup(TextField field, javafx.stage.Popup popup, Node calendar) {
         if (!popup.isShowing() || field.getScene() == null) return;
         Bounds fieldBounds = field.localToScreen(field.getLayoutBounds());

@@ -44,11 +44,8 @@ import javafx.scene.text.TextAlignment;
 import javafx.util.StringConverter;
 import javax.annotation.Nullable;
 
-/**
- * Wizard step to connect to the default Monero nodes or exclusively to the user's own custom
- * nodes, and to choose when Monero traffic is routed over Tor. The choices are applied before
- * the first node connection. Skipped on a quick start or when a node is given by program argument.
- */
+// Wizard step to connect to the default Monero nodes or exclusively to the user's own custom nodes, and to choose when
+// Monero traffic uses Tor, applied before the first connection. Skipped on a quick start or with a node argument.
 public class StartupWizardNodeStep implements StartupWizard.Step {
 
     private static final double FIELD_WIDTH = 620;

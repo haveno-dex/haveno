@@ -619,11 +619,8 @@ public abstract class Overlay<T extends Overlay<T>> {
 
                     addEffectToBackground();
 
-                    // On Linux the owner stage does not move the child stage as it does on Mac
-                    // So we need to apply centerPopup. Further with fast movements the handler loses
-                    // the latest position, with a delay it fixes that.
-                    // Also on Mac sometimes the popups are positioned outside of the main app, so keep it for all OS.
-                    // Re-fitting rather than just centering also tracks the owner window's size while it is resized.
+                    // Re-fit and re-center as the owner window moves or resizes: on Linux the owner stage does not move
+                    // the child stage, on Mac popups sometimes end up outside the app, and the delay catches fast moves.
                     positionListener = (observable, oldValue, newValue) -> {
                         if (stage != null) {
                             refitToContent();

@@ -310,9 +310,7 @@ public class SignedWitnessService {
     }
 
     // Stores a signer chain received in-band from a peer, keeping only witnesses on a valid signer path from the
-    // given signer's pub key up to an arbitrator root (so peers cannot inject unrelated or unrooted witnesses to
-    // spam the network). Each witness is self-verifiable, so this adds no trust; it only heals gaps of data
-    // already on the network.
+    // signer's pub key up to an arbitrator root; each witness is self-verifiable, so this adds no trust, only heals gaps.
     public void addValidSignerChain(Collection<SignedWitness> signerChain, byte[] signerPubKey) {
         if (signerChain == null) return;
 
@@ -340,8 +338,7 @@ public class SignedWitnessService {
     }
 
     // Collects received witnesses along the first valid signer path from ownerPubKey up to an arbitrator root,
-    // using only the supplied witnesses. Returns true and fills accepted with the path if one exists. Dead-end
-    // branches add nothing, and each owner is visited once, bounding work and recursion and preventing loops.
+    // visiting each owner once to bound work and prevent loops; returns true and fills accepted if a path exists.
     private boolean collectValidSignerPath(byte[] ownerPubKey,
                                            Map<P2PDataStorage.ByteArray, Set<SignedWitness>> byOwnerPubKey,
                                            Set<P2PDataStorage.ByteArray> visitedOwners,

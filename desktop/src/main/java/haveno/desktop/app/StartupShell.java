@@ -136,11 +136,8 @@ public class StartupShell extends StackPane {
         contentSlot.getChildren().setAll(content);
     }
 
-    /**
-     * Switch between the slim landscape logo (compact, for tall content like the first-run wizard)
-     * and the full splash logo. Leaving compact mode releases the content slot's height lock so the
-     * next content centers with the full logo.
-     */
+    // Switch between the slim landscape logo (compact, for tall content like the first-run wizard) and the full splash
+    // logo. Leaving compact mode releases the content slot's height lock so the next content centers with the full logo.
     public void setCompactBranding(boolean compact) {
         if (compactBranding == compact) return;
         compactBranding = compact;

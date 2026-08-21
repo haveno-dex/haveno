@@ -313,10 +313,8 @@ public class CandleStickChart extends XYChart<Number, Number> {
         return candle;
     }
 
-    /**
-     * Track the cursor anywhere in the plot area and snap the overlays to the nearest candle, as is
-     * standard for financial charts, rather than only reacting to a direct hit on a candle.
-     */
+    // Track the cursor anywhere in the plot area and snap the overlays to the nearest candle, as is standard for
+    // financial charts, rather than only reacting to a direct hit on a candle.
     private void trackCursor(MouseEvent e) {
         if (!crosshairAdded) {
             getPlotChildren().addAll(crosshairVertical, crosshairHorizontal);
@@ -358,10 +356,8 @@ public class CandleStickChart extends XYChart<Number, Number> {
         return nearest;
     }
 
-    /**
-     * Draw a crosshair at the tracked candle's center and the cursor's price level, and update the
-     * fixed legend in the top-left corner.
-     */
+    // Draw a crosshair at the tracked candle's center and the cursor's price level, and update the
+    // fixed legend in the top-left corner.
     private void showOverlays(Candle candle, double cursorY) {
         double candleX = candle.getLayoutX();
         crosshairVertical.setStartX(candleX);
@@ -384,10 +380,8 @@ public class CandleStickChart extends XYChart<Number, Number> {
         legendOverlay.show(legendAnchor.getX(), legendAnchor.getY(), tooltipOverlayPane);
     }
 
-    /**
-     * Size the legend to the widest entry in the data set. It is pinned in place, so re-fitting it to
-     * each tracked candle would make its right edge jitter as the cursor moves.
-     */
+    // Size the legend to the widest entry in the data set. It is pinned in place, so re-fitting it to
+    // each tracked candle would make its right edge jitter as the cursor moves.
     private void fixLegendWidth() {
         legend.setPrefWidth(Region.USE_COMPUTED_SIZE);
         legend.applyCss();

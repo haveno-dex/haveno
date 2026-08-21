@@ -45,11 +45,8 @@ import javafx.scene.layout.VBox;
 import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Wizard step to create a new Monero wallet (default) or import an existing one from its seed
- * phrase with an optional restore height. The import is applied when the main wallet is first
- * created after connecting to the network. Skipped on a quick start.
- */
+// Wizard step to create a new Monero wallet (default) or import one from its seed phrase with an optional restore
+// height, applied when the main wallet is first created after connecting. Skipped on a quick start.
 @Slf4j
 public class StartupWizardWalletStep implements StartupWizard.Step {
 

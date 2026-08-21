@@ -44,10 +44,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
-/**
- * Wizard step to choose the preferred display currency from a searchable list, preselected
- * from the system locale. Skipped on a quick start, which keeps the preselected currency.
- */
+// Wizard step to choose the preferred display currency from a searchable list, preselected from the system locale.
+// Skipped on a quick start, which keeps the preselected currency.
 public class StartupWizardCurrencyStep implements StartupWizard.Step {
 
     private static final double LIST_WIDTH = 400;

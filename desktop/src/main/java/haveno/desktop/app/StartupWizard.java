@@ -50,21 +50,15 @@ import javafx.util.Duration;
 import javax.annotation.Nullable;
 import lombok.Value;
 
-/**
- * First-run setup wizard hosted in the {@link StartupShell} content slot: pages through the
- * given steps with back/next navigation and reports completion or the user quitting.
- * Steps may exclude themselves from the current path via {@link Step#isSkipped()}.
- */
+// First-run setup wizard hosted in the StartupShell content slot: pages through the given steps with back/next
+// navigation and reports completion or the user quitting. Steps may exclude themselves via Step#isSkipped().
 public class StartupWizard {
 
     /** A single wizard page; the wizard owns navigation, the step owns its content and validation. */
     public interface Step {
         Region getContent();
 
-        /**
-         * Validate on next and report whether to advance; the step displays its own errors.
-         * May report asynchronously from any thread (e.g. for slow validations off the JavaFX thread).
-         */
+        /** Validate on next and report whether to advance, possibly asynchronously; the step displays its own errors. */
         void validate(Consumer<Boolean> resultHandler);
 
         String getNextButtonText();
