@@ -59,6 +59,7 @@ import haveno.core.support.SupportManager;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Contract;
@@ -230,6 +231,23 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     }
 
 
+    @Override
+    protected void onSupportMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, SupportMessage message) {
+        super.onSupportMessage(decryptedMessageWithPubKey, message);
+        if (message instanceof DisputeClosedMessage) verifyDisputeClosedMessageSender(decryptedMessageWithPubKey, (DisputeClosedMessage) message);
+    }
+
+    // A DisputeClosedMessage is only valid from the trade's arbitrator; reject a counterparty
+    // forgery before it can clobber the stored ruling and destroy the trade's dispute state.
+    private void verifyDisputeClosedMessageSender(DecryptedMessageWithPubKey decryptedMessageWithPubKey, DisputeClosedMessage message) {
+        Trade trade = tradeManager.getTrade(message.getTradeId());
+        if (trade == null) return;
+        if (trade.getVerifiedTradePeer(decryptedMessageWithPubKey) != trade.getArbitrator()) {
+            throw new IllegalStateException("DisputeClosedMessage for trade " + message.getTradeId() + " was not sent by the trade's arbitrator");
+        }
+    }
+
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Abstract methods
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -365,10 +383,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 }
             }
 
-            // remove duplicates
+            // remove duplicates by identity, since disputes sharing an id are equal
             for (Dispute duplicate : duplicates) {
                 log.warn("Removing duplicate dispute, tradeId={}, disputeId={}", duplicate.getTradeId(), duplicate.getId());
-                getDisputeList().remove(duplicate);
+                getDisputeList().getList().removeIf(e -> e == duplicate);
             }
             if (!duplicates.isEmpty()) requestPersistence();
         }
@@ -465,17 +483,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         // set dispute
         T disputeList = getDisputeList();
         synchronized (disputeList.getList()) {
-            if (disputeList.contains(dispute)) {
-                String msg = "We got a dispute msg that we have already stored. TradeId = " + dispute.getTradeId() + ", DisputeId = " + dispute.getId();
-                log.warn(msg);
-                faultHandler.handleFault(msg, new DisputeAlreadyOpenException());
-                return;
-            }
 
+            // add if new; re-opening reuses the stored dispute (identified by tradeId + traderId)
             Optional<Dispute> storedDisputeOptional = findDispute(dispute);
             boolean reOpen = storedDisputeOptional.isPresent();
-
-            // add or re-open dispute
             if (reOpen) {
                 dispute = storedDisputeOptional.get();
             } else {
@@ -738,24 +749,24 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     if (trade instanceof ArbitratorTrade) addPriceInfoMessage(dispute, 0);
 
                     // add or re-open dispute
-                    synchronized (disputeList) {
-                        if (disputeList.contains(msgDispute)) throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
-
-                        // update trade state
-                        if (reOpen) {
-                            trade.setDisputeState(Trade.DisputeState.DISPUTE_OPENED);
-                        } else {
+                    synchronized (disputeList.getList()) {
+                        // add if new; re-opening reuses the stored dispute. monotonic state and the
+                        // result-guard below keep a replayed open from regressing state or nulling payout.
+                        if (!reOpen) {
                             UserThread.execute(() -> {
-                                synchronized (disputeList) {
+                                synchronized (disputeList.getList()) {
                                     disputeList.add(dispute);
                                 }
                             });
-                            trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
                         }
+                        trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
 
-                        // reset buyer and seller unsigned payout tx hex
-                        trade.getBuyer().setUnsignedPayoutTxHex(null);
-                        trade.getSeller().setUnsignedPayoutTxHex(null);
+                        // reset unsigned payout tx hex, but not once the dispute is resolved so a
+                        // replayed open cannot null a pending dispute payout
+                        if (dispute.getDisputeResultProperty().get() == null) {
+                            trade.getBuyer().setUnsignedPayoutTxHex(null);
+                            trade.getSeller().setUnsignedPayoutTxHex(null);
+                        }
 
                         // send dispute opened message to other peer if arbitrator
                         if (trade.isArbitrator()) {
@@ -885,7 +896,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         } else {
             final Dispute finalDispute = dispute;
             UserThread.execute(() -> {
-                synchronized (disputeList) {
+                synchronized (disputeList.getList()) {
                     disputeList.add(finalDispute);
                 }
             });

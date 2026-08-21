@@ -27,6 +27,8 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import static io.grpc.Status.UNAUTHENTICATED;
 import io.grpc.StatusRuntimeException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import static java.lang.String.format;
 
 /**
@@ -56,7 +58,9 @@ public class PasswordAuthInterceptor implements ServerInterceptor {
             throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
                     format("missing '%s' rpc header value", PASSWORD_KEY)));
 
-        if (!actualPasswordValue.equals(expectedPasswordValue))
+        // Constant-time comparison to avoid leaking the password via response timing.
+        if (!MessageDigest.isEqual(actualPasswordValue.getBytes(StandardCharsets.UTF_8),
+                expectedPasswordValue.getBytes(StandardCharsets.UTF_8)))
             throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
                     format("incorrect '%s' rpc header value", PASSWORD_KEY)));
 
