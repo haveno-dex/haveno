@@ -128,11 +128,12 @@ public class GrpcServer {
             @Override
             public void onTorNodeReady() {
                 try {
-                    String onionAddress = p2PService.getNetworkNode().publishHiddenService(HIDDEN_SERVICE_NAME, config.apiPort, config.apiPort);
+                    int port = config.apiHiddenServicePort;
+                    String onionAddress = p2PService.getNetworkNode().publishHiddenService(HIDDEN_SERVICE_NAME, port, port);
                     log.info("\n################################################################\n" +
                             "API hidden service published: {}:{}\n" +
                             "################################################################",
-                            onionAddress, config.apiPort);
+                            onionAddress, port);
                 } catch (Exception e) {
                     log.error("Could not publish API hidden service", e);
                 }
