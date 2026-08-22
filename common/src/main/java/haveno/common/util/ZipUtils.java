@@ -21,8 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -98,12 +100,32 @@ public class ZipUtils {
      * @param bufferSize The buffer used to read from efficiently.
      */
     public static void unzipToDir(File dir, InputStream inputStream, int bufferSize) throws Exception {
+        // Resolve the target directory to its canonical path once, so every entry
+        // can be containment-checked against the same baseline. The canonical path
+        // also normalizes platform-specific separators and trailing dots that some
+        // filesystems would otherwise treat as escape sequences.
+        final Path canonicalDir = dir.getCanonicalFile().toPath();
         try (ZipInputStream zipStream = new ZipInputStream(inputStream)) {
             ZipEntry entry;
             byte[] buffer = new byte[bufferSize];
             int count;
             while ((entry = zipStream.getNextEntry()) != null) {
                 File file = new File(dir, entry.getName());
+                // Reject any entry whose canonicalized path escapes the target
+                // directory (zip slip). An attacker who controls the zip stream
+                // can otherwise write files anywhere the JVM user can write by
+                // embedding entries like `../../etc/cron.d/evil`.
+                Path canonicalEntry;
+                try {
+                    canonicalEntry = file.getCanonicalFile().toPath();
+                } catch (IOException e) {
+                    throw new java.util.zip.ZipException(
+                            "Zip entry has an unresolvable name: " + entry.getName());
+                }
+                if (!canonicalEntry.startsWith(canonicalDir)) {
+                    throw new java.util.zip.ZipException(
+                            "Zip entry escapes target directory: " + entry.getName());
+                }
                 if (entry.isDirectory()) {
                     file.mkdirs();
                 } else {

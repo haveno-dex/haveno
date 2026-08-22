@@ -59,8 +59,8 @@ public class GrpcServer {
                       GrpcXmrConnectionService moneroConnectionsService,
                       GrpcXmrNodeService moneroNodeService) {
         this.server = ServerBuilder.forPort(config.apiPort)
-                .addService(shutdownService)
                 .intercept(passwordAuthInterceptor)
+                .addService(interceptForward(shutdownService, interceptors()))
                 .addService(interceptForward(accountService, config.disableRateLimits ? interceptors() : accountService.interceptors()))
                 .addService(interceptForward(disputeAgentsService, config.disableRateLimits ? interceptors() : disputeAgentsService.interceptors()))
                 .addService(interceptForward(disputesService, config.disableRateLimits ? interceptors() : disputesService.interceptors()))
