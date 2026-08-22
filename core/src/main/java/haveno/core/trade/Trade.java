@@ -3792,6 +3792,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public MoneroSyncResult sync() {
         synchronized (walletLock) {
             if (!isDepositRequested()) throw new IllegalStateException("Cannot sync trade wallet because deposit txs are not requested for " + getClass().getSimpleName() + ", " + getId());
+
+            // catch up with progress-based sync first, whose timeout extends while progressing, unlike the direct sync's fixed timeout
+            walletHeight.set(wallet.getHeight());
+            if (isWalletBehind()) doSyncWithProgress(true, null);
+
             log.info("Syncing wallet directly for {} {}", getClass().getSimpleName(), getShortId());
             long startTime = System.currentTimeMillis();
             MoneroSyncResult result = super.sync();
