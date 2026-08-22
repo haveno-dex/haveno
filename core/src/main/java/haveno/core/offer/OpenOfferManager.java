@@ -1732,6 +1732,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
+            // verify fixed price is positive (market based offers have no fixed price)
+            if (!request.getOfferPayload().isUseMarketBasedPrice() && request.getOfferPayload().getPrice() <= 0) {
+                errorMessage = "Fixed price must be positive but was " + request.getOfferPayload().getPrice();
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
             // verify maker and taker fees
             boolean hasBuyerAsTakerWithoutDeposit = offer.hasBuyerAsTakerWithoutDeposit();
             if (hasBuyerAsTakerWithoutDeposit) {

@@ -41,7 +41,7 @@ public class StatisticsMain extends ExecutableForAppWithP2p {
     protected int doExecute() {
         super.doExecute();
 
-        checkMemory(config, this);
+        checkMemory(config);
 
         return keepRunning();
     }

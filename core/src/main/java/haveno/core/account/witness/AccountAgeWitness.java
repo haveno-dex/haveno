@@ -18,6 +18,7 @@
 package haveno.core.account.witness;
 
 import com.google.protobuf.ByteString;
+import haveno.common.util.DateUtil;
 import haveno.common.util.Utilities;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.DateTolerantPayload;
@@ -82,9 +83,9 @@ public class AccountAgeWitness implements ProcessOncePersistableNetworkPayload, 
 
     @Override
     public boolean isDateInTolerance(Clock clock) {
-        // We don't allow older or newer than 1 day.
-        // Preventing forward dating is also important to protect against a sophisticated attack
-        return Math.abs(clock.millis() - date) <= TOLERANCE;
+        // We don't allow older or newer than 1 day; forward dating also protects against a sophisticated attack.
+        // The date is peer controlled, so avoid a difference check: Math.abs(now - date) can overflow and accept.
+        return DateUtil.isWithinTolerance(date, clock.millis(), TOLERANCE);
     }
 
     @Override

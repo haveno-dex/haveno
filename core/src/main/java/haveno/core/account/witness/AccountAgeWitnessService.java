@@ -18,6 +18,7 @@
 package haveno.core.account.witness;
 
 import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
 import haveno.common.UserThread;
@@ -27,6 +28,7 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.util.DateUtil;
 import haveno.common.util.MathUtils;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
@@ -47,6 +49,7 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.arbitration.TraderDataItem;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.user.User;
@@ -627,10 +630,12 @@ public class AccountAgeWitnessService {
     }
 
     public boolean verifyPeersCurrentDate(Date peersCurrentDate) {
-        boolean result = Math.abs(peersCurrentDate.getTime() - new Date().getTime()) <= TimeUnit.DAYS.toMillis(1);
+        // The peer's date is untrusted, so use overflow-safe bounds instead of a difference check.
+        long now = clock.millis();
+        boolean result = DateUtil.isWithinTolerance(peersCurrentDate.getTime(), now, TimeUnit.DAYS.toMillis(1));
         if (!result) {
-            String msg = "Peers current date is further than 1 day off to our current date. " +
-                    "PeersCurrentDate=" + peersCurrentDate + "; myCurrentDate=" + new Date();
+            String msg = "Peers current date is further than 1 day off from our current date. " +
+                    "PeersCurrentDate=" + peersCurrentDate + "; myCurrentDate=" + new Date(now);
             throw new RuntimeException(msg);
         }
         return result;
@@ -760,8 +765,39 @@ public class AccountAgeWitnessService {
         return Optional.empty();
     }
 
-    public boolean publishOwnSignedWitness(SignedWitness signedWitness) {
-        return signedWitnessService.publishOwnSignedWitness(signedWitness);
+    // Called by the buyer with its seller-signed witness from the PaymentReceivedMessage; all fields are
+    // peer controlled, so validated trade data restricts acceptance to the witness expected for that trade.
+    public boolean publishOwnSignedWitness(SignedWitness signedWitness, Trade trade) {
+        try {
+            Contract contract = checkNotNull(trade.getContract(), "contract must not be null");
+            PubKeyRing buyerPubKeyRing = checkNotNull(contract.getBuyerPubKeyRing(), "buyerPubKeyRing must not be null");
+            PubKeyRing sellerPubKeyRing = checkNotNull(contract.getSellerPubKeyRing(), "sellerPubKeyRing must not be null");
+            PaymentAccountPayload myPaymentAccountPayload = checkNotNull(trade.getSelf().getPaymentAccountPayload(),
+                    "myPaymentAccountPayload must not be null");
+            BigInteger tradeAmount = checkNotNull(trade.getAmount(), "tradeAmount must not be null");
+
+            byte[] witnessOwnerPubKey = keyRing.getPubKeyRing().getSignaturePubKeyBytes();
+            byte[] signerPubKey = signedWitness.getSignerPubKey();
+            checkArgument(Arrays.equals(buyerPubKeyRing.getSignaturePubKeyBytes(), witnessOwnerPubKey),
+                    "Buyer signature must be witnessOwnerPubKey");
+            checkArgument(Arrays.equals(sellerPubKeyRing.getSignaturePubKeyBytes(), signerPubKey),
+                    "Seller signature must be signerPubKey");
+
+            byte[] accountAgeWitnessHash = signedWitness.getAccountAgeWitnessHash();
+            AccountAgeWitness myWitness = getMyWitness(myPaymentAccountPayload);
+            checkArgument(Arrays.equals(accountAgeWitnessHash, myWitness.getHash()),
+                    "The witness hash is not matching");
+
+            return signedWitnessService.publishOwnSignedWitness(signedWitness,
+                    tradeAmount,
+                    myWitness,
+                    signerPubKey,
+                    witnessOwnerPubKey,
+                    trade.getDate().getTime());
+        } catch (Exception e) {
+            log.warn("Failed to publish signedWitness received in trade {}, exception {}", trade.getId(), e.toString());
+        }
+        return false;
     }
 
     // Arbitrator signing

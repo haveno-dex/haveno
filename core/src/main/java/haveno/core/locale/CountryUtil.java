@@ -70,6 +70,9 @@ public class CountryUtil {
             // Microstates using EUR officially
             "AD", "MC", "SM", "VA",
 
+            // Non-EU countries using EUR unilaterally
+            "ME", "XK",
+
             // French euro territories
             "PM", "YT", "RE", "GP", "MQ", "GF", "BL", "MF",
 
@@ -138,7 +141,7 @@ public class CountryUtil {
             "CH", "GB", "JE", "GG", "IM",
 
             // SEPA extension (non-EEA, non-euro)
-            "GI", "AL", "MD", "ME", "RS", "MK"
+            "GI", "AL", "MD", "RS", "MK"
         };
         populateCountryListByCodes(list, codes);
         list.sort((a, b) -> a.name.compareTo(b.name));

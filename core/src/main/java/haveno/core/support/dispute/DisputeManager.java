@@ -103,6 +103,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 
@@ -677,6 +678,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     boolean reOpen = storedDisputeOptional.isPresent();
                     Dispute dispute = reOpen ? storedDisputeOptional.get() : msgDispute;
                     Contract contract = dispute.getContract();
+
+                    // the incoming dispute must declare the expected support type
+                    checkArgument(msgDispute.getSupportType() == message.getSupportType(), "Dispute support type does not match message support type");
+                    if (!reOpen && msgDispute.getDisputeState() != Dispute.State.NEW) log.warn("Dispute for trade {} opened with state {}, processing to allow recovery by re-opening", msgDispute.getTradeId(), msgDispute.getDisputeState());
 
                     dispute.setSupportType(message.getSupportType());
                     dispute.setState(Dispute.State.NEW);

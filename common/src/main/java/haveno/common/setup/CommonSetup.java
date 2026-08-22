@@ -29,15 +29,18 @@ import haveno.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bitcoinj.store.BlockStoreException;
-import sun.misc.Signal;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 public class CommonSetup {
+    private static final AtomicBoolean exitScheduled = new AtomicBoolean();
+    private static volatile Thread shutdownHook;
 
     public static void setup(Config config, GracefulShutDownHandler gracefulShutDownHandler) {
         setupLog(config);
@@ -48,7 +51,7 @@ public class CommonSetup {
         Profiler.printSystemLoad();
 
         setSystemProperties();
-        setupSigIntHandlers(gracefulShutDownHandler);
+        setupShutdownHandler(gracefulShutDownHandler);
 
         DevEnv.setup(config);
     }
@@ -99,18 +102,57 @@ public class CommonSetup {
             System.setProperty("prism.lcdtext", "false");
     }
 
-    protected static void setupSigIntHandlers(GracefulShutDownHandler gracefulShutDownHandler) {
-        Signal.handle(new Signal("INT"), signal -> {
-            log.info("Received {}", signal);
-            UserThread.execute(() -> gracefulShutDownHandler.gracefulShutDown(() -> {
-            }));
-        });
+    protected static void setupShutdownHandler(GracefulShutDownHandler gracefulShutDownHandler) {
+        // setup re-runs on in-process restart, so replace any hook of the previous executable
+        removeShutdownHook();
+        Thread hook = new Thread(() -> {
+            try {
+                var countDownLatch = new CountDownLatch(1);
+                UserThread.execute(() ->
+                        gracefulShutDownHandler.gracefulShutDown(countDownLatch::countDown));
+                //noinspection ResultOfMethodCallIgnored
+                countDownLatch.await(2, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }, "HavenoShutdownHook");
+        Runtime.getRuntime().addShutdownHook(hook);
+        shutdownHook = hook;
+    }
 
-        Signal.handle(new Signal("TERM"), signal -> {
-            log.info("Received {}", signal);
-            UserThread.execute(() -> gracefulShutDownHandler.gracefulShutDown(() -> {
-            }));
-        });
+    // Terminates the process after an application-initiated graceful shutdown. Removes the shutdown hook first,
+    // as re-running it waits on the UserThread while System.exit waits on the hook, which can deadlock.
+    public static void exitAfter(int status, long delay, TimeUnit timeUnit) {
+        if (!exitScheduled.compareAndSet(false, true)) {
+            return;
+        }
+
+        removeShutdownHook();
+        Thread exitThread = new Thread(() -> {
+            try {
+                timeUnit.sleep(delay);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            System.exit(status);
+        }, "HavenoExit");
+        exitThread.setDaemon(false);
+        exitThread.start();
+    }
+
+    static boolean removeShutdownHook() {
+        Thread hook = shutdownHook;
+        shutdownHook = null;
+        if (hook == null) {
+            return false;
+        }
+
+        try {
+            return Runtime.getRuntime().removeShutdownHook(hook);
+        } catch (IllegalStateException | SecurityException ignored) {
+            // The JVM is already shutting down, or its security policy does not permit removal.
+            return false;
+        }
     }
 
     protected static void maybePrintPathOfCodeSource() {

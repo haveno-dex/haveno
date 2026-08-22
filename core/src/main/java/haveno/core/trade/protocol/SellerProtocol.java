@@ -46,6 +46,7 @@ import haveno.core.trade.protocol.tasks.SellerSendPaymentReceivedMessageToBuyer;
 import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToArbitrator;
 import haveno.core.trade.protocol.tasks.SendDepositsConfirmedMessageToBuyer;
 import haveno.core.trade.protocol.tasks.TradeTask;
+import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -123,6 +124,9 @@ public class SellerProtocol extends DisputeProtocol {
                             .preCondition(trade.confirmPermitted()))
                             .setup(tasks(
                                     ApplyFilter.class,
+                                    // re-verify the buyer's account witness before payout; the check after
+                                    // processing PaymentSentMessage does not block the state advance
+                                    VerifyPeersAccountAgeWitness.class,
                                     SellerPreparePaymentReceivedMessage.class,
                                     SellerSendPaymentReceivedMessageToBuyer.class,
                                     SellerSendPaymentReceivedMessageToArbitrator.class)
