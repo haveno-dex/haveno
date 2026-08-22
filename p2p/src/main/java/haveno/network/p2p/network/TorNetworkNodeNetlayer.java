@@ -159,6 +159,17 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     }
 
     @Override
+    public String publishHiddenService(String name, int servicePort, int localPort) {
+        Tor tor = Tor.getDefault();
+        if (tor == null) throw new IllegalStateException("Cannot publish hidden service because tor is not running");
+        try {
+            return tor.publishHiddenService(torMode.getHiddenServiceDirectory(name), servicePort, localPort).getHostname();
+        } catch (IOException | TorCtlException e) {
+            throw new RuntimeException("Could not publish hidden service " + name, e);
+        }
+    }
+
+    @Override
     protected void createTorAndHiddenService() {
         int localPort = Utils.findFreeSystemPort();
         executor.submit(() -> {
