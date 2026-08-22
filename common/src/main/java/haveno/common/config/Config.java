@@ -116,6 +116,7 @@ public class Config {
     public static final String NUM_CONNECTIONS_FOR_BTC = "numConnectionsForBtc";
     public static final String API_PASSWORD = "apiPassword";
     public static final String API_PORT = "apiPort";
+    public static final String API_HIDDEN_SERVICE = "apiHiddenService";
     public static final String PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE = "preventPeriodicShutdownAtSeedNode";
     public static final String REPUBLISH_MAILBOX_ENTRIES = "republishMailboxEntries";
     public static final String LEGACY_FEE_DATAMAP = "dataMap";
@@ -219,6 +220,7 @@ public class Config {
     public final int numConnectionsForBtc;
     public final String apiPassword;
     public final int apiPort;
+    public final boolean apiHiddenService;
     public final boolean preventPeriodicShutdownAtSeedNode;
     public final boolean republishMailboxEntries;
     public final boolean bypassMempoolValidation;
@@ -661,6 +663,13 @@ public class Config {
                         .ofType(Integer.class)
                         .defaultsTo(9998);
 
+        ArgumentAcceptingOptionSpec<Boolean> apiHiddenServiceOpt =
+                parser.accepts(API_HIDDEN_SERVICE,
+                        "Publish the gRPC API as a tor hidden service and bind it to localhost")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(false);
+
         ArgumentAcceptingOptionSpec<Boolean> preventPeriodicShutdownAtSeedNodeOpt =
                 parser.accepts(PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE,
                         "Prevents periodic shutdown at seed nodes")
@@ -826,6 +835,7 @@ public class Config {
 
             this.apiPassword = options.valueOf(apiPasswordOpt);
             this.apiPort = options.valueOf(apiPortOpt);
+            this.apiHiddenService = options.valueOf(apiHiddenServiceOpt);
             this.preventPeriodicShutdownAtSeedNode = options.valueOf(preventPeriodicShutdownAtSeedNodeOpt);
             this.republishMailboxEntries = options.valueOf(republishMailboxEntriesOpt);
             this.bypassMempoolValidation = options.valueOf(bypassMempoolValidationOpt);

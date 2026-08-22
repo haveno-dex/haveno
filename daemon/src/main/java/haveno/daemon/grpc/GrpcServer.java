@@ -22,26 +22,36 @@ import com.google.inject.Singleton;
 import haveno.common.config.Config;
 import haveno.core.api.CoreContext;
 import haveno.daemon.grpc.interceptor.PasswordAuthInterceptor;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.SetupListener;
 import static io.grpc.ServerInterceptors.interceptForward;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j
 public class GrpcServer {
 
+    private static final String HIDDEN_SERVICE_NAME = "api";
+
+    private final Config config;
+    private final P2PService p2PService;
     private final Server server;
 
     @Inject
     public GrpcServer(CoreContext coreContext,
                       Config config,
+                      P2PService p2PService,
                       PasswordAuthInterceptor passwordAuthInterceptor,
                       GrpcAccountService accountService,
                       GrpcDisputeAgentsService disputeAgentsService,
@@ -58,7 +68,9 @@ public class GrpcServer {
                       GrpcNotificationsService notificationsService,
                       GrpcXmrConnectionService moneroConnectionsService,
                       GrpcXmrNodeService moneroNodeService) {
-        this.server = ServerBuilder.forPort(config.apiPort)
+        this.config = config;
+        this.p2PService = p2PService;
+        this.server = serverBuilder(config)
                 .addService(shutdownService)
                 .intercept(passwordAuthInterceptor)
                 .addService(interceptForward(accountService, config.disableRateLimits ? interceptors() : accountService.interceptors()))
@@ -80,6 +92,12 @@ public class GrpcServer {
         coreContext.setApiUser(true);
     }
 
+    // bind to localhost when the api is reached through the hidden service
+    private static ServerBuilder<?> serverBuilder(Config config) {
+        if (!config.apiHiddenService) return ServerBuilder.forPort(config.apiPort);
+        return NettyServerBuilder.forAddress(new InetSocketAddress(InetAddress.getLoopbackAddress(), config.apiPort));
+    }
+
     private ServerInterceptor[] interceptors() {
         return new ServerInterceptor[]{callLoggingInterceptor()};
     }
@@ -98,9 +116,33 @@ public class GrpcServer {
         try {
             server.start();
             log.info("listening on port {}", server.getPort());
+            if (config.apiHiddenService) publishHiddenService();
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
+    }
+
+    // publish the api onion once tor is running, reusing the address of previous runs
+    private void publishHiddenService() {
+        p2PService.getNetworkNode().addSetupListener(new SetupListener() {
+            @Override
+            public void onTorNodeReady() {
+                try {
+                    String onionAddress = p2PService.getNetworkNode().publishHiddenService(HIDDEN_SERVICE_NAME, config.apiPort, config.apiPort);
+                    log.info("\n################################################################\n" +
+                            "API hidden service published: {}:{}\n" +
+                            "################################################################",
+                            onionAddress, config.apiPort);
+                } catch (Exception e) {
+                    log.error("Could not publish API hidden service", e);
+                }
+            }
+
+            @Override
+            public void onHiddenServicePublished() {
+                // nothing to do
+            }
+        });
     }
 
     public void shutdown() {
