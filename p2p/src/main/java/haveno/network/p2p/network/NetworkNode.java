@@ -437,6 +437,22 @@ public abstract class NetworkNode implements MessageListener {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
+    // Hidden services
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Publishes an additional hidden service on the running tor instance.
+     *
+     * @param name        directory name of the service, which persists its key
+     * @param servicePort port the onion address accepts connections on
+     * @param localPort   local port the connections are relayed to
+     * @return the onion address of the published service
+     */
+    public String publishHiddenService(String name, int servicePort, int localPort) {
+        throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support hidden services");
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
     // MessageListener implementation
     ///////////////////////////////////////////////////////////////////////////////////////////
 
