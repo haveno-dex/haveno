@@ -92,7 +92,7 @@ public class MakerRecreateReserveTx extends TradeTask {
                         for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                             MoneroRpcConnection sourceConnection = trade.getXmrConnectionService().getConnection();
                             try {
-                                reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
+                                reserveTx = model.getXmrWalletService().createReserveTx(trade, penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
                             } catch (IllegalStateException e) {
                                 log.warn("Illegal state creating reserve tx, tradeId={}, error={}", trade.getShortId(), i + 1, e.getMessage());
                                 throw e;

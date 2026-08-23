@@ -101,7 +101,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                             MoneroRpcConnection sourceConnection = model.getXmrWalletService().getXmrConnectionService().getConnection();
                             try {
                                 //if (true) throw new RuntimeException("Pretend error");
-                                reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
+                                reserveTx = model.getXmrWalletService().createReserveTx(openOffer, penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
                             } catch (IllegalStateException e) {
                                 log.warn("Illegal state creating reserve tx, offerId={}, error={}", openOffer.getShortId(), i + 1, e.getMessage());
                                 throw e;

@@ -36,6 +36,7 @@ import haveno.core.offer.OpenOffer;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
+import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.user.Preferences;
@@ -798,6 +799,7 @@ public class XmrWalletService extends XmrWalletBase {
      * Create the reserve tx and freeze its inputs. The full amount is returned
      * to the sender's payout address less the penalty and mining fees.
      *
+     * @param tradable the offer or trade to reserve funds for
      * @param penaltyFee penalty fee for breaking protocol
      * @param tradeFee trade fee
      * @param sendTradeAmount trade amount to send peer
@@ -807,14 +809,14 @@ public class XmrWalletService extends XmrWalletBase {
      * @param preferredSubaddressIndex preferred source subaddress to spend from (optional)
      * @return the reserve tx
      */
-    public MoneroTxWallet createReserveTx(BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendTradeAmount, BigInteger securityDeposit, String returnAddress, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
+    public MoneroTxWallet createReserveTx(Tradable tradable, BigInteger penaltyFee, BigInteger tradeFee, BigInteger sendTradeAmount, BigInteger securityDeposit, String returnAddress, boolean reserveExactAmount, Integer preferredSubaddressIndex) {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
-                log.info("Creating reserve tx with preferred subaddress index={}, return address={}", preferredSubaddressIndex, returnAddress);
+                log.info("Creating reserve tx for {} {} with preferred subaddress index={}, return address={}", tradable.getClass().getSimpleName(), tradable.getShortId(), preferredSubaddressIndex, returnAddress);
                 long time = System.currentTimeMillis();
                 BigInteger sendAmount = sendTradeAmount.add(securityDeposit).add(tradeFee).subtract(penaltyFee);
                 MoneroTxWallet reserveTx = createTradeTx(penaltyFee, HavenoUtils.getBurnAddress(), sendAmount, returnAddress, reserveExactAmount, preferredSubaddressIndex);
-                log.info("Done creating reserve tx in {} ms", System.currentTimeMillis() - time);
+                log.info("Done creating reserve tx for {} {} in {} ms", tradable.getClass().getSimpleName(), tradable.getShortId(), System.currentTimeMillis() - time);
                 return reserveTx;
             }
         }

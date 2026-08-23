@@ -70,7 +70,7 @@ public class TakerReserveTradeFunds extends TradeTask {
                             for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                                 MoneroRpcConnection sourceConnection = trade.getXmrConnectionService().getConnection();
                                 try {
-                                    reserveTx = model.getXmrWalletService().createReserveTx(penaltyFee, takerFee, sendAmount, securityDeposit, returnAddress, false, null);
+                                    reserveTx = model.getXmrWalletService().createReserveTx(trade, penaltyFee, takerFee, sendAmount, securityDeposit, returnAddress, false, null);
                                 } catch (IllegalStateException e) {
                                     log.warn("Illegal state creating reserve tx, offerId={}, error={}", trade.getShortId(), i + 1, e.getMessage());
                                     throw e;
