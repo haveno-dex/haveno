@@ -20,6 +20,7 @@ package haveno.core.trade.protocol.tasks;
 import com.google.common.base.Charsets;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.ArbitratorTrade;
@@ -80,6 +81,24 @@ public class ProcessInitTradeRequest extends TradeTask {
                 } catch (TradePriceOutOfToleranceException e) {
                     failed(e.getMessage());
                     return;
+                }
+
+                // reject when an open trade with the same peer has the same amount, direction, and payment account of ours,
+                // since their payments could be indistinguishable in a dispute
+                boolean makerIsBuyer = trade.getBuyer() == trade.getMaker();
+                for (Trade openTrade : processModel.getTradeManager().getOpenTrades()) {
+                    if (openTrade.getId().equals(trade.getId()) || openTrade instanceof ArbitratorTrade) continue;
+                    TradePeer openTradeSelf = openTrade instanceof MakerTrade ? openTrade.getMaker() : openTrade.getTaker();
+                    TradePeer openTradePeer = openTrade instanceof MakerTrade ? openTrade.getTaker() : openTrade.getMaker();
+                    if ((openTrade.getBuyer() == openTradeSelf) != makerIsBuyer) continue;
+                    if (!offer.getOfferPayload().getMakerPaymentAccountId().equals(openTradeSelf.getPaymentAccountId())) continue;
+                    if (!request.getTakerAccountId().equals(openTradePeer.getAccountId())) continue;
+                    Volume tradeVolume = trade.getVolume();
+                    Volume openTradeVolume = openTrade.getVolume();
+                    if (tradeVolume != null && openTradeVolume != null && tradeVolume.equals(openTradeVolume) && tradeVolume.getCurrencyCode().equals(openTradeVolume.getCurrencyCode())) {
+                        failed("Rejecting InitTradeRequest because open trade " + openTrade.getShortId() + " has the same amount and accounts, so their payments would be indistinguishable in a dispute");
+                        return;
+                    }
                 }
             }
 
