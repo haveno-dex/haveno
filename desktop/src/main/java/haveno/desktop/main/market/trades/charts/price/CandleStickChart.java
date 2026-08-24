@@ -52,7 +52,6 @@ package haveno.desktop.main.market.trades.charts.price;
 import haveno.desktop.main.market.trades.charts.CandleData;
 import haveno.desktop.main.market.trades.charts.PlotAreaTooltip;
 import javafx.animation.FadeTransition;
-import javafx.event.ActionEvent;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
@@ -206,20 +205,9 @@ public class CandleStickChart extends XYChart<Number, Number> {
             seriesPath.getElements().clear();
         }
 
-        final Node node = item.getNode();
-        if (shouldAnimate()) {
-            // fade out old candle
-            FadeTransition ft = new FadeTransition(Duration.millis(500), node);
-            ft.setToValue(0);
-            ft.setOnFinished((ActionEvent actionEvent) -> {
-                getPlotChildren().remove(node);
-                removeDataItemFromDisplay(series, item);
-            });
-            ft.play();
-        } else {
-            getPlotChildren().remove(node);
-            removeDataItemFromDisplay(series, item);
-        }
+        // remove immediately; fading out would render stale candles against the new axis range
+        getPlotChildren().remove(item.getNode());
+        removeDataItemFromDisplay(series, item);
     }
 
     @Override
@@ -259,37 +247,16 @@ public class CandleStickChart extends XYChart<Number, Number> {
     @Override
     protected void seriesRemoved(XYChart.Series<Number, Number> series) {
         legendWidthInvalid = true;
-        // remove all candle nodes
+        // remove immediately; fading out would render stale candles against the new axis range
         for (XYChart.Data<Number, Number> d : series.getData()) {
-            final Node candle = d.getNode();
-            if (shouldAnimate()) {
-                FadeTransition ft = new FadeTransition(Duration.millis(500), candle);
-                ft.setToValue(0);
-                ft.setOnFinished((ActionEvent actionEvent) -> getPlotChildren().remove(candle));
-                ft.play();
-            } else {
-                getPlotChildren().remove(candle);
-            }
+            getPlotChildren().remove(d.getNode());
         }
         if (series.getNode() instanceof Path) {
             Path seriesPath = (Path) series.getNode();
-            if (shouldAnimate()) {
-                FadeTransition ft = new FadeTransition(Duration.millis(500), seriesPath);
-                ft.setToValue(0);
-                ft.setOnFinished((ActionEvent actionEvent) -> {
-                    getPlotChildren().remove(seriesPath);
-                    seriesPath.getElements().clear();
-                    removeSeriesFromDisplay(series);
-                });
-                ft.play();
-            } else {
-                getPlotChildren().remove(seriesPath);
-                seriesPath.getElements().clear();
-                removeSeriesFromDisplay(series);
-            }
-        } else {
-            removeSeriesFromDisplay(series);
+            getPlotChildren().remove(seriesPath);
+            seriesPath.getElements().clear();
         }
+        removeSeriesFromDisplay(series);
     }
 
     /**
