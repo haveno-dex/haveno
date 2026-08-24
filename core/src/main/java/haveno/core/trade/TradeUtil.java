@@ -121,7 +121,7 @@ public class TradeUtil {
 
     public long getMaxTradePeriod(Trade trade) {
         return trade.getOffer() != null
-                ? trade.getOffer().getPaymentMethod().getMaxTradePeriod()
+                ? trade.getOffer().getMaxTradePeriod()
                 : 0;
     }
 

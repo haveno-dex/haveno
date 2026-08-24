@@ -576,7 +576,9 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public long getMaxTradePeriod() {
-        return offerPayload.getMaxTradePeriod();
+        // prefer the offer's trade period so changes to defaults do not affect existing offers
+        long maxTradePeriod = offerPayload.getMaxTradePeriod();
+        return maxTradePeriod > 0 ? maxTradePeriod : getPaymentMethod().getMaxTradePeriod();
     }
 
     public NodeAddress getOwnerNodeAddress() {

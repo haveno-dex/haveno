@@ -440,7 +440,7 @@ public class CoreOffersService {
                 Version.VERSION, // refresh version so outdated offers are re-signed
                 offerPayload.getBlockHeightAtOfferCreation(),
                 offerPayload.getMaxTradeLimit(),
-                offerPayload.getMaxTradePeriod(),
+                newOfferPayload.getMaxTradePeriod(), // use period of selected payment method
                 offerPayload.isUseAutoClose(),
                 offerPayload.isUseReOpenAfterAutoClose(),
                 offerPayload.getLowerClosePrice(),
