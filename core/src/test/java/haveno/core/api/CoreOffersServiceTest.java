@@ -24,20 +24,21 @@ public class CoreOffersServiceTest {
 
     @Test
     public void testEditedOfferUsesNewPaymentMethodTradePeriod() {
-        OpenOffer openOffer = new OpenOffer(new Offer(createPayload(PaymentMethod.SEPA_ID, PaymentMethod.SEPA.getMaxTradePeriod())));
-        OfferPayload newPayload = createPayload(PaymentMethod.ZELLE_ID, PaymentMethod.ZELLE.getMaxTradePeriod());
+        OpenOffer openOffer = new OpenOffer(new Offer(createPayload(PaymentMethod.SEPA_ID, PaymentMethod.SEPA.getMaxTradePeriod(), 200000L)));
+        OfferPayload newPayload = createPayload(PaymentMethod.ZELLE_ID, PaymentMethod.ZELLE.getMaxTradePeriod(), 100000L);
 
         OfferPayload editedPayload = createService().getEditedOffer(openOffer, newPayload).getOfferPayload();
         assertEquals(PaymentMethod.ZELLE_ID, editedPayload.getPaymentMethodId());
         assertEquals(PaymentMethod.ZELLE.getMaxTradePeriod(), editedPayload.getMaxTradePeriod());
+        assertEquals(100000L, editedPayload.getMaxTradeLimit());
     }
 
     @Test
     public void testEditedOfferRefreshesTradePeriodForSamePaymentMethod() {
         // editing republishes the offer with the payment method's current period
         long grandfatheredPeriod = PaymentMethod.ZELLE.getMaxTradePeriod() * 4;
-        OpenOffer openOffer = new OpenOffer(new Offer(createPayload(PaymentMethod.ZELLE_ID, grandfatheredPeriod)));
-        OfferPayload newPayload = createPayload(PaymentMethod.ZELLE_ID, PaymentMethod.ZELLE.getMaxTradePeriod());
+        OpenOffer openOffer = new OpenOffer(new Offer(createPayload(PaymentMethod.ZELLE_ID, grandfatheredPeriod, 100000L)));
+        OfferPayload newPayload = createPayload(PaymentMethod.ZELLE_ID, PaymentMethod.ZELLE.getMaxTradePeriod(), 100000L);
 
         OfferPayload editedPayload = createService().getEditedOffer(openOffer, newPayload).getOfferPayload();
         assertEquals(PaymentMethod.ZELLE.getMaxTradePeriod(), editedPayload.getMaxTradePeriod());
@@ -57,7 +58,7 @@ public class CoreOffersServiceTest {
                 mock(CorePersistenceProtoResolver.class));
     }
 
-    private static OfferPayload createPayload(String paymentMethodId, long maxTradePeriod) {
+    private static OfferPayload createPayload(String paymentMethodId, long maxTradePeriod, long maxTradeLimit) {
         return new OfferPayload("offer-id",
                 0L,
                 null,
@@ -83,7 +84,7 @@ public class CoreOffersServiceTest {
                 null,
                 "",
                 0L,
-                0L,
+                maxTradeLimit,
                 maxTradePeriod,
                 false,
                 false,
