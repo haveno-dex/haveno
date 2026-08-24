@@ -105,4 +105,9 @@ public final class PayPayAccountPayload extends PaymentAccountPayload implements
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(accountNr);
+    }
 }

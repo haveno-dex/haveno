@@ -108,4 +108,9 @@ public final class USPostalMoneyOrderAccountPayload extends PaymentAccountPayloa
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(holderName, postalAddress);
+    }
 }

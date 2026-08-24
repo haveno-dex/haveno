@@ -133,4 +133,9 @@ public final class RevolutAccountPayload extends PaymentAccountPayload {
     public void setUserName(String username) {
         this.username = username;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(username);
+    }
 }

@@ -118,4 +118,9 @@ public final class PagoMovilAccountPayload extends PaymentAccountPayload impleme
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeMobileNr(mobileNr, "58", 10));
+    }
 }

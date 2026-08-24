@@ -105,4 +105,9 @@ public final class WeroAccountPayload extends PaymentAccountPayload implements P
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return null; // multi-region method, so national phone forms cannot be canonicalized to one region
+    }
 }

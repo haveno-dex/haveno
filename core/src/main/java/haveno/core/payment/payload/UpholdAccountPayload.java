@@ -107,4 +107,9 @@ public final class UpholdAccountPayload extends PaymentAccountPayload {
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(accountId.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(accountId);
+    }
 }

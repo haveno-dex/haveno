@@ -59,7 +59,6 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
                 .collect(Collectors.toList());
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -115,7 +114,6 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -163,5 +161,16 @@ public final class SepaInstantAccountPayload extends CountryBasedPaymentAccountP
     @Override
     public String getOwnerId() {
         return holderName;
+    }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(iban);
+    }
+
+    // shares the SEPA namespace since a SEPA offer may be taken with SEPA Instant against the same IBAN
+    @Override
+    protected String getPaymentEndpointNamespace() {
+        return PaymentMethod.SEPA_ID;
     }
 }

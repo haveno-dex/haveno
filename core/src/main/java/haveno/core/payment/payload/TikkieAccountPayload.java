@@ -98,4 +98,9 @@ public final class TikkieAccountPayload extends CountryBasedPaymentAccountPayloa
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(iban.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(iban);
+    }
 }

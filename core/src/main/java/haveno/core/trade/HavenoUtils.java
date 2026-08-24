@@ -37,8 +37,11 @@ import haveno.core.app.HavenoSetup;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.MoneyBeamAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.PixAccountPayload;
 import haveno.core.payment.payload.TransferwiseAccountPayload;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -70,6 +73,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -816,7 +821,22 @@ public class HavenoUtils {
         }
     }
 
-    public static void verifyPaymentAccountPayloadHash(PaymentAccountPayload payload, byte[] contractHash, String owner) {
+    private static final Map<String, Class<? extends PaymentAccountPayload>> PAYLOAD_CLASS_BY_METHOD_ID = new ConcurrentHashMap<>();
+
+    public static void verifyPaymentAccountPayload(PaymentAccountPayload payload, String contractPaymentMethodId, byte[] contractHash, String owner) {
+
+        // verify the payload's self-declared payment method against the signed contract, since it determines
+        // the endpoint namespace for detecting trades with indistinguishable payments
+        if (!payload.getPaymentMethodId().equals(contractPaymentMethodId)) {
+            throw new IllegalArgumentException("Payment method id '" + payload.getPaymentMethodId() + "' of " + owner + "'s payment account payload does not match the contract's payment method id '" + contractPaymentMethodId + "'");
+        }
+
+        // verify the payload's concrete type is valid for the payment method, since the proto resolver selects
+        // the type from the protobuf oneof independently of the declared method id
+        if (payload.getClass() != getPaymentAccountPayloadClass(contractPaymentMethodId)) {
+            throw new IllegalArgumentException("Type " + payload.getClass().getSimpleName() + " of " + owner + "'s payment account payload is invalid for payment method id '" + contractPaymentMethodId + "'");
+        }
+
         if (!Arrays.equals(payload.getHash(), contractHash)) {
 
             // TODO: Due to a bug in v1.2.3, the hash of some payloads may not match the hash in the contract.
@@ -833,5 +853,15 @@ public class HavenoUtils {
                 throw new IllegalArgumentException("Hash of " + owner + "'s payment account payload does not match contract, expected=" + Utilities.bytesAsHexString(contractHash) + ", actual=" + Utilities.bytesAsHexString(payload.getHash()));
             }
         }
+    }
+
+    // expected concrete payload type for a payment method, derived from the account factory independent of the
+    // method's active lifecycle so retained legacy payloads still validate
+    private static Class<? extends PaymentAccountPayload> getPaymentAccountPayloadClass(String paymentMethodId) {
+        return PAYLOAD_CLASS_BY_METHOD_ID.computeIfAbsent(paymentMethodId, id -> {
+            PaymentAccount account = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getDummyPaymentMethod(id));
+            account.init();
+            return account.getPaymentAccountPayload().getClass();
+        });
     }
 }

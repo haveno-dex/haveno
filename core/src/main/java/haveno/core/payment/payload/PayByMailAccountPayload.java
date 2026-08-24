@@ -117,4 +117,9 @@ public final class PayByMailAccountPayload extends PaymentAccountPayload impleme
     public String getHolderName() {
         return contact;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(contact, postalAddress);
+    }
 }

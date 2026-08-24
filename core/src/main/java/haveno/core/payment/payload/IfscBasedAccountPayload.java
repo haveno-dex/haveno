@@ -94,4 +94,9 @@ public abstract class IfscBasedAccountPayload extends CountryBasedPaymentAccount
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(accountNr, ifsc);
+    }
 }

@@ -123,4 +123,11 @@ public class MoneyGramAccountPayload extends PaymentAccountPayload implements Pa
                 this.email;
         return super.getAgeWitnessInputData(all.getBytes(StandardCharsets.UTF_8));
     }
+
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        String state = BankUtil.isStateRequired(countryCode) ? this.state : ""; // exclude unvalidated state where not required
+        return getPaymentEndpointData(countryCode, state, holderName); // exclude contact email, which is not on the payment receipt
+    }
 }

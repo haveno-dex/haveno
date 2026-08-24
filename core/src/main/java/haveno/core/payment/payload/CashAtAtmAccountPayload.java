@@ -93,4 +93,9 @@ public final class CashAtAtmAccountPayload extends PaymentAccountPayload {
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(ArrayUtils.addAll(id.getBytes(StandardCharsets.UTF_8)));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return null; // no stable external endpoint
+    }
 }

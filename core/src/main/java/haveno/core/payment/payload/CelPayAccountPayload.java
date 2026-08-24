@@ -83,4 +83,9 @@ public final class CelPayAccountPayload extends PaymentAccountPayload {
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(email.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(email);
+    }
 }

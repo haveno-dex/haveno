@@ -135,8 +135,14 @@ public final class JapanBankAccountPayload extends PaymentAccountPayload impleme
         return super.getAgeWitnessInputData(all.getBytes(StandardCharsets.UTF_8));
     }
 
+
     @Override
     public String getHolderName() {
         return bankAccountName;
+    }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(bankCode, bankBranchCode, bankAccountType, bankAccountNumber);
     }
 }

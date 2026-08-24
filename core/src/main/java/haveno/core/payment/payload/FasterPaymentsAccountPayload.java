@@ -109,4 +109,9 @@ public final class FasterPaymentsAccountPayload extends PaymentAccountPayload {
         return super.getAgeWitnessInputData(ArrayUtils.addAll(sortCode.getBytes(StandardCharsets.UTF_8),
                 accountNr.getBytes(StandardCharsets.UTF_8)));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(sortCode, accountNr);
+    }
 }

@@ -111,4 +111,9 @@ public final class ChaseQuickPayAccountPayload extends PaymentAccountPayload imp
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(email);
+    }
 }

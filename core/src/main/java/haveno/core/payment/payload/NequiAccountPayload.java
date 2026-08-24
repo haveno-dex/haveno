@@ -98,4 +98,9 @@ public final class NequiAccountPayload extends CountryBasedPaymentAccountPayload
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(mobileNr.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeMobileNr(mobileNr, "57", 10));
+    }
 }

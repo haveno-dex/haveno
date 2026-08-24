@@ -98,4 +98,9 @@ public final class StrikeAccountPayload extends CountryBasedPaymentAccountPayloa
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(holderName.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(holderName);
+    }
 }

@@ -111,4 +111,9 @@ public final class QrisAccountPayload extends PaymentAccountPayload implements P
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(accountNr);
+    }
 }

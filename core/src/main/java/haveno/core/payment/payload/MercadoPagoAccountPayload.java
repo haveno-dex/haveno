@@ -103,4 +103,10 @@ public final class MercadoPagoAccountPayload extends CountryBasedPaymentAccountP
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(emailOrMobileNr.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        if (isPhoneShaped(emailOrMobileNr)) return null; // multi-region method, so phone forms cannot be canonicalized to one region
+        return getPaymentEndpointData(emailOrMobileNr);
+    }
 }

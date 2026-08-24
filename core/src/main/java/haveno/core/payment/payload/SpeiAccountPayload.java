@@ -103,4 +103,9 @@ public final class SpeiAccountPayload extends CountryBasedPaymentAccountPayload 
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(clabe.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(clabe);
+    }
 }

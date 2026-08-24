@@ -103,4 +103,11 @@ public final class SbpAccountPayload extends CountryBasedPaymentAccountPayload {
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(mobileNr.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        String digits = mobileNr == null ? "" : mobileNr.replaceAll("\\D", "");
+        if (digits.length() == 11 && digits.startsWith("8")) digits = "7" + digits.substring(1); // Russian trunk prefix
+        return getPaymentEndpointData(normalizeMobileNr(digits, "7", 10));
+    }
 }
