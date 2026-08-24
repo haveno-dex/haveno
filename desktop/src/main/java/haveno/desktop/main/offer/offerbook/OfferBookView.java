@@ -775,6 +775,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
             case SIGNATURE_NOT_VALIDATED:
                 new Popup().warning(Res.get("offerbook.warning.signatureNotValidated")).show();
                 break;
+            case HAS_INVALID_MAX_TRADE_PERIOD:
+                new Popup().warning(Res.get("offerbook.warning.invalidMaxTradePeriod")).show();
+                break;
             case RESERVE_FUNDS_SPENT:
                 new Popup().warning(Res.get("offerbook.warning.reserveFundsSpent")).show();
                 break;

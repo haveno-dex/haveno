@@ -677,6 +677,14 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 .findFirst();
     }
 
+    // valid periods are the payment method's current period, plus Zelle's previous period for grandfathered offers
+    public static boolean isValidMaxTradePeriod(String paymentMethodId, long maxTradePeriod) {
+        Optional<PaymentMethod> paymentMethod = getActivePaymentMethod(paymentMethodId);
+        if (!paymentMethod.isPresent()) return false;
+        if (maxTradePeriod == paymentMethod.get().getMaxTradePeriod()) return true;
+        return ZELLE_ID.equals(paymentMethodId) && maxTradePeriod == 4 * DAY;
+    }
+
     public BigInteger getMaxTradeLimit(String currencyCode) {
         // Hack for SF as the smallest unit is 1 SF ;-( and price is about 3 BTC!
         if (currencyCode.equals("SF"))

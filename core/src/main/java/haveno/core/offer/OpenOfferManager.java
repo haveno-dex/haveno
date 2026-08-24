@@ -67,6 +67,7 @@ import haveno.core.offer.messages.SignOfferResponse;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.offer.placeoffer.PlaceOfferProtocol;
 import haveno.core.offer.placeoffer.tasks.ValidateOffer;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -1606,6 +1607,10 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                   ErrorMessageHandler errorMessageHandler) {
         log.info("Signing and posting offer " + openOffer.getId());
 
+        // refresh trade period to the current default, since the arbitrator signs current terms only
+        PaymentMethod.getActivePaymentMethod(openOffer.getOffer().getOfferPayload().getPaymentMethodId())
+                .ifPresent(method -> openOffer.getOffer().getOfferPayload().setMaxTradePeriod(method.getMaxTradePeriod()));
+
         // create model
         PlaceOfferModel model = new PlaceOfferModel(openOffer,
                 openOffer.getOffer().getAmountNeeded(),
@@ -1735,6 +1740,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // verify fixed price is positive (market based offers have no fixed price)
             if (!request.getOfferPayload().isUseMarketBasedPrice() && request.getOfferPayload().getPrice() <= 0) {
                 errorMessage = "Fixed price must be positive but was " + request.getOfferPayload().getPrice();
+                log.warn(errorMessage);
+                sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
+                return;
+            }
+
+            // verify max trade period is the payment method's current period, so new signatures always carry current terms
+            Optional<PaymentMethod> requestPaymentMethod = PaymentMethod.getActivePaymentMethod(request.getOfferPayload().getPaymentMethodId());
+            if (!requestPaymentMethod.isPresent() || request.getOfferPayload().getMaxTradePeriod() != requestPaymentMethod.get().getMaxTradePeriod()) {
+                errorMessage = "Invalid max trade period for offer " + request.offerId + ": " + request.getOfferPayload().getMaxTradePeriod();
                 log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;

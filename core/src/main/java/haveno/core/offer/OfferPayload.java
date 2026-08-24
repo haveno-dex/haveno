@@ -143,7 +143,9 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     private final double buyerSecurityDepositPct;
     private final double sellerSecurityDepositPct;
     private final long maxTradeLimit;
-    private final long maxTradePeriod;
+    // mutable so it can be refreshed to the current default when the offer is re-signed
+    @Setter
+    private long maxTradePeriod;
 
     // reserved for future use cases
     // Close offer when certain price is reached

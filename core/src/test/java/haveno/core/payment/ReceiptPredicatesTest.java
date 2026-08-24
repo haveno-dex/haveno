@@ -47,7 +47,6 @@ public class ReceiptPredicatesTest {
     @Test
     public void testIsMatchingSepaOffer() {
         Offer offer = mock(Offer.class);
-        PaymentMethod.SEPA = mock(PaymentMethod.class);
         when(offer.getPaymentMethod()).thenReturn(PaymentMethod.SEPA);
 
         assertTrue(predicates.isMatchingSepaOffer(offer, mock(SepaInstantAccount.class)));
@@ -57,7 +56,6 @@ public class ReceiptPredicatesTest {
     @Test
     public void testIsMatchingSepaInstant() {
         Offer offer = mock(Offer.class);
-        PaymentMethod.SEPA_INSTANT = mock(PaymentMethod.class);
         when(offer.getPaymentMethod()).thenReturn(PaymentMethod.SEPA_INSTANT);
 
         assertTrue(predicates.isMatchingSepaInstant(offer, mock(SepaInstantAccount.class)));
@@ -74,8 +72,6 @@ public class ReceiptPredicatesTest {
 
     @Test
     public void testIsSameOrSpecificBank() {
-        PaymentMethod.SAME_BANK = mock(PaymentMethod.class);
-
         Offer offer = mock(Offer.class);
         when(offer.getPaymentMethod()).thenReturn(PaymentMethod.SAME_BANK);
 
