@@ -138,6 +138,15 @@ public class FailedTradesManager implements PersistedDataHost {
         }
     }
 
+    // failed trades whose deposits are published or unresolved, so can be restored to open trades
+    public List<Trade> getTradesWithRevivableDeposits() {
+        synchronized (failedTrades.getList()) {
+            return failedTrades.stream()
+                    .filter(trade -> trade.isFundsLockedIn() || trade.isProtocolErrorHandlingScheduled())
+                    .collect(Collectors.toList());
+        }
+    }
+
     public void unFailTrade(Trade trade) {
         synchronized (failedTrades.getList()) {
             if (unFailTradeCallback == null)
