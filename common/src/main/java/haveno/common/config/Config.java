@@ -210,6 +210,7 @@ public class Config {
     public final String xmrNodePassword;
     public final String xmrNodes;
     public final boolean useNativeXmrWallet;
+    public final boolean useNativeXmrWalletOptionSetExplicitly;
     public final boolean xmrStreamIsolation;
     public final UseTorForXmr useTorForXmr;
     public final boolean useTorForXmrOptionSetExplicitly;
@@ -605,7 +606,7 @@ public class Config {
                         .defaultsTo("");
 
         ArgumentAcceptingOptionSpec<Boolean> useNativeXmrWalletOpt =
-                parser.accepts(USE_NATIVE_XMR_WALLET, "Use native wallet libraries instead of monero-wallet-rpc server")
+                parser.accepts(USE_NATIVE_XMR_WALLET, "Use the native Monero wallet library instead of monero-wallet-rpc (overrides the setting in the UI)")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
@@ -816,6 +817,7 @@ public class Config {
             this.xmrNodePassword = options.valueOf(xmrNodePasswordOpt);
             this.xmrNodes = options.valueOf(xmrNodesOpt);
             this.useNativeXmrWallet = options.valueOf(useNativeXmrWalletOpt);
+            this.useNativeXmrWalletOptionSetExplicitly = options.has(useNativeXmrWalletOpt);
             this.xmrStreamIsolation = options.valueOf(xmrStreamIsolationOpt);
             this.useTorForXmr = (UseTorForXmr) options.valueOf(useTorForXmrOpt);
             this.useTorForXmrOptionSetExplicitly = options.has(useTorForXmrOpt);
