@@ -21,11 +21,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static haveno.core.offer.OfferMaker.btcUsdOffer;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -235,6 +238,91 @@ public class OpenOfferManagerTest {
         manager.editOpenOfferStart(openOffer, () -> secondEditSuccessful.set(true), null);
         assertTrue(secondEditSuccessful.get());
         verify(offerBookService, times(2)).deactivateOffer(any(OfferPayload.class), any(ResultHandler.class), any(ErrorMessageHandler.class));
+    }
+
+    @Test
+    public void testReserveOpenOfferRequiresAvailableOpenOffer() {
+        P2PService p2PService = mock(P2PService.class);
+        OfferBookService offerBookService = mock(OfferBookService.class);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
+
+        when(p2PService.getPeerManager()).thenReturn(mock(PeerManager.class));
+
+        final OpenOfferManager manager = new OpenOfferManager(coreContext,
+                null,
+                null,
+                p2PService,
+                xmrConnectionService,
+                null,
+                null,
+                null,
+                offerBookService,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                persistenceManager,
+                signedOfferPersistenceManager,
+                null);
+
+        final OpenOffer openOffer = new OpenOffer(make(btcUsdOffer));
+        openOffer.setState(OpenOffer.State.AVAILABLE);
+
+        // cannot reserve an offer which is not in the open offers list
+        assertFalse(manager.reserveOpenOffer(openOffer));
+
+        // reserve an available open offer
+        manager.getObservableList().add(openOffer);
+        assertTrue(manager.reserveOpenOffer(openOffer));
+        assertEquals(OpenOffer.State.RESERVED, openOffer.getState());
+
+        // cannot reserve an already reserved offer
+        assertFalse(manager.reserveOpenOffer(openOffer));
+    }
+
+    @Test
+    public void testRemoveAllOpenOffersSkipsReservedOffer() {
+        P2PService p2PService = mock(P2PService.class);
+        OfferBookService offerBookService = mock(OfferBookService.class);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
+
+        when(p2PService.getPeerManager()).thenReturn(mock(PeerManager.class));
+
+        final OpenOfferManager manager = new OpenOfferManager(coreContext,
+                null,
+                null,
+                p2PService,
+                xmrConnectionService,
+                null,
+                null,
+                null,
+                offerBookService,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                persistenceManager,
+                signedOfferPersistenceManager,
+                null);
+
+        final OpenOffer openOffer = new OpenOffer(make(btcUsdOffer));
+        openOffer.setState(OpenOffer.State.AVAILABLE);
+        manager.getObservableList().add(openOffer);
+        assertTrue(manager.reserveOpenOffer(openOffer));
+
+        // removal skips the reserved offer instead of canceling it
+        manager.removeAllOpenOffers(null);
+        assertEquals(OpenOffer.State.RESERVED, openOffer.getState());
+        assertTrue(manager.getObservableList().contains(openOffer));
+        verify(offerBookService, never()).removeOffer(any(OfferPayload.class), any(), any());
     }
 
 }

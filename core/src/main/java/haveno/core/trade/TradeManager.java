@@ -720,12 +720,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
   
-            // reserve open offer
-            openOfferManager.reserveOpenOffer(openOffer);
-
             // verify maker and taker pubKeyRings are different
             if (offer.getPubKeyRing().equals(request.getTakerPubKeyRing())) {
                 log.warn("Ignoring InitTradeRequest to maker because maker and taker pubKeyRings are the same, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
+
+            // reserve open offer
+            if (!openOfferManager.reserveOpenOffer(openOffer)) {
+                log.warn("Rejecting InitTradeRequest to maker because offer could not be reserved, offerId={}, sender={}", request.getOfferId(), sender);
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " is already taken or unavailable", null);
                 return;
             }
 
@@ -767,7 +771,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
             initTradeAndProtocol(trade, createTradeProtocol(trade));
             addTrade(trade);
-  
+
             // process with protocol
             ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
                 log.warn("Maker error during trade initialization: " + errorMessage);

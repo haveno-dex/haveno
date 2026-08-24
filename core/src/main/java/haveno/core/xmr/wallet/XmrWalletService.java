@@ -652,15 +652,15 @@ public class XmrWalletService extends XmrWalletBase {
     public void fixReservedOutputs() {
         synchronized (walletLock) {
 
-            // collect reserved outputs
+            // collect reserved outputs, read with wallet lock held so freeze and thaw state cannot change concurrently
             Set<String> reservedKeyImages = new HashSet<String>();
             for (Trade trade : HavenoUtils.tradeManager.getOpenTrades()) {
                 if (trade.getSelf().getReserveTxKeyImages() == null) continue;
                 reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
             }
             for (OpenOffer openOffer : HavenoUtils.tradeManager.getOpenOfferManager().getOpenOffers()) {
-                if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
-                reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+                if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null) reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+                if (openOffer.getReserveTxHash() == null) reservedKeyImages.addAll(getSplitOutputKeyImages(openOffer)); // split outputs are frozen until the reserve tx is created
             }
 
             freezeReservedOutputs(reservedKeyImages);
@@ -760,6 +760,24 @@ public class XmrWalletService extends XmrWalletBase {
             cacheWalletInfo();
             saveWallet();
         }
+    }
+
+    /**
+     * Get the exact amount outputs of an offer's split output tx.
+     *
+     * @param openOffer the offer funded by a split output tx
+     * @return the exact amount outputs, empty if no split output tx or outputs unseen
+     */
+    public List<MoneroOutputWallet> getSplitOutputs(OpenOffer openOffer) {
+        if (openOffer.getSplitOutputTxHash() == null) return new ArrayList<MoneroOutputWallet>();
+        return getOutputs(new MoneroOutputQuery()
+                .setAccountIndex(0)
+                .setAmount(openOffer.getOffer().getAmountNeeded())
+                .setTxQuery(new MoneroTxQuery().setHash(openOffer.getSplitOutputTxHash())));
+    }
+
+    public List<String> getSplitOutputKeyImages(OpenOffer openOffer) {
+        return getSplitOutputs(openOffer).stream().map(output -> output.getKeyImage().getHex()).collect(Collectors.toList());
     }
 
     private void cacheNonPoolTxs() {

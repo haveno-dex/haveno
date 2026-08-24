@@ -96,6 +96,10 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                 // attempt creating reserve tx
                 MoneroTxWallet reserveTx = null;
                 try {
+
+                    // thaw offer's split outputs for reserve tx to spend, within try so a thaw error re-freezes
+                    model.getXmrWalletService().thawOutputs(model.getXmrWalletService().getSplitOutputKeyImages(openOffer));
+
                     synchronized (HavenoUtils.getWalletFunctionLock()) {
                         for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                             MoneroRpcConnection sourceConnection = model.getXmrWalletService().getXmrConnectionService().getConnection();
@@ -125,6 +129,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                     setReserveTx(null);
                     model.getXmrWalletService().resetAddressEntriesForOpenOffer(offer.getId());
                     if (reserveTx != null) model.getXmrWalletService().thawOutputs(HavenoUtils.getInputKeyImages(reserveTx));
+                    if (isPending()) model.getXmrWalletService().freezeOutputs(model.getXmrWalletService().getSplitOutputKeyImages(openOffer)); // re-freeze split outputs while offer pending
                     throw e;
                 }
 
