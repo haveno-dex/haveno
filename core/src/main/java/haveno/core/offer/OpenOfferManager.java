@@ -67,6 +67,7 @@ import haveno.core.offer.messages.SignOfferResponse;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.offer.placeoffer.PlaceOfferProtocol;
 import haveno.core.offer.placeoffer.tasks.ValidateOffer;
+import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -110,6 +111,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -165,7 +167,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final FilterManager filterManager;
     private final Broadcaster broadcaster;
     private final PersistenceManager<TradableList<OpenOffer>> persistenceManager;
-    private final Map<String, OpenOffer> offersToBeEdited = new HashMap<>();
+    private final Map<String, OpenOffer> offersToBeEdited = new ConcurrentHashMap<>();
     private final TradableList<OpenOffer> openOffers = new TradableList<>();
     private final SignedOfferList signedOffers = new SignedOfferList();
     private final PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
@@ -355,7 +357,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             openOffersList = new ArrayList<>(openOffers);
         }
 
-        openOffersList.forEach(openOffer -> removeOpenOfferAux(openOffer, true, () -> {
+        openOffersList.forEach(openOffer -> removeOpenOfferAux(openOffer, OnReserved.SKIP, () -> {
                 }, errorMessage -> {
                     log.warn("Error removing open offer: " + errorMessage);
                 }));
@@ -606,6 +608,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         removeOffer(openOffer.getOffer(), resultHandler, errorMessageHandler);
     }
 
+    // cancel and remove the offer even if reserved for a trade, e.g. removing the offer after its trade fails
+    public void forceRemoveOpenOffer(OpenOffer openOffer) {
+        removeOpenOfferAux(openOffer, OnReserved.CANCEL, null, null);
+    }
+
     public void removeOffer(Offer offer, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         Optional<OpenOffer> openOfferOptional = getOpenOffer(offer.getId());
         if (openOfferOptional.isPresent()) {
@@ -618,53 +625,70 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
+    // cancellation behavior when the offer is reserved for a trade in process
+    private enum OnReserved { REJECT, SKIP, CANCEL }
+
     private void removeOpenOfferAux(OpenOffer openOffer,
                                 ResultHandler resultHandler,
                                 ErrorMessageHandler errorMessageHandler) {
-        removeOpenOfferAux(openOffer, false, resultHandler, errorMessageHandler);
+        removeOpenOfferAux(openOffer, OnReserved.REJECT, resultHandler, errorMessageHandler);
     }
 
-    // claimIfUnreserved skips cancellation atomically if the offer is concurrently reserved for a trade
     private void removeOpenOfferAux(OpenOffer openOffer,
-                                boolean claimIfUnreserved,
+                                OnReserved onReserved,
                                 ResultHandler resultHandler,
                                 ErrorMessageHandler errorMessageHandler) {
         log.info("Canceling and removing open offer: {}", openOffer.getId());
         try {
-            if (!offersToBeEdited.containsKey(openOffer.getId())) {
 
-                // cancel state atomically with reservation so cancellation cannot override a concurrent reservation
-                boolean wasOnOfferBook;
-                synchronized (openOffers.getList()) {
-                    if (claimIfUnreserved && (getOpenOffer(openOffer.getId()).orElse(null) != openOffer || openOffer.getState() == OpenOffer.State.RESERVED || openOffer.getState() == OpenOffer.State.CANCELED)) {
-                        log.warn("Skipping cancellation of open offer {} because it is reserved for a trade or no longer open, state={}", openOffer.getId(), openOffer.getState());
+            // cancel state atomically with reservation so cancellation cannot override a concurrent reservation
+            boolean wasOnOfferBook;
+            boolean wasBeingEdited;
+            synchronized (openOffers.getList()) {
+                OpenOffer currentOpenOffer = getOpenOffer(openOffer.getId()).orElse(null);
+                if (currentOpenOffer != openOffer) {
+                    if (currentOpenOffer == null) {
+                        log.warn("Skipping cancellation of open offer {} because it is no longer open, state={}", openOffer.getId(), openOffer.getState());
                         if (resultHandler != null) resultHandler.handleResult();
-                        return;
+                    } else {
+                        log.warn("Rejecting cancellation of open offer {} because it was replaced while being edited", openOffer.getId());
+                        if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("The offer with ID " + openOffer.getId() + " was replaced while being edited, so it cannot be canceled.");
                     }
-                    wasOnOfferBook = isOnOfferBook(openOffer); // record before canceling state
-                    openOffer.setState(OpenOffer.State.CANCELED);
+                    return;
                 }
-
-                if (wasOnOfferBook) {
-                    offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
-                            () -> {
-                                ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
-                                    doCancelOffer(openOffer);
-                                    if (resultHandler != null) resultHandler.handleResult();
-                                });
-                            },
-                            errorMessageHandler);
-                } else {
-                    ThreadUtils.submitToPool(() -> {
-                        doCancelOffer(openOffer);
+                if (openOffer.getState() == OpenOffer.State.RESERVED && onReserved != OnReserved.CANCEL) {
+                    if (onReserved == OnReserved.REJECT) {
+                        log.warn("Rejecting cancellation of open offer {} because it is reserved for a trade in process", openOffer.getId());
+                        if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("The offer with ID " + openOffer.getId() + " is reserved for a trade in process, so it cannot be canceled.");
+                    } else {
+                        log.warn("Skipping cancellation of open offer {} because it is reserved for a trade in process", openOffer.getId());
                         if (resultHandler != null) resultHandler.handleResult();
-                    });
+                    }
+                    return;
                 }
-            } else {
+                wasBeingEdited = offersToBeEdited.remove(openOffer.getId()) != null;
+                wasOnOfferBook = !wasBeingEdited && isOnOfferBook(openOffer); // record before canceling state
+                openOffer.setState(OpenOffer.State.CANCELED);
+            }
+
+            if (wasBeingEdited) {
                 log.warn("Canceling offer {} which is currently in edit mode.", openOffer.getId());
-                offersToBeEdited.remove(openOffer.getId());
                 doCancelOffer(openOffer);
                 if (resultHandler != null) resultHandler.handleResult();
+            } else if (wasOnOfferBook) {
+                offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
+                        () -> {
+                            ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
+                                doCancelOffer(openOffer);
+                                if (resultHandler != null) resultHandler.handleResult();
+                            });
+                        },
+                        errorMessageHandler);
+            } else {
+                ThreadUtils.submitToPool(() -> {
+                    doCancelOffer(openOffer);
+                    if (resultHandler != null) resultHandler.handleResult();
+                });
             }
         } catch (Throwable t) {
             log.warn("Error canceling open offer " + openOffer.getId() + ": " + t.getMessage(), t);
@@ -674,20 +698,22 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void removeOpenOffersOnSpent(String keyImage) {
 
-        // collect spent offers under the list lock, then cancel outside the lock
+        // collect spent offer ids under the list lock, then cancel outside the lock
         // which must not be held while acquiring the wallet lock
-        List<OpenOffer> spentOffers = new ArrayList<OpenOffer>();
+        List<String> spentOfferIds = new ArrayList<String>();
         synchronized (openOffers.getList()) {
             for (OpenOffer openOffer : openOffers.getList()) {
                 if (openOffer.getState() == OpenOffer.State.CANCELED || openOffer.getState() == OpenOffer.State.RESERVED) continue;
                 if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() != null && openOffer.getOffer().getOfferPayload().getReserveTxKeyImages().contains(keyImage)) {
-                    spentOffers.add(openOffer);
+                    spentOfferIds.add(openOffer.getId());
                 }
             }
         }
-        for (OpenOffer openOffer : spentOffers) {
-            log.warn("Canceling open offer because reserved funds have been spent unexpectedly, offerId={}, state={}", openOffer.getId(), openOffer.getState());
-            removeOpenOfferAux(openOffer, true, null, null);
+        for (String offerId : spentOfferIds) {
+            getOpenOffer(offerId).ifPresent(openOffer -> { // re-resolve in case replaced by editing
+                log.warn("Canceling open offer because reserved funds have been spent unexpectedly, offerId={}, state={}", openOffer.getId(), openOffer.getState());
+                removeOpenOfferAux(openOffer, OnReserved.SKIP, null, null);
+            });
         }
     }
 
@@ -696,6 +722,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                   ErrorMessageHandler errorMessageHandler) {
         if (openOffer.isPending()) {
             resultHandler.handleResult(); // ignore if pending
+        } else if (openOffer.isReserved() || openOffer.isCanceled()) {
+            errorMessageHandler.handleErrorMessage("The offer with ID " + openOffer.getId() + " is reserved for a trade or removed, so it cannot be activated.");
         } else if (offersToBeEdited.containsKey(openOffer.getId())) {
             errorMessageHandler.handleErrorMessage(Res.get("offerbook.cannotActivateEditedOffer.warning"));
         } else if (hasConflictingClone(openOffer)) {
@@ -711,7 +739,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 log.info("Activating open offer: {}", openOffer.getId());
                 offerBookService.activateOffer(offer,
                         () -> {
-                            openOffer.setState(OpenOffer.State.AVAILABLE);
+                            synchronized (openOffers.getList()) { // skip if reserved or canceled while activating off thread
+                                if (openOffer.isDeactivated()) openOffer.setState(OpenOffer.State.AVAILABLE);
+                            }
                             applyTriggerState(openOffer);
                             requestPersistence();
                             log.debug("activateOpenOffer, offerId={}", offer.getId());
@@ -726,9 +756,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     private void applyTriggerState(OpenOffer openOffer) {
-        if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
-        if (TriggerPriceService.isTriggered(priceFeedService.getMarketPrice(openOffer.getOffer().getCounterCurrencyCode()), openOffer)) {
-            openOffer.deactivate(true);
+        applyTriggerState(openOffer, priceFeedService.getMarketPrice(openOffer.getOffer().getCounterCurrencyCode()));
+    }
+
+    // caller fetches the market price, since the list lock cannot be held while acquiring the price cache
+    private void applyTriggerState(OpenOffer openOffer, MarketPrice marketPrice) {
+        synchronized (openOffers.getList()) { // atomic with reservation so deactivation cannot overwrite RESERVED
+            if (openOffer.getState() != OpenOffer.State.AVAILABLE) return;
+            if (TriggerPriceService.isTriggered(marketPrice, openOffer)) {
+                openOffer.deactivate(true);
+            }
         }
     }
 
@@ -741,7 +778,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             log.info("Deactivating open offer: {}", openOffer.getId());
             offerBookService.deactivateOffer(offer.getOfferPayload(),
                     () -> {
-                        openOffer.deactivate(deactivatedByTrigger);
+                        synchronized (openOffers.getList()) { // skip if reserved or canceled while deactivating off thread
+                            if (openOffer.isAvailable()) openOffer.deactivate(deactivatedByTrigger);
+                        }
                         requestPersistence();
                         log.debug("deactivateOpenOffer, offerId={}", offer.getId());
                         resultHandler.handleResult();
@@ -760,14 +799,19 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     public void editOpenOfferStart(OpenOffer openOffer,
                                    ResultHandler resultHandler,
                                    ErrorMessageHandler errorMessageHandler) {
-        if (offersToBeEdited.containsKey(openOffer.getId())) {
-            log.warn("editOpenOfferStart called for offer " + openOffer.getId() + " which is already in edit mode.");
-            resultHandler.handleResult();
-            return;
+        synchronized (openOffers.getList()) { // atomic with reservation so a reserved offer cannot enter edit mode
+            if (offersToBeEdited.containsKey(openOffer.getId())) {
+                log.warn("editOpenOfferStart called for offer " + openOffer.getId() + " which is already in edit mode.");
+                resultHandler.handleResult();
+                return;
+            }
+            if (openOffer.isReserved() || openOffer.isCanceled()) {
+                errorMessageHandler.handleErrorMessage("The offer with ID " + openOffer.getId() + " is reserved for a trade or removed, so it cannot be edited.");
+                return;
+            }
+            log.info("Editing open offer: {}", openOffer.getId());
+            offersToBeEdited.put(openOffer.getId(), openOffer);
         }
-
-        log.info("Editing open offer: {}", openOffer.getId());
-        offersToBeEdited.put(openOffer.getId(), openOffer);
 
         if (openOffer.isAvailable()) {
             try {
@@ -807,30 +851,40 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
                 // replace original offer with edited offer
                 OpenOffer editedOpenOffer;
-                synchronized (openOffers.getList()) {
+                MarketPrice marketPrice = priceFeedService.getMarketPrice(editedOffer.getCounterCurrencyCode()); // fetched before the list lock which cannot be held while acquiring the price cache
+                synchronized (xmrWalletService.getWalletLock()) { // wallet lock so a split output tx cannot be assigned to the original offer concurrently
+                    synchronized (openOffers.getList()) {
 
-                    // add edited open offer
-                    editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
-                    if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
-                        if (hasConflictingClone(editedOpenOffer)) {
-                            editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
-                        } else {
-                            editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
+                        // reject replacing an offer which was reserved for a trade or canceled while being edited
+                        if (getOpenOffer(openOffer.getId()).orElse(null) != openOffer || openOffer.getState() == OpenOffer.State.RESERVED || openOffer.getState() == OpenOffer.State.CANCELED) {
+                            offersToBeEdited.remove(openOffer.getId());
+                            errorMessageHandler.handleErrorMessage("The offer with ID " + openOffer.getId() + " was reserved for a trade or removed while being edited, so it cannot be edited.");
+                            return;
                         }
-                    } else {
-                        if (originalState == OpenOffer.State.AVAILABLE && hasConflictingClone(editedOpenOffer)) {
-                            editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+
+                        // add edited open offer
+                        editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
+                        if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
+                            if (hasConflictingClone(editedOpenOffer)) {
+                                editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                            } else {
+                                editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
+                            }
                         } else {
-                            editedOpenOffer.setState(originalState);
+                            if (originalState == OpenOffer.State.AVAILABLE && hasConflictingClone(editedOpenOffer)) {
+                                editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                            } else {
+                                editedOpenOffer.setState(originalState);
+                            }
                         }
+                        applyTriggerState(editedOpenOffer, marketPrice); // apply trigger state before adding so it's not immediately removed
+                        doAddOpenOffer(editedOpenOffer);
+
+                        // remove original open offer
+                        openOffer.getOffer().setState(Offer.State.REMOVED);
+                        openOffer.setState(OpenOffer.State.CANCELED);
+                        doRemoveOpenOffer(openOffer);
                     }
-                    applyTriggerState(editedOpenOffer); // apply trigger state before adding so it's not immediately removed
-                    doAddOpenOffer(editedOpenOffer);
-
-                    // remove original open offer
-                    openOffer.getOffer().setState(Offer.State.REMOVED);
-                    openOffer.setState(OpenOffer.State.CANCELED);
-                    doRemoveOpenOffer(openOffer);
                 }
 
                 // check for valid arbitrator signature after editing
@@ -893,10 +947,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // cancel open offer which thaws its key images
     private void doCancelOffer(@NotNull OpenOffer openOffer, boolean resetAddressEntries, boolean thawOutputs) {
         Offer offer = openOffer.getOffer();
+        boolean hasClonedOffer;
+        synchronized (openOffers.getList()) { // claim by removing from the list, so concurrent cancels clean up exactly once
+            if (getOpenOffer(offer.getId()).orElse(null) != openOffer) return;
+            hasClonedOffer = hasClonedOffer(offer.getId()); // record before removing open offer
+            doRemoveOpenOffer(openOffer);
+        }
         offer.setState(Offer.State.REMOVED);
         openOffer.setState(OpenOffer.State.CANCELED);
-        boolean hasClonedOffer = hasClonedOffer(offer.getId()); // record before removing open offer
-        doRemoveOpenOffer(openOffer); 
         if (!hasClonedOffer) closedTradableManager.add(openOffer); // do not add clones to closed trades TODO: don't add canceled offers to closed tradables?
         if (resetAddressEntries) xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
         requestPersistence();
@@ -928,9 +986,23 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // returns false unless the offer is still open and available, atomic with the state of other open offers
     public boolean reserveOpenOffer(OpenOffer openOffer) {
         synchronized (openOffers.getList()) {
-            if (getOpenOffer(openOffer.getId()).orElse(null) != openOffer || openOffer.getState() != OpenOffer.State.AVAILABLE) {
+            if (getOpenOffer(openOffer.getId()).orElse(null) != openOffer || openOffer.getState() != OpenOffer.State.AVAILABLE || offersToBeEdited.containsKey(openOffer.getId())) {
                 log.warn("Cannot reserve open offer {} because it is not available, state={}", openOffer.getId(), openOffer.getState());
                 return false;
+            }
+
+            // reject if the shared reserve funds are used by another trade, since restored offer states can lag open trades on startup
+            if (openOffer.getGroupId() != null) {
+                for (OpenOffer groupOffer : getOpenOfferGroup(openOffer.getGroupId())) {
+                    if (!groupOffer.getId().equals(openOffer.getId()) && groupOffer.getState() == OpenOffer.State.RESERVED) {
+                        log.warn("Cannot reserve open offer {} because cloned offer {} is reserved for another trade", openOffer.getId(), groupOffer.getId());
+                        return false;
+                    }
+                    if (HavenoUtils.tradeManager != null && (HavenoUtils.tradeManager.getOpenTrade(groupOffer.getId()).isPresent() || HavenoUtils.tradeManager.hasFailedScheduledTrade(groupOffer.getId()))) {
+                        log.warn("Cannot reserve open offer {} because offer {} has a trade in process", openOffer.getId(), groupOffer.getId());
+                        return false;
+                    }
+                }
             }
             openOffer.setState(OpenOffer.State.RESERVED);
         }
@@ -938,12 +1010,25 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return true;
     }
 
-    public void unreserveOpenOffer(OpenOffer openOffer) {
-        if (!openOffer.isReserved()) { // TODO: this avoids a race condition with cancelOpenOffer (e.g. on 2nd arbitrator NACK) and onProtocolInitializationError after trade initialization fails, leaving a historical tradable in state AVAILABLE
-            log.warn("Not unreserving open offer {} because it is not reserved, state={}", openOffer.getId(), openOffer.getState());
-            return;
+    // restore an offer's reserved state for a trade in process, since reserved state resets when read from disk
+    public void restoreReservedState(String offerId) {
+        synchronized (openOffers.getList()) { // atomic with reservation and cancellation
+            getOpenOffer(offerId).ifPresent(openOffer -> {
+                if (openOffer.getState() == OpenOffer.State.RESERVED || openOffer.getState() == OpenOffer.State.CANCELED) return;
+                log.warn("Setting open offer {} to reserved because it has a trade in process, state={}", openOffer.getId(), openOffer.getState());
+                openOffer.setState(OpenOffer.State.RESERVED);
+            });
         }
-        openOffer.setState(OpenOffer.State.AVAILABLE);
+    }
+
+    public void unreserveOpenOffer(OpenOffer openOffer) {
+        synchronized (openOffers.getList()) { // atomic with cancellation, e.g. offer removed on 2nd arbitrator NACK before trade cleanup unreserves
+            if (!openOffer.isReserved()) {
+                log.warn("Not unreserving open offer {} because it is not reserved, state={}", openOffer.getId(), openOffer.getState());
+                return;
+            }
+            openOffer.setState(OpenOffer.State.AVAILABLE);
+        }
         requestPersistence();
     }
 
@@ -2253,6 +2338,18 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // Update persisted offer if a new capability is required after a software update
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    // set the offer to canceled atomically with its reserved state, so it cannot be reserved concurrently
+    private boolean cancelUnreservedOpenOffer(OpenOffer openOffer) {
+        synchronized (openOffers.getList()) {
+            if (getOpenOffer(openOffer.getId()).orElse(null) != openOffer || openOffer.getState() == OpenOffer.State.RESERVED || openOffer.getState() == OpenOffer.State.CANCELED) {
+                log.warn("Skipping cancellation of open offer {} because it is reserved for a trade or already canceled, state={}", openOffer.getId(), openOffer.getState());
+                return false;
+            }
+            openOffer.setState(OpenOffer.State.CANCELED);
+            return true;
+        }
+    }
+
     private void maybeUpdatePersistedOffers() {
 
         // update open offers
@@ -2293,6 +2390,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     // keep validly signed offer grandfathered when only its version is too low
                     if (!needsRewrite && isSignedStateValid(originalOpenOffer)) return;
 
+                    if (!cancelUnreservedOpenOffer(originalOpenOffer)) return; // skip if reserved for a trade in process
                     log.warn("Canceling outdated offer {} because its fees or security deposits changed and it cannot be re-signed; the maker must recreate it", originalOffer.getId());
                     originalOffer.setErrorMessage("Offer was canceled because trade fees or security deposits changed and it could not be re-signed. Please recreate the offer.");
                     doCancelOffer(originalOpenOffer);
@@ -2380,8 +2478,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         originalOfferPayload.getExtraInfo());
 
                 // cancel old offer
-                log.info("Canceling outdated offer id={}", originalOffer.getId());
                 boolean wasDeactivated = originalOpenOffer.isDeactivated();
+                if (!cancelUnreservedOpenOffer(originalOpenOffer)) return; // skip if reserved for a trade in process
+                log.info("Canceling outdated offer id={}", originalOffer.getId());
                 doCancelOffer(originalOpenOffer, false, !preserveFundingTx);
 
                 // create new offer
@@ -2516,6 +2615,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private boolean preventedFromPublishing(OpenOffer openOffer, boolean checkSignature) {
         if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) return true;
         return openOffer.isDeactivated() ||
+                openOffer.isReserved() ||
                 openOffer.isCanceled() ||
                 (checkSignature && openOffer.getOffer().getOfferPayload().getArbitratorSigner() == null) ||
                 hasConflictingClone(openOffer);

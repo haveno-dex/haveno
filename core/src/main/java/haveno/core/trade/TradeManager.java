@@ -305,6 +305,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onAllServicesInitialized() {
+
+        // restore reserved state of offers with open trades or failed trades pending cleanup, since reserved state resets when read from disk
+        for (Trade trade : getOpenTrades()) {
+            openOfferManager.restoreReservedState(trade.getId());
+        }
+        for (Trade trade : failedTradesManager.getObservableList()) {
+            // skip stale schedules whose cleanup finished unpersisted before shutdown, indicated by the wallet deleted
+            if (trade.isProtocolErrorHandlingScheduled() && trade.walletExists()) openOfferManager.restoreReservedState(trade.getId());
+        }
+
         if (p2PService.isBootstrapped()) {
             initTrades();
         } else {
