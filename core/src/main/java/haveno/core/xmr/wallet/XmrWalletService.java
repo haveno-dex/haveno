@@ -156,7 +156,6 @@ public class XmrWalletService extends XmrWalletBase {
 
     private final File walletDir;
     private final int rpcBindPort;
-    private final boolean useNativeXmrWallet;
     protected final CopyOnWriteArraySet<XmrBalanceListener> balanceListeners = new CopyOnWriteArraySet<>();
     protected final CopyOnWriteArraySet<MoneroWalletListenerI> walletListeners = new CopyOnWriteArraySet<>();
 
@@ -198,8 +197,7 @@ public class XmrWalletService extends XmrWalletBase {
                      WalletsSetup walletsSetup,
                      XmrAddressEntryList xmrAddressEntryList,
                      @Named(Config.WALLET_DIR) File walletDir,
-                     @Named(Config.WALLET_RPC_BIND_PORT) int rpcBindPort,
-                     @Named(Config.USE_NATIVE_XMR_WALLET) boolean useNativeXmrWallet) {
+                     @Named(Config.WALLET_RPC_BIND_PORT) int rpcBindPort) {
         this.user = user;
         this.preferences = preferences;
         this.accountService = accountService;
@@ -207,7 +205,6 @@ public class XmrWalletService extends XmrWalletBase {
         this.xmrAddressEntryList = xmrAddressEntryList;
         this.walletDir = walletDir;
         this.rpcBindPort = rpcBindPort;
-        this.useNativeXmrWallet = useNativeXmrWallet;
         this.xmrConnectionService = xmrConnectionService; // TODO: super's is null unless set here from injection
         HavenoUtils.xmrWalletService = this;
         MONERO_WALLET_RPC_MANAGER.onStartUp(); // clear the shared manager's shutdown state, which persists across in-process restarts
@@ -368,7 +365,7 @@ public class XmrWalletService extends XmrWalletBase {
 
     /** Check whether the seed is a valid wallet seed, using an offline temporary wallet (native or RPC). */
     public boolean isSeedValid(String seed) {
-        if (useNativeXmrWallet) MoneroUtils.tryLoadNativeLibrary();
+        if (isUseNativeXmrWallet()) MoneroUtils.tryLoadNativeLibrary();
         synchronized (seedValidationLock) {
             return isNativeLibraryApplied() ? isSeedValidNative(seed) : isSeedValidRpc(seed);
         }
@@ -376,7 +373,7 @@ public class XmrWalletService extends XmrWalletBase {
 
     /** Preload the native library and wallet creation path so the first seed validation is fast. */
     public void warmUpSeedValidation() {
-        if (!useNativeXmrWallet) return; // rpc validation starts a new process per check, so nothing to warm
+        if (!isUseNativeXmrWallet()) return; // rpc validation starts a new process per check, so nothing to warm
         MoneroUtils.tryLoadNativeLibrary();
         if (!isNativeLibraryApplied()) return;
         synchronized (seedValidationLock) {
@@ -501,8 +498,12 @@ public class XmrWalletService extends XmrWalletBase {
         return walletPath.substring(walletPath.lastIndexOf(File.separator) + 1);
     }
 
+    private boolean isUseNativeXmrWallet() {
+        return preferences.isUseNativeXmrWallet();
+    }
+
     private boolean isNativeLibraryApplied() {
-        return useNativeXmrWallet && MoneroUtils.isNativeLibraryLoaded();
+        return isUseNativeXmrWallet() && MoneroUtils.isNativeLibraryLoaded();
     }
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
@@ -1550,7 +1551,7 @@ public class XmrWalletService extends XmrWalletBase {
     private void initialize() {
 
         // try to load native monero library
-        if (useNativeXmrWallet && !MoneroUtils.isNativeLibraryLoaded()) {
+        if (isUseNativeXmrWallet() && !MoneroUtils.isNativeLibraryLoaded()) {
             try {
                 MoneroUtils.loadNativeLibrary();
             } catch (Exception | UnsatisfiedLinkError e) {
@@ -1558,7 +1559,7 @@ public class XmrWalletService extends XmrWalletBase {
             }
         }
         String appliedMsg = "Monero native libraries applied: " + isNativeLibraryApplied();
-        if (useNativeXmrWallet && !isNativeLibraryApplied()) log.warn(appliedMsg);
+        if (isUseNativeXmrWallet() && !isNativeLibraryApplied()) log.warn(appliedMsg);
         else log.info(appliedMsg);
 
         // listen for connection changes

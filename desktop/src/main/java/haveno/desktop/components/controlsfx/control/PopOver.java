@@ -583,7 +583,11 @@ public class PopOver extends PopupControl {
     }
 
     private double computeYOffset() {
-        double prefContentHeight = getContentNode().prefHeight(-1);
+        // use the laid-out skin height when shown, since the arrow is drawn on the actual bubble
+        // (content plus padding); prefHeight(-1) is the unwrapped single-line height for
+        // wrapping content, which misplaces multi-line pop overs
+        double skinHeight = getSkin() != null ? getSkin().getNode().getLayoutBounds().getHeight() : 0;
+        double prefContentHeight = skinHeight > 0 ? skinHeight : getContentNode().prefHeight(-1);
 
         switch (getArrowLocation()) {
             case LEFT_TOP:

@@ -19,6 +19,7 @@ package haveno.desktop.main.settings.preferences;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
@@ -47,11 +48,14 @@ import haveno.core.util.ParsingUtils;
 import haveno.core.util.validation.IntegerValidator;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.util.validation.RegexValidatorFactory;
+import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.AutoTooltipSlideToggleButton;
 import haveno.desktop.components.AutocompleteComboBox;
+import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.PasswordTextField;
 import haveno.desktop.components.TitledGroupBg;
@@ -82,9 +86,11 @@ import javafx.collections.ObservableList;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -95,6 +101,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
@@ -110,7 +117,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private AutocompleteComboBox<TradeCurrency> preferredTradeCurrencyComboBox;
 
     private ToggleButton showOwnOffersInOfferBook, useAnimations, useDarkMode, sortMarketCurrenciesNumerically,
-            avoidStandbyMode, useSoundForNotifications, useCustomFee, autoConfirmXmrToggle, hideNonAccountPaymentMethodsToggle, denyApiTakerToggle,
+            avoidStandbyMode, useSoundForNotifications, useNativeXmrWallet, useCustomFee, autoConfirmXmrToggle, hideNonAccountPaymentMethodsToggle, denyApiTakerToggle,
             notifyOnPreReleaseToggle;
     private int gridRow = 0;
     private int displayCurrenciesGridRowIndex = 0;
@@ -240,7 +247,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         GridPane.setValignment(optionsGridPane, VPos.TOP);
         root.add(optionsGridPane, 0, 0);
 
-        int titledGroupBgRowSpan = displayStandbyModeFeature ? 8 : 7;
+        int titledGroupBgRowSpan = displayStandbyModeFeature ? 9 : 8;
         TitledGroupBg titledGroupBg = addTitledGroupBg(optionsGridPane, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
         GridPane.setColumnSpan(titledGroupBg, 1);
 
@@ -314,6 +321,15 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         useSoundForNotifications = addSlideToggleButton(optionsGridPane, ++gridRow,
                 Res.get("setting.preferences.useSoundForNotifications"));
+
+        useNativeXmrWallet = new AutoTooltipSlideToggleButton();
+        useNativeXmrWallet.setText(Res.get("setting.preferences.useNativeXmrWallet"));
+        InfoAutoTooltipLabel useNativeXmrWalletInfo = new InfoAutoTooltipLabel("", FontAwesomeIcon.INFO_CIRCLE, ContentDisplay.RIGHT,
+                Res.get("setting.preferences.useNativeXmrWallet.info"), 420);
+        HBox useNativeXmrWalletBox = new HBox(6, useNativeXmrWallet, useNativeXmrWalletInfo);
+        useNativeXmrWalletBox.setAlignment(Pos.CENTER_LEFT);
+        GridPane.setRowIndex(useNativeXmrWalletBox, ++gridRow);
+        optionsGridPane.getChildren().add(useNativeXmrWalletBox);
     }
 
     private void initializeSeparator() {
@@ -843,6 +859,20 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         useSoundForNotifications.setSelected(preferences.isUseSoundForNotifications());
         useSoundForNotifications.setOnAction(e -> preferences.setUseSoundForNotifications(useSoundForNotifications.isSelected()));
+
+        useNativeXmrWallet.setSelected(preferences.isUseNativeXmrWallet());
+        useNativeXmrWallet.setOnAction(e -> {
+            boolean selected = useNativeXmrWallet.isSelected();
+            new Popup().information(Res.get("settings.net.needRestart"))
+                    .actionButtonText(Res.get("shared.applyAndShutDown"))
+                    .onAction(() -> {
+                        preferences.setUseNativeXmrWallet(selected);
+                        UserThread.runAfter(HavenoApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
+                    })
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> useNativeXmrWallet.setSelected(preferences.isUseNativeXmrWallet()))
+                    .show();
+        });
     }
 
     private void activateAutoConfirmPreferences() {
@@ -896,6 +926,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         if (displayStandbyModeFeature) {
             avoidStandbyMode.setOnAction(null);
         }
+        useSoundForNotifications.setOnAction(null);
+        useNativeXmrWallet.setOnAction(null);
     }
 
     private void deactivateAutoConfirmPreferences() {

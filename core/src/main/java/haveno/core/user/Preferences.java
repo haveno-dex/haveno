@@ -298,6 +298,9 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         if (config.useTorForXmrOptionSetExplicitly)
             setUseTorForXmr(config.useTorForXmr);
 
+        if (config.useNativeXmrWalletOptionSetExplicitly)
+            setUseNativeXmrWallet(config.useNativeXmrWallet);
+
         // switch to public nodes if no provided nodes available
         boolean isFixedConnection = !"".equals(config.xmrNode) && (!NetworkUtils.isLocalHost(config.xmrNode) || !config.ignoreLocalXmrNode);
         if (!isFixedConnection && getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PROVIDED.ordinal() && xmrNodes.selectPreferredNodes(new XmrNodesSetupPreferences(this)).isEmpty()) {
@@ -552,6 +555,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     public void setSplitOfferOutput(boolean splitOfferOutput) {
         prefPayload.setSplitOfferOutput(splitOfferOutput);
+        requestPersistence();
+    }
+
+    public void setUseNativeXmrWallet(boolean useNativeXmrWallet) {
+        prefPayload.setUseNativeXmrWallet(useNativeXmrWallet);
         requestPersistence();
     }
 
@@ -997,6 +1005,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     private interface ExcludesDelegateMethods {
         void setTacAccepted(boolean tacAccepted);
+
+        void setUseNativeXmrWallet(boolean useNativeXmrWallet);
 
         void setUseAnimations(boolean useAnimations);
 
