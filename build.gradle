@@ -112,6 +112,20 @@ configure(rootProject) {
         // Move the javafx-* jars from -classpath to --module-path in a generated start script.
         patchDesktopStartScript = { File script, String pathSeparator ->
             def text = script.text
+            if (script.name.endsWith('.bat')) {
+                def cpLine = text.readLines().find { it.startsWith('set CLASSPATH=') }
+                if (cpLine == null) {
+                    return
+                }
+                def jars = cpLine.substring('set CLASSPATH='.length()).split(java.util.regex.Pattern.quote(pathSeparator))
+                def javafxJars = jars.findAll { it.contains('javafx-') }
+                // string replacements to preserve the bat's CRLF line endings
+                text = text.replace(cpLine,
+                        "set CLASSPATH=${(jars - javafxJars).join(pathSeparator)}\r\nset MODULE_PATH=${javafxJars.join(pathSeparator)}")
+                text = text.replace('-classpath "%CLASSPATH%"', '--module-path "%MODULE_PATH%" -classpath "%CLASSPATH%"')
+                script.text = text
+                return
+            }
             def cpLineIndex = text.readLines().findIndexOf { it.startsWith('CLASSPATH=') }
             if (cpLineIndex < 0) {
                 return
