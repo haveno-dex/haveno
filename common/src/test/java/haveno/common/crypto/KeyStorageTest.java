@@ -17,6 +17,7 @@
 
 package haveno.common.crypto;
 
+import haveno.common.file.FileUtil;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
@@ -24,6 +25,7 @@ import java.nio.file.Files;
 import java.security.KeyStore;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
+import java.util.List;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,6 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,6 +60,60 @@ public class KeyStorageTest {
     }
 
     @Test
+    public void testCorruptSymKeyRecoveredFromBackup(@TempDir File dir) throws Exception {
+        KeyRing keyRing = new KeyRing(new KeyStorage(dir), PASSWORD, true);
+        byte[] symKeyBytes = keyRing.getSymmetricKey().getEncoded();
+        assertFalse(FileUtil.getBackupFiles(dir, "sym.key").isEmpty());
+
+        // flip a byte inside the wrapped blob; unlock must recover from the backup, not report
+        // an incorrect password
+        File symFile = new File(dir, "sym.key");
+        byte[] corrupt = Files.readAllBytes(symFile.toPath());
+        corrupt[corrupt.length - 1] ^= 0x01;
+        Files.write(symFile.toPath(), corrupt);
+
+        KeyRing recovered = new KeyRing(new KeyStorage(dir), PASSWORD, false);
+        assertTrue(recovered.isUnlocked());
+        assertArrayEquals(symKeyBytes, recovered.getSymmetricKey().getEncoded());
+        assertFalse(Arrays.equals(corrupt, Files.readAllBytes(symFile.toPath()))); // live file restored
+
+        // structural corruption (truncation) recovers too, not only authentication failures
+        byte[] good = Files.readAllBytes(symFile.toPath());
+        Files.write(symFile.toPath(), Arrays.copyOf(good, 74));
+        KeyRing recoveredAgain = new KeyRing(new KeyStorage(dir), PASSWORD, false);
+        assertArrayEquals(symKeyBytes, recoveredAgain.getSymmetricKey().getEncoded());
+
+        // a wrong password still fails with backups present
+        assertThrows(IncorrectPasswordException.class,
+                () -> new KeyStorage(dir).loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, "wrong password"));
+    }
+
+    @Test
+    public void testFreshAccountPreservesAnotherAccountsKeyMaterial(@TempDir File dir) throws Exception {
+        // an account whose sig.key was lost (e.g. crash, av quarantine) becomes unopenable and
+        // triggers a silent fresh account creation; the lost account's surviving live files and
+        // backups may be its only remaining key copies, so they move to a lost_account folder
+        // where the new account's saves, password changes and backup rotation can never purge them
+        KeyRing lostKeyRing = new KeyRing(new KeyStorage(dir), PASSWORD, true);
+        byte[] lostSymKey = lostKeyRing.getSymmetricKey().getEncoded();
+        assertFalse(FileUtil.getBackupFiles(dir, "sym.key").isEmpty());
+        assertTrue(new File(dir, "sig.key").delete());
+        assertFalse(new KeyStorage(dir).allKeyFilesExist());
+
+        new KeyRing(new KeyStorage(dir), PASSWORD, true);
+        File[] preserved = dir.listFiles((d, name) -> name.startsWith("lost_account_"));
+        assertNotNull(preserved);
+        assertEquals(1, preserved.length);
+        // the lost account's live wrapper still unlocks from the preserved folder
+        KeyStorage preservedStorage = new KeyStorage(preserved[0]);
+        assertArrayEquals(lostSymKey, preservedStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, PASSWORD).getEncoded());
+        assertTrue(new File(preserved[0], "backup").isDirectory());
+        // the fresh account works and has its own backups
+        assertTrue(new KeyRing(new KeyStorage(dir), PASSWORD, false).isUnlocked());
+        assertFalse(FileUtil.getBackupFiles(dir, "sym.key").isEmpty());
+    }
+
+    @Test
     public void testWrongPasswordThrows(@TempDir File dir) throws Exception {
         new KeyRing(new KeyStorage(dir), PASSWORD, true);
         KeyStorage keyStorage = new KeyStorage(dir);
@@ -78,6 +135,8 @@ public class KeyStorageTest {
     @Test
     public void testCorruptKeyFileIsNotReportedAsIncorrectPassword(@TempDir File dir) throws Exception {
         new KeyRing(new KeyStorage(dir), PASSWORD, true);
+        // remove the backups so recovery cannot mask the classification
+        FileUtil.deleteRollingBackup(dir, "sym.key");
         File symFile = new File(dir, "sym.key");
         byte[] bytes = Files.readAllBytes(symFile.toPath());
         // keep the header but mangle the wrapped blob below its minimum valid length
@@ -119,6 +178,8 @@ public class KeyStorageTest {
     @Test
     public void testTamperedKdfHeaderIsRejectedBeforeDerivation(@TempDir File dir) throws Exception {
         new KeyRing(new KeyStorage(dir), PASSWORD, true);
+        // remove the backups so recovery cannot mask the rejection
+        FileUtil.deleteRollingBackup(dir, "sym.key");
 
         // inflate the mem cost field (offset 6: magic 4 + version 1 + kdf 1) far beyond the bound
         File symFile = new File(dir, "sym.key");
@@ -135,6 +196,8 @@ public class KeyStorageTest {
     @Test
     public void testOversizedKeyFileIsRejectedBeforeReading(@TempDir File dir) throws Exception {
         new KeyRing(new KeyStorage(dir), PASSWORD, true);
+        // remove the backups so recovery cannot mask the rejection
+        FileUtil.deleteRollingBackup(dir, "sym.key");
 
         File symFile = new File(dir, "sym.key");
         byte[] padded = Arrays.copyOf(Files.readAllBytes(symFile.toPath()), 64 * 1024);
@@ -173,6 +236,13 @@ public class KeyStorageTest {
         assertFalse(new File(dir, "sym.p12").exists());
         assertTrue(Encryption.isV2Format(Files.readAllBytes(new File(dir, "sig.key").toPath())));
         assertTrue(Encryption.isV2Format(Files.readAllBytes(new File(dir, "enc.key").toPath())));
+
+        // legacy-format backups of the key files are replaced by v2 backups
+        for (String name : new String[]{"sig.key", "enc.key"}) {
+            List<File> backups = FileUtil.getBackupFiles(dir, name);
+            assertFalse(backups.isEmpty());
+            for (File backup : backups) assertTrue(Encryption.isV2Format(Files.readAllBytes(backup.toPath())));
+        }
 
         // and the migrated keyring reopens with the same keys
         KeyRing reopened = new KeyRing(new KeyStorage(dir), PASSWORD, false);

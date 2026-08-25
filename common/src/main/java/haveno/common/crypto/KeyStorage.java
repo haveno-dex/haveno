@@ -23,6 +23,10 @@ import com.google.inject.name.Named;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import static haveno.common.util.Preconditions.checkDir;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -46,7 +50,11 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
 import javax.crypto.SecretKey;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -66,11 +74,17 @@ public class KeyStorage {
     private static final byte[] SYM_FILE_MAGIC = {'H', 'V', 'N', 'K'};
     private static final byte SYM_FILE_VERSION = 1;
     private static final String LEGACY_SYM_FILE_NAME = "sym.p12";
+    // Present only during a password change: a second sym.key wrapper under the new password plus
+    // an authenticated journal of both passwords, so a crash leaves the account unlockable with either.
+    private static final String PENDING_SYM_FILE_NAME = "sym.key.new";
+    private static final String PASSWORD_CHANGE_JOURNAL_FILE_NAME = "password_change";
     // The header is unauthenticated, so bound KDF cost and file size before any allocation.
     private static final int MAX_MEM_KIB = 256 * 1024;
     private static final int MAX_ITERATIONS = 10;
     private static final int MAX_PARALLELISM = 4;
     private static final int MAX_SYM_FILE_SIZE = 4096;
+    // bounds the extra key derivations spent probing distinct backups of a corrupt key file
+    private static final int MAX_KEY_BACKUP_PROBES = 3;
     // Generous for a PKCS#8 RSA/DSA private key in a v2 blob; anything larger is corruption.
     private static final int MAX_KEY_FILE_SIZE = 64 * 1024;
 
@@ -124,7 +138,13 @@ public class KeyStorage {
 
     public boolean allKeyFilesExist() {
         return fileExists(KeyEntry.MSG_SIGNATURE) && fileExists(KeyEntry.MSG_ENCRYPTION)
-                && (fileExists(KeyEntry.SYM_ENCRYPTION) || legacySymFile().exists());
+                && (fileExists(KeyEntry.SYM_ENCRYPTION) || legacySymFile().exists() || hasRecoverablePendingWrapper());
+    }
+
+    // A journaled pending wrapper can recover the account even if the live wrapper was lost to a
+    // crash during a non-atomic replacement, so it must count as an existing account.
+    private boolean hasRecoverablePendingWrapper() {
+        return hasPasswordChangeJournal() && new File(storageDir, PENDING_SYM_FILE_NAME).exists();
     }
 
     public boolean needsFormatUpgrade() {
@@ -202,12 +222,76 @@ public class KeyStorage {
      * @param password Optional password that protects the key
      */
     public SecretKey loadSecretKey(KeyEntry keyEntry, String password) throws IncorrectPasswordException {
+        // stale transaction temps from a crash can hold a master-key wrapper or a journal of both
+        // passwords; they are never valid at unlock and must not survive into backups
+        for (String staleName : new String[]{KeyEntry.SYM_ENCRYPTION.getFileName() + ".tmp",
+                PENDING_SYM_FILE_NAME + ".tmp", PASSWORD_CHANGE_JOURNAL_FILE_NAME + ".tmp"}) {
+            try {
+                deleteStrict(new File(storageDir, staleName));
+            } catch (IOException e) {
+                throw new RuntimeException("Could not delete stale key file " + staleName, e);
+            }
+        }
+        // an orphan pending wrapper (no journal) from a failed transaction initialization is
+        // unused, but still wraps the master key under an abandoned password: remove it strictly
+        File orphanPendingFile = new File(storageDir, PENDING_SYM_FILE_NAME);
+        if (orphanPendingFile.exists() && !hasPasswordChangeJournal()) {
+            try {
+                deleteStrict(orphanPendingFile);
+                log.warn("Removed orphan pending key wrapper from an interrupted password change");
+            } catch (IOException e) {
+                throw new RuntimeException("Could not delete orphan pending key wrapper", e);
+            }
+        }
         File keyFile = new File(storageDir + "/" + keyEntry.getFileName());
         if (keyFile.exists()) {
-            SecretKey key = loadSecretKeyV2(keyFile, password);
-            // backup only after a successful load, so retries against a corrupt file cannot rotate out good backups
-            FileUtil.rollingBackup(storageDir, keyEntry.getFileName(), 20);
+            SecretKey key;
+            boolean keyFromPendingWrapper = false;
+            try {
+                key = loadSecretKeyV2(keyFile, password);
+            } catch (IncorrectPasswordException e) {
+                // during an interrupted password change the other password unlocks via the pending
+                // wrapper; while a journal exists the recovery machinery owns the state and the
+                // backup probe must not run (backups may still wrap the retiring password)
+                if (hasPasswordChangeJournal()) {
+                    File pendingFile = new File(storageDir, PENDING_SYM_FILE_NAME);
+                    if (!pendingFile.exists()) throw e;
+                    key = loadSecretKeyV2(pendingFile, password);
+                    keyFromPendingWrapper = true;
+                } else {
+                    // rotation is done inside the probe only after the live file is restored, so
+                    // a corrupt file cannot be copied over the good backups
+                    return recoverSecretKeyFromBackups(keyFile, password, e);
+                }
+            } catch (RuntimeException e) {
+                // structural corruption (bad header, truncation) must not lock the user out
+                // while the pending wrapper or a good backup can still unlock; while a journal
+                // exists the backup probe must not run (backups may still wrap the retiring
+                // password), but the pending wrapper is part of the transaction and safe to try
+                if (hasPasswordChangeJournal()) {
+                    File pendingFile = new File(storageDir, PENDING_SYM_FILE_NAME);
+                    if (!pendingFile.exists()) throw e;
+                    key = loadSecretKeyV2(pendingFile, password);
+                    keyFromPendingWrapper = true;
+                } else {
+                    return recoverSecretKeyFromBackups(keyFile, password, e);
+                }
+            }
+            // backup only after a successful load, so retries against a corrupt file cannot rotate
+            // out good backups. When the pending wrapper supplied the key the live wrapper did not
+            // authenticate (counterpart password or bit rot - indistinguishable here), so neither
+            // rotate it into the backups nor purge legacy material; recovery rewraps it shortly
+            if (!keyFromPendingWrapper) {
+                FileUtil.rollingBackup(storageDir, keyEntry.getFileName(), 20);
+                purgeStaleLegacyWrapper(keyEntry.getFileName());
+            }
             return key;
+        }
+        // a crash during a non-atomic replacement of the live wrapper can lose it while the
+        // transaction's pending wrapper remains; unlock from it so recovery can recommit
+        if (hasRecoverablePendingWrapper()) {
+            log.warn("{} is missing but a journaled pending wrapper exists; unlocking from the pending wrapper", keyEntry.getFileName());
+            return loadSecretKeyV2(new File(storageDir, PENDING_SYM_FILE_NAME), password);
         }
         legacyFormatLoaded = legacyFormatEverLoaded = true;
         SecretKey key = loadSecretKeyLegacy(keyEntry, password);
@@ -215,10 +299,95 @@ public class KeyStorage {
         return key;
     }
 
+    // Removes a legacy PKCS#12 wrapper (and its backups) left behind by a failed purge; it is
+    // never current once the v2 file unlocks, but stays brute-forceable (weak KDF). A fresh
+    // verified backup of the live wrapper is taken first, so the purge can never leave it as
+    // the only copy. Failures are logged and retried on the next unlock.
+    private void purgeStaleLegacyWrapper(String liveFileName) {
+        if (!legacySymFile().exists() && !FileUtil.hasBackups(storageDir, LEGACY_SYM_FILE_NAME)) return;
+        try {
+            FileUtil.rollingBackupStrict(storageDir, liveFileName, 20);
+            FileUtil.deleteFileIfExists(legacySymFile(), false);
+            FileUtil.deleteRollingBackupStrict(storageDir, LEGACY_SYM_FILE_NAME);
+        } catch (IOException e) {
+            log.error("Could not remove the stale legacy key file; it remains brute-forceable until deleted", e);
+        }
+    }
+
+    // Distinguishes a corrupted live wrapper from a genuinely wrong password by probing recent
+    // backups: byte-identical copies are skipped, so a wrong password costs no extra key
+    // derivations; a backup that unlocks is restored over the corrupt file.
+    private SecretKey recoverSecretKeyFromBackups(File keyFile, String password, Exception original) throws IncorrectPasswordException {
+        byte[] liveBytes;
+        try {
+            liveBytes = Files.readAllBytes(keyFile.toPath());
+        } catch (IOException e) {
+            throw rethrow(original);
+        }
+        List<File> backups = new ArrayList<>(FileUtil.getBackupFiles(storageDir, keyFile.getName()));
+        backups.sort(Comparator.comparing(File::getName).reversed()); // <epoch millis>_<name>, newest first
+        List<byte[]> probed = new ArrayList<>();
+        probed.add(liveBytes);
+        for (File backup : backups) {
+            if (probed.size() > MAX_KEY_BACKUP_PROBES) break;
+            if (backup.length() == 0 || backup.length() > MAX_SYM_FILE_SIZE) continue;
+            byte[] backupBytes;
+            try {
+                backupBytes = Files.readAllBytes(backup.toPath());
+            } catch (IOException e) {
+                continue;
+            }
+            // an identical wrapper fails the same way; probe each distinct one only once
+            if (probed.stream().anyMatch(seen -> Arrays.equals(seen, backupBytes))) continue;
+            probed.add(backupBytes);
+            SecretKey key;
+            try {
+                // authenticate exactly the bytes that would be restored
+                key = loadSecretKeyV2(backupBytes, password, backup.getName());
+            } catch (Exception e) {
+                continue;
+            }
+            log.warn("{} did not unlock but backup {} did; restoring the backup over the corrupt file", keyFile.getName(), backup.getName());
+            try {
+                File tempFile = new File(storageDir, keyFile.getName() + ".tmp");
+                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    fos.write(backupBytes);
+                    fos.flush();
+                    fos.getFD().sync();
+                }
+                FileUtil.atomicReplace(tempFile, keyFile);
+                // rotate a backup of the restored file only now, so a failed restore cannot
+                // copy the corrupt live file over the good generations
+                FileUtil.rollingBackup(storageDir, keyFile.getName(), 20);
+                purgeStaleLegacyWrapper(keyFile.getName());
+            } catch (IOException e) {
+                log.warn("Could not restore key backup over {}; unlocking anyway", keyFile.getName(), e);
+            }
+            return key;
+        }
+        throw rethrow(original);
+    }
+
+    private static RuntimeException rethrow(Exception original) throws IncorrectPasswordException {
+        if (original instanceof IncorrectPasswordException e) throw e;
+        return (RuntimeException) original;
+    }
+
     private SecretKey loadSecretKeyV2(File keyFile, String password) throws IncorrectPasswordException {
         try {
             if (keyFile.length() > MAX_SYM_FILE_SIZE) throw new IOException("Key file too large: " + keyFile.length());
-            ByteBuffer buf = ByteBuffer.wrap(Files.readAllBytes(keyFile.toPath()));
+            return loadSecretKeyV2(Files.readAllBytes(keyFile.toPath()), password, keyFile.getName());
+        } catch (IOException e) {
+            log.error("Could not load key " + keyFile.getName(), e);
+            throw new RuntimeException("Could not load key " + keyFile.getName(), e);
+        }
+    }
+
+    // Byte-based so a caller can authenticate exactly the bytes it goes on to use.
+    private SecretKey loadSecretKeyV2(byte[] fileBytes, String password, String name) throws IncorrectPasswordException {
+        try {
+            if (fileBytes.length > MAX_SYM_FILE_SIZE) throw new IOException("Key file too large: " + fileBytes.length);
+            ByteBuffer buf = ByteBuffer.wrap(fileBytes);
             byte[] magic = new byte[SYM_FILE_MAGIC.length];
             buf.get(magic);
             if (!Arrays.equals(magic, SYM_FILE_MAGIC)) throw new IOException("Invalid key file magic");
@@ -248,8 +417,8 @@ public class KeyStorage {
         } catch (IncorrectPasswordException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Could not load key " + keyFile.getName(), e);
-            throw new RuntimeException("Could not load key " + keyFile.getName(), e);
+            log.error("Could not load key " + name, e);
+            throw new RuntimeException("Could not load key " + name, e);
         }
     }
 
@@ -280,6 +449,40 @@ public class KeyStorage {
     }
 
     /**
+     * Moves any leftover key material of a previous account (live files, legacy wrapper,
+     * transaction artifacts and all rolling backups) into a timestamped folder before fresh keys
+     * are generated over it, e.g. after a partial key-file loss made the account unopenable. The
+     * material may be that account's only remaining key copy, so it must leave the rolling-backup
+     * machinery entirely - the replacement account's saves, password changes and backup rotation
+     * would otherwise eventually purge it. Throws on failure, aborting the account creation.
+     */
+    public void preserveLostAccountKeys() throws IOException {
+        List<String> names = new ArrayList<>();
+        for (KeyEntry keyEntry : KeyEntry.values()) {
+            names.add(keyEntry.getFileName());
+            names.add(keyEntry.getFileName() + ".tmp"); // a crash-left temp may be the only usable copy
+        }
+        names.addAll(List.of(LEGACY_SYM_FILE_NAME, PENDING_SYM_FILE_NAME, PASSWORD_CHANGE_JOURNAL_FILE_NAME,
+                PENDING_SYM_FILE_NAME + ".tmp", PASSWORD_CHANGE_JOURNAL_FILE_NAME + ".tmp"));
+        List<File> artifacts = new ArrayList<>();
+        for (String name : names) {
+            File file = new File(storageDir, name);
+            if (file.exists()) artifacts.add(file);
+        }
+        File backupDir = FileUtil.getBackupRoot(storageDir);
+        if (artifacts.isEmpty() && !backupDir.exists()) return;
+        File preserveDir = new File(storageDir, "lost_account_" + new Date().getTime());
+        Files.createDirectory(preserveDir.toPath());
+        for (File artifact : artifacts) FileUtil.renameFile(artifact, new File(preserveDir, artifact.getName()));
+        if (backupDir.exists()) FileUtil.renameFile(backupDir, new File(preserveDir, backupDir.getName()));
+        // best effort: sync the destination's new entries before the source removals, so a power
+        // loss cannot durably remove the material without its preserved copy
+        FileUtil.syncDir(preserveDir);
+        FileUtil.syncDir(storageDir);
+        log.warn("Moved key material of a previous account to {}; it may be that account's only remaining key copy", preserveDir.getName());
+    }
+
+    /**
      * Saves the key ring to the key storage directory.
      *
      * @param keyRing  The key ring
@@ -289,12 +492,137 @@ public class KeyStorage {
         SecretKey symmetric = keyRing.getSymmetricKey();
 
         // password protect the symmetric key
-        saveSecretKey(symmetric, KeyEntry.SYM_ENCRYPTION.getFileName(), password);
+        saveSecretKey(symmetric, KeyEntry.SYM_ENCRYPTION.getFileName(), password, true);
 
         // use symmetric encryption to encrypt the key pairs
         saveKey(keyRing.getSignatureKeyPair().getPrivate(), KeyEntry.MSG_SIGNATURE.getFileName(), symmetric);
         saveKey(keyRing.getEncryptionKeyPair().getPrivate(), KeyEntry.MSG_ENCRYPTION.getFileName(), symmetric);
         legacyFormatLoaded = false;
+    }
+
+    /**
+     * Durably begins a password change: writes an authenticated journal of both passwords and a
+     * second sym.key wrapper under the new password. sym.key itself stays on the old password, so
+     * a crash at any point leaves the account unlockable with either password.
+     */
+    public void beginPasswordChange(KeyRing keyRing, String oldPassword, String newPassword) {
+        // write the pending wrapper first: without the journal it is inert, so a failure at any
+        // point here leaves no durable transaction behind
+        saveSecretKey(keyRing.getSymmetricKey(), PENDING_SYM_FILE_NAME, newPassword, false);
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(bos);
+            writeNullableUtf(out, oldPassword);
+            writeNullableUtf(out, newPassword);
+            byte[] blob = Encryption.encryptV2(bos.toByteArray(), keyRing.getSymmetricKey());
+            File journalFile = new File(storageDir, PASSWORD_CHANGE_JOURNAL_FILE_NAME);
+            File tempFile = new File(storageDir, PASSWORD_CHANGE_JOURNAL_FILE_NAME + ".tmp");
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(blob);
+                fos.flush();
+                fos.getFD().sync();
+            }
+            FileUtil.atomicReplace(tempFile, journalFile);
+        } catch (Exception e) {
+            RuntimeException ex = new RuntimeException("Could not journal password change", e);
+            for (String name : new String[]{PENDING_SYM_FILE_NAME, PASSWORD_CHANGE_JOURNAL_FILE_NAME + ".tmp"}) {
+                try {
+                    deleteStrict(new File(storageDir, name));
+                } catch (Exception e2) {
+                    ex.addSuppressed(e2);
+                }
+            }
+            throw ex;
+        }
+    }
+
+    /**
+     * Returns [oldPassword, newPassword] from the password change journal, or null if there is none
+     * or it cannot be authenticated.
+     */
+    public String[] readPasswordChangeJournal(SecretKey masterKey) {
+        File journalFile = new File(storageDir, PASSWORD_CHANGE_JOURNAL_FILE_NAME);
+        if (!journalFile.exists()) return null;
+        try {
+            byte[] plain = Encryption.decryptV2(Files.readAllBytes(journalFile.toPath()), masterKey);
+            DataInputStream in = new DataInputStream(new ByteArrayInputStream(plain));
+            return new String[]{readNullableUtf(in), readNullableUtf(in)};
+        } catch (Exception e) {
+            log.error("Could not read password change journal", e);
+            return null;
+        }
+    }
+
+    public boolean hasPasswordChangeJournal() {
+        return new File(storageDir, PASSWORD_CHANGE_JOURNAL_FILE_NAME).exists();
+    }
+
+    /** Whether any password-change transaction file exists, including crash-left temps. */
+    public boolean hasPasswordChangeArtifacts() {
+        for (String name : new String[]{PASSWORD_CHANGE_JOURNAL_FILE_NAME, PASSWORD_CHANGE_JOURNAL_FILE_NAME + ".tmp",
+                PENDING_SYM_FILE_NAME, PENDING_SYM_FILE_NAME + ".tmp", KeyEntry.SYM_ENCRYPTION.getFileName() + ".tmp"}) {
+            if (new File(storageDir, name).exists()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Commits a password change: rewraps sym.key under the given password, then removes the
+     * pending wrapper and journal.
+     */
+    public void commitPasswordChange(KeyRing keyRing, String password) {
+        saveSecretKey(keyRing.getSymmetricKey(), KeyEntry.SYM_ENCRYPTION.getFileName(), password, false);
+    }
+
+    /**
+     * Completes a committed password change: purges stale sym.key artifacts with verification,
+     * takes a fresh backup and removes the pending wrapper and journal. On failure the journal
+     * remains, keeping the transaction visibly pending for recovery to retry.
+     */
+    public void finishPasswordChange() {
+        String fileName = KeyEntry.SYM_ENCRYPTION.getFileName();
+        try {
+            // fresh verified backup first, then purge the stale generations, so a failure can
+            // never leave the committed wrapper as the only copy
+            FileUtil.replaceRollingBackups(storageDir, fileName);
+            FileUtil.deleteFileIfExists(legacySymFile());
+            FileUtil.deleteRollingBackup(storageDir, LEGACY_SYM_FILE_NAME);
+            // the deletion helpers tolerate failures, so verify the stale wrappers are gone
+            if (legacySymFile().exists() || FileUtil.hasBackups(storageDir, LEGACY_SYM_FILE_NAME)) {
+                throw new IOException("Could not remove stale key file backups");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Could not clean up after password change", e);
+        }
+        clearPasswordChange();
+    }
+
+    /**
+     * Removes the pending wrapper and journal. The wrapper is deleted strictly and first, so an
+     * abandoned-password wrapper can never silently outlive the transaction; on failure the
+     * journal is retained and the transaction stays visibly pending.
+     */
+    public void clearPasswordChange() {
+        try {
+            deleteStrict(new File(storageDir, PENDING_SYM_FILE_NAME));
+            deleteStrict(new File(storageDir, PASSWORD_CHANGE_JOURNAL_FILE_NAME));
+        } catch (IOException e) {
+            throw new RuntimeException("Could not clear password change journal", e);
+        }
+    }
+
+    private static void deleteStrict(File file) throws IOException {
+        FileUtil.deleteFileIfExists(file, false);
+        if (file.exists()) throw new IOException("Could not delete " + file.getName());
+    }
+
+    private static void writeNullableUtf(DataOutputStream out, String value) throws IOException {
+        out.writeBoolean(value != null);
+        if (value != null) out.writeUTF(value);
+    }
+
+    private static String readNullableUtf(DataInputStream in) throws IOException {
+        return in.readBoolean() ? in.readUTF() : null;
     }
 
     /**
@@ -325,9 +653,19 @@ public class KeyStorage {
             byte[] readBack = Encryption.decryptV2(Files.readAllBytes(tempFile.toPath()), secretKey);
             if (!Arrays.equals(readBack, keyBytes)) throw new IOException("Key file verification failed");
             FileUtil.atomicReplace(tempFile, keyFile);
+
+            // replace backups, which may still hold the key in a legacy format; fresh verified
+            // backup first, so a failure can never leave the key file as the only copy
+            FileUtil.replaceRollingBackups(storageDir, fileName);
         } catch (Exception e) {
             log.error("Could not save key " + fileName, e);
-            throw new RuntimeException("Could not save key " + fileName, e);
+            RuntimeException ex = new RuntimeException("Could not save key " + fileName, e);
+            try {
+                deleteStrict(tempFile);
+            } catch (Exception e2) {
+                ex.addSuppressed(e2);
+            }
+            throw ex;
         }
     }
 
@@ -335,11 +673,12 @@ public class KeyStorage {
      * Saves the symmetric key wrapped with a key derived from the password, then verifies the
      * write and removes legacy PKCS#12 artifacts and stale password-wrapped backups.
      *
-     * @param key      The symmetric key
-     * @param fileName Filename of the key file
-     * @param password Optional password protecting the key
+     * @param key             The symmetric key
+     * @param fileName        Filename of the key file
+     * @param password        Optional password protecting the key
+     * @param manageArtifacts Whether to purge legacy files and stale backups and keep a fresh one
      */
-    private void saveSecretKey(SecretKey key, String fileName, String password) {
+    private void saveSecretKey(SecretKey key, String fileName, String password, boolean manageArtifacts) {
         if (!storageDir.exists())
             //noinspection ResultOfMethodCallIgnored
             storageDir.mkdirs();
@@ -349,6 +688,7 @@ public class KeyStorage {
         int iterations = unprotected ? PasswordKdf.UNPROTECTED_ITERATIONS : PasswordKdf.DEFAULT_ITERATIONS;
         int parallelism = PasswordKdf.DEFAULT_PARALLELISM;
         byte[] salt = PasswordKdf.generateSalt();
+        File tempFile = new File(storageDir, fileName + ".tmp");
         try {
             SecretKey kek = Encryption.getSecretKeyFromBytes(PasswordKdf.deriveKey(password, salt, memKib, iterations, parallelism));
             byte[] blob = Encryption.encryptV2(key.getEncoded(), kek);
@@ -359,7 +699,6 @@ public class KeyStorage {
             // write to a temp file, verify the round trip, then atomically swap it in, so a failed
             // or unverified write can never replace the existing key file
             File keyFile = new File(storageDir, fileName);
-            File tempFile = new File(storageDir, fileName + ".tmp");
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 fos.write(buf.array());
                 fos.flush();
@@ -372,13 +711,26 @@ public class KeyStorage {
             FileUtil.atomicReplace(tempFile, keyFile);
 
             // remove the legacy PKCS#12 file and backups still unlockable with weak KDF or old
-            // passwords, then keep a fresh backup so the wrapped key never exists as a single copy
-            FileUtil.deleteRollingBackup(storageDir, fileName);
-            FileUtil.deleteFileIfExists(legacySymFile());
-            FileUtil.deleteRollingBackup(storageDir, LEGACY_SYM_FILE_NAME);
-            FileUtil.rollingBackup(storageDir, fileName, 20);
+            // passwords; the fresh verified backup is taken first, so a purge failure can never
+            // leave the wrapped key as a single copy (the purge is retried on the next save)
+            if (manageArtifacts) {
+                FileUtil.replaceRollingBackups(storageDir, fileName);
+                FileUtil.deleteFileIfExists(legacySymFile());
+                FileUtil.deleteRollingBackup(storageDir, LEGACY_SYM_FILE_NAME);
+                // the deletion helpers tolerate failures, so verify the stale wrappers are gone
+                if (legacySymFile().exists() || FileUtil.hasBackups(storageDir, LEGACY_SYM_FILE_NAME)) {
+                    throw new IOException("Could not remove stale key file backups");
+                }
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Could not save key " + fileName, e);
+            // the temp wraps the master key under an abandoned password; it must not linger
+            RuntimeException ex = new RuntimeException("Could not save key " + fileName, e);
+            try {
+                deleteStrict(tempFile);
+            } catch (Exception e2) {
+                ex.addSuppressed(e2);
+            }
+            throw ex;
         }
     }
 

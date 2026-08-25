@@ -36,12 +36,17 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class FileUtil {
@@ -51,7 +56,12 @@ public class FileUtil {
     public static final String CORRUPTED_BACKUP_FOLDER = "backup_of_corrupted_data";
 
     private static final String BACKUP_DIR = "backup";
-    
+
+    /** The root directory holding a directory's rolling backups. */
+    public static File getBackupRoot(File dir) {
+        return new File(dir, BACKUP_DIR);
+    }
+
     // Backup subdirectory name for a file, e.g. "backups_sym_key" for "sym.key".
     private static String backupDirName(String fileName) {
         return ("backups_" + fileName).replace(".", "_");
@@ -82,6 +92,89 @@ public class FileUtil {
                     log.error("Backup key failed: {}\n", e.getMessage(), e);
                 }
             }
+        }
+    }
+
+    /**
+     * Rolling backup for critical files (key material, wallets): creates the directories, streams
+     * the copy with fsync and verifies it by content hash, throwing on any failure instead of
+     * logging it. Returns the created backup file.
+     */
+    public static File rollingBackupStrict(File dir, String fileName, int numMaxBackupFiles) throws IOException {
+        File origFile = new File(Paths.get(dir.getAbsolutePath(), fileName).toString());
+        if (!origFile.isFile()) throw new IOException("Cannot back up missing file " + origFile.getAbsolutePath());
+        File backupFileDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR, backupDirName(fileName)).toString());
+        java.nio.file.Files.createDirectories(backupFileDir.toPath());
+        File backupFile = new File(Paths.get(backupFileDir.getAbsolutePath(), new Date().getTime() + "_" + fileName).toString());
+        byte[] sourceHash;
+        try (InputStream in = new FileInputStream(origFile);
+             FileOutputStream fos = new FileOutputStream(backupFile)) {
+            MessageDigest digest = newSha256();
+            byte[] buf = new byte[64 * 1024];
+            int read;
+            while ((read = in.read(buf)) != -1) {
+                digest.update(buf, 0, read);
+                fos.write(buf, 0, read);
+            }
+            fos.flush();
+            fos.getFD().sync();
+            sourceHash = digest.digest();
+        }
+        if (!MessageDigest.isEqual(sourceHash, sha256(backupFile))) {
+            throw new IOException("Backup verification failed for " + backupFile.getAbsolutePath());
+        }
+        // best effort: make the new file entry, and the backup dir entry if it was just created,
+        // power-loss durable
+        syncParentDir(backupFile);
+        syncParentDir(backupFileDir);
+        pruneBackup(backupFileDir, numMaxBackupFiles);
+        return backupFile;
+    }
+
+    /**
+     * Replaces a file's rolling backups with a single fresh verified copy, for content that must
+     * not survive in backups (e.g. credentials under a retired password or a deprecated format).
+     * The fresh backup is created and verified first, so a failure can never leave the file
+     * without a usable backup; only then are the stale generations purged, with verification.
+     * Returns the fresh backup, or null if the file does not exist (backups are still purged).
+     */
+    public static File replaceRollingBackups(File dir, String fileName) throws IOException {
+        File source = new File(Paths.get(dir.getAbsolutePath(), fileName).toString());
+        File freshBackup = source.isFile() ? rollingBackupStrict(dir, fileName, Integer.MAX_VALUE) : null;
+        List<File> backups = getBackupFiles(dir, fileName);
+        // an unlistable backup dir reads as empty; the just-created backup proves listability
+        if (freshBackup != null && !backups.contains(freshBackup)) throw new IOException("Backup directory of " + fileName + " is not listable");
+        boolean deleted = false;
+        for (File backup : backups) {
+            if (!backup.equals(freshBackup)) {
+                deleteFileIfExists(backup, false);
+                deleted = true;
+            }
+        }
+        for (File backup : getBackupFiles(dir, fileName)) {
+            if (!backup.equals(freshBackup)) throw new IOException("Could not delete stale backups of " + fileName);
+        }
+        // best effort: make the deletions power-loss durable, so purged generations (e.g. under a
+        // retired password) cannot resurrect
+        if (deleted) syncParentDir(freshBackup != null ? freshBackup : backups.get(0));
+        return freshBackup;
+    }
+
+    private static byte[] sha256(File file) throws IOException {
+        MessageDigest digest = newSha256();
+        try (InputStream in = new FileInputStream(file)) {
+            byte[] buf = new byte[64 * 1024];
+            int read;
+            while ((read = in.read(buf)) != -1) digest.update(buf, 0, read);
+        }
+        return digest.digest();
+    }
+
+    private static MessageDigest newSha256() throws IOException {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e);
         }
     }
 
@@ -131,6 +224,30 @@ public class FileUtil {
         } catch (IOException e) {
             log.error("Delete backup key failed: {}\n", e.getMessage(), e);
         }
+    }
+
+    /** Like {@link #deleteRollingBackup} but verifies the deletion and propagates failure. */
+    public static void deleteRollingBackupStrict(File dir, String fileName) throws IOException {
+        File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
+        if (!backupDir.exists()) return;
+        File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), backupDirName(fileName)).toString());
+        if (!backupFileDir.exists()) return;
+        FileUtils.deleteDirectory(backupFileDir);
+        if (backupFileDir.exists()) throw new IOException("Failed to delete backup directory " + backupFileDir.getAbsolutePath());
+        syncParentDir(backupFileDir); // best effort: make the removal power-loss durable
+    }
+
+    /**
+     * The rolling-backup directories under dir not belonging to any of the given file names,
+     * e.g. backups of wallets that no longer exist; throws if the backup root is unlistable.
+     */
+    public static List<File> getRollingBackupDirsExcept(File dir, Collection<String> fileNamesToKeep) throws IOException {
+        Set<String> keep = fileNamesToKeep.stream().map(FileUtil::backupDirName).collect(Collectors.toSet());
+        List<File> staleDirs = new ArrayList<>();
+        for (File backupFileDir : getRollingBackupDirs(dir)) {
+            if (!keep.contains(backupFileDir.getName())) staleDirs.add(backupFileDir);
+        }
+        return staleDirs;
     }
 
     private static void pruneBackup(File backupDir, int numMaxBackupFiles) {
@@ -270,8 +387,12 @@ public class FileUtil {
     // Fsyncs a file's directory entry; a no-op where directories cannot be opened (e.g. Windows).
     public static void syncParentDir(File file) {
         File parent = file.getParentFile();
-        if (parent == null) return;
-        try (FileChannel channel = FileChannel.open(parent.toPath(), StandardOpenOption.READ)) {
+        if (parent != null) syncDir(parent);
+    }
+
+    // Fsyncs a directory's entries; a no-op where directories cannot be opened (e.g. Windows).
+    public static void syncDir(File dir) {
+        try (FileChannel channel = FileChannel.open(dir.toPath(), StandardOpenOption.READ)) {
             channel.force(true);
         } catch (IOException | UnsupportedOperationException ignore) {
         }

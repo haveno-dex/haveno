@@ -45,15 +45,16 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.crypto.Mac;
@@ -103,12 +104,14 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         });
     }
 
-    public static void flushAllDataToDiskAtBackup(ResultHandler completeHandler) {
+    // The backup handler receives the first write error (or null), so a failed flush is not
+    // silently backed up as if it were current data.
+    public static void flushAllDataToDiskAtBackup(Consumer<Throwable> completeHandler) {
         flushAllDataToDisk(completeHandler, false);
     }
 
     public static void flushAllDataToDiskAtShutdown(ResultHandler completeHandler) {
-        flushAllDataToDisk(completeHandler, true);
+        flushAllDataToDisk(error -> completeHandler.handleResult(), true);
     }
 
     /**
@@ -118,16 +121,17 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         ALL_PERSISTENCE_MANAGERS.clear();
         flushAtShutdownCalled = false;
         allServicesInitialized.set(false);
+        PlaintextMigration.reset(); // a restored account must not inherit this process's latch
     }
 
     // We require being called only once from the global shutdown routine. As the shutdown routine has a timeout
     // and error condition where we call the method as well beside the standard path and it could be that those
     // alternative code paths call our method after it was called already, so it is a valid but rare case.
     // We add a guard to prevent repeated calls.
-    private static void flushAllDataToDisk(ResultHandler completeHandler, boolean doShutdown) {
+    private static void flushAllDataToDisk(Consumer<Throwable> completeHandler, boolean doShutdown) {
         if (!allServicesInitialized.get()) {
             log.warn("Application has not completed start up yet so we do not flush data to disk.");
-            completeHandler.handleResult();
+            completeHandler.accept(null);
             return;
         }
 
@@ -144,10 +148,11 @@ public class PersistenceManager<T extends PersistableEnvelope> {
 
             log.info("Start flushAllDataToDisk");
             AtomicInteger openInstances = new AtomicInteger(ALL_PERSISTENCE_MANAGERS.size());
+            AtomicReference<Throwable> firstError = new AtomicReference<>();
 
             if (openInstances.get() == 0) {
                 log.info("No PersistenceManager instances have been created yet.");
-                completeHandler.handleResult();
+                completeHandler.accept(null);
             }
 
             new HashSet<>(ALL_PERSISTENCE_MANAGERS.values()).forEach(persistenceManager -> {
@@ -161,35 +166,39 @@ public class PersistenceManager<T extends PersistableEnvelope> {
                         (persistenceManager.source.flushAtShutDown || persistenceManager.persistenceRequested)) {
 
                     // We always get our completeHandler called even if exceptions happen. In case a file write fails
-                    // we still call our shutdown and count down routine as the completeHandler is triggered in any case.
+                    // we record the error so the caller does not treat the flush as successful.
                     // We get our result handler called from the write thread so we map back to user thread.
                     try {
-                        persistenceManager.persistNow(() ->
-                            UserThread.execute(() -> onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown)));
+                        persistenceManager.persistNow(null, writeError -> {
+                            if (writeError != null) firstError.compareAndSet(null, writeError);
+                            UserThread.execute(() -> onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown, firstError));
+                        }, false);
                     } catch (Exception e) {
-                        if (!doShutdown) throw e; // only complete if shutting down
-                        log.warn("Error flushing data to disk on shut down. Calling completeHandler.");
-                        UserThread.execute(() -> onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown));
+                        // a serialization failure must still complete the flush and be reported
+                        log.warn("Error flushing data to disk. Calling completeHandler.", e);
+                        firstError.compareAndSet(null, e);
+                        onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown, firstError);
                     }
                 } else {
-                    onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown);
+                    onWriteCompleted(completeHandler, openInstances, persistenceManager, doShutdown, firstError);
                 }
             });
         });
     }
 
     // We get called always from user thread here.
-    private static void onWriteCompleted(ResultHandler completeHandler,
+    private static void onWriteCompleted(Consumer<Throwable> completeHandler,
                                          AtomicInteger openInstances,
                                          PersistenceManager<?> persistenceManager,
-                                         boolean doShutdown) {
+                                         boolean doShutdown,
+                                         AtomicReference<Throwable> firstError) {
         if (doShutdown) {
             persistenceManager.shutdown();
         }
 
         if (openInstances.decrementAndGet() == 0) {
             log.info("flushAllDataToDisk completed");
-            completeHandler.handleResult();
+            completeHandler.accept(firstError.get());
         }
     }
 
@@ -236,6 +245,8 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     private String fileName;
     private Source source = Source.PRIVATE_LOW_PRIO;
     private Path usedTempFilePath;
+    // Pending purge of pre-migration backups; only touched on the single-threaded write executor.
+    private boolean legacyBackupPurgePending;
     private volatile boolean persistenceRequested;
     @Nullable
     private Timer timer;
@@ -449,24 +460,10 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         try (InputStream verifyStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
             payloadLength = Encryption.verifyPayloadWithHmacStream(verifyStream, symmetricKey);
         } catch (CryptoException ce) {
-            // plaintext is forgeable, so once the pre-migration inventory exists it is authoritative:
-            // a plaintext store must match its recorded content hash, even in the process that
-            // created the inventory. Only before it exists does legacy key material alone authorize
-            // plaintext, since the legacy era is what the inventory captures.
-            byte[] recordedHash = PlaintextMigration.getRecordedHash(dir, storageFile.getName(), symmetricKey);
-            if (recordedHash != null) {
-                log.warn("Reading pre-migration plaintext store {} recorded in the migration inventory", storageFile.getName());
-                try (InputStream rawStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
-                    DigestInputStream digestStream = new DigestInputStream(rawStream, MessageDigest.getInstance("SHA-256"));
-                    protobuf.PersistableEnvelope proto = protobuf.PersistableEnvelope.parseDelimitedFrom(digestStream);
-                    ByteStreams.exhaust(digestStream);
-                    if (!MessageDigest.isEqual(digestStream.getMessageDigest().digest(), recordedHash)) {
-                        throw new IOException("Plaintext store " + storageFile.getName() + " does not match its recorded pre-migration hash");
-                    }
-                    return proto;
-                }
-            }
-            if (PlaintextMigration.hasInventory(dir) || !keyRing.getKeyStorage().hasLegacyFormatEverLoaded()) throw ce;
+            // plaintext is forgeable, so it is only parsed while unmigrated legacy key material
+            // exists in this process and migration has not completed; migration encrypts every
+            // plaintext store in place, so afterwards no legitimate plaintext store can exist
+            if (PlaintextMigration.hasMarker(dir) || !keyRing.getKeyStorage().hasLegacyFormatEverLoaded()) throw ce;
             log.warn("Expected encrypted persisted file, attempting to getPersisted without decryption");
             try (InputStream rawStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
                 return protobuf.PersistableEnvelope.parseDelimitedFrom(rawStream);
@@ -584,7 +581,42 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         persistNow(completeHandler, false);
     }
 
+    /**
+     * Writes to disk and blocks until the write completed, rethrowing a write failure. Completion
+     * is signaled from the write thread, so this is safe to call from any thread.
+     */
+    public void persistNowSync() {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        persistNow(null, t -> {
+            error.set(t);
+            latch.countDown();
+        }, true);
+        try {
+            if (!latch.await(2, TimeUnit.MINUTES)) throw new RuntimeException("Timed out writing " + fileName + " to disk");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted writing " + fileName + " to disk", e);
+        }
+        if (error.get() != null) throw new RuntimeException("Failed to write " + fileName + " to disk", error.get());
+    }
+
+    /**
+     * Replaces this store's rolling backups with a single fresh verified copy of the current file,
+     * for content that must not survive in backups (e.g. credentials under a retired password).
+     * The fresh backup is created before the stale generations are purged, with verification.
+     */
+    public void refreshBackups() throws IOException {
+        FileUtil.replaceRollingBackups(dir, fileName);
+    }
+
     private synchronized void persistNow(@Nullable Runnable completeHandler, boolean force) {
+        persistNow(completeHandler, null, force);
+    }
+
+    private synchronized void persistNow(@Nullable Runnable completeHandler,
+                                         @Nullable Consumer<Throwable> completionConsumer,
+                                         boolean force) {
         long ts = System.currentTimeMillis();
         try {
             // The serialisation is done on the user thread to avoid threading issue with potential mutations of the
@@ -594,7 +626,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             // For the write to disk task we use a thread. We do not have any issues anymore if the persistable objects
             // gets mutated while the thread is running as we have serialized it already and do not operate on the
             // reference to the persistable object.
-            getWriteToDiskExecutor().execute(() -> writeToDisk(serialized, completeHandler, force));
+            getWriteToDiskExecutor().execute(() -> writeToDisk(serialized, completeHandler, completionConsumer, force));
 
             long duration = System.currentTimeMillis() - ts;
             if (duration > 100) {
@@ -607,9 +639,13 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
     }
 
-    private void writeToDisk(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler, boolean force) {
+    private void writeToDisk(protobuf.PersistableEnvelope serialized,
+                             @Nullable Runnable completeHandler,
+                             @Nullable Consumer<Throwable> completionConsumer,
+                             boolean force) {
         if (!allServicesInitialized.get() && !force) {
             log.warn("Application has not completed start up yet so we do not permit writing data to disk.");
+            if (completionConsumer != null) completionConsumer.accept(new IllegalStateException("Application has not completed start up yet"));
             if (completeHandler != null) {
                 UserThread.execute(completeHandler);
             }
@@ -617,6 +653,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
         if (keyRing != null && !keyRing.isUnlocked()) {
             log.warn("Account is not open, ignoring writeToDisk.");
+            if (completionConsumer != null) completionConsumer.accept(new IllegalStateException("Account is not open"));
             if (completeHandler != null) {
                 UserThread.execute(completeHandler);
             }
@@ -626,12 +663,16 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         long ts = System.currentTimeMillis();
         File tempFile = null;
         FileOutputStream fileOutputStream = null;
+        Throwable error = null;
 
         try {
             // Before we write we backup existing file, unless it is still in a pre-v2 format:
             // copying it would preserve a plaintext (or weakly encrypted) backup of the store
             boolean migratingFormat = keyRing != null && !isCurrentFormatOnDisk(storageFile);
-            if (!migratingFormat) FileUtil.rollingBackup(dir, fileName, source.getNumMaxBackupFiles());
+            // sticky: once the store is installed in the current format a retry no longer sees
+            // migratingFormat, so a failed purge must be re-attempted from this flag
+            if (migratingFormat) legacyBackupPurgePending = true;
+            if (!legacyBackupPurgePending) FileUtil.rollingBackup(dir, fileName, source.getNumMaxBackupFiles());
 
             if (!dir.exists() && !dir.mkdir())
                 log.warn("make dir failed {}", fileName);
@@ -663,16 +704,20 @@ public class PersistenceManager<T extends PersistableEnvelope> {
 
             // atomic where supported, so no crash window exists with neither file in place
             FileUtil.atomicReplace(tempFile, storageFile);
-            if (migratingFormat) {
-                // purge pre-migration backups and take the first backup from the encrypted store
-                FileUtil.deleteRollingBackup(dir, fileName);
-                FileUtil.rollingBackup(dir, fileName, source.getNumMaxBackupFiles());
+            if (legacyBackupPurgePending) {
+                // replace pre-migration backups with a fresh verified one of the encrypted store;
+                // the fresh backup is taken first, so a crash or failure between the steps can
+                // never leave the store without any backup, and strict so a failure fails the
+                // write and retries instead of silently keeping deprecated-format backups
+                if (source.getNumMaxBackupFiles() > 0) FileUtil.replaceRollingBackups(dir, fileName);
+                else FileUtil.deleteRollingBackupStrict(dir, fileName);
+                legacyBackupPurgePending = false;
             }
-            if (keyRing != null) PlaintextMigration.markMigrated(dir, fileName, keyRing.getSymmetricKey());
             usedTempFilePath = tempFile.toPath();
         } catch (Throwable t) {
             // If an error occurred, don't attempt to reuse this path again, in case temp file cleanup fails.
             usedTempFilePath = null;
+            error = t;
             log.error("Error at saveToFile, storageFile={}", fileName, t);
         } finally {
             if (tempFile != null && tempFile.exists()) {
@@ -695,7 +740,9 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             if (duration > 100) {
                 log.info("Writing the serialized {} completed in {} msec", fileName, duration);
             }
-            persistenceRequested = false;
+            // a failed write stays requested so shutdown and later flushes retry it
+            if (error == null) persistenceRequested = false;
+            if (completionConsumer != null) completionConsumer.accept(error);
             if (completeHandler != null) {
                 UserThread.execute(completeHandler);
             }

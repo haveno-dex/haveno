@@ -11,12 +11,12 @@ import haveno.common.proto.persistable.PersistableEnvelope;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.model.EncryptedConnection;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -25,6 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 
@@ -42,6 +43,7 @@ import org.bitcoinj.crypto.KeyCrypterScrypt;
  * salt is a prefix of the decrypted value. If it is a prefix, the connection has no password.
  * Otherwise, it is removed (from the end) and the remaining value is the actual password.
  */
+@Slf4j
 public class EncryptedConnectionList implements PersistableEnvelope, PersistedDataHost {
 
     private static final int MIN_FAKE_PASSWORD_LENGTH = 5;
@@ -137,12 +139,32 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     }
 
     public List<MoneroRpcConnection> getConnections() {
+        try {
+            return doGetConnections();
+        } catch (IllegalArgumentException e) {
+            // like wallets healed on open, credentials still on the counterpart password of an
+            // interrupted password change are converged here, so startup can proceed to the
+            // deferred recovery instead of deadlocking on the decryption failure
+            if (!healInterruptedPasswordChange()) throw e;
+            return doGetConnections();
+        }
+    }
+
+    private List<MoneroRpcConnection> doGetConnections() {
         readLock.lock();
         try {
             return items.values().stream().map(this::toMoneroRpcConnection).collect(Collectors.toList());
         } finally {
             readLock.unlock();
         }
+    }
+
+    private boolean healInterruptedPasswordChange() {
+        String[] counterpart = accountService.getPendingPasswordChangeCounterpart();
+        if (counterpart == null) return false;
+        log.warn("Connection credentials do not match the account password; converging from the interrupted password change's counterpart password");
+        changePassword(counterpart[0], accountService.getPassword());
+        return true;
     }
 
     public boolean hasConnection(String connection) {
@@ -293,14 +315,23 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     public void changePassword(String oldPassword, String newPassword) {
         writeLock.lock();
         try {
-            SecretKey oldSecret = encryptionKey;
-            assert Objects.equals(oldSecret, toSecretKey(oldPassword)) : "Old secret does not match old password";
-            encryptionKey = toSecretKey(newPassword);
-            items.replaceAll((key, connection) -> reEncrypt(connection, oldSecret, encryptionKey));
+            SecretKey oldSecret = toSecretKey(oldPassword);
+            SecretKey newSecret = toSecretKey(newPassword);
+            encryptionKey = newSecret;
+            items.replaceAll((key, connection) -> reEncryptIdempotent(connection, oldSecret, newSecret));
         } finally {
             writeLock.unlock();
         }
-        requestPersistence();
+        // persist synchronously so the credentials are durable before the account password commits
+        if (persistenceManager.readCalled.get()) {
+            persistenceManager.persistNowSync();
+            // replace rolling backups, whose credentials are still under the previous password
+            try {
+                persistenceManager.refreshBackups();
+            } catch (IOException e) {
+                throw new RuntimeException("Could not refresh backups of the connection list", e);
+            }
+        }
     }
 
     private SecretKey toSecretKey(String password) {
@@ -311,16 +342,68 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     private static EncryptedConnection reEncrypt(EncryptedConnection connection,
                                                     SecretKey oldSecret, SecretKey newSecret) {
         return connection.toBuilder()
-                .encryptedPassword(reEncrypt(connection.getEncryptedPassword(), oldSecret, newSecret))
+                .encryptedPassword(reEncrypt(connection.getEncryptedPassword(), connection.getEncryptionSalt(), oldSecret, newSecret))
                 .build();
     }
 
-    private static byte[] reEncrypt(byte[] value,
+    private static EncryptedConnection reEncryptIdempotent(EncryptedConnection connection,
+                                                    SecretKey oldSecret, SecretKey newSecret) {
+        return connection.toBuilder()
+                .encryptedPassword(reEncryptIdempotent(connection.getEncryptedPassword(), connection.getEncryptionSalt(), oldSecret, newSecret))
+                .build();
+    }
+
+    // Re-encrypts a value from the old to the new secret, tolerating values already converged by an
+    // interrupted password change.
+    private static byte[] reEncryptIdempotent(byte[] value, byte[] salt, SecretKey oldSecret, SecretKey newSecret) {
+        if (newSecret == null) {
+            if (oldSecret == null) return value;
+            try {
+                return decryptChecked(value, salt, oldSecret);
+            } catch (RuntimeException e) {
+                if (!Encryption.isV2Format(value)) return value; // already plaintext
+                throw e;
+            }
+        }
+        if (oldSecret == null) {
+            if (Encryption.isV2Format(value)) {
+                try {
+                    decryptChecked(value, salt, newSecret);
+                    return value; // already encrypted with the new secret
+                } catch (RuntimeException ignore) {
+                }
+            }
+            return encrypt(value, newSecret);
+        }
+        try {
+            return encrypt(decryptChecked(value, salt, oldSecret), newSecret);
+        } catch (RuntimeException e) {
+            try {
+                decryptChecked(value, salt, newSecret);
+                return value; // already encrypted with the new secret
+            } catch (RuntimeException ignore) {
+            }
+            throw e;
+        }
+    }
+
+    private static byte[] reEncrypt(byte[] value, byte[] salt,
                                     SecretKey oldSecret, SecretKey newSecret) {
         // was previously not encrypted if null
-        byte[] decrypted = oldSecret == null ? value : decrypt(value, oldSecret);
+        byte[] decrypted = oldSecret == null ? value : decryptChecked(value, salt, oldSecret);
         // should not be encrypted if null
         return newSecret == null ? decrypted : encrypt(decrypted, newSecret);
+    }
+
+    // Decrypts and verifies the plaintext against the connection salt, so a spurious wrong-key
+    // decrypt of a legacy blob (unauthenticated AES-ECB) is never re-sealed as authenticated data.
+    private static byte[] decryptChecked(byte[] value, byte[] salt, SecretKey secret) {
+        byte[] decrypted = decrypt(value, secret);
+        // a planted empty or truncated salt must not weaken the check
+        if (salt.length != SALT_LENGTH || (!arrayStartsWith(decrypted, salt) && !arrayEndsWith(decrypted, salt))) {
+            throw new IllegalArgumentException("Could not authenticate decrypted connection password");
+        }
+        return decrypted;
     }
 
     private static byte[] decrypt(byte[] encrypted, SecretKey secret) {

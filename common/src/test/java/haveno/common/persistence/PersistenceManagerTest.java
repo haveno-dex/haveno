@@ -218,7 +218,7 @@ public class PersistenceManagerTest {
     }
 
     @Test
-    public void testRecordedPlaintextStoreSurvivesRestartAfterKeyMigration() throws Exception {
+    public void testPlaintextStoreEncryptedAtKeyMigration() throws Exception {
         File appDir = File.createTempFile("persistence_test_restart", "");
         assertTrue(appDir.delete());
         File keysDir = new File(appDir, "keys");
@@ -239,13 +239,18 @@ public class PersistenceManagerTest {
                 data.toProtoMessage().writeDelimitedTo(fos);
             }
 
-            // the unlock records the store in the migration inventory before upgrading the keys
+            // the unlock encrypts the store in place and writes the marker before upgrading the keys
             KeyRing legacyKeyRing = new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
             assertTrue(legacyKeyRing.isUnlocked());
-            assertTrue(new File(dbDir, PlaintextMigration.FILE_NAME).exists());
+            assertTrue(PlaintextMigration.hasMarker(dbDir));
             assertFalse(new File(keysDir, "sym.p12").exists());
+            byte[] head = new byte[4];
+            try (var fis = new java.io.FileInputStream(storageFile)) {
+                assertEquals(4, fis.read(head));
+            }
+            assertArrayEquals(Encryption.V2_MAGIC, head);
 
-            // simulate a crash before the store was rewritten: a fresh process loads only v2 keys
+            // a fresh process loads only v2 keys and reads the encrypted store
             KeyRing restarted = new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
             assertTrue(restarted.isUnlocked());
             assertFalse(restarted.getKeyStorage().hasLegacyFormatEverLoaded());
@@ -253,14 +258,7 @@ public class PersistenceManagerTest {
             manager.initialize(data, "RestartStore", PersistenceManager.Source.PRIVATE);
             assertEquals(data, manager.getPersisted("RestartStore"));
 
-            // re-persisting encrypted removes the store from the inventory, so a plaintext
-            // replacement (even byte-identical to the original) is rejected afterwards
-            CountDownLatch latch = new CountDownLatch(1);
-            manager.persistNow(latch::countDown);
-            assertTrue(latch.await(15, TimeUnit.SECONDS), "write did not complete");
-            // the emptied inventory remains as a durable marker that migration ran
-            assertTrue(new File(dbDir, PlaintextMigration.FILE_NAME).exists());
-            assertBackupsAreEncrypted(dbDir, "RestartStore");
+            // a plaintext replacement (even byte-identical to the original) is rejected
             try (FileOutputStream fos = new FileOutputStream(storageFile)) {
                 data.toProtoMessage().writeDelimitedTo(fos);
             }
@@ -272,38 +270,34 @@ public class PersistenceManagerTest {
     }
 
     @Test
-    public void testTamperedRecordedPlaintextStoreIsRejected() throws Exception {
-        File appDir = File.createTempFile("persistence_test_tamper", "");
+    public void testInterruptedMigrationResumesOnNextUnlock() throws Exception {
+        File appDir = File.createTempFile("persistence_test_resume", "");
         assertTrue(appDir.delete());
         File keysDir = new File(appDir, "keys");
         File dbDir = new File(appDir, "db");
         assertTrue(keysDir.mkdirs());
         assertTrue(dbDir.mkdirs());
-        PersistenceManager<NavigationPath> manager = null;
         try {
             String password = "test password 123";
             SecretKey symKey = Encryption.generateSecretKey(256);
             writeLegacySymFile(keysDir, symKey, password);
             writeLegacyKeyFile(keysDir, "sig.key", Sig.generateKeyPair().getPrivate().getEncoded(), symKey);
             writeLegacyKeyFile(keysDir, "enc.key", Encryption.generateKeyPair().getPrivate().getEncoded(), symKey);
-            NavigationPath data = largeNavigationPath();
-            File storageFile = new File(dbDir, "TamperStore");
-            try (FileOutputStream fos = new FileOutputStream(storageFile)) {
-                data.toProtoMessage().writeDelimitedTo(fos);
-            }
-            new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
 
-            // replacing the recorded store's content after the crash fails the recorded hash
-            NavigationPath forged = new NavigationPath(List.of("forged/entry"));
-            try (FileOutputStream fos = new FileOutputStream(storageFile)) {
-                forged.toProtoMessage().writeDelimitedTo(fos);
-            }
-            KeyRing restarted = new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
-            manager = new PersistenceManager<>(dbDir, RESOLVER, null, restarted);
-            manager.initialize(data, "TamperStore", PersistenceManager.Source.PRIVATE);
-            assertNull(manager.getPersisted("TamperStore"));
+            // a crash mid-migration leaves one store encrypted, one still plaintext and no marker;
+            // the legacy key files were not replaced, so the next unlock resumes the migration
+            byte[] doneBytes = "already encrypted store".getBytes();
+            byte[] pendingBytes = "still plaintext store".getBytes();
+            File doneFile = new File(dbDir, "DoneStore");
+            File pendingFile = new File(dbDir, "PendingStore");
+            java.nio.file.Files.write(doneFile.toPath(), Encryption.encryptV2(doneBytes, symKey));
+            java.nio.file.Files.write(pendingFile.toPath(), pendingBytes);
+
+            new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
+            assertTrue(PlaintextMigration.hasMarker(dbDir));
+            assertArrayEquals(doneBytes, Encryption.decryptV2(java.nio.file.Files.readAllBytes(doneFile.toPath()), symKey));
+            assertArrayEquals(pendingBytes, Encryption.decryptV2(java.nio.file.Files.readAllBytes(pendingFile.toPath()), symKey));
         } finally {
-            if (manager != null) manager.shutdown();
             FileUtil.deleteDirectory(appDir);
         }
     }
@@ -329,14 +323,14 @@ public class PersistenceManagerTest {
                 data.toProtoMessage().writeDelimitedTo(fos);
             }
 
-            // the unlock records the inventory; the same process may read the recorded content
+            // the unlock encrypts the store in place; the same process reads it as v2
             KeyRing legacyKeyRing = new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
             assertTrue(legacyKeyRing.getKeyStorage().hasLegacyFormatEverLoaded());
             manager = new PersistenceManager<>(dbDir, RESOLVER, null, legacyKeyRing);
             manager.initialize(data, "SameProcStore", PersistenceManager.Source.PRIVATE);
             assertEquals(data, manager.getPersisted("SameProcStore"));
 
-            // but a replacement written after the inventory is rejected even in the same process
+            // a plaintext replacement written after migration is rejected even in the same process
             NavigationPath forged = new NavigationPath(List.of("forged/entry"));
             try (FileOutputStream fos = new FileOutputStream(storageFile)) {
                 forged.toProtoMessage().writeDelimitedTo(fos);
@@ -400,7 +394,7 @@ public class PersistenceManagerTest {
             writeLegacyKeyFile(keysDir, "enc.key", Encryption.generateKeyPair().getPrivate().getEncoded(), symKey);
             KeyRing keyRing = new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
             assertTrue(keyRing.getKeyStorage().hasLegacyFormatEverLoaded());
-            assertTrue(new File(dbDir, PlaintextMigration.FILE_NAME).exists()); // empty inventory recorded
+            assertTrue(PlaintextMigration.hasMarker(dbDir)); // marker written
 
             // a plaintext store planted after the (empty) migration must be rejected
             NavigationPath data = largeNavigationPath();
@@ -417,6 +411,180 @@ public class PersistenceManagerTest {
     }
 
     @Test
+    public void testEncryptedFrameLogSurvivesMigration() throws Exception {
+        File appDir = File.createTempFile("persistence_test_framelog", "");
+        assertTrue(appDir.delete());
+        File keysDir = new File(appDir, "keys");
+        File dbDir = new File(appDir, "db");
+        assertTrue(keysDir.mkdirs());
+        assertTrue(dbDir.mkdirs());
+        try {
+            String password = "test password 123";
+            SecretKey symKey = Encryption.generateSecretKey(256);
+            writeLegacySymFile(keysDir, symKey, password);
+            writeLegacyKeyFile(keysDir, "sig.key", Sig.generateKeyPair().getPrivate().getEncoded(), symKey);
+            writeLegacyKeyFile(keysDir, "enc.key", Encryption.generateKeyPair().getPrivate().getEncoded(), symKey);
+
+            // a framed append-log with current frames plus a manually appended legacy frame
+            EncryptedAppendLog appendLog = new EncryptedAppendLog(dbDir, "Store.log", symKey, 1);
+            appendLog.append("record one".getBytes());
+            appendLog.append("record two".getBytes());
+            byte[] legacyCiphertext = Encryption.encryptPayloadWithHmac("record three".getBytes(), symKey);
+            try (java.io.DataOutputStream out = new java.io.DataOutputStream(new FileOutputStream(new File(dbDir, "Store.log"), true))) {
+                out.writeInt(legacyCiphertext.length);
+                out.write(legacyCiphertext);
+            }
+            byte[] plaintextBytes = "plaintext store".getBytes();
+            java.nio.file.Files.write(new File(dbDir, "PlainStore").toPath(), plaintextBytes);
+
+            // migration encrypts the plaintext store but must leave the framed log intact
+            new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
+            assertTrue(PlaintextMigration.hasMarker(dbDir));
+            assertArrayEquals(plaintextBytes, Encryption.decryptV2(java.nio.file.Files.readAllBytes(new File(dbDir, "PlainStore").toPath()), symKey));
+            List<byte[]> records = new EncryptedAppendLog(dbDir, "Store.log", symKey, 1).readAllValidRecords();
+            assertEquals(3, records.size());
+            assertArrayEquals("record three".getBytes(), records.get(2));
+        } finally {
+            FileUtil.deleteDirectory(appDir);
+        }
+    }
+
+    @Test
+    public void testDeletedMarkerDoesNotReenablePlaintextInProcess() throws Exception {
+        File appDir = File.createTempFile("persistence_test_marker", "");
+        assertTrue(appDir.delete());
+        File keysDir = new File(appDir, "keys");
+        File dbDir = new File(appDir, "db");
+        assertTrue(keysDir.mkdirs());
+        assertTrue(dbDir.mkdirs());
+        PersistenceManager<NavigationPath> manager = null;
+        try {
+            String password = "test password 123";
+            SecretKey symKey = Encryption.generateSecretKey(256);
+            writeLegacySymFile(keysDir, symKey, password);
+            writeLegacyKeyFile(keysDir, "sig.key", Sig.generateKeyPair().getPrivate().getEncoded(), symKey);
+            writeLegacyKeyFile(keysDir, "enc.key", Encryption.generateKeyPair().getPrivate().getEncoded(), symKey);
+            KeyRing keyRing = new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
+            assertTrue(PlaintextMigration.hasMarker(dbDir));
+
+            // deleting the on-disk marker must not re-enable plaintext within this process
+            assertTrue(new File(dbDir, PlaintextMigration.FILE_NAME).delete());
+            assertTrue(PlaintextMigration.hasMarker(dbDir));
+            NavigationPath data = largeNavigationPath();
+            try (FileOutputStream fos = new FileOutputStream(new File(dbDir, "PlantedStore"))) {
+                data.toProtoMessage().writeDelimitedTo(fos);
+            }
+            manager = new PersistenceManager<>(dbDir, RESOLVER, null, keyRing);
+            manager.initialize(data, "PlantedStore", PersistenceManager.Source.PRIVATE);
+            assertNull(manager.getPersisted("PlantedStore"));
+        } finally {
+            if (manager != null) manager.shutdown();
+            FileUtil.deleteDirectory(appDir);
+        }
+    }
+
+    @Test
+    public void testLegacyEncryptedFilesReEncryptedAtMigration() throws Exception {
+        File appDir = File.createTempFile("persistence_test_rewrap", "");
+        assertTrue(appDir.delete());
+        File keysDir = new File(appDir, "keys");
+        File dbDir = new File(appDir, "db");
+        assertTrue(keysDir.mkdirs());
+        assertTrue(dbDir.mkdirs());
+        try {
+            String password = "test password 123";
+            SecretKey symKey = Encryption.generateSecretKey(256);
+            writeLegacySymFile(keysDir, symKey, password);
+            writeLegacyKeyFile(keysDir, "sig.key", Sig.generateKeyPair().getPrivate().getEncoded(), symKey);
+            writeLegacyKeyFile(keysDir, "enc.key", Encryption.generateKeyPair().getPrivate().getEncoded(), symKey);
+
+            byte[] payload = ((protobuf.PersistableEnvelope) largeNavigationPath().toProtoMessage()).toByteArray();
+            writeLegacyEncryptedFile(payload, symKey, new File(dbDir, "LegacyStore"));
+            File backupsDir = new File(dbDir, "backup/backups_LegacyStore");
+            assertTrue(backupsDir.mkdirs());
+            writeLegacyEncryptedFile(payload, symKey, new File(backupsDir, "123_LegacyStore"));
+
+            // a quarantined legacy frame log is never replayed again, so migration wraps it whole
+            File corruptedDir = new File(dbDir, "backup_of_corrupted_data");
+            assertTrue(corruptedDir.mkdirs());
+            byte[] legacyFrame = Encryption.encryptPayloadWithHmac("frame record".getBytes(), symKey);
+            File quarantined = new File(corruptedDir, "123_Old.log");
+            try (java.io.DataOutputStream out = new java.io.DataOutputStream(new FileOutputStream(quarantined))) {
+                out.writeInt(legacyFrame.length);
+                out.write(legacyFrame);
+            }
+            byte[] quarantinedRaw = java.nio.file.Files.readAllBytes(quarantined.toPath());
+
+            // legacy encrypted files (never re-persisted: backups, archives) upgrade at migration
+            new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
+            assertTrue(PlaintextMigration.hasMarker(dbDir));
+            for (File file : new File[]{new File(dbDir, "LegacyStore"), new File(backupsDir, "123_LegacyStore")}) {
+                byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
+                assertEquals(Encryption.CURRENT_BLOB_VERSION, Encryption.blobVersion(bytes), file.getName());
+                assertArrayEquals(payload, Encryption.decryptV2(bytes, symKey), file.getName());
+            }
+            byte[] wrapped = java.nio.file.Files.readAllBytes(quarantined.toPath());
+            assertEquals(Encryption.CURRENT_BLOB_VERSION, Encryption.blobVersion(wrapped));
+            assertArrayEquals(quarantinedRaw, Encryption.decryptV2(wrapped, symKey));
+        } finally {
+            FileUtil.deleteDirectory(appDir);
+        }
+    }
+
+    @Test
+    public void testBogusMarkerDoesNotSkipMigration() throws Exception {
+        File appDir = File.createTempFile("persistence_test_bogusmarker", "");
+        assertTrue(appDir.delete());
+        File keysDir = new File(appDir, "keys");
+        File dbDir = new File(appDir, "db");
+        assertTrue(keysDir.mkdirs());
+        assertTrue(dbDir.mkdirs());
+        try {
+            String password = "test password 123";
+            SecretKey symKey = Encryption.generateSecretKey(256);
+            writeLegacySymFile(keysDir, symKey, password);
+            writeLegacyKeyFile(keysDir, "sig.key", Sig.generateKeyPair().getPrivate().getEncoded(), symKey);
+            writeLegacyKeyFile(keysDir, "enc.key", Encryption.generateKeyPair().getPrivate().getEncoded(), symKey);
+            byte[] plaintextBytes = "still plaintext store".getBytes();
+            File storeFile = new File(dbDir, "PlainStore");
+            java.nio.file.Files.write(storeFile.toPath(), plaintextBytes);
+
+            // a planted or corrupt marker must not skip the migration, which would replace the
+            // legacy keys and strand the plaintext store behind the plaintext rejection
+            java.nio.file.Files.write(new File(dbDir, PlaintextMigration.FILE_NAME).toPath(), "bogus".getBytes());
+            // an existence-only observation (as the plaintext gate makes) must not poison the
+            // verified latch that authorizes skipping the migration
+            assertTrue(PlaintextMigration.hasMarker(dbDir));
+
+            new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
+            assertArrayEquals(plaintextBytes, Encryption.decryptV2(java.nio.file.Files.readAllBytes(storeFile.toPath()), symKey));
+            // the marker was rewritten as an authenticated blob
+            Encryption.decryptV2(java.nio.file.Files.readAllBytes(new File(dbDir, PlaintextMigration.FILE_NAME).toPath()), symKey);
+        } finally {
+            FileUtil.deleteDirectory(appDir);
+        }
+    }
+
+    @Test
+    public void testResetClearsMigrationLatch() throws Exception {
+        File dbDir = File.createTempFile("persistence_test_latch_reset", "");
+        assertTrue(dbDir.delete());
+        assertTrue(dbDir.mkdirs());
+        try {
+            PlaintextMigration.migrate(dbDir, Encryption.generateSecretKey(256));
+            assertTrue(PlaintextMigration.hasMarker(dbDir));
+            assertTrue(new File(dbDir, PlaintextMigration.FILE_NAME).delete());
+            assertTrue(PlaintextMigration.hasMarker(dbDir)); // latched in-process
+
+            // an in-process restart must re-read the on-disk markers, not inherit the latch
+            PersistenceManager.reset();
+            assertFalse(PlaintextMigration.hasMarker(dbDir));
+        } finally {
+            FileUtil.deleteDirectory(dbDir);
+        }
+    }
+
+    @Test
     public void testUnlistableBackupDirAbortsMigrationRecording() throws Exception {
         Assumptions.assumeFalse(Utilities.isWindows()); // POSIX permissions
         File dbDir = File.createTempFile("persistence_test_unlistable", "");
@@ -428,11 +596,65 @@ public class PersistenceManagerTest {
         Assumptions.assumeTrue(backupsDir.listFiles() == null, "permissions not enforced (running as root?)");
         try {
             // an uninspectable directory must abort the migration, not be skipped
-            assertThrows(IOException.class, () -> PlaintextMigration.record(dbDir, Encryption.generateSecretKey(256)));
+            assertThrows(IOException.class, () -> PlaintextMigration.migrate(dbDir, Encryption.generateSecretKey(256)));
         } finally {
             assertTrue(backupsDir.setReadable(true));
             FileUtil.deleteDirectory(dbDir);
         }
+    }
+
+    @Test
+    public void testCrashTempPlaintextEncryptedAtMigration() throws Exception {
+        File appDir = File.createTempFile("persistence_test_crashtmp", "");
+        assertTrue(appDir.delete());
+        File keysDir = new File(appDir, "keys");
+        File dbDir = new File(appDir, "db");
+        assertTrue(keysDir.mkdirs());
+        assertTrue(dbDir.mkdirs());
+        try {
+            String password = "test password 123";
+            SecretKey symKey = Encryption.generateSecretKey(256);
+            writeLegacySymFile(keysDir, symKey, password);
+            writeLegacyKeyFile(keysDir, "sig.key", Sig.generateKeyPair().getPrivate().getEncoded(), symKey);
+            writeLegacyKeyFile(keysDir, "enc.key", Encryption.generateKeyPair().getPrivate().getEncoded(), symKey);
+
+            // crash-left store temps from a legacy release hold full plaintext copies
+            byte[] crashTempBytes = "plaintext store copy from a torn write".getBytes();
+            byte[] strayTempBytes = "another stale plaintext temp".getBytes();
+            File crashTemp = new File(dbDir, "temp_CrashStore6493725370163495412.tmp");
+            File strayTemp = new File(dbDir, "Straggler.tmp");
+            java.nio.file.Files.write(crashTemp.toPath(), crashTempBytes);
+            java.nio.file.Files.write(strayTemp.toPath(), strayTempBytes);
+
+            // migration encrypts them in place, preserving their content
+            new KeyRing(new KeyStorage(keysDir), dbDir, password, false);
+            assertArrayEquals(crashTempBytes, Encryption.decryptV2(java.nio.file.Files.readAllBytes(crashTemp.toPath()), symKey));
+            assertArrayEquals(strayTempBytes, Encryption.decryptV2(java.nio.file.Files.readAllBytes(strayTemp.toPath()), symKey));
+        } finally {
+            FileUtil.deleteDirectory(appDir);
+        }
+    }
+
+    @Test
+    public void testBackupFlushReportsWriteError() throws Exception {
+        // a store that cannot be serialized must fail the backup flush, not report success
+        NavigationPath bad = new NavigationPath(List.of("x")) {
+            @Override
+            public com.google.protobuf.Message toProtoMessage() {
+                throw new RuntimeException("injected serialization failure");
+            }
+        };
+        persistenceManager.initialize(bad, "FlushErrorStore", PersistenceManager.Source.PRIVATE);
+        assertNull(persistenceManager.getPersisted("FlushErrorStore")); // marks the store as read
+
+        CountDownLatch latch = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<Throwable> flushError = new java.util.concurrent.atomic.AtomicReference<>();
+        PersistenceManager.flushAllDataToDiskAtBackup(error -> {
+            flushError.set(error);
+            latch.countDown();
+        });
+        assertTrue(latch.await(15, TimeUnit.SECONDS), "flush did not complete");
+        assertNotNull(flushError.get(), "flush must report the write error");
     }
 
     private static void writeLegacySymFile(File keysDir, SecretKey symKey, String password) throws Exception {

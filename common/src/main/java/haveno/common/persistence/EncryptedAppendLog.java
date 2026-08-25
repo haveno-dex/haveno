@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -155,6 +156,115 @@ public class EncryptedAppendLog {
 
     // Called under the instance lock before every append: truncates the file back to the known-good
     // boundary so a partial frame from an earlier failed append is never buried by new writes.
+    // Deletes rolling backups holding any pre-current frame, retrying at every replay until none
+    // remain, so the deprecated format cannot outlive the log's own migration. A well-formed
+    // current-format backup is ensured first, so the safety copies are never reduced to the live
+    // log alone; malformed backups (torn or empty, e.g. from a failed copy) are neither trusted
+    // as that safety copy nor purged here.
+    private void purgeLegacyFormatBackups() {
+        List<File> legacyBackups = new ArrayList<>();
+        boolean hasCurrentBackup = false;
+        for (File backup : FileUtil.getBackupFiles(dir, fileName)) {
+            try {
+                BackupFormat format = backupFormat(backup);
+                if (format == BackupFormat.LEGACY) legacyBackups.add(backup);
+                else if (format == BackupFormat.CURRENT) hasCurrentBackup = true;
+            } catch (IOException e) {
+                log.warn("Could not inspect backup {} of {}", backup.getName(), fileName, e);
+            }
+        }
+        if (legacyBackups.isEmpty()) return;
+        File freshBackup = null;
+        if (!hasCurrentBackup) {
+            try {
+                // unbounded retention: pruning here could drain the very legacy generations this
+                // method is still deciding about; the purge below is the only removal
+                freshBackup = FileUtil.rollingBackupStrict(dir, fileName, Integer.MAX_VALUE);
+                // re-verify the copy is a usable current-format log: a live log truncated empty
+                // by tail repair copies byte-for-byte but must not stand in as the safety copy
+                if (backupFormat(freshBackup) != BackupFormat.CURRENT) {
+                    log.error("Fresh backup of {} is not a usable current-format log; keeping the legacy backups", fileName);
+                    return;
+                }
+            } catch (IOException e) {
+                log.error("Could not take a current-format backup of {}; keeping the legacy backups", fileName, e);
+                return;
+            }
+        }
+        File deletedBackup = null;
+        for (File backup : legacyBackups) {
+            if (backup.equals(freshBackup)) continue; // same-millisecond name collision overwrote this entry
+            try {
+                FileUtil.deleteFileIfExists(backup, false);
+                if (backup.exists()) throw new IOException("could not delete " + backup.getAbsolutePath());
+                log.info("Deleted legacy-format backup {} of {}", backup.getName(), fileName);
+                deletedBackup = backup;
+            } catch (IOException e) {
+                log.error("Could not purge legacy-format backup {} of {}", backup.getName(), fileName, e);
+            }
+        }
+        // best effort: make the deletions power-loss durable so purged weak-format generations
+        // cannot resurrect
+        if (deletedBackup != null) FileUtil.syncParentDir(deletedBackup);
+    }
+
+    private enum BackupFormat { CURRENT, LEGACY, MALFORMED }
+
+    // Walks the frames. Any complete pre-current frame is LEGACY; CURRENT requires at least one
+    // complete frame and every frame well-formed, current AND authenticated under the key, so a
+    // bit-rotted or wrong-key copy can never stand in as the safety backup; anything else (empty,
+    // torn, bad prefix, failed tag) is MALFORMED.
+    private BackupFormat backupFormat(File file) throws IOException {
+        boolean sawFrame = false;
+        long remaining = file.length();
+        try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+            while (true) {
+                int len;
+                try {
+                    len = in.readInt();
+                } catch (EOFException e) {
+                    // leftover bytes of a partial length prefix are a torn copy, not a clean end
+                    return sawFrame && remaining == 0 ? BackupFormat.CURRENT : BackupFormat.MALFORMED;
+                }
+                remaining -= 4;
+                if (len <= 0 || len > MAX_FRAME_SIZE) return BackupFormat.MALFORMED;
+                byte[] ciphertext = new byte[len];
+                in.readFully(ciphertext);
+                remaining -= len;
+                if (Encryption.blobVersion(ciphertext) < Encryption.CURRENT_BLOB_VERSION) return BackupFormat.LEGACY;
+                try {
+                    Encryption.decryptV2(ciphertext, secretKey);
+                } catch (Exception e) {
+                    return BackupFormat.MALFORMED;
+                }
+                sawFrame = true;
+            }
+        } catch (EOFException e) {
+            return BackupFormat.MALFORMED;
+        }
+    }
+
+    // The quarantined copy can hold legacy-format frames and an unverifiable tail, so it is
+    // wrapped whole in the current format rather than kept as raw weak ciphertext. Best effort:
+    // the copy itself must survive even if the wrap fails.
+    private void encryptCorruptedBackup(File backupFile) {
+        try {
+            File tempFile = new File(backupFile.getParentFile(), backupFile.getName() + ".tmp");
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                Encryption.encryptV2ToStream(out -> {
+                    try (InputStream in = new BufferedInputStream(new FileInputStream(backupFile))) {
+                        in.transferTo(out);
+                    }
+                }, secretKey, fos);
+                fos.flush();
+                fos.getFD().sync();
+            }
+            FileUtil.atomicReplace(tempFile, backupFile);
+        } catch (Exception e) {
+            log.error("Could not encrypt quarantined copy {}", backupFile.getName(), e);
+        }
+    }
+
     private void repairTailBeforeAppend() {
         if (knownGoodLength < 0) {
             // First write of this session without a prior replay: replay once to validate the tail
@@ -268,6 +378,9 @@ public class EncryptedAppendLog {
                                 fileName, goodLength, records.size(), fileLength - goodLength, backupFile);
                     }
                     FileUtil.copyFile(logFile, backupFile);
+                    // wrap only when this key authenticated at least one frame: under a wrong
+                    // key (e.g. a mismatched key dir) wrapping would seal away the only copy
+                    if (!records.isEmpty()) encryptCorruptedBackup(backupFile);
                     truncateTo(logFile, goodLength);
                     knownGoodLength = goodLength;
                 } else {
@@ -282,12 +395,15 @@ public class EncryptedAppendLog {
                 try {
                     log.info("Rewriting {} to upgrade legacy encrypted frames.", fileName);
                     rewrite(records);
+                    hasLegacyFrames = false;
                 } catch (OutOfMemoryError e) {
                     throw e;
                 } catch (Throwable t) {
                     log.error("Could not rewrite {} to upgrade legacy frames; keeping the existing log.", fileName, t);
                 }
             }
+            // once the live log holds no legacy frames, backups must not keep them either
+            if (!hasLegacyFrames) purgeLegacyFormatBackups();
             return records;
         }
     }
@@ -309,6 +425,8 @@ public class EncryptedAppendLog {
                      DataOutputStream out = new DataOutputStream(new BufferedOutputStream(fos))) {
                     for (byte[] record : records) {
                         byte[] ciphertext = Encryption.encryptV2(record, secretKey);
+                        // same bound as appendAll, or the next replay would reject the frame as corrupt
+                        if (ciphertext.length > MAX_FRAME_SIZE) throw new IllegalArgumentException("Record exceeds max frame size: " + ciphertext.length);
                         writeFrame(out, ciphertext);
                         written += 4L + ciphertext.length;
                     }
@@ -334,6 +452,32 @@ public class EncryptedAppendLog {
                 }
             }
         }
+    }
+
+    /**
+     * Whether the file is a framed encrypted record log: at least one leading frame whose
+     * ciphertext authenticates under the key. Frames are unforgeable without the key, so a match
+     * proves the file is already encrypted; trailing torn or corrupt bytes are the replay
+     * repair's job and do not disqualify the file.
+     */
+    public static boolean isEncryptedFrameLog(File file, SecretKey secretKey) {
+        boolean hasValidFrame = false;
+        try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+            long remaining = file.length();
+            while (remaining >= 4) {
+                int len = in.readInt();
+                if (len <= 0 || len > MAX_FRAME_SIZE) break; // corrupt prefix
+                if (len > remaining - 4) break; // torn tail
+                byte[] ciphertext = new byte[len];
+                in.readFully(ciphertext);
+                Encryption.decryptPayloadWithHmacAuto(ciphertext, secretKey);
+                hasValidFrame = true;
+                remaining -= 4L + len;
+            }
+        } catch (Exception e) {
+            // fall through: the authenticated frames read so far decide
+        }
+        return hasValidFrame;
     }
 
     // The single place that knows the on-disk frame encoding: [4-byte big-endian length][ciphertext].

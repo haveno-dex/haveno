@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EncryptedAppendLogTest {
@@ -248,7 +249,10 @@ public class EncryptedAppendLogTest {
         assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
         assertEquals(1, corruptedBackupCount(), "dropped bytes must be preserved in a backup copy");
         File[] backups = new File(dir, "backup_of_corrupted_data").listFiles((d, name) -> name.endsWith("_Test.log"));
-        assertEquals(originalLength, backups[0].length(), "backup must contain the full pre-truncation file");
+        // the quarantined copy is wrapped in the current format; unwrapped it is the full original
+        byte[] unwrapped = Encryption.decryptV2(Files.readAllBytes(backups[0].toPath()), key);
+        assertEquals(originalLength, unwrapped.length, "backup must contain the full pre-truncation file");
+        assertArrayEquals(bytes, unwrapped);
     }
 
     @Test
@@ -340,5 +344,106 @@ public class EncryptedAppendLogTest {
 
         // And the upgraded log still reads back the same records.
         assertRecords(expected, newLog().readAllValidRecords());
+    }
+
+    @Test
+    public void testLegacyBackupsPurgedAfterFrameUpgrade() throws Exception {
+        // legacy-framed log plus planted rolling backups: one all-legacy, one mixed with a
+        // current-format first frame hiding a later legacy frame
+        byte[] legacyFrame = Encryption.encryptPayloadWithHmac(rec("legacy-a"), key);
+        java.io.ByteArrayOutputStream framed = new java.io.ByteArrayOutputStream();
+        try (var out = new java.io.DataOutputStream(framed)) {
+            out.writeInt(legacyFrame.length);
+            out.write(legacyFrame);
+        }
+        java.io.ByteArrayOutputStream mixed = new java.io.ByteArrayOutputStream();
+        try (var out = new java.io.DataOutputStream(mixed)) {
+            byte[] v2Frame = Encryption.encryptV2(rec("v2-a"), key);
+            out.writeInt(v2Frame.length);
+            out.write(v2Frame);
+            out.writeInt(legacyFrame.length);
+            out.write(legacyFrame);
+        }
+        Files.write(new File(dir, "Test.log").toPath(), framed.toByteArray());
+        File backupsDir = new File(dir, "backup/backups_Test_log");
+        assertTrue(backupsDir.mkdirs());
+        Files.write(new File(backupsDir, "111_Test.log").toPath(), framed.toByteArray());
+        Files.write(new File(backupsDir, "112_Test.log").toPath(), mixed.toByteArray());
+
+        assertRecords(List.of("legacy-a"), newLog().readAllValidRecords());
+
+        // the legacy-format backups are gone; what remains is the current-format backup
+        List<File> backups = FileUtil.getBackupFiles(dir, "Test.log");
+        assertFalse(backups.isEmpty());
+        for (File backup : backups) {
+            byte[] bytes = Files.readAllBytes(backup.toPath());
+            byte[] frame = new byte[frameOffset(bytes, 1) - 4];
+            System.arraycopy(bytes, 4, frame, 0, frame.length);
+            assertTrue(Encryption.isV2Format(frame), "backup holds a legacy frame: " + backup.getName());
+        }
+    }
+
+    @Test
+    public void testTornCurrentBackupDoesNotStandInAsSafetyCopy() throws Exception {
+        // a legacy backup plus a torn current-format backup (one valid frame, then a partial
+        // length prefix from an interrupted copy): the tear must classify as malformed, so the
+        // purge still takes a fresh complete backup before deleting the legacy generation
+        byte[] legacyFrame = Encryption.encryptPayloadWithHmac(rec("legacy-a"), key);
+        java.io.ByteArrayOutputStream framed = new java.io.ByteArrayOutputStream();
+        try (var out = new java.io.DataOutputStream(framed)) {
+            out.writeInt(legacyFrame.length);
+            out.write(legacyFrame);
+        }
+        Files.write(new File(dir, "Test.log").toPath(), framed.toByteArray());
+        java.io.ByteArrayOutputStream torn = new java.io.ByteArrayOutputStream();
+        try (var out = new java.io.DataOutputStream(torn)) {
+            byte[] v2Frame = Encryption.encryptV2(rec("v2-a"), key);
+            out.writeInt(v2Frame.length);
+            out.write(v2Frame);
+            out.write(new byte[]{0, 0}); // partial length prefix of a lost second frame
+        }
+        File backupsDir = new File(dir, "backup/backups_Test_log");
+        assertTrue(backupsDir.mkdirs());
+        Files.write(new File(backupsDir, "111_Test.log").toPath(), framed.toByteArray());
+        File tornBackup = new File(backupsDir, "112_Test.log");
+        Files.write(tornBackup.toPath(), torn.toByteArray());
+
+        assertRecords(List.of("legacy-a"), newLog().readAllValidRecords());
+
+        // the legacy backup is gone, the torn copy is untouched, and a complete current-format
+        // backup of the upgraded log exists alongside it
+        assertFalse(new File(backupsDir, "111_Test.log").exists());
+        assertArrayEquals(torn.toByteArray(), Files.readAllBytes(tornBackup.toPath()));
+        boolean hasCompleteBackup = false;
+        for (File backup : FileUtil.getBackupFiles(dir, "Test.log")) {
+            if (backup.equals(tornBackup)) continue;
+            byte[] bytes = Files.readAllBytes(backup.toPath());
+            byte[] frame = new byte[frameOffset(bytes, 1) - 4];
+            System.arraycopy(bytes, 4, frame, 0, frame.length);
+            assertTrue(Encryption.isV2Format(frame));
+            assertEquals(frameOffset(bytes, 1), bytes.length, "backup must end on a frame boundary");
+            hasCompleteBackup = true;
+        }
+        assertTrue(hasCompleteBackup, "a fresh complete backup must exist before the legacy one is purged");
+    }
+
+    @Test
+    public void testRewriteEnforcesFrameBoundLikeAppend() throws Exception {
+        // v2 framing adds 52 bytes (magic + iv + hmac); the largest accepted plaintext round-trips
+        EncryptedAppendLog log = newLog();
+        byte[] largest = new byte[EncryptedAppendLog.MAX_FRAME_SIZE - 52];
+        new Random(42).nextBytes(largest);
+        log.rewrite(List.of(largest));
+        List<byte[]> read = newLog().readAllValidRecords();
+        assertEquals(1, read.size());
+        assertArrayEquals(largest, read.get(0));
+
+        // one byte more must be rejected by rewrite (as by append), not written and later
+        // classified as corrupt by the reader
+        byte[] oversize = new byte[EncryptedAppendLog.MAX_FRAME_SIZE - 51];
+        assertThrows(IllegalArgumentException.class, () -> log.rewrite(List.of(oversize)));
+        read = newLog().readAllValidRecords();
+        assertEquals(1, read.size());
+        assertArrayEquals(largest, read.get(0)); // existing log untouched
     }
 }

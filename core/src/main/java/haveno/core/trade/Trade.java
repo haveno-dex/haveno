@@ -1033,7 +1033,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return walletHeight.get();
     }
 
-    private String getWalletName() {
+    public String getWalletName() {
         return MONERO_TRADE_WALLET_PREFIX + getShortId() + "_" + getShortUid();
     }
 
@@ -1110,8 +1110,27 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     public void changeWalletPassword(String oldPassword, String newPassword) {
         synchronized (walletLock) {
-            getWallet().changePassword(oldPassword, newPassword);
+            XmrWalletService.changeWalletPassword(getWallet(), oldPassword, newPassword);
             saveWallet();
+
+            // arbitrator keeps no backups of trade wallets; drop any stale ones rather than
+            // leaving copies under the retired password, strictly so failure aborts the change
+            if (isArbitrator()) {
+                xmrWalletService.deleteWalletBackupsStrict(getWalletName());
+                return;
+            }
+
+            // backups must not outlive the old password; Windows locks open wallet files, so
+            // close for the backup refresh and reopen with the change's target password (the
+            // account password has not committed yet and would heal the wallet back)
+            if (Utilities.isWindows() && isWalletOpen()) {
+                closeWallet();
+                xmrWalletService.refreshWalletBackups(getWalletName());
+                if (isShutDownStarted) throw new IllegalStateException("Cannot reopen wallet for " + getClass().getSimpleName() + " " + getId() + " after backup refresh because shut down is started");
+                wallet = xmrWalletService.openWallet(getWalletName(), null, newPassword, isProxyApplied(), TRUST_DAEMON);
+            } else {
+                xmrWalletService.refreshWalletBackups(getWalletName());
+            }
         }
     }
 

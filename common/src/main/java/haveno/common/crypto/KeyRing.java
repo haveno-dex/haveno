@@ -117,9 +117,9 @@ public final class KeyRing {
             if (signatureKeyPair != null && encryptionKeyPair != null) pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
             if (isUnlocked() && keyStorage.needsFormatUpgrade()) {
                 try {
-                    // durably record unmigrated plaintext stores before replacing the legacy key
-                    // files, whose presence is what authorizes reading plaintext (see PersistenceManager)
-                    if (storageDir != null) PlaintextMigration.record(storageDir, symmetricKey);
+                    // encrypt all plaintext stores before replacing the legacy key files, whose
+                    // presence is what authorizes reading plaintext (see PersistenceManager)
+                    if (storageDir != null) PlaintextMigration.migrate(storageDir, symmetricKey);
                     keyStorage.saveKeyRing(this, password);
                 } catch (Exception e) {
                     log.error("Failed to upgrade key storage format, will retry on next unlock", e);
@@ -138,6 +138,13 @@ public final class KeyRing {
      */
     public void generateKeys(String password) {
         if (isUnlocked()) throw new IllegalStateException("Current keyring must be closed to generate new keys");
+        try {
+            // key material left by a previous (unopenable) account may be its only remaining key
+            // copy; move it out of the way so the new account's saves can never purge it
+            keyStorage.preserveLostAccountKeys();
+        } catch (Exception e) {
+            throw new RuntimeException("Could not preserve a previous account's key files", e);
+        }
         symmetricKey = Encryption.generateSecretKey(256);
         signatureKeyPair = Sig.generateKeyPair();
         encryptionKeyPair = Encryption.generateKeyPair();

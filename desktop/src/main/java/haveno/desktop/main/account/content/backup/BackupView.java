@@ -24,6 +24,7 @@ import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
+import haveno.core.api.CoreAccountService;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
@@ -53,9 +54,10 @@ import javax.annotation.Nullable;
 
 @FxmlView
 public class BackupView extends ActivatableView<GridPane, Void> {
-    private final File dataDir, logFile;
+    private final File dataDir, logFile, walletDir;
     private int gridRow = 0;
     private final Preferences preferences;
+    private final CoreAccountService accountService;
     private Button selectBackupDir, backupNow;
     private TextField backUpLocationTextField;
     private Button openDataDirButton, openLogsButton;
@@ -67,9 +69,11 @@ public class BackupView extends ActivatableView<GridPane, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private BackupView(Preferences preferences, Config config) {
+    private BackupView(Preferences preferences, Config config, CoreAccountService accountService) {
         super();
         this.preferences = preferences;
+        this.accountService = accountService;
+        this.walletDir = config.walletDir;
         dataDir = new File(config.appDataDir.getPath());
         logFile = new File(Paths.get(dataDir.getPath(), "haveno.log").toString());
     }
@@ -156,8 +160,21 @@ public class BackupView extends ActivatableView<GridPane, Void> {
         log.info("Backing up data directory");
         String backupDirectory = preferences.getBackupDirectory();
         if (backupDirectory != null && backupDirectory.length() > 0) {  // We need to flush data to disk
-            PersistenceManager.flushAllDataToDiskAtBackup(() -> {
+            // share the account backup guard so the copy cannot race a password change or
+            // archive its recovery artifacts
+            try {
+                accountService.beginBackup();
+            } catch (IllegalStateException e) {
+                new Popup().warning(e.getMessage()).show();
+                return;
+            }
+            PersistenceManager.flushAllDataToDiskAtBackup(flushError -> {
                 try {
+                    if (flushError != null) {
+                        log.error("Flushing data to disk failed; not backing up", flushError);
+                        new Popup().error(flushError.toString()).show();
+                        return;
+                    }
 
                     // copy data directory to backup directory
                     String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
@@ -170,11 +187,19 @@ public class BackupView extends ActivatableView<GridPane, Void> {
                     if (monerod.exists()) monerod.delete();
                     File moneroWalletRpc = new File(destinationFile, XmrWalletService.MONERO_WALLET_RPC_NAME);
                     if (moneroWalletRpc.exists()) moneroWalletRpc.delete();
+
+                    // delete the throwaway seed validation wallet from the backup, which must never be archived
+                    for (File file : XmrWalletService.getSeedValidationWalletFiles(walletDir)) {
+                        File copied = new File(destinationFile, dataDir.toPath().relativize(file.toPath()).toString());
+                        if (copied.exists()) copied.delete();
+                    }
                     new Popup().feedback(Res.get("account.backup.success", destination)).show();
                 } catch (IOException e) {
                     e.printStackTrace();
                     log.error(e.getMessage());
                     showWrongPathWarningAndReset(e);
+                } finally {
+                    accountService.endBackup();
                 }
             });
         }

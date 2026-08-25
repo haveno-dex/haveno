@@ -48,6 +48,7 @@ import haveno.core.xmr.setup.MoneroWalletRpcManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.network.utils.EventThrottler;
 import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -62,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
@@ -122,6 +124,8 @@ public class XmrWalletService extends XmrWalletBase {
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
+    // throwaway wallet restored under the default password to validate a seed, never rotated
+    private static final String SEED_VALIDATION_WALLET_NAME = MONERO_WALLET_NAME + "_seed_validation";
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     private static final int NUM_WALLET_BACKUPS = 3;
@@ -329,16 +333,28 @@ public class XmrWalletService extends XmrWalletBase {
     private MoneroWallet createWallet(String walletName, Integer walletRpcPort, boolean applyProxyUri, boolean trustDaemon) {
         log.info("{}.createWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
-        MoneroWalletConfig config = getWalletConfig(walletName);
-        return isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+        // registered so a password change transaction drains this creation before scanning
+        // wallets; the password must be read inside the registered window
+        accountService.beginWalletCreation();
+        try {
+            MoneroWalletConfig config = getWalletConfig(walletName);
+            return isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+        } finally {
+            accountService.endWalletCreation();
+        }
     }
 
     private MoneroWallet createWalletFromSeed(String walletName, Integer walletRpcPort, boolean applyProxyUri, boolean trustDaemon, String seed, long restoreHeight) {
         log.info("{}.createWalletFromSeed({}, {})", getClass().getSimpleName(), walletName, restoreHeight);
         if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
         if (!isSeedValid(seed)) throw new IllegalArgumentException("Invalid wallet seed");
-        MoneroWalletConfig config = getWalletConfig(walletName).setSeed(seed).setRestoreHeight(restoreHeight);
-        return isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+        accountService.beginWalletCreation();
+        try {
+            MoneroWalletConfig config = getWalletConfig(walletName).setSeed(seed).setRestoreHeight(restoreHeight);
+            return isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+        } finally {
+            accountService.endWalletCreation();
+        }
     }
 
     // mainnet genesis timestamp and v2 fork height, to translate between block heights and dates
@@ -410,21 +426,34 @@ public class XmrWalletService extends XmrWalletBase {
 
     // validate the seed by restoring a temporary wallet with an offline monero-wallet-rpc instance
     private boolean isSeedValidRpc(String seed) {
-        String walletName = MONERO_WALLET_NAME + "_seed_validation";
-        deleteWalletFiles(walletName); // remove stale files from any previous validation
-        MoneroWalletRpc walletRpc = startWalletRpcInstance(null, null);
+        String walletName = SEED_VALIDATION_WALLET_NAME;
+        // registered so its throwaway file cannot race a password change's scans
+        accountService.beginWalletCreation();
         try {
-            walletRpc.createWallet(new MoneroWalletConfig()
-                    .setPath(walletName)
-                    .setPassword(MONERO_WALLET_RPC_DEFAULT_PASSWORD)
-                    .setSeed(seed));
-            return true;
-        } catch (MoneroError e) {
-            log.info("Seed failed validation: {}", e.getMessage());
-            return false;
+            deleteWalletFiles(walletName); // remove stale files from any previous validation
+            MoneroWalletRpc walletRpc = startWalletRpcInstance(null, null);
+            try {
+                walletRpc.createWallet(new MoneroWalletConfig()
+                        .setPath(walletName)
+                        // one-time random password, so a crash-left file never holds the seed's keys under a known password
+                        .setPassword(UUID.randomUUID().toString())
+                        .setSeed(seed));
+                return true;
+            } catch (MoneroError e) {
+                log.info("Seed failed validation: {}", e.getMessage());
+                return false;
+            } finally {
+                // best effort: cleanup failures must not mask the validation result, and the
+                // file is inert without its password
+                try {
+                    forceCloseWallet(walletRpc, walletName);
+                } catch (Exception e) {
+                    log.warn("Error closing seed validation wallet: {}", e.getMessage());
+                }
+                deleteWalletFilesBestEffort(walletName);
+            }
         } finally {
-            forceCloseWallet(walletRpc, walletName);
-            deleteWalletFiles(walletName);
+            accountService.endWalletCreation();
         }
     }
 
@@ -432,11 +461,47 @@ public class XmrWalletService extends XmrWalletBase {
         return openWallet(walletName, null, applyProxyUri, trustDaemon);
     }
 
+    /**
+     * Opens a wallet with an explicit password and no interrupted-change healing, for reopening
+     * with an in-flight password change's target before the account password itself commits (the
+     * account password still reports the old password during change notifications, and healing
+     * would silently convert the wallet back to it).
+     */
+    public MoneroWallet openWallet(String walletName, Integer walletRpcPort, String password, boolean applyProxyUri, boolean trustDaemon) {
+        if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet '" + walletName + "' because shutting down");
+        MoneroWalletConfig config = getWalletConfig(walletName).setPassword(password);
+        return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+    }
+
     public MoneroWallet openWallet(String walletName, Integer walletRpcPort, boolean applyProxyUri, boolean trustDaemon) {
         log.debug("{}.openWallet({})", getClass().getSimpleName(), walletName);
         if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet '" + walletName + "' because shutting down");
-        MoneroWalletConfig config = getWalletConfig(walletName);
-        return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+        try {
+            MoneroWalletConfig config = getWalletConfig(walletName);
+            return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+        } catch (Exception e) {
+
+            // an interrupted password change can leave the wallet on the counterpart password;
+            // open with it and converge the wallet back to the current password
+            String[] counterpart = accountService.getPendingPasswordChangeCounterpart();
+            if (counterpart == null) throw e;
+            String counterpartPassword = counterpart[0] == null || counterpart[0].isEmpty() ? MONERO_WALLET_RPC_DEFAULT_PASSWORD : counterpart[0];
+            log.warn("Could not open wallet {}; retrying with the interrupted password change's counterpart password", walletName, e);
+            MoneroWalletConfig config = getWalletConfig(walletName).setPassword(counterpartPassword);
+            MoneroWallet wallet = isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
+            // while a password change transaction runs in this process, the account password still
+            // reports the retiring password; converging would silently undo the wallet's rotation
+            if (accountService.isPasswordChangeInProgress()) return wallet;
+            wallet.changePassword(counterpartPassword, getWalletPassword());
+            wallet.save();
+            try {
+                refreshWalletBackups(walletName);
+            } catch (Exception e2) {
+                // keep the healed wallet available; pending recovery refreshes the backups again
+                log.warn("Could not refresh backups of healed wallet {}: {}", walletName, e2.getMessage());
+            }
+            return wallet;
+        }
     }
 
     // Restore the main wallet from the given seed, scanning from restoreHeight or else restoreDate. The restored wallet
@@ -451,19 +516,25 @@ public class XmrWalletService extends XmrWalletBase {
             log.info("{}.restoreWalletFromSeed(restoreHeight={})", getClass().getSimpleName(), height);
 
             // create the restored wallet under a temporary name so the current wallet is preserved if the seed is invalid
-            String restoreName = MONERO_WALLET_NAME + "_restore";
-            deleteWalletFiles(restoreName);
-            MoneroWalletConfig config = getWalletConfig(restoreName).setSeed(seed).setRestoreHeight(height);
-            MoneroWallet restored = isNativeLibraryApplied() ? createWalletFull(config, isProxyApplied()) : createWalletRpc(config, null, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
-            closeWallet(restored, true);
+            // registered so a concurrent password change cannot miss the wallet files while they exist under either name
+            accountService.beginWalletCreation();
+            try {
+                String restoreName = MONERO_WALLET_NAME + "_restore";
+                deleteWalletFiles(restoreName);
+                MoneroWalletConfig config = getWalletConfig(restoreName).setSeed(seed).setRestoreHeight(height);
+                MoneroWallet restored = isNativeLibraryApplied() ? createWalletFull(config, isProxyApplied()) : createWalletRpc(config, null, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+                closeWallet(restored, true);
 
-            // replace the current wallet with the restored wallet, keeping a backup
-            closeMainWallet(true);
-            if (walletExists(MONERO_WALLET_NAME)) {
-                backupWallet(MONERO_WALLET_NAME);
-                deleteWallet(MONERO_WALLET_NAME);
+                // replace the current wallet with the restored wallet, keeping a backup
+                closeMainWallet(true);
+                if (walletExists(MONERO_WALLET_NAME)) {
+                    backupWallet(MONERO_WALLET_NAME);
+                    deleteWallet(MONERO_WALLET_NAME);
+                }
+                moveWallet(restoreName, MONERO_WALLET_NAME);
+            } finally {
+                accountService.endWalletCreation();
             }
-            moveWallet(restoreName, MONERO_WALLET_NAME);
             user.setWalletCreationDate(estimateHeightTimestamp(height));
         }
     }
@@ -485,6 +556,26 @@ public class XmrWalletService extends XmrWalletBase {
             File file = new File(walletDir, walletName + postfix);
             if (file.exists() && !file.delete()) throw new RuntimeException("Failed to delete wallet file " + Utilities.redactSensitiveInfo(file.toString()));
         }
+    }
+
+    // Best-effort per file with the keys file first, so a locked sibling cannot leave it behind.
+    private void deleteWalletFilesBestEffort(String walletName) {
+        assertNotPath(walletName);
+        for (String postfix : new String[] {KEYS_FILE_POSTFIX, "", ADDRESS_FILE_POSTFIX}) {
+            File file = new File(walletDir, walletName + postfix);
+            try {
+                if (file.exists() && !file.delete()) log.warn("Failed to delete wallet file {}", Utilities.redactSensitiveInfo(file.toString()));
+            } catch (Exception e) {
+                log.warn("Error deleting wallet file {}: {}", Utilities.redactSensitiveInfo(file.toString()), e.getMessage());
+            }
+        }
+    }
+
+    /** Files of the throwaway seed validation wallet, which must never be archived in backups. */
+    public static List<File> getSeedValidationWalletFiles(File walletDir) {
+        List<File> files = new ArrayList<>();
+        for (String postfix : new String[] {"", KEYS_FILE_POSTFIX, ADDRESS_FILE_POSTFIX}) files.add(new File(walletDir, SEED_VALIDATION_WALLET_NAME + postfix));
+        return files;
     }
 
     private MoneroWalletConfig getWalletConfig(String walletName) {
@@ -592,6 +683,18 @@ public class XmrWalletService extends XmrWalletBase {
         FileUtil.deleteRollingBackup(walletDir, walletName);
         FileUtil.deleteRollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX);
         FileUtil.deleteRollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX);
+    }
+
+    /** Like {@link #deleteWalletBackups} but verifies the deletion and propagates failure. */
+    public void deleteWalletBackupsStrict(String walletName) {
+        assertNotPath(walletName);
+        try {
+            FileUtil.deleteRollingBackupStrict(walletDir, walletName);
+            FileUtil.deleteRollingBackupStrict(walletDir, walletName + KEYS_FILE_POSTFIX);
+            FileUtil.deleteRollingBackupStrict(walletDir, walletName + ADDRESS_FILE_POSTFIX);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not delete backups of wallet " + walletName, e);
+        }
     }
 
     private static void assertNotPath(String name) {
@@ -1549,6 +1652,11 @@ public class XmrWalletService extends XmrWalletBase {
 
     private void initialize() {
 
+        // remove any crash-left seed validation wallet, which older versions keyed under a fixed password
+        synchronized (seedValidationLock) {
+            deleteWalletFilesBestEffort(SEED_VALIDATION_WALLET_NAME);
+        }
+
         // try to load native monero library
         if (useNativeXmrWallet && !MoneroUtils.isNativeLibraryLoaded()) {
             try {
@@ -2089,13 +2197,32 @@ public class XmrWalletService extends XmrWalletBase {
 
         // create task to change main wallet password
         List<Runnable> tasks = new ArrayList<Runnable>();
+        List<Exception> failures = Collections.synchronizedList(new ArrayList<>());
         tasks.add(() -> {
             try {
-                getInitializedWallet().changePassword(oldPassword, newPassword);
+                // nothing to rotate before the main wallet is first created (creating it here
+                // would be rejected by the wallet creation gate the transaction itself holds)
+                if (wallet == null && !walletExists(MONERO_WALLET_NAME)) {
+                    log.info("Main wallet does not exist, skipping password change");
+                    return;
+                }
+                changeWalletPassword(getInitializedWallet(), oldPassword, newPassword);
                 saveWallet();
+                if (Utilities.isWindows()) {
+                    // Windows locks open wallet files, so close for the backup refresh and reopen
+                    // with the change's target password (the account password has not committed yet)
+                    synchronized (walletLock) {
+                        log.info("Closing main wallet to refresh backups on Windows");
+                        closeMainWallet();
+                        refreshWalletBackups(MONERO_WALLET_NAME);
+                        wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, newPassword, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+                    }
+                } else {
+                    refreshWalletBackups(MONERO_WALLET_NAME);
+                }
             } catch (Exception e) {
                 log.warn("Error changing main wallet password: " + e.getMessage() + "\n", e);
-                throw e;
+                failures.add(e);
             }
         });
 
@@ -2103,17 +2230,132 @@ public class XmrWalletService extends XmrWalletBase {
         List<Trade> trades = HavenoUtils.tradeManager.getAllTrades();
         for (Trade trade : trades) {
             tasks.add(() -> {
-                synchronized (trade.getWalletLock()) {
-                    if (trade.walletExists()) {
-                        trade.changeWalletPassword(oldPassword, newPassword); // TODO (woodser): this unnecessarily connects and syncs unopen wallets and leaves open
+                try {
+                    synchronized (trade.getWalletLock()) {
+                        if (trade.walletExists()) {
+                            trade.changeWalletPassword(oldPassword, newPassword); // TODO (woodser): this unnecessarily connects and syncs unopen wallets and leaves open
+                        }
                     }
+                } catch (Exception e) {
+                    log.warn("Error changing trade wallet password for {}: {}\n", trade.getId(), e.getMessage(), e);
+                    failures.add(e);
                 }
             });
         }
 
-        // execute tasks in parallel
-        ThreadUtils.awaitTasks(tasks, Math.min(10, 1 + trades.size()));
+        // create tasks to change orphan wallet passwords (wallet files not represented by trade
+        // state, e.g. from failed cleanup or an interrupted restore), so no wallet file on disk
+        // silently remains under an old password
+        Set<String> knownWalletNames = new HashSet<>();
+        knownWalletNames.add(MONERO_WALLET_NAME);
+        // a crash-left seed validation wallet is on the default password, not an account password
+        knownWalletNames.add(SEED_VALIDATION_WALLET_NAME);
+        for (Trade trade : trades) knownWalletNames.add(trade.getWalletName());
+        List<String> orphanWalletNames = new ArrayList<>();
+        File[] walletFiles = walletDir.listFiles();
+        if (walletFiles == null) throw new IllegalStateException("Could not list wallet directory " + walletDir.getAbsolutePath());
+        for (File file : walletFiles) {
+            if (!file.isFile() || !file.getName().endsWith(KEYS_FILE_POSTFIX)) continue;
+            String orphanName = file.getName().substring(0, file.getName().length() - KEYS_FILE_POSTFIX.length());
+            if (knownWalletNames.contains(orphanName)) continue;
+            orphanWalletNames.add(orphanName);
+            tasks.add(() -> {
+                try {
+                    changeOrphanWalletPassword(orphanName, oldPassword, newPassword);
+                } catch (Exception e) {
+                    log.warn("Error changing orphan wallet password for {}: {}\n", orphanName, e.getMessage(), e);
+                    failures.add(e);
+                }
+            });
+        }
+
+        // execute all tasks in parallel, so every wallet is attempted before failure is reported
+        ThreadUtils.awaitTasks(tasks, Math.min(10, tasks.size()));
+        if (!failures.isEmpty()) throw new RuntimeException("Failed to change the password of " + failures.size() + " wallet(s)", failures.get(0));
+
+        // backups of wallets that no longer exist could not be rotated and still open with a
+        // previous password, but may also be the only remaining key copy (e.g. after a failed
+        // cleanup or lost trade state), so they are never deleted; warn so the user can resolve
+        Set<String> keep = new HashSet<>();
+        List<String> walletNames = new ArrayList<>();
+        walletNames.add(MONERO_WALLET_NAME);
+        for (Trade trade : trades) walletNames.add(trade.getWalletName());
+        walletNames.addAll(orphanWalletNames);
+        for (String walletName : walletNames) {
+            for (String postfix : new String[]{"", KEYS_FILE_POSTFIX, ADDRESS_FILE_POSTFIX}) keep.add(walletName + postfix);
+            // a kept backup with no live wallet could not be rotated and still opens with the
+            // previous password; keep it (it may be the only remaining key copy) but say so
+            if (!new File(walletDir, walletName + KEYS_FILE_POSTFIX).exists() && FileUtil.hasBackups(walletDir, walletName + KEYS_FILE_POSTFIX)) {
+                log.warn("Backups of wallet {} are retained but still open with the previous password because the wallet file itself is missing", walletName);
+            }
+        }
+        try {
+            for (File staleBackupDir : FileUtil.getRollingBackupDirsExcept(walletDir, keep)) {
+                log.warn("Wallet backups in {} are retained but still open with a previous password because their wallet no longer exists; " +
+                        "move them out of the wallet directory if they are no longer needed", staleBackupDir.getName());
+            }
+        } catch (IOException e) {
+            log.error("Could not inspect the wallet backup directory for stale backups", e);
+        }
         log.info("Done changing all wallet passwords");
+    }
+
+    /**
+     * Rotates a wallet file not represented by trade state. The wallet must open with the old or
+     * new password (the latter from an interrupted change); otherwise the password change fails
+     * so no wallet silently stays under a stale password. Never deletes a wallet.
+     */
+    private void changeOrphanWalletPassword(String walletName, String oldPassword, String newPassword) {
+        log.warn("Changing password of orphan wallet {}", walletName);
+        MoneroWallet wallet;
+        try {
+            wallet = openWallet(walletName, null, oldPassword, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+        } catch (Exception e) {
+            try {
+                wallet = openWallet(walletName, null, newPassword, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+            } catch (Exception e2) {
+                throw new IllegalStateException("Orphan wallet " + walletName + " cannot be opened with the current or target password; " +
+                        "move it out of the wallet directory to change the password", e);
+            }
+        }
+        try {
+            changeWalletPassword(wallet, oldPassword, newPassword);
+        } finally {
+            closeWallet(wallet, true);
+        }
+        refreshWalletBackups(walletName);
+    }
+
+    /**
+     * Replaces a wallet's backups so none remains under a previous password. The fresh backup is
+     * created and verified first, so a failure can never leave the wallet without a usable backup;
+     * only then are the stale generations purged, with verification.
+     */
+    public void refreshWalletBackups(String walletName) {
+        assertNotPath(walletName);
+        try {
+            for (String postfix : new String[]{"", KEYS_FILE_POSTFIX, ADDRESS_FILE_POSTFIX}) {
+                FileUtil.replaceRollingBackups(walletDir, walletName + postfix);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not refresh backups of wallet " + walletName, e);
+        }
+    }
+
+    /**
+     * Changes a wallet's password, tolerating a wallet already on the new password from an
+     * interrupted change (proven by a no-op re-encryption with the new password).
+     */
+    public static void changeWalletPassword(MoneroWallet wallet, String oldPassword, String newPassword) {
+        try {
+            wallet.changePassword(oldPassword, newPassword);
+        } catch (Exception e) {
+            try {
+                wallet.changePassword(newPassword, newPassword);
+            } catch (Exception e2) {
+                throw e;
+            }
+        }
     }
 
     private MoneroWallet openOrCreateMainWallet() {

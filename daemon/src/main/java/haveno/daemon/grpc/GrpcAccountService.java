@@ -208,6 +208,11 @@ public class GrpcAccountService extends AccountImplBase {
                     stream.close();
                     responseObserver.onCompleted();
                 } catch (Exception ex) {
+                    // close the pipe so the producer unblocks, releases the guard and reopens the account
+                    try {
+                        stream.close();
+                    } catch (Exception ignored) {
+                    }
                     exceptionHandler.handleException(log, ex, responseObserver);
                 }
             }, (ex) -> exceptionHandler.handleException(log, ex, responseObserver));
