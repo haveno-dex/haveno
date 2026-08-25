@@ -20,11 +20,14 @@ import java.net.Proxy;
 import java.net.Socket;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,13 +47,20 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     private boolean streamIsolation;
     private Socks5Proxy socksProxy;
     protected TorMode torMode;
-    private Tor tor;
     private final String hiddenServiceFlags;
     private final String hiddenServiceParams;
     private final String torControlHost;
     private Timer shutDownTimeoutTimer;
     private volatile boolean isShutDownStarted;
     private boolean isShutDownComplete;
+    private final Object torStartLock = new Object();
+    private final Object torStartThreadLock = new Object();
+    private Thread torStartThread;
+    private final Map<String, String> publishedHiddenServices = new HashMap<String, String>();
+    private Tor publishedHiddenServicesTor;
+    private Tor socksProxyTor;
+    private final BridgeAddressProvider bridgeAddressProvider;
+    private List<String> torBootBridges;
 
     public TorNetworkNodeNetlayer(int servicePort,
                                   NetworkProtoResolver networkProtoResolver,
@@ -60,13 +70,15 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                                   boolean useStreamIsolation,
                                   String hiddenServiceFlags,
                                   String hiddenServiceParams,
-                                  String torControlHost) {
+                                  String torControlHost,
+                                  BridgeAddressProvider bridgeAddressProvider) {
         super(servicePort, networkProtoResolver, banFilter, maxConnections);
         this.hiddenServiceFlags = hiddenServiceFlags;
         this.hiddenServiceParams = hiddenServiceParams;
         this.torControlHost = torControlHost;
         this.streamIsolation = useStreamIsolation;
         this.torMode = torMode;
+        this.bridgeAddressProvider = bridgeAddressProvider;
     }
 
     @Override
@@ -89,6 +101,11 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
         }
         isShutDownStarted = true;
 
+        // abort an in-flight tor start (e.g. for the api hidden service), so it cannot outlive the shutdown
+        synchronized (torStartThreadLock) {
+            if (torStartThread != null) torStartThread.interrupt();
+        }
+
         shutDownTimeoutTimer = UserThread.runAfter(() -> {
             log.error("A timeout occurred at shutDown");
             isShutDownComplete = true;
@@ -98,10 +115,10 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
 
         super.shutDown(() -> {
             try {
-                tor = Tor.getDefault();
+                Tor tor = Tor.getDefault();
                 if (tor != null) {
+                    Tor.setDefault(null);
                     tor.shutdown();
-                    tor = null;
                     log.info("Tor shutdown completed");
                 }
                 executor.shutdownNow();
@@ -147,9 +164,11 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                 stream = Base64.getEncoder().encodeToString(bytes);
             }
 
-            if (socksProxy == null || streamIsolation) {
-                tor = Tor.getDefault();
+            // cache per tor instance, so a proxy of a restarted tor is never reused
+            Tor tor = Tor.getDefault();
+            if (socksProxy == null || socksProxyTor != tor || streamIsolation) {
                 socksProxy = tor != null ? tor.getProxy(torControlHost, stream) : null;
+                socksProxyTor = socksProxy == null ? null : tor;
             }
             return socksProxy;
         } catch (Throwable t) {
@@ -159,44 +178,171 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     }
 
     @Override
+    public String publishHiddenService(String name, int servicePort, int localPort) {
+        synchronized (torStartLock) {
+            try {
+                Tor tor = getOrCreateTor();
+
+                // republish on a new tor instance, otherwise reuse the published address
+                if (tor != publishedHiddenServicesTor) {
+                    publishedHiddenServices.clear();
+                    publishedHiddenServicesTor = tor;
+                }
+                String hostname = publishedHiddenServices.get(name);
+                if (hostname == null) {
+                    hostname = tor.publishHiddenService(torMode.getHiddenServiceDirectory(name), servicePort, localPort, getHiddenServiceFlagsList(), getHiddenServiceParamsList()).getHostname();
+                    if (isShutDownStarted) { // shutdown may have missed the service while it was publishing, so unpublish it
+                        try {
+                            tor.unpublishHiddenService(hostname);
+                        } catch (Throwable e) { // TorCtlException extends Throwable, not Exception
+                            log.warn("Error unpublishing hidden service " + name + " during shutdown", e);
+                        }
+                        throw new IllegalStateException("Cannot publish hidden service " + name + " because shutdown has started");
+                    }
+                    publishedHiddenServices.put(name, hostname);
+                }
+                return hostname;
+            } catch (IOException | TorCtlException e) {
+                // do not reuse a possibly dead instance, unless the p2p hidden service is established on it
+                if (hiddenServiceSocket == null) restartTor("because publishing hidden service " + name + " failed");
+                throw new RuntimeException("Could not publish hidden service " + name, e);
+            }
+        }
+    }
+
+    // start tor on demand, so hidden services can publish before the p2p service starts
+    private Tor getOrCreateTor() throws IOException, TorCtlException {
+        synchronized (torStartLock) {
+            if (isShutDownStarted) throw new IllegalStateException("Cannot start tor because shutdown has started");
+            Tor tor = Tor.getDefault();
+            if (tor == null) {
+                List<String> bridges = getConfiguredBridges();
+                synchronized (torStartThreadLock) {
+                    // re-check under the interrupt lock, so shutdown cannot miss both the flag and the registration
+                    if (isShutDownStarted) throw new IllegalStateException("Cannot start tor because shutdown has started");
+                    torStartThread = Thread.currentThread();
+                }
+                try {
+                    tor = torMode.getTor();
+                } finally {
+                    synchronized (torStartThreadLock) {
+                        torStartThread = null;
+                        Thread.interrupted(); // consume a late shutdown interrupt, so it cannot leak to unrelated tasks
+                    }
+                }
+                if (tor == null) throw new IOException("Could not connect to tor"); // e.g. RunningTor returns null when unreachable
+                if (isShutDownStarted) { // shutdown started while tor was starting, so discard it
+                    shutdownTorQuietly(tor);
+                    throw new IllegalStateException("Cannot start tor because shutdown has started");
+                }
+                Tor.setDefault(tor); // install only after the shutdown check, so the default of a newer instance is never clobbered
+                if (isShutDownStarted) { // shutdown started between the check and install, so it may have missed the new default
+                    if (Tor.getDefault() == tor) Tor.setDefault(null);
+                    shutdownTorQuietly(tor);
+                    throw new IllegalStateException("Cannot start tor because shutdown has started");
+                }
+                torBootBridges = bridges;
+            }
+            return tor;
+        }
+    }
+
+    // shut down the current tor so the next getOrCreateTor() starts a fresh instance
+    private void restartTor(String reason) {
+        synchronized (torStartLock) {
+            if (isShutDownStarted) return; // shutdown owns the tor lifecycle, and the default may already belong to a newer instance
+            Tor tor = Tor.getDefault();
+            if (tor == null) return;
+            log.info("Restarting tor {}", reason);
+            Tor.setDefault(null);
+            shutdownTorQuietly(tor);
+            publishedHiddenServices.clear();
+            publishedHiddenServicesTor = null;
+            socksProxy = null; // belongs to the old tor instance
+        }
+    }
+
+    private static void shutdownTorQuietly(Tor tor) {
+        try {
+            tor.shutdown();
+        } catch (Throwable e) { // TorCtlException extends Throwable, not Exception
+            log.warn("Error shutting down tor", e);
+        }
+    }
+
+    // bridges configured at boot, or null if unavailable (e.g. before login) or not applicable
+    private List<String> getConfiguredBridges() {
+        if (!(torMode instanceof NewTor)) return null;
+        Collection<String> bridges = bridgeAddressProvider.getBridgeAddresses();
+        return bridges == null || bridges.isEmpty() ? null : new ArrayList<String>(bridges);
+    }
+
+    // use hidden service flags as given
+    private List<String> getHiddenServiceFlagsList() {
+        return hiddenServiceFlags == null || hiddenServiceFlags.isEmpty() ? null : Arrays.asList(hiddenServiceFlags.split(","));
+    }
+
+    private List<String> getHiddenServiceParamsList() {
+
+        // set hidden service default parameter map
+        Map<String, String> hiddenServiceParamsMap = new HashMap<String, String>();
+        hiddenServiceParamsMap.put("PoWDefensesEnabled", POW_ENABLED_DEFAULT ? "1" : "0");
+        hiddenServiceParamsMap.put("PoWQueueRate", String.valueOf(POW_QUEUE_RATE_DEFAULT));
+        hiddenServiceParamsMap.put("PoWQueueBurst", String.valueOf(POW_QUEUE_BURST_DEFAULT));
+
+        // override configured parameters
+        if (hiddenServiceParams != null && !hiddenServiceParams.isEmpty()) {
+            List<String> paramsList = Arrays.asList(hiddenServiceParams.split(","));
+            for (String param : paramsList) {
+                String[] keyValue = param.split("=");
+                if (keyValue.length == 2) {
+                    hiddenServiceParamsMap.put(keyValue[0], keyValue[1]);
+                } else {
+                    hiddenServiceParamsMap.put(keyValue[0], null);
+                }
+            }
+        }
+
+        // convert map to List<String> with format "key=value" or "key" if value is null
+        return hiddenServiceParamsMap.isEmpty() ? null : hiddenServiceParamsMap.entrySet().stream()
+                .map(entry -> entry.getValue() != null ? entry.getKey() + "=" + entry.getValue() : entry.getKey())
+                .toList();
+    }
+
+    @Override
     protected void createTorAndHiddenService() {
         int localPort = Utils.findFreeSystemPort();
         executor.submit(() -> {
             try {
+                List<String> hiddenServiceFlagsList = getHiddenServiceFlagsList();
+                List<String> hiddenServiceParamsList = getHiddenServiceParamsList();
 
-                // use hidden service flags as given
-                List<String> hiddenServiceFlagsList = hiddenServiceFlags == null || hiddenServiceFlags.isEmpty() ? null : Arrays.asList(hiddenServiceFlags.split(","));
+                long ts;
+                synchronized (torStartLock) {
 
-                // set hidden service default parameter map
-                Map<String, String> hiddenServiceParamsMap = new HashMap<String, String>();
-                hiddenServiceParamsMap.put("PoWDefensesEnabled", POW_ENABLED_DEFAULT ? "1" : "0");
-                hiddenServiceParamsMap.put("PoWQueueRate", String.valueOf(POW_QUEUE_RATE_DEFAULT));
-                hiddenServiceParamsMap.put("PoWQueueBurst", String.valueOf(POW_QUEUE_BURST_DEFAULT));
+                    // restart tor if it started before bridges were configured, e.g. for the api hidden service
+                    boolean reused = Tor.getDefault() != null;
+                    if (reused && !Objects.equals(torBootBridges, getConfiguredBridges())) {
+                        restartTor("to apply the configured bridges");
+                        reused = false;
+                    }
 
-                // override configured parameters
-                if (hiddenServiceParams != null && !hiddenServiceParams.isEmpty()) {
-                    List<String> paramsList = Arrays.asList(hiddenServiceParams.split(","));
-                    for (String param : paramsList) {
-                        String[] keyValue = param.split("=");
-                        if (keyValue.length == 2) {
-                            hiddenServiceParamsMap.put(keyValue[0], keyValue[1]);
-                        } else {
-                            hiddenServiceParamsMap.put(keyValue[0], null);
-                        }
+                    getOrCreateTor();
+                    Socks5Proxy proxy = getSocksProxy();
+                    if (proxy != null) log.info("Tor SOCKS proxy ready on {}:{} (auto-assigned, loopback only)", torControlHost, proxy.getPort());
+                    ts = System.currentTimeMillis();
+                    log.info("Starting tor hidden service with flags={}, params={}", hiddenServiceFlagsList, hiddenServiceParamsList);
+                    try {
+                        hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort, null, hiddenServiceFlagsList, hiddenServiceParamsList);
+                    } catch (Throwable e) { // TorCtlException extends Throwable, not Exception
+                        if (!reused) throw e;
+                        log.warn("Could not create hidden service on the reused tor, restarting tor", e);
+                        restartTor("because the reused instance failed");
+                        getOrCreateTor();
+                        // use a fresh local port in case the failure was a local bind conflict
+                        hiddenServiceSocket = new HiddenServiceSocket(Utils.findFreeSystemPort(), torMode.getHiddenServiceDirectory(), servicePort, null, hiddenServiceFlagsList, hiddenServiceParamsList);
                     }
                 }
-
-                // convert map to List<String> with format "key=value" or "key" if value is null
-                List<String> hiddenServiceParamsList = hiddenServiceParamsMap.isEmpty() ? null : hiddenServiceParamsMap.entrySet().stream()
-                        .map(entry -> entry.getValue() != null ? entry.getKey() + "=" + entry.getValue() : entry.getKey())
-                        .toList();
-
-                Tor.setDefault(torMode.getTor());
-                Socks5Proxy proxy = getSocksProxy();
-                if (proxy != null) log.info("Tor SOCKS proxy ready on {}:{} (auto-assigned, loopback only)", torControlHost, proxy.getPort());
-                long ts = System.currentTimeMillis();
-                log.info("Starting tor hidden service with flags={}, params={}", hiddenServiceFlagsList, hiddenServiceParamsList);
-                hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort, null, hiddenServiceFlagsList, hiddenServiceParamsList);
                 nodeAddressProperty.set(new NodeAddress(hiddenServiceSocket.getServiceName() + ":" + hiddenServiceSocket.getHiddenServicePort()));
                 UserThread.execute(() -> setupListeners.forEach(SetupListener::onTorNodeReady));
                 hiddenServiceSocket.addReadyListener(socket -> {

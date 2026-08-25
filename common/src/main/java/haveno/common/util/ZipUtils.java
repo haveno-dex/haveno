@@ -21,11 +21,13 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -96,15 +98,19 @@ public class ZipUtils {
      * @param dir The directory to write to.
      * @param inputStream The raw stream assumed to be in zip format.
      * @param bufferSize The buffer used to read from efficiently.
+     * @param excludeEntry Entries whose normalized name matches are skipped, or null to extract all.
      */
-    public static void unzipToDir(File dir, InputStream inputStream, int bufferSize) throws Exception {
+    public static void unzipToDir(File dir, InputStream inputStream, int bufferSize, Predicate<String> excludeEntry) throws Exception {
         try (ZipInputStream zipStream = new ZipInputStream(inputStream)) {
             ZipEntry entry;
             byte[] buffer = new byte[bufferSize];
             int count;
             while ((entry = zipStream.getNextEntry()) != null) {
-                File file = new File(dir, entry.getName());
-                if (entry.isDirectory()) {
+                String entryName = entry.getName().replace('\\', '/'); // zips created on Windows use '\' separators
+                File file = new File(dir, entryName);
+                verifyContained(dir, file, entryName);
+                if (excludeEntry != null && excludeEntry.test(canonicalEntryName(dir, file, entryName))) continue;
+                if (entryName.endsWith("/")) {
                     file.mkdirs();
                 } else {
 
@@ -112,9 +118,10 @@ public class ZipUtils {
                     file.getParentFile().mkdirs();
 
                     log.info("Unzipped file: " + file.getAbsolutePath());
-                    // Don't overwrite the current logs
-                    if ("haveno.log".equals(file.getName())) {
+                    // Don't overwrite the current logs; ignore case for case-insensitive filesystems
+                    if ("haveno.log".equalsIgnoreCase(file.getName())) {
                         file = new File(file.getParent() + "/" + "haveno.backup.log");
+                        verifyContained(dir, file, entryName);
                         log.info("Unzipped logfile to backup path: " + file.getAbsolutePath());
                     }
 
@@ -126,6 +133,19 @@ public class ZipUtils {
                 }
                 zipStream.closeEntry();
             }
+        }
+    }
+
+    // entry name with '.', '..' and case-insensitive filesystem aliases resolved, so the exclude filter cannot be bypassed
+    private static String canonicalEntryName(File dir, File file, String entryName) throws IOException {
+        String name = dir.getCanonicalFile().toPath().relativize(file.getCanonicalFile().toPath()).toString().replace(File.separatorChar, '/');
+        return entryName.endsWith("/") ? name + "/" : name;
+    }
+
+    // reject entries which resolve outside the target dir (zip slip)
+    private static void verifyContained(File dir, File file, String entryName) throws IOException {
+        if (!file.getCanonicalFile().toPath().startsWith(dir.getCanonicalFile().toPath())) {
+            throw new IllegalArgumentException("Zip entry is outside of the target dir: " + entryName);
         }
     }
 

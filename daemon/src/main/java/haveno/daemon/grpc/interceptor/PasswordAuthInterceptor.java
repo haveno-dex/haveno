@@ -28,6 +28,10 @@ import io.grpc.ServerInterceptor;
 import static io.grpc.Status.UNAUTHENTICATED;
 import io.grpc.StatusRuntimeException;
 import static java.lang.String.format;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Authorizes rpc server calls by comparing the value of the caller's
@@ -35,15 +39,20 @@ import static java.lang.String.format;
  *
  * @see haveno.common.config.Config#apiPassword
  */
+@Slf4j
 public class PasswordAuthInterceptor implements ServerInterceptor {
 
     private static final String PASSWORD_KEY = "password";
+    private static final long MIN_LOCKOUT_MS = 1000;
+    private static final long MAX_LOCKOUT_MS = 60000;
 
-    private final String expectedPasswordValue;
+    private final byte[] expectedPasswordHash;
+    private long lockedUntilMs = nowMs();
+    private long nextLockoutMs = MIN_LOCKOUT_MS;
 
     @Inject
     public PasswordAuthInterceptor(Config config) {
-        this.expectedPasswordValue = config.apiPassword;
+        this.expectedPasswordHash = sha256(config.apiPassword);
     }
 
     @Override
@@ -56,10 +65,38 @@ public class PasswordAuthInterceptor implements ServerInterceptor {
             throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
                     format("missing '%s' rpc header value", PASSWORD_KEY)));
 
-        if (!actualPasswordValue.equals(expectedPasswordValue))
+        verifyPassword(actualPasswordValue);
+        return serverCallHandler.startCall(serverCall, headers);
+    }
+
+    // verify by comparing fixed-length hashes in constant time, and fail fast unevaluated during a lockout which doubles
+    // on each failure, so an attacker gets one guess per lockout period without being able to exhaust server threads
+    private synchronized void verifyPassword(String actualPasswordValue) {
+        long now = nowMs();
+        if (now - lockedUntilMs < 0)
+            throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
+                    format("too many failed attempts, try again in %d seconds", (lockedUntilMs - now + 999) / 1000)));
+
+        if (!MessageDigest.isEqual(expectedPasswordHash, sha256(actualPasswordValue))) {
+            lockedUntilMs = now + nextLockoutMs;
+            nextLockoutMs = Math.min(nextLockoutMs * 2, MAX_LOCKOUT_MS);
+            log.warn("Failed api password attempt, locking out attempts for {} ms", lockedUntilMs - now);
             throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
                     format("incorrect '%s' rpc header value", PASSWORD_KEY)));
+        }
+        nextLockoutMs = MIN_LOCKOUT_MS;
+    }
 
-        return serverCallHandler.startCall(serverCall, headers);
+    // monotonic clock, unaffected by wall clock adjustments
+    private static long nowMs() {
+        return System.nanoTime() / 1_000_000;
+    }
+
+    private static byte[] sha256(String value) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e); // SHA-256 is required on every JVM
+        }
     }
 }

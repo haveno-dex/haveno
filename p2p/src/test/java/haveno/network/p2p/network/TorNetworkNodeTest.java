@@ -58,7 +58,8 @@ public class TorNetworkNodeTest {
                 false,
                 null,
                 null,
-                "127.0.0.1");
+                "127.0.0.1",
+                this::getBridgeAddresses);
         node1.start(new SetupListener() {
             @Override
             public void onTorNodeReady() {
@@ -92,7 +93,8 @@ public class TorNetworkNodeTest {
                 false,
                 null,
                 null,
-                "127.0.0.1");
+                "127.0.0.1",
+                this::getBridgeAddresses);
         node2.start(new SetupListener() {
             @Override
             public void onTorNodeReady() {
@@ -157,7 +159,8 @@ public class TorNetworkNodeTest {
                 false,
                 null,
                 null,
-                "127.0.0.1");
+                "127.0.0.1",
+                this::getBridgeAddresses);
         node1.start(new SetupListener() {
             @Override
             public void onTorNodeReady() {
@@ -189,7 +192,8 @@ public class TorNetworkNodeTest {
                 false,
                 null,
                 null,
-                "127.0.0.1");
+                "127.0.0.1",
+                this::getBridgeAddresses);
         node2.start(new SetupListener() {
             @Override
             public void onTorNodeReady() {

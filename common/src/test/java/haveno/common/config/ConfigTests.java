@@ -11,12 +11,16 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static haveno.common.config.Config.API_HIDDEN_SERVICE;
+import static haveno.common.config.Config.API_PASSWORD;
+import static haveno.common.config.Config.API_PORT;
 import static haveno.common.config.Config.APP_DATA_DIR;
 import static haveno.common.config.Config.APP_NAME;
 import static haveno.common.config.Config.BANNED_XMR_NODES;
 import static haveno.common.config.Config.CONFIG_FILE;
 import static haveno.common.config.Config.DEFAULT_CONFIG_FILE_NAME;
 import static haveno.common.config.Config.HELP;
+import static haveno.common.config.Config.HIDDEN_SERVICE_ADDRESS;
 import static haveno.common.config.Config.TORRC_FILE;
 import static haveno.common.config.Config.USER_DATA_DIR;
 import static java.io.File.createTempFile;
@@ -203,6 +207,55 @@ public class ConfigTests {
     public void whenBannedXmrNodesOptionIsSet_thenBannedXmrNodesPropertyReturnsItsValue() {
         Config config = configWithOpts(opt(BANNED_XMR_NODES, "foo.onion:8333,bar.onion:8333"));
         assertThat(config.bannedXmrNodes, contains("foo.onion:8333", "bar.onion:8333"));
+    }
+
+    @Test
+    public void whenApiHiddenServiceOptionIsSetWithApiPassword_thenApiHiddenServicePropertyIsTrue() {
+        Config config = configWithOpts(opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "correcthorse"));
+        assertTrue(config.apiHiddenService);
+    }
+
+    @Test
+    public void whenApiHiddenServiceOptionIsSetWithoutApiPassword_thenConfigExceptionIsThrown() {
+        Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(opt(API_HIDDEN_SERVICE, true)));
+
+        String expectedMessage = "The 'apiHiddenService' option requires 'apiPassword' to be set";
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
+    }
+
+    @Test
+    public void whenApiHiddenServiceOptionIsSetWithShortApiPassword_thenConfigExceptionIsThrown() {
+        Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(
+                opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "short")));
+
+        String expectedMessage = "to be set with at least 8 characters";
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
+    }
+
+    @Test
+    public void whenApiHiddenServiceOptionIsSetWithoutTorForP2P_thenConfigExceptionIsThrown() {
+        Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(
+                opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "correcthorse"), opt(HIDDEN_SERVICE_ADDRESS, "example.onion:9999")));
+
+        String expectedMessage = "The 'apiHiddenService' option requires tor for P2P";
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
+    }
+
+    @Test
+    public void whenApiHiddenServiceOptionIsSetWithInvalidPort_thenConfigExceptionIsThrown() {
+        Exception exception = assertThrows(ConfigException.class, () -> configWithOpts(
+                opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "correcthorse"), opt(API_PORT, 0)));
+
+        String expectedMessage = "to be a port between 1 and 65535";
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test

@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.app.Log;
+import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -186,11 +188,12 @@ public class CoreAccountService {
                 PipedOutputStream out = new PipedOutputStream(in);
                 log.info("Zipping directory " + dataDir);
 
-                // exclude monero binaries from backup so they're reinstalled with permissions
-                List<File> excludedFiles = Arrays.asList(
+                // exclude monero binaries and tor runtime files from backup so they're reinstalled with permissions
+                List<File> excludedFiles = new ArrayList<>(Arrays.asList(
                         new File(XmrWalletService.getMoneroWalletRpcPath()),
                         new File(XmrLocalNode.getMonerodPath())
-                );
+                ));
+                excludedFiles.addAll(getTorRuntimeFiles());
 
                 new Thread(() -> {
                     try {
@@ -218,10 +221,33 @@ public class CoreAccountService {
     public void restoreAccount(InputStream inputStream, int bufferSize, Runnable onShutdown) throws Exception {
         if (accountExists()) throw new IllegalStateException("Cannot restore account if there is an existing account");
         File dataDir = new File(config.appDataDir.getPath());
-        ZipUtils.unzipToDir(dataDir, inputStream, bufferSize);
+        ZipUtils.unzipToDir(dataDir, inputStream, bufferSize, getTorRuntimeEntryFilter());
         synchronized (listeners) {
             for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountRestored(onShutdown);
         }
+    }
+
+    // tor runtime files of every network profile, which netlayer reinstalls on start; excludes the hidden service keys
+    private List<File> getTorRuntimeFiles() {
+        List<File> torRuntimeFiles = new ArrayList<>();
+        for (BaseCurrencyNetwork network : BaseCurrencyNetwork.values()) {
+            File torDir = new File(new File(config.appDataDir, network.name().toLowerCase()), "tor");
+            File[] files = torDir.listFiles(file -> !file.getName().equalsIgnoreCase("hiddenservice"));
+            if (files != null) torRuntimeFiles.addAll(Arrays.asList(files));
+        }
+        return torRuntimeFiles;
+    }
+
+    // skip tor runtime files in old backups so they cannot overwrite the files of a running tor (e.g. for the api hidden service);
+    // compare ignoring case (locale-independent) so crafted case cannot bypass the filter on case-insensitive filesystems
+    private Predicate<String> getTorRuntimeEntryFilter() {
+        return entryName -> {
+            for (BaseCurrencyNetwork network : BaseCurrencyNetwork.values()) {
+                String torPrefix = network.name().toLowerCase() + "/tor/";
+                if (StringUtils.startsWithIgnoreCase(entryName, torPrefix)) return !StringUtils.startsWithIgnoreCase(entryName, torPrefix + "hiddenservice/");
+            }
+            return false;
+        };
     }
 
     public void deleteAccount(Runnable onShutdown) {

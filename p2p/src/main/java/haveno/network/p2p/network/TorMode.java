@@ -74,6 +74,16 @@ public abstract class TorMode {
     public abstract String getHiddenServiceDirectory();
 
     /**
+     * @return the directory of an additional hidden service, nested under the one
+     *         used for p2p, or <code>null</code> if hidden services are unsupported
+     */
+    public String getHiddenServiceDirectory(String name) {
+        String directory = getHiddenServiceDirectory();
+        if (directory == null) return null;
+        return directory.isEmpty() ? name : new File(directory, name).getPath();
+    }
+
+    /**
      * Do a rolling backup of the "private_key" file.
      */
     protected void doRollingBackup() {

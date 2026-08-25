@@ -99,9 +99,15 @@ public class RunningTor extends TorMode {
                 if (e instanceof UnknownHostException || e instanceof ConnectException) {
                     log.warn("Couldn't connect to Tor control port. Retrying...", e);
                     retry = true;
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return null;
+                    }
+                } else {
+                    log.error("Couldn't connect to Tor.", e);
                 }
-
-                log.error("Couldn't connect to Tor.", e);
             }
         }
 

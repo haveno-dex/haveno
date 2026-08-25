@@ -75,7 +75,7 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
                     cookieFile,
                     useSafeCookieAuthentication);
             if (torMode instanceof NewTor || torMode instanceof RunningTor) {
-                networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, hiddenServiceFlags, hiddenServiceParams, controlHost);
+                networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, hiddenServiceFlags, hiddenServiceParams, controlHost, bridgeAddressProvider);
             } else {
                 networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress);
             }

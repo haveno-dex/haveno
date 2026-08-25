@@ -116,6 +116,8 @@ public class Config {
     public static final String NUM_CONNECTIONS_FOR_BTC = "numConnectionsForBtc";
     public static final String API_PASSWORD = "apiPassword";
     public static final String API_PORT = "apiPort";
+    public static final String API_HIDDEN_SERVICE = "apiHiddenService";
+    public static final String API_HIDDEN_SERVICE_PORT = "apiHiddenServicePort";
     public static final String PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE = "preventPeriodicShutdownAtSeedNode";
     public static final String REPUBLISH_MAILBOX_ENTRIES = "republishMailboxEntries";
     public static final String LEGACY_FEE_DATAMAP = "dataMap";
@@ -220,6 +222,8 @@ public class Config {
     public final int numConnectionsForBtc;
     public final String apiPassword;
     public final int apiPort;
+    public final boolean apiHiddenService;
+    public final int apiHiddenServicePort;
     public final boolean preventPeriodicShutdownAtSeedNode;
     public final boolean republishMailboxEntries;
     public final boolean bypassMempoolValidation;
@@ -662,6 +666,20 @@ public class Config {
                         .ofType(Integer.class)
                         .defaultsTo(9998);
 
+        ArgumentAcceptingOptionSpec<Boolean> apiHiddenServiceOpt =
+                parser.accepts(API_HIDDEN_SERVICE,
+                        "Publish the gRPC API as a tor hidden service and bind it to localhost. " +
+                        "The hidden service is published before account login, so remote clients can open the account")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(false);
+
+        ArgumentAcceptingOptionSpec<Integer> apiHiddenServicePortOpt =
+                parser.accepts(API_HIDDEN_SERVICE_PORT,
+                        "Local port published by the API hidden service, e.g. a grpc-web proxy in front of the API (default: apiPort)")
+                        .withRequiredArg()
+                        .ofType(Integer.class);
+
         ArgumentAcceptingOptionSpec<Boolean> preventPeriodicShutdownAtSeedNodeOpt =
                 parser.accepts(PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE,
                         "Prevents periodic shutdown at seed nodes")
@@ -828,6 +846,8 @@ public class Config {
 
             this.apiPassword = options.valueOf(apiPasswordOpt);
             this.apiPort = options.valueOf(apiPortOpt);
+            this.apiHiddenService = options.valueOf(apiHiddenServiceOpt);
+            this.apiHiddenServicePort = options.has(apiHiddenServicePortOpt) ? options.valueOf(apiHiddenServicePortOpt) : this.apiPort;
             this.preventPeriodicShutdownAtSeedNode = options.valueOf(preventPeriodicShutdownAtSeedNodeOpt);
             this.republishMailboxEntries = options.valueOf(republishMailboxEntriesOpt);
             this.bypassMempoolValidation = options.valueOf(bypassMempoolValidationOpt);
@@ -842,6 +862,21 @@ public class Config {
                             ex.getCause().getMessage() :
                             ex.getMessage());
         }
+
+        // Require api authentication when the api is reachable beyond localhost; a trivial password
+        // would be guessable through the lockout, so require a minimal length
+        if (apiHiddenService && apiPassword.length() < 8)
+            throw new ConfigException("The '%s' option requires '%s' to be set with at least 8 characters", API_HIDDEN_SERVICE, API_PASSWORD);
+
+        // Reject configurations whose network node cannot publish additional hidden services
+        if (apiHiddenService && (useLocalhostForP2P || !hiddenServiceAddress.isEmpty()))
+            throw new ConfigException("The '%s' option requires tor for P2P, so it cannot be combined with '%s' or '%s'",
+                    API_HIDDEN_SERVICE, USE_LOCALHOST_FOR_P2P, HIDDEN_SERVICE_ADDRESS);
+
+        // Require a valid published port, otherwise tor rejects the onion and the publish loop retries forever
+        if (apiHiddenService && (apiHiddenServicePort < 1 || apiHiddenServicePort > 65535))
+            throw new ConfigException("The '%s' option requires '%s' (or '%s') to be a port between 1 and 65535",
+                    API_HIDDEN_SERVICE, API_HIDDEN_SERVICE_PORT, API_PORT);
 
         // Create all appDataDir subdirectories and assign to their respective properties
         File xmrNetworkDir = mkdir(appDataDir, baseCurrencyNetwork.name().toLowerCase());
