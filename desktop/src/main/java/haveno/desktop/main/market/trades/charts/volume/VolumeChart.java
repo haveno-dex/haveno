@@ -20,9 +20,6 @@ package haveno.desktop.main.market.trades.charts.volume;
 import haveno.desktop.main.market.trades.charts.CandleData;
 import haveno.desktop.main.market.trades.charts.PlotAreaTooltip;
 import javafx.animation.FadeTransition;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
@@ -106,19 +103,9 @@ public class VolumeChart extends XYChart<Number, Number> {
 
     @Override
     protected void dataItemRemoved(XYChart.Data<Number, Number> item, XYChart.Series<Number, Number> series) {
-        final Node node = item.getNode();
-        if (shouldAnimate()) {
-            FadeTransition ft = new FadeTransition(Duration.millis(500), node);
-            ft.setToValue(0);
-            ft.setOnFinished((ActionEvent actionEvent) -> {
-                getPlotChildren().remove(node);
-                removeDataItemFromDisplay(series, item);
-            });
-            ft.play();
-        } else {
-            getPlotChildren().remove(node);
-            removeDataItemFromDisplay(series, item);
-        }
+        // remove immediately; fading out would render stale bars against the new axis range
+        getPlotChildren().remove(item.getNode());
+        removeDataItemFromDisplay(series, item);
     }
 
     @Override
@@ -140,22 +127,11 @@ public class VolumeChart extends XYChart<Number, Number> {
 
     @Override
     protected void seriesRemoved(XYChart.Series<Number, Number> series) {
+        // remove immediately; fading out would render stale bars against the new axis range
         for (XYChart.Data<Number, Number> d : series.getData()) {
-            final Node volumeBar = d.getNode();
-            if (shouldAnimate()) {
-                FadeTransition ft = new FadeTransition(Duration.millis(500), volumeBar);
-                ft.setToValue(0);
-                ft.setOnFinished((ActionEvent actionEvent) -> getPlotChildren().remove(volumeBar));
-                ft.play();
-            } else {
-                getPlotChildren().remove(volumeBar);
-            }
+            getPlotChildren().remove(d.getNode());
         }
-        if (shouldAnimate()) {
-            new Timeline(new KeyFrame(Duration.millis(500), event -> removeSeriesFromDisplay(series))).play();
-        } else {
-            removeSeriesFromDisplay(series);
-        }
+        removeSeriesFromDisplay(series);
     }
 
     private Node createCandle(int seriesIndex, final XYChart.Data<Number, Number> item, int itemIndex) {

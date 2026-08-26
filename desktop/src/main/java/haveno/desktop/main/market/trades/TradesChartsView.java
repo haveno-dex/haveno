@@ -456,6 +456,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         priceAxisY = new NumberAxis();
         priceAxisY.setForceZeroInRange(false);
         priceAxisY.setAutoRanging(true);
+        priceAxisY.setAnimated(false); // range animation renders candles at full height until settled
         priceAxisY.setTickLabelFormatter(new StringConverter<>() {
             @Override
             public String toString(Number object) {
@@ -552,6 +553,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
         axisY.setForceZeroInRange(true);
         axisY.setAutoRanging(true);
+        axisY.setAnimated(false); // range animation renders bars at full height until settled
         axisY.setLabel(Res.get("shared.volumeWithCur", currency));
         axisY.setTickLabelFormatter(new StringConverter<>() {
             @Override
