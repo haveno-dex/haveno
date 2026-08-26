@@ -150,7 +150,6 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
             } else {
 
                 // Nonblocking, we need to stop if the login occurred through rpc.
-                // TODO: add a mode to mask password
                 ConsoleInput reader = new ConsoleInput(Integer.MAX_VALUE, Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
                 Thread t = new Thread(() -> {
                     interactiveLogin(reader);
@@ -216,22 +215,16 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
             try {
                 if (accountExists) {
                     try {
-                        // readPassword will not return until the user inputs something
-                        // which is not suitable if we are waiting for rpc call which
-                        // could login the account. Must be able to interrupt the read.
-                        //new String(console.readPassword("Password:"));
-                        System.out.printf("Password:\n");
-                        String password = reader.readLine();
+                        // Console.readPassword() is not used because it cannot be interrupted by a login over rpc.
+                        String password = reader.readPassword("Password:");
                         accountService.openAccount(password);
                     } catch (IncorrectPasswordException ipe) {
                         System.out.printf("Incorrect password\n");
                     }
                 } else {
                     System.out.printf("Creating a new account\n");
-                    System.out.printf("Password:\n");
-                    String password = reader.readLine();
-                    System.out.printf("Confirm:\n");
-                    String passwordConfirm = reader.readLine();
+                    String password = reader.readPassword("Password:");
+                    String passwordConfirm = reader.readPassword("Confirm:");
                     if (password.equals(passwordConfirm)) {
                         accountService.createAccount(password);
                         openedOrCreated = "Account created\n";
