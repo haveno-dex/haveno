@@ -243,6 +243,10 @@ public class Statistic {
         return sentBytesProperty;
     }
 
+    public long getReceivedBytes() {
+        return receivedBytes.get();
+    }
+
     public long getReceivedBytesProperty() {
         return receivedBytesProperty.get();
     }

@@ -68,7 +68,12 @@ public class PeerList implements PersistableEnvelope {
 
     public void addAll(Collection<Peer> collection) {
         synchronized (map) {
-            collection.forEach(peer -> this.map.put(peer.getNodeAddress().toString(), peer));
+            collection.forEach(peer -> {
+                // carry over the transient failure counter, else re-adding a known peer resets it
+                Peer existing = map.get(peer.getNodeAddress().toString());
+                if (existing != null) peer.setFailedConnectionAttempts(existing.getFailedConnectionAttempts());
+                this.map.put(peer.getNodeAddress().toString(), peer);
+            });
         }
     }
 
