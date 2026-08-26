@@ -34,10 +34,26 @@ import sun.misc.Signal;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class CommonSetup {
+
+    // throttle repeated exceptions per throw site so a hot loop cannot fill the logs:
+    // full handling for the first occurrences, then one sampled occurrence per interval
+    private static final int DETAILED_LOGS_PER_THROW_SITE = 3;
+    private static final long THROTTLED_SAMPLE_INTERVAL_NS = TimeUnit.SECONDS.toNanos(10);
+    private static final int MAX_TRACKED_THROW_SITES = 1000;
+    private static final int MAX_CAUSE_DEPTH = 10;
+    private static final int MAX_SIGNATURE_FRAMES = 8;
+    private static final ConcurrentHashMap<String, RepeatedThrow> repeatedThrows = new ConcurrentHashMap<>();
+
+    private static class RepeatedThrow {
+        final AtomicLong count = new AtomicLong();
+        final AtomicLong lastSampleNs = new AtomicLong(System.nanoTime() - THROTTLED_SAMPLE_INTERVAL_NS); // first sample due immediately
+    }
 
     public static void setup(Config config, GracefulShutDownHandler gracefulShutDownHandler) {
         setupLog(config);
@@ -77,7 +93,14 @@ public class CommonSetup {
                     .anyMatch(element -> element.getClassName().startsWith("com.sun.glass.ui.mac.MacAccessible"))) {
                 log.warn("Ignoring JavaFX macOS accessibility bug (JDK-8235989): {}", throwable.getMessage());
             } else {
-                log.error("Uncaught Exception from thread {}, throwableClass={}, throwableMessage={}", Thread.currentThread().getName(), throwable.getClass(), throwable.getMessage());
+                RepeatedThrow repeat = trackThrowSite(throwable);
+                long count = repeat.count.incrementAndGet();
+                if (count > DETAILED_LOGS_PER_THROW_SITE && !sampleDue(repeat)) return;
+                if (count <= DETAILED_LOGS_PER_THROW_SITE) {
+                    log.error("Uncaught Exception from thread {}, throwableClass={}, throwableMessage={}", Thread.currentThread().getName(), throwable.getClass(), throwable.getMessage());
+                } else {
+                    log.error("Uncaught Exception from thread {} repeated {} times, throwableClass={}, throwableMessage={}", Thread.currentThread().getName(), count, throwable.getClass(), throwable.getMessage());
+                }
                 log.error("Stack trace:\n" + ExceptionUtils.getStackTrace(throwable));
                 throwable.printStackTrace();
                 UserThread.execute(() -> uncaughtExceptionHandler.handleUncaughtException(throwable, false));
@@ -85,6 +108,40 @@ public class CommonSetup {
         };
         Thread.setDefaultUncaughtExceptionHandler(handler);
         Thread.currentThread().setUncaughtExceptionHandler(handler);
+    }
+
+    private static RepeatedThrow trackThrowSite(Throwable throwable) {
+        String site = throwSite(throwable);
+        RepeatedThrow repeat = repeatedThrows.get(site);
+        if (repeat != null) return repeat;
+        if (repeatedThrows.size() >= MAX_TRACKED_THROW_SITES) site = "overflow"; // hard cap on memory
+        return repeatedThrows.computeIfAbsent(site, key -> new RepeatedThrow());
+    }
+
+    private static boolean sampleDue(RepeatedThrow repeat) {
+        long now = System.nanoTime(); // monotonic, immune to wall clock changes
+        long last = repeat.lastSampleNs.get();
+        return now - last >= THROTTLED_SAMPLE_INTERVAL_NS && repeat.lastSampleNs.compareAndSet(last, now);
+    }
+
+    // identifies a throw site by exception class, top frame and a bounded stack signature
+    // through the cause chain, excluding messages so variable text cannot defeat the throttle
+    static String throwSite(Throwable throwable) {
+        StringBuilder site = new StringBuilder();
+        for (int depth = 0; throwable != null && depth < MAX_CAUSE_DEPTH; throwable = throwable.getCause(), depth++) {
+            if (depth > 0) site.append(" < ");
+            site.append(throwable.getClass().getName());
+            StackTraceElement[] trace = throwable.getStackTrace();
+            if (trace.length > 0) site.append(" at ").append(trace[0]).append('#').append(stackSignature(trace));
+        }
+        return site.toString();
+    }
+
+    // hash of the first frames so different callers of a shared throw helper get distinct buckets
+    private static String stackSignature(StackTraceElement[] trace) {
+        int hash = 1;
+        for (int i = 0; i < trace.length && i < MAX_SIGNATURE_FRAMES; i++) hash = 31 * hash + trace[i].hashCode();
+        return Integer.toHexString(hash);
     }
 
     private static void setupLog(Config config) {

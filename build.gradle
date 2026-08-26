@@ -41,6 +41,7 @@ configure(rootProject) {
         havenoCommonJvmArgs = [
             '-XX:+ExitOnOutOfMemoryError',
             '-XX:+EnableDynamicAgentLoading',
+            '-XX:-OmitStackTraceInFastThrow', // keep frames on hot repeated exceptions so logs stay diagnosable
             '-Djava.net.preferIPv4Stack=true',
             '-Dfile.encoding=UTF-8',
             '-Dstdout.encoding=UTF-8',
