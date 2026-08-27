@@ -2443,6 +2443,24 @@ textfield */
     -fx-border-radius: 0;
 }
 
+/* read-only text area rendered as a plain label so its text can be selected */
+.selectable-label,
+.selectable-label:focused,
+.selectable-label .scroll-pane,
+.selectable-label .scroll-pane .viewport,
+.selectable-label .content {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.selectable-label .scroll-pane {
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: never;
+}
+
 .text-area-popup {
     -fx-border-color: -bs-color-background-popup-blur;
 }

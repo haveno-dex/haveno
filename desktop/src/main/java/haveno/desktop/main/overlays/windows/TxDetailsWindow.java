@@ -71,12 +71,12 @@ public class TxDetailsWindow extends TxHeroWindow<TxDetailsWindow> {
         }
 
         List<Node> groups = new ArrayList<>();
-        groups.add(detailRow(Res.get("shared.dateTime"), valueLabel(item.getDateString())));
+        groups.add(detailRow(Res.get("shared.dateTime"), selectableValue(item.getDateString())));
         groups.add(sheetGroup(Res.get(isOutgoing ? "txDetailsWindow.sentTo" : "txDetailsWindow.receivedWith"),
-                wrappedLabel(item.getAddressString(), "confirm-send-address"), copyIcon(item.getAddressString())));
-        if (isOutgoing) groups.add(detailRow(Res.get("funds.withdrawal.confirm.networkFee"), valueLabel(HavenoUtils.formatXmr(tx.getFee(), true))));
-        if (memo != null && !memo.isEmpty()) groups.add(sheetGroup(Res.get("funds.withdrawal.sent.note"), wrappedLabel(memo, "confirm-send-row-value")));
-        if (txKey != null && !txKey.isEmpty()) groups.add(sheetGroup(Res.get("txDetailsWindow.txKey"), wrappedLabel(txKey, "confirm-send-address"), copyIcon(txKey)));
+                selectableLabel(item.getAddressString(), "confirm-send-address"), copyIcon(item.getAddressString())));
+        if (isOutgoing) groups.add(detailRow(Res.get("funds.withdrawal.confirm.networkFee"), selectableValue(HavenoUtils.formatXmr(tx.getFee(), true))));
+        if (memo != null && !memo.isEmpty()) groups.add(sheetGroup(Res.get("funds.withdrawal.sent.note"), selectableLabel(memo, "confirm-send-row-value"), copyIcon(memo)));
+        if (txKey != null && !txKey.isEmpty()) groups.add(sheetGroup(Res.get("txDetailsWindow.txKey"), selectableLabel(txKey, "confirm-send-address"), copyIcon(txKey)));
         groups.add(txIdGroup(tx.getHash(), xmrWalletService, preferences));
 
         String fiat = GUIUtil.getFiatText(amount, priceFeedService, preferences);

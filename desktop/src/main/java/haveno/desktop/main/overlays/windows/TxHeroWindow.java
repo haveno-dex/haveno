@@ -33,11 +33,14 @@ import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.GlyphsDude;
 import haveno.desktop.util.Layout;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -143,7 +146,7 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
     }
 
     // a label row with trailing icons and the value wrapping in full below
-    protected static VBox sheetGroup(String labelText, Label value, Node... icons) {
+    protected static VBox sheetGroup(String labelText, Node value, Node... icons) {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox header = new HBox(8, rowLabel(labelText), spacer);
@@ -177,6 +180,35 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         label.setWrapText(true);
         label.getStyleClass().add(styleClass);
         return label;
+    }
+
+    // single-line counterpart of selectableLabel; hugs its text so it stays flush right in a detail row
+    protected static TextField selectableValue(String text) {
+        TextField field = new TextField(text);
+        field.setEditable(false);
+        field.setFocusTraversable(false);
+        field.setAlignment(Pos.CENTER_RIGHT);
+        field.setMaxWidth(Region.USE_PREF_SIZE); // keep the click target hugging the text when a parent would stretch it
+        field.getStyleClass().addAll("selectable-label", "confirm-send-row-value");
+        field.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+            Node textNode = field.lookup(".text");
+            if (textNode == null) return;
+            field.prefWidthProperty().bind(Bindings.createDoubleBinding(
+                    () -> Math.ceil(textNode.getLayoutBounds().getWidth()) + field.snappedLeftInset() + field.snappedRightInset() + 2,
+                    textNode.layoutBoundsProperty()));
+        });
+        return field;
+    }
+
+    // read-only text area styled as a plain label so the value text can be selected
+    protected static TextArea selectableLabel(String text, String styleClass) {
+        TextArea area = new TextArea(text);
+        area.setEditable(false);
+        area.setWrapText(true);
+        area.setFocusTraversable(false);
+        area.getStyleClass().addAll("selectable-label", styleClass);
+        GUIUtil.adjustHeightAutomatically(area);
+        return area;
     }
 
     protected static Region divider() {
@@ -222,13 +254,9 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         explorerIcon.setOnMouseClicked(e -> openBlockExplorer(txId, preferences));
         Accessibility.asButton(explorerIcon, Res.get("txIdTextField.blockExplorerIcon.tooltip"));
 
-        Label txIdLabel = wrappedLabel(txId, "confirm-send-address");
-        txIdLabel.setCursor(Cursor.HAND);
-        txIdLabel.setTooltip(new Tooltip(Res.get("txIdTextField.blockExplorerIcon.tooltip")));
-        txIdLabel.setOnMouseClicked(e -> openBlockExplorer(txId, preferences));
-
         startConfidenceUpdates();
-        return sheetGroup(Res.get("funds.withdrawal.sent.txId"), txIdLabel, confidenceIndicator, explorerIcon, copyIcon(txId));
+        return sheetGroup(Res.get("funds.withdrawal.sent.txId"), selectableLabel(txId, "confirm-send-address"),
+                confidenceIndicator, explorerIcon, copyIcon(txId));
     }
 
     private static void openBlockExplorer(String txId, Preferences preferences) {
