@@ -87,8 +87,9 @@ public class DisputeValidation {
 
     /**
      * Verify that the sender of a DisputeOpenedMessage holds an expected role for the trade: a trader must receive the
-     * dispute from the arbitrator, and the arbitrator must receive it from a trader. For a newly opened dispute the
-     * sending trader must also match the dispute's claimed buyer/seller opener (a re-open may come from either trader).
+     * dispute from the arbitrator, and the arbitrator must receive it from the trader the dispute belongs to, so a
+     * trader can neither open nor re-open the counterparty's dispute. For a newly opened dispute the sending trader
+     * must additionally match the dispute's claimed buyer/seller opener.
      */
     public static void validateSenderRole(Dispute dispute, Trade trade, TradePeer sender, boolean reOpen)
             throws ValidationException {
@@ -99,6 +100,11 @@ public class DisputeValidation {
             if (trade.isArbitrator()) {
                 checkArgument(!senderPubKeyRing.equals(arbitratorPubKeyRing),
                         "DisputeOpenedMessage to the arbitrator must come from a trader for trade " + trade.getId());
+                // bind the trader identity fields to the sender so a trader cannot occupy or re-open the counterparty's dispute
+                checkArgument(senderPubKeyRing.equals(dispute.getTraderPubKeyRing()),
+                        "Dispute trader pub key ring does not match the signed message sender for trade " + trade.getId());
+                checkArgument(dispute.getTraderId() == senderPubKeyRing.hashCode(),
+                        "Dispute trader id does not match the signed message sender for trade " + trade.getId());
                 if (!reOpen) {
                     Contract contract = dispute.getContract();
                     PubKeyRing openerPubKeyRing = dispute.isDisputeOpenerIsBuyer() ? contract.getBuyerPubKeyRing() : contract.getSellerPubKeyRing();

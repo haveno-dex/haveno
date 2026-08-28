@@ -683,10 +683,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     checkArgument(msgDispute.getSupportType() == message.getSupportType(), "Dispute support type does not match message support type");
                     if (!reOpen && msgDispute.getDisputeState() != Dispute.State.NEW) log.warn("Dispute for trade {} opened with state {}, processing to allow recovery by re-opening", msgDispute.getTradeId(), msgDispute.getDisputeState());
 
-                    dispute.setSupportType(message.getSupportType());
-                    dispute.setState(Dispute.State.NEW);
-
-                    // validate dispute
+                    // validate dispute before mutating stored state
                     try {
                         DisputeValidation.validateDisputeData(dispute);
                         DisputeValidation.validateTradeAndDispute(dispute, trade);
@@ -745,6 +742,10 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     // add or re-open dispute
                     synchronized (disputeList) {
                         if (disputeList.contains(msgDispute)) throw new RuntimeException("We got a dispute msg that we have already stored. TradeId = " + msgDispute.getTradeId());
+
+                        // open dispute after validation and rejection checks
+                        dispute.setSupportType(message.getSupportType());
+                        dispute.setState(Dispute.State.NEW);
 
                         // update trade state
                         if (reOpen) {
