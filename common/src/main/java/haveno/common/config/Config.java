@@ -615,7 +615,7 @@ public class Config {
                 parser.accepts(XMR_STREAM_ISOLATION, "Sync each Monero wallet over its own Tor circuit using SOCKS stream isolation.")
                         .withRequiredArg()
                         .ofType(boolean.class)
-                        .defaultsTo(true);
+                        .defaultsTo(false);
 
         //noinspection rawtypes
         ArgumentAcceptingOptionSpec<Enum> useTorForXmrOpt =
