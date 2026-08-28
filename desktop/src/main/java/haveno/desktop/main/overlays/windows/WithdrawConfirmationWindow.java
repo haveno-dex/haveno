@@ -25,6 +25,7 @@ import haveno.desktop.components.AutoTooltipLabel;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -54,12 +55,12 @@ public class WithdrawConfirmationWindow extends TxHeroWindow<WithdrawConfirmatio
 
     @Override
     protected void addContent() {
-        VBox toGroup = sheetGroup(Res.get("funds.withdrawal.confirm.to"), wrappedLabel(address, "confirm-send-address"), copyIcon(address));
-        HBox feeRow = detailRow(Res.get("funds.withdrawal.confirm.networkFee"), valueLabel(HavenoUtils.formatXmr(fee, true)));
+        VBox toGroup = sheetGroup(Res.get("funds.withdrawal.confirm.to"), selectableLabel(address, "confirm-send-address"), copyIcon(address));
+        HBox feeRow = detailRow(Res.get("funds.withdrawal.confirm.networkFee"), selectableValue(HavenoUtils.formatXmr(fee, true)));
 
         // total debited from the wallet, with a fiat approximation
         BigInteger total = amount.add(fee);
-        Label totalValue = valueLabel(HavenoUtils.formatXmr(total, true));
+        TextField totalValue = selectableValue(HavenoUtils.formatXmr(total, true));
         totalValue.getStyleClass().add("confirm-send-total");
         VBox totalBox = new VBox(totalValue);
         totalBox.setAlignment(Pos.CENTER_RIGHT);

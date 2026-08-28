@@ -61,9 +61,9 @@ public class TxWithdrawWindow extends TxHeroWindow<TxWithdrawWindow> {
     @Override
     protected void addContent() {
         List<Node> groups = new ArrayList<>();
-        groups.add(sheetGroup(Res.get("funds.withdrawal.confirm.to"), wrappedLabel(address, "confirm-send-address"), copyIcon(address)));
-        groups.add(detailRow(Res.get("funds.withdrawal.confirm.networkFee"), valueLabel(HavenoUtils.formatXmr(fee, true))));
-        if (memo != null && !memo.isEmpty()) groups.add(sheetGroup(Res.get("funds.withdrawal.sent.note"), wrappedLabel(memo, "confirm-send-row-value")));
+        groups.add(sheetGroup(Res.get("funds.withdrawal.confirm.to"), selectableLabel(address, "confirm-send-address"), copyIcon(address)));
+        groups.add(detailRow(Res.get("funds.withdrawal.confirm.networkFee"), selectableValue(HavenoUtils.formatXmr(fee, true))));
+        if (memo != null && !memo.isEmpty()) groups.add(sheetGroup(Res.get("funds.withdrawal.sent.note"), selectableLabel(memo, "confirm-send-row-value"), copyIcon(memo)));
         groups.add(txIdGroup(txId, xmrWalletService, preferences));
 
         addHeroContent(
