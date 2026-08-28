@@ -568,7 +568,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private List<NodeAddress> getFilteredList(Collection<NodeAddress> collection, List<NodeAddress> list) {
         return collection.stream()
                 .filter(e -> !list.contains(e) &&
-                        !peerManager.isSelf(e))
+                        !peerManager.isSelf(e) &&
+                        !peerManager.isWrongNetworkPeer(e))
                 .collect(Collectors.toList());
     }
 

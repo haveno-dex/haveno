@@ -82,7 +82,8 @@ public final class Peer implements HasCapabilities, NetworkPayload, PersistableP
     }
 
     public void onConnection() {
-        this.failedConnectionAttempts--;
+        // floor at zero so a peer cannot bank credit to resist later purging
+        if (failedConnectionAttempts > 0) this.failedConnectionAttempts--;
     }
 
     public boolean tooManyFailedConnectionAttempts() {

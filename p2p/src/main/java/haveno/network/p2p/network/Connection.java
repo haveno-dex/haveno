@@ -93,6 +93,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -186,6 +187,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     @Getter
     private RuleViolation ruleViolation;
+    // ensures the peer failure counter is adjusted at most once, as onDisconnect can fire more than once
+    private final AtomicBoolean peerFaultAccounted = new AtomicBoolean();
     private final ConcurrentHashMap<RuleViolation, Integer> ruleViolations = new ConcurrentHashMap<>();
 
     private final Capabilities capabilities = new Capabilities();
@@ -791,6 +794,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     public boolean reportInvalidRequest(RuleViolation ruleViolation, String errorMessage) {
         return Connection.reportInvalidRequest(this, ruleViolation, errorMessage);
+    }
+
+    // true the first time only, so the peer failure counter is adjusted once per connection
+    public boolean tryAccountPeerFault() {
+        return peerFaultAccounted.compareAndSet(false, true);
     }
 
     private static synchronized boolean reportInvalidRequest(Connection connection, RuleViolation ruleViolation, String errorMessage) {

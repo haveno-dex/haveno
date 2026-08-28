@@ -356,7 +356,8 @@ public class PeerExchangeManager implements MessageListener, ConnectionListener,
         return collection.stream()
                 .filter(e -> !list.contains(e) &&
                         !peerManager.isSelf(e) &&
-                        !peerManager.isConfirmed(e))
+                        !peerManager.isConfirmed(e) &&
+                        !peerManager.isWrongNetworkPeer(e))
                 .collect(Collectors.toList());
     }
 
