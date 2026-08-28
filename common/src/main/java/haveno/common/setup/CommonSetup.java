@@ -45,6 +45,8 @@ public class CommonSetup {
     private static final int SHUTDOWN_WATCHDOG_MINUTES = 4;
     private static final AtomicBoolean exitScheduled = new AtomicBoolean();
     private static final AtomicBoolean shutdownSignalReceived = new AtomicBoolean();
+    private static final AtomicBoolean shutdownHookRunning = new AtomicBoolean();
+    private static final AtomicBoolean pipelineDisposedNpeLogged = new AtomicBoolean();
     private static volatile Thread shutdownHook;
 
     // throttle repeated exceptions per throw site so a hot loop cannot fill the logs:
@@ -98,6 +100,12 @@ public class CommonSetup {
             } else if (throwable instanceof IndexOutOfBoundsException && Arrays.stream(throwable.getStackTrace())
                     .anyMatch(element -> element.getClassName().startsWith("com.sun.glass.ui.mac.MacAccessible"))) {
                 log.warn("Ignoring JavaFX macOS accessibility bug (JDK-8235989): {}", throwable.getMessage());
+            } else if (throwable instanceof NullPointerException && isShutdownInProgress() && throwable.getMessage() != null &&
+                    throwable.getMessage().contains("\"com.sun.prism.GraphicsPipeline.getPipeline()\" is null") &&
+                    Arrays.stream(throwable.getStackTrace())
+                            .anyMatch(element -> element.getClassName().equals("com.sun.javafx.tk.quantum.QuantumToolkit") && element.getMethodName().equals("isSupported"))) {
+                if (pipelineDisposedNpeLogged.compareAndSet(false, true))
+                    log.warn("Ignoring JavaFX input events delivered after graphics pipeline disposal on shutdown: {}", throwable.getMessage());
             } else {
                 RepeatedThrow repeat = trackThrowSite(throwable);
                 long count = repeat.count.incrementAndGet();
@@ -114,6 +122,11 @@ public class CommonSetup {
         };
         Thread.setDefaultUncaughtExceptionHandler(handler);
         Thread.currentThread().setUncaughtExceptionHandler(handler);
+    }
+
+    // true once an application exit is scheduled, a termination signal was received, or the JVM shutdown hook has started
+    private static boolean isShutdownInProgress() {
+        return exitScheduled.get() || shutdownSignalReceived.get() || shutdownHookRunning.get();
     }
 
     private static RepeatedThrow trackThrowSite(Throwable throwable) {
@@ -179,6 +192,7 @@ public class CommonSetup {
         removeShutdownHook();
         Thread hook = new Thread(() -> {
             try {
+                shutdownHookRunning.set(true);
                 var countDownLatch = new CountDownLatch(1);
                 UserThread.execute(() ->
                         gracefulShutDownHandler.gracefulShutDown(countDownLatch::countDown));
