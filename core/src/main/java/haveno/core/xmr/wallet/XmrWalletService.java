@@ -2126,6 +2126,7 @@ public class XmrWalletService extends XmrWalletBase {
             try {
 
                 // open or create wallet
+                long time = System.currentTimeMillis();
                 MoneroDaemonRpc monerod = xmrConnectionService.getMonerod();
                 boolean isProxyApplied = isProxyApplied();
                 log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()) + ", proxyUri=" + (monerod == null || !isProxyApplied ? "null" : monerod.getRpcConnection().getProxyUri()));
@@ -2170,6 +2171,7 @@ public class XmrWalletService extends XmrWalletBase {
                 } else {
                     doBackupWallet();
                 }
+                log.info("Done initializing main wallet in " + (System.currentTimeMillis() - time) + " ms");
             } catch (Exception e) {
                 log.warn("Error initializing main wallet: {}\n", e.getMessage(), e);
                 throw e;
