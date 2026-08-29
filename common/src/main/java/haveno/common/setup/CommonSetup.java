@@ -29,6 +29,7 @@ import haveno.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bitcoinj.store.BlockStoreException;
+import sun.misc.Signal;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -41,7 +42,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class CommonSetup {
+    private static final int SHUTDOWN_WATCHDOG_MINUTES = 4;
     private static final AtomicBoolean exitScheduled = new AtomicBoolean();
+    private static final AtomicBoolean shutdownSignalReceived = new AtomicBoolean();
     private static volatile Thread shutdownHook;
 
     // throttle repeated exceptions per throw site so a hot loop cannot fill the logs:
@@ -160,6 +163,18 @@ public class CommonSetup {
     }
 
     protected static void setupShutdownHandler(GracefulShutDownHandler gracefulShutDownHandler) {
+        // handle INT and TERM before the JVM shutdown sequence starts, as concurrent shutdown hooks
+        // tear down JavaFX and the UserThread then silently drops the graceful shutdown task
+        for (String signalName : new String[]{"INT", "TERM"}) {
+            Signal.handle(new Signal(signalName), signal -> {
+                log.info("Received {}", signal);
+                startShutdownWatchdog();
+                UserThread.execute(() -> gracefulShutDownHandler.gracefulShutDown(() -> {
+                }));
+            });
+        }
+
+        // fallback for termination paths which bypass the signal handlers, e.g. System.exit
         // setup re-runs on in-process restart, so replace any hook of the previous executable
         removeShutdownHook();
         Thread hook = new Thread(() -> {
@@ -175,6 +190,26 @@ public class CommonSetup {
         }, "HavenoShutdownHook");
         Runtime.getRuntime().addShutdownHook(hook);
         shutdownHook = hook;
+    }
+
+    // Halts the process if a signal-initiated graceful shutdown does not complete in time,
+    // since the handled signals no longer trigger the JVM's own bounded shutdown sequence.
+    private static void startShutdownWatchdog() {
+        if (!shutdownSignalReceived.compareAndSet(false, true)) {
+            return;
+        }
+
+        Thread watchdog = new Thread(() -> {
+            try {
+                TimeUnit.MINUTES.sleep(SHUTDOWN_WATCHDOG_MINUTES);
+            } catch (InterruptedException e) {
+                return;
+            }
+            log.warn("Graceful shutdown did not complete within {} minutes, halting", SHUTDOWN_WATCHDOG_MINUTES);
+            Runtime.getRuntime().halt(1);
+        }, "HavenoShutdownWatchdog");
+        watchdog.setDaemon(true);
+        watchdog.start();
     }
 
     // Terminates the process after an application-initiated graceful shutdown. Removes the shutdown hook first,
