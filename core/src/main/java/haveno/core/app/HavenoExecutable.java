@@ -105,6 +105,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     private final Object shutdownLock = new Object();
     private final List<ResultHandler> shutdownResultHandlers = new ArrayList<>();
     private boolean isShutdownComplete;
+    private boolean systemExitRequested;
     private boolean isReadOnly;
     private Thread keepRunningThread;
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
@@ -337,7 +338,10 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         // consume shutdownCompletedHandler so it runs once even when repeated requests join
         ResultHandler resultHandler;
+        boolean exitCompletedShutdown;
         synchronized (shutdownLock) {
+            systemExitRequested |= systemExit;
+            exitCompletedShutdown = isShutdownComplete && systemExit; // a completed shutdown cannot exit anymore
             Runnable completedHandler = shutdownCompletedHandler;
             shutdownCompletedHandler = null;
             resultHandler = completedHandler == null ? onShutdown : () -> {
@@ -348,12 +352,13 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         // repeated requests join the shutdown in progress and get notified on completion
         if (!beginGracefulShutDown(resultHandler)) {
+            if (exitCompletedShutdown) CommonSetup.exitAfter(EXIT_SUCCESS, 100, TimeUnit.MILLISECONDS);
             return;
         }
 
         if (injector == null) {
             log.info("Shut down called before injector was created");
-            completeShutdown(EXIT_SUCCESS, systemExit);
+            completeShutdown(EXIT_SUCCESS);
             return;
         }
 
@@ -389,7 +394,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                         // done shutting down
                         log.info("Graceful shutdown completed. Exiting now.");
                         module.close(injector);
-                        completeShutdown(EXIT_SUCCESS, systemExit);
+                        completeShutdown(EXIT_SUCCESS);
                     });
                 });
 
@@ -404,7 +409,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             });
         } catch (Throwable t) {
             log.error("App shutdown failed with exception: {}\n", t.getMessage(), t);
-            completeShutdown(EXIT_FAILURE, systemExit);
+            completeShutdown(EXIT_FAILURE);
         }
     }
 
@@ -459,19 +464,26 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         }
     }
 
-    private void completeShutdown(int exitCode, boolean systemExit) {
+    private void completeShutdown(int exitCode) {
         if (!isReadOnly) {
             // If user tried to downgrade we do not write the persistable data to avoid data corruption
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                 log.info("Graceful shutdown flushed persistence. Exiting now.");
                 notifyGracefulShutDownComplete();
-                if (systemExit)
+                if (isSystemExitRequested())
                     CommonSetup.exitAfter(exitCode, 100, TimeUnit.MILLISECONDS);
             });
         } else {
             notifyGracefulShutDownComplete();
-            if (systemExit)
+            if (isSystemExitRequested())
                 CommonSetup.exitAfter(exitCode, 100, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    // read after notifying completion so exit requests which joined the shutdown are honored
+    private boolean isSystemExitRequested() {
+        synchronized (shutdownLock) {
+            return systemExitRequested;
         }
     }
 
