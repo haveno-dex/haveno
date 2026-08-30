@@ -78,6 +78,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
 
             // skip if already acked by receiver
             if (stopSending()) {
+                cleanup();
                 if (!isCompleted()) complete();
                 return;
             }
@@ -155,14 +156,17 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             timer.stop();
         }
         if (listener != null) {
-            getReceiver().getPaymentReceivedMessageStateProperty().removeListener(listener);
+            getReceiver().getPaymentSentMessageStateProperty().removeListener(listener);
         }
     }
 
     private void tryToSendAgainLater() {
 
         // skip if stopped
-        if (stopSending()) return;
+        if (stopSending()) {
+            cleanup();
+            return;
+        }
 
         // stop after max attempts
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
