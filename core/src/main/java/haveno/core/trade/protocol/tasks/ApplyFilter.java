@@ -55,7 +55,7 @@ public class ApplyFilter extends TradeTask {
                     trade.getTradePeer().getPaymentAccountPayload() != null &&
                     filterManager.arePeersPaymentAccountDataBanned(trade.getTradePeer().getPaymentAccountPayload())) {
                 failed("Other trader is banned by their trading account data.\n" +
-                        "paymentAccountPayload=" + trade.getTradePeer().getPaymentAccountPayload().getPaymentDetails());
+                        "paymentMethodId=" + trade.getTradePeer().getPaymentAccountPayload().getPaymentMethodId());
             } else if (filterManager.requireUpdateToNewVersionForTrading()) {
                 failed("Your version of Haveno is not compatible for trading anymore. " +
                         "Please update to the latest Haveno version.");
