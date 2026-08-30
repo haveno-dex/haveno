@@ -65,6 +65,7 @@ import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.messages.RefreshOfferMessage;
 import haveno.network.p2p.storage.messages.RemoveDataMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.utils.EventThrottler;
 import haveno.network.utils.LeakyBucket;
@@ -1056,6 +1057,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     }
                 } catch (InvalidClassException e) {
                     reportInvalidRequest(RuleViolation.INVALID_CLASS, e.getMessage());
+                } catch (InvalidPersistableNetworkPayloadException e) {
+                    // drop without penalty since honest peers can disagree on payload validity across versions, but still throttle
+                    log.warn("Dropping message with invalid persistable network payload: {}", e.getMessage());
+                    if (violatesThrottleLimit() && reportInvalidRequest(RuleViolation.THROTTLE_LIMIT_EXCEEDED, "Violates throttle limit"))
+                        return;
                 } catch (ProtobufferException | NoClassDefFoundError | InvalidProtocolBufferException e) {
                     reportInvalidRequest(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
                 } catch (Throwable t) {
