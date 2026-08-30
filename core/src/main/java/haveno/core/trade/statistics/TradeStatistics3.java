@@ -322,14 +322,28 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
                             @Nullable String arbitrator,
                             @Nullable Map<String, String> extraDataMap,
                             @Nullable byte[] hash) {
+        this(currency, price, amount, paymentMethod, date, arbitrator, extraDataMap, hash, true);
+    }
+
+    private TradeStatistics3(String currency,
+                             long price,
+                             long amount,
+                             String paymentMethod,
+                             long date,
+                             @Nullable String arbitrator,
+                             @Nullable Map<String, String> extraDataMap,
+                             @Nullable byte[] hash,
+                             boolean normalizePaymentMethod) {
         this.currency = currency;
         this.price = price;
         this.amount = amount;
-        String tempPaymentMethod;
-        try {
-            tempPaymentMethod = String.valueOf(PaymentMethodMapper.valueOf(paymentMethod).ordinal());
-        } catch (Throwable t) {
-            tempPaymentMethod = paymentMethod;
+        String tempPaymentMethod = paymentMethod;
+        if (normalizePaymentMethod) {
+            try {
+                tempPaymentMethod = String.valueOf(PaymentMethodMapper.valueOf(paymentMethod).ordinal());
+            } catch (Throwable t) {
+                // keep unmapped payment method as is
+            }
         }
         this.paymentMethod = tempPaymentMethod;
         this.date = date;
@@ -369,6 +383,10 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     }
 
     public static TradeStatistics3 fromProto(protobuf.TradeStatistics3 proto) {
+        // Bound field sizes before hashing since oversized fields are never valid.
+        if (proto.getCurrency().length() > 100 || proto.getPaymentMethod().length() > 100 || proto.getArbitrator().length() > 100)
+            throw new InvalidPersistableNetworkPayloadException("TradeStatistics3 field size exceeds maximum");
+
         // Reconstruct the extra data as a HashMap so the recomputed hash matches the creating node (see createHash).
         Map<String, String> extraDataMap = CollectionUtils.isEmpty(proto.getExtraDataMap()) ? null : new HashMap<>(proto.getExtraDataMap());
         TradeStatistics3 tradeStatistics = new TradeStatistics3(
@@ -384,9 +402,24 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         // The provided hash must match the recomputed hash, else the storage key could be chosen independently of the data.
         byte[] hashFromProto = proto.getHash().toByteArray();
         if (!Arrays.equals(hashFromProto, tradeStatistics.getHash())) {
-            throw new InvalidPersistableNetworkPayloadException("TradeStatistics3 hash field does not match trade statistics data. " +
-                    "hashFromProto=" + Utilities.bytesAsHexString(hashFromProto) +
-                    ", computedHash=" + Utilities.bytesAsHexString(tradeStatistics.getHash()));
+
+            // accept a hash over the unnormalized payment method, from creators without a newer PaymentMethodMapper entry
+            TradeStatistics3 unnormalized = new TradeStatistics3(
+                    proto.getCurrency(),
+                    proto.getPrice(),
+                    proto.getAmount(),
+                    proto.getPaymentMethod(),
+                    proto.getDate(),
+                    ProtoUtil.stringOrNullFromProto(proto.getArbitrator()),
+                    extraDataMap,
+                    hashFromProto,
+                    false);
+            if (!Arrays.equals(hashFromProto, unnormalized.createHash())) {
+                throw new InvalidPersistableNetworkPayloadException("TradeStatistics3 hash field does not match trade statistics data. " +
+                        "hashFromProto=" + Utilities.bytesAsHexString(hashFromProto) +
+                        ", computedHash=" + Utilities.bytesAsHexString(tradeStatistics.getHash()));
+            }
+            return unnormalized;
         }
         return tradeStatistics;
     }
