@@ -514,7 +514,7 @@ public class FilterManager {
 
         // Reject filters dated too far in the future, else they cannot be superseded by a legitimately dated filter.
         if (newFilter.getCreationDate() - System.currentTimeMillis() > MAX_FILTER_DATE_DRIFT) {
-            log.warn("Filter from network creation date is too far in the future. creationDate={}", new Date(newFilter.getCreationDate()));
+            log.warn("Filter from network creation date is too far in the future, which can indicate a slow local clock. creationDate={}", new Date(newFilter.getCreationDate()));
             return;
         }
 
