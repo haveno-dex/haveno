@@ -1059,7 +1059,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     reportInvalidRequest(RuleViolation.INVALID_CLASS, e.getMessage());
                 } catch (InvalidPersistableNetworkPayloadException e) {
                     // drop without penalty since honest peers can disagree on payload validity across versions, but still throttle
-                    log.warn("Dropping message with invalid persistable network payload: {}", e.getMessage());
+                    throttleWarn("Dropping message with invalid persistable network payload: " + e.getMessage());
                     if (violatesThrottleLimit() && reportInvalidRequest(RuleViolation.THROTTLE_LIMIT_EXCEEDED, "Violates throttle limit"))
                         return;
                 } catch (ProtobufferException | NoClassDefFoundError | InvalidProtocolBufferException e) {

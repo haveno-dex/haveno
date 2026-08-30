@@ -35,7 +35,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -130,10 +130,14 @@ public final class GetDataResponse extends NetworkEnvelope implements SupportedC
                 wasTruncated ? "(was truncated)" : "");
         Set<ProtectedStorageEntry> dataSet = proto.getDataSetList().stream()
                 .map(entry -> (ProtectedStorageEntry) resolver.fromProto(entry)).collect(Collectors.toSet());
-        Set<PersistableNetworkPayload> persistableNetworkPayloadSet = proto.getPersistableNetworkPayloadItemsList().stream()
-                .map(e -> getPersistableNetworkPayloadOrNull(e, resolver))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        Set<PersistableNetworkPayload> persistableNetworkPayloadSet = new HashSet<>();
+        int numInvalid = 0;
+        for (protobuf.PersistableNetworkPayload e : proto.getPersistableNetworkPayloadItemsList()) {
+            PersistableNetworkPayload payload = getPersistableNetworkPayloadOrNull(e, resolver);
+            if (payload == null) numInvalid++;
+            else persistableNetworkPayloadSet.add(payload);
+        }
+        if (numInvalid > 0) log.warn("Ignored {} invalid persistable network payloads from GetDataResponse", numInvalid);
         return new GetDataResponse(dataSet,
                 persistableNetworkPayloadSet,
                 proto.getRequestNonce(),
@@ -148,7 +152,7 @@ public final class GetDataResponse extends NetworkEnvelope implements SupportedC
         try {
             return (PersistableNetworkPayload) resolver.fromProto(proto);
         } catch (InvalidPersistableNetworkPayloadException e) {
-            log.warn("Ignoring invalid PersistableNetworkPayload from GetDataResponse. {}", e.getMessage());
+            log.debug("Ignoring invalid PersistableNetworkPayload from GetDataResponse. {}", e.getMessage());
             return null;
         }
     }

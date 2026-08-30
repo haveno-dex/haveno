@@ -383,8 +383,8 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
     }
 
     public static TradeStatistics3 fromProto(protobuf.TradeStatistics3 proto) {
-        // Bound field sizes before hashing since oversized fields are never valid.
-        if (proto.getCurrency().length() > 100 || proto.getPaymentMethod().length() > 100 || proto.getArbitrator().length() > 100)
+        // Bound field sizes before hashing or logging them since oversized fields are never valid.
+        if (proto.getCurrency().length() > 100 || proto.getPaymentMethod().length() > 100 || proto.getArbitrator().length() > 100 || proto.getHash().size() > 100)
             throw new InvalidPersistableNetworkPayloadException("TradeStatistics3 field size exceeds maximum");
 
         // Reconstruct the extra data as a HashMap so the recomputed hash matches the creating node (see createHash).
