@@ -94,6 +94,17 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
                 return;
             }
 
+            // close connection to receiver on first resends without ack, in case the last send went to a stale connection
+            if (resendCounter > 0 && resendCounter <= 2 && getReceiver().getPaymentReceivedMessageStateProperty().get() == MessageState.ARRIVED) {
+                closeConnectionToReceiver();
+
+                // skip if acked while closing
+                if (stopSending()) {
+                    if (!isCompleted()) complete();
+                    return;
+                }
+            }
+
             // reset ack state
             getReceiver().setPaymentReceivedMessageState(MessageState.UNDEFINED);
             super.run();

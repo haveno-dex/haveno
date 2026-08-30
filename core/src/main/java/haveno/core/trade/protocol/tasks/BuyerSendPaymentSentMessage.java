@@ -76,6 +76,11 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
         try {
             runInterceptHook();
 
+            // close connection to receiver on first resends without ack, in case the last send went to a stale connection
+            if (resendCounter > 0 && resendCounter <= 2 && getReceiver().getPaymentSentMessageStateProperty().get() == MessageState.ARRIVED) {
+                closeConnectionToReceiver();
+            }
+
             // skip if already acked by receiver
             if (stopSending()) {
                 cleanup();

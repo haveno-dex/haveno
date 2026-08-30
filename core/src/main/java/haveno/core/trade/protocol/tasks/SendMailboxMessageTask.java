@@ -26,6 +26,8 @@ import haveno.core.trade.protocol.TradePeer;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendMailboxMessageListener;
 import haveno.network.p2p.mailbox.MailboxMessage;
+import haveno.network.p2p.network.CloseConnectionReason;
+import haveno.network.p2p.network.Connection;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -35,6 +37,8 @@ public abstract class SendMailboxMessageTask extends TradeTask {
     public static final long INITIAL_RESEND_DELAY_MINS_SECOND = 4;
     public static final long INITIAL_RESEND_DELAY_MINS_MAILBOX = TimeUnit.HOURS.toMinutes(6);
     public static final int RESEND_DELAY_MULTIPLIER = 2;
+
+    private volatile long lastSendTs;
 
     public SendMailboxMessageTask(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -80,6 +84,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
                         @Override
                         public void onArrived() {
                             log.info("{} arrived at peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, trade.getId(), message.getUid());
+                            lastSendTs = System.currentTimeMillis();
                             setStateArrived();
                             if (!task.isCompleted()) complete();
                         }
@@ -100,6 +105,20 @@ public abstract class SendMailboxMessageTask extends TradeTask {
             );
         } catch (Throwable t) {
             failed(t);
+        }
+    }
+
+    // close connections to the receiver which predate the last send, so the next send uses a new connection
+    protected void closeConnectionToReceiver() {
+        NodeAddress receiver = getReceiverNodeAddress();
+        if (receiver == null) return;
+        for (Connection connection : processModel.getP2PService().getNetworkNode().getAllConnections()) {
+            if (connection.isStopped()) continue;
+            if (connection.getStatistic().getCreationDate().getTime() > lastSendTs) continue;
+            if (connection.getPeersNodeAddressOptional().map(receiver::equals).orElse(false)) {
+                log.info("Closing connection to {} to resend {} on a new connection, tradeId={}", receiver, getClass().getSimpleName(), trade.getId());
+                connection.shutDown(CloseConnectionReason.RECONNECT);
+            }
         }
     }
 

@@ -95,6 +95,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -174,8 +175,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     // mutable data, set from other threads but not changed internally.
     @Getter
     private Optional<NodeAddress> peersNodeAddressOptional = Optional.empty();
-    @Getter
     private volatile boolean stopped;
+    private volatile boolean shutDownStarted;
+    // reason of the first shutDown initiator, reported to listeners exactly once
+    private final AtomicReference<CloseConnectionReason> shutDownReason = new AtomicReference<>();
+    private final AtomicBoolean disconnectEventFired = new AtomicBoolean();
 
     @Getter
     private final ObjectProperty<NodeAddress> peersNodeAddressProperty = new SimpleObjectProperty<>();
@@ -659,6 +663,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         return peersNodeAddressOptional.isPresent();
     }
 
+    // reports stopped as soon as a shutdown starts, so the connection is not selected for new sends during a graceful close
+    public boolean isStopped() {
+        return stopped || shutDownStarted;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // ShutDown
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -671,7 +680,12 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         log.debug("shutDown: peersNodeAddressOptional={}, closeConnectionReason={}",
                 peersNodeAddressOptional, closeConnectionReason);
 
+        // elect the reported reason first; a ban overrides an in-flight graceful close so listeners still purge the peer
+        if (closeConnectionReason == CloseConnectionReason.PEER_BANNED) shutDownReason.set(closeConnectionReason);
+        else shutDownReason.compareAndSet(null, closeConnectionReason);
+
         connectionState.shutDown();
+        shutDownStarted = true;
 
         if (!stopped) {
             String peersNodeAddress = peersNodeAddressOptional.map(NodeAddress::toString).orElse("null");
@@ -711,7 +725,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     }
 
     private void doShutDown(CloseConnectionReason closeConnectionReason, @Nullable Runnable shutDownCompleteHandler) {
-        ThreadUtils.execute(() -> connectionListener.onDisconnect(closeConnectionReason, this), THREAD_ID);
+        // notify listeners once with the initiating reason, since racing closes also land here
+        if (disconnectEventFired.compareAndSet(false, true)) {
+            CloseConnectionReason firstReason = shutDownReason.get();
+            ThreadUtils.execute(() -> connectionListener.onDisconnect(firstReason, this), THREAD_ID);
+        }
         try {
             protoOutputStream.onConnectionShutdown();
             socket.close();

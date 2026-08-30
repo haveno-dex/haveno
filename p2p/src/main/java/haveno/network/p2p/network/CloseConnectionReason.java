@@ -41,6 +41,7 @@ public enum CloseConnectionReason {
     TOO_MANY_CONNECTIONS_OPEN(true, true),
     TOO_MANY_SEED_NODES_CONNECTED(true, true),
     UNKNOWN_PEER_ADDRESS(true, true),
+    RECONNECT(true, true),
 
     // illegal requests
     RULE_VIOLATION(true, false),
