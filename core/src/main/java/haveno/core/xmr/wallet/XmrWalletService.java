@@ -589,6 +589,11 @@ public class XmrWalletService extends XmrWalletBase {
         FileUtil.rollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX, NUM_WALLET_BACKUPS);
     }
 
+    public boolean hasWalletBackup(String walletName) {
+        assertNotPath(walletName);
+        return FileUtil.hasRollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX);
+    }
+
     public void deleteWalletBackups(String walletName) {
         assertNotPath(walletName);
         FileUtil.deleteRollingBackup(walletDir, walletName);

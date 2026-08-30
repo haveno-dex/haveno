@@ -76,6 +76,8 @@ public class FileUtil {
                     pruneBackup(backupFileDir, numMaxBackupFiles);
                 } catch (IOException e) {
                     log.error("Backup key failed: {}\n", e.getMessage(), e);
+                    if (backupFile.exists() && !backupFile.delete())
+                        log.error("Failed to delete partial backup file: {}", backupFile.getAbsolutePath());
                 }
             }
         }
@@ -97,6 +99,14 @@ public class FileUtil {
         if (files.isEmpty()) return null;
         files.sort(Comparator.comparing(File::getName));
         return files.get(files.size() - 1);
+    }
+
+    public static boolean hasRollingBackup(File dir, String fileName) {
+        String dirName = "backups_" + fileName;
+        if (dirName.contains("."))
+            dirName = dirName.replace(".", "_");
+        String[] backupFiles = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR, dirName).toString()).list();
+        return backupFiles != null && backupFiles.length > 0;
     }
 
     public static void deleteRollingBackup(File dir, String fileName) {
