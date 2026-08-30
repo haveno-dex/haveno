@@ -705,7 +705,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                 if (!empty && newItem != null && !trade.isPayoutConfirmed()) {
                                     Label icon = FormBuilder.getIcon(FontAwesomeIcon.UNDO);
                                     JFXButton iconButton = new JFXButton("", icon);
-                                    iconButton.setStyle("-fx-cursor: hand; -fx-padding: 0 10 0 10;");
+                                    iconButton.setStyle("-fx-cursor: hand;");
                                     iconButton.getStyleClass().add("hidden-icon-button");
                                     iconButton.setTooltip(new Tooltip(Res.get("portfolio.failed.revertToPending")));
                                     Accessibility.nameFromTooltip(iconButton);
