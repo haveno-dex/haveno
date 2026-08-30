@@ -24,7 +24,8 @@ static_resources:
             name: local_route
             virtual_hosts:
             - name: local_service
-              domains: ["*"]
+              # restrict to local hosts so DNS names resolving to loopback cannot reach the API
+              domains: ["localhost", "localhost:*", "127.0.0.1", "127.0.0.1:*", "[::1]", "[::1]:*"]
               routes:
               - match: { prefix: "/" }
                 route:
@@ -32,13 +33,16 @@ static_resources:
                   timeout: 0s
                   max_stream_duration:
                     grpc_timeout_header_max: 0s
-              cors:
-                allow_origin_string_match:
-                - prefix: "*"
-                allow_methods: GET, PUT, DELETE, POST, OPTIONS
-                allow_headers: password,keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
-                max_age: "1728000"
-                expose_headers: custom-header-1,grpc-status,grpc-message
+              typed_per_filter_config:
+                envoy.filters.http.cors:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.CorsPolicy
+                  allow_origin_string_match:
+                  - safe_regex:
+                      regex: "^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:[0-9]+)?$"
+                  allow_methods: GET, PUT, DELETE, POST, OPTIONS
+                  allow_headers: password,keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
+                  max_age: "1728000"
+                  expose_headers: custom-header-1,grpc-status,grpc-message
           http_filters:
             - name: envoy.filters.http.grpc_web
               typed_config:
