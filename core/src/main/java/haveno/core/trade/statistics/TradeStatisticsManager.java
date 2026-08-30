@@ -325,7 +325,6 @@ public class TradeStatisticsManager {
                                               @Nullable String referralId,
                                               boolean isTorNetworkNode) {
         long ts = System.currentTimeMillis();
-        Set<P2PDataStorage.ByteArray> hashes = tradeStatistics3StorageService.getMapOfAllData().keySet();
         trades.forEach(trade -> {
             if (!trade.shouldPublishTradeStatistics()) {
                 log.debug("Trade: {} should not publish trade statistics", trade.getShortId());
@@ -356,10 +355,7 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            boolean hasTradeStatistics3V0 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V0.getHash()));
-            boolean hasTradeStatistics3V1 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V1.getHash()));
-            boolean hasTradeStatistics3V2 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V2.getHash()));
-            if (hasTradeStatistics3V0 || hasTradeStatistics3V1 || hasTradeStatistics3V2) {
+            if (hasPublishedTradeStatistics(tradeStatistics3V0, tradeStatistics3V1, tradeStatistics3V2)) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
                         trade.getShortId());
                 return;
@@ -372,12 +368,26 @@ public class TradeStatisticsManager {
 
             // publish after random delay within 12 hours
             log.info("Scheduling to publish trade statistics at random time for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+            TradeStatistics3 tradeStatistics3V0Final = tradeStatistics3V0;
+            TradeStatistics3 tradeStatistics3V1Final = tradeStatistics3V1;
             TradeStatistics3 tradeStatistics3V2Final = tradeStatistics3V2;
             UserThread.runAfterRandomDelay(() -> {
+                // recheck in case the trade statistics were received while the publish was pending
+                if (hasPublishedTradeStatistics(tradeStatistics3V0Final, tradeStatistics3V1Final, tradeStatistics3V2Final)) return;
                 p2PService.addPersistableNetworkPayload(tradeStatistics3V2Final, true);
             }, 0, PUBLISH_STATS_RANDOM_DELAY_HOURS / 2 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         });
         log.info("maybeRepublishTradeStatistics took {} ms. Number of tradeStatistics: {}. Number of own trades: {}",
-                System.currentTimeMillis() - ts, hashes.size(), trades.size());
+                System.currentTimeMillis() - ts, tradeStatistics3StorageService.getMapOfAllData().size(), trades.size());
+    }
+
+    // checks the current data store for the given trade statistics' normalized or unnormalized hashes
+    private boolean hasPublishedTradeStatistics(TradeStatistics3... variants) {
+        Set<P2PDataStorage.ByteArray> hashes = tradeStatistics3StorageService.getMapOfAllData().keySet();
+        for (TradeStatistics3 variant : variants) {
+            if (hashes.contains(new P2PDataStorage.ByteArray(variant.getHash())) ||
+                    hashes.contains(new P2PDataStorage.ByteArray(variant.createUnnormalizedHash()))) return true;
+        }
+        return false;
     }
 }

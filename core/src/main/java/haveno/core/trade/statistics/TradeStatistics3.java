@@ -360,6 +360,11 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         return Hash.getSha256Ripemd160hash(JsonUtil.objectToJson(this).getBytes(Charsets.UTF_8));
     }
 
+    // The hash a creator without this payment method's PaymentMethodMapper entry would publish (see fromProto).
+    public byte[] createUnnormalizedHash() {
+        return new TradeStatistics3(currency, price, amount, getPaymentMethodId(), date, arbitrator, extraDataMap, null, false).getHash();
+    }
+
     private protobuf.TradeStatistics3.Builder getBuilder() {
         protobuf.TradeStatistics3.Builder builder = protobuf.TradeStatistics3.newBuilder()
                 .setCurrency(currency)
