@@ -570,6 +570,7 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
             @Override
             public void onDisconnect(CloseConnectionReason closeConnectionReason, Connection connection) {
                 if (trade == null) return; // ignore if trade initializing
+                if (closeConnectionReason.isIntended && closeConnectionReason != CloseConnectionReason.CLOSE_REQUESTED_BY_PEER) return; // ignore local closes like reconnects, which replace the connection
                 if (connection.getPeersNodeAddressOptional().isPresent() &&
                         connection.getPeersNodeAddressOptional().get().equals(offer.getMakerNodeAddress())) {
                     offerWarning.set(Res.get("takeOffer.warning.connectionToPeerLost"));
