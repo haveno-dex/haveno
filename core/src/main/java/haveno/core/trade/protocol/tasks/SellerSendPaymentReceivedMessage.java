@@ -90,6 +90,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
 
             // skip if stopped
             if (stopSending()) {
+                cleanup();
                 if (!isCompleted()) complete();
                 return;
             }
@@ -100,6 +101,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
 
                 // skip if acked while closing
                 if (stopSending()) {
+                    cleanup();
                     if (!isCompleted()) complete();
                     return;
                 }
@@ -213,14 +215,17 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             timer.stop();
         }
         if (listener != null) {
-            trade.getBuyer().getPaymentReceivedMessageStateProperty().removeListener(listener);
+            getReceiver().getPaymentReceivedMessageStateProperty().removeListener(listener);
         }
     }
 
     private void tryToSendAgainLater() {
 
         // skip if stopped
-        if (stopSending()) return;
+        if (stopSending()) {
+            cleanup();
+            return;
+        }
 
         // stop after max attempts
         if (resendCounter >= MAX_RESEND_ATTEMPTS) {
