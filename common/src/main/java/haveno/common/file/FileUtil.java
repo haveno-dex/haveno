@@ -30,10 +30,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -50,8 +52,9 @@ public class FileUtil {
 
     private static final String BACKUP_DIR = "backup";
     
-    public static void rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
-        if (numMaxBackupFiles <= 0) return;
+    // returns false if a backup copy could not be created, true otherwise (including when there is no file to back up)
+    public static boolean rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
+        if (numMaxBackupFiles <= 0) return true;
         if (dir.exists()) {
             File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
             if (!backupDir.exists())
@@ -68,18 +71,57 @@ public class FileUtil {
                     if (!backupFileDir.mkdir())
                         log.warn("make backupFileDir failed.\nBackupFileDir=" + backupFileDir.getAbsolutePath());
 
-                File backupFile = new File(Paths.get(backupFileDir.getAbsolutePath(), new Date().getTime() + "_" + fileName).toString());
+                // name the backup after the latest existing one so the newest sorts last even if the clock moved backwards
+                long timestamp = new Date().getTime();
+                File latestBackupFile = getLatestBackupFile(dir, fileName);
+                if (latestBackupFile != null) {
+                    try {
+                        long latestTimestamp = Long.parseLong(latestBackupFile.getName().split("_")[0]);
+                        if (latestTimestamp >= timestamp) timestamp = latestTimestamp + 1;
+                    } catch (NumberFormatException ignore) {
+                        // ignore backup files without a timestamp prefix
+                    }
+                }
+                File backupFile = new File(Paths.get(backupFileDir.getAbsolutePath(), timestamp + "_" + fileName).toString());
+                File tempFile = new File(backupFileDir, fileName + ".tmp"); // no timestamp prefix, so never selected as a backup
 
                 try {
-                    Files.copy(origFile, backupFile);
+                    // sync to disk before reporting success, since the caller may delete the original based on it
+                    try (FileInputStream in = new FileInputStream(origFile);
+                            FileOutputStream out = new FileOutputStream(tempFile)) {
+                        IOUtils.copy(in, out);
+                        out.flush();
+                        out.getFD().sync();
+                    }
+                    atomicReplace(tempFile, backupFile); // so a crash never leaves a partial file under a backup name
+
+                    // sync leaf to root so the new file and any new directory entries survive power loss
+                    syncDirectory(backupFileDir);
+                    syncDirectory(backupDir);
+                    syncDirectory(dir);
 
                     pruneBackup(backupFileDir, numMaxBackupFiles);
                 } catch (IOException e) {
                     log.error("Backup key failed: {}\n", e.getMessage(), e);
-                    if (backupFile.exists() && !backupFile.delete())
-                        log.error("Failed to delete partial backup file: {}", backupFile.getAbsolutePath());
+                    for (File file : new File[] {tempFile, backupFile}) {
+                        if (file.exists() && !file.delete())
+                            log.error("Failed to delete partial backup file: {}", file.getAbsolutePath());
+                    }
+                    return false;
                 }
+
+                // verify the new backup survived pruning, which deletes the oldest name, in case the clock moved backwards
+                return backupFile.exists();
             }
+        }
+        return true;
+    }
+
+    // Fsync a directory so a new file entry survives power loss; skipped on Windows, which cannot open directory channels.
+    private static void syncDirectory(File dir) throws IOException {
+        if (Utilities.isWindows()) return;
+        try (FileChannel channel = FileChannel.open(dir.toPath(), StandardOpenOption.READ)) {
+            channel.force(true);
         }
     }
 
@@ -91,22 +133,16 @@ public class FileUtil {
         File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
         if (!backupFileDir.exists()) return new ArrayList<File>();
         File[] files = backupFileDir.listFiles();
+        if (files == null) return new ArrayList<File>(); // listing can fail, e.g. if the path is not a directory
         return Arrays.asList(files);
     }
 
     public static File getLatestBackupFile(File dir, String fileName) {
-        List<File> files = getBackupFiles(dir, fileName);
+        List<File> files = new ArrayList<File>(getBackupFiles(dir, fileName));
+        files.removeIf(file -> !file.getName().matches("\\d+_.*")); // skip files without a timestamp prefix
         if (files.isEmpty()) return null;
         files.sort(Comparator.comparing(File::getName));
         return files.get(files.size() - 1);
-    }
-
-    public static boolean hasRollingBackup(File dir, String fileName) {
-        String dirName = "backups_" + fileName;
-        if (dirName.contains("."))
-            dirName = dirName.replace(".", "_");
-        String[] backupFiles = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR, dirName).toString()).list();
-        return backupFiles != null && backupFiles.length > 0;
     }
 
     public static void deleteRollingBackup(File dir, String fileName) {

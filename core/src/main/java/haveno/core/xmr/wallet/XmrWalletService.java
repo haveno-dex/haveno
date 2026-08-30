@@ -574,6 +574,7 @@ public class XmrWalletService extends XmrWalletBase {
     public void deleteWallet(String walletName) {
         assertNotPath(walletName);
         log.info("{}.deleteWallet({})", getClass().getSimpleName(), walletName);
+        awaitPendingWalletClose(getWalletPath(walletName)); // await any background force close before deleting files
         if (!walletExists(walletName)) throw new RuntimeException("Wallet does not exist at path: " + walletName);
         String path = walletDir.toString() + File.separator + walletName;
         String redactedPath = Utilities.redactSensitiveInfo(path);
@@ -582,16 +583,13 @@ public class XmrWalletService extends XmrWalletBase {
         if (!new File(path + ADDRESS_FILE_POSTFIX).delete() && !Config.baseCurrencyNetwork().isMainnet()) throw new RuntimeException("Failed to delete wallet address file: " + redactedPath + ADDRESS_FILE_POSTFIX); // mainnet does not have address file by default
     }
 
-    public void backupWallet(String walletName) {
+    // returns false if backing up any existing wallet file failed
+    public boolean backupWallet(String walletName) {
         assertNotPath(walletName);
-        FileUtil.rollingBackup(walletDir, walletName, NUM_WALLET_BACKUPS);
-        FileUtil.rollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX, NUM_WALLET_BACKUPS);
-        FileUtil.rollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX, NUM_WALLET_BACKUPS);
-    }
-
-    public boolean hasWalletBackup(String walletName) {
-        assertNotPath(walletName);
-        return FileUtil.hasRollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX);
+        boolean success = FileUtil.rollingBackup(walletDir, walletName, NUM_WALLET_BACKUPS);
+        success &= FileUtil.rollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX, NUM_WALLET_BACKUPS);
+        success &= FileUtil.rollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX, NUM_WALLET_BACKUPS);
+        return success;
     }
 
     public void deleteWalletBackups(String walletName) {

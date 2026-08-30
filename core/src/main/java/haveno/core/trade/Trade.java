@@ -1249,11 +1249,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     // force close wallet without warning
                     forceCloseWallet(false);
 
-                    // retain a backup unless the payout is finalized, since the daemon responses which justify deletion could be wrong
-                    if (isDepositRequested() && !isPayoutFinalized()) {
+                    // retain a backup unless the payout is finalized, since the local state which justifies deletion could be wrong
+                    if (!isPayoutFinalized()) {
                         log.info("Deleting wallet and retaining backup for {} {}", getClass().getSimpleName(), getId());
-                        xmrWalletService.backupWallet(getWalletName());
-                        if (!xmrWalletService.hasWalletBackup(getWalletName())) throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because backing up the wallet failed");
+                        if (!xmrWalletService.backupWallet(getWalletName())) throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because backing up the wallet failed");
                         xmrWalletService.deleteWallet(getWalletName());
                     } else {
                         log.info("Deleting wallet and backups for {} {}", getClass().getSimpleName(), getId());
