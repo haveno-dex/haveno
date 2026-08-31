@@ -48,8 +48,11 @@ public class SharedPresentation {
                 } else if (!openOfferManager.getObservableList().isEmpty()) {
                     new Popup().warning(Res.get("seed.restore.openOffers.warn"))
                             .actionButtonText(Res.get("shared.yes"))
-                            .onAction(() -> openOfferManager.removeAllOpenOffers(() ->
-                                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate)))
+                            .onAction(() -> openOfferManager.removeAllOpenOffers(() -> {
+                                    // offers reserved for a trade are skipped, so do not replace the wallet while any remain
+                                    if (openOfferManager.getObservableList().isEmpty()) doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);
+                                    else new Popup().warning(Res.get("seed.restore.openOffers.remaining")).show();
+                            }))
                             .show();
                 } else {
                     doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);
