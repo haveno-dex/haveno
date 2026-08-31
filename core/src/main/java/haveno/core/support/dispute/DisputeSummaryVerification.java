@@ -61,6 +61,13 @@ public class DisputeSummaryVerification {
                 SEPARATOR2);
     }
 
+    // true when the signed summary carries no content outside the signed text and signature block
+    public static boolean isWellFormed(String summaryText) {
+        int sepIndex = summaryText.indexOf(SEPARATOR1);
+        if (sepIndex < 0 || summaryText.indexOf(SEPARATOR1, sepIndex + 1) >= 0) return false;
+        return summaryText.indexOf(SEPARATOR2) == summaryText.length() - SEPARATOR2.length();
+    }
+
     public static void verifySignature(String input,
                                          ArbitratorManager arbitratorManager) {
         // get dispute agent
