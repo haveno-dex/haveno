@@ -411,22 +411,22 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         if (!Arrays.equals(hashFromProto, tradeStatistics.getHash())) {
 
             // accept a hash over the unnormalized payment method, from creators without a newer PaymentMethodMapper entry
-            TradeStatistics3 unnormalized = new TradeStatistics3(
-                    proto.getCurrency(),
-                    proto.getPrice(),
-                    proto.getAmount(),
-                    proto.getPaymentMethod(),
-                    proto.getDate(),
-                    ProtoUtil.stringOrNullFromProto(proto.getArbitrator()),
-                    extraDataMap,
-                    hashFromProto,
-                    false);
-            if (!Arrays.equals(hashFromProto, unnormalized.createHash())) {
-                throw new InvalidPersistableNetworkPayloadException("TradeStatistics3 hash field does not match trade statistics data. " +
-                        "hashFromProto=" + Utilities.bytesAsHexString(hashFromProto) +
-                        ", computedHash=" + Utilities.bytesAsHexString(tradeStatistics.getHash()));
+            if (!tradeStatistics.paymentMethod.equals(proto.getPaymentMethod())) {
+                TradeStatistics3 unnormalized = new TradeStatistics3(
+                        proto.getCurrency(),
+                        proto.getPrice(),
+                        proto.getAmount(),
+                        proto.getPaymentMethod(),
+                        proto.getDate(),
+                        ProtoUtil.stringOrNullFromProto(proto.getArbitrator()),
+                        extraDataMap,
+                        hashFromProto,
+                        false);
+                if (Arrays.equals(hashFromProto, unnormalized.createHash())) return unnormalized;
             }
-            return unnormalized;
+            throw new InvalidPersistableNetworkPayloadException("TradeStatistics3 hash field does not match trade statistics data. " +
+                    "hashFromProto=" + Utilities.bytesAsHexString(hashFromProto) +
+                    ", computedHash=" + Utilities.bytesAsHexString(tradeStatistics.getHash()));
         }
         return tradeStatistics;
     }
