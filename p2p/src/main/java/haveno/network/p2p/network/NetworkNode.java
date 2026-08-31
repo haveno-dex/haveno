@@ -132,6 +132,64 @@ public abstract class NetworkNode implements MessageListener {
 
     public SettableFuture<Connection> sendMessage(@NotNull NodeAddress peersNodeAddress,
             NetworkEnvelope networkEnvelope, Integer timeoutSeconds) {
+        SettableFuture<Connection> resultFuture = SettableFuture.create();
+        Futures.addCallback(doSendMessage(peersNodeAddress, networkEnvelope, timeoutSeconds), new FutureCallback<>() {
+            @Override
+            public void onSuccess(Connection connection) {
+                resultFuture.set(connection);
+            }
+
+            @Override
+            public void onFailure(@NotNull Throwable throwable) {
+                // retry once on a fresh connection if the selected connection started closing, unless this node is shutting down
+                if (isCausedByConnectionStopped(throwable) && !isShutDownStarted) {
+                    try {
+                        Futures.addCallback(doSendMessage(peersNodeAddress, networkEnvelope, timeoutSeconds), new FutureCallback<>() {
+                            @Override
+                            public void onSuccess(Connection connection) {
+                                resultFuture.set(connection);
+                            }
+
+                            @Override
+                            public void onFailure(@NotNull Throwable throwable) {
+                                UserThread.execute(() -> resolveWithException(resultFuture, throwable));
+                            }
+                        }, MoreExecutors.directExecutor());
+                    } catch (Throwable t) {
+                        UserThread.execute(() -> resolveWithException(resultFuture, t));
+                    }
+                } else {
+                    UserThread.execute(() -> resolveWithException(resultFuture, throwable));
+                }
+            }
+        }, MoreExecutors.directExecutor());
+        return resultFuture;
+    }
+
+    private static boolean isCausedByConnectionStopped(Throwable throwable) {
+        for (Throwable t = throwable; t != null; t = t.getCause()) {
+            if (t instanceof ConnectionStoppedException) return true;
+        }
+        return false;
+    }
+
+    private SettableFuture<Connection> doSendMessage(@NotNull NodeAddress peersNodeAddress,
+            NetworkEnvelope networkEnvelope, Integer timeoutSeconds) {
+
+        // fail instead of dialing a new connection which would outlive the shutdown snapshot
+        if (isShutDownStarted) {
+            SettableFuture<Connection> resultFuture = SettableFuture.create();
+            resultFuture.setException(new IllegalStateException("Not sending " + networkEnvelope.getClass().getSimpleName() + " because the network node is shutting down"));
+            return resultFuture;
+        }
+
+        // fail instead of dialing a banned peer, whose connection would only be shut down again
+        if (banFilter != null && banFilter.isPeerBanned(peersNodeAddress)) {
+            SettableFuture<Connection> resultFuture = SettableFuture.create();
+            resultFuture.setException(new IllegalStateException("Not sending " + networkEnvelope.getClass().getSimpleName() + " to banned peer " + peersNodeAddress));
+            return resultFuture;
+        }
+
         log.debug("Send {} to {}. Message details: {}",
                 networkEnvelope.getClass().getSimpleName(), peersNodeAddress,
                 Utilities.toTruncatedString(networkEnvelope));
@@ -170,6 +228,12 @@ public abstract class NetworkNode implements MessageListener {
 
                     if (duration > CREATE_SOCKET_TIMEOUT)
                         throw new TimeoutException("A timeout occurred when creating a socket.");
+
+                    // the shutdown snapshot was taken while dialing, so this socket would outlive it
+                    if (isShutDownStarted) {
+                        socket.close();
+                        throw new IllegalStateException("Not using new connection to " + peersNodeAddress + " because the network node is shutting down");
+                    }
 
                     // Tor needs sometimes quite long to create a connection. To avoid that we get too many
                     // connections with the same peer we check again if we still don't have any connection for that node address.

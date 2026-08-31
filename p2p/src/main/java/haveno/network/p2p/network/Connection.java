@@ -323,7 +323,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             // When you construct an ObjectInputStream, in the constructor the class attempts to read a header that
             // the associated ObjectOutputStream on the other end of the connection has written.
             // It will not return until that header has been read.
-            protoOutputStream = new ProtoOutputStream(socket.getOutputStream(), statistic);
+            protoOutputStream = new ProtoOutputStream(socket.getOutputStream(), statistic, () -> shutDownStarted);
             protoInputStream = socket.getInputStream();
             // We create a thread for handling inputStream data
             executorService.submit(this);
@@ -353,17 +353,21 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         long ts = System.currentTimeMillis();
         log.debug(">> Send networkEnvelope of type: {}", networkEnvelope.getClass().getSimpleName());
 
-        if (stopped) {
-            log.debug("called sendMessage but was already stopped");
-            return;
+        // fail fast once a shutdown starts so callers do not report success; the close message is exempt
+        boolean isCloseMessage = networkEnvelope instanceof CloseConnectionMessage;
+        if (isCloseMessage ? stopped : isStopped()) {
+            log.debug("called sendMessage but connection was already stopped");
+            if (isCloseMessage) return;
+            throw new ConnectionStoppedException("Connection to " + peersNodeAddressOptional.orElse(null) + " is shutting down at sendMessage");
         }
 
-        if (banFilter != null &&
+        if (!isCloseMessage &&
+                banFilter != null &&
                 peersNodeAddressOptional.isPresent() &&
                 banFilter.isPeerBanned(peersNodeAddressOptional.get())) {
             String errorMessage = "We tried to send a message to a banned peer. message=" + networkEnvelope.getClass().getSimpleName();
             reportInvalidRequest(RuleViolation.PEER_BANNED, errorMessage);
-            return;
+            throw new IllegalStateException(errorMessage);
         }
 
         if (!testCapability(networkEnvelope)) {
@@ -373,6 +377,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         // Convert to the proto envelope only once; it is reused for the actual send below.
         protobuf.NetworkEnvelope proto = networkEnvelope.toProtoNetworkEnvelope();
         int networkEnvelopeSize = proto.getSerializedSize();
+        boolean written = false;
         try {
             // Throttle outbound network_messages
             long now = System.currentTimeMillis();
@@ -388,14 +393,19 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
             lastSendTimeStamp = now;
 
-            if (!stopped) {
-                protoOutputStream.writeEnvelope(networkEnvelope, proto);
-                ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)), THREAD_ID);
-                ThreadUtils.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize), THREAD_ID);
+            if (isCloseMessage ? !stopped : !isStopped()) {
+                written = protoOutputStream.writeEnvelope(networkEnvelope, proto);
+                if (written) {
+                    ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)), THREAD_ID);
+                    ThreadUtils.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize), THREAD_ID);
+                }
             }
         } catch (Throwable t) {
             handleException(t);
             throw new RuntimeException(t);
+        }
+        if (!written && !isCloseMessage) {
+            throw new ConnectionStoppedException("Connection to " + peersNodeAddressOptional.orElse(null) + " shut down during sendMessage");
         }
     }
 

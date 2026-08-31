@@ -17,6 +17,7 @@
 
 package haveno.network.p2p.network;
 
+import haveno.network.p2p.CloseConnectionMessage;
 import haveno.network.p2p.peers.keepalive.messages.KeepAliveMessage;
 
 import haveno.common.proto.network.NetworkEnvelope;
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,30 +43,52 @@ class ProtoOutputStream {
 
     private final OutputStream outputStream;
     private final Statistic statistic;
+    private final BooleanSupplier shutDownStarted;
 
     private final AtomicBoolean isConnectionActive = new AtomicBoolean(true);
     private final Lock lock = new ReentrantLock();
 
-    ProtoOutputStream(OutputStream outputStream, Statistic statistic) {
+    ProtoOutputStream(OutputStream outputStream, Statistic statistic, BooleanSupplier shutDownStarted) {
         this.outputStream = outputStream;
         this.statistic = statistic;
+        this.shutDownStarted = shutDownStarted;
     }
 
-    void writeEnvelope(NetworkEnvelope envelope, protobuf.NetworkEnvelope proto) {
+    // Returns false when nothing was written because the connection shut down.
+    boolean writeEnvelope(NetworkEnvelope envelope, protobuf.NetworkEnvelope proto) {
         // Bound the lock wait so senders cannot pile up behind a write stalled on a dead socket.
         if (!tryToAcquireLock(WRITE_LOCK_TIMEOUT_MS)) {
             if (!isConnectionActive.get()) {
-                return;
+                return false;
+            }
+            // report a shutdown instead of a stall, so the caller retries on a fresh connection
+            if (shutDownStarted.getAsBoolean() && !(envelope instanceof CloseConnectionMessage)) {
+                return false;
             }
             throw new HavenoRuntimeException("Timed out waiting to write " + envelope.getClass().getSimpleName() + ", connection write side appears stalled");
         }
 
         try {
-            writeEnvelopeOrThrow(envelope, proto);
+            if (!isConnectionActive.get()) {
+                return false;
+            }
+            // recheck after the lock wait in case a shutdown started meanwhile; the close frame is exempt
+            if (shutDownStarted.getAsBoolean() && !(envelope instanceof CloseConnectionMessage)) {
+                return false;
+            }
+            try {
+                writeEnvelopeOrThrow(envelope, proto);
+            } finally {
+                // the close frame is the final frame, so deactivate to reject later writes behind the lock
+                if (envelope instanceof CloseConnectionMessage) {
+                    isConnectionActive.set(false);
+                }
+            }
+            return true;
         } catch (IOException e) {
             if (!isConnectionActive.get()) {
                 // Connection was closed by us.
-                return;
+                return false;
             }
 
             log.error("Failed to write envelope", e);
