@@ -213,6 +213,9 @@ public class CoreDisputesService {
         disputeResult.setWinner(winner);
         disputeResult.setReason(reason);
         disputeResult.setSummaryNotes(summaryNotes);
+        // the signed closeDate orders rulings, so a revised ruling must be strictly newer than the prior one even if the clock stepped back
+        DisputeResult priorResult = dispute.getDisputeResultProperty().get();
+        if (priorResult != null && !closeDate.after(priorResult.getCloseDate())) closeDate = new Date(priorResult.getCloseDate().getTime() + 1);
         disputeResult.setCloseDate(closeDate);
         return disputeResult;
     }

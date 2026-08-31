@@ -693,7 +693,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         summaryNotesTextArea.textProperty().unbindBidirectional(disputeResult.summaryNotesProperty());
 
-        disputeResult.setCloseDate(new Date());
+        // the signed closeDate orders rulings, so a re-close must be strictly newer than the prior ruling even if the clock stepped back
+        Date priorCloseDate = disputeResult.getCloseDate();
+        Date closeDate = new Date();
+        if (priorCloseDate != null && !closeDate.after(priorCloseDate)) closeDate = new Date(priorCloseDate.getTime() + 1);
+        disputeResult.setCloseDate(closeDate);
         disputesService.closeDisputeTicket(disputeManager, dispute, disputeResult, () -> {
             if (peersDisputeOptional.isPresent() && !peersDisputeOptional.get().isClosed() && !DevEnv.isDevMode()) {
                 new Popup().attention(Res.get("disputeSummaryWindow.close.closePeer")).show();
