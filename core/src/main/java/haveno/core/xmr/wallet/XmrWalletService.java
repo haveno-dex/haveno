@@ -458,7 +458,7 @@ public class XmrWalletService extends XmrWalletBase {
             // replace the current wallet with the restored wallet, keeping a backup
             closeMainWallet(true);
             if (walletExists(MONERO_WALLET_NAME)) {
-                backupWallet(MONERO_WALLET_NAME);
+                if (!backupWallet(MONERO_WALLET_NAME)) throw new IllegalStateException("Refusing to restore wallet because backing up the current wallet failed");
                 deleteWallet(MONERO_WALLET_NAME);
             }
             moveWallet(restoreName, MONERO_WALLET_NAME);
