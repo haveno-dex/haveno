@@ -921,6 +921,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     Thread.currentThread().setName("InputHandler-" + Utilities.toTruncatedString(getPeersNodeAddressOptional().get().getFullAddress(), 15));
                     threadNameSet = true;
                 }
+                protobuf.NetworkEnvelope proto = null;
                 try {
                     if (socket != null &&
                             socket.isClosed()) {
@@ -930,7 +931,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     }
 
                     // Blocking read from the inputStream
-                    protobuf.NetworkEnvelope proto = protobuf.NetworkEnvelope.parseDelimitedFrom(protoInputStream);
+                    proto = protobuf.NetworkEnvelope.parseDelimitedFrom(protoInputStream);
 
                     long ts = System.currentTimeMillis();
 
@@ -1059,6 +1060,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 } catch (InvalidClassException e) {
                     reportInvalidRequest(RuleViolation.INVALID_CLASS, e.getMessage());
                 } catch (InvalidPersistableNetworkPayloadException e) {
+                    // apply the standard size limit first, since an oversized message is never an honest version disagreement
+                    if (proto != null && proto.getSerializedSize() > PERMITTED_MESSAGE_SIZE && reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, "size > MAX_MSG_SIZE. size=" + proto.getSerializedSize() + "; " + e.getMessage()))
+                        return;
                     // drop with high tolerance since honest peers can disagree on payload validity across versions
                     if (reportInvalidRequest(RuleViolation.INVALID_PERSISTABLE_PAYLOAD, e.getMessage()))
                         return;
