@@ -455,12 +455,10 @@ public class XmrWalletService extends XmrWalletBase {
             MoneroWallet restored = isNativeLibraryApplied() ? createWalletFull(config, isProxyApplied()) : createWalletRpc(config, null, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
             closeWallet(restored, true);
 
-            // replace the current wallet with the restored wallet, keeping a backup
+            // replace the current wallet with the restored wallet, keeping a backup and tolerating leftover files from an interrupted replacement
             closeMainWallet(true);
-            if (walletExists(MONERO_WALLET_NAME)) {
-                if (!backupWallet(MONERO_WALLET_NAME)) throw new IllegalStateException("Refusing to restore wallet because backing up the current wallet failed");
-                deleteWallet(MONERO_WALLET_NAME);
-            }
+            if (walletExists(MONERO_WALLET_NAME) && !backupWallet(MONERO_WALLET_NAME)) throw new IllegalStateException("Refusing to restore wallet because backing up the current wallet failed");
+            deleteWalletFiles(MONERO_WALLET_NAME);
             moveWallet(restoreName, MONERO_WALLET_NAME);
             user.setWalletCreationDate(estimateHeightTimestamp(height));
         }
