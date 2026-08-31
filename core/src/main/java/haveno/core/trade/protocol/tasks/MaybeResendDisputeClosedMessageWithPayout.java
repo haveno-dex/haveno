@@ -20,6 +20,7 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeResult;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
@@ -59,9 +60,12 @@ public class MaybeResendDisputeClosedMessageWithPayout extends TradeTask {
                 List<Dispute> disputes = trade.getDisputes();
                 for (Dispute dispute : disputes) {
                     if (!dispute.isClosed()) continue; // dispute must be closed
+                    // pass the existing signed summary, so a resend racing a re-close cannot install unsigned notes
+                    DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
+                    if (disputeResult == null || disputeResult.getChatMessage() == null) continue; // ruling is being revised and will be resent when re-closed
                     if (sender.getPubKeyRing().equals(dispute.getTraderPubKeyRing())) {
                         log.info("Arbitrator resending DisputeClosedMessage for trade {} after receiving updated multisig hex", trade.getId());
-                        HavenoUtils.arbitrationManager.closeDisputeTicket(dispute.getDisputeResultProperty().get(), dispute, dispute.getDisputeResultProperty().get().summaryNotesProperty().get(), () -> {
+                        HavenoUtils.arbitrationManager.closeDisputeTicket(disputeResult, dispute, disputeResult.getChatMessage().getMessage(), () -> {
                             completeAux();
                         }, (errMessage, err) -> {
                             log.error("Failed to close dispute ticket for trade {}: {}\n", trade.getId(), errMessage, err);
