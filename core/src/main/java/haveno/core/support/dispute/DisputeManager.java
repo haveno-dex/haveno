@@ -782,6 +782,16 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                             log.warn("Discarding unverified dispute result on new dispute, tradeId={}, disputeId={}", dispute.getTradeId(), dispute.getId());
                             dispute.setDisputeResult(null);
                         }
+                        // drop embedded chat messages which would render as authored by the arbitrator, or which
+                        // collide with the verified ruling's summary uid, so a trader cannot plant agent-authored content
+                        if (trade.isArbitrator()) {
+                            DisputeResult verifiedResult = dispute.getDisputeResultProperty().get();
+                            ChatMessage rulingMessage = verifiedResult == null ? null : verifiedResult.getChatMessage();
+                            synchronized (dispute.getChatMessages()) {
+                                dispute.getChatMessages().removeIf(m -> (!m.isSenderIsTrader() && !m.isSystemMessage())
+                                        || (rulingMessage != null && m.getUid().equals(rulingMessage.getUid())));
+                            }
+                        }
                     } else if (msgDispute.isClosed() || msgDispute.getDisputeState() == Dispute.State.REOPENED) {
                         DisputeResult msgResult = msgDispute.getDisputeResultProperty().get();
                         DisputeResult storedResult = dispute.getDisputeResultProperty().get();
@@ -862,6 +872,12 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     private static boolean isRulingSignedForDispute(Trade trade, Dispute dispute, DisputeResult result) {
         try {
             if (!dispute.getTradeId().equals(result.getTradeId()) || dispute.getTraderId() != result.getTraderId()) return false;
+            // the summary signature covers only the ruling text, so reject unsigned extras on its chat
+            // message and bind the text to this dispute rather than another ruling by the same arbitrator
+            ChatMessage rulingMessage = result.getChatMessage();
+            if (rulingMessage.isSenderIsTrader() || rulingMessage.isSystemMessage() || !rulingMessage.getAttachments().isEmpty()) return false;
+            if (!DisputeSummaryVerification.isWellFormed(rulingMessage.getMessage())) return false;
+            if (!rulingMessage.getMessage().contains(dispute.getShortTradeId())) return false;
             PubKeyRing arbitratorPubKeyRing = trade.getArbitrator().getPubKeyRing();
             DisputeSummaryVerification.verifySignature(result.getChatMessage().getMessage(), arbitratorPubKeyRing);
             HavenoUtils.verifySignature(arbitratorPubKeyRing, Hash.getSha256Hash(result.getPayoutSignaturePayload()), result.getArbitratorSignature());
