@@ -28,6 +28,7 @@ import io.grpc.ServerInterceptor;
 import static io.grpc.Status.UNAUTHENTICATED;
 import io.grpc.StatusRuntimeException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -41,11 +42,11 @@ public class PasswordAuthInterceptor implements ServerInterceptor {
 
     private static final String PASSWORD_KEY = "password";
 
-    private final String expectedPasswordValue;
+    private final byte[] expectedPasswordDigest;
 
     @Inject
     public PasswordAuthInterceptor(Config config) {
-        this.expectedPasswordValue = config.apiPassword;
+        this.expectedPasswordDigest = sha256(config.apiPassword);
     }
 
     @Override
@@ -58,10 +59,19 @@ public class PasswordAuthInterceptor implements ServerInterceptor {
             throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
                     format("missing '%s' rpc header value", PASSWORD_KEY)));
 
-        if (!MessageDigest.isEqual(actualPasswordValue.getBytes(UTF_8), expectedPasswordValue.getBytes(UTF_8)))
+        // compare fixed-length digests so timing does not depend on the password
+        if (!MessageDigest.isEqual(sha256(actualPasswordValue), expectedPasswordDigest))
             throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
                     format("incorrect '%s' rpc header value", PASSWORD_KEY)));
 
         return serverCallHandler.startCall(serverCall, headers);
+    }
+
+    private static byte[] sha256(String value) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(value.getBytes(UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
