@@ -49,6 +49,7 @@ import haveno.core.xmr.setup.MoneroWalletRpcManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.network.utils.EventThrottler;
 import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -457,20 +458,55 @@ public class XmrWalletService extends XmrWalletBase {
 
             // replace the current wallet with the restored wallet, keeping a backup and tolerating leftover files from an interrupted replacement
             closeMainWallet(true);
-            if (walletExists(MONERO_WALLET_NAME) && !backupWallet(MONERO_WALLET_NAME)) throw new IllegalStateException("Refusing to restore wallet because backing up the current wallet failed");
-            deleteWalletFiles(MONERO_WALLET_NAME);
-            moveWallet(restoreName, MONERO_WALLET_NAME);
+            if (walletExists(MONERO_WALLET_NAME) && !backupWallet(MONERO_WALLET_NAME)) {
+
+                // reopen the wallet and resume polling so the application remains functional
+                try {
+                    wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+                    startPolling();
+                } catch (Exception e) {
+                    log.warn("Error reopening wallet after failed backup: {}\n", e.getMessage(), e);
+                }
+                throw new IllegalStateException("Refusing to restore wallet because backing up the current wallet failed");
+            }
+            try {
+                deleteWalletFiles(MONERO_WALLET_NAME);
+                moveWallet(restoreName, MONERO_WALLET_NAME);
+            } catch (RuntimeException e) {
+
+                // reopen the wallet and resume polling so the application remains functional, e.g. when a locked file failed to delete,
+                // unless the restored keys were already moved to the main name, since the main wallet is then no longer the original
+                if (walletExists(restoreName)) {
+                    try {
+                        if (!walletExists(MONERO_WALLET_NAME)) revertToLatestBackup(MONERO_WALLET_NAME); // the original files were deleted after being backed up
+                        wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+                        startPolling();
+                    } catch (Exception e2) {
+                        log.warn("Error reopening wallet after failed replacement: {}\n", e2.getMessage(), e2);
+                    }
+                }
+                throw e;
+            }
             user.setWalletCreationDate(estimateHeightTimestamp(height));
         }
     }
 
-    // Move a wallet's files to another name within the wallet directory.
+    // Move a wallet's files to another name within the wallet directory, moving the keys file last since it determines which wallet exists.
     private void moveWallet(String fromName, String toName) {
-        for (String postfix : new String[] {"", KEYS_FILE_POSTFIX, ADDRESS_FILE_POSTFIX}) {
+        for (String postfix : new String[] {"", ADDRESS_FILE_POSTFIX, KEYS_FILE_POSTFIX}) {
             File from = new File(walletDir, fromName + postfix);
             if (!from.exists()) continue; // address file is absent on mainnet
             File to = new File(walletDir, toName + postfix);
             if (!from.renameTo(to)) throw new RuntimeException("Failed to move wallet file " + Utilities.redactSensitiveInfo(from.toString()) + " to " + Utilities.redactSensitiveInfo(to.toString()));
+        }
+    }
+
+    // Restore a wallet's files from their latest rolling backup, e.g. when the originals were deleted by an interrupted replacement.
+    private void revertToLatestBackup(String walletName) throws IOException {
+        for (String postfix : new String[] {"", KEYS_FILE_POSTFIX, ADDRESS_FILE_POSTFIX}) {
+            File backup = FileUtil.getLatestBackupFile(walletDir, walletName + postfix);
+            if (backup == null) continue;
+            FileUtil.copyFile(backup, new File(walletDir, walletName + postfix));
         }
     }
 
