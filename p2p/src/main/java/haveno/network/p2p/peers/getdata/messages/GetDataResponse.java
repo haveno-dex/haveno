@@ -30,6 +30,7 @@ import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadExcept
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import haveno.network.utils.EventThrottler;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,6 +46,8 @@ import java.util.stream.Collectors;
 @Value
 public final class GetDataResponse extends NetworkEnvelope implements SupportedCapabilitiesMessage,
         ExtendedDataSizePermission, InitialDataResponse {
+    private static final EventThrottler invalidPayloadLogThrottler = new EventThrottler(10, TimeUnit.SECONDS);
+
     // Set of ProtectedStorageEntry objects
     private final Set<ProtectedStorageEntry> dataSet;
 
@@ -137,7 +141,8 @@ public final class GetDataResponse extends NetworkEnvelope implements SupportedC
             if (payload == null) numInvalid++;
             else persistableNetworkPayloadSet.add(payload);
         }
-        if (numInvalid > 0) log.warn("Ignored {} invalid persistable network payloads from GetDataResponse", numInvalid);
+        if (numInvalid > 0 && !invalidPayloadLogThrottler.onEvent().throttled)
+            log.warn("Ignored {} invalid persistable network payloads from GetDataResponse", numInvalid);
         return new GetDataResponse(dataSet,
                 persistableNetworkPayloadSet,
                 proto.getRequestNonce(),

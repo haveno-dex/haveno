@@ -972,13 +972,14 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         Thread.sleep(20);
                     }
 
-                    NetworkEnvelope networkEnvelope = networkProtoResolver.fromProto(proto);
                     lastReadTimeStamp = now;
-                    log.debug("<< Received networkEnvelope of type: {}", networkEnvelope.getClass().getSimpleName());
                     int size = proto.getSerializedSize();
 
                     // We want to track the size of each object even if it is invalid data
                     statistic.addReceivedBytes(size);
+
+                    NetworkEnvelope networkEnvelope = networkProtoResolver.fromProto(proto);
+                    log.debug("<< Received networkEnvelope of type: {}", networkEnvelope.getClass().getSimpleName());
 
                     // We want to track the network_messages also before the checks, so do it early...
                     statistic.addReceivedMessage(networkEnvelope);
@@ -1058,8 +1059,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 } catch (InvalidClassException e) {
                     reportInvalidRequest(RuleViolation.INVALID_CLASS, e.getMessage());
                 } catch (InvalidPersistableNetworkPayloadException e) {
-                    // drop without penalty since honest peers can disagree on payload validity across versions, but still throttle
-                    throttleWarn("Dropping message with invalid persistable network payload: " + e.getMessage());
+                    // drop with high tolerance since honest peers can disagree on payload validity across versions
+                    if (reportInvalidRequest(RuleViolation.INVALID_PERSISTABLE_PAYLOAD, e.getMessage()))
+                        return;
                     if (violatesThrottleLimit() && reportInvalidRequest(RuleViolation.THROTTLE_LIMIT_EXCEEDED, "Violates throttle limit"))
                         return;
                 } catch (ProtobufferException | NoClassDefFoundError | InvalidProtocolBufferException e) {
