@@ -457,7 +457,23 @@ public class XmrWalletService extends XmrWalletBase {
             closeWallet(restored, true);
 
             // replace the current wallet with the restored wallet, keeping a backup and tolerating leftover files from an interrupted replacement
-            closeMainWallet(true);
+            if (!closeMainWallet(true)) {
+
+                // reopen the wallet with a fresh handle and resume polling since its state is unknown after a failed close
+                try {
+                    forceCloseMainWallet();
+                } catch (Exception e) {
+                    log.warn("Error force closing wallet after failed close: {}\n", e.getMessage(), e);
+                }
+                try {
+                    wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+                    startPolling();
+                } catch (Exception e) {
+                    log.warn("Error reopening wallet after failed close: {}\n", e.getMessage(), e);
+                }
+                throw new IllegalStateException("Refusing to restore wallet because closing the current wallet failed");
+            }
+            awaitPendingWalletClose(getWalletPath(MONERO_WALLET_NAME)); // await any background force close before replacing files
             if (walletExists(MONERO_WALLET_NAME) && !backupWallet(MONERO_WALLET_NAME)) {
 
                 // reopen the wallet and resume polling so the application remains functional
@@ -2233,7 +2249,8 @@ public class XmrWalletService extends XmrWalletBase {
         closeMainWallet(false);
     }
 
-    private void closeMainWallet(boolean stopPolling) {
+    // Close and save the main wallet, returning false if it could not be closed.
+    private boolean closeMainWallet(boolean stopPolling) {
         synchronized (walletLock) {
             if (stopPolling) stopPolling();
             try {
@@ -2242,8 +2259,10 @@ public class XmrWalletService extends XmrWalletBase {
                     closeWallet(wallet, true);
                     wallet = null;
                 }
+                return true;
             } catch (Exception e) {
                 log.warn("Error closing main wallet: {}. Was Haveno stopped manually with ctrl+c?", e.getMessage());
+                return false;
             }
         }
     }
