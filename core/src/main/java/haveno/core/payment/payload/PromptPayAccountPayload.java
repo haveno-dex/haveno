@@ -93,4 +93,9 @@ public final class PromptPayAccountPayload extends PaymentAccountPayload {
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(promptPayId.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(isPhoneShaped(promptPayId) ? normalizeMobileNr(promptPayId, "66", 9) : promptPayId);
+    }
 }

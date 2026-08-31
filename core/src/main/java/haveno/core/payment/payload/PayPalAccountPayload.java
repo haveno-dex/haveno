@@ -98,4 +98,10 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(emailOrMobileNrOrUsername.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        if (isAmbiguousPhoneNr(emailOrMobileNrOrUsername)) return null; // PayPal is global, so non-NANP phone forms have no canonical representation
+        return getPaymentEndpointData(normalizeNanpEmailOrMobileNr(emailOrMobileNrOrUsername));
+    }
 }

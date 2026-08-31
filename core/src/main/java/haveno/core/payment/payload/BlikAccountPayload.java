@@ -98,4 +98,9 @@ public final class BlikAccountPayload extends CountryBasedPaymentAccountPayload 
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(id.getBytes(StandardCharsets.UTF_8)); // no account details, so witness is per account
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return null; // no stable external endpoint
+    }
 }

@@ -110,4 +110,10 @@ public class AmazonGiftCardAccountPayload extends PaymentAccountPayload {
     public boolean countryNotSet() {
         return countryCode.isEmpty();
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        if (isPhoneShaped(emailOrMobileNr)) return null; // multi-region method, so phone forms cannot be canonicalized to one region
+        return getPaymentEndpointData(emailOrMobileNr);
+    }
 }

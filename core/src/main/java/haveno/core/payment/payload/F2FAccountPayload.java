@@ -125,4 +125,9 @@ public final class F2FAccountPayload extends CountryBasedPaymentAccountPayload {
         return super.getAgeWitnessInputData(ArrayUtils.addAll(contact.getBytes(StandardCharsets.UTF_8),
                 city.getBytes(StandardCharsets.UTF_8)));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return null; // no stable external endpoint; contact and city are mutable meeting metadata
+    }
 }

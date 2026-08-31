@@ -103,4 +103,9 @@ public final class UkraineCardAccountPayload extends CountryBasedPaymentAccountP
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(accountNr.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(accountNr);
+    }
 }

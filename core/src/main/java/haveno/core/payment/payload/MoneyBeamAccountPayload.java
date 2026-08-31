@@ -127,4 +127,11 @@ public final class MoneyBeamAccountPayload extends PaymentAccountPayload {
                 accountId.getBytes(StandardCharsets.UTF_8),
                 getHolderName().getBytes(StandardCharsets.UTF_8)));
     }
+
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        if (isPhoneShaped(accountId)) return null; // multi-region method, so phone forms cannot be canonicalized to one region
+        return getPaymentEndpointData(accountId);
+    }
 }

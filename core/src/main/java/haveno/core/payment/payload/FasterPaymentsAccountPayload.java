@@ -109,4 +109,15 @@ public final class FasterPaymentsAccountPayload extends PaymentAccountPayload {
         return super.getAgeWitnessInputData(ArrayUtils.addAll(sortCode.getBytes(StandardCharsets.UTF_8),
                 accountNr.getBytes(StandardCharsets.UTF_8)));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData("GB", "", "", sortCode, accountNr, "", ""); // same field layout as a GB bank-transfer account
+    }
+
+    // UK bank transfers reach the same account through the same rail as GB bank-transfer methods
+    @Override
+    public String getPaymentEndpointNamespace() {
+        return PaymentMethod.NATIONAL_BANK_ID;
+    }
 }

@@ -103,4 +103,9 @@ public final class MpesaAccountPayload extends CountryBasedPaymentAccountPayload
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(mobileNr.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return null; // multi-region method, so national phone forms cannot be canonicalized to one region
+    }
 }

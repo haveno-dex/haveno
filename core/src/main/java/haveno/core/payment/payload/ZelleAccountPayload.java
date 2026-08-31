@@ -108,4 +108,9 @@ public final class ZelleAccountPayload extends PaymentAccountPayload implements 
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeNanpEmailOrMobileNr(emailOrMobileNr));
+    }
 }

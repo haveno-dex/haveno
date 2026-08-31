@@ -94,4 +94,15 @@ public abstract class IfscBasedAccountPayload extends CountryBasedPaymentAccount
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(accountNr, ifsc);
+    }
+
+    // NEFT, RTGS, and IMPS transfers reach the same account through the same IFSC rail, so they share one namespace
+    @Override
+    public String getPaymentEndpointNamespace() {
+        return PaymentMethod.NEFT_ID;
+    }
 }

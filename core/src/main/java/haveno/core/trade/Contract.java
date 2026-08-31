@@ -217,6 +217,14 @@ public final class Contract implements NetworkPayload {
         return makerPaymentMethodId;
     }
 
+    public String getBuyerPaymentMethodId() {
+        return isBuyerMakerAndSellerTaker ? makerPaymentMethodId : takerPaymentMethodId;
+    }
+
+    public String getSellerPaymentMethodId() {
+        return isBuyerMakerAndSellerTaker ? takerPaymentMethodId : makerPaymentMethodId;
+    }
+
     public BigInteger getTradeAmount() {
         return BigInteger.valueOf(tradeAmount);
     }

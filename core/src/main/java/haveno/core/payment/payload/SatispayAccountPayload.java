@@ -103,4 +103,15 @@ public final class SatispayAccountPayload extends CountryBasedPaymentAccountPayl
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(holderName.getBytes(StandardCharsets.UTF_8));
     }
+
+
+    // Italy-only method whose mobile numbers have variable national length, so dialing forms are
+    // canonicalized by their mobile prefix instead of a fixed length
+    @Override
+    public byte[] getPaymentEndpointData() {
+        String digits = toDigits(mobileNr);
+        if (digits.startsWith("00")) digits = digits.substring(2);
+        if (digits.matches("3[0-9]{8,9}")) digits = "39" + digits; // Italian national mobile form to international
+        return getPaymentEndpointData(digits);
+    }
 }

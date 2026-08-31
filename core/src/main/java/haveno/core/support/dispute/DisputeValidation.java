@@ -44,11 +44,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class DisputeValidation {
 
     public static void validatePaymentAccountPayloads(Dispute dispute) throws ValidationException {
-        if (dispute.getSellerPaymentAccountPayload() != null) {
-            HavenoUtils.verifyPaymentAccountPayloadHash(dispute.getSellerPaymentAccountPayload(), dispute.getContract().getSellerPaymentAccountPayloadHash(), "seller");
-        }
-        if (dispute.getBuyerPaymentAccountPayload() != null) {
-            HavenoUtils.verifyPaymentAccountPayloadHash(dispute.getBuyerPaymentAccountPayload(), dispute.getContract().getBuyerPaymentAccountPayloadHash(), "buyer");
+        try {
+            if (dispute.getSellerPaymentAccountPayload() != null) {
+                HavenoUtils.verifyPaymentAccountPayload(dispute.getSellerPaymentAccountPayload(), dispute.getContract().getSellerPaymentMethodId(), dispute.getContract().getSellerPaymentAccountPayloadHash(), "seller");
+            }
+            if (dispute.getBuyerPaymentAccountPayload() != null) {
+                HavenoUtils.verifyPaymentAccountPayload(dispute.getBuyerPaymentAccountPayload(), dispute.getContract().getBuyerPaymentMethodId(), dispute.getContract().getBuyerPaymentAccountPayloadHash(), "buyer");
+            }
+        } catch (Throwable t) {
+            throw new ValidationException(dispute, t.getMessage());
         }
     }
 

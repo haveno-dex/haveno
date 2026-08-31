@@ -101,4 +101,10 @@ public final class CashAppAccountPayload extends PaymentAccountPayload {
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(emailOrMobileNrOrCashtag.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        if (isAmbiguousPhoneNr(emailOrMobileNrOrCashtag)) return null; // Cash App supports UK accounts, so non-NANP phone forms have no canonical representation
+        return getPaymentEndpointData(normalizeNanpEmailOrMobileNr(emailOrMobileNrOrCashtag));
+    }
 }

@@ -180,4 +180,24 @@ public abstract class BankAccountPayload extends CountryBasedPaymentAccountPaylo
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        boolean hasStableId = BankUtil.isBankIdRequired(countryCode) || BankUtil.isBranchIdRequired(countryCode) ||
+                BankUtil.isAccountNrRequired(countryCode) || BankUtil.isNationalAccountIdRequired(countryCode);
+        String bankName = !hasStableId && BankUtil.isBankNameRequired(countryCode) ? this.bankName : ""; // free-form name only when no stable identifier exists
+        String bankId = BankUtil.isBankIdRequired(countryCode) ? this.bankId : "";
+        String branchId = BankUtil.isBranchIdRequired(countryCode) ? this.branchId : "";
+        String accountNr = BankUtil.isAccountNrRequired(countryCode) ? this.accountNr : "";
+        String holderTaxId = BankUtil.isHolderIdRequired(countryCode) ? this.holderTaxId : "";
+        String nationalAccountId = BankUtil.isNationalAccountIdRequired(countryCode) ? this.nationalAccountId : "";
+        // accountType is excluded since it is stored as a localized label and does not identify the account
+        return getPaymentEndpointData(countryCode, bankName, bankId, branchId, accountNr, holderTaxId, nationalAccountId);
+    }
+
+    // bank-transfer methods reach the same account through the same country rail, so they share one namespace
+    @Override
+    public String getPaymentEndpointNamespace() {
+        return PaymentMethod.NATIONAL_BANK_ID;
+    }
 }

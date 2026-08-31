@@ -308,6 +308,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 try {
                     Trade trade = tradeManager.getTrade(dispute.getTradeId());
                     if (trade != null) DisputeValidation.validateNodeAddresses(dispute, config, trade);
+                    DisputeValidation.validatePaymentAccountPayloads(dispute); // re-check persisted disputes accepted before this validation existed
                 } catch (DisputeValidation.ValidationException e) {
                     log.error(e.toString());
                     validationExceptions.add(e);
@@ -840,8 +841,8 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 disputeFromOpener.isDisputeOpenerIsBuyer(),
                 disputeFromOpener.isDisputeOpenerIsMaker(),
                 pubKeyRing,
-                disputeFromOpener.getTradeDate().getTime(),
-                disputeFromOpener.getTradePeriodEnd().getTime(),
+                trade.getDate().getTime(), // use our own trade dates, since the opener's are not verifiable
+                trade.getMaxTradePeriodDate().getTime(),
                 contractFromOpener,
                 disputeFromOpener.getContractHash(),
                 disputeFromOpener.getPayoutTxSerialized(),

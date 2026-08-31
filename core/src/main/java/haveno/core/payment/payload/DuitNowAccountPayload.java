@@ -111,4 +111,11 @@ public final class DuitNowAccountPayload extends PaymentAccountPayload implement
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        String digits = toDigits(accountNr);
+        if (digits.matches("01[0-9]{8,9}")) digits = "6" + digits; // national mobile form to international; NRIC proxies pass through
+        return getPaymentEndpointData(digits);
+    }
 }

@@ -98,4 +98,15 @@ public final class TikkieAccountPayload extends CountryBasedPaymentAccountPayloa
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(iban.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(iban);
+    }
+
+    // shares the SEPA namespace since a Tikkie payment lands as a SEPA transfer to the same IBAN
+    @Override
+    public String getPaymentEndpointNamespace() {
+        return PaymentMethod.SEPA_ID;
+    }
 }

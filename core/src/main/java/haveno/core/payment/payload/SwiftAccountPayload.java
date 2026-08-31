@@ -178,4 +178,9 @@ public final class SwiftAccountPayload extends PaymentAccountPayload {
     public boolean usesIntermediaryBank() {
         return (intermediarySwiftCode != null && intermediarySwiftCode.length() > 0);
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(beneficiaryAccountNr);
+    }
 }

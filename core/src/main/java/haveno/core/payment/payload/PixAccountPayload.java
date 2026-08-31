@@ -131,4 +131,10 @@ public final class PixAccountPayload extends CountryBasedPaymentAccountPayload {
                 pixKey.getBytes(StandardCharsets.UTF_8),
                 getHolderName().getBytes(StandardCharsets.UTF_8)));
     }
+
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(pixKey);
+    }
 }

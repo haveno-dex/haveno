@@ -27,6 +27,7 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeList;
 import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.DisputeValidation;
+import haveno.core.support.dispute.agent.AmbiguousPaymentDetection;
 import haveno.core.support.dispute.agent.MultipleHolderNameDetection;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.TradeManager;
@@ -50,6 +51,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.text.Text;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import haveno.desktop.util.Accessibility;
@@ -58,6 +60,7 @@ import static haveno.desktop.util.FormBuilder.getIconForLabel;
 public abstract class DisputeAgentView extends DisputeView implements MultipleHolderNameDetection.Listener {
 
     private final MultipleHolderNameDetection multipleHolderNameDetection;
+    private final AmbiguousPaymentDetection ambiguousPaymentDetection;
     private ListChangeListener<DisputeValidation.ValidationException> validationExceptionListener;
 
     public DisputeAgentView(DisputeManager<? extends DisputeList<Dispute>> disputeManager,
@@ -86,6 +89,7 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                 useDevPrivilegeKeys);
 
         multipleHolderNameDetection = new MultipleHolderNameDetection(disputeManager);
+        ambiguousPaymentDetection = new AmbiguousPaymentDetection(disputeManager, tradeManager);
     }
 
 
@@ -109,6 +113,7 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
         fullReportButton.setManaged(true);
 
         multipleHolderNameDetection.detectMultipleHolderNames();
+        ambiguousPaymentDetection.detectAmbiguousPayments();
 
         validationExceptionListener = c -> {
             c.next();
@@ -273,23 +278,38 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                             setGraphic(alertIconLabel);
 
                             alertIconLabel.setOnMouseClicked(e -> {
-                                List<Dispute> realNameAccountInfoList = multipleHolderNameDetection.getDisputesForTrader(dispute);
-                                String reportForDisputeOfTrader = multipleHolderNameDetection.getReportForDisputeOfTrader(realNameAccountInfoList);
-                                String key = MultipleHolderNameDetection.getAckKey(dispute);
+                                List<String> messages = new ArrayList<>();
+                                List<String> reports = new ArrayList<>();
+                                List<String> ackKeys = new ArrayList<>();
+                                if (hasHolderNameAlert(dispute)) {
+                                    String report = multipleHolderNameDetection.getReportForDisputeOfTrader(multipleHolderNameDetection.getDisputesForTrader(dispute));
+                                    messages.add(getReportMessage(report, "this trader"));
+                                    reports.add(report);
+                                    ackKeys.add(MultipleHolderNameDetection.getAckKey(dispute));
+                                }
+                                if (hasAmbiguousPaymentAlert(dispute)) {
+                                    String report = ambiguousPaymentDetection.getReport(ambiguousPaymentDetection.getDisputesForDispute(dispute));
+                                    messages.add(getAmbiguousPaymentMessage(report));
+                                    reports.add(report);
+                                    ackKeys.add(AmbiguousPaymentDetection.getAckKey(dispute));
+                                }
+                                if (ackKeys.isEmpty()) return;
                                 new Popup()
                                         .width(1100)
-                                        .warning(getReportMessage(reportForDisputeOfTrader, "this trader"))
+                                        .warning(String.join("\n\n", messages))
                                         .actionButtonText(Res.get("shared.copyToClipboard"))
                                         .onAction(() -> {
-                                            Utilities.copyToClipboard(reportForDisputeOfTrader);
-                                            if (!DontShowAgainLookup.showAgain(key)) {
+                                            Utilities.copyToClipboard(String.join("\n\n", reports));
+                                            if (!DontShowAgainLookup.showAgain(ackKeys.get(0))) {
+                                                ackKeys.forEach(ackKey -> DontShowAgainLookup.dontShowAgain(ackKey, true));
                                                 setGraphic(null);
                                             }
                                         })
-                                        .dontShowAgainId(key)
+                                        .dontShowAgainId(ackKeys.get(0))
                                         .dontShowAgainText("Is not suspicious")
                                         .onClose(() -> {
-                                            if (!DontShowAgainLookup.showAgain(key)) {
+                                            if (!DontShowAgainLookup.showAgain(ackKeys.get(0))) {
+                                                ackKeys.forEach(ackKey -> DontShowAgainLookup.dontShowAgain(ackKey, true));
                                                 setGraphic(null);
                                             }
                                         })
@@ -310,8 +330,26 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
     }
 
     private boolean showAlertAtDispute(Dispute dispute) {
+        return hasHolderNameAlert(dispute) || hasAmbiguousPaymentAlert(dispute);
+    }
+
+    private boolean hasHolderNameAlert(Dispute dispute) {
         return DontShowAgainLookup.showAgain(MultipleHolderNameDetection.getAckKey(dispute)) &&
                 !multipleHolderNameDetection.getDisputesForTrader(dispute).isEmpty();
+    }
+
+    private boolean hasAmbiguousPaymentAlert(Dispute dispute) {
+        return DontShowAgainLookup.showAgain(AmbiguousPaymentDetection.getAckKey(dispute)) &&
+                !ambiguousPaymentDetection.getDisputesForDispute(dispute).isEmpty();
+    }
+
+    private String getAmbiguousPaymentMessage(String report) {
+        return "You have dispute cases of different trades with the same amount and overlapping trade periods, " +
+                "whose buyer and seller payment accounts appear to be the same or could not be verified as different.\n\n" +
+                "A single payment could be claimed as payment for multiple of these trades. Please verify payments " +
+                "by their bank or network transaction IDs and request full account statements covering all of these " +
+                "trades before making payouts.\n\n" +
+                report;
     }
 
     private String getReportMessage(String report, String subString) {

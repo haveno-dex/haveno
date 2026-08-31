@@ -103,4 +103,11 @@ public final class KaspiAccountPayload extends CountryBasedPaymentAccountPayload
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(accountNr.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        String digits = toDigits(accountNr);
+        if (digits.length() == 11 && digits.startsWith("8")) digits = "7" + digits.substring(1); // Kazakh trunk prefix
+        return getPaymentEndpointData(digits.length() == 16 ? digits : normalizeMobileNr(digits, "7", 10)); // 16-digit card numbers pass through
+    }
 }

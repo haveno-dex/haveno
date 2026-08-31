@@ -75,4 +75,15 @@ public abstract class AssetAccountPayload extends PaymentAccountPayload {
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(address.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(address);
+    }
+
+    // instant and non-instant crypto accounts reach the same address endpoint
+    @Override
+    public String getPaymentEndpointNamespace() {
+        return PaymentMethod.BLOCK_CHAINS_ID;
+    }
 }

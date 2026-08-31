@@ -1901,9 +1901,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             CoreNetworkProtoResolver resolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone()); // TODO: reuse resolver from elsewhere?
             PaymentAccountPayload paymentAccountPayload = resolver.fromProto(protobuf.PaymentAccountPayload.parseFrom(decryptedPaymentAccountPayload));
 
-            // verify hash of payment account payload
+            // verify payment account payload against the contract
             byte[] peerPaymentAccountPayloadHash = this instanceof MakerTrade ? getContract().getTakerPaymentAccountPayloadHash() : getContract().getMakerPaymentAccountPayloadHash();
-            HavenoUtils.verifyPaymentAccountPayloadHash(paymentAccountPayload, peerPaymentAccountPayloadHash, "peer");
+            String peerPaymentMethodId = this instanceof MakerTrade ? getContract().getTakerPaymentMethodId() : getContract().getMakerPaymentMethodId();
+            HavenoUtils.verifyPaymentAccountPayload(paymentAccountPayload, peerPaymentMethodId, peerPaymentAccountPayloadHash, "peer");
 
             // set payment account payload
             getTradePeer().setPaymentAccountPayload(paymentAccountPayload);

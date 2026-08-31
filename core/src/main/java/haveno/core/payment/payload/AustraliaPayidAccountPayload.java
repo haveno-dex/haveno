@@ -44,7 +44,6 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
         super(paymentMethod, id);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +87,6 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
                 CollectionUtils.isEmpty(proto.getExcludeFromJsonDataMap()) ? null : new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -106,10 +104,14 @@ public final class AustraliaPayidAccountPayload extends PaymentAccountPayload {
                         Res.get("payment.shared.extraInfo") + ": " + extraInfo;
     }
 
-
     @Override
     public byte[] getAgeWitnessInputData() {
         String all = this.payid + this.bankAccountName;
         return super.getAgeWitnessInputData(all.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeEmailOrMobileNr(payid, "61", 9));
     }
 }

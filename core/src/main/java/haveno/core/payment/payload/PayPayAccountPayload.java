@@ -105,4 +105,11 @@ public final class PayPayAccountPayload extends PaymentAccountPayload implements
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        String digits = toDigits(accountNr);
+        if (digits.matches("0[789]0[0-9]{8}")) digits = "81" + digits.substring(1); // national mobile form to international
+        return getPaymentEndpointData(digits.matches("81[789]0[0-9]{8}") ? digits : accountNr); // PayPay IDs, including all-digit ones, pass through
+    }
 }

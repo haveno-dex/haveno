@@ -19,8 +19,8 @@ package haveno.core.payment.validation;
 
 import com.google.inject.Inject;
 import haveno.core.locale.Res;
+import haveno.core.payment.payload.InteracETransferAccountPayload;
 import haveno.core.util.validation.InputValidator;
-import org.apache.commons.lang3.StringUtils;
 
 /*
  * Interac e-Transfer requires a mail address or Canadian (mobile) phone number
@@ -72,12 +72,9 @@ public final class InteracETransferValidator extends InputValidator {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private ValidationResult validatePhoneNumber(String input) {
-        // check for correct format and strip +, space and -
-        if (input.matches("\\+?1[ -]?\\d{3}[ -]?\\d{3}[ -]?\\d{4}")) {
-            input = input.replace("+", "");
-            input = StringUtils.deleteWhitespace(input);
-            input = input.replace("-", "");
-
+        // check for correct format via the shared normalization, which strips +, space and -
+        input = InteracETransferAccountPayload.normalizeEmailOrMobileNr(input);
+        if (input.matches("1\\d{10}")) {
             String inputAreaCode = input.substring(1, 4);
             for (String s : NPAS) {
                 // check area code agains list and return if valid

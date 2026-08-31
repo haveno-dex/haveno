@@ -28,6 +28,7 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @EqualsAndHashCode(callSuper = true)
@@ -44,7 +45,6 @@ public final class InteracETransferAccountPayload extends PaymentAccountPayload 
     public InteracETransferAccountPayload(String paymentMethod, String id) {
         super(paymentMethod, id);
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // PROTO BUFFER
@@ -90,7 +90,6 @@ public final class InteracETransferAccountPayload extends PaymentAccountPayload 
                 new HashMap<>(proto.getExcludeFromJsonDataMap()));
     }
 
-
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -117,8 +116,20 @@ public final class InteracETransferAccountPayload extends PaymentAccountPayload 
                         answer.getBytes(StandardCharsets.UTF_8))));
     }
 
+    // normalize accepted phone forms to their digits and emails to lower case for validation
+    public static String normalizeEmailOrMobileNr(String emailOrMobileNr) {
+        if (emailOrMobileNr == null) return "";
+        if (emailOrMobileNr.matches("\\+?1[ -]?\\d{3}[ -]?\\d{3}[ -]?\\d{4}")) return emailOrMobileNr.replaceAll("[+\\s-]", "");
+        return emailOrMobileNr.trim().toLowerCase(Locale.ROOT);
+    }
+
     @Override
     public String getOwnerId() {
         return holderName;
+    }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeNanpEmailOrMobileNr(emailOrMobileNr));
     }
 }

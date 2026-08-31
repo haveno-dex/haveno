@@ -263,7 +263,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod ALI_PAY;
     public static PaymentMethod WECHAT_PAY;
     public static PaymentMethod ZELLE;
-    public static PaymentMethod CHASE_QUICK_PAY;
+    public static PaymentMethod CHASE_QUICK_PAY = getDummyPaymentMethod(CHASE_QUICK_PAY_ID); // retained for old trades
     public static PaymentMethod INTERAC_E_TRANSFER;
     public static PaymentMethod US_POSTAL_MONEY_ORDER;
     public static PaymentMethod CASH_DEPOSIT;

@@ -105,4 +105,9 @@ public final class PopmoneyAccountPayload extends PaymentAccountPayload implemen
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeNanpEmailOrMobileNr(accountId));
+    }
 }

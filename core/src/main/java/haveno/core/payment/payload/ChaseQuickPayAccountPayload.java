@@ -111,4 +111,15 @@ public final class ChaseQuickPayAccountPayload extends PaymentAccountPayload imp
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeNanpEmailOrMobileNr(email));
+    }
+
+    // shares the Zelle namespace since Chase QuickPay became Zelle and reaches the same email endpoint
+    @Override
+    public String getPaymentEndpointNamespace() {
+        return PaymentMethod.ZELLE_ID;
+    }
 }

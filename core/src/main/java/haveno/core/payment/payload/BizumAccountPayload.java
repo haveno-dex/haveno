@@ -98,4 +98,9 @@ public final class BizumAccountPayload extends CountryBasedPaymentAccountPayload
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(mobileNr.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeMobileNr(mobileNr, "34", 9));
+    }
 }

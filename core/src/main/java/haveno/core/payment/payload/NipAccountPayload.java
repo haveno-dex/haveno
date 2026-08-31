@@ -111,4 +111,9 @@ public final class NipAccountPayload extends PaymentAccountPayload implements Pa
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(accountNr);
+    }
 }

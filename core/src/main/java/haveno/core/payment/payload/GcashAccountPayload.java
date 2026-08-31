@@ -103,4 +103,9 @@ public final class GcashAccountPayload extends CountryBasedPaymentAccountPayload
     public byte[] getAgeWitnessInputData() {
         return super.getAgeWitnessInputData(mobileNr.getBytes(StandardCharsets.UTF_8));
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeMobileNr(mobileNr, "63", 10));
+    }
 }

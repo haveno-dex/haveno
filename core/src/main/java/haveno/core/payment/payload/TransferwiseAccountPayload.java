@@ -128,4 +128,10 @@ public final class TransferwiseAccountPayload extends PaymentAccountPayload {
                 email.getBytes(StandardCharsets.UTF_8),
                 getHolderName().getBytes(StandardCharsets.UTF_8)));
     }
+
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(email);
+    }
 }

@@ -172,8 +172,14 @@ public final class SepaAccountPayload extends CountryBasedPaymentAccountPayload 
         return super.getAgeWitnessInputData(ArrayUtils.addAll(iban.getBytes(StandardCharsets.UTF_8), bic.getBytes(StandardCharsets.UTF_8)));
     }
 
+
     @Override
     public String getOwnerId() {
         return holderName;
+    }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(iban);
     }
 }

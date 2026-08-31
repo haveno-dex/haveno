@@ -106,4 +106,9 @@ public final class MbWayAccountPayload extends PaymentAccountPayload implements 
     public String getOwnerId() {
         return holderName;
     }
+
+    @Override
+    public byte[] getPaymentEndpointData() {
+        return getPaymentEndpointData(normalizeMobileNr(mobileNr, "351", 9));
+    }
 }
