@@ -698,6 +698,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         Date closeDate = new Date();
         if (priorCloseDate != null && !closeDate.after(priorCloseDate)) closeDate = new Date(priorCloseDate.getTime() + 1);
         disputeResult.setCloseDate(closeDate);
+        if (priorCloseDate != null) disputeResult.setChatMessage(null); // a revised ruling gets a freshly signed summary message
         disputesService.closeDisputeTicket(disputeManager, dispute, disputeResult, () -> {
             if (peersDisputeOptional.isPresent() && !peersDisputeOptional.get().isClosed() && !DevEnv.isDevMode()) {
                 new Popup().attention(Res.get("disputeSummaryWindow.close.closePeer")).show();
