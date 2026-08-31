@@ -94,7 +94,7 @@ class CoreWalletsService {
     private Timer lockTimer;
 
     @Nullable
-    private KeyParameter tempAesKey;
+    private volatile KeyParameter tempAesKey; // written on unlock/lock/timeout threads, read for authorization on gRPC workers
 
     @Inject
     public CoreWalletsService(AppStartupState appStartupState,
@@ -147,6 +147,9 @@ class CoreWalletsService {
         accountService.checkAccountOpen();
         verifyWalletsAreAvailable();
         verifyEncryptedWalletIsUnlocked();
+        // an open account does not imply the wallet password gate is open; exporting the seed also requires the unlock key
+        if (walletsManager.areWalletsEncrypted() && tempAesKey == null)
+            throw new IllegalStateException("wallet is locked");
         return xmrWalletService.getSeed();
     }
 
@@ -327,10 +330,12 @@ class CoreWalletsService {
         KeyCrypterScrypt keyCrypterScrypt = getKeyCrypterScrypt();
         // The aesKey is also cached for timeout (secs) after being used to decrypt the
         // wallet, in case the user wants to manually lock the wallet before the timeout.
-        tempAesKey = keyCrypterScrypt.deriveKey(password);
+        // Only cache the key after it is verified, so a failed unlock does not leave the wallet unlocked.
+        KeyParameter aesKey = keyCrypterScrypt.deriveKey(password);
 
-        if (!walletsManager.checkAESKey(tempAesKey))
+        if (!walletsManager.checkAESKey(aesKey))
             throw new IllegalStateException("incorrect password");
+        tempAesKey = aesKey;
 
         if (lockTimer != null) {
             // The user has called unlockwallet again, before the prior unlockwallet
