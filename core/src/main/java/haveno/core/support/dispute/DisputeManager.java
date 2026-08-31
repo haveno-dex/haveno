@@ -709,6 +709,15 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     if (reOpen && dispute.isClosed() && !isReopenRequest(trade, dispute, msgDispute)) {
                         log.info("Skipping replayed DisputeOpenedMessage for resolved dispute, tradeId={}, uid={}", trade.getId(), message.getUid());
                         ackDisputeOpenedMessage(message, sender, null);
+                        // resend the current ruling to the dispute's own trader so one who missed it is not left waiting
+                        // on a re-open which did not happen; adopt their multisig update so the resend can carry a payout
+                        DisputeResult storedResult = dispute.getDisputeResultProperty().get();
+                        if (trade.isArbitrator() && storedResult != null && storedResult.getChatMessage() != null && sender.getPubKeyRing().equals(dispute.getTraderPubKeyRing())) {
+                            processedDisputeOpenedMessageUids.add(message.getUid()); // a redelivery acks without resending again
+                            if (message.getOpenerUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex());
+                            closeDisputeTicket(storedResult, dispute, storedResult.getChatMessage().getMessage(), () -> {},
+                                    (errMessage, err) -> log.warn("Failed to resend DisputeClosedMessage for trade {}: {}", trade.getId(), errMessage));
+                        }
                         return;
                     }
 
