@@ -325,6 +325,7 @@ public class TradeStatisticsManager {
                                               @Nullable String referralId,
                                               boolean isTorNetworkNode) {
         long ts = System.currentTimeMillis();
+        Set<P2PDataStorage.ByteArray> hashes = tradeStatistics3StorageService.getMapOfAllData().keySet();
         trades.forEach(trade -> {
             if (!trade.shouldPublishTradeStatistics()) {
                 log.debug("Trade: {} should not publish trade statistics", trade.getShortId());
@@ -355,7 +356,7 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            if (hasPublishedTradeStatistics(tradeStatistics3V0, tradeStatistics3V1, tradeStatistics3V2)) {
+            if (hasPublishedTradeStatistics(hashes, tradeStatistics3V0, tradeStatistics3V1, tradeStatistics3V2)) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
                         trade.getShortId());
                 return;
@@ -373,17 +374,16 @@ public class TradeStatisticsManager {
             TradeStatistics3 tradeStatistics3V2Final = tradeStatistics3V2;
             UserThread.runAfterRandomDelay(() -> {
                 // recheck in case the trade statistics were received while the publish was pending
-                if (hasPublishedTradeStatistics(tradeStatistics3V0Final, tradeStatistics3V1Final, tradeStatistics3V2Final)) return;
+                if (hasPublishedTradeStatistics(tradeStatistics3StorageService.getMapOfAllData().keySet(), tradeStatistics3V0Final, tradeStatistics3V1Final, tradeStatistics3V2Final)) return;
                 p2PService.addPersistableNetworkPayload(tradeStatistics3V2Final, true);
             }, 0, PUBLISH_STATS_RANDOM_DELAY_HOURS / 2 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         });
         log.info("maybeRepublishTradeStatistics took {} ms. Number of tradeStatistics: {}. Number of own trades: {}",
-                System.currentTimeMillis() - ts, tradeStatistics3StorageService.getMapOfAllData().size(), trades.size());
+                System.currentTimeMillis() - ts, hashes.size(), trades.size());
     }
 
-    // checks the current data store for the given trade statistics' normalized or unnormalized hashes
-    private boolean hasPublishedTradeStatistics(TradeStatistics3... variants) {
-        Set<P2PDataStorage.ByteArray> hashes = tradeStatistics3StorageService.getMapOfAllData().keySet();
+    // checks the given data store hashes for the trade statistics' normalized or unnormalized hashes
+    private static boolean hasPublishedTradeStatistics(Set<P2PDataStorage.ByteArray> hashes, TradeStatistics3... variants) {
         for (TradeStatistics3 variant : variants) {
             if (hashes.contains(new P2PDataStorage.ByteArray(variant.getHash())) ||
                     hashes.contains(new P2PDataStorage.ByteArray(variant.createUnnormalizedHash()))) return true;
