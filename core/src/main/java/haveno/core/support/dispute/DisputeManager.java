@@ -237,6 +237,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
     protected void onSupportMessage(DecryptedMessageWithPubKey decryptedMessageWithPubKey, SupportMessage message) {
         super.onSupportMessage(decryptedMessageWithPubKey, message);
         if (message instanceof DisputeClosedMessage) verifyDisputeClosedMessageSender(decryptedMessageWithPubKey, (DisputeClosedMessage) message);
+        if (message instanceof ChatMessage) verifyChatMessageSender(decryptedMessageWithPubKey, (ChatMessage) message);
     }
 
     // a DisputeClosedMessage is only valid from the trade's arbitrator
@@ -245,6 +246,19 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
         if (trade == null) throw new IllegalStateException("DisputeClosedMessage for unknown trade " + message.getTradeId() + " cannot be verified"); // fail closed
         if (trade.getVerifiedTradePeer(decryptedMessageWithPubKey) != trade.getArbitrator()) {
             throw new IllegalStateException("DisputeClosedMessage for trade " + message.getTradeId() + " was not sent by the trade's arbitrator");
+        }
+    }
+
+    // a trader's dispute chat message must carry the trader's own id and authorship flags, so it can neither
+    // be planted in the counterparty's dispute nor rendered as an agent-authored or system message
+    private void verifyChatMessageSender(DecryptedMessageWithPubKey decryptedMessageWithPubKey, ChatMessage message) {
+        Trade trade = tradeManager.getTrade(message.getTradeId());
+        if (trade == null) throw new IllegalStateException("ChatMessage for unknown trade " + message.getTradeId() + " cannot be verified"); // fail closed
+        TradePeer sender = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
+        if (sender == trade.getArbitrator()) {
+            if (message.isSenderIsTrader()) throw new IllegalStateException("ChatMessage from the arbitrator claims trader authorship for trade " + message.getTradeId());
+        } else if (sender == null || sender.getPubKeyRing().hashCode() != message.getTraderId() || !message.isSenderIsTrader() || message.isSystemMessage()) {
+            throw new IllegalStateException("ChatMessage trader identity does not match the signed message sender for trade " + message.getTradeId());
         }
     }
 
