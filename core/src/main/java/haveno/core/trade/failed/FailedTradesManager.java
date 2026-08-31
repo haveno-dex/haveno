@@ -18,6 +18,7 @@
 package haveno.core.trade.failed;
 
 import com.google.inject.Inject;
+import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
@@ -138,6 +139,15 @@ public class FailedTradesManager implements PersistedDataHost {
         }
     }
 
+    // failed trades whose deposits are published or unresolved, so can be restored to open trades
+    public List<Trade> getTradesWithRevivableDeposits() {
+        synchronized (failedTrades.getList()) {
+            return failedTrades.stream()
+                    .filter(trade -> trade.isFundsLockedIn() || trade.isProtocolErrorHandlingScheduled())
+                    .collect(Collectors.toList());
+        }
+    }
+
     public void unFailTrade(Trade trade) {
         synchronized (failedTrades.getList()) {
             if (unFailTradeCallback == null)
@@ -145,9 +155,12 @@ public class FailedTradesManager implements PersistedDataHost {
 
             if (unFailTradeCallback.apply(trade)) {
                 log.info("Unfailing trade {}", trade.getId());
-                if (failedTrades.remove(trade)) {
-                    requestPersistence();
-                }
+                // remove after the queued re-add to the open trades, so duplicate-payment checks always see the trade
+                UserThread.execute(() -> {
+                    if (failedTrades.remove(trade)) {
+                        requestPersistence();
+                    }
+                });
             }
         }
     }

@@ -36,8 +36,10 @@ import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroMultisigInfo;
 import monero.wallet.model.MoneroMultisigInitResult;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -85,6 +87,22 @@ public class ProcessInitMultisigRequest extends TradeTask {
             } catch (TradePriceOutOfToleranceException e) {
               failed(e.getMessage());
               return;
+            }
+
+            // repeat the check for indistinguishable payments at the final price, since the earlier check ran
+            // against the provisional price and the final price determines the payment amount
+            if (trade instanceof MakerTrade || trade instanceof TakerTrade) {
+              boolean selfIsMaker = trade instanceof MakerTrade;
+              boolean selfIsBuyer = trade.getBuyer() == (selfIsMaker ? trade.getMaker() : trade.getTaker());
+              String selfPaymentAccountId = selfIsMaker ? trade.getOffer().getOfferPayload().getMakerPaymentAccountId() : trade.getTaker().getPaymentAccountId();
+              PubKeyRing peerPubKeyRing = selfIsMaker ? trade.getTaker().getPubKeyRing() : trade.getOffer().getPubKeyRing();
+              List<Trade> otherTrades = new ArrayList<>(processModel.getTradeManager().getOpenTrades());
+              otherTrades.addAll(processModel.getTradeManager().getFailedTradesWithRevivableDeposits());
+              Trade duplicateTrade = ProcessInitTradeRequest.findIndistinguishableTrade(trade, selfIsBuyer, selfPaymentAccountId, peerPubKeyRing, otherTrades, processModel.getUser());
+              if (duplicateTrade != null) {
+                failed("Rejecting InitMultisigRequest because trade " + duplicateTrade.getShortId() + " with the same counterparty has the same amount and direction at the final trade price, so their payments could be indistinguishable in a dispute");
+                return;
+              }
             }
           }
 

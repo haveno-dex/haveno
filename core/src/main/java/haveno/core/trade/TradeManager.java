@@ -53,6 +53,8 @@ import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
+import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
@@ -83,10 +85,12 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TakerProtocol;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.trade.protocol.TradeProtocolFactory;
+import haveno.core.trade.protocol.tasks.ProcessInitTradeRequest;
 import haveno.core.trade.statistics.ReferralIdService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.User;
 import haveno.core.util.Validator;
+import haveno.core.util.VolumeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessage;
@@ -943,6 +947,18 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                             TradeResultHandler tradeResultHandler,
                             ErrorMessageHandler errorMessageHandler) {
 
+        // check for another trade with indistinguishable payments before contacting the maker or reserving
+        // funds, since the authoritative checks in the trade protocol reject the trade later and expensively
+        Price price = offer.getPrice();
+        Volume tradeVolume = price == null ? null : VolumeUtil.getAdjustedVolume(price.getVolumeByAmount(tradeAmount), offer.getPaymentMethod().getId());
+        List<Trade> otherTrades = new ArrayList<>(getOpenTrades());
+        otherTrades.addAll(getFailedTradesWithRevivableDeposits());
+        Trade duplicateTrade = ProcessInitTradeRequest.findIndistinguishableTrade(null, tradeVolume, !offer.isBuyOffer(), paymentAccountId, offer.getPubKeyRing(), otherTrades, user);
+        if (duplicateTrade != null) {
+            errorMessageHandler.handleErrorMessage("Cannot take offer because trade " + duplicateTrade.getShortId() + " with the same counterparty has the same amount and direction, so their payments could be indistinguishable in a dispute");
+            return;
+        }
+
         // check offer availability and create trade if available
         checkOfferAvailability(offer, isTakerApiUser, paymentAccountId, tradeAmount, () -> {
             if (offer.getState() == Offer.State.AVAILABLE) {
@@ -992,7 +1008,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         trade.getSelf().setPubKeyRing(keyRing.getPubKeyRing());
                         trade.getSelf().setPaymentAccountId(paymentAccountId);
                         trade.getSelf().setPaymentMethodId(user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId());
-                
+
                         // initialize trade protocol
                         TradeProtocol tradeProtocol = createTradeProtocol(trade);
                         addTrade(trade);
@@ -1499,6 +1515,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                     .map(e -> e)
                     .collect(Collectors.toList()));
         }
+    }
+
+    public List<Trade> getFailedTradesWithRevivableDeposits() {
+        return failedTradesManager.getTradesWithRevivableDeposits();
     }
 
     public List<Trade> getClosedTrades() {

@@ -18,9 +18,13 @@
 package haveno.core.trade.protocol.tasks;
 
 import com.google.common.base.Charsets;
+import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.MakerTrade;
@@ -29,9 +33,13 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.TradeProtocolVersion;
 import haveno.core.trade.protocol.TradePeer;
+import haveno.core.user.User;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -150,6 +158,23 @@ public class ProcessInitTradeRequest extends TradeTask {
                 throw new RuntimeException("Invalid trade type to process init trade request: " + trade.getClass().getName());
             }
 
+            // reject when the same counterparty has another trade with the same amount, direction, and payment
+            // account of ours, since their payments could be indistinguishable in a dispute
+            if (trade instanceof MakerTrade || trade instanceof TakerTrade) {
+                boolean selfIsMaker = trade instanceof MakerTrade;
+                boolean selfIsBuyer = trade.getBuyer() == (selfIsMaker ? trade.getMaker() : trade.getTaker());
+                String selfPaymentAccountId = selfIsMaker ? offer.getOfferPayload().getMakerPaymentAccountId()
+                        : (trade.getTaker().getPaymentAccountId() != null ? trade.getTaker().getPaymentAccountId() : request.getTakerPaymentAccountId());
+                PubKeyRing peerPubKeyRing = selfIsMaker ? request.getTakerPubKeyRing() : offer.getPubKeyRing();
+                List<Trade> otherTrades = new ArrayList<>(processModel.getTradeManager().getOpenTrades());
+                otherTrades.addAll(processModel.getTradeManager().getFailedTradesWithRevivableDeposits()); // failed trades with possibly published deposits can be revived
+                Trade duplicateTrade = findIndistinguishableTrade(trade, selfIsBuyer, selfPaymentAccountId, peerPubKeyRing, otherTrades, processModel.getUser());
+                if (duplicateTrade != null) {
+                    failed("Rejecting InitTradeRequest because trade " + duplicateTrade.getShortId() + " with the same counterparty has the same amount and direction, so their payments could be indistinguishable in a dispute");
+                    return;
+                }
+            }
+
             // set trading peer info
             if (trade.getMaker().getAccountId() == null) trade.getMaker().setAccountId(request.getMakerAccountId());
             else if (!trade.getMaker().getAccountId().equals(request.getMakerAccountId())) throw new RuntimeException("Maker account id is different from previous");
@@ -174,5 +199,50 @@ public class ProcessInitTradeRequest extends TradeTask {
         } catch (Throwable t) {
             failed(t);
         }
+    }
+
+    // returns another trade with the same counterparty, direction, amount, and payment account of ours,
+    // whose payment could be indistinguishable from the given trade's payment in a dispute
+    public static Trade findIndistinguishableTrade(Trade trade, boolean selfIsBuyer, String selfPaymentAccountId, PubKeyRing peerPubKeyRing, List<Trade> otherTrades, User user) {
+        return findIndistinguishableTrade(trade, trade.getVolume(), selfIsBuyer, selfPaymentAccountId, peerPubKeyRing, otherTrades, user);
+    }
+
+    public static Trade findIndistinguishableTrade(Trade trade, Volume tradeVolume, boolean selfIsBuyer, String selfPaymentAccountId, PubKeyRing peerPubKeyRing, List<Trade> otherTrades, User user) {
+        if (tradeVolume == null) return null;
+        for (Trade otherTrade : otherTrades) {
+            // skip only the exact trade instance, since distinct failed attempts for one offer share its trade id
+            if (otherTrade == trade || otherTrade instanceof ArbitratorTrade) continue;
+            TradePeer otherTradeSelf = otherTrade instanceof MakerTrade ? otherTrade.getMaker() : otherTrade.getTaker();
+            TradePeer otherTradePeer = otherTrade instanceof MakerTrade ? otherTrade.getTaker() : otherTrade.getMaker();
+            if ((otherTrade.getBuyer() == otherTradeSelf) != selfIsBuyer) continue;
+            if (!isSamePaymentAccountEndpoint(selfPaymentAccountId, otherTradeSelf, user)) continue;
+            PubKeyRing otherPeerPubKeyRing = otherTradePeer.getPubKeyRing(); // peer pub key rings are set before trades are added, so concurrent requests see each other
+            if (otherPeerPubKeyRing == null && otherTradePeer == otherTrade.getMaker() && otherTrade.getOffer() != null) otherPeerPubKeyRing = otherTrade.getOffer().getPubKeyRing();
+            // match the signature key only, since a modified peer could keep its identity but vary its encryption key
+            if (otherPeerPubKeyRing == null || !Arrays.equals(peerPubKeyRing.getSignaturePubKeyBytes(), otherPeerPubKeyRing.getSignaturePubKeyBytes())) continue;
+            Volume otherTradeVolume = otherTrade.getVolume();
+            if (otherTradeVolume != null && tradeVolume.equals(otherTradeVolume) && tradeVolume.getCurrencyCode().equals(otherTradeVolume.getCurrencyCode())) return otherTrade;
+        }
+        return null;
+    }
+
+    // treat our payment accounts as the same when they identify the same external endpoint, since recreating
+    // an account for the same endpoint generates a new account id
+    static boolean isSamePaymentAccountEndpoint(String accountId, TradePeer otherTradeSelf, User user) {
+        if (accountId != null && accountId.equals(otherTradeSelf.getPaymentAccountId())) return true;
+        PaymentAccountPayload payload = getPaymentAccountPayload(accountId, null, user);
+        PaymentAccountPayload otherPayload = getPaymentAccountPayload(otherTradeSelf.getPaymentAccountId(), otherTradeSelf.getPaymentAccountPayload(), user);
+        if (payload == null || otherPayload == null) return true; // a missing account cannot prove the endpoints differ
+        byte[] endpointData = payload.getPaymentEndpointData();
+        byte[] otherEndpointData = otherPayload.getPaymentEndpointData();
+        if (endpointData != null && otherEndpointData != null) return Arrays.equals(endpointData, otherEndpointData);
+        return payload.getPaymentMethodId().equals(otherPayload.getPaymentMethodId()); // conservatively match methods without a stable endpoint
+    }
+
+    // resolve from the trade's stored payload first, since the user's account may be deleted or recreated
+    private static PaymentAccountPayload getPaymentAccountPayload(String accountId, PaymentAccountPayload storedPayload, User user) {
+        if (storedPayload != null) return storedPayload;
+        PaymentAccount account = accountId == null ? null : user.getPaymentAccount(accountId);
+        return account == null ? null : account.getPaymentAccountPayload();
     }
 }
