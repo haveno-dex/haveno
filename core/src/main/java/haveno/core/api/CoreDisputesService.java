@@ -298,8 +298,10 @@ public class CoreDisputesService {
 
         String summaryText = DisputeSummaryVerification.signAndApply(disputeManager, disputeResult, textToSign);
 
+        // store the result at issue time, not on delivery, so a concurrent re-close clamps its closeDate against it
+        dispute.setDisputeResult(disputeResult);
+
         disputeManager.closeDisputeTicket(disputeResult, dispute, summaryText, () -> {
-            dispute.setDisputeResult(disputeResult);
             dispute.setIsClosed();
             resultHandler.handleResult();
         }, faultHandler);
