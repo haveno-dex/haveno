@@ -129,6 +129,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final boolean PRINT_RPC_STACK_TRACE = false;
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long FORCE_CLOSE_TIMEOUT_MS = 15000; // bounded wait since native close can block draining a stalled network request
+    private static final long STOP_WALLET_RPC_TIMEOUT_MS = 20000; // bounded wait for wallet rpc to save and stop, within the shutdown budget
     private static final long PENDING_CLOSE_TIMEOUT_MS = 240000; // max wait to reopen, covering wallet2's 3.5 minute rpc timeout
     private static final long NUM_BLOCKS_BEHIND_TOLERANCE = 5;
     private static final long POLL_TXS_TOLERANCE_MS = 1000 * 60 * 3; // request connection switch if txs not updated within 3 minutes
@@ -509,20 +510,29 @@ public class XmrWalletService extends XmrWalletBase {
 
     public void closeWallet(MoneroWallet wallet, boolean save) {
         log.debug("Closing wallet with path={}, save={}", Utilities.redactSensitiveInfo(wallet.getPath()), save);
-        MoneroError err = null;
+        RuntimeException err = null;
         String path = wallet.getPath();
         try {
-            if (save && wallet instanceof MoneroWalletRpc) {
-                ((MoneroWalletRpc) wallet).stop(); // saves wallet and stops rpc server
+            if (wallet instanceof MoneroWalletRpc) {
+                // bound the request, which has no timeout and can block behind a stalled request
+                ThreadUtils.awaitTask(() -> {
+                    if (save) ((MoneroWalletRpc) wallet).stop(); // saves wallet and stops rpc server
+                    else wallet.close(false);
+                }, STOP_WALLET_RPC_TIMEOUT_MS);
             } else {
                 wallet.close(save);
             }
-        } catch (MoneroError e) {
+        } catch (RuntimeException e) {
             err = e;
         }
 
-        // stop wallet rpc instance if applicable
-        if (wallet instanceof MoneroWalletRpc) MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, false);
+        // stop wallet rpc instance if applicable, forcibly if the stop request was interrupted (e.g. shutdown timeout)
+        if (wallet instanceof MoneroWalletRpc) {
+            boolean interrupted = false;
+            for (Throwable t = err; t != null; t = t.getCause()) if (t instanceof InterruptedException) interrupted = true;
+            MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, interrupted);
+            if (interrupted) Thread.currentThread().interrupt(); // restore interrupt status consumed awaiting the stop request
+        }
         if (err != null) throw err;
     }
 
@@ -2202,7 +2212,10 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 if (wallet != null) {
                     log.info("Closing main wallet");
-                    closeWallet(wallet, true);
+                    // nullify rpc wallet before closing since its process is always stopped, else after so a stalled native close can be force closed
+                    MoneroWallet walletRef = wallet;
+                    if (walletRef instanceof MoneroWalletRpc) wallet = null;
+                    closeWallet(walletRef, true);
                     wallet = null;
                 }
             } catch (Exception e) {

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Manages monero-wallet-rpc processes bound to ports.
@@ -36,6 +37,8 @@ public class MoneroWalletRpcManager {
 
     private static final String RPC_BIND_PORT_ARGUMENT = "--rpc-bind-port";
     private static int NUM_ALLOWED_ATTEMPTS = 3; // allow this many attempts to bind to an assigned port
+    private static final long STOP_PROCESS_TIMEOUT_MS = 20000; // allow time to save the wallet before forcibly destroying, within the shutdown budget
+    private static final long DESTROY_FORCIBLY_TIMEOUT_MS = 10000; // bounded wait to reap the process after forcible destroy
     private Integer startPort;
     private volatile boolean isShutDownStarted;
     private final Map<Integer, MoneroWalletRpc> registeredPorts = new HashMap<>();
@@ -153,14 +156,36 @@ public class MoneroWalletRpcManager {
      */
     public void stopInstance(MoneroWalletRpc walletRpc, String path, boolean force) {
 
-        // unregister port
-        int port = unregisterPort(walletRpc);
+        // unregister port, always proceeding to stop the process
+        Integer port = null;
+        try {
+            port = unregisterPort(walletRpc);
+        } catch (Exception e) {
+            log.warn("Error unregistering monero-wallet-rpc port, path={}: {}", path, e.getMessage());
+        }
 
-        // stop process
-        String pid = walletRpc.getProcess() == null ? null : String.valueOf(walletRpc.getProcess().pid());
+        // stop process directly, since monero-java waits for exit without a timeout
+        Process process = walletRpc.getProcess();
+        String pid = process == null ? null : String.valueOf(process.pid());
         if (force) log.info("Stopping MoneroWalletRpc path={}, port={}, pid={}, force={}", path, port, pid, force);
         else log.debug("Stopping MoneroWalletRpc path={}, port={}, pid={}, force={}", path, port, pid, force);
-        walletRpc.stopProcess(force);
+        if (process == null) return;
+        try {
+            if (force) process.destroyForcibly();
+            else if (process.supportsNormalTermination()) process.destroy(); // else await natural exit, since destroy is forcible on windows
+            if (process.waitFor(force ? DESTROY_FORCIBLY_TIMEOUT_MS : STOP_PROCESS_TIMEOUT_MS, TimeUnit.MILLISECONDS)) return;
+
+            // forcibly destroy the process if it has not exited in time
+            if (!force) {
+                log.warn("Forcibly destroying monero-wallet-rpc process which did not stop within {} ms, path={}, pid={}", STOP_PROCESS_TIMEOUT_MS, path, pid);
+                process.destroyForcibly();
+                if (process.waitFor(DESTROY_FORCIBLY_TIMEOUT_MS, TimeUnit.MILLISECONDS)) return;
+            }
+            log.warn("monero-wallet-rpc process is still alive after forcible destroy, path={}, pid={}", path, pid);
+        } catch (InterruptedException e) {
+            process.destroyForcibly(); // escalate without waiting since the caller's budget is exhausted
+            Thread.currentThread().interrupt();
+        }
     }
 
     private int registerNextPort() throws IOException {
