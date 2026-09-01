@@ -71,6 +71,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private static final long CHECK_MAX_CONN_DELAY_SEC = 10;
+    private static final long RECOVERY_GRACE_PERIOD_SEC = 10; // connectivity must survive this long to declare recovery from all connections lost
     // Use a long delay as the bootstrapping peer might need a while until it knows its onion address
     private static final long REMOVE_ANONYMOUS_PEER_SEC = 240;
 
@@ -127,8 +128,11 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     private final Set<NodeAddress> wrongNetworkPeers = Collections.synchronizedSet(new LinkedHashSet<>());
 
     private Timer checkMaxConnectionsTimer;
+    private Timer recoveryGraceTimer;
+    private int recoveryGraceEpoch; // invalidates in-flight recovery grace timers when incremented
     private boolean stopped;
     private boolean lostAllConnections;
+    private boolean lostAllConnectionsReported; // whether listeners were notified for the current loss episode
     private int maxConnections;
 
     @Getter
@@ -194,6 +198,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         clockWatcher.removeListener(clockWatcherListener);
 
         stopCheckMaxConnectionsTimer();
+        stopRecoveryGraceTimer();
 
         if (printStatisticsTimer != null) {
             printStatisticsTimer.stop();
@@ -228,15 +233,23 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
         numOnConnections++;
 
-        if (lostAllConnections) {
-            lostAllConnections = false;
-            stopped = false;
-            log.info("\n------------------------------------------------------------\n" +
-                    "Established a new connection from/to {} after all connections lost.\n" +
-                    "------------------------------------------------------------", connection.getPeersNodeAddressOptional());
-            synchronized (listeners) {
-                listeners.forEach(Listener::onNewConnectionAfterAllConnectionsLost);
-            }
+        if (lostAllConnections && recoveryGraceTimer == null) {
+            int epoch = recoveryGraceEpoch;
+            recoveryGraceTimer = ThreadUtils.runAfter(() -> ThreadUtils.execute(() -> { // serialize with connection events
+                if (shutDownRequested || epoch != recoveryGraceEpoch) return; // timer was stopped after expiry
+                recoveryGraceTimer = null;
+                if (networkNode.getAllConnections().stream().allMatch(Connection::isStopped)) return; // require a live connection to declare recovery
+                lostAllConnections = false;
+                lostAllConnectionsReported = false;
+                stopped = false;
+                log.info("\n------------------------------------------------------------\n" +
+                        "Connectivity recovered after all connections lost.\n" +
+                        "------------------------------------------------------------");
+                synchronized (listeners) {
+                    listeners.forEach(Listener::onNewConnectionAfterAllConnectionsLost);
+                }
+                doHouseKeeping();
+            }, Connection.THREAD_ID), RECOVERY_GRACE_PERIOD_SEC);
         }
     }
 
@@ -260,24 +273,28 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         }
 
         boolean previousLostAllConnections = lostAllConnections;
-        lostAllConnections = networkNode.getAllConnections().isEmpty();
+        if (networkNode.getAllConnections().isEmpty()) {
+            boolean newLossEvent = !previousLostAllConnections || recoveryGraceTimer != null; // a failed recovery attempt counts as a new loss event
+            lostAllConnections = true; // remains set until recovery is declared after the grace period
+            stopRecoveryGraceTimer(); // a fresh grace period starts with the next connection
 
-        // At start-up we ignore if we would lose a connection and would fall back to no connections
-        if (lostAllConnections && numOnConnections > 2) {
-            stopped = true;
+            // At start-up we ignore if we would lose a connection and would fall back to no connections
+            if (numOnConnections > 2) {
+                stopped = true;
+                if (!shutDownRequested) {
+                    if (newLossEvent) numAllConnectionsLostEvents++;
 
-            if (!shutDownRequested) {
-                if (!previousLostAllConnections) {
-                    // If we enter to 'All connections lost' we count the event.
-                    numAllConnectionsLostEvents++;
-                }
+                    // only notify listeners once per loss episode, not on repeats while still lost
+                    if (!lostAllConnectionsReported) {
+                        lostAllConnectionsReported = true;
+                        log.warn("\n------------------------------------------------------------\n" +
+                                "All connections lost\n" +
+                                "------------------------------------------------------------");
 
-                log.warn("\n------------------------------------------------------------\n" +
-                        "All connections lost\n" +
-                        "------------------------------------------------------------");
-
-                synchronized (listeners) {
-                    listeners.forEach(Listener::onAllConnectionsLost);
+                        synchronized (listeners) {
+                            listeners.forEach(Listener::onAllConnectionsLost);
+                        }
+                    }
                 }
             }
         }
@@ -937,6 +954,14 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         if (checkMaxConnectionsTimer != null) {
             checkMaxConnectionsTimer.stop();
             checkMaxConnectionsTimer = null;
+        }
+    }
+
+    private void stopRecoveryGraceTimer() {
+        recoveryGraceEpoch++;
+        if (recoveryGraceTimer != null) {
+            recoveryGraceTimer.stop();
+            recoveryGraceTimer = null;
         }
     }
 
