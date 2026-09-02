@@ -128,8 +128,11 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
 
     @Override
     public void gracefulShutDown(ResultHandler resultHandler, boolean exit) {
+        if (grpcServer != null) { // null if shutting down early
+            grpcServer.shutdown(); // stop accepting api calls first so clients polling during a restart cannot reach the old server
+            if (!exit) grpcServer.awaitTermination(); // let a delete or restore reply out before tor goes down; on exit the stop call replies after the shutdown
+        }
         super.gracefulShutDown(resultHandler, exit);
-        if (grpcServer != null) grpcServer.shutdown(); // could be null if application attempted to shutdown early
     }
 
     /**

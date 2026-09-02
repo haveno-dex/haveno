@@ -8,6 +8,7 @@ import haveno.common.proto.network.NetworkProtoResolver;
 
 import haveno.network.utils.Utils;
 import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
+import org.berndpruenster.netlayer.tor.HsContainer;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
 
@@ -25,6 +26,9 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,6 +40,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class TorNetworkNodeNetlayer extends TorNetworkNode {
 
     private static final long SHUT_DOWN_TIMEOUT_SEC = 2;
+    private static final long TOR_START_ABORT_TIMEOUT_SEC = 5;
     private final static boolean POW_ENABLED_DEFAULT = true;
     private final static int POW_QUEUE_RATE_DEFAULT = 10;
     private final static int POW_QUEUE_BURST_DEFAULT = 100;
@@ -44,7 +49,8 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     private boolean streamIsolation;
     private Socks5Proxy socksProxy;
     protected TorMode torMode;
-    private Tor tor;
+    private volatile Tor tor;
+    private final Object torLock = new Object();
     private final String hiddenServiceFlags;
     private final String hiddenServiceParams;
     private final String torControlHost;
@@ -88,6 +94,7 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
             return;
         }
         isShutDownStarted = true;
+        synchronized (torLock) { } // wait for an in-flight publish, later ones are rejected by the flag
 
         shutDownTimeoutTimer = UserThread.runAfter(() -> {
             log.error("A timeout occurred at shutDown");
@@ -98,13 +105,22 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
 
         super.shutDown(() -> {
             try {
-                tor = Tor.getDefault();
+                Tor tor;
+                synchronized (torLock) {
+                    tor = this.tor;
+                    this.tor = null;
+                }
                 if (tor != null) {
+                    if (Tor.getDefault() == tor) Tor.setDefault(null);
                     tor.shutdown();
-                    tor = null;
                     log.info("Tor shutdown completed");
                 }
                 executor.shutdownNow();
+                shutDownTimeoutTimer.stop(); // the wait below is bounded on its own, so the timeout must not complete the shut down midway
+                if (!executor.awaitTermination(TOR_START_ABORT_TIMEOUT_SEC, TimeUnit.SECONDS)) // an aborted tor start deletes the tor dir files on its way out, which a restarted instance may be installing
+                    log.warn("Tor start did not abort within {} seconds", TOR_START_ABORT_TIMEOUT_SEC);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // shut down from the tor start thread itself
             } catch (Throwable e) {
                 log.error("Shutdown TorNetworkNodeNetlayer failed with exception", e);
             } finally {
@@ -148,7 +164,7 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
             }
 
             if (socksProxy == null || streamIsolation) {
-                tor = Tor.getDefault();
+                Tor tor = this.tor;
                 socksProxy = tor != null ? tor.getProxy(torControlHost, stream) : null;
             }
             return socksProxy;
@@ -156,6 +172,57 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
             log.error("Error at getSocksProxy", t);
             return null;
         }
+    }
+
+    /**
+     * Publishes an additional hidden service forwarding the given port to the same local
+     * port, starting tor if needed. Completes with the onion hostname once tor has accepted it.
+     */
+    public CompletableFuture<String> publishHiddenService(String name, int port) {
+        CompletableFuture<String> result = new CompletableFuture<>();
+        try {
+            executor.submit(() -> {
+                try {
+                    Tor tor = getOrStartTor();
+                    HsContainer hs;
+                    synchronized (torLock) { // exclude shut down while the service is added
+                        if (isShutDownStarted) throw new IllegalStateException("Shut down started while publishing hidden service");
+                        hs = tor.publishHiddenService(torMode.getHiddenServiceDirectory(name), port, port);
+                    }
+                    hs.getHandler().attachHSReadyListener(hs.getHostname(), () -> {
+                        log.info("Hidden service {}:{} published", hs.getHostname(), port);
+                        return null;
+                    });
+                    result.complete(hs.getHostname());
+                } catch (Throwable t) {
+                    result.completeExceptionally(t);
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            result.completeExceptionally(e);
+        }
+        return result;
+    }
+
+    // starts tor on first use so the p2p and any additional hidden services share one instance
+    private Tor getOrStartTor() throws IOException, TorCtlException {
+        if (tor == null) {
+            Tor started = torMode.getTor();
+            if (started == null) throw new IOException("Tor is not available");
+            boolean accepted;
+            synchronized (torLock) { // shut down either stops the started instance or we discard it here
+                accepted = !isShutDownStarted;
+                if (accepted) {
+                    tor = started;
+                    Tor.setDefault(started);
+                }
+            }
+            if (!accepted) {
+                started.shutdown();
+                throw new IllegalStateException("Shut down started while starting tor");
+            }
+        }
+        return tor;
     }
 
     @Override
@@ -191,12 +258,12 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                         .map(entry -> entry.getValue() != null ? entry.getKey() + "=" + entry.getValue() : entry.getKey())
                         .toList();
 
-                Tor.setDefault(torMode.getTor());
+                Tor tor = getOrStartTor();
                 Socks5Proxy proxy = getSocksProxy();
                 if (proxy != null) log.info("Tor SOCKS proxy ready on {}:{} (auto-assigned, loopback only)", torControlHost, proxy.getPort());
                 long ts = System.currentTimeMillis();
                 log.info("Starting tor hidden service with flags={}, params={}", hiddenServiceFlagsList, hiddenServiceParamsList);
-                hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort, null, hiddenServiceFlagsList, hiddenServiceParamsList);
+                hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort, tor, hiddenServiceFlagsList, hiddenServiceParamsList);
                 nodeAddressProperty.set(new NodeAddress(hiddenServiceSocket.getServiceName() + ":" + hiddenServiceSocket.getHiddenServicePort()));
                 UserThread.execute(() -> setupListeners.forEach(SetupListener::onTorNodeReady));
                 hiddenServiceSocket.addReadyListener(socket -> {
