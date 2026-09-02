@@ -450,25 +450,62 @@ public class XmrWalletService extends XmrWalletBase {
 
             // create the restored wallet under a temporary name so the current wallet is preserved if the seed is invalid
             String restoreName = MONERO_WALLET_NAME + "_restore";
+            completeInterruptedRestore(); // else the only complete wallet files would be deleted
             deleteWalletFiles(restoreName);
             MoneroWalletConfig config = getWalletConfig(restoreName).setSeed(seed).setRestoreHeight(height);
             MoneroWallet restored = isNativeLibraryApplied() ? createWalletFull(config, isProxyApplied()) : createWalletRpc(config, null, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
             closeWallet(restored, true);
 
             // replace the current wallet with the restored wallet, keeping a backup
-            closeMainWallet(true);
-            if (walletExists(MONERO_WALLET_NAME)) {
-                backupWallet(MONERO_WALLET_NAME);
-                deleteWallet(MONERO_WALLET_NAME);
+            if (!closeMainWallet(true)) {
+
+                // reopen the wallet with a fresh handle since its state is unknown after a failed close
+                forceCloseMainWallet();
+                reopenMainWallet();
+                throw new IllegalStateException("Cannot restore wallet because closing the current wallet failed");
             }
-            moveWallet(restoreName, MONERO_WALLET_NAME);
-            user.setWalletCreationDate(estimateHeightTimestamp(height));
+            long previousWalletCreationDate = user.getWalletCreationDate();
+            user.setWalletCreationDate(estimateHeightTimestamp(height)); // before replacing files, so a replacement completed on startup keeps it
+            try {
+                if (walletExists(MONERO_WALLET_NAME)) {
+                    if (!backupWallet(MONERO_WALLET_NAME)) throw new IllegalStateException("Cannot restore wallet because backing up the current wallet failed");
+                    deleteWallet(MONERO_WALLET_NAME);
+                }
+                moveWallet(restoreName, MONERO_WALLET_NAME);
+            } catch (RuntimeException e) {
+
+                // resume with the current wallet if it is still in place
+                if (walletExists(MONERO_WALLET_NAME) && walletExists(restoreName)) {
+                    user.setWalletCreationDate(previousWalletCreationDate);
+                    reopenMainWallet();
+                }
+                throw e;
+            }
         }
     }
 
-    // Move a wallet's files to another name within the wallet directory.
+    // Reopen the main wallet and resume polling after a failed operation left it closed.
+    private void reopenMainWallet() {
+        try {
+            wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+            startPolling();
+        } catch (Exception e) {
+            log.warn("Error reopening main wallet: {}\n", e.getMessage(), e);
+        }
+    }
+
+    // Complete a restore from seed interrupted after the current wallet was deleted but before the restored wallet was moved.
+    private void completeInterruptedRestore() {
+        String restoreName = MONERO_WALLET_NAME + "_restore";
+        if (!walletExists(MONERO_WALLET_NAME) && walletExists(restoreName)) {
+            log.warn("Completing restore from seed interrupted while replacing the main wallet");
+            moveWallet(restoreName, MONERO_WALLET_NAME);
+        }
+    }
+
+    // Move a wallet's files to another name within the wallet directory, moving the keys file last since it determines which wallet exists.
     private void moveWallet(String fromName, String toName) {
-        for (String postfix : new String[] {"", KEYS_FILE_POSTFIX, ADDRESS_FILE_POSTFIX}) {
+        for (String postfix : new String[] {"", ADDRESS_FILE_POSTFIX, KEYS_FILE_POSTFIX}) {
             File from = new File(walletDir, fromName + postfix);
             if (!from.exists()) continue; // address file is absent on mainnet
             File to = new File(walletDir, toName + postfix);
@@ -2132,6 +2169,7 @@ public class XmrWalletService extends XmrWalletBase {
                 MoneroDaemonRpc monerod = xmrConnectionService.getMonerod();
                 boolean isProxyApplied = isProxyApplied();
                 log.info("Initializing main wallet with monerod=" + (monerod == null ? "null" : monerod.getRpcConnection().getUri()) + ", proxyUri=" + (monerod == null || !isProxyApplied ? "null" : monerod.getRpcConnection().getProxyUri()));
+                completeInterruptedRestore(); // else a new wallet would be created
                 if (walletExists(MONERO_WALLET_NAME)) {
                     wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon());
                 } else {
@@ -2198,7 +2236,8 @@ public class XmrWalletService extends XmrWalletBase {
         closeMainWallet(false);
     }
 
-    private void closeMainWallet(boolean stopPolling) {
+    // Close and save the main wallet, returning false if it could not be closed.
+    private boolean closeMainWallet(boolean stopPolling) {
         synchronized (walletLock) {
             if (stopPolling) stopPolling();
             try {
@@ -2207,8 +2246,10 @@ public class XmrWalletService extends XmrWalletBase {
                     closeWallet(wallet, true);
                     wallet = null;
                 }
+                return true;
             } catch (Exception e) {
                 log.warn("Error closing main wallet: {}. Was Haveno stopped manually with ctrl+c?", e.getMessage());
+                return false;
             }
         }
     }
