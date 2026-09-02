@@ -50,8 +50,9 @@ public class FileUtil {
 
     private static final String BACKUP_DIR = "backup";
     
-    public static void rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
-        if (numMaxBackupFiles <= 0) return;
+    // returns false if a backup copy could not be created, true otherwise (including when there is no file to back up)
+    public static boolean rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
+        if (numMaxBackupFiles <= 0) return true;
         if (dir.exists()) {
             File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
             if (!backupDir.exists())
@@ -76,9 +77,13 @@ public class FileUtil {
                     pruneBackup(backupFileDir, numMaxBackupFiles);
                 } catch (IOException e) {
                     log.error("Backup key failed: {}\n", e.getMessage(), e);
+                    if (backupFile.exists() && !backupFile.delete())
+                        log.error("Failed to delete partial backup file: {}", backupFile.getAbsolutePath());
+                    return false;
                 }
             }
         }
+        return true;
     }
 
     public static List<File> getBackupFiles(File dir, String fileName) {
