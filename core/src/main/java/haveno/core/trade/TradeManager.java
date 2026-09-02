@@ -654,7 +654,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
      * store, the rest to the pending store.
      */
     public void requestPersistence(Trade trade) {
-        if (closedTradableManager.getTradableById(trade.getId()).isPresent()) {
+        if (closedTradableManager.getClosedTrades().contains(trade)) { // by instance, since a failed trade can share the id of a closed trade
             closedTradableManager.persistClosedTrade(trade);
         } else if (failedTradesManager.getObservableList().contains(trade)) {
             failedTradesManager.requestPersistence();
@@ -664,7 +664,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public void persistNow(Trade trade, @Nullable Runnable completeHandler) {
-        if (closedTradableManager.getTradableById(trade.getId()).isPresent()) {
+        if (closedTradableManager.getClosedTrades().contains(trade)) {
             closedTradableManager.persistClosedTrade(trade); // durable (or queued for retry) on return
             if (completeHandler != null) completeHandler.run();
         } else {

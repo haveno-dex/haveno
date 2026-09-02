@@ -164,7 +164,7 @@ public class ClosedTradableManager implements PersistedDataHost {
         synchronized (persistLock) {
             boolean contained;
             synchronized (closedTradables.getList()) {
-                contained = closedTradables.stream().anyMatch(t -> t.getId().equals(trade.getId()));
+                contained = closedTradables.stream().anyMatch(t -> t == trade); // by instance, since a failed trade can share the id
             }
             try {
                 if (contained) store.appendEntries(List.of(ClosedTradesStore.upsertBytes(trade)));
