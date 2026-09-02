@@ -446,6 +446,7 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (walletLock) {
             if (isShutDownStarted) throw new IllegalStateException("Cannot restore wallet because shutting down");
             if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) throw new RuntimeException("Cannot restore wallet because there is no connection to Monero daemon");
+            if (!awaitPendingWalletClose(getWalletPath(MONERO_WALLET_NAME))) throw new IllegalStateException("Cannot restore wallet because a previous main wallet is still closing in the background");
             if (restoreHeight == null && restoreDate != null) restoreHeight = estimateHeightForDate(restoreDate);
             long height = restoreHeight == null ? 0 : restoreHeight;
             log.info("{}.restoreWalletFromSeed(restoreHeight={})", getClass().getSimpleName(), height);
@@ -474,7 +475,9 @@ public class XmrWalletService extends XmrWalletBase {
                 }
                 throw new IllegalStateException("Refusing to restore wallet because closing the current wallet failed");
             }
-            awaitPendingWalletClose(getWalletPath(MONERO_WALLET_NAME)); // await any background force close before replacing files
+
+            // a concurrent force close after the earlier check leaves a pending close, and its error handling reopens the wallet
+            if (!awaitPendingWalletClose(getWalletPath(MONERO_WALLET_NAME))) throw new IllegalStateException("Refusing to restore wallet because the current wallet is still closing in the background");
             if (walletExists(MONERO_WALLET_NAME) && !backupWallet(MONERO_WALLET_NAME)) {
 
                 // reopen the wallet and resume polling so the application remains functional
@@ -531,12 +534,14 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     // Restore a wallet's files from their latest rolling backup, e.g. when the originals were deleted by an interrupted
-    // replacement, copying the keys file last since it determines which wallet exists.
+    // replacement, copying the keys file last and atomically since it determines which wallet exists.
     private void revertToLatestBackup(String walletName) throws IOException {
         for (String postfix : new String[] {"", ADDRESS_FILE_POSTFIX, KEYS_FILE_POSTFIX}) {
             File backup = FileUtil.getLatestBackupFile(walletDir, walletName + postfix);
             if (backup == null) continue;
-            FileUtil.copyFile(backup, new File(walletDir, walletName + postfix));
+            File temp = new File(walletDir, walletName + postfix + ".tmp");
+            FileUtil.copyFile(backup, temp);
+            FileUtil.atomicReplace(temp, new File(walletDir, walletName + postfix));
         }
     }
 
@@ -620,25 +625,32 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
-    // reopening before a background close finishes fails on the wallet keys file lock, so await any pending close
-    private void awaitPendingWalletClose(String path) {
-        if (path == null) return;
+    // reopening before a background close finishes fails on the wallet keys file lock, so await any pending close,
+    // returning false if the wallet is still closing after the timeout
+    private boolean awaitPendingWalletClose(String path) {
+        if (path == null) return true;
         Future<?> pendingClose = pendingWalletCloses.remove(path);
-        if (pendingClose == null || pendingClose.isDone()) return;
+        if (pendingClose == null || pendingClose.isDone()) return true;
         log.warn("Waiting for wallet to finish closing in background before opening, path={}", Utilities.redactSensitiveInfo(path));
         long startTime = System.currentTimeMillis();
         try {
             pendingClose.get(PENDING_CLOSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             log.info("Done waiting {} ms for wallet to close, path={}", System.currentTimeMillis() - startTime, Utilities.redactSensitiveInfo(path));
+            return true;
+        } catch (TimeoutException | InterruptedException e) {
+            log.warn("Wallet is still closing after waiting {} ms, path={}", System.currentTimeMillis() - startTime, Utilities.redactSensitiveInfo(path));
+            pendingWalletCloses.putIfAbsent(path, pendingClose); // keep awaiting the close before its files are reopened or replaced
+            return false;
         } catch (Exception e) {
             log.warn("Error waiting for wallet to finish closing, path={}: {}", Utilities.redactSensitiveInfo(path), e.getMessage());
+            return true; // the close finished with an error
         }
     }
 
     public void deleteWallet(String walletName) {
         assertNotPath(walletName);
         log.info("{}.deleteWallet({})", getClass().getSimpleName(), walletName);
-        awaitPendingWalletClose(getWalletPath(walletName)); // await any background force close before deleting files
+        if (!awaitPendingWalletClose(getWalletPath(walletName))) throw new IllegalStateException("Refusing to delete wallet because it is still closing: " + walletName);
         if (!walletExists(walletName)) throw new RuntimeException("Wallet does not exist at path: " + walletName);
         String path = walletDir.toString() + File.separator + walletName;
         String redactedPath = Utilities.redactSensitiveInfo(path);
@@ -647,9 +659,10 @@ public class XmrWalletService extends XmrWalletBase {
         if (!new File(path + ADDRESS_FILE_POSTFIX).delete() && !Config.baseCurrencyNetwork().isMainnet()) throw new RuntimeException("Failed to delete wallet address file: " + redactedPath + ADDRESS_FILE_POSTFIX); // mainnet does not have address file by default
     }
 
-    // returns false if backing up any existing wallet file failed
+    // returns false if backing up any existing wallet file failed or the wallet is still closing in the background
     public boolean backupWallet(String walletName) {
         assertNotPath(walletName);
+        if (!awaitPendingWalletClose(getWalletPath(walletName))) return false;
         boolean success = FileUtil.rollingBackup(walletDir, walletName, NUM_WALLET_BACKUPS);
         success &= FileUtil.rollingBackup(walletDir, walletName + KEYS_FILE_POSTFIX, NUM_WALLET_BACKUPS);
         success &= FileUtil.rollingBackup(walletDir, walletName + ADDRESS_FILE_POSTFIX, NUM_WALLET_BACKUPS);
@@ -1782,7 +1795,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private MoneroWalletFull createWalletFull(MoneroWalletConfig config, boolean applyProxyUri) {
-        awaitPendingWalletClose(config.getPath());
+        if (!awaitPendingWalletClose(config.getPath())) throw new IllegalStateException("Cannot create wallet '" + Utilities.redactSensitiveInfo(config.getPath()) + "' because it is still closing in the background");
 
         // must be connected to daemon
         if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) throw new RuntimeException("Must be connected to daemon before creating wallet");
@@ -1812,7 +1825,7 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private MoneroWalletFull openWalletFull(MoneroWalletConfig config, boolean applyProxyUri) {
-        awaitPendingWalletClose(config.getPath());
+        if (!awaitPendingWalletClose(config.getPath())) throw new IllegalStateException("Cannot open wallet '" + Utilities.redactSensitiveInfo(config.getPath()) + "' because it is still closing in the background");
         MoneroWalletFull walletFull = null;
         try {
 
