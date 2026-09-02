@@ -17,6 +17,7 @@
 
 package haveno.core.offer.placeoffer;
 
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -41,6 +42,7 @@ public class PlaceOfferProtocol {
 
     private final PlaceOfferModel model;
     private Timer timeoutTimer;
+    private int timeoutSeq; // identifies the current timer so one reset after firing is ignored
     private TransactionResultHandler resultHandler;
     private ErrorMessageHandler errorMessageHandler;
     private TaskRunner<PlaceOfferModel> taskRunner;
@@ -107,14 +109,14 @@ public class PlaceOfferProtocol {
             return;
         }
 
-        // ignore if timer already stopped
-        if (timeoutTimer == null) {
-            log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOpenOffer().getOffer().getId());
-            return;
+        // ignore the response if the protocol already completed or timed out, else reset timer
+        synchronized (this) {
+            if (timeoutTimer == null) {
+                log.warn("Ignoring sign offer response from arbitrator because timeout has expired for offer " + model.getOpenOffer().getOffer().getId());
+                return;
+            }
+            startTimeoutTimer();
         }
-
-        // reset timer
-        startTimeoutTimer();
 
         TaskRunner<PlaceOfferModel> taskRunner = new TaskRunner<>(model,
                 () -> {
@@ -145,8 +147,9 @@ public class PlaceOfferProtocol {
     public synchronized void startTimeoutTimer() {
         if (resultHandler == null) return;
         stopTimeoutTimer();
+        int seq = ++timeoutSeq;
         timeoutTimer = UserThread.runAfter(() -> {
-            handleError(Res.get("createOffer.timeoutAtPublishing"));
+            ThreadUtils.submitToPool(() -> handleError(Res.get("createOffer.timeoutAtPublishing"), seq)); // off the user thread since cancel handlers may block on the wallet lock
         }, TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS);
     }
 
@@ -157,21 +160,34 @@ public class PlaceOfferProtocol {
         }
     }
 
-    private synchronized void handleResult(Transaction transaction) {
-        resultHandler.handleResult(transaction);
-        resetHandlers();
+    // handlers are invoked outside the monitor, which tasks acquire to reset the timeout while holding the wallet lock
+    private void handleResult(Transaction transaction) {
+        TransactionResultHandler handler;
+        synchronized (this) {
+            handler = resultHandler;
+            resetHandlers();
+        }
+        if (handler != null) handler.handleResult(transaction);
     }
 
-    private synchronized void handleError(String errorMessage) {
-        if (errorMessageHandler != null) {
+    private void handleError(String errorMessage) {
+        handleError(errorMessage, null);
+    }
+
+    private void handleError(String errorMessage, Integer expectedTimeoutSeq) {
+        ErrorMessageHandler handler;
+        synchronized (this) {
+            if (expectedTimeoutSeq != null && (timeoutTimer == null || expectedTimeoutSeq != timeoutSeq)) return; // timer was stopped or reset after firing
+            handler = errorMessageHandler;
+            resetHandlers();
+            if (handler == null) return;
             if (taskRunner != null) taskRunner.cancel();
             if (!model.getOpenOffer().isCanceled()) {
                 model.getOpenOffer().getOffer().setErrorMessage(errorMessage);
             }
             stopTimeoutTimer();
-            errorMessageHandler.handleErrorMessage(errorMessage);
         }
-        resetHandlers();
+        handler.handleErrorMessage(errorMessage);
     }
 
     private synchronized void resetHandlers() {
