@@ -30,6 +30,8 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.common.util.ZipUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import java.io.File;
+import java.io.FilterInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.io.PipedInputStream;
@@ -37,6 +39,9 @@ import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.Getter;
@@ -74,6 +79,8 @@ public class CoreAccountService {
     @Getter
     @Nullable
     private LocalDate walletImportRestoreDate;
+
+    private final Object backupLock = new Object();
 
     @Inject
     public CoreAccountService(Config config,
@@ -171,48 +178,65 @@ public class CoreAccountService {
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
         if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
 
-        var accountWasOpen = isAccountOpen();
+        new Thread(() -> { // off the user thread, which must not block on flushing, closing wallets and the transfer
+            synchronized (backupLock) { // one backup at a time, since flushing, closing and reopening the account must not interleave
+                try {
+                    // flush all known persistence objects to disk before locking the keys: encrypted stores
+                    // skip writes while the key ring is locked, which would silently back up stale files
+                    CountDownLatch flushed = new CountDownLatch(1);
+                    PersistenceManager.flushAllDataToDiskAtBackup(flushed::countDown);
+                    if (!flushed.await(2, TimeUnit.MINUTES)) throw new IllegalStateException("Timed out waiting for persistence to flush before backup");
 
-        // flush all known persistence objects to disk before locking the keys: encrypted stores
-        // skip writes while the key ring is locked, which would silently back up stale files
-        PersistenceManager.flushAllDataToDiskAtBackup(() -> {
-            try {
-                // Needed to unlock haveno_XMR.keys
-                if (accountWasOpen)
-                    closeAccount();
+                    // Needed to unlock haveno_XMR.keys
+                    var accountWasOpen = isAccountOpen();
+                    if (accountWasOpen)
+                        closeAccount();
 
-                File dataDir = new File(config.appDataDir.getPath());
-                PipedInputStream in = new PipedInputStream(bufferSize); // pipe the serialized account object to stream which will be read by the consumer
-                PipedOutputStream out = new PipedOutputStream(in);
-                log.info("Zipping directory " + dataDir);
+                    File dataDir = new File(config.appDataDir.getPath());
+                    PipedInputStream pipe = new PipedInputStream(bufferSize); // pipe the serialized account object to stream which will be read by the consumer
+                    PipedOutputStream out = new PipedOutputStream(pipe);
+                    log.info("Zipping directory " + dataDir);
 
-                // exclude monero binaries from backup so they're reinstalled with permissions
-                List<File> excludedFiles = Arrays.asList(
-                        new File(XmrWalletService.getMoneroWalletRpcPath()),
-                        new File(XmrLocalNode.getMonerodPath())
-                );
+                    // exclude monero binaries from backup so they're reinstalled with permissions
+                    List<File> excludedFiles = Arrays.asList(
+                            new File(XmrWalletService.getMoneroWalletRpcPath()),
+                            new File(XmrLocalNode.getMonerodPath())
+                    );
 
-                new Thread(() -> {
-                    try {
-                        ZipUtils.zipDirToStream(dataDir, out, bufferSize, excludedFiles);
-                    } catch (Exception ex) {
-                        error.accept(ex);
-                    } finally {
-                        // reopen only once the zip has read its last file, not concurrently with it
-                        if (accountWasOpen) {
+                    Thread zipThread = new Thread(() -> {
+                        try {
+                            ZipUtils.zipDirToStream(dataDir, out, bufferSize, excludedFiles);
+                        } catch (Exception ex) {
+                            error.accept(ex);
+                        }
+                    });
+                    zipThread.start();
+
+                    // reopen the account when the consumer closes the stream, so completion is reported only once the account is usable
+                    AtomicBoolean reopened = new AtomicBoolean();
+                    InputStream in = new FilterInputStream(pipe) {
+                        @Override
+                        public void close() throws IOException {
+                            super.close(); // unblocks the zip thread if the consumer stopped reading early
+                            if (!reopened.compareAndSet(false, true)) return;
                             try {
-                                openAccount(password);
-                            } catch (Exception ex) {
-                                error.accept(ex);
+                                zipThread.join(); // reopen only once the zip has read its last file, not concurrently with it
+                                if (accountWasOpen) openAccount(password);
+                            } catch (Exception e) {
+                                throw new IOException("Failed to reopen account after backup", e);
                             }
                         }
+                    };
+                    try {
+                        consume.accept(in);
+                    } finally {
+                        in.close();
                     }
-                }).start();
-                consume.accept(in);
-            } catch (Exception err) {
-                error.accept(err);
+                } catch (Exception err) {
+                    error.accept(err);
+                }
             }
-        });
+        }, "BackupAccount").start();
     }
 
     public void restoreAccount(InputStream inputStream, int bufferSize, Runnable onShutdown) throws Exception {
