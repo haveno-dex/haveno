@@ -2944,7 +2944,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
      */
     public boolean isPayoutDeletable() {
         if (!isPayoutFinalized()) return false;
-        if (payoutHeight == null) return false;
+        if (payoutHeight == null) return true; // finalized before the height was recorded
         Long targetHeight = xmrConnectionService.getTargetHeight();
         if (targetHeight == null) return false;
         long currentHeight = targetHeight - 1;
