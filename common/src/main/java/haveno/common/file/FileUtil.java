@@ -143,29 +143,26 @@ public class FileUtil {
         deleteDirectory(file, null, true);
     }
 
-    public static void deleteDirectory(File file,
-                                       @Nullable File exclude,
-                                       boolean ignoreLockedFiles) throws IOException {
-        boolean excludeFileFound = false;
+    // Returns false if the file was kept because it is the excluded file or contains it.
+    public static boolean deleteDirectory(File file,
+                                          @Nullable File exclude,
+                                          boolean ignoreLockedFiles) throws IOException {
+        if (exclude != null && file.getAbsolutePath().equals(exclude.getAbsolutePath())) return false;
+        boolean keep = false;
         if (file.isDirectory()) {
             File[] files = file.listFiles();
             if (files != null)
-                for (File f : files) {
-                    boolean excludeFileFoundLocal = exclude != null && f.getAbsolutePath().equals(exclude.getAbsolutePath());
-                    excludeFileFound |= excludeFileFoundLocal;
-                    if (!excludeFileFoundLocal)
-                        deleteDirectory(f, exclude, ignoreLockedFiles);
-                }
+                for (File f : files)
+                    keep |= !deleteDirectory(f, exclude, ignoreLockedFiles);
         }
-        // Finally delete main file/dir if exclude file was not found in directory
-        if (!excludeFileFound && !(exclude != null && file.getAbsolutePath().equals(exclude.getAbsolutePath()))) {
-            try {
-                deleteFileIfExists(file, ignoreLockedFiles);
-            } catch (Throwable t) {
-                log.error("Could not delete file. Error=" + t.toString());
-                throw new IOException(t);
-            }
+        if (keep) return false;
+        try {
+            deleteFileIfExists(file, ignoreLockedFiles);
+        } catch (Throwable t) {
+            log.error("Could not delete file. Error=" + t.toString());
+            throw new IOException(t);
         }
+        return true;
     }
 
     public static void deleteFileIfExists(File file) throws IOException {

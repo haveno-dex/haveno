@@ -39,6 +39,12 @@ public abstract class TorMode {
      */
     protected static final String HIDDEN_SERVICE_DIRECTORY = "hiddenservice";
 
+    /**
+     * Name of the hidden service publishing the api. Its keys identify the
+     * installation, so they are kept across account backup and delete.
+     */
+    public static final String API_HIDDEN_SERVICE_NAME = "api";
+
     protected final File torDir;
 
     /**
@@ -72,6 +78,18 @@ public abstract class TorMode {
      *         mode
      */
     public abstract String getHiddenServiceDirectory();
+
+    /**
+     * Returns the directory of an additional hidden service with the given name,
+     * following the same convention as {@link #getHiddenServiceDirectory()}.
+     */
+    public String getHiddenServiceDirectory(String name) {
+        return new File(getHiddenServiceDirectory(), name).getAbsolutePath();
+    }
+
+    public static File getApiHiddenServiceDir(File torDir) {
+        return new File(new File(torDir, HIDDEN_SERVICE_DIRECTORY), API_HIDDEN_SERVICE_NAME);
+    }
 
     /**
      * Do a rolling backup of the "private_key" file.

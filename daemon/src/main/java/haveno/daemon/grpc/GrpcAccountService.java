@@ -174,11 +174,10 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void deleteAccount(DeleteAccountRequest req, StreamObserver<DeleteAccountReply> responseObserver) {
         try {
-            coreApi.deleteAccount(() -> {
-                var reply = DeleteAccountReply.newBuilder().build();
-                responseObserver.onNext(reply);
-                responseObserver.onCompleted(); // reply after shutdown
-            });
+            coreApi.deleteAccount(null);
+            var reply = DeleteAccountReply.newBuilder().build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted(); // reply before the restart so it reaches remote clients before tor shuts down
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
@@ -226,11 +225,7 @@ public class GrpcAccountService extends AccountImplBase {
             // Restore the account directly from the zip stream.
             if (!req.getHasMore() && req.getOffset() == 0) {
                 var inputStream = req.getZipBytes().newInput();
-                coreApi.restoreAccount(inputStream, 1024 * 64, () -> {
-                    var reply = RestoreAccountReply.newBuilder().build();
-                    responseObserver.onNext(reply);
-                    responseObserver.onCompleted();  // reply after shutdown
-                });
+                coreApi.restoreAccount(inputStream, 1024 * 64, null);
             } else {
                 if (req.getOffset() == 0) {
                     log.info("RestoreAccount starting new chunked zip");
@@ -240,26 +235,23 @@ public class GrpcAccountService extends AccountImplBase {
                     log.warn("Stream offset doesn't match current position");
                     IllegalStateException cause = new IllegalStateException("Stream offset doesn't match current position");
                     exceptionHandler.handleException(log, cause, responseObserver);
-                } else {
-                    log.info("RestoreAccount writing chunk size " + req.getZipBytes().size());
-                    req.getZipBytes().writeTo(restoreStream);
+                    return;
                 }
+                log.info("RestoreAccount writing chunk size " + req.getZipBytes().size());
+                req.getZipBytes().writeTo(restoreStream);
 
                 if (!req.getHasMore()) {
                     var inputStream = new ByteArrayInputStream(restoreStream.toByteArray());
                     restoreStream.close();
                     restoreStream = null;
-                    coreApi.restoreAccount(inputStream, 1024 * 64, () -> {
-                        var reply = RestoreAccountReply.newBuilder().build();
-                        responseObserver.onNext(reply);
-                        responseObserver.onCompleted(); // reply after shutdown
-                    });
-                } else {
-                    var reply = RestoreAccountReply.newBuilder().build();
-                    responseObserver.onNext(reply);
-                    responseObserver.onCompleted();
+                    coreApi.restoreAccount(inputStream, 1024 * 64, null);
                 }
             }
+
+            // reply before the restart so it reaches remote clients before tor shuts down
+            var reply = RestoreAccountReply.newBuilder().build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
         } catch (Throwable cause) {
             exceptionHandler.handleException(log, cause, responseObserver);
         }
