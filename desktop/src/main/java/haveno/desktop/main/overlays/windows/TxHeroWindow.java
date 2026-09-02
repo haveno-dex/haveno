@@ -265,14 +265,16 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
 
     private void startConfidenceUpdates() {
         if (xmrWalletService == null) return;
-        walletListener = new MoneroWalletListener() {
+        stopConfidenceUpdates(); // content can be rebuilt before the window is hidden
+        MoneroWalletListener listener = new MoneroWalletListener() {
             @Override
             public void onNewBlock(long height) {
-                updateConfidence(false);
+                updateConfidence(false, this);
             }
         };
-        xmrWalletService.addWalletListener(walletListener);
-        new Thread(() -> updateConfidence(true)).start();
+        walletListener = listener;
+        xmrWalletService.addWalletListener(listener);
+        new Thread(() -> updateConfidence(true, listener)).start();
     }
 
     private void stopConfidenceUpdates() {
@@ -282,7 +284,7 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         }
     }
 
-    private void updateConfidence(boolean useCache) {
+    private void updateConfidence(boolean useCache, MoneroWalletListener listener) {
         MoneroTx tx = null;
         try {
             tx = useCache ? xmrWalletService.getXmrConnectionService().getTxWithCache(confidenceTxId) : xmrWalletService.getXmrConnectionService().getTx(confidenceTxId);
@@ -294,6 +296,7 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         }
         MoneroTx finalTx = tx;
         UserThread.execute(() -> {
+            if (walletListener != listener) return; // superseded by rebuilt content or hidden
             GUIUtil.updateConfidence(finalTx, confidenceTooltip, confidenceIndicator);
             if (confidenceIndicator.getProgress() >= 1.0) stopConfidenceUpdates();
         });
