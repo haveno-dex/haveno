@@ -34,6 +34,12 @@ import java.time.LocalDate;
  */
 @Slf4j
 public class SharedPresentation {
+
+    // collapse whitespace so seeds pasted with line breaks or double spaces validate
+    public static String normalizeSeedWords(String seedWords) {
+        return seedWords == null ? "" : seedWords.trim().replaceAll("\\s+", " ");
+    }
+
     public static void restoreSeedWords(XmrWalletService xmrWalletService,
                                         OpenOfferManager openOfferManager,
                                         String seedWords,

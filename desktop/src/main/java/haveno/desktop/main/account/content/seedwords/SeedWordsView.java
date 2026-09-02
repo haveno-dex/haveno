@@ -260,18 +260,19 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
     private void validateSeedWords(String oldValue, String seedWords) {
         if (seedValidationTimer != null) seedValidationTimer.stop();
         seedWordsTextArea.getStyleClass().remove("validation-error");
-        if (!hasValidWordCount(seedWords)) {
+        String seed = SharedPresentation.normalizeSeedWords(seedWords);
+        if (!hasValidWordCount(seed)) {
             seedWordsValid.set(false);
             return;
         }
-        if (seedWords.trim().equals(validatedSeed)) {
+        if (seed.equals(validatedSeed)) {
             applySeedValidity(validatedSeedValid);
             return;
         }
         Runnable validation = () -> new Thread(() -> {
-            boolean valid = isSeedValid(seedWords.trim());
+            boolean valid = isSeedValid(seed);
             UserThread.execute(() -> {
-                validatedSeed = seedWords.trim();
+                validatedSeed = seed;
                 validatedSeedValid = valid;
                 if (seedWords.equals(seedWordsTextArea.getText())) applySeedValidity(valid);
             });
@@ -356,6 +357,6 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
     }
 
     private void doRestore(Long restoreHeight, LocalDate restoreDate) {
-        SharedPresentation.restoreSeedWords(xmrWalletService, openOfferManager, seedWordsTextArea.getText().trim(), restoreHeight, restoreDate);
+        SharedPresentation.restoreSeedWords(xmrWalletService, openOfferManager, SharedPresentation.normalizeSeedWords(seedWordsTextArea.getText()), restoreHeight, restoreDate);
     }
 }
