@@ -40,10 +40,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -66,7 +69,12 @@ public class TradeStatisticsManager {
     private final List<TradeStatistics3> pendingTradeStatistics = new ArrayList<>();
     // Early trades are accumulated raw and deduplicated deterministically; recent trades dedup by value so re-delivered payloads are dropped.
     private final Set<TradeStatistics3> earlyTradeStatistics = new HashSet<>();
+    // Early trades kept after deduplication, by payment method and currency then date, since duplicates share all three.
+    private final Map<String, Map<Long, TradeStatistics3>> earlyTradeStatisticsDeduplicated = new HashMap<>();
+    // Kept early trades subject to fuzzy deduplication, additionally by price then date, since fuzzy duplicates share the price within a day.
+    private final Map<String, TreeMap<Long, TradeStatistics3>> earlyFuzzyTradeStatistics = new HashMap<>();
     private final Set<TradeStatistics3> recentTradeStatistics = new LinkedHashSet<>();
+    private boolean earlyTradeStatisticsCapped;
     private final AtomicBoolean flushPendingScheduled = new AtomicBoolean();
     private volatile boolean shutDownRequested;
     public static final int PUBLISH_STATS_RANDOM_DELAY_HOURS = 24;
@@ -75,7 +83,9 @@ public class TradeStatisticsManager {
     // Legacy publishing bugs duplicated early trades; stats before these dates are deduplicated.
     private static final Instant EARLY_DUPLICATE_DATE = Instant.parse("2024-09-30T00:00:00Z");
     private static final Instant EARLY_FUZZY_DUPLICATE_DATE = Instant.parse("2024-08-07T00:00:00Z");
-    // Canonical order so the greedy dedup keeps the same representatives regardless of arrival order.
+    private static final int MAX_EARLY_TRADE_STATISTICS = 50000; // early trades are a fixed history, so more indicates a flood
+    // Canonical order so the greedy dedup keeps the same representatives regardless of arrival order within a batch,
+    // which covers the persisted early trades loaded at startup.
     private static final Comparator<TradeStatistics3> EARLY_TRADE_ORDER =
             Comparator.comparingLong(TradeStatistics3::getDateAsLong).thenComparing(TradeStatistics3::getHash, Arrays::compare);
 
@@ -159,17 +169,24 @@ public class TradeStatisticsManager {
     private void addTradeStatistics(Collection<TradeStatistics3> tradeStatistics) {
         List<TradeStatistics3> applied = new ArrayList<>();
         synchronized (observableTradeStatisticsList) {
+            List<TradeStatistics3> addedEarly = new ArrayList<>();
             List<TradeStatistics3> addedRecent = new ArrayList<>();
-            boolean earlyChanged = false;
             for (TradeStatistics3 tradeStatistic : tradeStatistics) {
                 if (isEarlyTrade(tradeStatistic)) {
-                    earlyChanged |= earlyTradeStatistics.add(tradeStatistic);
+                    if (earlyTradeStatistics.size() >= MAX_EARLY_TRADE_STATISTICS) {
+                        if (!earlyTradeStatisticsCapped) log.warn("Ignoring early trade statistics beyond {}", MAX_EARLY_TRADE_STATISTICS);
+                        earlyTradeStatisticsCapped = true;
+                    } else if (earlyTradeStatistics.add(tradeStatistic)) {
+                        addedEarly.add(tradeStatistic);
+                    }
                 } else if (recentTradeStatistics.add(tradeStatistic)) {
                     addedRecent.add(tradeStatistic);
                 }
             }
-            if (earlyChanged) {
-                applied.addAll(deduplicateEarlyTradeStatistics());
+            if (!addedEarly.isEmpty()) {
+                deduplicateEarlyTradeStatistics(addedEarly);
+                earlyTradeStatisticsDeduplicated.values().forEach(kept -> applied.addAll(kept.values()));
+                applied.sort(EARLY_TRADE_ORDER);
                 applied.addAll(recentTradeStatistics);
                 observableTradeStatisticsList.setAll(applied);
             } else {
@@ -180,23 +197,23 @@ public class TradeStatisticsManager {
         priceFeedService.applyLatestHavenoMarketPrice(applied);
     }
 
-    private List<TradeStatistics3> deduplicateEarlyTradeStatistics() {
-        List<TradeStatistics3> sorted = new ArrayList<>(earlyTradeStatistics);
-        sorted.sort(EARLY_TRADE_ORDER);
-        List<TradeStatistics3> deduplicated = new ArrayList<>();
-        for (TradeStatistics3 candidate : sorted) {
-            boolean checkFuzzy = isEarlyFuzzyTrade(candidate);
-            boolean duplicate = false;
-            for (TradeStatistics3 kept : deduplicated) {
-                if (isDuplicate(candidate, kept) ||
-                        (checkFuzzy && isEarlyFuzzyTrade(kept) && isFuzzyDuplicate(candidate, kept))) {
-                    duplicate = true;
-                    break;
-                }
+    // Deduplicates the added early trades against those already kept, looking up exact duplicates by date and fuzzy
+    // duplicates within the fuzzed date window of the same price, so the work is bounded by the trades which can match.
+    private void deduplicateEarlyTradeStatistics(List<TradeStatistics3> added) {
+        added.sort(EARLY_TRADE_ORDER);
+        long fuzzDateMs = TimeUnit.HOURS.toMillis(FUZZ_DATE_HOURS);
+        for (TradeStatistics3 candidate : added) {
+            String key = candidate.getPaymentMethodId() + "/" + candidate.getCurrency();
+            long date = candidate.getDateAsLong();
+            Map<Long, TradeStatistics3> kept = earlyTradeStatisticsDeduplicated.computeIfAbsent(key, k -> new HashMap<>());
+            if (kept.containsKey(date)) continue;
+            if (isEarlyFuzzyTrade(candidate)) {
+                TreeMap<Long, TradeStatistics3> keptFuzzy = earlyFuzzyTradeStatistics.computeIfAbsent(key + "/" + candidate.getNormalizedPrice(), k -> new TreeMap<>());
+                if (keptFuzzy.subMap(date - fuzzDateMs, true, date + fuzzDateMs, true).values().stream().anyMatch(keptStatistic -> isFuzzyDuplicate(candidate, keptStatistic))) continue;
+                keptFuzzy.put(date, candidate);
             }
-            if (!duplicate) deduplicated.add(candidate);
+            kept.put(date, candidate);
         }
-        return deduplicated;
     }
 
     private boolean isEarlyTrade(TradeStatistics3 tradeStatistics) {
@@ -205,13 +222,6 @@ public class TradeStatisticsManager {
 
     private boolean isEarlyFuzzyTrade(TradeStatistics3 tradeStatistics) {
         return tradeStatistics.getDate().toInstant().isBefore(EARLY_FUZZY_DUPLICATE_DATE);
-    }
-
-    // duplicated timestamp, currency, and payment method
-    private boolean isDuplicate(TradeStatistics3 tradeStatistics1, TradeStatistics3 tradeStatistics2) {
-        if (!tradeStatistics1.getPaymentMethodId().equals(tradeStatistics2.getPaymentMethodId())) return false;
-        if (!tradeStatistics1.getCurrency().equals(tradeStatistics2.getCurrency())) return false;
-        return tradeStatistics1.getDateAsLong() == tradeStatistics2.getDateAsLong();
     }
 
     // duplicated payment method, currency, price, and a fuzzily matching date/amount
