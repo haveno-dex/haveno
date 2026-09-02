@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
@@ -412,10 +413,7 @@ public class XmrWalletService extends XmrWalletBase {
         deleteWalletFiles(walletName); // remove stale files from any previous validation
         MoneroWalletRpc walletRpc = startWalletRpcInstance(null, null);
         try {
-            walletRpc.createWallet(new MoneroWalletConfig()
-                    .setPath(walletName)
-                    .setPassword(MONERO_WALLET_RPC_DEFAULT_PASSWORD)
-                    .setSeed(seed));
+            walletRpc.createWallet(getWalletConfig(walletName).setSeed(seed).setPassword(UUID.randomUUID().toString())); // never reopened, so leftover files after a crash stay unreadable
             return true;
         } catch (MoneroError e) {
             log.info("Seed failed validation: {}", e.getMessage());
