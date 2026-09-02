@@ -70,6 +70,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GrpcAccountService extends AccountImplBase {
 
+    // Hard cap on a single restore-account payload. The wire-level gRPC message
+    // size defaults to 4 MiB, but the chunked upload aggregates many messages
+    // into one in-memory buffer, so we cap the assembled buffer independently
+    // and at a value well above any plausible backup size (real backups are
+    // tens of MiB) to prevent a single RestoreAccount call from reserving
+    // multi-GB heap before any byte is read.
+    private static final int MAX_RESTORE_ACCOUNT_BYTES = 256 * 1024 * 1024;
+
     private final CoreApi coreApi;
     private final GrpcExceptionHandler exceptionHandler;
 
@@ -225,6 +233,17 @@ public class GrpcAccountService extends AccountImplBase {
             // If the entire zip is in memory, no need to write to disk.
             // Restore the account directly from the zip stream.
             if (!req.getHasMore() && req.getOffset() == 0) {
+                // Reject oversized single-message restores before we hand the
+                // bytes to the unzip path. gRPC's default inbound message cap
+                // is 4 MiB so a single !hasMore restore above that is already
+                // misconfigured; an attacker who has bumped the server cap
+                // would otherwise be able to allocate arbitrary heap here.
+                int singleSize = req.getZipBytes().size();
+                if (singleSize > MAX_RESTORE_ACCOUNT_BYTES) {
+                    throw new IllegalArgumentException(
+                            "RestoreAccount payload too large: " + singleSize
+                                    + " > " + MAX_RESTORE_ACCOUNT_BYTES);
+                }
                 var inputStream = req.getZipBytes().newInput();
                 coreApi.restoreAccount(inputStream, 1024 * 64, () -> {
                     var reply = RestoreAccountReply.newBuilder().build();
@@ -233,14 +252,31 @@ public class GrpcAccountService extends AccountImplBase {
                 });
             } else {
                 if (req.getOffset() == 0) {
+                    // totalLength comes from the client and is uint64; cap it
+                    // before casting to int and pre-allocating the buffer, so
+                    // a malicious client can't reserve multi-GB heap on a
+                    // single call.
+                    long totalLength = req.getTotalLength();
+                    if (totalLength <= 0 || totalLength > MAX_RESTORE_ACCOUNT_BYTES) {
+                        throw new IllegalArgumentException(
+                                "RestoreAccount totalLength out of range: " + totalLength
+                                        + " (max " + MAX_RESTORE_ACCOUNT_BYTES + ")");
+                    }
                     log.info("RestoreAccount starting new chunked zip");
-                    restoreStream = new ByteArrayOutputStream((int) req.getTotalLength());
+                    restoreStream = new ByteArrayOutputStream((int) totalLength);
                 }
                 if (restoreStream.size() != req.getOffset()) {
                     log.warn("Stream offset doesn't match current position");
                     IllegalStateException cause = new IllegalStateException("Stream offset doesn't match current position");
                     exceptionHandler.handleException(log, cause, responseObserver);
                 } else {
+                    // Enforce the cap on every appended chunk too: a client
+                    // could lie about totalLength=1, then send enough chunks
+                    // to push the assembled buffer past the cap.
+                    if (restoreStream.size() + req.getZipBytes().size() > MAX_RESTORE_ACCOUNT_BYTES) {
+                        throw new IllegalArgumentException(
+                                "RestoreAccount assembled payload exceeds " + MAX_RESTORE_ACCOUNT_BYTES + " bytes");
+                    }
                     log.info("RestoreAccount writing chunk size " + req.getZipBytes().size());
                     req.getZipBytes().writeTo(restoreStream);
                 }
