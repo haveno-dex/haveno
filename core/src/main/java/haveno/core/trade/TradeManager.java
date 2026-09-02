@@ -305,6 +305,15 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onAllServicesInitialized() {
+
+        // restore reserved state of offers with open trades or failed trades pending cleanup, since reserved state resets when read from disk
+        for (Trade trade : getOpenTrades()) {
+            openOfferManager.restoreReservedState(trade.getId());
+        }
+        for (Trade trade : getFailedScheduledTrades()) {
+            openOfferManager.restoreReservedState(trade.getId());
+        }
+
         if (p2PService.isBootstrapped()) {
             initTrades();
         } else {
@@ -581,6 +590,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 // initialize trade
                 initTrade(trade);
 
+                // close open offer if shut down after deposits published but before closing it
+                if (trade instanceof MakerTrade && trade.isDepositsPublished()) openOfferManager.closeSpentOffer(trade.getOffer());
+
                 // record if protocol didn't initialize, except closed trades, which are terminal
                 if (!trade.isDepositsPublished() && !closedTradableManager.getClosedTrades().contains(trade)) {
                     synchronized (uninitializedTrades) {
@@ -720,12 +732,16 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
   
-            // reserve open offer
-            openOfferManager.reserveOpenOffer(openOffer);
-
             // verify maker and taker pubKeyRings are different
             if (offer.getPubKeyRing().equals(request.getTakerPubKeyRing())) {
                 log.warn("Ignoring InitTradeRequest to maker because maker and taker pubKeyRings are the same, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
+
+            // reserve open offer
+            if (!openOfferManager.reserveOpenOffer(openOffer)) {
+                log.warn("Rejecting InitTradeRequest to maker because offer could not be reserved, offerId={}, sender={}", request.getOfferId(), sender);
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " is already taken or unavailable", null);
                 return;
             }
 
@@ -765,9 +781,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
             trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
             trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
-            initTradeAndProtocol(trade, createTradeProtocol(trade));
+            try {
+                initTradeAndProtocol(trade, createTradeProtocol(trade));
+            } catch (Exception e) {
+                log.warn("Error initializing maker trade, unreserving offer, tradeId={}, sender={}: {}", request.getOfferId(), sender, e.getMessage(), e);
+                shutDownSupersededTrade(trade);
+                openOfferManager.unreserveOpenOffer(openOffer);
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "Error initializing trade: " + e.getMessage(), null);
+                return;
+            }
             addTrade(trade);
-  
+
             // process with protocol
             ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
                 log.warn("Maker error during trade initialization: " + errorMessage);
@@ -1207,26 +1231,31 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         for (Trade priorFailed : failedTradesManager.getTradesById(tradeId)) {
             if (priorFailed.isShutDown() || priorFailed.isSuperseded()) continue; // already handled by a prior attempt
             log.warn("Shutting down prior failed {} {} because a new trade is being created for the same id", priorFailed.getClass().getSimpleName(), priorFailed.getShortId());
-            priorFailed.onSuperseded(); // keeps the shared trade-id executors for the new trade
-            ThreadUtils.submitToPool(() -> {
-
-                // complete scheduled error cleanup early so the wallet is deleted and not re-initialized on restart
-                try {
-                    priorFailed.maybeCompleteProtocolErrorCleanup();
-                } catch (Exception e) {
-                    log.warn("Error cleaning up prior failed {} {}: {}", priorFailed.getClass().getSimpleName(), priorFailed.getShortId(), e.getMessage(), e);
-                }
-
-                // shut down trade
-                try {
-                    priorFailed.shutDown();
-                } catch (Exception e) {
-                    log.warn("Error shutting down prior failed {} {}: {}", priorFailed.getClass().getSimpleName(), priorFailed.getShortId(), e.getMessage(), e);
-                } finally {
-                    unregisterTradeProtocol(priorFailed);
-                }
-            });
+            shutDownSupersededTrade(priorFailed);
         }
+    }
+
+    // stop the trade from processing messages for a new trade with the same id, then shut it down off thread
+    private void shutDownSupersededTrade(Trade trade) {
+        trade.onSuperseded(); // keeps the shared trade-id executors for the new trade
+        ThreadUtils.submitToPool(() -> {
+
+            // complete scheduled error cleanup early so the wallet is deleted and not re-initialized on restart
+            try {
+                trade.maybeCompleteProtocolErrorCleanup();
+            } catch (Exception e) {
+                log.warn("Error cleaning up superseded {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), e.getMessage(), e);
+            }
+
+            // shut down trade
+            try {
+                trade.shutDown();
+            } catch (Exception e) {
+                log.warn("Error shutting down superseded {} {}: {}", trade.getClass().getSimpleName(), trade.getShortId(), e.getMessage(), e);
+            } finally {
+                unregisterTradeProtocol(trade);
+            }
+        });
     }
 
     // remove an open unfunded trade so a new trade can be created for the same id
@@ -1462,8 +1491,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         return hasOpenTrade(trade) || failedTradesManager.getObservableList().contains(trade);
     }
 
+    // failed trades with cleanup scheduled, excluding stale schedules whose wallet was deleted before the cleared schedule was persisted
+    public List<Trade> getFailedScheduledTrades() {
+        return failedTradesManager.getTrades().stream().filter(trade -> trade.isProtocolErrorHandlingScheduled() && trade.walletExistsNoSync()).collect(Collectors.toList()); // no wallet lock, since callers hold the open offers lock
+    }
+
     public boolean hasFailedScheduledTrade(String offerId) {
-        return failedTradesManager.getTradesById(offerId).stream().anyMatch(Trade::isProtocolErrorHandlingScheduled);
+        return getFailedScheduledTrades().stream().anyMatch(trade -> trade.getId().equals(offerId));
     }
 
     public Optional<Trade> getOpenTradeByUid(String tradeUid) {

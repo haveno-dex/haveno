@@ -951,6 +951,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // handle nack of InitTradeRequest from arbitrator to maker
         if (!ackMessage.isSuccess() && trade.isMaker() && verifiedPeer == trade.getArbitrator() && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
+            // the maker's request to the arbitrator reuses the taker's request uid, which is only current while awaiting the arbitrator's response
+            if (!(processModel.getTradeMessage() instanceof InitTradeRequest) || (ackMessage.getSourceUid() != null && !ackMessage.getSourceUid().equals(processModel.getTradeMessage().getUid()))) {
+                log.warn("Ignoring InitTradeRequest NACK from arbitrator for {} {} because it is not for the pending request, messageUid={}", trade.getClass().getSimpleName(), trade.getId(), ackMessage.getSourceUid());
+                return;
+            }
             if (ignoreInitTradeRequestNackFromArbitrator(ackMessage)) {
                 log.warn("Ignoring InitTradeRequest NACK from arbitrator, offerId={}, errorMessage={}", processModel.getOfferId(), ackMessage.getErrorMessage());
                 // use default postprocessing
@@ -1159,7 +1164,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         String warningMessage = "Your offer (" + trade.getOffer().getShortId() + ") has been removed because there was a problem taking the trade.\n\nError message: " + ackMessage.getErrorMessage();
         OpenOffer openOffer = HavenoUtils.openOfferManager.getOpenOffer(trade.getId()).orElse(null);
         if (openOffer != null) {
-            HavenoUtils.openOfferManager.removeOpenOffer(openOffer, null, null);
+            if (openOffer.isReserved() && processModel.getTradeManager().getOpenTrade(trade.getId()).orElse(null) != trade) { // stale nack, e.g. delivered by mailbox after this trade failed
+                log.warn("Not removing offer {} on 2nd InitTradeRequest NACK because it is reserved for a newer trade", trade.getOffer().getShortId());
+                return;
+            }
+            HavenoUtils.openOfferManager.forceRemoveOpenOffer(openOffer); // offer is reserved for the failing trade
             HavenoUtils.setTopError(warningMessage);
         }
         log.warn(warningMessage);

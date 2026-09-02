@@ -360,8 +360,8 @@ public class PriceFeedService {
                             0,
                             false));
                 }
-                updateCounter.set(updateCounter.get() + 1);
             }
+            updateCounter.set(updateCounter.get() + 1); // notify listeners without holding the cache lock
         });
     }
 

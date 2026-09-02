@@ -49,7 +49,9 @@ public class MaybeAddToOfferBook extends Task<PlaceOfferModel> {
             if (model.getOpenOffer().isPending() || model.getOpenOffer().isAvailable()) {
                 model.getOfferBookService().addOffer(new Offer(model.getSignOfferResponse().getSignedOfferPayload()),
                         () -> {
-                            model.getOpenOffer().setState(OpenOffer.State.AVAILABLE);
+                            synchronized (model.getOpenOfferManager().getObservableList()) { // skip if canceled or reserved while adding off thread
+                                if (model.getOpenOffer().isPending()) model.getOpenOffer().setState(OpenOffer.State.AVAILABLE);
+                            }
                             model.setOfferAddedToOfferBook(true);
                             complete();
                         },
