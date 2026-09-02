@@ -33,6 +33,7 @@ import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.offer.OpenOffer;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.MakerTrade;
@@ -689,20 +690,31 @@ public class XmrWalletService extends XmrWalletBase {
     public void fixReservedOutputs() {
         synchronized (walletLock) {
 
-            // collect reserved outputs
-            Set<String> reservedKeyImages = new HashSet<String>();
-            for (Trade trade : HavenoUtils.tradeManager.getOpenTrades()) {
-                if (trade.getSelf().getReserveTxKeyImages() == null) continue;
-                reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
-            }
-            for (OpenOffer openOffer : HavenoUtils.tradeManager.getOpenOfferManager().getOpenOffers()) {
-                if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
-                reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
-            }
+            // collect reserved outputs including split outputs awaiting reserve txs
+            OpenOfferManager openOfferManager = HavenoUtils.tradeManager.getOpenOfferManager();
+            List<OpenOffer> openOffers = openOfferManager.getOpenOffers();
+            Set<String> reservedKeyImages = getReservedKeyImages(openOffers);
+            for (OpenOffer openOffer : openOffers) reservedKeyImages.addAll(openOfferManager.getSplitOutputKeyImages(openOffer));
 
             freezeReservedOutputs(reservedKeyImages);
             thawUnreservedOutputs(reservedKeyImages);
         }
+    }
+
+    /**
+     * Get the key images of reserve and deposit tx inputs of open trades and the given open offers.
+     */
+    public Set<String> getReservedKeyImages(List<OpenOffer> openOffers) {
+        Set<String> reservedKeyImages = new HashSet<String>();
+        for (Trade trade : HavenoUtils.tradeManager.getOpenTrades()) {
+            if (trade.getSelf().getReserveTxKeyImages() == null) continue;
+            reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
+        }
+        for (OpenOffer openOffer : openOffers) {
+            if (openOffer.getOffer().getOfferPayload().getReserveTxKeyImages() == null) continue;
+            reservedKeyImages.addAll(openOffer.getOffer().getOfferPayload().getReserveTxKeyImages());
+        }
+        return reservedKeyImages;
     }
 
     private void freezeReservedOutputs(Set<String> reservedKeyImages) {
@@ -767,6 +779,7 @@ public class XmrWalletService extends XmrWalletBase {
                     .map(output -> output.getKeyImage().getHex())
                     .collect(Collectors.toList());
             unfrozenKeyImages.retainAll(keyImages);
+            if (unfrozenKeyImages.isEmpty()) return;
 
             // freeze outputs
             for (String keyImage : unfrozenKeyImages) getInitializedWallet().freezeOutput(keyImage);
@@ -790,6 +803,7 @@ public class XmrWalletService extends XmrWalletBase {
                     .map(output -> output.getKeyImage().getHex())
                     .collect(Collectors.toList());
             frozenKeyImages.retainAll(keyImages);
+            if (frozenKeyImages.isEmpty()) return;
 
             // thaw outputs
             for (String keyImage : frozenKeyImages) getInitializedWallet().thawOutput(keyImage);
