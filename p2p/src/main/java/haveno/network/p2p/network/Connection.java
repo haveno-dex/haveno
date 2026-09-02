@@ -65,6 +65,7 @@ import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.messages.RefreshOfferMessage;
 import haveno.network.p2p.storage.messages.RemoveDataMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.utils.EventThrottler;
 import haveno.network.utils.LeakyBucket;
@@ -920,6 +921,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     Thread.currentThread().setName("InputHandler-" + Utilities.toTruncatedString(getPeersNodeAddressOptional().get().getFullAddress(), 15));
                     threadNameSet = true;
                 }
+                protobuf.NetworkEnvelope proto = null;
                 try {
                     if (socket != null &&
                             socket.isClosed()) {
@@ -929,7 +931,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     }
 
                     // Blocking read from the inputStream
-                    protobuf.NetworkEnvelope proto = protobuf.NetworkEnvelope.parseDelimitedFrom(protoInputStream);
+                    proto = protobuf.NetworkEnvelope.parseDelimitedFrom(protoInputStream);
 
                     long ts = System.currentTimeMillis();
 
@@ -971,13 +973,14 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         Thread.sleep(20);
                     }
 
-                    NetworkEnvelope networkEnvelope = networkProtoResolver.fromProto(proto);
                     lastReadTimeStamp = now;
-                    log.debug("<< Received networkEnvelope of type: {}", networkEnvelope.getClass().getSimpleName());
                     int size = proto.getSerializedSize();
 
                     // We want to track the size of each object even if it is invalid data
                     statistic.addReceivedBytes(size);
+
+                    NetworkEnvelope networkEnvelope = networkProtoResolver.fromProto(proto);
+                    log.debug("<< Received networkEnvelope of type: {}", networkEnvelope.getClass().getSimpleName());
 
                     // We want to track the network_messages also before the checks, so do it early...
                     statistic.addReceivedMessage(networkEnvelope);
@@ -1056,6 +1059,15 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     }
                 } catch (InvalidClassException e) {
                     reportInvalidRequest(RuleViolation.INVALID_CLASS, e.getMessage());
+                } catch (InvalidPersistableNetworkPayloadException e) {
+                    // apply the standard size limit first, since an oversized message is never an honest version disagreement
+                    if (proto != null && proto.getSerializedSize() > PERMITTED_MESSAGE_SIZE && reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, "size > MAX_MSG_SIZE. size=" + proto.getSerializedSize() + "; " + e.getMessage()))
+                        return;
+                    // drop with high tolerance since honest peers can disagree on payload validity across versions
+                    if (reportInvalidRequest(RuleViolation.INVALID_PERSISTABLE_PAYLOAD, e.getMessage()))
+                        return;
+                    if (violatesThrottleLimit() && reportInvalidRequest(RuleViolation.THROTTLE_LIMIT_EXCEEDED, "Violates throttle limit"))
+                        return;
                 } catch (ProtobufferException | NoClassDefFoundError | InvalidProtocolBufferException e) {
                     reportInvalidRequest(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
                 } catch (Throwable t) {

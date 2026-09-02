@@ -25,6 +25,7 @@ import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
@@ -78,7 +79,7 @@ public final class BundleOfEnvelopes extends BroadcastMessage implements Extende
                 .map(envelope -> {
                     try {
                         return resolver.fromProto(envelope);
-                    } catch (ProtobufferException e) {
+                    } catch (ProtobufferException | InvalidPersistableNetworkPayloadException e) {
                         return null;
                     }
                 })
