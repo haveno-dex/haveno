@@ -19,6 +19,7 @@ package haveno.network.p2p.network;
 
 public enum RuleViolation {
     INVALID_DATA_TYPE(2),
+    INVALID_PERSISTABLE_PAYLOAD(100),
     WRONG_NETWORK_ID(0),
     MAX_MSG_SIZE_EXCEEDED(2),
     THROTTLE_LIMIT_EXCEEDED(2),

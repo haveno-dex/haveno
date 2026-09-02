@@ -31,6 +31,7 @@ import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -74,6 +75,9 @@ public class EncryptionService {
             return new DecryptedDataTuple(decryptedPayload, sealedAndSigned.getSigPublicKey());
         } catch (InvalidProtocolBufferException e) {
             throw new ProtobufferException("Unable to parse protobuffer message.", e);
+        } catch (InvalidPersistableNetworkPayloadException e) {
+            // never valid inside an encrypted message, so rethrow as checked exception for the callers to handle
+            throw new ProtobufferException("Invalid persistable network payload in encrypted message.", e);
         }
     }
 
