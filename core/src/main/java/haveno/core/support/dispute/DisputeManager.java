@@ -1046,21 +1046,23 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 dispute.addAndPersistChatMessage(chatMessage);
             }
 
-            // create dispute payout tx unless the existing one pays this ruling, so a revised ruling is not sent with a prior ruling's tx
+            // create dispute payout tx unless the existing one pays this ruling, so a revised ruling is not sent with a prior ruling's
+            // tx; send the tx validated or created here, since a concurrent close for another ruling can replace the stored one
             TradePeer receiver = trade.getTradePeer(dispute.getTraderPubKeyRing());
-            if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null && (receiver.getUnsignedPayoutTxHex() == null || !trade.isDisputePayoutTxFor(receiver.getUnsignedPayoutTxHex(), disputeResult))) {
-                trade.createDisputePayoutTx(dispute.getContract(), disputeResult, true);
+            String unsignedPayoutTxHex = receiver.getUnsignedPayoutTxHex();
+            if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null && (unsignedPayoutTxHex == null || !trade.isDisputePayoutTxFor(unsignedPayoutTxHex, disputeResult))) {
+                unsignedPayoutTxHex = trade.createDisputePayoutTx(dispute.getContract(), disputeResult, true).getTxSet().getMultisigTxHex();
             }
 
             // create dispute closed message
             TradePeer receiverPeer = receiver == trade.getBuyer() ? trade.getSeller() : trade.getBuyer();
-            boolean deferPublishPayout = !exists && receiver.getUnsignedPayoutTxHex() != null && receiverPeer.getUpdatedMultisigHex() != null && (trade.getDisputeState() == Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG || trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal());
+            boolean deferPublishPayout = !exists && unsignedPayoutTxHex != null && receiverPeer.getUpdatedMultisigHex() != null && (trade.getDisputeState() == Trade.DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG || trade.getDisputeState().ordinal() >= Trade.DisputeState.ARBITRATOR_SAW_ARRIVED_DISPUTE_CLOSED_MSG.ordinal());
             DisputeClosedMessage disputeClosedMessage = new DisputeClosedMessage(disputeResult,
                     p2PService.getAddress(),
                     UUID.randomUUID().toString(),
                     getSupportType(),
                     trade.getSelf().getUpdatedMultisigHex(),
-                    receiver.getUnsignedPayoutTxHex(), // include dispute payout tx if arbitrator has their updated multisig info
+                    unsignedPayoutTxHex, // include dispute payout tx if arbitrator has their updated multisig info
                     deferPublishPayout); // instruct trader to defer publishing payout tx because peer is expected to publish imminently
             receiverPeer.setDisputeClosedMessage(disputeClosedMessage);
 

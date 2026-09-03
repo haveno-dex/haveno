@@ -147,7 +147,7 @@ public final class DisputeResult implements NetworkPayload {
                 proto.getIdVerification(),
                 proto.getScreenCast(),
                 proto.getSummaryNotes(),
-                proto.getChatMessage() == null ? null : ChatMessage.fromPayloadProto(proto.getChatMessage()),
+                proto.hasChatMessage() ? ChatMessage.fromPayloadProto(proto.getChatMessage()) : null,
                 proto.getArbitratorSignature().toByteArray(),
                 proto.getBuyerPayoutAmountBeforeCost(),
                 proto.getSellerPayoutAmountBeforeCost(),
@@ -177,6 +177,11 @@ public final class DisputeResult implements NetworkPayload {
                 builder.setChatMessage(chatMessage.toProtoNetworkEnvelope().getChatMessage()));
 
         return builder.build();
+    }
+
+    // a detached copy, so a ruling can be revised without mutating the stored one
+    public DisputeResult copy() {
+        return fromProto(toProtoMessage());
     }
 
 
