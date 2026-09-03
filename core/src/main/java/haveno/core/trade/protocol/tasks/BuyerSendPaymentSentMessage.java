@@ -155,7 +155,7 @@ public abstract class BuyerSendPaymentSentMessage extends SendMailboxMessageTask
             timer.stop();
         }
         if (listener != null) {
-            getReceiver().getPaymentReceivedMessageStateProperty().removeListener(listener);
+            getReceiver().getPaymentSentMessageStateProperty().removeListener(listener);
         }
     }
 
