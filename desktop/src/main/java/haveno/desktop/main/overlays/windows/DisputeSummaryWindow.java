@@ -195,10 +195,11 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
     private void addContent() {
         Contract contract = dispute.getContract();
+        // edit a copy, so the stored signed ruling stays consistent for resends until the revision is signed and installed on close
         if (dispute.getDisputeResultProperty().get() == null)
             disputeResult = new DisputeResult(dispute.getTradeId(), dispute.getTraderId());
         else
-            disputeResult = dispute.getDisputeResultProperty().get();
+            disputeResult = dispute.getDisputeResultProperty().get().copy();
 
         peersDisputeOptional = checkNotNull(getDisputeManager(dispute)).getDisputesAsObservableList().stream()
                 .filter(d -> dispute.getTradeId().equals(d.getTradeId()) && dispute.getTraderId() != d.getTraderId())

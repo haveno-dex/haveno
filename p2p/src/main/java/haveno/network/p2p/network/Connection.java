@@ -74,6 +74,7 @@ import haveno.network.utils.LeakyBucket;
 import haveno.network.utils.LeakyBucketManager;
 import haveno.network.utils.EventThrottler.ThrottleResult;
 import java.io.EOFException;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InvalidClassException;
@@ -322,7 +323,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             // the associated ObjectOutputStream on the other end of the connection has written.
             // It will not return until that header has been read.
             protoOutputStream = new ProtoOutputStream(socket.getOutputStream(), statistic);
-            protoInputStream = socket.getInputStream();
+            protoInputStream = new EofTrackingInputStream(socket.getInputStream());
             // We create a thread for handling inputStream data
             executorService.submit(this);
 
@@ -799,6 +800,29 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         return Connection.reportInvalidRequest(this, ruleViolation, errorMessage);
     }
 
+    // records a clean end of stream, so a frame truncated by a disconnect is not mistaken for malformed data
+    private static class EofTrackingInputStream extends FilterInputStream {
+        private boolean eof;
+
+        private EofTrackingInputStream(InputStream in) {
+            super(in);
+        }
+
+        @Override
+        public int read() throws IOException {
+            int b = in.read();
+            if (b == -1) eof = true;
+            return b;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            int n = in.read(b, off, len);
+            if (n == -1) eof = true;
+            return n;
+        }
+    }
+
     // a bad frame cannot be skipped, so close regardless of the violation's tolerance
     private void closeOnFrameViolation(RuleViolation violation, String errorMessage) {
         if (reportInvalidRequest(violation, errorMessage)) return;
@@ -915,7 +939,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     // Runs in same thread as Connection, receives a message, performs several checks on it
     // (including throttling limits, validity and statistics)
     // and delivers it to the message listener given in the constructor.
-    private InputStream protoInputStream;
+    private EofTrackingInputStream protoInputStream;
     private final NetworkProtoResolver networkProtoResolver;
 
     private long lastReadTimeStamp;
@@ -953,9 +977,12 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             }
                             proto = protobuf.NetworkEnvelope.parseFrom(ByteStreams.limit(protoInputStream, envelopeSize));
                         } catch (InvalidProtocolBufferException e) {
-                            // a malformed frame may be partially consumed, so the stream cannot be resynchronized
-                            closeOnFrameViolation(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
-                            return;
+                            // a frame cut short by end of stream is a disconnect, not malformed data
+                            if (!protoInputStream.eof) {
+                                // a malformed frame may be partially consumed, so the stream cannot be resynchronized
+                                closeOnFrameViolation(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
+                                return;
+                            }
                         }
                     }
 
