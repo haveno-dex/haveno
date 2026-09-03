@@ -421,6 +421,10 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                                 }
                             }
 
+                            // a verified ruling proves the arbitrator holds the dispute, so a late open-ack cannot re-open it
+                            // against this ruling, and startup cleanup cannot drop the dispute as an unacknowledged request
+                            trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
+
                             // set dispute state
                             synchronized (dispute.getChatMessages()) {
                                 if (!dispute.getChatMessages().contains(chatMessage)) {
