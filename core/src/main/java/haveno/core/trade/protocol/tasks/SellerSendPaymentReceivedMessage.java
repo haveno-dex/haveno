@@ -202,7 +202,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
             timer.stop();
         }
         if (listener != null) {
-            trade.getBuyer().getPaymentReceivedMessageStateProperty().removeListener(listener);
+            getReceiver().getPaymentReceivedMessageStateProperty().removeListener(listener);
         }
     }
 
