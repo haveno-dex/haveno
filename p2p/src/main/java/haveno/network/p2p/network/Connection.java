@@ -931,6 +931,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     threadNameSet = true;
                 }
                 protobuf.NetworkEnvelope proto = null;
+                int envelopeSize = 0;
                 try {
                     if (socket != null &&
                             socket.isClosed()) {
@@ -945,7 +946,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         proto = null;
                     } else {
                         try {
-                            int envelopeSize = CodedInputStream.readRawVarint32(firstByte, protoInputStream);
+                            envelopeSize = CodedInputStream.readRawVarint32(firstByte, protoInputStream);
                             if (envelopeSize < 0 || envelopeSize > MAX_PERMITTED_MESSAGE_SIZE) {
                                 closeOnFrameViolation(RuleViolation.MAX_MSG_SIZE_EXCEEDED, "size > MAX_MSG_SIZE before parsing. size=" + envelopeSize);
                                 return;
@@ -999,7 +1000,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     }
 
                     lastReadTimeStamp = now;
-                    int size = proto.getSerializedSize();
+                    int size = envelopeSize; // wire size, so padding with repeated fields cannot shrink the accounted size
 
                     // We want to track the size of each object even if it is invalid data
                     statistic.addReceivedBytes(size);
@@ -1086,7 +1087,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     reportInvalidRequest(RuleViolation.INVALID_CLASS, e.getMessage());
                 } catch (InvalidPersistableNetworkPayloadException e) {
                     // apply the standard size limit first, since an oversized message is never an honest version disagreement
-                    if (proto != null && proto.getSerializedSize() > PERMITTED_MESSAGE_SIZE && reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, "size > MAX_MSG_SIZE. size=" + proto.getSerializedSize() + "; " + e.getMessage()))
+                    if (envelopeSize > PERMITTED_MESSAGE_SIZE && reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, "size > MAX_MSG_SIZE. size=" + envelopeSize + "; " + e.getMessage()))
                         return;
                     // drop with high tolerance since honest peers can disagree on payload validity across versions
                     if (reportInvalidRequest(RuleViolation.INVALID_PERSISTABLE_PAYLOAD, e.getMessage()))
