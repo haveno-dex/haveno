@@ -977,13 +977,14 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             }
                             proto = protobuf.NetworkEnvelope.parseFrom(ByteStreams.limit(protoInputStream, envelopeSize));
                         } catch (InvalidProtocolBufferException e) {
-                            // a frame cut short by end of stream is a disconnect, not malformed data
+                            // a malformed frame may be partially consumed, so the stream cannot be resynchronized
                             if (!protoInputStream.eof) {
-                                // a malformed frame may be partially consumed, so the stream cannot be resynchronized
                                 closeOnFrameViolation(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
                                 return;
                             }
                         }
+                        // a frame cut short by end of stream is a disconnect, whether or not its prefix parsed
+                        if (protoInputStream.eof) proto = null;
                     }
 
                     long ts = System.currentTimeMillis();
