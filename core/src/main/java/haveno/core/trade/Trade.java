@@ -1427,6 +1427,27 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return payoutTx;
     }
 
+    // true when the unsigned payout tx pays the dispute result's amounts, so a revised ruling is not sent with a prior
+    // ruling's tx; a decode failure propagates so the caller aborts rather than creating a conflicting tx
+    public boolean isDisputePayoutTxFor(String unsignedPayoutTxHex, DisputeResult disputeResult) {
+        synchronized (walletLock) {
+            MoneroTxSet txSet = getWallet().describeTxSet(new MoneroTxSet().setMultisigTxHex(unsignedPayoutTxHex));
+            if (txSet.getTxs() == null || txSet.getTxs().size() != 1) return false;
+            MoneroTxWallet payoutTx = txSet.getTxs().get(0);
+            BigInteger buyerAmount = BigInteger.ZERO;
+            BigInteger sellerAmount = BigInteger.ZERO;
+            if (payoutTx.getOutgoingTransfer() != null && payoutTx.getOutgoingTransfer().getDestinations() != null) {
+                for (MoneroDestination destination : payoutTx.getOutgoingTransfer().getDestinations()) {
+                    if (destination.getAddress().equals(getContract().getBuyerPayoutAddressString())) buyerAmount = buyerAmount.add(destination.getAmount());
+                    else if (destination.getAddress().equals(getContract().getSellerPayoutAddressString())) sellerAmount = sellerAmount.add(destination.getAmount());
+                }
+            }
+            BigInteger[] buyerSellerPayoutTxFee = getBuyerSellerPayoutTxFee(disputeResult, payoutTx.getFee());
+            return buyerAmount.equals(disputeResult.getBuyerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxFee[0]))
+                    && sellerAmount.equals(disputeResult.getSellerPayoutAmountBeforeCost().subtract(buyerSellerPayoutTxFee[1]));
+        }
+    }
+
     public MoneroTxWallet createDisputePayoutTx(Contract contract, DisputeResult disputeResult, boolean updateState) {
         synchronized (walletLock) {
 
