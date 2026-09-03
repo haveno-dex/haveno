@@ -36,8 +36,10 @@ package haveno.network.p2p.network;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.inject.Inject;
+import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.InvalidProtocolBufferException;
 import haveno.common.Proto;
 import haveno.common.ThreadUtils;
@@ -797,6 +799,13 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         return Connection.reportInvalidRequest(this, ruleViolation, errorMessage);
     }
 
+    // a bad frame cannot be skipped, so close regardless of the violation's tolerance
+    private void closeOnFrameViolation(RuleViolation violation, String errorMessage) {
+        if (reportInvalidRequest(violation, errorMessage)) return;
+        ruleViolation = violation;
+        shutDown(CloseConnectionReason.RULE_VIOLATION);
+    }
+
     // true the first time only, so the peer failure counter is adjusted once per connection
     public boolean tryAccountPeerFault() {
         return peerFaultAccounted.compareAndSet(false, true);
@@ -930,8 +939,24 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         return;
                     }
 
-                    // Blocking read from the inputStream
-                    proto = protobuf.NetworkEnvelope.parseDelimitedFrom(protoInputStream);
+                    // Blocking read from the inputStream, rejecting oversized envelopes before parsing them
+                    int firstByte = protoInputStream.read();
+                    if (firstByte == -1) {
+                        proto = null;
+                    } else {
+                        try {
+                            int envelopeSize = CodedInputStream.readRawVarint32(firstByte, protoInputStream);
+                            if (envelopeSize < 0 || envelopeSize > MAX_PERMITTED_MESSAGE_SIZE) {
+                                closeOnFrameViolation(RuleViolation.MAX_MSG_SIZE_EXCEEDED, "size > MAX_MSG_SIZE before parsing. size=" + envelopeSize);
+                                return;
+                            }
+                            proto = protobuf.NetworkEnvelope.parseFrom(ByteStreams.limit(protoInputStream, envelopeSize));
+                        } catch (InvalidProtocolBufferException e) {
+                            // a malformed frame may be partially consumed, so the stream cannot be resynchronized
+                            closeOnFrameViolation(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
+                            return;
+                        }
+                    }
 
                     long ts = System.currentTimeMillis();
 
