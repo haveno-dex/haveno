@@ -163,6 +163,8 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
                 AccountServiceListener accountListener = new AccountServiceListener() {
                     @Override public void onAccountCreated() { onLogin(); }
                     @Override public void onAccountOpened() { onLogin(); }
+                    @Override public void onAccountDeleted(Runnable onShutdown) { reader.cancel(); } // end the interactive login, the restart is pending
+                    @Override public void onAccountRestored(Runnable onShutdown) { reader.cancel(); }
                     private void onLogin() {
                         log.info("Logged in successfully");
                         reader.cancel(); // closing the reader will stop all read attempts and end the interactive login thread
