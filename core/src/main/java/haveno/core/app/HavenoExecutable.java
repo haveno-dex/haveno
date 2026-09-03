@@ -108,6 +108,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     private boolean systemExitRequested;
     private boolean isReadOnly;
     private Thread keepRunningThread;
+    private final Object keepRunningLock = new Object();
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
     private Runnable shutdownCompletedHandler;
 
@@ -203,15 +204,21 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             }
             try {
                 if (!isReadOnly && loginFuture.get()) {
-                    readAllPersisted(this::startApplication);
+                    readAllPersisted(this::startApplicationUnlessRestarting);
                 } else {
                     log.warn("Running application in readonly mode");
-                    startApplication();
+                    startApplicationUnlessRestarting();
                 }
             } catch (InterruptedException | ExecutionException e) {
                 log.error("An error occurred: {}\n", e.getMessage(), e);
             }
         });
+    }
+
+    // a restore or delete during login requests a restart, so the application must not start against the changed data dir
+    private void startApplicationUnlessRestarting() {
+        if (keepRunningResult.get() == EXIT_RESTART) log.info("Restart requested during login, not starting the application");
+        else startApplication();
     }
 
     /**
@@ -225,8 +232,10 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         this.isReadOnly = true;
         if (restart) {
             shutdownCompletedHandler = onShutdown;
-            keepRunningResult.set(EXIT_RESTART);
-            keepRunningThread.interrupt();
+            synchronized (keepRunningLock) {
+                keepRunningResult.set(EXIT_RESTART);
+                if (keepRunningThread != null) keepRunningThread.interrupt(); // else keepRunning() returns the pending restart
+            }
         } else {
             gracefulShutDown(() -> {
                 log.info("Shutdown without persisting");
@@ -505,7 +514,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
      * @return EXIT_SUCCESS to initiate a shutdown, EXIT_RESTART to initiate an in process restart.
      */
     protected int keepRunning() {
-        keepRunningThread = new Thread(() -> {
+        Thread thread = new Thread(() -> {
             ConsoleInput reader = new ConsoleInput(Integer.MAX_VALUE, Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
             while (true) {
                 Console console = System.console();
@@ -532,7 +541,11 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             }
         });
 
-        keepRunningThread.start();
+        synchronized (keepRunningLock) {
+            if (keepRunningResult.get() == EXIT_RESTART) return EXIT_RESTART; // requested before the thread existed, e.g. by a restore before login
+            keepRunningThread = thread;
+            keepRunningThread.start();
+        }
         try {
             keepRunningThread.join();
         } catch (InterruptedException ie) {
