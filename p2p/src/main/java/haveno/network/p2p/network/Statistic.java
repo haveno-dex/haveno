@@ -133,7 +133,7 @@ public class Statistic {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private final Date creationDate;
-    private long lastActivityTimestamp = System.currentTimeMillis();
+    private volatile long lastActivityTimestamp = System.currentTimeMillis();
     private final AtomicLong sentBytes = new AtomicLong(0);
     private final LongProperty sentBytesProperty = new SimpleLongProperty(0);
     private final AtomicLong receivedBytes = new AtomicLong(0);

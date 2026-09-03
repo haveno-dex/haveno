@@ -227,9 +227,7 @@ public abstract class SellerSendPaymentReceivedMessage extends SendMailboxMessag
 
         // set resend delay
         if (resendCounter == 0) {
-            delayInMin = SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_FIRST;
-        } else if (resendCounter == 1) {
-            delayInMin = SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_SECOND;
+            delayInMin = SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS;
         } else {
             delayInMin = Math.min(TimeUnit.MILLISECONDS.toMinutes(TradeMailboxMessage.TTL), delayInMin * SendMailboxMessageTask.RESEND_DELAY_MULTIPLIER);
         }

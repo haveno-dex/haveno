@@ -36,6 +36,7 @@ public enum CloseConnectionReason {
     // send msg
     SEND_MSG_FAILURE(false, false),
     SEND_MSG_TIMEOUT(false, false),
+    NO_ACK_RECEIVED(true, true),
 
     // maintenance
     TOO_MANY_CONNECTIONS_OPEN(true, true),
