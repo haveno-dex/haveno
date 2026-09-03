@@ -26,15 +26,17 @@ import haveno.core.trade.protocol.TradePeer;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.SendMailboxMessageListener;
 import haveno.network.p2p.mailbox.MailboxMessage;
+import haveno.network.p2p.network.CloseConnectionReason;
+import haveno.network.p2p.network.NetworkNode;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class SendMailboxMessageTask extends TradeTask {
 
-    public static final long INITIAL_RESEND_DELAY_MINS_FIRST = 2;
-    public static final long INITIAL_RESEND_DELAY_MINS_SECOND = 15;
+    public static final long INITIAL_RESEND_DELAY_MINS = 2;
     public static final long INITIAL_RESEND_DELAY_MINS_MAILBOX = TimeUnit.HOURS.toMinutes(6);
     public static final int RESEND_DELAY_MULTIPLIER = 2;
+    private volatile boolean lastSendArrived;
 
     public SendMailboxMessageTask(TaskRunner<Trade> taskHandler, Trade trade) {
         super(taskHandler, trade);
@@ -71,6 +73,14 @@ public abstract class SendMailboxMessageTask extends TradeTask {
             log.info("Send {} to peer {} for {} {}, uid={}",
                     message.getClass().getSimpleName(), peersNodeAddress, trade.getClass().getSimpleName(), trade.getId(), message.getUid());
 
+            // resend over a fresh connection since the last send arrived but was never acked
+            if (lastSendArrived) {
+                lastSendArrived = false;
+                NetworkNode networkNode = processModel.getP2PService().getNetworkNode();
+                boolean hasOtherConnections = networkNode.getAllConnections().stream().anyMatch(connection -> !connection.isStopped() && !peersNodeAddress.equals(connection.getPeersNodeAddressOptional().orElse(null)));
+                if (hasOtherConnections) networkNode.closeConnections(peersNodeAddress, CloseConnectionReason.NO_ACK_RECEIVED); // sending requires a remaining connection
+            }
+
             TradeTask task = this;
             processModel.getP2PService().getMailboxMessageService().sendEncryptedMailboxMessage(
                     peersNodeAddress,
@@ -80,6 +90,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
                         @Override
                         public void onArrived() {
                             log.info("{} arrived at peer {}. tradeId={}, uid={}", message.getClass().getSimpleName(), peersNodeAddress, trade.getId(), message.getUid());
+                            lastSendArrived = true;
                             setStateArrived();
                             if (!task.isCompleted()) complete();
                         }

@@ -45,6 +45,7 @@ import java.net.Socket;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
@@ -57,6 +58,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,10 +140,7 @@ public abstract class NetworkNode implements MessageListener {
 
         checkNotNull(peersNodeAddress, "peerAddress must not be null");
 
-        Connection connection = getOutboundConnection(peersNodeAddress);
-        if (connection == null)
-            connection = getInboundConnection(peersNodeAddress);
-
+        Connection connection = getConnection(peersNodeAddress);
         if (connection != null) {
             return sendMessage(connection, networkEnvelope);
         } else {
@@ -173,10 +172,7 @@ public abstract class NetworkNode implements MessageListener {
 
                     // Tor needs sometimes quite long to create a connection. To avoid that we get too many
                     // connections with the same peer we check again if we still don't have any connection for that node address.
-                    Connection existingConnection = getInboundConnection(peersNodeAddress);
-                    if (existingConnection == null)
-                        existingConnection = getOutboundConnection(peersNodeAddress);
-
+                    Connection existingConnection = getConnection(peersNodeAddress);
                     if (existingConnection != null) {
                         log.debug("We found in the meantime a connection for peersNodeAddress {}, " +
                                 "so we use that for sending the message.\n" +
@@ -257,39 +253,23 @@ public abstract class NetworkNode implements MessageListener {
     }
 
     @Nullable
-    private InboundConnection getInboundConnection(@NotNull NodeAddress peersNodeAddress) {
-        Optional<InboundConnection> inboundConnectionOptional = lookupInBoundConnection(peersNodeAddress);
-        if (inboundConnectionOptional.isPresent()) {
-            InboundConnection connection = inboundConnectionOptional.get();
-            log.trace("We have found a connection in inBoundConnections. Connection.uid={}", connection.getUid());
-            if (connection.isStopped()) {
-                log.warn("We have a connection which is already stopped in inBoundConnections. Connection.uid=" + connection.getUid());
-                inBoundConnections.remove(connection);
-                return null;
-            } else {
-                return connection;
-            }
-        } else {
-            return null;
-        }
+    private Connection getConnection(@NotNull NodeAddress peersNodeAddress) {
+        return getConnections(peersNodeAddress)
+                .filter(connection -> {
+                    if (!connection.isStopped()) return true;
+                    log.warn("We have a connection which is already stopped. Connection.uid=" + connection.getUid());
+                    inBoundConnections.remove(connection);
+                    outBoundConnections.remove(connection);
+                    return false;
+                })
+                .max(Comparator.comparingLong(connection -> connection.getStatistic().getLastActivityTimestamp())) // prefer the most recently active connection
+                .orElse(null);
     }
 
-    @Nullable
-    private OutboundConnection getOutboundConnection(@NotNull NodeAddress peersNodeAddress) {
-        Optional<OutboundConnection> outboundConnectionOptional = lookupOutBoundConnection(peersNodeAddress);
-        if (outboundConnectionOptional.isPresent()) {
-            OutboundConnection connection = outboundConnectionOptional.get();
-            log.trace("We have found a connection in outBoundConnections. Connection.uid={}", connection.getUid());
-            if (connection.isStopped()) {
-                log.warn("We have a connection which is already stopped in outBoundConnections. Connection.uid=" + connection.getUid());
-                outBoundConnections.remove(connection);
-                return null;
-            } else {
-                return connection;
-            }
-        } else {
-            return null;
-        }
+    private Stream<Connection> getConnections(@NotNull NodeAddress peersNodeAddress) {
+        return getAllConnections().stream()
+                .filter(connection -> connection.hasPeersNodeAddress() &&
+                        peersNodeAddress.equals(connection.getPeersNodeAddressOptional().get()));
     }
 
     @Nullable
@@ -377,6 +357,15 @@ public abstract class NetworkNode implements MessageListener {
         return getConfirmedConnections().stream()
                 .map(e -> e.getPeersNodeAddressOptional().get())
                 .collect(Collectors.toSet());
+    }
+
+    public void closeConnections(NodeAddress peersNodeAddress, CloseConnectionReason closeConnectionReason) {
+        getConnections(peersNodeAddress).forEach(connection -> {
+            // unregister before the asynchronous shutdown so a concurrent send opens a fresh connection
+            inBoundConnections.remove(connection);
+            outBoundConnections.remove(connection);
+            connection.shutDown(closeConnectionReason);
+        });
     }
 
     public void shutDown(Runnable shutDownCompleteHandler) {
@@ -508,29 +497,11 @@ public abstract class NetworkNode implements MessageListener {
         server.start();
     }
 
-    private Optional<OutboundConnection> lookupOutBoundConnection(NodeAddress peersNodeAddress) {
-        log.trace("lookupOutboundConnection for peersNodeAddress={}", peersNodeAddress.getFullAddress());
-        printOutBoundConnections();
-        return outBoundConnections.stream()
-                .filter(connection -> connection.hasPeersNodeAddress() &&
-                        peersNodeAddress.equals(connection.getPeersNodeAddressOptional().get()))
-                .findAny();
-    }
-
     private void printOutBoundConnections() {
         StringBuilder sb = new StringBuilder("outBoundConnections size()=")
                 .append(outBoundConnections.size()).append("\n\toutBoundConnections=");
         outBoundConnections.stream().forEach(e -> sb.append(e).append("\n\t"));
         log.debug(sb.toString());
-    }
-
-    private Optional<InboundConnection> lookupInBoundConnection(NodeAddress peersNodeAddress) {
-        log.trace("lookupInboundConnection for peersNodeAddress={}", peersNodeAddress.getFullAddress());
-        printInboundConnections();
-        return inBoundConnections.stream()
-                .filter(connection -> connection.hasPeersNodeAddress() &&
-                        peersNodeAddress.equals(connection.getPeersNodeAddressOptional().get()))
-                .findAny();
     }
 
     private void printInboundConnections() {
