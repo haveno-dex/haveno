@@ -1046,9 +1046,9 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                 dispute.addAndPersistChatMessage(chatMessage);
             }
 
-            // create dispute payout tx
+            // create dispute payout tx unless the existing one pays this ruling, so a revised ruling is not sent with a prior ruling's tx
             TradePeer receiver = trade.getTradePeer(dispute.getTraderPubKeyRing());
-            if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null && receiver.getUnsignedPayoutTxHex() == null) {
+            if (!trade.isPayoutPublished() && receiver.getUpdatedMultisigHex() != null && (receiver.getUnsignedPayoutTxHex() == null || !trade.isDisputePayoutTxFor(receiver.getUnsignedPayoutTxHex(), disputeResult))) {
                 trade.createDisputePayoutTx(dispute.getContract(), disputeResult, true);
             }
 
