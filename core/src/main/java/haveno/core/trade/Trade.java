@@ -2689,6 +2689,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (maker != null && maker.equals(taker)) throw new RuntimeException("Maker and taker must have different identities");
         if (arbitrator != null && arbitrator.equals(maker)) throw new RuntimeException("Arbitrator and maker must have different identities");
         if (arbitrator != null && arbitrator.equals(taker)) throw new RuntimeException("Arbitrator and taker must have different identities");
+        // dispute trader ids derive from the pub key ring hash, so the traders' key rings must not collide on it either
+        if (getMaker().getPubKeyRing() != null && getTaker().getPubKeyRing() != null && getMaker().getPubKeyRing().hashCode() == getTaker().getPubKeyRing().hashCode()) throw new RuntimeException("Maker and taker must have different trader ids");
     }
 
     private static PublicKey signaturePubKeyOrNull(PubKeyRing pubKeyRing) {
