@@ -619,11 +619,12 @@ public abstract class Overlay<T extends Overlay<T>> {
 
                     addEffectToBackground();
 
-                    // Re-fit and re-center as the owner window moves or resizes: on Linux the owner stage does not move
-                    // the child stage, on Mac popups sometimes end up outside the app, and the delay catches fast moves.
+                    // Re-center as the owner window moves and re-fit as it resizes or once movement settles: on Linux the
+                    // owner stage does not move the child stage, on Mac popups sometimes end up outside the app.
                     positionListener = (observable, oldValue, newValue) -> {
                         if (stage != null) {
-                            refitToContent();
+                            boolean resized = observable == window.widthProperty() || observable == window.heightProperty();
+                            if (resized) refitToContent(); else layout();
                             if (centerTime != null)
                                 centerTime.stop();
 
