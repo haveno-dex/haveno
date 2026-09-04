@@ -82,6 +82,7 @@ public class ProcessInitMultisigRequest extends TradeTask {
             try {
               trade.getOffer().verifyTradePrice(request.getTradePrice(), true);
               trade.setPrice(request.getTradePrice());
+              processModel.getTradeManager().verifyPaymentDistinguishable(trade); // re-check with the final price
             } catch (TradePriceOutOfToleranceException e) {
               failed(e.getMessage());
               return;

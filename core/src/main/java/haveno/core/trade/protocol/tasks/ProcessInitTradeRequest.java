@@ -150,6 +150,9 @@ public class ProcessInitTradeRequest extends TradeTask {
                 throw new RuntimeException("Invalid trade type to process init trade request: " + trade.getClass().getName());
             }
 
+            // reject a trade whose payment could not be told apart from an unsettled trade's
+            if (!(trade instanceof ArbitratorTrade)) processModel.getTradeManager().verifyPaymentDistinguishable(trade);
+
             // set trading peer info
             if (trade.getMaker().getAccountId() == null) trade.getMaker().setAccountId(request.getMakerAccountId());
             else if (!trade.getMaker().getAccountId().equals(request.getMakerAccountId())) throw new RuntimeException("Maker account id is different from previous");

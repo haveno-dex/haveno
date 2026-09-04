@@ -40,7 +40,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
 import haveno.common.ThreadUtils;
-import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -693,6 +692,12 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         // handle request as maker
         if (request.getMakerNodeAddress().equals(p2PService.getNetworkNode().getNodeAddress())) {
 
+            // verify request is signed by the taker's pub key ring
+            if (!request.getTakerPubKeyRing().getSignaturePubKey().equals(decryptedMessageWithPubKey.getSignaturePubKey())) {
+                log.warn("Ignoring InitTradeRequest to maker because signature pub key does not match taker pub key, tradeId={}, sender={}", request.getOfferId(), sender);
+                return;
+            }
+
             // get open offer
             Optional<OpenOffer> openOfferOptional = openOfferManager.getOpenOffer(request.getOfferId());
 
@@ -992,7 +997,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                         trade.getSelf().setPubKeyRing(keyRing.getPubKeyRing());
                         trade.getSelf().setPaymentAccountId(paymentAccountId);
                         trade.getSelf().setPaymentMethodId(user.getPaymentAccount(paymentAccountId).getPaymentAccountPayload().getPaymentMethodId());
-                
+
+                        // reject a trade whose payment could not be told apart from an unsettled trade's
+                        verifyPaymentDistinguishable(trade);
+
                         // initialize trade protocol
                         TradeProtocol tradeProtocol = createTradeProtocol(trade);
                         addTrade(trade);
@@ -1256,6 +1264,27 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
+    // reject a trade whose payment could not be told apart from an unsettled trade's in a dispute
+    public void verifyPaymentDistinguishable(Trade trade) {
+        Stream<Trade> unsettledTrades = Stream.concat(
+                getOpenTrades().stream(),
+                Stream.concat(getClosedTrades().stream(), failedTradesManager.getTrades().stream()).filter(other -> other.isDepositsPublished() || (other.isProtocolErrorHandlingScheduled() && other.walletExists())))
+                .filter(other -> !other.isPayoutPublished());
+        unsettledTrades.filter(other -> other.hasIndistinguishablePayment(trade))
+                .findFirst()
+                .ifPresent(other -> {
+                    throw new RuntimeException("Trade " + other.getShortId() + " with the same peer, payment method, and amount is not settled yet, so the payments could not be told apart in a dispute. Please wait for it to complete before trading again on the same terms.");
+                });
+    }
+
+    // trades whose payment could not be told apart from the given trade's while a payment could be claimed for both
+    public List<Trade> getTradesWithIndistinguishablePayment(Trade trade) {
+        return Stream.concat(getOpenTrades().stream(), Stream.concat(getClosedTrades().stream(), failedTradesManager.getTrades().stream()))
+                .filter(other -> other.isDepositsPublished() && other.hasIndistinguishablePayment(trade))
+                .filter(other -> !other.getDate().after(trade.getPaymentClaimableUntil()) && !trade.getDate().after(other.getPaymentClaimableUntil()))
+                .collect(Collectors.toList());
+    }
+
     private void checkForLockedUpFunds() {
         try {
             getSetOfFailedOrClosedTradeIdsFromLockedInFunds();
@@ -1326,15 +1355,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
 
         initTrade(trade);
-
-        UserThread.execute(() -> {
-            synchronized (tradableList.getList()) {
-                if (!tradableList.contains(trade)) {
-                    tradableList.add(trade);
-                }
-            }
-        });
-
+        addTrade(trade);
         return true;
     }
 

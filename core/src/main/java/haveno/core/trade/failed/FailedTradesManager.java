@@ -34,6 +34,7 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -131,25 +132,21 @@ public class FailedTradesManager implements PersistedDataHost {
         }
     }
 
-    public Stream<Trade> getTradesStreamWithFundsLockedIn() {
+    public List<Trade> getTrades() {
         synchronized (failedTrades.getList()) {
-            return failedTrades.stream()
-                    .filter(Trade::isFundsLockedIn);
+            return new ArrayList<>(failedTrades.getList());
         }
     }
 
-    public void unFailTrade(Trade trade) {
-        synchronized (failedTrades.getList()) {
-            if (unFailTradeCallback == null)
-                return;
+    public Stream<Trade> getTradesStreamWithFundsLockedIn() {
+        return getTrades().stream().filter(Trade::isFundsLockedIn);
+    }
 
-            if (unFailTradeCallback.apply(trade)) {
-                log.info("Unfailing trade {}", trade.getId());
-                if (failedTrades.remove(trade)) {
-                    requestPersistence();
-                }
-            }
-        }
+    // the callback adds the trade to pending trades before it is removed here, so it is always in a store
+    public void unFailTrade(Trade trade) {
+        if (unFailTradeCallback == null || !unFailTradeCallback.apply(trade)) return;
+        log.info("Unfailing trade {}", trade.getId());
+        removeTrade(trade);
     }
 
     public String checkUnFail(Trade trade) {

@@ -55,6 +55,7 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOffer;
 import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.proto.network.CoreNetworkProtoResolver;
 import haveno.core.support.dispute.Dispute;
@@ -2695,6 +2696,40 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private static PublicKey signaturePubKeyOrNull(PubKeyRing pubKeyRing) {
         return pubKeyRing == null ? null : pubKeyRing.getSignaturePubKey();
+    }
+
+    // true if the other trade's payment could not be told apart from this one's in a dispute
+    public boolean hasIndistinguishablePayment(Trade other) {
+        if (other == this || getOffer() == null || other.getOffer() == null) return false;
+        if (!hasSameSignaturePubKey(getBuyer(), other.getBuyer()) || !hasSameSignaturePubKey(getSeller(), other.getSeller())) return false;
+        if (!getPaymentRailId(getOffer().getPaymentMethodId()).equals(getPaymentRailId(other.getOffer().getPaymentMethodId()))) return false;
+        Volume volume = getVolume();
+        Volume otherVolume = other.getVolume();
+        return volume != null && otherVolume != null && volume.compareTo(otherVolume) == 0;
+    }
+
+    // instant variants are paid over the same rail as their base method
+    private static String getPaymentRailId(String paymentMethodId) {
+        if (PaymentMethod.BLOCK_CHAINS_INSTANT_ID.equals(paymentMethodId)) return PaymentMethod.BLOCK_CHAINS_ID;
+        if (PaymentMethod.SEPA_INSTANT_ID.equals(paymentMethodId)) return PaymentMethod.SEPA_ID;
+        return paymentMethodId;
+    }
+
+    private static boolean hasSameSignaturePubKey(TradePeer peer, TradePeer other) {
+        PublicKey pubKey = signaturePubKeyOrNull(peer.getPubKeyRing());
+        return pubKey != null && pubKey.equals(signaturePubKeyOrNull(other.getPubKeyRing()));
+    }
+
+    // latest date a payment could be claimed for this trade: unbounded while unsettled, else its payout approximated
+    // by the end of the trade period or the last dispute closing, whichever is later
+    public Date getPaymentClaimableUntil() {
+        if (!isPayoutPublished()) return new Date(Long.MAX_VALUE);
+        long until = (startTime > 0 ? startTime : getTakeOfferDate().getTime()) + getMaxTradePeriod();
+        for (Dispute dispute : getDisputes()) {
+            DisputeResult disputeResult = dispute.disputeResultProperty().get();
+            if (disputeResult != null) until = Math.max(until, disputeResult.getCloseDate().getTime());
+        }
+        return new Date(until);
     }
 
     public TradePeer getVerifiedTradePeer(DecryptedMessageWithPubKey message) {
