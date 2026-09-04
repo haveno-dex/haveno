@@ -68,6 +68,7 @@ public class SellerSendPaymentReceivedMessageToBuyer extends SellerSendPaymentRe
     // continue execution on fault so payment received message is sent to arbitrator
     @Override
     protected void onFault(String errorMessage, MailboxMessage message) {
+        if (isCompleted()) return;
         setStateFault();
         appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
         complete();

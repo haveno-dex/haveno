@@ -120,6 +120,7 @@ public abstract class SendMailboxMessageTask extends TradeTask {
     }
 
     protected void onFault(String errorMessage, MailboxMessage message) {
+        if (isCompleted()) return; // a resend fault must not revert the trade state or fail the completed task runner
         setStateFault();
         appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
         failed(errorMessage);
