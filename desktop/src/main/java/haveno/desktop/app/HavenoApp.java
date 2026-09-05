@@ -56,6 +56,7 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.debug.DebugView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -122,6 +123,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     private Stage stage;
     private boolean popupOpened;
     private Scene scene;
+    @Getter
     private boolean shutDownRequested;
     private MainView mainView;
     // persistent startup surface (scene root for the whole pre-app phase); owns the logo/version/toggle
@@ -193,6 +195,39 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         startupShell = getOrCreateShell();
         startupShell.setContent(createLoginContent(passwordHandler, onQuit));
         showStartupWindow();
+    }
+
+    public void showLoginProgress() {
+        BusyAnimation busy = new BusyAnimation();
+        busy.setPrefSize(24, 24);
+        busy.setMaxSize(24, 24);
+        VBox content = new VBox(15, busy, new AutoTooltipLabel(Res.get("password.startup.opening")));
+        content.setAlignment(Pos.TOP_CENTER);
+        startupShell = getOrCreateShell();
+        startupShell.setContent(content);
+        showStartupWindow();
+    }
+
+    public void showLoginFailure(Throwable failure, Runnable onShutdown) {
+        showStartupFailure(Res.get("password.startup.failed",
+                Objects.requireNonNullElse(failure.getMessage(), failure.toString())), onShutdown);
+    }
+
+    private void showStartupFailure(String text, Runnable onShutdown) {
+        Label message = new AutoTooltipLabel(text);
+        message.setWrapText(true);
+        message.setMaxWidth(StartupWizard.PAGE_WIDTH);
+        Button quitButton = new AutoTooltipButton(Res.get("shared.shutDown"));
+        quitButton.setOnAction(event -> onShutdown.run());
+        VBox content = new VBox(20, message, quitButton);
+        content.setMaxWidth(StartupWizard.PAGE_WIDTH);
+        startupShell = getOrCreateShell();
+        startupShell.setContent(content);
+        if (scene == null) showStartupWindow();
+        stage.setOnCloseRequest(event -> {
+            event.consume();
+            onShutdown.run();
+        });
     }
 
     public interface PasswordHandler {
@@ -436,10 +471,9 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             if (submitting[0]) return;
             submitting[0] = true;
 
-            // disable controls during the off-thread verification; no working text needed since login is quick
+            // Keep progress visible while the account keys are unlocked.
             setControlsDisabled.accept(true);
-            statusLabel.setText(""); // clear any prior error while verifying
-            statusLabel.getStyleClass().remove("error-text");
+            showWorking.accept(Res.get("password.startup.opening"));
 
             passwordHandler.onPasswordEntered(passwordField.getText(), errorMessage -> UserThread.execute(() -> {
                 if (errorMessage == null) return; // accepted; keep the working state until the main view loads
@@ -511,6 +545,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     private void showStartupWindow() {
+        if (scene != null) return;
         scene = createAndConfigScene(startupShell, injector);
         configureStage(scene);
         restoredWindowBounds = readStartupWindowBounds().map(bounds -> applyStageBounds(stage, bounds)).orElse(false);

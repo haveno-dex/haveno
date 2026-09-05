@@ -40,13 +40,13 @@ public final class KeyRing {
     private PubKeyRing pubKeyRing;
 
     /**
-     * Creates the KeyRing. Unlocks if not encrypted. Does not generate keys.
+     * Creates a locked KeyRing. Account login unlocks the keys after dependency injection.
      *
      * @param keyStorage Persisted storage
      */
     @Inject
     public KeyRing(KeyStorage keyStorage) {
-        this(keyStorage, null, false);
+        this.keyStorage = keyStorage;
     }
 
     /**
