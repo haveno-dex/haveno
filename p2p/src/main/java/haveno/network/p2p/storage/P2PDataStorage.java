@@ -74,6 +74,7 @@ import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
 import haveno.network.p2p.storage.persistence.RemovedPayloadsService;
 import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
 import haveno.network.p2p.storage.persistence.SequenceNumberMap;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.time.Clock;
@@ -1066,26 +1067,26 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                                                           KeyPair ownerStoragePubKey)
             throws CryptoException {
         ByteArray hashOfData = get32ByteHashAsByteArray(protectedStoragePayload);
-        int sequenceNumber;
-        if (sequenceNumberMap.containsKey(hashOfData))
-            sequenceNumber = sequenceNumberMap.get(hashOfData).sequenceNr + 1;
-        else
-            sequenceNumber = 1;
+        int sequenceNumber = getNextSequenceNumber(hashOfData, Integer.MAX_VALUE - 1);
 
         byte[] hashOfDataAndSeqNr = P2PDataStorage.get32ByteHash(new DataAndSeqNrPair(protectedStoragePayload, sequenceNumber));
         byte[] signature = Sig.sign(ownerStoragePubKey.getPrivate(), hashOfDataAndSeqNr);
         return new ProtectedStorageEntry(protectedStoragePayload, ownerStoragePubKey.getPublic(), sequenceNumber, signature, this.clock);
     }
 
+    public ProtectedStorageEntry getProtectedStorageEntryForRemove(ProtectedStoragePayload protectedStoragePayload,
+                                                                   KeyPair ownerStoragePubKey)
+            throws CryptoException {
+        int sequenceNumber = getNextSequenceNumber(get32ByteHashAsByteArray(protectedStoragePayload), Integer.MAX_VALUE);
+        byte[] signature = Sig.sign(ownerStoragePubKey.getPrivate(), getRemoveHash(protectedStoragePayload, sequenceNumber));
+        return new ProtectedStorageEntry(protectedStoragePayload, ownerStoragePubKey.getPublic(), sequenceNumber, signature, clock);
+    }
+
     public RefreshOfferMessage getRefreshTTLMessage(ProtectedStoragePayload protectedStoragePayload,
                                                     KeyPair ownerStoragePubKey)
             throws CryptoException {
         ByteArray hashOfPayload = get32ByteHashAsByteArray(protectedStoragePayload);
-        int sequenceNumber;
-        if (sequenceNumberMap.containsKey(hashOfPayload))
-            sequenceNumber = sequenceNumberMap.get(hashOfPayload).sequenceNr + 1;
-        else
-            sequenceNumber = 1;
+        int sequenceNumber = getNextSequenceNumber(hashOfPayload, Integer.MAX_VALUE - 1);
 
         byte[] hashOfDataAndSeqNr = P2PDataStorage.get32ByteHash(new DataAndSeqNrPair(protectedStoragePayload, sequenceNumber));
         byte[] signature = Sig.sign(ownerStoragePubKey.getPrivate(), hashOfDataAndSeqNr);
@@ -1097,16 +1098,27 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                                                                       PublicKey receiversPublicKey)
             throws CryptoException {
         ByteArray hashOfData = get32ByteHashAsByteArray(expirableMailboxStoragePayload);
-        int sequenceNumber;
-        if (sequenceNumberMap.containsKey(hashOfData))
-            sequenceNumber = sequenceNumberMap.get(hashOfData).sequenceNr + 1;
-        else
-            sequenceNumber = 1;
+        boolean isReceiver = storageSignaturePubKey.getPublic().equals(expirableMailboxStoragePayload.getOwnerPubKey());
+        int sequenceNumber = getNextSequenceNumber(hashOfData, isReceiver ? Integer.MAX_VALUE : Integer.MAX_VALUE - 1);
 
         byte[] hashOfDataAndSeqNr = P2PDataStorage.get32ByteHash(new DataAndSeqNrPair(expirableMailboxStoragePayload, sequenceNumber));
         byte[] signature = Sig.sign(storageSignaturePubKey.getPrivate(), hashOfDataAndSeqNr);
         return new ProtectedMailboxStorageEntry(expirableMailboxStoragePayload,
                 storageSignaturePubKey.getPublic(), sequenceNumber, signature, receiversPublicKey, this.clock);
+    }
+
+    private int getNextSequenceNumber(ByteArray hashOfPayload, int maxSequenceNumber) throws CryptoException {
+        synchronized (map) {
+            MapValue stored = sequenceNumberMap.get(hashOfPayload);
+            int sequenceNumber = stored == null ? 0 : stored.sequenceNr;
+            // Persisted mailbox entries can outlive their sequence map records.
+            ProtectedStorageEntry entry = map.get(hashOfPayload);
+            if (entry != null)
+                sequenceNumber = Math.max(sequenceNumber, entry.getSequenceNumber());
+            if (sequenceNumber < 0 || sequenceNumber >= maxSequenceNumber)
+                throw new CryptoException("Storage sequence number is invalid or exhausted for " + hashOfPayload);
+            return sequenceNumber + 1;
+        }
     }
 
     public void addHashMapChangedListener(HashMapChangedListener hashMapChangedListener) {
@@ -1259,6 +1271,15 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
      */
     public static byte[] get32ByteHash(NetworkPayload data) {
         return Hash.getSha256Hash(data.toProtoMessage().toByteArray());
+    }
+
+    public static byte[] getRemoveHash(ProtectedStoragePayload protectedStoragePayload, int sequenceNumber) {
+        // A captured add or refresh signature must never authorize a removal.
+        byte[] baseHash = get32ByteHash(new DataAndSeqNrPair(protectedStoragePayload, sequenceNumber));
+        byte[] domain = "haveno-storage-remove".getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = Arrays.copyOf(baseHash, baseHash.length + domain.length);
+        System.arraycopy(domain, 0, bytes, baseHash.length, domain.length);
+        return Hash.getSha256Hash(bytes);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

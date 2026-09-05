@@ -17,7 +17,6 @@
 
 package haveno.core.alert;
 
-import com.google.common.base.Charsets;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.app.DevEnv;
@@ -193,22 +192,22 @@ public class AlertManager {
     }
 
     private void signAndAddSignatureToAlertMessage(Alert alert) {
-        String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
-        String signatureAsBase64 = alertSigningKey.signMessage(alertMessageAsHex);
+        String signaturePayload = alert.getSignaturePayloadAsHex(keyRing.getSignatureKeyPair().getPublic().getEncoded());
+        String signatureAsBase64 = alertSigningKey.signMessage(signaturePayload);
         alert.setSigAndPubKey(signatureAsBase64, keyRing.getSignatureKeyPair().getPublic());
     }
 
     private boolean verifySignature(Alert alert) {
-        String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
+        String signaturePayload = alert.getSignaturePayloadAsHex(alert.getOwnerPubKeyBytes());
         for (String pubKeyAsHex : getPubKeyList()) {
             try {
-                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(alertMessageAsHex, alert.getSignatureAsBase64());
+                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(signaturePayload, alert.getSignatureAsBase64());
                 return true;
-            } catch (SignatureException e) {
+            } catch (SignatureException | IllegalArgumentException e) {
                 // ignore
             }
         }
-        log.warn("verifySignature failed");
+        log.debug("Alert signature verification failed");
         return false;
     }
 }

@@ -83,6 +83,8 @@ public final class Contract implements NetworkPayload {
     private final String makerDepositTxHash;
     @Nullable
     private final String takerDepositTxHash;
+    @Nullable // Absent from contracts created before multisig address verification.
+    private final String multisigAddress;
 
     public Contract(OfferPayload offerPayload,
                     long tradeAmount,
@@ -102,7 +104,8 @@ public final class Contract implements NetworkPayload {
                     String makerPayoutAddressString,
                     String takerPayoutAddressString,
                     String makerDepositTxHash,
-                    @Nullable String takerDepositTxHash) {
+                    @Nullable String takerDepositTxHash,
+                    @Nullable String multisigAddress) {
         this.offerPayload = offerPayload;
         this.tradeAmount = tradeAmount;
         this.tradePrice = tradePrice;
@@ -122,6 +125,7 @@ public final class Contract implements NetworkPayload {
         this.takerPayoutAddressString = takerPayoutAddressString;
         this.makerDepositTxHash = makerDepositTxHash;
         this.takerDepositTxHash = takerDepositTxHash;
+        this.multisigAddress = multisigAddress;
 
         // For SEPA offers we accept also SEPA_INSTANT takers
         // Otherwise both ids need to be the same
@@ -159,6 +163,7 @@ public final class Contract implements NetworkPayload {
                 .setTakerPayoutAddressString(takerPayoutAddressString)
                 .setMakerDepositTxHash(makerDepositTxHash);
         Optional.ofNullable(takerDepositTxHash).ifPresent(builder::setTakerDepositTxHash);
+        Optional.ofNullable(multisigAddress).ifPresent(builder::setMultisigAddress);
         return builder.build();
     }
 
@@ -181,7 +186,8 @@ public final class Contract implements NetworkPayload {
                 proto.getMakerPayoutAddressString(),
                 proto.getTakerPayoutAddressString(),
                 proto.getMakerDepositTxHash(),
-                ProtoUtil.stringOrNullFromProto(proto.getTakerDepositTxHash()));
+                ProtoUtil.stringOrNullFromProto(proto.getTakerDepositTxHash()),
+                ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
     }
 
 
@@ -310,6 +316,7 @@ public final class Contract implements NetworkPayload {
                 ",\n     takerPayoutAddressString='" + takerPayoutAddressString + '\'' +
                 ",\n     makerDepositTxHash='" + makerDepositTxHash + '\'' +
                 ",\n     takerDepositTxHash='" + takerDepositTxHash + '\'' +
+                ",\n     multisigAddress='" + multisigAddress + '\'' +
                 "\n}";
     }
 }
