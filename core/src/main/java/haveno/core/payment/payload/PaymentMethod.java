@@ -149,6 +149,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                                     Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? TimeUnit.MINUTES.toMillis(30) :
                                     TimeUnit.DAYS.toMillis(1);
 
+    public static final long ZELLE_LEGACY_MAX_TRADE_PERIOD = 4 * DAY;
+
     // These values are not used except to derive the associated risk factor.
     private static final BigInteger DEFAULT_TRADE_LIMIT_CRYPTO = HavenoUtils.xmrToAtomicUnits(200);
     private static final BigInteger DEFAULT_TRADE_LIMIT_VERY_LOW_RISK = HavenoUtils.xmrToAtomicUnits(100);
@@ -398,7 +400,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             KASPI = new PaymentMethod(KASPI_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(KaspiAccount.SUPPORTED_CURRENCIES)),
 
             // US
-            ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
+            ZELLE = new PaymentMethod(ZELLE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
             POPMONEY = new PaymentMethod(POPMONEY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PopmoneyAccount.SUPPORTED_CURRENCIES)),
             US_POSTAL_MONEY_ORDER = new PaymentMethod(US_POSTAL_MONEY_ORDER_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES)),
             VENMO = new PaymentMethod(VENMO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VenmoAccount.SUPPORTED_CURRENCIES)),
@@ -591,8 +593,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     @Getter
     private final String id;
 
-    // Must not change as old offers would get a new period then and that would violate the makers "contract" or
-    // expectation when he created the offer.
+    // Changing a default must preserve existing offers and trades; see the Zelle legacy period in Offer.
     @Getter
     private final long maxTradePeriod;
 
