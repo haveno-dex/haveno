@@ -588,19 +588,30 @@ public abstract class Overlay<T extends Overlay<T>> {
                     // focus the message, not the headline copy icon, so screen readers announce it first
                     if (messageTextArea != null) messageTextArea.requestFocus();
 
-                    // the auto-sized message height settles over the first layout pulses as its text
-                    // re-wraps, so keep re-fitting the invisible stage to the content until stable
+                    // the auto-sized message height settles over the first layout pulses as its text re-wraps, so keep
+                    // re-fitting the invisible stage until its size and the content's height demand hold stable
                     Stage displayedStage = stage;
                     new AnimationTimer() {
-                        private int frames;
-                        private double lastHeight;
+                        private int frames, stableFrames;
+                        private double lastWidth, lastHeight, lastDemand;
                         @Override
                         public void handle(long now) {
+                            Region rootContainer = getRootContainer();
+                            double demand = rootContainer.prefHeight(rootContainer.prefWidth(-1));
+                            double width = displayedStage.getWidth();
                             double height = displayedStage.getHeight();
-                            boolean stable = Math.abs(height - lastHeight) < 0.5;
+                            boolean stable = Math.abs(width - lastWidth) < 0.5
+                                    && Math.abs(height - lastHeight) < 0.5
+                                    && Math.abs(demand - lastDemand) < 0.5;
+                            lastWidth = width;
                             lastHeight = height;
-                            if (!stable) refitToContent();
-                            if (++frames > 1 && (stable || frames > 10)) {
+                            lastDemand = demand;
+                            if (stable) stableFrames++;
+                            else {
+                                stableFrames = 0;
+                                refitToContent();
+                            }
+                            if (stableFrames >= 2 || ++frames > 30) {
                                 displayedStage.setOpacity(1);
                                 stop();
                             }
