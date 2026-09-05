@@ -118,6 +118,12 @@ public class FailedTradesManager implements PersistedDataHost {
         }
     }
 
+    public List<Trade> getTrades() {
+        synchronized (failedTrades.getList()) {
+            return failedTrades.stream().collect(Collectors.toList());
+        }
+    }
+
     public Optional<Trade> getTradeById(String id) {
         synchronized (failedTrades.getList()) {
             return failedTrades.stream().filter(e -> e.getId().equals(id)).findFirst();
