@@ -360,8 +360,8 @@ public class PriceFeedService {
                             0,
                             false));
                 }
-                updateCounter.set(updateCounter.get() + 1);
             }
+            updateCounter.set(updateCounter.get() + 1); // listeners can acquire the open offers lock
         });
     }
 

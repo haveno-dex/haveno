@@ -702,11 +702,11 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     /**
-     * Get the key images of reserve and deposit tx inputs of open trades and the given open offers.
+     * Get reserved inputs of open trades, failed trades awaiting cleanup, and the given offers.
      */
     public Set<String> getReservedKeyImages(List<OpenOffer> openOffers) {
         Set<String> reservedKeyImages = new HashSet<String>();
-        for (Trade trade : HavenoUtils.tradeManager.getOpenTrades()) {
+        for (Trade trade : HavenoUtils.tradeManager.getTradesReservingOutputs()) {
             if (trade.getSelf().getReserveTxKeyImages() == null) continue;
             reservedKeyImages.addAll(trade.getSelf().getReserveTxKeyImages());
         }

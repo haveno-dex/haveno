@@ -65,7 +65,9 @@ public final class OpenOffer implements Tradable {
     @Getter
     private final Offer offer;
     @Getter
-    private State state;
+    private volatile State state;
+    @Getter
+    private transient State stateBeforeReservation = State.AVAILABLE;
     @Setter
     @Getter
     private boolean reserveExactAmount;
@@ -196,10 +198,12 @@ public final class OpenOffer implements Tradable {
 
     @Override
     public protobuf.Tradable toProtoMessage() {
+        // Keep the maker's pending/deactivated state through another restart while a trade owns the offer.
+        State persistedState = state == State.RESERVED && stateBeforeReservation != State.AVAILABLE ? stateBeforeReservation : state;
         protobuf.OpenOffer.Builder builder = protobuf.OpenOffer.newBuilder()
                 .setOffer(offer.toProtoMessage())
                 .setTriggerPrice(triggerPrice)
-                .setState(protobuf.OpenOffer.State.valueOf(state.name()))
+                .setState(protobuf.OpenOffer.State.valueOf(persistedState.name()))
                 .setSplitOutputTxFee(splitOutputTxFee)
                 .setReserveExactAmount(reserveExactAmount)
                 .setDeactivatedByTrigger(deactivatedByTrigger);
@@ -265,6 +269,11 @@ public final class OpenOffer implements Tradable {
     public void deactivate(boolean deactivatedByTrigger) {
         this.deactivatedByTrigger = deactivatedByTrigger;
         setState(State.DEACTIVATED);
+    }
+
+    public void reserve() {
+        stateBeforeReservation = state;
+        setState(State.RESERVED);
     }
 
     public ReadOnlyObjectProperty<State> stateProperty() {

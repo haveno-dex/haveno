@@ -951,6 +951,12 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // handle nack of InitTradeRequest from arbitrator to maker
         if (!ackMessage.isSuccess() && trade.isMaker() && verifiedPeer == trade.getArbitrator() && ackMessage.getSourceMsgClassName().equals(InitTradeRequest.class.getSimpleName())) {
+            if (!(processModel.getTradeMessage() instanceof InitTradeRequest) ||
+                    (ackMessage.getSourceUid() != null && !ackMessage.getSourceUid().equals(processModel.getTradeMessage().getUid())) ||
+                    processModel.getTradeManager().getOpenTrade(trade.getId()).orElse(null) != trade) {
+                log.warn("Ignoring stale InitTradeRequest NACK for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                return;
+            }
             if (ignoreInitTradeRequestNackFromArbitrator(ackMessage)) {
                 log.warn("Ignoring InitTradeRequest NACK from arbitrator, offerId={}, errorMessage={}", processModel.getOfferId(), ackMessage.getErrorMessage());
                 // use default postprocessing
@@ -1159,7 +1165,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         String warningMessage = "Your offer (" + trade.getOffer().getShortId() + ") has been removed because there was a problem taking the trade.\n\nError message: " + ackMessage.getErrorMessage();
         OpenOffer openOffer = HavenoUtils.openOfferManager.getOpenOffer(trade.getId()).orElse(null);
         if (openOffer != null) {
-            HavenoUtils.openOfferManager.removeOpenOffer(openOffer, null, null);
+            HavenoUtils.openOfferManager.removeOpenOfferOnTradeError(openOffer);
             HavenoUtils.setTopError(warningMessage);
         }
         log.warn(warningMessage);

@@ -37,9 +37,14 @@ public class MaybeAddToOfferBook extends Task<PlaceOfferModel> {
             runInterceptHook();
             checkNotNull(model.getSignOfferResponse().getSignedOfferPayload().getArbitratorSignature(), "Offer's arbitrator signature is null: " + model.getOpenOffer().getOffer().getId());
 
-            // deactivate if conflicting offer exists
-            if (model.getOpenOfferManager().hasConflictingClone(model.getOpenOffer())) {
-                model.getOpenOffer().setState(OpenOffer.State.DEACTIVATED);
+            boolean conflictingClone;
+            synchronized (model.getOpenOfferManager().getObservableList()) {
+                conflictingClone = model.getOpenOfferManager().hasConflictingClone(model.getOpenOffer());
+                if (conflictingClone && (model.getOpenOffer().isPending() || model.getOpenOffer().isAvailable())) {
+                    model.getOpenOffer().setState(OpenOffer.State.DEACTIVATED);
+                }
+            }
+            if (conflictingClone) {
                 model.setOfferAddedToOfferBook(false);
                 complete();
                 return;
@@ -49,7 +54,9 @@ public class MaybeAddToOfferBook extends Task<PlaceOfferModel> {
             if (model.getOpenOffer().isPending() || model.getOpenOffer().isAvailable()) {
                 model.getOfferBookService().addOffer(new Offer(model.getSignOfferResponse().getSignedOfferPayload()),
                         () -> {
-                            model.getOpenOffer().setState(OpenOffer.State.AVAILABLE);
+                            synchronized (model.getOpenOfferManager().getObservableList()) {
+                                if (model.getOpenOffer().isPending()) model.getOpenOffer().setState(OpenOffer.State.AVAILABLE);
+                            }
                             model.setOfferAddedToOfferBook(true);
                             complete();
                         },

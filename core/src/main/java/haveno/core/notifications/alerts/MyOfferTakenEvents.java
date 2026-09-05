@@ -47,7 +47,6 @@ public class MyOfferTakenEvents {
             if (c.wasRemoved())
                 c.getRemoved().forEach(this::onOpenOfferRemoved);
         });
-        openOfferManager.getObservableList().forEach(this::onOpenOfferRemoved);
     }
 
     private void onOpenOfferRemoved(OpenOffer openOffer) {

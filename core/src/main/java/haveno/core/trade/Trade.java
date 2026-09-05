@@ -2201,8 +2201,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             return;
         }
 
-        // remove immediately on deposit request nack if deposit txs verified unpublished, since they are only relayed on ack
-        if (isDepositRequestFailed() && !(this instanceof ArbitratorTrade)) {
+        // Keep maker reservations after a deposit request: even a NACK can follow an uncertain submission.
+        if (isDepositRequestFailed() && this instanceof TakerTrade) {
             try {
                 if (!hasPublishedDepositTx()) {
                     removeTradeOnError();
@@ -2214,15 +2214,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             }
         }
 
-        // done if wallet already deleted
-        if (!walletExists()) {
+        // A missing maker wallet does not prove its submitted deposit cannot still publish.
+        if (!walletExists() && !(this instanceof MakerTrade)) {
             removeTradeOnError();
             return;
         }
 
         // set error height
         if (processModel.getTradeProtocolErrorHeight() == 0) {
-            log.warn("Scheduling to remove trade if unfunded for {} {} from height {}", getClass().getSimpleName(), getId(), xmrConnectionService.getTargetHeight());
+            log.warn("Scheduling protocol error handling for {} {} from height {}", getClass().getSimpleName(), getId(), xmrConnectionService.getTargetHeight());
             processModel.setTradeProtocolErrorHeight(xmrConnectionService.getTargetHeight() - 1); // height denotes scheduled error handling
         }
 
@@ -2252,11 +2252,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             ThreadUtils.execute(() -> {
                 try {
 
-                    // skip if shut down started or superseded while queued
-                    if (isShutDownStarted || superseded) return;
+                    // Publication may have been acknowledged while cleanup was queued.
+                    if (isShutDownStarted || superseded || isDepositsPublished()) return;
 
-                    // remove trade and wallet if no deposit tx published
-                    if (!hasPublishedDepositTx()) {
+                    // A negative daemon lookup cannot authorize reuse of the maker's submitted inputs.
+                    List<MoneroTx> publishedDepositTxs = getPublishedDepositTxs();
+                    if (publishedDepositTxs.isEmpty() && !(this instanceof MakerTrade)) {
                         log.warn("Deleting {} {} after protocol error", getClass().getSimpleName(), getId());
                         if (this instanceof ArbitratorTrade && (getMaker().getReserveTxHash() != null || getTaker().getReserveTxHash() != null)) {
                             processModel.getTradeManager().onMoveInvalidTradeToFailedTrades(this); // arbitrator retains trades with reserved funds for analysis and penalty
@@ -2266,12 +2267,22 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                         } else {
                             removeTradeOnError();
                         }
-                    } else if (!isPayoutPublished()) {
+                    } else {
 
-                        // set error if wallet may be partially funded
-                        String errorMessage = "Refusing to delete " + getClass().getSimpleName() + " " + getId() + " after protocol error because its wallet might be funded";
-                        prependErrorMessage(errorMessage);
-                        log.warn(errorMessage);
+                        // Retain recovery data and explain whether publication is observed or uncertain.
+                        if (!isPayoutPublished()) {
+                            String reason = publishedDepositTxs.isEmpty() ? "deposit publication is still uncertain" : "its wallet might be funded";
+                            String errorMessage = "Refusing to delete " + getClass().getSimpleName() + " " + getId() + " after protocol error because " + reason;
+                            if (getErrorMessage() == null || !getErrorMessage().startsWith(errorMessage)) prependErrorMessage(errorMessage);
+                            log.warn(errorMessage);
+                        }
+
+                        // Close only on positive evidence that the maker's deposit was published.
+                        if (this instanceof MakerTrade && getMaker().getDepositTxHash() != null) {
+                            if (publishedDepositTxs.stream().anyMatch(tx -> getMaker().getDepositTxHash().equals(tx.getHash()))) {
+                                processModel.getOpenOfferManager().closeSpentOffer(getOffer());
+                            }
+                        }
                     }
 
                     // unsubscribe
@@ -2308,6 +2319,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     // so the wallet is deleted now and the trade is not re-initialized on restart
     public void maybeCompleteProtocolErrorCleanup() {
         if (!isProtocolErrorHandlingScheduled()) return;
+        if (isDepositsPublished() || (this instanceof MakerTrade && isDepositRequested())) return;
         if (hasPublishedDepositTx()) return;
         deleteWallet();
         if (walletExists()) return;
@@ -2317,10 +2329,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     // checks the daemon directly since the trade state is not authoritative after errors
     private boolean hasPublishedDepositTx() {
+        return !getPublishedDepositTxs().isEmpty();
+    }
+
+    private List<MoneroTx> getPublishedDepositTxs() {
         List<String> txHashes = new ArrayList<>();
         if (getMaker().getDepositTxHash() != null) txHashes.add(getMaker().getDepositTxHash());
         if (getTaker().getDepositTxHash() != null) txHashes.add(getTaker().getDepositTxHash());
-        return !txHashes.isEmpty() && !xmrConnectionService.getTxs(txHashes).isEmpty();
+        return txHashes.isEmpty() ? List.of() : xmrConnectionService.getTxs(txHashes);
     }
 
     private void restoreDepositsPublishedTrade() {
@@ -3423,7 +3439,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (isPayoutFinalized()) return;
 
             // skip if deposit txs unknown or not expected
-            if (!isDepositRequested() || isDepositRequestFailed() || processModel.getMaker().getDepositTxHash() == null || (processModel.getTaker().getDepositTxHash() == null && !hasBuyerAsTakerWithoutDeposit())) return;
+            if (!isDepositRequested() || processModel.getMaker().getDepositTxHash() == null || (processModel.getTaker().getDepositTxHash() == null && !hasBuyerAsTakerWithoutDeposit())) return;
+
+            // Scheduled cleanup still needs wallet heights and deposit observations after a nack.
+            if (isDepositRequestFailed() && !isProtocolErrorHandlingScheduled()) return;
 
             // skip if daemon not synced
             if (!offlinePoll && (xmrConnectionService.getTargetHeight() == null || !xmrConnectionService.isSyncedWithinTolerance())) return;

@@ -131,6 +131,12 @@ public class FailedTradesManager implements PersistedDataHost {
         }
     }
 
+    public List<Trade> getTradesWithScheduledErrorHandling() {
+        synchronized (failedTrades.getList()) {
+            return failedTrades.stream().filter(Trade::isProtocolErrorHandlingScheduled).collect(Collectors.toList());
+        }
+    }
+
     public Stream<Trade> getTradesStreamWithFundsLockedIn() {
         synchronized (failedTrades.getList()) {
             return failedTrades.stream()

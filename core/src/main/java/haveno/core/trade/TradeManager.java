@@ -305,6 +305,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onAllServicesInitialized() {
+        // Restore before bootstrap callbacks can rewrite offers or cancel them for spent key images.
+        for (OpenOffer openOffer : openOfferManager.getOpenOffers()) {
+            boolean hasMakerTrade = getOpenTrade(openOffer.getId()).filter(Trade::isMaker).isPresent() ||
+                    failedTradesManager.getTradesById(openOffer.getId()).stream()
+                            .anyMatch(trade -> trade.isMaker() && trade.isProtocolErrorHandlingScheduled());
+            if (hasMakerTrade) openOfferManager.restoreReservedOpenOffer(openOffer.getId());
+        }
+
         if (p2PService.isBootstrapped()) {
             initTrades();
         } else {
@@ -580,6 +588,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
                 // initialize trade
                 initTrade(trade);
+                if (trade.isMaker() && trade.isDepositsPublished()) openOfferManager.closeSpentOffer(trade.getOffer());
 
                 // record if protocol didn't initialize, except closed trades, which are terminal
                 if (!trade.isDepositsPublished() && !closedTradableManager.getClosedTrades().contains(trade)) {
@@ -720,58 +729,74 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
   
-            // reserve open offer
-            openOfferManager.reserveOpenOffer(openOffer);
-
             // verify maker and taker pubKeyRings are different
             if (offer.getPubKeyRing().equals(request.getTakerPubKeyRing())) {
                 log.warn("Ignoring InitTradeRequest to maker because maker and taker pubKeyRings are the same, tradeId={}, sender={}", request.getOfferId(), sender);
                 return;
             }
 
-            // shut down any prior failed trades for this id so they stop processing messages for the new attempt
-            shutDownPriorFailedTrades(request.getOfferId());
+            if (!openOfferManager.reserveOpenOffer(openOffer)) {
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " is already taken or unavailable", null);
+                return;
+            }
 
-            // initialize trade
-            Trade trade;
-            if (offer.isBuyOffer())
-                trade = new BuyerAsMakerTrade(offer,
-                        BigInteger.valueOf(request.getTradeAmount()),
-                        offer.getOfferPayload().getPrice(),
-                        xmrWalletService,
-                        getNewProcessModel(offer),
-                        UUID.randomUUID().toString(),
-                        p2PService.getNetworkNode().getNodeAddress(),
-                        sender,
-                        null, // maker selects arbitrator later
-                        openOffer.getChallenge());
-            else
-                trade = new SellerAsMakerTrade(offer,
-                        BigInteger.valueOf(request.getTradeAmount()),
-                        offer.getOfferPayload().getPrice(),
-                        xmrWalletService,
-                        getNewProcessModel(offer),
-                        UUID.randomUUID().toString(),
-                        p2PService.getNetworkNode().getNodeAddress(),
-                        sender,
-                        null,
-                        openOffer.getChallenge());
-            trade.getMaker().setPaymentAccountId(trade.getOffer().getOfferPayload().getMakerPaymentAccountId()); // TODO: initialize these fields in ProcessInitTradeRequest
-            trade.getTaker().setPaymentAccountId(request.getTakerPaymentAccountId());
-            trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
-            trade.getTaker().setPubKeyRing(request.getTakerPubKeyRing());
-            trade.getSelf().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
-            trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash());
-            trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
-            trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
-            trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
-            initTradeAndProtocol(trade, createTradeProtocol(trade));
-            addTrade(trade);
-  
+            Trade trade = null;
+            try {
+                // shut down any prior failed trades for this id so they stop processing messages for the new attempt
+                shutDownPriorFailedTrades(request.getOfferId());
+
+                // initialize trade
+                if (offer.isBuyOffer())
+                    trade = new BuyerAsMakerTrade(offer,
+                            BigInteger.valueOf(request.getTradeAmount()),
+                            offer.getOfferPayload().getPrice(),
+                            xmrWalletService,
+                            getNewProcessModel(offer),
+                            UUID.randomUUID().toString(),
+                            p2PService.getNetworkNode().getNodeAddress(),
+                            sender,
+                            null, // maker selects arbitrator later
+                            openOffer.getChallenge());
+                else
+                    trade = new SellerAsMakerTrade(offer,
+                            BigInteger.valueOf(request.getTradeAmount()),
+                            offer.getOfferPayload().getPrice(),
+                            xmrWalletService,
+                            getNewProcessModel(offer),
+                            UUID.randomUUID().toString(),
+                            p2PService.getNetworkNode().getNodeAddress(),
+                            sender,
+                            null,
+                            openOffer.getChallenge());
+                trade.getMaker().setPaymentAccountId(trade.getOffer().getOfferPayload().getMakerPaymentAccountId()); // TODO: initialize these fields in ProcessInitTradeRequest
+                trade.getTaker().setPaymentAccountId(request.getTakerPaymentAccountId());
+                trade.getMaker().setPubKeyRing(trade.getOffer().getPubKeyRing());
+                trade.getTaker().setPubKeyRing(request.getTakerPubKeyRing());
+                trade.getSelf().setPaymentAccountId(offer.getOfferPayload().getMakerPaymentAccountId());
+                trade.getSelf().setReserveTxHash(openOffer.getReserveTxHash());
+                trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
+                trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
+                trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
+                initTradeAndProtocol(trade, createTradeProtocol(trade));
+                addTrade(trade);
+            } catch (Exception e) {
+                log.warn("Error initializing maker trade {}", request.getOfferId(), e);
+                if (trade != null) {
+                    trade.onSuperseded();
+                    trade.getXmrConnectionService().removeConnectionListener(trade);
+                    unregisterTradeProtocol(trade);
+                    removeTrade(trade);
+                }
+                openOfferManager.unreserveOpenOffer(openOffer);
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "Error initializing trade: " + e.getMessage(), null);
+                return;
+            }
+
             // process with protocol
+            Trade makerTrade = trade;
             ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
                 log.warn("Maker error during trade initialization: " + errorMessage);
-                trade.onProtocolInitializationError();
+                makerTrade.onProtocolInitializationError();
             });
         }
 
@@ -1480,6 +1505,15 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
             trades.addAll(closedTradableManager.getClosedTrades());
             trades.addAll(failedTradesManager.getObservableList());
+            return trades;
+        }
+    }
+
+    public List<Trade> getTradesReservingOutputs() {
+        synchronized (tradableList.getList()) {
+            // Keep the open-trade snapshot stable while checking the failed store during moves.
+            List<Trade> trades = new ArrayList<>(getOpenTrades());
+            trades.addAll(failedTradesManager.getTradesWithScheduledErrorHandling());
             return trades;
         }
     }
