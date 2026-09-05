@@ -144,6 +144,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -1283,6 +1284,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
      * @return the contract
      */
     public Contract createContract() {
+        String multisigAddress = processModel.getMultisigAddress();
+        checkArgument(multisigAddress != null && !multisigAddress.isBlank(), "Multisig address must be set before signing a contract");
         boolean isBuyerMakerAndSellerTaker = getOffer().getDirection() == OfferDirection.BUY;
         Contract contract = new Contract(
                 getOffer().getOfferPayload(),
@@ -1303,7 +1306,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 this instanceof MakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getMaker().getPayoutAddressString(), // maker payout address
                 this instanceof TakerTrade ? xmrWalletService.getAddressEntry(getId(), XmrAddressEntry.Context.TRADE_PAYOUT).get().getAddressString() : getTaker().getPayoutAddressString(), // taker payout address
                 getMaker().getDepositTxHash(),
-                getTaker().getDepositTxHash()
+                getTaker().getDepositTxHash(),
+                multisigAddress
         );
         if (contract.getBuyerPayoutAddressString().equals(contract.getSellerPayoutAddressString())) throw new IllegalArgumentException("Buyer and seller payout addresses must not be equal");
         return contract;

@@ -39,6 +39,8 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
     private final String depositTxHash;
     @Nullable
     private final byte[] accountAgeWitnessSignatureOfDepositHash;
+    @Nullable
+    private final String multisigAddress;
 
     public SignContractRequest(String tradeId,
                                      String uid,
@@ -48,7 +50,8 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                                      byte[] paymentAccountPayloadHash,
                                      String payoutAddress,
                                      @Nullable String depositTxHash,
-                                     @Nullable byte[] accountAgeWitnessSignatureOfDepositHash) {
+                                     @Nullable byte[] accountAgeWitnessSignatureOfDepositHash,
+                                     @Nullable String multisigAddress) {
         super(messageVersion, tradeId, uid);
         this.currentDate = currentDate;
         this.accountId = accountId;
@@ -56,6 +59,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
         this.payoutAddress = payoutAddress;
         this.depositTxHash = depositTxHash;
         this.accountAgeWitnessSignatureOfDepositHash = accountAgeWitnessSignatureOfDepositHash;
+        this.multisigAddress = multisigAddress;
     }
 
 
@@ -73,6 +77,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 .setPayoutAddress(payoutAddress);
         Optional.ofNullable(accountAgeWitnessSignatureOfDepositHash).ifPresent(e -> builder.setAccountAgeWitnessSignatureOfDepositHash(ByteString.copyFrom(e)));
         Optional.ofNullable(depositTxHash).ifPresent(builder::setDepositTxHash);
+        Optional.ofNullable(multisigAddress).ifPresent(builder::setMultisigAddress);
         builder.setCurrentDate(currentDate);
 
         return getNetworkEnvelopeBuilder().setSignContractRequest(builder).build();
@@ -89,7 +94,8 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 proto.getPaymentAccountPayloadHash().toByteArray(),
                 proto.getPayoutAddress(),
                 ProtoUtil.stringOrNullFromProto(proto.getDepositTxHash()),
-                ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignatureOfDepositHash()));
+                ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignatureOfDepositHash()),
+                ProtoUtil.stringOrNullFromProto(proto.getMultisigAddress()));
     }
 
     @Override
@@ -99,6 +105,7 @@ public final class SignContractRequest extends TradeMessage implements DirectMes
                 ",\n     accountId=" + accountId +
                 ",\n     paymentAccountPayloadHash='" + Utilities.bytesAsHexString(paymentAccountPayloadHash) +
                 ",\n     payoutAddress='" + payoutAddress +
+                ",\n     multisigAddress='" + multisigAddress +
                 ",\n     depositTxHash='" + depositTxHash +
                 ",\n     accountAgeWitnessSignatureOfDepositHash='" + Utilities.bytesAsHexString(accountAgeWitnessSignatureOfDepositHash) +
                 "\n} " + super.toString();
