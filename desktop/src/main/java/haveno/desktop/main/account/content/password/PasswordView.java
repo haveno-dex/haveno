@@ -20,6 +20,7 @@ package haveno.desktop.main.account.content.password;
 import static com.google.common.base.Preconditions.checkArgument;
 import com.google.inject.Inject;
 import com.jfoenix.validation.RequiredFieldValidator;
+import haveno.common.UserThread;
 import haveno.common.util.Tuple4;
 import haveno.core.api.CoreAccountService;
 import haveno.core.locale.Res;
@@ -60,6 +61,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     private AutoTooltipButton pwButton;
     private TitledGroupBg headline;
     private int gridRow = 0;
+    private boolean applyingPassword;
     private ChangeListener<Boolean> passwordFieldFocusChangeListener;
     private ChangeListener<String> passwordFieldTextChangeListener;
     private ChangeListener<String> repeatedPasswordFieldChangeListener;
@@ -128,52 +130,67 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     }
 
     private void onApplyPassword(BusyAnimation busyAnimation, Label deriveStatusLabel) {
+        if (applyingPassword) return;
         String password = passwordField.getText();
         checkArgument(password.length() < 500, Res.get("password.tooLong"));
+        boolean removePassword = walletsManager.areWalletsEncrypted();
+        String oldPassword = removePassword ? password : accountService.getPassword();
+        String newPassword = removePassword ? null : password;
 
+        applyingPassword = true;
         pwButton.setDisable(true);
+        passwordField.setDisable(true);
+        repeatedPasswordField.setDisable(true);
         deriveStatusLabel.setText(Res.get("password.deriveKey"));
         busyAnimation.play();
 
-        if (walletsManager.areWalletsEncrypted()) {
+        new Thread(() -> {
+            boolean changed = false;
+            Throwable failure = null;
             try {
-                accountService.changePassword(password, null);
-                new Popup()
-                        .feedback(Res.get("password.walletDecrypted"))
-                        .show();
-                backupWalletAndResetFields();
+                accountService.changePassword(oldPassword, newPassword);
+                changed = true;
+            } catch (CoreAccountService.PasswordChangeCommittedException e) {
+                changed = true;
+                failure = e;
             } catch (Throwable t) {
-                pwButton.setDisable(false);
-                new Popup()
-                        .warning(Res.get("password.wrongPw"))
-                        .show();
+                failure = t;
             }
-        } else {
-            try {
-                accountService.changePassword(accountService.getPassword(), password);
-                new Popup()
-                        .feedback(Res.get("password.walletEncrypted"))
-                        .show();
-                backupWalletAndResetFields();
-                walletsManager.clearBackup();
-            } catch (Throwable t) {
-                log.error("Error applying password: {}\n", t.getMessage(), t);
-                new Popup()
-                        .warning(Res.get("password.walletEncryptionFailed") + "\n\n" + t.getMessage())
-                        .show();
+            if (changed) {
+                try {
+                    walletsManager.backupWallets();
+                    if (!removePassword) walletsManager.clearBackup();
+                } catch (Throwable t) {
+                    if (failure == null) failure = t;
+                    else failure.addSuppressed(t);
+                }
             }
-        }
-        setText();
-        updatePasswordListeners();
+            if (failure != null) log.error("Error applying account password", failure);
+            boolean passwordChanged = changed;
+            Throwable error = failure;
+            UserThread.execute(() -> {
+                applyingPassword = false;
+                passwordField.setDisable(false);
+                repeatedPasswordField.setDisable(false);
+                if (passwordChanged) {
+                    passwordField.clear();
+                    repeatedPasswordField.clear();
+                }
+                setText();
+                updatePasswordListeners();
+                validatePasswords();
+                deriveStatusLabel.setText("");
+                busyAnimation.stop();
 
-        deriveStatusLabel.setText("");
-        busyAnimation.stop();
-    }
-
-    private void backupWalletAndResetFields() {
-        passwordField.clear();
-        repeatedPasswordField.clear();
-        walletsManager.backupWallets();
+                String success = Res.get(removePassword ? "password.walletDecrypted" : "password.walletEncrypted");
+                if (error == null) {
+                    new Popup().feedback(success).show();
+                } else {
+                    String message = error.getMessage() == null ? error.toString() : error.getMessage();
+                    new Popup().warning((passwordChanged ? success + "\n\n" : "") + message).show();
+                }
+            });
+        }, "Change-account-password").start();
     }
 
     private void setText() {
@@ -219,6 +236,10 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     }
 
     private void validatePasswords() {
+        if (applyingPassword) {
+            pwButton.setDisable(true);
+            return;
+        }
         passwordValidator.setPasswordsMatch(true);
 
         if (passwordField.validate()) {

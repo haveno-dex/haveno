@@ -51,7 +51,8 @@ public class Encryption {
     private static final String ASYM_CIPHER = "RSA/ECB/OAEPWithSHA-256AndMGF1PADDING";
 
     public static final String SYM_KEY_ALGO = "AES";
-    private static final String SYM_CIPHER = "AES";
+    // Legacy wire/storage format only. New local writes use AuthenticatedEncryption.
+    private static final String SYM_CIPHER = "AES/ECB/PKCS5Padding";
 
     private static final String HMAC = "HmacSHA256";
 
@@ -228,6 +229,7 @@ public class Encryption {
     public static byte[] decryptPayloadWithHmac(byte[] encryptedPayloadWithHmac, SecretKey secretKey) throws CryptoException {
         byte[] payloadWithHmac = decrypt(encryptedPayloadWithHmac, secretKey);
         // HMAC-SHA256 is always 32 bytes; split directly to avoid hex-encoding memory amplification
+        if (payloadWithHmac.length < 32) throw new CryptoException("Truncated legacy encrypted payload");
         int payloadLen = payloadWithHmac.length - 32;
         byte[] payload = Arrays.copyOfRange(payloadWithHmac, 0, payloadLen);
         byte[] hmac = Arrays.copyOfRange(payloadWithHmac, payloadLen, payloadWithHmac.length);

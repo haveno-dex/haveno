@@ -95,6 +95,34 @@ public class EncryptedAppendLogTest {
     }
 
     @Test
+    public void testFailedLegacyMigrationPreservesHistoryAndAllowsFurtherAppends() throws Exception {
+        File file = new File(dir, "Test.log");
+        try (var out = new java.io.DataOutputStream(new java.io.FileOutputStream(file))) {
+            for (String value : List.of("old-first", "old-second")) {
+                byte[] encrypted = Encryption.encryptPayloadWithHmac(rec(value), key);
+                out.writeInt(encrypted.length);
+                out.write(encrypted);
+            }
+        }
+        byte[] original = Files.readAllBytes(file.toPath());
+        File blockedBackup = new File(dir, "backup");
+        assertTrue(blockedBackup.createNewFile());
+        EncryptedAppendLog log = newLog();
+        assertRecords(List.of("old-first", "old-second"), log.readAllValidRecords());
+        assertArrayEquals(original, Files.readAllBytes(file.toPath()));
+        log.append(rec("new-third"));
+        log.append(rec("new-fourth"));
+        List<String> expected = List.of("old-first", "old-second", "new-third", "new-fourth");
+        assertRecords(expected, newLog().readAllValidRecords());
+        assertArrayEquals(original, java.util.Arrays.copyOf(Files.readAllBytes(file.toPath()), original.length));
+
+        assertTrue(blockedBackup.delete());
+        assertRecords(expected, newLog().readAllValidRecords());
+        byte[] upgraded = Files.readAllBytes(file.toPath());
+        assertTrue(haveno.common.crypto.AuthenticatedEncryption.isEnvelope(java.util.Arrays.copyOfRange(upgraded, 4, upgraded.length)));
+    }
+
+    @Test
     public void testAppendThenReadInOrder() throws Exception {
         EncryptedAppendLog log = newLog();
         List<String> expected = List.of("alpha", "bravo", "charlie", "delta");
@@ -147,7 +175,7 @@ public class EncryptedAppendLogTest {
     }
 
     @Test
-    public void testMidLogCorruptionBacksUpAndRebuildsFromPrefix() throws Exception {
+    public void testMidLogAuthenticationFailurePreservesEntireLog() throws Exception {
         EncryptedAppendLog log = newLog();
         List<String> all = List.of("keep-1", "keep-2", "CORRUPT-ME", "after-1", "after-2");
         for (String s : all) log.append(rec(s));
@@ -162,13 +190,11 @@ public class EncryptedAppendLogTest {
         bytes[offset + 4 + len / 2] ^= 0x5a;
         Files.write(logFile.toPath(), bytes);
 
-        List<byte[]> read = newLog().readAllValidRecords();
-        // Only the valid leading prefix survives.
-        assertRecords(List.of("keep-1", "keep-2"), read);
-        // Original corrupt log preserved for recovery.
-        assertEquals(1, corruptedBackupCount(), "corrupt log must be backed up");
-        // Log rebuilt clean from the prefix; re-read is stable and equal.
-        assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> newLog().readAllValidRecords());
+        org.junit.jupiter.api.Assertions.assertArrayEquals(bytes, Files.readAllBytes(logFile.toPath()));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> newLog().append(rec("must not append")));
+        org.junit.jupiter.api.Assertions.assertArrayEquals(bytes, Files.readAllBytes(logFile.toPath()));
+
     }
 
     @Test
@@ -258,12 +284,13 @@ public class EncryptedAppendLogTest {
     }
 
     @Test
-    public void testWrongKeyTreatsRecordsAsCorrupt() throws Exception {
+    public void testWrongKeyPreservesRecords() throws Exception {
         newLog().append(rec("secret"));
         // A different key cannot decrypt -> first full frame fails HMAC -> treated as corruption.
         EncryptedAppendLog wrongKeyLog = new EncryptedAppendLog(dir, "Test.log", Encryption.generateSecretKey(256), 3);
-        List<byte[]> read = wrongKeyLog.readAllValidRecords();
-        assertTrue(read.isEmpty(), "no records should be recovered with the wrong key");
-        assertEquals(1, corruptedBackupCount(), "undecryptable log must be backed up");
+        byte[] before = Files.readAllBytes(new File(dir, "Test.log").toPath());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, wrongKeyLog::readAllValidRecords);
+        org.junit.jupiter.api.Assertions.assertArrayEquals(before, Files.readAllBytes(new File(dir, "Test.log").toPath()));
+        assertRecords(List.of("secret"), newLog().readAllValidRecords());
     }
 }

@@ -65,6 +65,7 @@ public final class Navigation implements PersistedDataHost {
     @Inject
     public Navigation(PersistenceManager<NavigationPath> persistenceManager) {
         this.persistenceManager = persistenceManager;
+        persistenceManager.allowCorruptionRecovery();
 
         persistenceManager.initialize(navigationPath, PersistenceManager.Source.PRIVATE_LOW_PRIO);
     }

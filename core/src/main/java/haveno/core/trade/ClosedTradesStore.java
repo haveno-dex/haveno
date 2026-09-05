@@ -344,11 +344,16 @@ public class ClosedTradesStore {
         if (!legacyFile.exists()) return;
 
         log.info("Merging legacy monolithic {} into append-only {}", LEGACY_FILE_NAME, LOG_FILE_NAME);
-        TradableList<Tradable> legacy = legacyPersistenceManager.getPersisted(LEGACY_FILE_NAME);
+        TradableList<Tradable> legacy;
+        try {
+            legacy = legacyPersistenceManager.getPersisted(LEGACY_FILE_NAME);
+        } catch (RuntimeException e) {
+            log.warn("Could not read legacy {}; preserving it and displaying the existing log history", LEGACY_FILE_NAME, e);
+            corruptedStorageFileHandler.addFile(LEGACY_FILE_NAME);
+            return;
+        }
         if (legacy == null) {
-            // Transient failure (key ring not ready, shutting down) - retry on a later start - or
-            // genuine corruption, in which case getPersisted already moved the file to backup.
-            // Either way never rename the legacy file: that would strand real history.
+            // A locked keyring or shutdown defers reading. Never rename an unread legacy file.
             log.warn("Legacy {} present but could not be read; deferring migration", LEGACY_FILE_NAME);
             return;
         }

@@ -34,6 +34,9 @@ public class Version {
     // 3rd digit: Network-specific builds. This is reserved for forks and is never set by upstream.
     public static final String VERSION = "1.8.0";
 
+    // Stage one: accept authenticated envelopes but send legacy until old peers and in-flight trades retire.
+    public static final int NETWORK_ENCRYPTION_VERSION = 1;
+
     /**
      * Holds a list of the tagged resource files for optimizing the getData requests.
      * This must not contain each version but only those where we add new version-tagged resource files for

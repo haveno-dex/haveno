@@ -99,6 +99,12 @@ public class HavenoAppMain extends HavenoExecutable {
         application.handleUncaughtException(throwable, doShutDown);
     }
 
+    @Override
+    protected void onPersistenceReadFailure(Throwable failure) {
+        application.showPersistenceReadFailure(failure, () -> new Thread(
+                () -> super.onPersistenceReadFailure(failure), "Persistence-failure-shutdown").start());
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // We continue with a series of synchronous execution tasks
@@ -177,7 +183,7 @@ public class HavenoAppMain extends HavenoExecutable {
         CompletableFuture<Boolean> loginResult = new CompletableFuture<>();
         Platform.setImplicitExit(false);
         application.showLoginProgress();
-        // Account keys must be unlocked before persistence is read.
+        // Key derivation and migration writes must finish before persistence is read.
         CompletableFuture.supplyAsync(() -> super.loginAccount().join(),
                 task -> new Thread(task, "AccountLogin").start()).whenComplete((opened, failure) -> UserThread.execute(() -> {
                     if (application.isShutDownRequested() || isShutDownStarted) return;

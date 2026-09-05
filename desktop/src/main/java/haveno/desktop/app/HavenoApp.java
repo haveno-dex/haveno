@@ -213,6 +213,11 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                 Objects.requireNonNullElse(failure.getMessage(), failure.toString())), onShutdown);
     }
 
+    public void showPersistenceReadFailure(Throwable failure, Runnable onShutdown) {
+        showStartupFailure(Res.get("popup.error.persistedData",
+                Objects.requireNonNullElse(failure.getMessage(), failure.toString())), onShutdown);
+    }
+
     private void showStartupFailure(String text, Runnable onShutdown) {
         Label message = new AutoTooltipLabel(text);
         message.setWrapText(true);
@@ -471,7 +476,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             if (submitting[0]) return;
             submitting[0] = true;
 
-            // Keep progress visible while the account keys are unlocked.
+            // Keep progress visible while key derivation and any migration writes complete.
             setControlsDisabled.accept(true);
             showWorking.accept(Res.get("password.startup.opening"));
 
