@@ -274,6 +274,7 @@ message SignContractRequest {
     string payout_address = 6;
     string deposit_tx_hash = 7;
     bytes account_age_witness_signature_of_deposit_hash = 8;
+    string multisig_address = 9;
 }
 
 message SignContractResponse {
@@ -814,6 +815,7 @@ message Contract {
     string taker_payout_address_string = 17;
     string maker_deposit_tx_hash = 18;
     string taker_deposit_tx_hash = 19;
+    string multisig_address = 20;
 }
 
 message RawTransactionInput {
