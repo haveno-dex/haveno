@@ -53,6 +53,7 @@ import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
 import haveno.core.offer.OfferDirection;
@@ -720,24 +721,31 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 return;
             }
   
-            // reserve open offer
-            openOfferManager.reserveOpenOffer(openOffer);
-
             // verify maker and taker pubKeyRings are different
             if (offer.getPubKeyRing().equals(request.getTakerPubKeyRing())) {
                 log.warn("Ignoring InitTradeRequest to maker because maker and taker pubKeyRings are the same, tradeId={}, sender={}", request.getOfferId(), sender);
                 return;
             }
 
-            // shut down any prior failed trades for this id so they stop processing messages for the new attempt
-            shutDownPriorFailedTrades(request.getOfferId());
+            // validate the amount and price before they can block another trade's payment
+            try {
+                checkArgument(request.getTradeAmount() > 0, "Trade amount must be positive");
+                checkArgument(BigInteger.valueOf(request.getTradeAmount()).compareTo(offer.getMinAmount()) >= 0, "Trade amount is less than minimum offer amount");
+                checkArgument(BigInteger.valueOf(request.getTradeAmount()).compareTo(offer.getAmount()) <= 0, "Trade amount exceeds offer amount");
+                checkArgument(request.getTradePrice() > 0, "Trade price must be positive");
+                offer.verifyTradePrice(request.getTradePrice(), true);
+            } catch (Exception e) {
+                log.warn("Rejecting InitTradeRequest to maker, tradeId={}, error={}", request.getOfferId(), e.getMessage());
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
+                return;
+            }
 
             // initialize trade
             Trade trade;
             if (offer.isBuyOffer())
                 trade = new BuyerAsMakerTrade(offer,
                         BigInteger.valueOf(request.getTradeAmount()),
-                        offer.getOfferPayload().getPrice(),
+                        request.getTradePrice(),
                         xmrWalletService,
                         getNewProcessModel(offer),
                         UUID.randomUUID().toString(),
@@ -748,7 +756,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             else
                 trade = new SellerAsMakerTrade(offer,
                         BigInteger.valueOf(request.getTradeAmount()),
-                        offer.getOfferPayload().getPrice(),
+                        request.getTradePrice(),
                         xmrWalletService,
                         getNewProcessModel(offer),
                         UUID.randomUUID().toString(),
@@ -765,8 +773,24 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
             trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
             trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
-            initTradeAndProtocol(trade, createTradeProtocol(trade));
-            addTrade(trade);
+            try {
+                addMakerTrade(trade);
+            } catch (IllegalArgumentException e) {
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
+                return;
+            }
+
+            // reserve and initialize only after the payment amount has been claimed
+            openOfferManager.reserveOpenOffer(openOffer);
+            shutDownPriorFailedTrades(request.getOfferId());
+            try {
+                initTradeAndProtocol(trade, createTradeProtocol(trade));
+            } catch (Exception e) {
+                log.warn("Maker error initializing trade protocol, tradeId={}", trade.getId(), e);
+                trade.onProtocolInitializationError();
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
+                return;
+            }
   
             // process with protocol
             ((MakerProtocol) getTradeProtocol(trade)).handleInitTradeRequest(request, sender, errorMessage -> {
@@ -1524,6 +1548,45 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             if (tradableList.add(trade)) {
                 requestPersistence();
             }
+        }
+    }
+
+    void addMakerTrade(Trade trade) {
+        // Different offers initialize on different threads; checking and adding must be atomic.
+        synchronized (tradableList.getList()) {
+            setTradePrice(trade, trade.getRawPrice().getValue());
+            addTrade(trade);
+        }
+    }
+
+    public void setTradePrice(Trade trade, long price) {
+        if (!trade.isMaker()) {
+            trade.setPrice(price);
+            return;
+        }
+        synchronized (tradableList.getList()) {
+            Volume volume = trade.getVolume(price);
+            checkArgument(price > 0 && volume != null, "Cannot determine trade payment amount");
+            List<Trade> trades = new ArrayList<>(tradableList.getList());
+            trades.addAll(closedTradableManager.getClosedTrades());
+            ObservableList<Trade> failedTrades = failedTradesManager.getObservableList();
+            synchronized (failedTrades) {
+                // A failed deposit request can still have funded deposits pending error cleanup.
+                failedTrades.stream().filter(Trade::isDepositRequested).forEach(trades::add);
+            }
+            for (Trade other : trades) {
+                if (other == trade || !other.isMaker() || other.isPayoutPublished()) continue;
+                if (other.getOffer().getDirection() != trade.getOffer().getDirection()) continue;
+                if (!other.getOffer().getCounterCurrencyCode().equals(trade.getOffer().getCounterCurrencyCode())) continue;
+                if (!other.getOffer().getOfferPayload().getMakerPaymentAccountId().equals(trade.getOffer().getOfferPayload().getMakerPaymentAccountId())) continue;
+                Volume otherVolume = other.getVolume();
+                if (otherVolume != null && otherVolume.getValue() != volume.getValue()) continue;
+                log.warn("Rejecting ambiguous maker payment, tradeId={}, conflictingTradeId={}, paymentAmount={} {}",
+                        trade.getId(), other.getId(), volume, volume.getCurrencyCode());
+                throw new IllegalArgumentException("The maker already has an unresolved trade with this payment amount and payment account. Please choose a different amount or try again later.");
+            }
+            // Keep repricing atomic with admission, including the arbitrator's final price.
+            trade.setPrice(price);
         }
     }
 
