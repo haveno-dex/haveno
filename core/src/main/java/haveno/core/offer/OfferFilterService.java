@@ -24,6 +24,7 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
@@ -82,6 +83,7 @@ public class OfferFilterService {
         IS_MY_INSUFFICIENT_TRADE_LIMIT,
         ARBITRATOR_NOT_VALIDATED,
         SIGNATURE_NOT_VALIDATED,
+        HAS_INVALID_MAX_TRADE_PERIOD,
         RESERVE_FUNDS_SPENT;
 
         @Getter
@@ -132,6 +134,9 @@ public class OfferFilterService {
         }
         if (!hasValidSignature(offer)) {
             return Result.SIGNATURE_NOT_VALIDATED;
+        }
+        if (!hasValidMaxTradePeriod(offer)) {
+            return Result.HAS_INVALID_MAX_TRADE_PERIOD;
         }
         if (isReservedFundsSpent(offer)) {
             return Result.RESERVE_FUNDS_SPENT;
@@ -241,6 +246,10 @@ public class OfferFilterService {
         Arbitrator arbitrator = getArbitrator(offer);
         if (arbitrator == null) return false;
         return HavenoUtils.isArbitratorSignatureValid(offer.getOfferPayload(), arbitrator);
+    }
+
+    private boolean hasValidMaxTradePeriod(Offer offer) {
+        return PaymentMethod.isValidMaxTradePeriod(offer.getOfferPayload().getPaymentMethodId(), offer.getOfferPayload().getMaxTradePeriod());
     }
 
     public boolean isReservedFundsSpent(Offer offer) {

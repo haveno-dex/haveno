@@ -17,14 +17,36 @@
 
 package haveno.core.offer;
 
+import haveno.core.payment.payload.PaymentMethod;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class OfferTest {
+
+    @Test
+    public void testInvalidMaxTradePeriodFallsBackToPaymentMethod() {
+        for (long invalidPeriod : new long[]{Long.MAX_VALUE, PaymentMethod.ZELLE.getMaxTradePeriod() * 2, 1L, 0L}) {
+            OfferPayload payload = mock(OfferPayload.class);
+            when(payload.getPaymentMethodId()).thenReturn(PaymentMethod.ZELLE_ID);
+            when(payload.getMaxTradePeriod()).thenReturn(invalidPeriod);
+
+            assertEquals(PaymentMethod.ZELLE.getMaxTradePeriod(), new Offer(payload).getMaxTradePeriod());
+        }
+    }
+
+    @Test
+    public void testGrandfatheredMaxTradePeriodIsPreserved() {
+        OfferPayload payload = mock(OfferPayload.class);
+        when(payload.getPaymentMethodId()).thenReturn(PaymentMethod.ZELLE_ID);
+        when(payload.getMaxTradePeriod()).thenReturn(PaymentMethod.ZELLE.getMaxTradePeriod() * 4);
+
+        assertEquals(PaymentMethod.ZELLE.getMaxTradePeriod() * 4, new Offer(payload).getMaxTradePeriod());
+    }
 
     @Test
     public void testHasNoRange() {

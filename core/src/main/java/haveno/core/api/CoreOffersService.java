@@ -439,8 +439,8 @@ public class CoreOffersService {
                 newOfferPayload.getAcceptedBankIds(),
                 Version.VERSION, // refresh version so outdated offers are re-signed
                 offerPayload.getBlockHeightAtOfferCreation(),
-                offerPayload.getMaxTradeLimit(),
-                offerPayload.getMaxTradePeriod(),
+                newOfferPayload.getMaxTradeLimit(), // use limit of selected payment method
+                newOfferPayload.getMaxTradePeriod(), // use period of selected payment method
                 offerPayload.isUseAutoClose(),
                 offerPayload.isUseReOpenAfterAutoClose(),
                 offerPayload.getLowerClosePrice(),

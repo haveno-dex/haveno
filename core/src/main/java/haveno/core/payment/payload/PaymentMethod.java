@@ -398,7 +398,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             KASPI = new PaymentMethod(KASPI_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(KaspiAccount.SUPPORTED_CURRENCIES)),
 
             // US
-            ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
+            ZELLE = new PaymentMethod(ZELLE_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
             POPMONEY = new PaymentMethod(POPMONEY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PopmoneyAccount.SUPPORTED_CURRENCIES)),
             US_POSTAL_MONEY_ORDER = new PaymentMethod(US_POSTAL_MONEY_ORDER_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES)),
             VENMO = new PaymentMethod(VENMO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VenmoAccount.SUPPORTED_CURRENCIES)),
@@ -675,6 +675,14 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         return paymentMethods.stream()
                 .filter(e -> e.getId().equals(id))
                 .findFirst();
+    }
+
+    // valid periods are the payment method's current period, plus Zelle's previous period for grandfathered offers
+    public static boolean isValidMaxTradePeriod(String paymentMethodId, long maxTradePeriod) {
+        Optional<PaymentMethod> paymentMethod = getActivePaymentMethod(paymentMethodId);
+        if (!paymentMethod.isPresent()) return false;
+        if (maxTradePeriod == paymentMethod.get().getMaxTradePeriod()) return true;
+        return ZELLE_ID.equals(paymentMethodId) && maxTradePeriod == 4 * DAY;
     }
 
     public BigInteger getMaxTradeLimit(String currencyCode) {
