@@ -1,0 +1,8 @@
+# Haveno working guidance
+
+- Keep behavioral changes scoped to the request and consistent with the surrounding architecture, naming, formatting, and established patterns. Reuse existing utilities; introduce dependencies or abstractions only when there is a concrete need.
+- Use explicit Java imports, including static test assertion imports; Checkstyle forbids wildcard imports. For Java changes, run the affected modules' `checkstyleMain` and/or `checkstyleTest` tasks as applicable, alongside relevant compilation or tests.
+- Use repository evidence to resolve routine implementation choices. Do not invent product requirements or silently change behavior. State material assumptions, and ask only when missing information materially affects correctness, compatibility, data safety, or user-visible behavior. Continue independent work while clarification is pending.
+- If a request conflicts with existing architecture or correctness, explain the concrete conflict and recommend the smallest suitable resolution. Distinguish demonstrated defects from stylistic preferences; a hypothetical reviewer objection is not a reason to abandon the task.
+- Before completion, inspect the actual diff for unintended behavior changes, unrelated edits, unnecessary complexity, and compatibility or failure-handling regressions. Run relevant checks and report their actual results and limitations. Judge readiness against the requirements and evidence, not a prediction that a reviewer would approve.
+- When blocked, preserve completed work, identify the specific blocker and what would resolve it, and continue unaffected authorized work. Do not present an incomplete implementation or an unverified review as complete.
