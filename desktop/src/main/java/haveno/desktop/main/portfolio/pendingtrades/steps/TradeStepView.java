@@ -20,7 +20,6 @@ package haveno.desktop.main.portfolio.pendingtrades.steps;
 import static com.google.common.base.Preconditions.checkNotNull;
 import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
-import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
 import haveno.common.util.Tuple3;
 import haveno.core.locale.CurrencyUtil;
@@ -44,7 +43,6 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.TradeStepInfo;
 import haveno.desktop.main.portfolio.pendingtrades.TradeSubView;
-import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
@@ -52,14 +50,11 @@ import static haveno.desktop.util.FormBuilder.addTopLabelTxIdTextField;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.BootstrapListener;
 import java.util.Optional;
-import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -81,14 +76,11 @@ public abstract class TradeStepView extends AnchorPane {
 
     private Subscription tradePeriodStateSubscription, tradeStateSubscription, disputeStateSubscription, mediationResultStateSubscription, syncUpdateSubscription;
     protected int gridRow = 0;
-    private TextField timeLeftTextField;
-    private ProgressBar timeLeftProgressBar;
     private TxIdTextField selfTxIdTextField;
     private TxIdTextField peerTxIdTextField;
     private TradeStepInfo tradeStepInfo;
     private Subscription selfTxIdSubscription;
     private Subscription peerTxIdSubscription;
-    private ClockWatcher.Listener clockListener;
     private final ChangeListener<String> errorMessageListener;
     protected Label infoLabel;
     private Popup acceptMediationResultPopup;
@@ -120,7 +112,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         AnchorPane.setLeftAnchor(scrollPane, 0d);
         AnchorPane.setRightAnchor(scrollPane, 0d);
-        AnchorPane.setTopAnchor(scrollPane, 10d);
+        AnchorPane.setTopAnchor(scrollPane, 0d);
         AnchorPane.setBottomAnchor(scrollPane, 0d);
 
         getChildren().add(scrollPane);
@@ -143,7 +135,7 @@ public abstract class TradeStepView extends AnchorPane {
 
         AnchorPane.setLeftAnchor(this, 0d);
         AnchorPane.setRightAnchor(this, 0d);
-        AnchorPane.setTopAnchor(this, -10d);
+        AnchorPane.setTopAnchor(this, 0d);
         AnchorPane.setBottomAnchor(this, 0d);
 
         addContent();
@@ -152,17 +144,6 @@ public abstract class TradeStepView extends AnchorPane {
             if (newValue != null) {
                 log.warn("Showing popup for trade error {} {}", trade.getClass().getSimpleName(), trade.getId(), new RuntimeException(newValue));
                 new Popup().error(newValue).show();
-            }
-        };
-
-        clockListener = new ClockWatcher.Listener() {
-            @Override
-            public void onSecondTick() {
-            }
-
-            @Override
-            public void onMinuteTick() {
-                updateTimeLeft();
             }
         };
     }
@@ -222,8 +203,6 @@ public abstract class TradeStepView extends AnchorPane {
                 UserThread.execute(() -> updateTradePeriodState(newValue));
             }
         });
-
-        model.clockWatcher.addListener(clockListener);
 
         if (infoLabel != null) {
             infoLabel.setText(getInfoText());
@@ -353,9 +332,6 @@ public abstract class TradeStepView extends AnchorPane {
         if (tradeStateSubscription != null)
             tradeStateSubscription.unsubscribe();
 
-        if (clockListener != null)
-            model.clockWatcher.removeListener(clockListener);
-
         if (tradeStepInfo != null)
             tradeStepInfo.setOnAction(null);
 
@@ -434,25 +410,6 @@ public abstract class TradeStepView extends AnchorPane {
                     model.dataModel.getTrade().getOffer());
             infoTextField.setContentForInfoPopOver(createInfoPopover());
         }
-
-        final Tuple3<Label, TextField, VBox> labelTextFieldVBoxTuple3 = addCompactTopLabelTextField(gridPane, gridRow,
-                1, Res.get("portfolio.pending.remainingTime"), "");
-
-        timeLeftTextField = labelTextFieldVBoxTuple3.second;
-        timeLeftTextField.setMinWidth(400);
-
-        timeLeftProgressBar = new ProgressBar(0);
-        timeLeftProgressBar.setOpacity(0.7);
-        timeLeftProgressBar.setMinHeight(9);
-        timeLeftProgressBar.setMaxHeight(9);
-        timeLeftProgressBar.setMaxWidth(Double.MAX_VALUE);
-
-        GridPane.setRowIndex(timeLeftProgressBar, ++gridRow);
-        GridPane.setColumnSpan(timeLeftProgressBar, 2);
-        GridPane.setFillWidth(timeLeftProgressBar, true);
-        gridPane.getChildren().add(timeLeftProgressBar);
-
-        updateTimeLeft();
     }
 
     protected void addInfoBlock() {
@@ -474,39 +431,6 @@ public abstract class TradeStepView extends AnchorPane {
 
     protected String getInfoBlockTitle() {
         return "";
-    }
-
-    private void updateTimeLeft() {
-        if (!trade.isInitialized()) return;
-        if (timeLeftTextField != null) {
-
-            // TODO (woodser): extra TradeStepView created but not deactivated on trade.setState(), so deactivate when model's trade is null
-            if (model.dataModel.getTrade() == null) {
-                log.warn("deactivating TradeStepView because model's trade is null");
-
-                // schedule deactivation to avoid concurrent modification of clock listeners
-                Platform.runLater(() -> deactivate());
-                return;
-            }
-
-            String remainingTime = model.getRemainingTradeDurationAsWords();
-            timeLeftProgressBar.setProgress(model.getRemainingTradeDurationAsPercentage());
-            if (!remainingTime.isEmpty()) {
-                boolean isDepositsFinalized = trade.isDepositsFinalized();
-                timeLeftTextField.setText(isDepositsFinalized ?
-                        Res.get("portfolio.pending.remainingTimeDetail", remainingTime, model.getDateForOpenDispute()) :
-                        Res.get("portfolio.pending.remainingTimeDetail.startsAfter", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
-                if (model.showWarning() || model.showDispute()) {
-                    timeLeftTextField.getStyleClass().add("error-text");
-                    timeLeftProgressBar.getStyleClass().add("error");
-                }
-            } else {
-                timeLeftTextField.setText(Res.get("portfolio.pending.tradeNotCompleted",
-                        model.getDateForOpenDispute()));
-                timeLeftTextField.getStyleClass().add("error-text");
-                timeLeftProgressBar.getStyleClass().add("error");
-            }
-        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -862,7 +786,6 @@ public abstract class TradeStepView extends AnchorPane {
     }
 
     private void updateTradeState(Trade.State tradeState) {
-        updateTimeLeft();
         if (!trade.getDisputeState().isOpen() && trade.isMissingUnlockedDepositTx()) {
             tradeStepInfo.setState(TradeStepInfo.State.DEPOSIT_MISSING);
         }
