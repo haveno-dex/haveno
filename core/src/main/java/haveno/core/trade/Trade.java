@@ -41,6 +41,7 @@ import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -1932,9 +1933,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         try {
 
             // decrypt payment account payload
-            getTradePeer().setPaymentAccountKey(paymentAccountKey);
-            SecretKey sk = Encryption.getSecretKeyFromBytes(getTradePeer().getPaymentAccountKey());
-            byte[] decryptedPaymentAccountPayload = Encryption.decrypt(getTradePeer().getEncryptedPaymentAccountPayload(), sk);
+            SecretKey sk = Encryption.getSecretKeyFromBytes(paymentAccountKey);
+            byte[] encryptedPayload = getTradePeer().getEncryptedPaymentAccountPayload();
+            byte[] decryptedPaymentAccountPayload = AuthenticatedEncryption.isEnvelope(encryptedPayload)
+                    ? AuthenticatedEncryption.decrypt(encryptedPayload, sk, "payment-account")
+                    : Encryption.decrypt(encryptedPayload, sk);
             CoreNetworkProtoResolver resolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone()); // TODO: reuse resolver from elsewhere?
             PaymentAccountPayload paymentAccountPayload = resolver.fromProto(protobuf.PaymentAccountPayload.parseFrom(decryptedPaymentAccountPayload));
 
@@ -1942,7 +1945,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             byte[] peerPaymentAccountPayloadHash = this instanceof MakerTrade ? getContract().getTakerPaymentAccountPayloadHash() : getContract().getMakerPaymentAccountPayloadHash();
             HavenoUtils.verifyPaymentAccountPayloadHash(paymentAccountPayload, peerPaymentAccountPayloadHash, "peer");
 
-            // set payment account payload
+            // Publish the key and payload only after decryption and contract verification succeed.
+            getTradePeer().setPaymentAccountKey(paymentAccountKey);
             getTradePeer().setPaymentAccountPayload(paymentAccountPayload);
             processModel.getPaymentAccountDecryptedProperty().set(true);
         } catch (Exception e) {

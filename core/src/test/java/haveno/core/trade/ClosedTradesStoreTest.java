@@ -150,8 +150,20 @@ public class ClosedTradesStoreTest {
     }
 
     @Test
+    public void testUnreadableLegacyFileDoesNotHideExistingLogHistory() throws Exception {
+        newStore().appendUpsert(openOffer("recent", 0));
+        File legacy = new File(dir, ClosedTradesStore.LEGACY_FILE_NAME);
+        byte[] damaged = {0, 1, 2, 3};
+        Files.write(legacy.toPath(), damaged);
+        assertEquals(List.of("recent"), ids(newStore().load()));
+        org.junit.jupiter.api.Assertions.assertArrayEquals(damaged, Files.readAllBytes(legacy.toPath()));
+        assertTrue(corruptedStorageFileHandler.getFiles().orElseThrow().contains(ClosedTradesStore.LEGACY_FILE_NAME));
+    }
+
+    @Test
     public void testMigrationFromLegacyMonolithicFile() throws Exception {
         writeLegacyFile(openOffer("legacy-1", 0), openOffer("legacy-2", 0));
+        byte[] original = Files.readAllBytes(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).toPath());
 
         List<Tradable> loaded = newStore().load();
 
@@ -159,6 +171,7 @@ public class ClosedTradesStoreTest {
         assertTrue(new File(dir, ClosedTradesStore.LOG_FILE_NAME).exists(), "log should be created");
         assertTrue(new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME).exists(), "legacy file should be frozen as backup");
         assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists(), "legacy file should be moved");
+        org.junit.jupiter.api.Assertions.assertArrayEquals(original, Files.readAllBytes(new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME).toPath()));
         // A second start does not re-migrate (log already present) and reads identically.
         assertEquals(List.of("legacy-1", "legacy-2"), ids(newStore().load()));
     }

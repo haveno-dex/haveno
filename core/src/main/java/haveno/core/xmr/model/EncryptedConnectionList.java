@@ -3,7 +3,9 @@ package haveno.core.xmr.model;
 import com.google.inject.Inject;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.ScryptUtil;
 import haveno.common.persistence.PersistenceManager;
@@ -16,7 +18,6 @@ import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -32,7 +33,7 @@ import org.bitcoinj.crypto.KeyCrypterScrypt;
 /**
  * Store for {@link EncryptedConnection}s.
  * <p>
- * Passwords are encrypted when stored onto disk, using the account password.
+ * Passwords are authenticated and encrypted under the account master key.
  * If a connection has no password, this is "hidden" by using some random value as fake password.
  *
  * @implNote The password encryption mechanism is handled as follows.
@@ -56,7 +57,9 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     transient private KeyCrypterScrypt keyCrypterScrypt;
     transient private SecretKey encryptionKey;
 
+    transient private KeyRing keyRing;
     transient private CoreAccountService accountService;
+    private int encryptionVersion = 1;
     transient private PersistenceManager<EncryptedConnectionList> persistenceManager;
 
     private final Map<String, EncryptedConnection> items = new HashMap<>();
@@ -66,7 +69,8 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
 
     @Inject
     public EncryptedConnectionList(PersistenceManager<EncryptedConnectionList> persistenceManager,
-                             CoreAccountService accountService) {
+                             CoreAccountService accountService, KeyRing keyRing) {
+        this.keyRing = keyRing;
         this.accountService = accountService;
         this.persistenceManager = persistenceManager;
         this.persistenceManager.initialize(this, "EncryptedConnectionList", PersistenceManager.Source.PRIVATE);
@@ -76,8 +80,10 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
                               List<EncryptedConnection> items,
                               @NonNull String currentConnectionUrl,
                               long refreshPeriod,
-                              boolean autoSwitch) {
-        this.keyCrypterScrypt = ScryptUtil.getKeyCrypterScrypt(salt);
+                              boolean autoSwitch, int encryptionVersion) {
+        if (encryptionVersion < 0 || encryptionVersion > 1) throw new IllegalArgumentException("Unsupported RPC credential version");
+        this.encryptionVersion = encryptionVersion;
+        if (encryptionVersion == 0) this.keyCrypterScrypt = ScryptUtil.getKeyCrypterScrypt(salt);
         this.items.putAll(items.stream().collect(Collectors.toMap(EncryptedConnection::getUrl, Function.identity())));
         this.currentConnectionUrl = currentConnectionUrl;
         this.refreshPeriod = refreshPeriod;
@@ -89,34 +95,62 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         persistenceManager.readPersisted(persistedEncryptedConnectionList -> {
             writeLock.lock();
             try {
-                initializeEncryption(persistedEncryptedConnectionList.keyCrypterScrypt);
+                SecretKey master = keyRing.getSymmetricKey();
+                if (master == null) throw new IllegalStateException("Account keys are locked");
+                Map<String, EncryptedConnection> migrated = new HashMap<>();
+                SecretKey legacyKey = null;
+                if (persistedEncryptedConnectionList.encryptionVersion == 0 && accountService.getPassword() != null) {
+                    legacyKey = Encryption.getSecretKeyFromBytes(persistedEncryptedConnectionList.keyCrypterScrypt
+                            .deriveKey(accountService.getPassword()).getKey());
+                }
+                for (EncryptedConnection connection : persistedEncryptedConnectionList.items.values()) {
+                    byte[] value = connection.getEncryptedPassword();
+                    if (persistedEncryptedConnectionList.encryptionVersion == 0) {
+                        byte[] plaintext = legacyKey == null ? value : Encryption.decrypt(value, legacyKey);
+                        try {
+                            validateSaltedPassword(plaintext, connection.getEncryptionSalt());
+                            value = encrypt(plaintext, master);
+                        } finally {
+                            if (legacyKey != null) java.util.Arrays.fill(plaintext, (byte) 0);
+                        }
+                    } else {
+                        byte[] plaintext = decrypt(value, master);
+                        try {
+                            validateSaltedPassword(plaintext, connection.getEncryptionSalt());
+                        } finally {
+                            java.util.Arrays.fill(plaintext, (byte) 0);
+                        }
+                    }
+                    migrated.put(connection.getUrl(), connection.toBuilder().encryptedPassword(value).build());
+                }
+                encryptionKey = master;
                 items.clear();
-                items.putAll(persistedEncryptedConnectionList.items);
+                items.putAll(migrated);
+                encryptionVersion = 1;
                 currentConnectionUrl = persistedEncryptedConnectionList.currentConnectionUrl;
                 refreshPeriod = persistedEncryptedConnectionList.refreshPeriod;
                 autoSwitch = persistedEncryptedConnectionList.autoSwitch;
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (CryptoException e) {
+                throw new IllegalStateException("Could not migrate RPC credentials", e);
             } finally {
                 writeLock.unlock();
             }
-            completeHandler.run();
+            if (persistedEncryptedConnectionList.encryptionVersion == 0) {
+                // Startup cannot finish while disk still requires the old account password.
+                persistenceManager.forcePersistNow(completeHandler, persistenceManager::onReadFailure);
+            } else {
+                completeHandler.run();
+            }
         }, () -> {
             writeLock.lock();
             try {
-                initializeEncryption(ScryptUtil.getKeyCrypterScrypt());
-            } catch (Exception e) {
-                e.printStackTrace();
+                encryptionKey = keyRing.getSymmetricKey();
+                if (encryptionKey == null) throw new IllegalStateException("Account keys are locked");
             } finally {
                 writeLock.unlock();
             }
             completeHandler.run();
         });
-    }
-
-    private void initializeEncryption(KeyCrypterScrypt keyCrypterScrypt) {
-        this.keyCrypterScrypt = keyCrypterScrypt;
-        encryptionKey = toSecretKey(accountService.getPassword());
     }
 
     public List<MoneroRpcConnection> getConnections() {
@@ -238,6 +272,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
 
     @Override
     public Message toProtoMessage() {
+        if (keyRing != null && encryptionKey == null) throw new IllegalStateException("RPC credential encryption is not initialized");
         List<protobuf.EncryptedConnection> connections;
         ByteString saltString;
         String currentConnectionUrl;
@@ -247,7 +282,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         try {
             connections = items.values().stream()
                     .map(EncryptedConnection::toProtoMessage).collect(Collectors.toList());
-            saltString = keyCrypterScrypt.getScryptParameters().getSalt();
+            saltString = encryptionVersion == 0 ? keyCrypterScrypt.getScryptParameters().getSalt() : ByteString.EMPTY;
             currentConnectionUrl = this.currentConnectionUrl;
             autoSwitchEnabled = this.autoSwitch;
             refreshPeriod = this.refreshPeriod;
@@ -257,6 +292,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         return protobuf.PersistableEnvelope.newBuilder()
                 .setEncryptedConnectionList(protobuf.EncryptedConnectionList.newBuilder()
                         .setSalt(saltString)
+                        .setEncryptionVersion(encryptionVersion)
                         .addAllItems(connections)
                         .setCurrentConnectionUrl(currentConnectionUrl)
                         .setRefreshPeriod(refreshPeriod)
@@ -268,57 +304,24 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         List<EncryptedConnection> items = proto.getItemsList().stream()
                 .map(EncryptedConnection::fromProto)
                 .collect(Collectors.toList());
-        return new EncryptedConnectionList(proto.getSalt().toByteArray(), items, proto.getCurrentConnectionUrl(), proto.getRefreshPeriod(), proto.getAutoSwitch());
+        return new EncryptedConnectionList(proto.getSalt().toByteArray(), items, proto.getCurrentConnectionUrl(), proto.getRefreshPeriod(), proto.getAutoSwitch(), proto.getEncryptionVersion());
     }
 
     // ----------------------------- HELPERS ----------------------------------
 
-    public void changePassword(String oldPassword, String newPassword) {
-        writeLock.lock();
-        try {
-            SecretKey oldSecret = encryptionKey;
-            assert Objects.equals(oldSecret, toSecretKey(oldPassword)) : "Old secret does not match old password";
-            encryptionKey = toSecretKey(newPassword);
-            items.replaceAll((key, connection) -> reEncrypt(connection, oldSecret, encryptionKey));
-        } finally {
-            writeLock.unlock();
-        }
-        requestPersistence();
-    }
-
-    private SecretKey toSecretKey(String password) {
-        if (password == null) return null;
-        return Encryption.getSecretKeyFromBytes(keyCrypterScrypt.deriveKey(password).getKey());
-    }
-
-    private static EncryptedConnection reEncrypt(EncryptedConnection connection,
-                                                    SecretKey oldSecret, SecretKey newSecret) {
-        return connection.toBuilder()
-                .encryptedPassword(reEncrypt(connection.getEncryptedPassword(), oldSecret, newSecret))
-                .build();
-    }
-
-    private static byte[] reEncrypt(byte[] value,
-                                    SecretKey oldSecret, SecretKey newSecret) {
-        // was previously not encrypted if null
-        byte[] decrypted = oldSecret == null ? value : decrypt(value, oldSecret);
-        // should not be encrypted if null
-        return newSecret == null ? decrypted : encrypt(decrypted, newSecret);
-    }
-
     private static byte[] decrypt(byte[] encrypted, SecretKey secret) {
-        if (secret == null) return encrypted; // no encryption
+        if (secret == null) throw new IllegalStateException("RPC credential encryption is not initialized");
         try {
-            return Encryption.decrypt(encrypted, secret);
+            return AuthenticatedEncryption.decrypt(encrypted, secret, "rpc-credential");
         } catch (CryptoException e) {
             throw new IllegalArgumentException("Incorrect password", e);
         }
     }
 
     private static byte[] encrypt(byte[] unencrypted, SecretKey secretKey) {
-        if (secretKey == null) return unencrypted; // no encryption
+        if (secretKey == null) throw new IllegalStateException("RPC credential encryption is not initialized");
         try {
-            return Encryption.encrypt(unencrypted, secretKey);
+            return AuthenticatedEncryption.encrypt(unencrypted, secretKey, "rpc-credential");
         } catch (CryptoException e) {
             throw new RuntimeException("Could not encrypt data with the provided secret", e);
         }
@@ -370,6 +373,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
 
     private byte[] decryptPassword(byte[] encryptedSaltedPassword, byte[] salt) {
         byte[] decryptedSaltedPassword = decrypt(encryptedSaltedPassword, encryptionKey);
+        validateSaltedPassword(decryptedSaltedPassword, salt);
         if (arrayStartsWith(decryptedSaltedPassword, salt)) {
             // salt is prefix, so no actual password set
             return null;
@@ -378,6 +382,14 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
             byte[] decryptedPassword = new byte[decryptedSaltedPassword.length - salt.length];
             System.arraycopy(decryptedSaltedPassword, 0, decryptedPassword, 0, decryptedPassword.length);
             return decryptedPassword;
+        }
+    }
+
+    private static void validateSaltedPassword(byte[] value, byte[] salt) {
+        if (salt.length != SALT_LENGTH || value.length < salt.length) throw new IllegalArgumentException("Invalid RPC credential");
+        if (!arrayStartsWith(value, salt)
+                && !java.util.Arrays.equals(salt, java.util.Arrays.copyOfRange(value, value.length - salt.length, value.length))) {
+            throw new IllegalArgumentException("Invalid RPC credential salt");
         }
     }
 

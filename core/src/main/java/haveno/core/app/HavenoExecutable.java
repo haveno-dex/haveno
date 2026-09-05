@@ -101,12 +101,13 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected AppModule module;
     protected Config config;
     @Getter
-    protected boolean isShutDownStarted;
+    protected volatile boolean isShutDownStarted;
     private final Object shutdownLock = new Object();
     private final List<ResultHandler> shutdownResultHandlers = new ArrayList<>();
     private boolean isShutdownComplete;
     private boolean systemExitRequested;
     private boolean isReadOnly;
+    private volatile boolean persistenceReadFailed;
     private Thread keepRunningThread;
     private final Object keepRunningLock = new Object();
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
@@ -197,6 +198,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         // Attempt to login, subclasses should implement interactive login and or rpc login.
         CompletableFuture<Boolean> loginFuture = loginAccount();
         loginFuture.whenComplete((result, throwable) -> {
+            if (isShutDownStarted || keepRunningResult.get() == EXIT_RESTART) return;
             if (throwable != null) {
                 log.error("Error logging in to account", throwable);
                 shutDownNoPersist(null, false);
@@ -217,7 +219,8 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
     // a restore or delete during login requests a restart, so the application must not start against the changed data dir
     private void startApplicationUnlessRestarting() {
-        if (keepRunningResult.get() == EXIT_RESTART) log.info("Restart requested during login, not starting the application");
+        if (isShutDownStarted) log.info("Shutdown requested during startup, not starting the application");
+        else if (keepRunningResult.get() == EXIT_RESTART) log.info("Restart requested during login, not starting the application");
         else startApplication();
     }
 
@@ -296,6 +299,16 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     }
 
     protected void readAllPersisted(@Nullable List<PersistedDataHost> additionalHosts, Runnable completeHandler) {
+        java.util.concurrent.atomic.AtomicBoolean failed = new java.util.concurrent.atomic.AtomicBoolean();
+        java.util.function.Consumer<Throwable> readFailed = failure -> {
+            if (failed.compareAndSet(false, true)) {
+                log.error("Cannot load persisted account data; startup stopped and shutdown will skip the persistence flush", failure);
+                persistenceReadFailed = true;
+                isReadOnly = true;
+                UserThread.execute(() -> onPersistenceReadFailure(failure));
+            }
+        };
+        PersistenceManager.setReadFailureHandler(readFailed);
         List<PersistedDataHost> hosts = CorePersistedDataHost.getPersistedDataHosts(injector);
         if (additionalHosts != null) {
             hosts.addAll(additionalHosts);
@@ -303,12 +316,25 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         AtomicInteger remaining = new AtomicInteger(hosts.size());
         hosts.forEach(host -> {
-            host.readPersisted(() -> {
-                if (remaining.decrementAndGet() == 0) {
-                    UserThread.execute(completeHandler);
-                }
-            });
+            try {
+                host.readPersisted(() -> {
+                    if (remaining.decrementAndGet() == 0 && !failed.get()) {
+                        UserThread.execute(() -> {
+                            if (!failed.get()) {
+                                PersistenceManager.setReadFailureHandler(null);
+                                completeHandler.run();
+                            }
+                        });
+                    }
+                });
+            } catch (Throwable failure) {
+                readFailed.accept(failure);
+            }
         });
+    }
+
+    protected void onPersistenceReadFailure(Throwable failure) {
+        shutDownNoPersist(null, false);
     }
 
     protected void setupAvoidStandbyMode() {
@@ -361,7 +387,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         // repeated requests join the shutdown in progress and get notified on completion
         if (!beginGracefulShutDown(resultHandler)) {
-            if (exitCompletedShutdown) CommonSetup.exitAfter(EXIT_SUCCESS, 100, TimeUnit.MILLISECONDS);
+            if (exitCompletedShutdown) CommonSetup.exitAfter(persistenceReadFailed ? EXIT_FAILURE : EXIT_SUCCESS, 100, TimeUnit.MILLISECONDS);
             return;
         }
 
@@ -469,23 +495,24 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         try {
             notifyGracefulShutDownComplete();
         } finally {
-            CommonSetup.exitAfter(status, delay, timeUnit);
+            CommonSetup.exitAfter(persistenceReadFailed ? EXIT_FAILURE : status, delay, timeUnit);
         }
     }
 
     private void completeShutdown(int exitCode) {
+        int status = persistenceReadFailed ? EXIT_FAILURE : exitCode;
         if (!isReadOnly) {
             // If user tried to downgrade we do not write the persistable data to avoid data corruption
             PersistenceManager.flushAllDataToDiskAtShutdown(() -> {
                 log.info("Graceful shutdown flushed persistence. Exiting now.");
                 notifyGracefulShutDownComplete();
                 if (isSystemExitRequested())
-                    CommonSetup.exitAfter(exitCode, 100, TimeUnit.MILLISECONDS);
+                    CommonSetup.exitAfter(status, 100, TimeUnit.MILLISECONDS);
             });
         } else {
             notifyGracefulShutDownComplete();
             if (isSystemExitRequested())
-                CommonSetup.exitAfter(exitCode, 100, TimeUnit.MILLISECONDS);
+                CommonSetup.exitAfter(status, 100, TimeUnit.MILLISECONDS);
         }
     }
 

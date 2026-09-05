@@ -36,7 +36,7 @@ import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
 
 @Slf4j
 public class HavenoAppMain extends HavenoExecutable {
@@ -99,6 +99,12 @@ public class HavenoAppMain extends HavenoExecutable {
         application.handleUncaughtException(throwable, doShutDown);
     }
 
+    @Override
+    protected void onPersistenceReadFailure(Throwable failure) {
+        application.showPersistenceReadFailure(failure, () -> new Thread(
+                () -> super.onPersistenceReadFailure(failure), "Persistence-failure-shutdown").start());
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // We continue with a series of synchronous execution tasks
@@ -155,7 +161,7 @@ public class HavenoAppMain extends HavenoExecutable {
     protected void startApplication() {
         // We need to be in user thread! We mapped at launchApplication already.  Once
         // the UI is ready we get onApplicationStarted called and start the setup there.
-        application.startApplication(this::onApplicationStarted);
+        if (!application.isShutDownRequested()) application.startApplication(this::onApplicationStarted);
     }
 
     @Override
@@ -174,25 +180,40 @@ public class HavenoAppMain extends HavenoExecutable {
         // first run: gather the user's choices with the startup wizard before creating the account
         if (!accountService.accountExists() && !DevEnv.isDevMode()) return runStartupWizard();
 
-        // attempt default login
-        CompletableFuture<Boolean> result = super.loginAccount();
-        try {
-            if (result.get()) return result;
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
-        }
-
-        // password is required, so prompt for it within the main application window
         CompletableFuture<Boolean> loginResult = new CompletableFuture<>();
         Platform.setImplicitExit(false);
-        UserThread.execute(() -> application.showPasswordScreen(
+        application.showLoginProgress();
+        // Key derivation and migration writes must finish before persistence is read.
+        CompletableFuture.supplyAsync(() -> super.loginAccount().join(),
+                task -> new Thread(task, "AccountLogin").start()).whenComplete((opened, failure) -> UserThread.execute(() -> {
+                    if (application.isShutDownRequested() || isShutDownStarted) return;
+                    if (failure != null) {
+                        Throwable cause = failure instanceof CompletionException
+                                ? failure.getCause() : failure;
+                        log.error("Error opening account", cause);
+                        // Completing exceptionally starts shutdown, which can wait for services.
+                        application.showLoginFailure(cause, () -> new Thread(
+                                () -> loginResult.completeExceptionally(cause), "Account-login-failure-shutdown").start());
+                    } else if (opened) {
+                        loginResult.complete(true);
+                    } else {
+                        showPasswordScreen(loginResult);
+                    }
+                }));
+        return loginResult;
+    }
+
+    private void showPasswordScreen(CompletableFuture<Boolean> loginResult) {
+        application.showPasswordScreen(
 
                 // verify off the JavaFX thread (openAccount decrypts the keys) and report the outcome
                 (password, resultHandler) -> new Thread(() -> {
                     try {
                         accountService.openAccount(password);
                         if (accountService.isAccountOpen()) {
-                            UserThread.execute(() -> loginResult.complete(true));
+                            UserThread.execute(() -> {
+                                if (!application.isShutDownRequested()) loginResult.complete(true);
+                            });
                             resultHandler.accept(null);
                         } else {
                             resultHandler.accept(Res.get("password.startup.wrongPw"));
@@ -209,8 +230,7 @@ public class HavenoAppMain extends HavenoExecutable {
                 () -> {
                     log.warn("Password entry cancelled, shutting down");
                     new Thread(() -> HavenoApp.getShutDownHandler().run()).start();
-                }));
-        return loginResult;
+                });
     }
 
     private CompletableFuture<Boolean> runStartupWizard() {

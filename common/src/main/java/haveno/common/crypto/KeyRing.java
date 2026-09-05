@@ -40,13 +40,13 @@ public final class KeyRing {
     private PubKeyRing pubKeyRing;
 
     /**
-     * Creates the KeyRing. Unlocks if not encrypted. Does not generate keys.
+     * Creates a locked KeyRing. Account login unlocks the keys after dependency injection.
      *
      * @param keyStorage Persisted storage
      */
     @Inject
     public KeyRing(KeyStorage keyStorage) {
-        this(keyStorage, null, false);
+        this.keyStorage = keyStorage;
     }
 
     /**
@@ -94,10 +94,19 @@ public final class KeyRing {
     public boolean unlockKeys(@Nullable String password, boolean generateKeys) throws IncorrectPasswordException {
         if (isUnlocked()) return true;
         if (keyStorage.allKeyFilesExist()) {
-            symmetricKey = keyStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, password);
-            signatureKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_SIGNATURE, symmetricKey);
-            encryptionKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_ENCRYPTION, symmetricKey);
-            if (signatureKeyPair != null && encryptionKeyPair != null) pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
+            try {
+                symmetricKey = keyStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, password);
+                signatureKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_SIGNATURE, symmetricKey);
+                encryptionKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_ENCRYPTION, symmetricKey);
+                keyStorage.migrateKeyRing(this, password);
+                pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
+            } catch (IncorrectPasswordException | RuntimeException e) {
+                lockKeys();
+                throw e;
+            }
+        } else if (keyStorage.anyKeyFilesExist()) {
+            throw new IllegalStateException("Incomplete account keys; existing files were preserved. If initial account creation "
+                    + "was interrupted, retry with a new empty profile directory. Otherwise restore the missing keys from backup.");
         } else if (generateKeys) {
             generateKeys(password);
         }
@@ -111,11 +120,18 @@ public final class KeyRing {
      */
     public void generateKeys(String password) {
         if (isUnlocked()) throw new IllegalStateException("Current keyring must be closed to generate new keys");
+        if (keyStorage.anyKeyFilesExist()) throw new IllegalStateException("Cannot replace existing account keys");
+        KeyStorage.validatePassword(password);
         symmetricKey = Encryption.generateSecretKey(256);
         signatureKeyPair = Sig.generateKeyPair();
         encryptionKeyPair = Encryption.generateKeyPair();
         pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
-        keyStorage.saveKeyRing(this, null, password);
+        try {
+            keyStorage.saveKeyRing(this, null, password);
+        } catch (RuntimeException e) {
+            lockKeys();
+            throw e;
+        }
     }
 
     // Don't print keys for security reasons

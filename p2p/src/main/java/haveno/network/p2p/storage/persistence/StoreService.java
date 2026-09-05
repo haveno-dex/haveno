@@ -53,6 +53,7 @@ public abstract class StoreService<T extends PersistableEnvelope> {
 
     public StoreService(File storageDir, PersistenceManager<T> persistenceManager) {
         this.persistenceManager = persistenceManager;
+        this.persistenceManager.allowCorruptionRecovery();
         absolutePathOfStorageDir = storageDir.getAbsolutePath();
     }
 
