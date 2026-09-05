@@ -29,6 +29,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Utils;
 
 import javax.annotation.Nullable;
 import java.security.PublicKey;
@@ -139,11 +140,28 @@ public final class Alert implements ProtectedStoragePayload, ExpirablePayload {
         return TTL;
     }
 
-    public void setSigAndPubKey(String signatureAsBase64, PublicKey ownerPubKey) {
-        this.signatureAsBase64 = signatureAsBase64;
+    public void setOwnerPubKey(PublicKey ownerPubKey) {
         this.ownerPubKey = ownerPubKey;
-
         ownerPubKeyBytes = Sig.getPublicKeyBytes(ownerPubKey);
+    }
+
+    public void setSignatureAsBase64(String signatureAsBase64) {
+        this.signatureAsBase64 = signatureAsBase64;
+    }
+
+    // The dev signature must cover every field that determines client behavior, not just the message:
+    // otherwise a captured (message, signature) pair can be replayed with attacker-chosen version /
+    // isUpdateInfo / extraDataMap. The storage owner key is covered too (set before signing), so a
+    // captured alert cannot be cloned under another owner key which the devs cannot remove.
+    public String getSignaturePayloadAsHex() {
+        protobuf.Alert.Builder builder = protobuf.Alert.newBuilder()
+                .setMessage(message)
+                .setIsUpdateInfo(isUpdateInfo)
+                .setIsPreReleaseInfo(isPreReleaseInfo)
+                .setVersion(version);
+        Optional.ofNullable(ownerPubKeyBytes).ifPresent(e -> builder.setOwnerPubKeyBytes(ByteString.copyFrom(e)));
+        Optional.ofNullable(getExtraDataMap()).ifPresent(builder::putAllExtraData);
+        return Utils.HEX.encode(builder.build().toByteArray());
     }
 
     public boolean isNewVersion(Preferences preferences) {

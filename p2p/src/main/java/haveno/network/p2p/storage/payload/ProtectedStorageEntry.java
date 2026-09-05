@@ -35,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.security.PublicKey;
 import java.time.Clock;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Getter
 @EqualsAndHashCode
@@ -46,6 +47,12 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
     private final int sequenceNumber;
     private final byte[] signature;
     private long creationTimeStamp;
+
+    // Throttle for the remove-signature-failure warning (a failed remove signature is expected from peers on
+    // an older version during a mandatory update).
+    private static final long REMOVE_SIG_WARN_INTERVAL_MS = 60_000;
+    private static final AtomicLong lastRemoveSigWarnMs = new AtomicLong(0);
+    private static final AtomicLong suppressedRemoveSigWarnCount = new AtomicLong(0);
 
     public ProtectedStorageEntry(@NotNull ProtectedStoragePayload protectedStoragePayload,
                                  @NotNull PublicKey ownerPubKey,
@@ -151,29 +158,33 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
      * match the payload owner.
      */
     public boolean isValidForAddOperation() {
+        if (!isSequenceNumberInRange("ProtectedStorageEntry::isValidForAddOperation()", MAX_ADD_SEQUENCE_NUMBER))
+            return false;
+
         if (!this.isSignatureValid())
             return false;
 
-        // TODO: The code currently supports MailboxStoragePayload objects inside ProtectedStorageEntry. Fix this.
+        // A MailboxStoragePayload must be carried by a ProtectedMailboxStorageEntry, which overrides this
+        // method. One in a plain entry is never processed as a mailbox item and its receiver could never
+        // remove it, so reject it instead of storing it until its TTL.
         if (protectedStoragePayload instanceof MailboxStoragePayload) {
-            MailboxStoragePayload mailboxStoragePayload = (MailboxStoragePayload) this.getProtectedStoragePayload();
-            return mailboxStoragePayload.getSenderPubKeyForAddOperation().equals(this.getOwnerPubKey());
-
-        } else {
-            boolean result = this.ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey());
-
-            if (!result) {
-                String res1 = this.toString();
-                String res2 = "null";
-                if (protectedStoragePayload.getOwnerPubKey() != null)
-                    res2 = Utilities.encodeToHex(protectedStoragePayload.getOwnerPubKey().getEncoded(), true);
-
-                log.warn("ProtectedStorageEntry::isValidForAddOperation() failed. Entry owner does not match Payload owner:\n" +
-                        "ProtectedStorageEntry={}\nPayloadOwner={}", res1, res2);
-            }
-
-            return result;
+            log.warn("ProtectedStorageEntry::isValidForAddOperation() rejected a MailboxStoragePayload carried by a plain entry");
+            return false;
         }
+
+        boolean result = this.ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey());
+
+        if (!result) {
+            String res1 = this.toString();
+            String res2 = "null";
+            if (protectedStoragePayload.getOwnerPubKey() != null)
+                res2 = Utilities.encodeToHex(protectedStoragePayload.getOwnerPubKey().getEncoded(), true);
+
+            log.warn("ProtectedStorageEntry::isValidForAddOperation() failed. Entry owner does not match Payload owner:\n" +
+                    "ProtectedStorageEntry={}\nPayloadOwner={}", res1, res2);
+        }
+
+        return result;
     }
 
     /*
@@ -182,20 +193,81 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
      */
     public boolean isValidForRemoveOperation() {
 
-        // Same requirements as add()
-        boolean result = this.isValidForAddOperation();
-
-        if (!result) {
-            String res1 = this.toString();
-            String res2 = "null";
-            if (protectedStoragePayload.getOwnerPubKey() != null)
-                res2 = Utilities.encodeToHex(protectedStoragePayload.getOwnerPubKey().getEncoded(), true);
-
-            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() failed. Entry owner does not match Payload owner:\n" +
-                    "ProtectedStorageEntry={}\nPayloadOwner={}", res1, res2);
+        // A MailboxStoragePayload must be carried by a ProtectedMailboxStorageEntry, which overrides this method
+        // and enforces receiver-only removal. Reject one smuggled into a plain entry, otherwise a captured
+        // mailbox add could be replayed as a plain remove to suppress a victim's mailbox message.
+        if (protectedStoragePayload instanceof MailboxStoragePayload) {
+            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() rejected a MailboxStoragePayload carried by a plain entry");
+            return false;
         }
 
-        return result;
+        if (!isSequenceNumberInRange("ProtectedStorageEntry::isValidForRemoveOperation()", MAX_REMOVE_SEQUENCE_NUMBER))
+            return false;
+
+        // The entry owner must match the payload owner.
+        if (!this.ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey())) {
+            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() failed. Entry owner does not match Payload owner.\n{}", this);
+            return false;
+        }
+
+        // The signature must be bound to the remove operation (over getRemoveHash), so a captured add/refresh
+        // signature cannot be replayed as a remove to force-cancel a maker's live order.
+        return isSignatureValidForRemove();
+    }
+
+    /*
+     * Returns true if the signature is valid for a remove of the payload at this sequence number and ownerPubKey.
+     */
+    boolean isSignatureValidForRemove() {
+        try {
+            byte[] removeHash = P2PDataStorage.getRemoveHash(this.protectedStoragePayload, this.sequenceNumber);
+
+            boolean result = Sig.verify(this.ownerPubKey, removeHash, this.signature);
+
+            if (!result)
+                warnRemoveSigFailureThrottled();
+
+            return result;
+        } catch (CryptoException e) {
+            log.error("ProtectedStorageEntry::isSignatureValidForRemove() exception {}", e.toString());
+            return false;
+        }
+    }
+
+    // Keep the warning visible so a genuine replayed/corrupt removal is never silently ignored, but throttle it
+    // so removals from peers on an older version during a mandatory update cannot flood the log.
+    private void warnRemoveSigFailureThrottled() {
+        long now = System.currentTimeMillis();
+        long last = lastRemoveSigWarnMs.get();
+        if (now - last >= REMOVE_SIG_WARN_INTERVAL_MS && lastRemoveSigWarnMs.compareAndSet(last, now)) {
+            long suppressed = suppressedRemoveSigWarnCount.getAndSet(0);
+            log.warn("Rejected a removal with an invalid remove-operation signature ({}){}. Expected from peers on an older version during a mandatory update; otherwise a replayed or corrupt removal.",
+                    protectedStoragePayload.getClass().getSimpleName(),
+                    suppressed > 0 ? " (+" + suppressed + " more suppressed since last warning)" : "");
+        } else {
+            suppressedRemoveSigWarnCount.incrementAndGet();
+            log.debug("ProtectedStorageEntry::isSignatureValidForRemove() failed for {} seqNr {}",
+                    protectedStoragePayload.getClass().getSimpleName(), sequenceNumber);
+        }
+    }
+
+    /*
+     * Max accepted sequence numbers per operation, so an entry cannot permanently lock its payload out of
+     * future add/refresh/remove updates via integer overflow. An add is capped one below a remove so the
+     * remove of the newest entry (stored sequence number + 1) always stays in range.
+     */
+    protected static final int MAX_ADD_SEQUENCE_NUMBER = Integer.MAX_VALUE - 2;
+    protected static final int MAX_REMOVE_SEQUENCE_NUMBER = Integer.MAX_VALUE - 1;
+
+    /*
+     * Returns false for a sequence number that is negative or can no longer be superseded.
+     */
+    protected boolean isSequenceNumberInRange(String methodName, int maxSequenceNumber) {
+        if (sequenceNumber < 0 || sequenceNumber > maxSequenceNumber) {
+            log.warn("{} rejected out-of-range sequenceNumber {}", methodName, sequenceNumber);
+            return false;
+        }
+        return true;
     }
 
     /*

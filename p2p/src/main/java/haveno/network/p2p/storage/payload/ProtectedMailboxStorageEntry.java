@@ -87,6 +87,9 @@ public class ProtectedMailboxStorageEntry extends ProtectedStorageEntry {
      */
     @Override
     public boolean isValidForAddOperation() {
+        if (!isSequenceNumberInRange("ProtectedMailboxStorageEntry::isValidForAddOperation()", MAX_ADD_SEQUENCE_NUMBER))
+            return false;
+
         if (!this.isSignatureValid())
             return false;
 
@@ -120,6 +123,9 @@ public class ProtectedMailboxStorageEntry extends ProtectedStorageEntry {
      */
     @Override
     public boolean isValidForRemoveOperation() {
+        if (!isSequenceNumberInRange("ProtectedMailboxStorageEntry::isValidForRemoveOperation()", MAX_REMOVE_SEQUENCE_NUMBER))
+            return false;
+
         if (!this.isSignatureValid())
             return false;
 
