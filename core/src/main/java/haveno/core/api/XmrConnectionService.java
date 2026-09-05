@@ -962,6 +962,7 @@ public final class XmrConnectionService {
 
         // listen for account to be opened or password changed
         if (!isInitialized) {
+            accountService.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS, connectionList::changePassword);
             accountService.addListener(new AccountServiceListener() {
 
                 @Override
@@ -975,11 +976,6 @@ public final class XmrConnectionService {
                     }
                 }
 
-                @Override
-                public void onPasswordChanged(String oldPassword, String newPassword) {
-                    log.info(getClass() + ".onPasswordChanged({}, {}) called", oldPassword == null ? null : "***", newPassword == null ? null : "***");
-                    connectionList.changePassword(oldPassword, newPassword);
-                }
             });
         }
 

@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.app.Log;
+import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
@@ -68,7 +69,12 @@ public class CoreAccountService {
     private final KeyRing keyRing;
 
     @Getter
-    private String password;
+    private volatile String password;
+    private volatile KeyStorage.PasswordChange passwordChange;
+    public enum PasswordChangeTarget { CONNECTIONS, WALLETS }
+    private final java.util.Map<PasswordChangeTarget, java.util.function.BiConsumer<String, String>> passwordChangeHandlers =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private final AtomicBoolean recoveryScheduled = new AtomicBoolean();
     private List<AccountServiceListener> listeners = new ArrayList<AccountServiceListener>();
 
     // seed and restore height or date to import when the main wallet is first created, held in memory only
@@ -143,6 +149,8 @@ public class CoreAccountService {
         lockAccount();
         try {
             if (accountExists()) throw new IllegalStateException("Cannot create account if account already exists");
+            password = normalizePassword(password);
+            validatePassword(password);
             keyRing.generateKeys(password);
             this.password = password;
             synchronized (listeners) {
@@ -157,8 +165,15 @@ public class CoreAccountService {
         lockAccount();
         try {
             if (!accountExists()) throw new IllegalStateException("Cannot open account if account does not exist");
+            password = normalizePassword(password);
+            // unlockKeys is deliberately idempotent, so explicitly verify even if already unlocked.
+            var verifiedKey = keyStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, password);
+            if (keyRing.isUnlocked() && !verifiedKey.equals(keyRing.getSymmetricKey())) throw new IllegalStateException("Open account master key does not match disk");
             if (keyRing.unlockKeys(password, false)) {
                 this.password = password;
+                loadPasswordChange();
+                if (passwordChange != null) this.password = passwordChange.getNewPassword();
+                schedulePasswordChangeRecovery();
                 synchronized (listeners) {
                     for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountOpened();
                 }
@@ -170,30 +185,154 @@ public class CoreAccountService {
         }
     }
 
+    public void addPasswordChangeHandler(PasswordChangeTarget target, java.util.function.BiConsumer<String, String> handler) {
+        passwordChangeHandlers.put(target, handler);
+    }
+
     public void changePassword(String oldPassword, String newPassword) {
         lockAccount();
         try {
-            if (!isAccountOpen()) throw new IllegalStateException("Cannot change password on unopened account");
-            if ("".equals(oldPassword)) oldPassword = null; // normalize to null
-            if (!StringUtils.equals(this.password, oldPassword)) throw new IllegalStateException("Incorrect password");
-            if (newPassword != null && newPassword.length() < 8) throw new IllegalStateException("Password must be at least 8 characters");
-
-            // change wallet passwords before committing new account password
-            // TODO: recover if wallet password change fails
-            synchronized (listeners) {
-                for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onPasswordChanged(oldPassword, newPassword);
+            checkAccountOpen();
+            oldPassword = normalizePassword(oldPassword);
+            newPassword = normalizePassword(newPassword);
+            validatePassword(newPassword);
+            if (!PersistenceManager.allServicesInitialized.get() || passwordChangeHandlers.size() != PasswordChangeTarget.values().length) {
+                throw new IllegalStateException("Wait until account services finish initializing before changing the password");
             }
-
-            // commit new account password
-            keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
-            this.password = newPassword;
+            loadPasswordChange();
+            if (passwordChange != null) {
+                if (!StringUtils.equals(newPassword, passwordChange.getNewPassword())
+                        || (!StringUtils.equals(oldPassword, passwordChange.getOldPassword())
+                        && !StringUtils.equals(oldPassword, passwordChange.getNewPassword()))) {
+                    throw new IllegalStateException("An earlier password change needs recovery; keep both passwords");
+                }
+            } else {
+                if (!StringUtils.equals(password, oldPassword)) throw new IllegalStateException("Incorrect password");
+                if (StringUtils.equals(oldPassword, newPassword)) return;
+                try {
+                    keyStorage.beginPasswordChange(keyRing.getSymmetricKey(), oldPassword, newPassword);
+                } finally {
+                    // A failed directory fsync can still leave a complete prepare on disk.
+                    loadPasswordChange();
+                    if (passwordChange != null) password = passwordChange.getNewPassword();
+                    schedulePasswordChangeRecovery();
+                }
+            }
+            finishPasswordChange();
         } finally {
             accountLock.unlock();
         }
     }
 
+    private void loadPasswordChange() {
+        try {
+            passwordChange = keyStorage.readPasswordChange(keyRing.getSymmetricKey());
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot read password-change recovery data; original files preserved", e);
+        }
+    }
+
+    /** Legacy credentials are either entirely old-format or entirely master-key encrypted. */
+    public String getPasswordForLegacyData() {
+        KeyStorage.PasswordChange change = passwordChange;
+        return change == null ? password : change.getOldPassword();
+    }
+
+    /** Only for trying a wallet's pre-change password before attempting any cache-file repair. */
+    public String getPreviousWalletPassword() {
+        KeyStorage.PasswordChange change = passwordChange;
+        if (change == null) return null;
+        return change.getOldPassword() == null ? "password" : change.getOldPassword();
+    }
+
+    public boolean isPasswordChangePending() {
+        return keyStorage.hasPasswordChange();
+    }
+
+    public void recoverPasswordChange() {
+        lockAccount();
+        try {
+            if (!isAccountOpen() || !keyStorage.hasPasswordChange()) return;
+            if (!PersistenceManager.allServicesInitialized.get() || passwordChangeHandlers.size() != PasswordChangeTarget.values().length) {
+                throw new IllegalStateException("Password recovery is waiting for account services");
+            }
+            loadPasswordChange();
+            password = passwordChange.getNewPassword();
+            finishPasswordChange();
+        } finally {
+            accountLock.unlock();
+        }
+    }
+
+    private void finishPasswordChange() {
+        KeyStorage.PasswordChange change = passwordChange;
+        boolean commitAttempted = false;
+        try {
+            for (PasswordChangeTarget target : PasswordChangeTarget.values()) {
+                passwordChangeHandlers.get(target).accept(change.getOldPassword(), change.getNewPassword());
+            }
+            commitAttempted = true;
+            keyStorage.completePasswordChange(keyRing.getSymmetricKey());
+        } catch (RuntimeException e) {
+            if (!commitAttempted || keyStorage.hasPasswordChange()) {
+                schedulePasswordChangeRecovery();
+                throw new IllegalStateException("Password change is pending recovery. Keep both passwords; recovery resumes automatically.", e);
+            }
+            // Journal deletion is last, after wallets and both current wrappers are durable.
+            // Failure syncing that deletion can only make recovery repeat after a crash; it
+            // cannot make the old password authoritative again. Report the committed state.
+            log.warn("Password changed; final recovery-journal cleanup could not be synced", e);
+        }
+        password = change.getNewPassword();
+        passwordChange = null;
+        synchronized (listeners) {
+            for (AccountServiceListener listener : new ArrayList<>(listeners)) {
+                try {
+                    listener.onPasswordChanged(change.getOldPassword(), change.getNewPassword());
+                } catch (RuntimeException e) {
+                    log.warn("Password changed, but an account notification failed", e);
+                }
+            }
+        }
+    }
+
+    private void schedulePasswordChangeRecovery() {
+        if (restartPending || !keyStorage.hasPasswordChange() || !recoveryScheduled.compareAndSet(false, true)) return;
+        UserThread.runAfter(() -> new Thread(() -> {
+            try {
+                if (!restartPending && isAccountOpen()) recoverPasswordChange();
+            } catch (RuntimeException e) {
+                log.warn("Password change remains pending; retaining recovery data", e);
+            } finally {
+                recoveryScheduled.set(false);
+                if (!restartPending && isAccountOpen()) schedulePasswordChangeRecovery();
+            }
+        }, "PasswordChangeRecovery").start(), 30);
+    }
+
+    public void withAccountBackup(Runnable backup) {
+        lockAccount();
+        try {
+            if (keyStorage.hasPasswordChange()) throw new IllegalStateException("Finish password-change recovery before backing up the account");
+            backup.run();
+        } finally {
+            accountLock.unlock();
+        }
+    }
+
+    private static String normalizePassword(String password) {
+        return password == null || password.isEmpty() ? null : password;
+    }
+
+    private static void validatePassword(String password) {
+        // Retain the account/wallet password contract. Do not normalize or silently replace characters.
+        if (password != null && (password.length() < 8 || password.length() > 1024 || !password.matches("[ -~]+"))) {
+            throw new IllegalArgumentException("Password must be 8 to 1024 printable ASCII characters");
+        }
+    }
+
     public void verifyPassword(String password) throws IncorrectPasswordException {
-        if (!StringUtils.equals(this.password, password)) {
+        if (!StringUtils.equals(this.password, normalizePassword(password))) {
             throw new IncorrectPasswordException("Incorrect password");
         }
     }
@@ -202,7 +341,8 @@ public class CoreAccountService {
         lockAccount();
         try {
             if (!isAccountOpen()) throw new IllegalStateException("Cannot close unopened account");
-            keyRing.lockKeys(); // closed account means the keys are locked
+            keyRing.lockKeys();
+            passwordChange = null;
             synchronized (listeners) {
                 for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountClosed();
             }
@@ -211,13 +351,13 @@ public class CoreAccountService {
         }
     }
 
-    // TODO: share common code with BackupView to backup
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
         new Thread(() -> { // off the user thread, which must not block on flushing, closing wallets and the transfer
             accountLock.lock(); // one backup at a time, since flushing, closing and reopening the account must not interleave
             try {
                 checkNotRestarting();
                 if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
+                if (keyStorage.hasPasswordChange()) throw new IllegalStateException("Finish password-change recovery before backing up the account");
 
                 // flush all known persistence objects to disk before locking the keys: encrypted stores
                 // skip writes while the key ring is locked, which would silently back up stale files

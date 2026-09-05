@@ -26,6 +26,7 @@ import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
+import haveno.core.api.CoreAccountService;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.app.HavenoApp;
@@ -56,6 +57,7 @@ public class BackupView extends ActivatableView<GridPane, Void> {
     private final File dataDir, logFile;
     private int gridRow = 0;
     private final Preferences preferences;
+    private final CoreAccountService accountService;
     private Button selectBackupDir, backupNow;
     private TextField backUpLocationTextField;
     private Button openDataDirButton, openLogsButton;
@@ -67,9 +69,10 @@ public class BackupView extends ActivatableView<GridPane, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private BackupView(Preferences preferences, Config config) {
+    private BackupView(Preferences preferences, Config config, CoreAccountService accountService) {
         super();
         this.preferences = preferences;
+        this.accountService = accountService;
         dataDir = new File(config.appDataDir.getPath());
         logFile = new File(Paths.get(dataDir.getPath(), "haveno.log").toString());
     }
@@ -163,7 +166,13 @@ public class BackupView extends ActivatableView<GridPane, Void> {
                     String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
                     String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
                     File destinationFile = new File(destination);
-                    FileUtil.copyDirectory(dataDir, new File(destination));
+                    accountService.withAccountBackup(() -> {
+                        try {
+                            FileUtil.copyDirectory(dataDir, new File(destination));
+                        } catch (IOException e) {
+                            throw new java.io.UncheckedIOException(e);
+                        }
+                    });
 
                     // delete monerod and monero-wallet-rpc binaries from backup so they're reinstalled with permissions
                     File monerod = new File(destinationFile, XmrLocalNode.MONEROD_NAME);
@@ -171,7 +180,7 @@ public class BackupView extends ActivatableView<GridPane, Void> {
                     File moneroWalletRpc = new File(destinationFile, XmrWalletService.MONERO_WALLET_RPC_NAME);
                     if (moneroWalletRpc.exists()) moneroWalletRpc.delete();
                     new Popup().feedback(Res.get("account.backup.success", destination)).show();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     log.error(e.getMessage());
                     showWrongPathWarningAndReset(e);

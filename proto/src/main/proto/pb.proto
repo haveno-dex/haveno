@@ -1827,6 +1827,7 @@ message EncryptedConnectionList {
     string current_connection_url = 3;
     int64 refresh_period = 4; // negative: no automated refresh is activated, zero: automated refresh with default period, positive: automated refresh with configured period (value)
     bool auto_switch = 5;
+    uint32 encryption_version = 6; // 0: legacy password/scrypt, 2: authenticated master-key encryption
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

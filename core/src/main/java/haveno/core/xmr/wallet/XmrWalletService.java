@@ -221,6 +221,9 @@ public class XmrWalletService extends XmrWalletBase {
             // initialize
             initialize();
 
+            accountService.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS, (oldPassword, newPassword) ->
+                    changeWalletPasswords(oldPassword == null ? MONERO_WALLET_RPC_DEFAULT_PASSWORD : oldPassword,
+                            newPassword == null ? MONERO_WALLET_RPC_DEFAULT_PASSWORD : newPassword));
             // listen for account updates
             accountService.addListener(new AccountServiceListener() {
 
@@ -245,13 +248,6 @@ public class XmrWalletService extends XmrWalletBase {
                     // TODO: reset more properties?
                 }
 
-                @Override
-                public void onPasswordChanged(String oldPassword, String newPassword) {
-                    log.info(getClass() + "accountservice.onPasswordChanged()");
-                    if (oldPassword == null || oldPassword.isEmpty()) oldPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
-                    if (newPassword == null || newPassword.isEmpty()) newPassword = MONERO_WALLET_RPC_DEFAULT_PASSWORD;
-                    changeWalletPasswords(oldPassword, newPassword);
-                }
             });
         });
     }
@@ -1795,6 +1791,28 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
+    private MoneroWalletFull openWalletFullWithPasswordRecovery(MoneroWalletConfig config) {
+        String password = config.getPassword();
+        try {
+            return WalletPasswordChange.open(password, accountService.getPreviousWalletPassword(),
+                    candidate -> MoneroWalletFull.openWallet(config.setPassword(candidate)));
+        } finally {
+            config.setPassword(password);
+        }
+    }
+
+    private void openWalletRpcWithPasswordRecovery(MoneroWalletRpc walletRpc, MoneroWalletConfig config) {
+        String password = config.getPassword();
+        try {
+            WalletPasswordChange.open(password, accountService.getPreviousWalletPassword(), candidate -> {
+                walletRpc.openWallet(config.setPassword(candidate));
+                return true;
+            });
+        } finally {
+            config.setPassword(password);
+        }
+    }
+
     private MoneroWalletFull openWalletFull(MoneroWalletConfig config, boolean applyProxyUri) {
         awaitPendingWalletClose(config.getPath());
         MoneroWalletFull walletFull = null;
@@ -1809,7 +1827,7 @@ public class XmrWalletService extends XmrWalletBase {
             config.setServer(connection);
             log.debug("Opening full wallet '{}' with monerod={}, proxyUri={}", Utilities.redactSensitiveInfo(config.getPath()), connection.getUri(), connection.getProxyUri());
             try {
-                walletFull = MoneroWalletFull.openWallet(config);
+                walletFull = openWalletFullWithPasswordRecovery(config);
             } catch (Exception e) {
                 if (isShutDownStarted) throw e;
                 log.warn("Failed to open full wallet '{}', attempting to use backup cache files, error={}", Utilities.redactSensitiveInfo(config.getPath()), e.getMessage());
@@ -1827,7 +1845,7 @@ public class XmrWalletService extends XmrWalletBase {
                     for (File backupCacheFile : backupCacheFiles) {
                         try {
                             FileUtil.copyFile(backupCacheFile, new File(cachePath));
-                            walletFull = MoneroWalletFull.openWallet(config);
+                            walletFull = openWalletFullWithPasswordRecovery(config);
                             log.warn("Successfully opened full wallet using backup cache");
                             retrySuccessful = true;
                             break;
@@ -1850,7 +1868,7 @@ public class XmrWalletService extends XmrWalletBase {
                         // retry opening wallet after cache deleted
                         try {
                             log.warn("Failed to open full wallet '{}' using backup cache files, retrying with cache deleted", Utilities.redactSensitiveInfo(config.getPath()));
-                            walletFull = MoneroWalletFull.openWallet(config);
+                            walletFull = openWalletFullWithPasswordRecovery(config);
                             log.warn("Successfully opened full wallet after cache deleted");
                             retrySuccessful = true;
                         } catch (Exception e2) {
@@ -1950,7 +1968,7 @@ public class XmrWalletService extends XmrWalletBase {
             if (isShutDownStarted) throw new IllegalStateException("Cannot open wallet '" + config.getPath() + "' because shutdown is started");
             log.debug("Opening RPC wallet '{}' with monerod={}, proxyUri={}", config.getPath(), connection.getUri(), connection.getProxyUri());
             try {
-                walletRpc.openWallet(config);
+                openWalletRpcWithPasswordRecovery(walletRpc, config);
             } catch (Exception e) {
                 if (isShutDownStarted) throw e;
                 log.warn("Failed to open RPC wallet '{}', attempting to use backup cache files, error={}", config.getPath(), e.getMessage());
@@ -1968,7 +1986,7 @@ public class XmrWalletService extends XmrWalletBase {
                     for (File backupCacheFile : backupCacheFiles) {
                         try {
                             FileUtil.copyFile(backupCacheFile, new File(cachePath));
-                            walletRpc.openWallet(config);
+                            openWalletRpcWithPasswordRecovery(walletRpc, config);
                             log.warn("Successfully opened RPC wallet using backup cache");
                             retrySuccessful = true;
                             break;
@@ -1991,7 +2009,7 @@ public class XmrWalletService extends XmrWalletBase {
                         // retry opening wallet after cache deleted
                         try {
                             log.warn("Failed to open RPC wallet '{}' using backup cache files, retrying with cache deleted", config.getPath());
-                            walletRpc.openWallet(config);
+                            openWalletRpcWithPasswordRecovery(walletRpc, config);
                             log.warn("Successfully opened RPC wallet after cache deleted");
                             retrySuccessful = true;
                         } catch (Exception e2) {
@@ -2140,34 +2158,51 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private void changeWalletPasswords(String oldPassword, String newPassword) {
+        // Enumerate disk as well as trade state: retained/unreferenced wallets can still hold funds.
+        java.util.Set<String> remaining = new java.util.HashSet<>();
+        File[] keyFiles = walletDir.listFiles((dir, name) -> name.endsWith(KEYS_FILE_POSTFIX));
+        if (keyFiles == null) throw new IllegalStateException("Cannot enumerate wallet keys for password change");
+        for (File file : keyFiles) remaining.add(file.getName().substring(0, file.getName().length() - KEYS_FILE_POSTFIX.length()));
 
-        // create task to change main wallet password
-        List<Runnable> tasks = new ArrayList<Runnable>();
-        tasks.add(() -> {
+        synchronized (walletLock) {
+            WalletPasswordChange.change(getInitializedWallet(), oldPassword, newPassword);
+            boolean reopen = Utilities.isWindows();
+            if (reopen && !closeMainWallet(true)) throw new IllegalStateException("Cannot close wallet to sync password change");
             try {
-                getInitializedWallet().changePassword(oldPassword, newPassword);
-                saveWallet();
-            } catch (Exception e) {
-                log.warn("Error changing main wallet password: " + e.getMessage() + "\n", e);
-                throw e;
-            }
-        });
-
-        // create tasks to change trade wallet passwords
-        List<Trade> trades = HavenoUtils.tradeManager.getAllTrades();
-        for (Trade trade : trades) {
-            tasks.add(() -> {
-                synchronized (trade.getWalletLock()) {
-                    if (trade.walletExists()) {
-                        trade.changeWalletPassword(oldPassword, newPassword); // TODO (woodser): this unnecessarily connects and syncs unopen wallets and leaves open
-                    }
+                syncWalletFiles(MONERO_WALLET_NAME);
+            } finally {
+                if (reopen) {
+                    wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
+                    startPolling();
                 }
-            });
+            }
+            remaining.remove(MONERO_WALLET_NAME);
         }
+        for (Trade trade : HavenoUtils.tradeManager.getAllTrades()) {
+            synchronized (trade.getWalletLock()) {
+                if (trade.walletExists()) {
+                    trade.changeWalletPassword(oldPassword, newPassword);
+                    remaining.remove(getWalletName(trade.getWallet().getPath()));
+                }
+            }
+        }
+        for (String name : remaining) {
+            MoneroWallet retained = openWallet(name, false, false);
+            try {
+                WalletPasswordChange.change(retained, oldPassword, newPassword);
+            } finally {
+                closeWallet(retained, true);
+            }
+            syncWalletFiles(name);
+        }
+        // Historical wallet backups are preserved; deleting the sole recoverable key copy would
+        // be worse than retaining an old-password backup. See docs/encryption.md.
+        log.info("Finished changing live wallet passwords");
+    }
 
-        // execute tasks in parallel
-        ThreadUtils.awaitTasks(tasks, Math.min(10, 1 + trades.size()));
-        log.info("Done changing all wallet passwords");
+    public void syncWalletFiles(String walletName) {
+        assertNotPath(walletName);
+        WalletPasswordChange.syncFiles(walletDir.toPath().resolve(walletName));
     }
 
     private MoneroWallet openOrCreateMainWallet() {

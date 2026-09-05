@@ -17,129 +17,75 @@
 
 package haveno.network.crypto;
 
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.Encryption;
+import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
-import haveno.common.file.FileUtil;
-import haveno.common.proto.network.NetworkEnvelope;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import haveno.common.crypto.SealedAndSigned;
+import haveno.common.crypto.Sig;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.network.p2p.peers.keepalive.messages.Ping;
+import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.util.Base64;
+import javax.crypto.SecretKey;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.io.File;
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
+class EncryptionServiceTests {
+    @TempDir Path directory;
 
-public class EncryptionServiceTests {
-    private static final Logger log = LoggerFactory.getLogger(EncryptionServiceTests.class);
-
-    private KeyRing keyRing;
-    private File dir;
-
-    @BeforeEach
-    public void setup() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, CryptoException {
-
-        dir = File.createTempFile("temp_tests", "");
-        //noinspection ResultOfMethodCallIgnored
-        dir.delete();
-        //noinspection ResultOfMethodCallIgnored
-        dir.mkdir();
-        KeyStorage keyStorage = new KeyStorage(dir);
-        keyRing = new KeyRing(keyStorage, null, true);
+    private EncryptionService service(KeyRing ring) throws Exception {
+        NetworkProtoResolver resolver = mock(NetworkProtoResolver.class);
+        when(resolver.fromProto(any(protobuf.NetworkEnvelope.class))).thenAnswer(call -> {
+            protobuf.NetworkEnvelope proto = call.getArgument(0);
+            return Ping.fromProto(proto.getPing(), proto.getMessageVersion());
+        });
+        return new EncryptionService(ring, resolver);
     }
-
-    @AfterEach
-    public void tearDown() throws IOException {
-        FileUtil.deleteDirectory(dir);
-    }
-
-    //TODO Use NetworkProtoResolver, PersistenceProtoResolver or ProtoResolver which are all in io.haveno.common.
-/*
-    @Test
-    public void testDecryptAndVerifyMessage() throws CryptoException {
-        EncryptionService encryptionService = new EncryptionService(keyRing, TestUtils.getProtobufferResolver());
-        final PrivateNotificationPayload privateNotification = new PrivateNotificationPayload("test");
-        privateNotification.setSigAndPubKey("", pubKeyRing.getSignaturePubKey());
-        final NodeAddress nodeAddress = new NodeAddress("localhost", 2222);
-        PrivateNotificationMessage data = new PrivateNotificationMessage(privateNotification,
-                nodeAddress,
-                UUID.randomUUID().toString());
-        PrefixedSealedAndSignedMessage encrypted = new PrefixedSealedAndSignedMessage(nodeAddress,
-                encryptionService.encryptAndSign(pubKeyRing, data),
-                Hash.getHash("localhost"),
-                UUID.randomUUID().toString());
-        DecryptedMsgWithPubKey decrypted = encryptionService.decryptAndVerify(encrypted.sealedAndSigned);
-        assertEquals(data.privateNotificationPayload.message,
-                ((PrivateNotificationMessage) decrypted.message).privateNotificationPayload.message);
-    }
-
 
     @Test
-    public void testDecryptHybridWithSignature() {
-        long ts = System.currentTimeMillis();
-        log.trace("start ");
-        for (int i = 0; i < 100; i++) {
-            Ping payload = new Ping(new Random().nextInt(), 10);
-            SealedAndSigned sealedAndSigned = null;
-            try {
-                sealedAndSigned = Encryption.encryptHybridWithSignature(payload,
-                        keyRing.getSignatureKeyPair(), keyRing.getPubKeyRing().getEncryptionPubKey());
-            } catch (CryptoException e) {
-                log.error("encryptHybridWithSignature failed");
-                e.printStackTrace();
-                assertTrue(false);
-            }
-            try {
-                EncryptionService encryptionService = new EncryptionService(null, TestUtils.getProtobufferResolver());
-                DecryptedDataTuple tuple = encryptionService.decryptHybridWithSignature(sealedAndSigned, keyRing.getEncryptionKeyPair().getPrivate());
-                assertEquals(((Ping) tuple.payload).nonce, payload.nonce);
-            } catch (CryptoException e) {
-                log.error("decryptHybridWithSignature failed");
-                e.printStackTrace();
-                assertTrue(false);
-            }
-        }
-        log.trace("took " + (System.currentTimeMillis() - ts) + " ms.");
-    }*/
+    void legacySignedMessagesRoundTripThroughProductionServiceAndProto() throws Exception {
+        KeyRing ring = new KeyRing(new KeyStorage(directory.toFile()), null, true);
+        EncryptionService service = service(ring);
+        Ping payload = Ping.fromProto(protobuf.Ping.newBuilder().setNonce(42).setLastRoundTripTime(10).build(), "test");
+        SealedAndSigned sealed = service.encryptAndSign(ring.getPubKeyRing(), payload);
+        assertFalse(AuthenticatedEncryption.hasEnvelope(sealed.getEncryptedPayloadWithHmac()));
+        var read = service.decryptAndVerify(SealedAndSigned.fromProto(sealed.toProtoMessage()));
+        assertEquals(payload, read.getNetworkEnvelope());
+        assertEquals(ring.getPubKeyRing().getSignaturePubKey(), read.getSignaturePubKey());
+    }
 
-    private static class MockMessage extends NetworkEnvelope {
-        public final int nonce;
+    @Test
+    void modernSignedMessagesAreReadableAndBindSenderIdentity() throws Exception {
+        KeyRing ring = new KeyRing(new KeyStorage(directory.toFile()), null, true);
+        EncryptionService service = service(ring);
+        Ping payload = Ping.fromProto(protobuf.Ping.newBuilder().setNonce(7).setLastRoundTripTime(9).build(), "test");
+        SecretKey key = Encryption.generateSecretKey(256);
+        byte[] wrapped = Encryption.encryptSecretKey(key, ring.getPubKeyRing().getEncryptionPubKey());
+        byte[] sender = Sig.getPublicKeyBytes(ring.getPubKeyRing().getSignaturePubKey());
+        byte[] bound = ByteBuffer.allocate(8 + wrapped.length + sender.length).putInt(wrapped.length).put(wrapped)
+                .putInt(sender.length).put(sender).array();
+        String context = "network-message/" + Base64.getEncoder().encodeToString(Hash.getSha256Hash(bound));
+        byte[] encrypted = AuthenticatedEncryption.encrypt(payload.toProtoNetworkEnvelope().toByteArray(), key, context);
+        byte[] signature = Sig.sign(ring.getSignatureKeyPair().getPrivate(), Hash.getSha256Hash(encrypted));
+        SealedAndSigned sealed = new SealedAndSigned(wrapped, encrypted, signature, ring.getPubKeyRing().getSignaturePubKey());
+        assertEquals(payload, service.decryptAndVerify(SealedAndSigned.fromProto(sealed.toProtoMessage())).getNetworkEnvelope());
 
-        public MockMessage(int nonce) {
-            super("0");
-            this.nonce = nonce;
-        }
-
-        @Override
-        public String getMessageVersion() {
-            return "0";
-        }
-
-        @Override
-        public protobuf.NetworkEnvelope toProtoNetworkEnvelope() {
-            return protobuf.NetworkEnvelope.newBuilder().setPing(protobuf.Ping.newBuilder().setNonce(nonce)).build();
-        }
+        var other = Sig.generateKeyPair();
+        SealedAndSigned resigned = new SealedAndSigned(wrapped, encrypted,
+                Sig.sign(other.getPrivate(), Hash.getSha256Hash(encrypted)), other.getPublic());
+        assertThrows(CryptoException.class, () -> service.decryptAndVerify(resigned));
+        encrypted[encrypted.length - 1] ^= 1;
+        assertThrows(CryptoException.class, () -> service.decryptAndVerify(sealed));
     }
 }
-/*@Value
-final class TestMessage implements MailboxMessage {
-    public String data = "test";
-    private final String messageVersion = Version.getP2PMessageVersion();
-    private final String uid;
-    private final String senderNodeAddress;
-
-    public TestMessage(String data) {
-        this.data = data;
-        uid = UUID.randomUUID().toString();
-        senderNodeAddress = null;
-    }
-
-
-    @Override
-    public PB.NetworkEnvelope toProtoNetworkEnvelope() {
-        throw new NotImplementedException();
-    }
-}*/

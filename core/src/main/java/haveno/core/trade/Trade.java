@@ -42,6 +42,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.Encryption;
+import haveno.common.crypto.NetworkEncryption;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
 import haveno.common.taskrunner.Model;
@@ -77,6 +78,7 @@ import haveno.core.xmr.exceptions.WalletUnavailableException;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.core.xmr.wallet.WalletPasswordChange;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
@@ -1113,8 +1115,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     public void changeWalletPassword(String oldPassword, String newPassword) {
         synchronized (walletLock) {
-            getWallet().changePassword(oldPassword, newPassword);
-            saveWallet();
+            WalletPasswordChange.change(getWallet(), oldPassword, newPassword);
+            boolean reopen = Utilities.isWindows();
+            if (reopen) closeWallet();
+            try {
+                xmrWalletService.syncWalletFiles(getWalletName());
+            } finally {
+                if (reopen) getWallet();
+            }
         }
     }
 
@@ -1932,9 +1940,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         try {
 
             // decrypt payment account payload
-            getTradePeer().setPaymentAccountKey(paymentAccountKey);
-            SecretKey sk = Encryption.getSecretKeyFromBytes(getTradePeer().getPaymentAccountKey());
-            byte[] decryptedPaymentAccountPayload = Encryption.decrypt(getTradePeer().getEncryptedPaymentAccountPayload(), sk);
+            SecretKey sk = Encryption.getSecretKeyFromBytes(paymentAccountKey);
+            byte[] decryptedPaymentAccountPayload = NetworkEncryption.decryptPaymentAccount(
+                    getTradePeer().getEncryptedPaymentAccountPayload(), sk, getId());
             CoreNetworkProtoResolver resolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone()); // TODO: reuse resolver from elsewhere?
             PaymentAccountPayload paymentAccountPayload = resolver.fromProto(protobuf.PaymentAccountPayload.parseFrom(decryptedPaymentAccountPayload));
 
@@ -1943,6 +1951,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             HavenoUtils.verifyPaymentAccountPayloadHash(paymentAccountPayload, peerPaymentAccountPayloadHash, "peer");
 
             // set payment account payload
+            getTradePeer().setPaymentAccountKey(paymentAccountKey);
             getTradePeer().setPaymentAccountPayload(paymentAccountPayload);
             processModel.getPaymentAccountDecryptedProperty().set(true);
         } catch (Exception e) {

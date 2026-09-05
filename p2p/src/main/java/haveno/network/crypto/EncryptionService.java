@@ -21,6 +21,7 @@ import com.google.inject.Inject;
 import com.google.protobuf.InvalidProtocolBufferException;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
+import haveno.common.crypto.NetworkEncryption;
 import static haveno.common.crypto.Encryption.decryptSecretKey;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
@@ -69,7 +70,8 @@ public class EncryptionService {
             throw new CryptoException("Signature verification failed.");
 
         try {
-            final byte[] bytes = Encryption.decryptPayloadWithHmac(sealedAndSigned.getEncryptedPayloadWithHmac(), secretKey);
+            final byte[] bytes = NetworkEncryption.decryptMessage(sealedAndSigned.getEncryptedPayloadWithHmac(), secretKey,
+                    sealedAndSigned.getEncryptedSecretKey(), sealedAndSigned.getSigPublicKeyBytes());
             final protobuf.NetworkEnvelope envelope = protobuf.NetworkEnvelope.parseFrom(bytes);
             NetworkEnvelope decryptedPayload = networkProtoResolver.fromProto(envelope);
             return new DecryptedDataTuple(decryptedPayload, sealedAndSigned.getSigPublicKey());
@@ -89,10 +91,6 @@ public class EncryptionService {
                 decryptedDataTuple.getSigPublicKey());
     }
 
-    private static byte[] encryptPayloadWithHmac(NetworkEnvelope networkEnvelope, SecretKey secretKey) throws CryptoException {
-        return Encryption.encryptPayloadWithHmac(networkEnvelope.toProtoNetworkEnvelope().toByteArray(), secretKey);
-    }
-
     /**
      * @param payload             The data to encrypt.
      * @param signatureKeyPair    The key pair for signing.
@@ -110,7 +108,8 @@ public class EncryptionService {
         byte[] encryptedSecretKey = Encryption.encryptSecretKey(secretKey, encryptionPublicKey);
 
         // Encrypt with sym key payload with appended hmac
-        byte[] encryptedPayloadWithHmac = encryptPayloadWithHmac(payload, secretKey);
+        byte[] encryptedPayloadWithHmac = NetworkEncryption.encryptMessage(payload.toProtoNetworkEnvelope().toByteArray(),
+                secretKey, encryptedSecretKey, Sig.getPublicKeyBytes(signatureKeyPair.getPublic()));
 
         // sign hash of encryptedPayloadWithHmac
         byte[] hash = Hash.getSha256Hash(encryptedPayloadWithHmac);
@@ -120,4 +119,3 @@ public class EncryptionService {
         return new SealedAndSigned(encryptedSecretKey, encryptedPayloadWithHmac, signature, signatureKeyPair.getPublic());
     }
 }
-

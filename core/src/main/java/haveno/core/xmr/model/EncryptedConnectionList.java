@@ -3,6 +3,8 @@ package haveno.core.xmr.model;
 import com.google.inject.Inject;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
+import haveno.common.crypto.AuthenticatedEncryption;
+import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.ScryptUtil;
@@ -16,7 +18,7 @@ import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -32,7 +34,7 @@ import org.bitcoinj.crypto.KeyCrypterScrypt;
 /**
  * Store for {@link EncryptedConnection}s.
  * <p>
- * Passwords are encrypted when stored onto disk, using the account password.
+ * Passwords use authenticated master-key encryption. Legacy password-derived entries migrate on load.
  * If a connection has no password, this is "hidden" by using some random value as fake password.
  *
  * @implNote The password encryption mechanism is handled as follows.
@@ -57,6 +59,8 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     transient private SecretKey encryptionKey;
 
     transient private CoreAccountService accountService;
+    transient private KeyRing keyRing;
+    private int encryptionVersion = 2;
     transient private PersistenceManager<EncryptedConnectionList> persistenceManager;
 
     private final Map<String, EncryptedConnection> items = new HashMap<>();
@@ -66,7 +70,8 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
 
     @Inject
     public EncryptedConnectionList(PersistenceManager<EncryptedConnectionList> persistenceManager,
-                             CoreAccountService accountService) {
+                             CoreAccountService accountService, KeyRing keyRing) {
+        this.keyRing = keyRing;
         this.accountService = accountService;
         this.persistenceManager = persistenceManager;
         this.persistenceManager.initialize(this, "EncryptedConnectionList", PersistenceManager.Source.PRIVATE);
@@ -76,7 +81,9 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
                               List<EncryptedConnection> items,
                               @NonNull String currentConnectionUrl,
                               long refreshPeriod,
-                              boolean autoSwitch) {
+                              boolean autoSwitch, int encryptionVersion) {
+        if (encryptionVersion != 0 && encryptionVersion != 2) throw new IllegalArgumentException("Unsupported connection encryption version");
+        this.encryptionVersion = encryptionVersion;
         this.keyCrypterScrypt = ScryptUtil.getKeyCrypterScrypt(salt);
         this.items.putAll(items.stream().collect(Collectors.toMap(EncryptedConnection::getUrl, Function.identity())));
         this.currentConnectionUrl = currentConnectionUrl;
@@ -90,23 +97,43 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
             writeLock.lock();
             try {
                 initializeEncryption(persistedEncryptedConnectionList.keyCrypterScrypt);
+                Map<String, EncryptedConnection> loaded = persistedEncryptedConnectionList.items;
+                if (persistedEncryptedConnectionList.encryptionVersion == 0) {
+                    // Build the entire replacement first. A failed credential must not leave a mixed-key map.
+                    SecretKey legacyKey = toSecretKey(accountService.getPasswordForLegacyData());
+                    Map<String, EncryptedConnection> migrated = new HashMap<>();
+                    for (EncryptedConnection connection : loaded.values()) {
+                        byte[] plaintext = legacyKey == null ? connection.getEncryptedPassword()
+                                : Encryption.decrypt(connection.getEncryptedPassword(), legacyKey);
+                        validateSaltedPassword(plaintext, connection.getEncryptionSalt());
+                        migrated.put(connection.getUrl(), connection.toBuilder().encryptedPassword(
+                                encrypt(plaintext, encryptionKey, connection.getUrl())).build());
+                    }
+                    loaded = migrated;
+                }
+                // Authenticate every current entry before publishing any of them.
+                for (EncryptedConnection connection : loaded.values()) {
+                    validateSaltedPassword(decrypt(connection.getEncryptedPassword(), encryptionKey, connection.getUrl()), connection.getEncryptionSalt());
+                }
                 items.clear();
-                items.putAll(persistedEncryptedConnectionList.items);
+                items.putAll(loaded);
+                encryptionVersion = 2;
                 currentConnectionUrl = persistedEncryptedConnectionList.currentConnectionUrl;
                 refreshPeriod = persistedEncryptedConnectionList.refreshPeriod;
                 autoSwitch = persistedEncryptedConnectionList.autoSwitch;
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new IllegalStateException("Could not load encrypted connection credentials; existing file preserved", e);
             } finally {
                 writeLock.unlock();
             }
+            requestPersistence();
             completeHandler.run();
         }, () -> {
             writeLock.lock();
             try {
                 initializeEncryption(ScryptUtil.getKeyCrypterScrypt());
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new IllegalStateException("Could not load encrypted connection credentials; existing file preserved", e);
             } finally {
                 writeLock.unlock();
             }
@@ -116,7 +143,8 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
 
     private void initializeEncryption(KeyCrypterScrypt keyCrypterScrypt) {
         this.keyCrypterScrypt = keyCrypterScrypt;
-        encryptionKey = toSecretKey(accountService.getPassword());
+        encryptionKey = keyRing.getSymmetricKey();
+        if (encryptionKey == null) throw new IllegalStateException("Account is locked");
     }
 
     public List<MoneroRpcConnection> getConnections() {
@@ -257,6 +285,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         return protobuf.PersistableEnvelope.newBuilder()
                 .setEncryptedConnectionList(protobuf.EncryptedConnectionList.newBuilder()
                         .setSalt(saltString)
+                        .setEncryptionVersion(encryptionVersion)
                         .addAllItems(connections)
                         .setCurrentConnectionUrl(currentConnectionUrl)
                         .setRefreshPeriod(refreshPeriod)
@@ -268,22 +297,15 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         List<EncryptedConnection> items = proto.getItemsList().stream()
                 .map(EncryptedConnection::fromProto)
                 .collect(Collectors.toList());
-        return new EncryptedConnectionList(proto.getSalt().toByteArray(), items, proto.getCurrentConnectionUrl(), proto.getRefreshPeriod(), proto.getAutoSwitch());
+        return new EncryptedConnectionList(proto.getSalt().toByteArray(), items, proto.getCurrentConnectionUrl(), proto.getRefreshPeriod(), proto.getAutoSwitch(), proto.getEncryptionVersion());
     }
 
     // ----------------------------- HELPERS ----------------------------------
 
     public void changePassword(String oldPassword, String newPassword) {
-        writeLock.lock();
-        try {
-            SecretKey oldSecret = encryptionKey;
-            assert Objects.equals(oldSecret, toSecretKey(oldPassword)) : "Old secret does not match old password";
-            encryptionKey = toSecretKey(newPassword);
-            items.replaceAll((key, connection) -> reEncrypt(connection, oldSecret, encryptionKey));
-        } finally {
-            writeLock.unlock();
-        }
-        requestPersistence();
+        // Credentials use the stable master key. Flush the initial legacy conversion before the
+        // old account password can be retired, ordered after any previously queued store writes.
+        persistenceManager.persistNowAndWait();
     }
 
     private SecretKey toSecretKey(String password) {
@@ -291,36 +313,19 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         return Encryption.getSecretKeyFromBytes(keyCrypterScrypt.deriveKey(password).getKey());
     }
 
-    private static EncryptedConnection reEncrypt(EncryptedConnection connection,
-                                                    SecretKey oldSecret, SecretKey newSecret) {
-        return connection.toBuilder()
-                .encryptedPassword(reEncrypt(connection.getEncryptedPassword(), oldSecret, newSecret))
-                .build();
-    }
-
-    private static byte[] reEncrypt(byte[] value,
-                                    SecretKey oldSecret, SecretKey newSecret) {
-        // was previously not encrypted if null
-        byte[] decrypted = oldSecret == null ? value : decrypt(value, oldSecret);
-        // should not be encrypted if null
-        return newSecret == null ? decrypted : encrypt(decrypted, newSecret);
-    }
-
-    private static byte[] decrypt(byte[] encrypted, SecretKey secret) {
-        if (secret == null) return encrypted; // no encryption
+    private static byte[] decrypt(byte[] encrypted, SecretKey secret, String url) {
         try {
-            return Encryption.decrypt(encrypted, secret);
+            return AuthenticatedEncryption.decrypt(encrypted, secret, "connection-password/" + url);
         } catch (CryptoException e) {
-            throw new IllegalArgumentException("Incorrect password", e);
+            throw new IllegalArgumentException("Could not authenticate connection password", e);
         }
     }
 
-    private static byte[] encrypt(byte[] unencrypted, SecretKey secretKey) {
-        if (secretKey == null) return unencrypted; // no encryption
+    private static byte[] encrypt(byte[] plaintext, SecretKey secret, String url) {
         try {
-            return Encryption.encrypt(unencrypted, secretKey);
+            return AuthenticatedEncryption.encrypt(plaintext, secret, "connection-password/" + url);
         } catch (CryptoException e) {
-            throw new RuntimeException("Could not encrypt data with the provided secret", e);
+            throw new IllegalStateException("Could not encrypt connection password", e);
         }
     }
 
@@ -328,7 +333,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         String password = connection.getPassword();
         byte[] passwordBytes = password == null ? null : password.getBytes(StandardCharsets.UTF_8);
         byte[] passwordSalt = generateSalt(passwordBytes);
-        byte[] encryptedPassword = encryptPassword(passwordBytes, passwordSalt);
+        byte[] encryptedPassword = encryptPassword(passwordBytes, passwordSalt, connection.getUri());
         return EncryptedConnection.builder()
                 .url(connection.getUri())
                 .username(connection.getUsername() == null ? "" : connection.getUsername())
@@ -339,7 +344,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     }
 
     private MoneroRpcConnection toMoneroRpcConnection(EncryptedConnection connection) {
-        byte[] decryptedPasswordBytes = decryptPassword(connection.getEncryptedPassword(), connection.getEncryptionSalt());
+        byte[] decryptedPasswordBytes = decryptPassword(connection.getEncryptedPassword(), connection.getEncryptionSalt(), connection.getUrl());
         String password = decryptedPasswordBytes == null ? null : new String(decryptedPasswordBytes, StandardCharsets.UTF_8);
         String username = connection.getUsername().isEmpty() ? null : connection.getUsername();
         MoneroRpcConnection moneroRpcConnection = new MoneroRpcConnection(connection.getUrl(), username, password);
@@ -348,7 +353,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
     }
 
 
-    private byte[] encryptPassword(byte[] password, byte[] salt) {
+    private byte[] encryptPassword(byte[] password, byte[] salt, String url) {
         byte[] saltedPassword;
         if (password == null) {
             // no password given, so use salt as prefix and add some random data, which disguises itself as password
@@ -365,11 +370,12 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
             System.arraycopy(password, 0, saltedPassword, 0, password.length);
             System.arraycopy(salt, 0, saltedPassword, password.length, salt.length);
         }
-        return encrypt(saltedPassword, encryptionKey);
+        return encrypt(saltedPassword, encryptionKey, url);
     }
 
-    private byte[] decryptPassword(byte[] encryptedSaltedPassword, byte[] salt) {
-        byte[] decryptedSaltedPassword = decrypt(encryptedSaltedPassword, encryptionKey);
+    private byte[] decryptPassword(byte[] encryptedSaltedPassword, byte[] salt, String url) {
+        byte[] decryptedSaltedPassword = decrypt(encryptedSaltedPassword, encryptionKey, url);
+        validateSaltedPassword(decryptedSaltedPassword, salt);
         if (arrayStartsWith(decryptedSaltedPassword, salt)) {
             // salt is prefix, so no actual password set
             return null;
@@ -378,6 +384,14 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
             byte[] decryptedPassword = new byte[decryptedSaltedPassword.length - salt.length];
             System.arraycopy(decryptedSaltedPassword, 0, decryptedPassword, 0, decryptedPassword.length);
             return decryptedPassword;
+        }
+    }
+
+    private static void validateSaltedPassword(byte[] plaintext, byte[] salt) {
+        if (salt.length != SALT_LENGTH || plaintext.length < salt.length
+                || (!arrayStartsWith(plaintext, salt)
+                && !Arrays.equals(salt, Arrays.copyOfRange(plaintext, plaintext.length - salt.length, plaintext.length)))) {
+            throw new IllegalArgumentException("Invalid legacy credential or incorrect password");
         }
     }
 
