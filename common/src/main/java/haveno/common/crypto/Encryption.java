@@ -51,7 +51,8 @@ public class Encryption {
     private static final String ASYM_CIPHER = "RSA/ECB/OAEPWithSHA-256AndMGF1PADDING";
 
     public static final String SYM_KEY_ALGO = "AES";
-    private static final String SYM_CIPHER = "AES";
+    // Legacy compatibility only. New local data uses AuthenticatedEncryption.
+    private static final String SYM_CIPHER = "AES/ECB/PKCS5Padding";
 
     private static final String HMAC = "HmacSHA256";
 
@@ -63,7 +64,7 @@ public class Encryption {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ASYM_KEY_ALGO);
             keyPairGenerator.initialize(2048);
             return keyPairGenerator.genKeyPair();
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("Could not create key.", e);
             throw new RuntimeException("Could not create key.");
         }
@@ -79,7 +80,7 @@ public class Encryption {
             Cipher cipher = Cipher.getInstance(SYM_CIPHER);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
             return cipher.doFinal(payload);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("error in encrypt", e);
             throw new CryptoException(e);
         }
@@ -90,7 +91,7 @@ public class Encryption {
             Cipher cipher = Cipher.getInstance(SYM_CIPHER);
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
             return cipher.doFinal(encryptedPayload);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             throw new CryptoException(e);
         }
     }
@@ -107,7 +108,7 @@ public class Encryption {
         try {
             // Single-allocation concat (no ByteArrayOutputStream copy of the full payload).
             return Utilities.concatenateByteArrays(payload, getHmac(payload, secretKey));
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("Could not create hmac", e);
             throw new RuntimeException("Could not create hmac", e);
         }
@@ -117,7 +118,7 @@ public class Encryption {
         try {
             byte[] hmacTest = getHmac(message, secretKey);
             return MessageDigest.isEqual(hmacTest, hmac);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("Could not create cipher", e);
             throw new RuntimeException("Could not create cipher");
         }
@@ -172,7 +173,7 @@ public class Encryption {
                 payloadWriter.writeTo(cipherOutputStream);
                 cipherOutputStream.write(hmac);
             }
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("error in encryptPayloadWithHmacToStream", e);
             throw new CryptoException(e);
         }
@@ -227,6 +228,7 @@ public class Encryption {
 
     public static byte[] decryptPayloadWithHmac(byte[] encryptedPayloadWithHmac, SecretKey secretKey) throws CryptoException {
         byte[] payloadWithHmac = decrypt(encryptedPayloadWithHmac, secretKey);
+        if (payloadWithHmac.length < 32) throw new CryptoException(HMAC_ERROR_MSG);
         // HMAC-SHA256 is always 32 bytes; split directly to avoid hex-encoding memory amplification
         int payloadLen = payloadWithHmac.length - 32;
         byte[] payload = Arrays.copyOfRange(payloadWithHmac, 0, payloadLen);
@@ -293,7 +295,7 @@ public class Encryption {
             throw e;
         } catch (CryptoException e) {
             throw e;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             throw new CryptoException(e);
         }
     }
@@ -310,7 +312,7 @@ public class Encryption {
             return new CipherInputStream(encryptedInput, cipher);
         } catch (OutOfMemoryError e) {
             throw e; // never mistake a heap-constrained read for a corrupt file
-        } catch (Throwable e) {
+        } catch (Exception e) {
             throw new CryptoException(e);
         }
     }
@@ -327,7 +329,7 @@ public class Encryption {
                     MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
             cipher.init(Cipher.WRAP_MODE, publicKey, oaepParameterSpec);
             return cipher.wrap(secretKey);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("Couldn't encrypt payload", e);
             throw new CryptoException("Couldn't encrypt payload");
         }
@@ -340,7 +342,7 @@ public class Encryption {
                     MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
             cipher.init(Cipher.UNWRAP_MODE, privateKey, oaepParameterSpec);
             return (SecretKey) cipher.unwrap(encryptedSecretKey, "AES", Cipher.SECRET_KEY);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             // errors when trying to decrypt foreign network_messages are normal
             throw new CryptoException(e);
         }
@@ -356,7 +358,7 @@ public class Encryption {
             KeyGenerator keyGenerator = KeyGenerator.getInstance(SYM_KEY_ALGO);
             keyGenerator.init(bits);
             return keyGenerator.generateKey();
-        } catch (Throwable e) {
+        } catch (Exception e) {
             log.error("Couldn't generate key", e);
             throw new RuntimeException("Couldn't generate key");
         }
@@ -379,4 +381,3 @@ public class Encryption {
         }
     }
 }
-

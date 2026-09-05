@@ -19,6 +19,7 @@ package haveno.common.persistence;
 
 import haveno.common.Payload;
 import haveno.common.crypto.Encryption;
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
@@ -39,9 +40,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class PersistenceManagerTest {
 
@@ -123,7 +124,7 @@ public class PersistenceManagerTest {
     }
 
     @Test
-    public void testLegacyUnencryptedFileIsStillReadable() throws Exception {
+    public void testPlaintextIsRejectedAfterKeyMigration() throws Exception {
         NavigationPath data = largeNavigationPath();
         // Write the store the old, unencrypted way (delimited protobuf) directly to the storage file.
         File storageFile = new File(dir, "LegacyStore");
@@ -132,8 +133,8 @@ public class PersistenceManagerTest {
         }
         persistenceManager.initialize(data, "LegacyStore", PersistenceManager.Source.PRIVATE);
 
-        NavigationPath read = persistenceManager.getPersisted("LegacyStore");
-        assertEquals(data, read);
+        assertThrows(IllegalStateException.class, () -> persistenceManager.getPersisted("LegacyStore"));
+        assertTrue(storageFile.exists());
     }
 
     @Test
@@ -155,7 +156,7 @@ public class PersistenceManagerTest {
     }
 
     @Test
-    public void testCorruptEncryptedFileIsMovedToBackup() throws Exception {
+    public void testCorruptEncryptedFileIsPreservedAndCannotBeOverwritten() throws Exception {
         NavigationPath data = largeNavigationPath();
         persistAndWait(data, "CorruptStore");
 
@@ -166,10 +167,27 @@ public class PersistenceManagerTest {
         for (int i = 0; i < bytes.length; i++) bytes[i] ^= 0x5a;
         java.nio.file.Files.write(storageFile.toPath(), bytes);
 
-        NavigationPath read = persistenceManager.getPersisted("CorruptStore");
-        assertNull(read, "corrupt file must not return data");
-        assertFalse(storageFile.exists(), "corrupt file should be moved out of place");
-        assertTrue(new File(dir, "backup_of_corrupted_data/CorruptStore").exists(),
-                "corrupt file should be preserved in backup_of_corrupted_data");
+        assertThrows(IllegalStateException.class, () -> persistenceManager.getPersisted("CorruptStore"));
+        assertThrows(IllegalStateException.class, () -> persistenceManager.persistNowAndWait());
+        assertArrayEquals(bytes, java.nio.file.Files.readAllBytes(storageFile.toPath()));
+    }
+    @Test
+    public void testStoreNamesAreAuthenticated() throws Exception {
+        NavigationPath data = largeNavigationPath();
+        persistAndWait(data, "StoreA");
+        java.nio.file.Files.copy(new File(dir, "StoreA").toPath(), new File(dir, "StoreB").toPath());
+        assertThrows(IllegalStateException.class, () -> persistenceManager.getPersisted("StoreB"));
+        assertTrue(new File(dir, "StoreB").exists());
+    }
+
+    @Test
+    public void testAuthenticatedLegacyReadMigratesImmediately() throws Exception {
+        NavigationPath data = largeNavigationPath();
+        File file = new File(dir, "LegacyEncrypted");
+        writeEncryptedFile(data.toProtoMessage().toByteArray(), keyRing.getSymmetricKey(), file);
+        persistenceManager.initialize(data, "LegacyEncrypted", PersistenceManager.Source.PRIVATE);
+        assertEquals(data, persistenceManager.getPersisted());
+        assertTrue(AuthenticatedEncryption.hasEnvelope(file.toPath()));
+        assertEquals(data, persistenceManager.getPersisted());
     }
 }

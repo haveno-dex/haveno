@@ -17,9 +17,12 @@
 
 package haveno.common.persistence;
 
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
 import haveno.common.file.FileUtil;
+import haveno.common.file.AtomicFileWriter;
+import java.nio.file.Files;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -40,15 +43,14 @@ import lombok.extern.slf4j.Slf4j;
  * An append-only, encrypted, crash-safe record log.
  *
  * <p>Each record is framed as {@code [4-byte big-endian length][ciphertext]}, with
- * {@code ciphertext = Encryption.encryptPayloadWithHmac(record)}. The length prefix lives outside
+ * a context-bound {@link AuthenticatedEncryption} envelope for each new record. The length prefix lives outside
  * the ciphertext so frames can be located and a torn tail truncated without decrypting. Appends
  * fsync, so a crash or failed write (e.g. disk full) can only leave a partial trailing frame; the
  * log tracks its known-good length and truncates such a tear away before the next append.
  *
- * <p>Replay ({@link #readAllValidRecords()}) self-repairs: a torn tail is truncated back to the
- * last good frame, and mid-log corruption (bad length prefix or hmac) rebuilds the log from the
- * valid prefix so the maximum recoverable history survives. The dropped bytes are always preserved
- * first in a timestamped copy under {@code backup_of_corrupted_data/}.
+ * <p>Replay ({@link #readAllValidRecords()}) repairs a torn tail only after a verified durable
+ * backup. Complete unauthenticatable frames stop replay and leave the entire original file in place.
+ * Legacy records remain readable and migrate on successful replay.
  *
  * <p>Records are opaque {@code byte[]}; domain encoding is the caller's responsibility. Appends are
  * serialized on the instance monitor; callers that need the log to match an in-memory order must
@@ -65,12 +67,18 @@ public class EncryptedAppendLog {
     // File length up to which all frames are known intact (-1 until the first replay establishes
     // it), so a failed append's partial frame is truncated before the next write can bury it.
     private long knownGoodLength = -1;
+    private long knownGoodRecords;
+    private static final int MAX_RECORD_BYTES = 256 * 1024 * 1024;
 
     public EncryptedAppendLog(File dir, String fileName, SecretKey secretKey, int numMaxBackupFiles) {
         this.dir = dir;
         this.fileName = fileName;
         this.secretKey = secretKey;
         this.numMaxBackupFiles = numMaxBackupFiles;
+    }
+
+    private String recordContext(long index) {
+        return "append-log/" + fileName + "/" + index;
     }
 
     private File logFile() {
@@ -95,15 +103,19 @@ public class EncryptedAppendLog {
     /**
      * Appends multiple records as consecutive frames with a single fsync. Durable on return; on
      * failure the file is truncated back to its pre-call length, so the batch is all-or-nothing on
-     * disk (a crash between write and truncate leaves a tear that the next append or replay repairs).
+     * disk after a reported I/O failure. A process crash may retain a prefix of complete records
+     * from the batch, plus a torn final frame; callers must make record replay idempotent.
      */
     public void appendAll(List<byte[]> records) throws CryptoException {
         if (records.isEmpty()) return;
-        List<byte[]> ciphertexts = new ArrayList<>(records.size());
-        for (byte[] record : records) ciphertexts.add(Encryption.encryptPayloadWithHmac(record, secretKey));
         synchronized (lock) {
             if (!dir.exists() && !dir.mkdir()) log.warn("make dir failed {}", dir);
             repairTailBeforeAppend();
+            List<byte[]> ciphertexts = new ArrayList<>(records.size());
+            for (byte[] record : records) {
+                if (record.length > MAX_RECORD_BYTES - 88) throw new IllegalArgumentException("Append-log record too large");
+                ciphertexts.add(AuthenticatedEncryption.encrypt(record, secretKey, recordContext(knownGoodRecords + ciphertexts.size())));
+            }
             long written = 0;
             try (FileOutputStream fos = new FileOutputStream(logFile(), true);
                  DataOutputStream out = new DataOutputStream(new BufferedOutputStream(fos))) {
@@ -124,6 +136,7 @@ public class EncryptedAppendLog {
                 throw new RuntimeException("Could not append to " + fileName, e);
             }
             knownGoodLength += written;
+            knownGoodRecords += records.size();
         }
     }
 
@@ -156,8 +169,7 @@ public class EncryptedAppendLog {
     }
 
     /**
-     * Replays the log, returning the valid records in append order. Self-repairs a torn tail and
-     * backs up + rebuilds on mid-log corruption (see class javadoc).
+     * Replays the log in append order. Repairs a torn tail, but stops on full-frame corruption.
      */
     public List<byte[]> readAllValidRecords() {
         synchronized (lock) {
@@ -177,6 +189,7 @@ public class EncryptedAppendLog {
                     }
                 } else {
                     knownGoodLength = 0;
+                    knownGoodRecords = 0;
                     return records;
                 }
             }
@@ -185,6 +198,7 @@ public class EncryptedAppendLog {
             long goodLength = 0;
             boolean tornTail = false;
             boolean corrupt = false;
+            boolean legacyRecords = false;
 
             try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(logFile)))) {
                 while (goodLength < fileLength) {
@@ -194,7 +208,7 @@ public class EncryptedAppendLog {
                         break;
                     }
                     int len = in.readInt();
-                    if (len <= 0) {
+                    if (len <= 0 || len > MAX_RECORD_BYTES) {
                         // append() only ever writes positive lengths, so a complete non-positive
                         // prefix cannot be a torn write - it is corruption of the prefix itself.
                         corrupt = true;
@@ -208,7 +222,10 @@ public class EncryptedAppendLog {
                     in.readFully(ciphertext);
                     byte[] record;
                     try {
-                        record = Encryption.decryptPayloadWithHmac(ciphertext, secretKey);
+                        record = AuthenticatedEncryption.hasEnvelope(ciphertext)
+                                ? AuthenticatedEncryption.decrypt(ciphertext, secretKey, recordContext(records.size()))
+                                : Encryption.decryptPayloadWithHmac(ciphertext, secretKey);
+                        legacyRecords |= !AuthenticatedEncryption.hasEnvelope(ciphertext);
                     } catch (CryptoException e) {
                         // A fully-present frame that fails its HMAC is not a torn write -> real corruption.
                         corrupt = true;
@@ -223,22 +240,21 @@ public class EncryptedAppendLog {
                 throw new RuntimeException("Could not read " + fileName, e);
             }
 
+            if (corrupt) {
+                knownGoodLength = -1;
+                throw new IllegalStateException("Cannot authenticate " + fileName + " at offset " + goodLength + "; original log preserved");
+            }
+            knownGoodRecords = records.size();
             try {
-                if (corrupt || (tornTail && goodLength < fileLength)) {
+                if (tornTail && goodLength < fileLength) {
                     // Preserve the dropped bytes before truncating back to the valid prefix - they
                     // may still be recoverable. Copy-then-truncate means a failure at any point
                     // leaves the log or its full backup on disk.
                     File backupFile = corruptedBackupFile();
-                    if (corrupt) {
-                        log.error("Corrupt record in {} at offset {} (file length {}). Backing up to {} and " +
-                                        "keeping the {} valid leading record(s).",
-                                fileName, goodLength, fileLength, backupFile, records.size());
-                    } else {
-                        log.warn("Truncating torn tail of {}: keeping {} bytes ({} valid record(s)), dropping {} bytes. " +
-                                        "Pre-truncation copy preserved at {}.",
-                                fileName, goodLength, records.size(), fileLength - goodLength, backupFile);
-                    }
-                    FileUtil.copyFile(logFile, backupFile);
+                    log.warn("Preserving torn tail of {} at {} before truncating to {} bytes", fileName, backupFile, goodLength);
+                    AtomicFileWriter.write(backupFile.toPath(), out -> Files.copy(logFile.toPath(), out), candidate -> {
+                        if (Files.mismatch(logFile.toPath(), candidate) != -1) throw new IOException("Torn-tail backup differs from original log");
+                    });
                     truncateTo(logFile, goodLength);
                     knownGoodLength = goodLength;
                 } else {
@@ -246,6 +262,13 @@ public class EncryptedAppendLog {
                 }
             } catch (IOException e) {
                 throw new RuntimeException("Could not repair " + fileName, e);
+            }
+            if (legacyRecords && !tornTail) {
+                try {
+                    rewrite(records);
+                } catch (RuntimeException e) {
+                    log.warn("Could not upgrade {}; original authenticated history is preserved", fileName, e);
+                }
             }
             return records;
         }
@@ -266,18 +289,23 @@ public class EncryptedAppendLog {
                 long written = 0;
                 try (FileOutputStream fos = new FileOutputStream(tempFile);
                      DataOutputStream out = new DataOutputStream(new BufferedOutputStream(fos))) {
+                    long index = 0;
                     for (byte[] record : records) {
-                        byte[] ciphertext = Encryption.encryptPayloadWithHmac(record, secretKey);
+                        if (record.length > MAX_RECORD_BYTES - 88) throw new IllegalArgumentException("Append-log record too large");
+                        byte[] ciphertext = AuthenticatedEncryption.encrypt(record, secretKey, recordContext(index++));
                         writeFrame(out, ciphertext);
                         written += 4L + ciphertext.length;
                     }
                     out.flush();
                     fos.getFD().sync();
                 }
+                verifyRewrite(tempFile, records);
                 // Keep a rolling backup of the pre-rewrite log as a safety net against a faulty compaction.
                 if (logFile.exists()) FileUtil.rollingBackup(dir, fileName, numMaxBackupFiles);
                 FileUtil.atomicReplace(tempFile, logFile);
                 knownGoodLength = written;
+                knownGoodRecords = records.size();
+                AtomicFileWriter.syncDirectory(dir.toPath());
             } catch (IOException | CryptoException e) {
                 throw new RuntimeException("Could not rewrite " + fileName, e);
             } finally {
@@ -291,6 +319,21 @@ public class EncryptedAppendLog {
                     }
                 }
             }
+        }
+    }
+
+    private void verifyRewrite(File file, List<byte[]> records) throws IOException, CryptoException {
+        try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+            for (int index = 0; index < records.size(); index++) {
+                int length = in.readInt();
+                if (length <= 0 || length > MAX_RECORD_BYTES) throw new IOException("Invalid rewritten frame length");
+                byte[] encrypted = in.readNBytes(length);
+                if (encrypted.length != length || !java.security.MessageDigest.isEqual(records.get(index),
+                        AuthenticatedEncryption.decrypt(encrypted, secretKey, recordContext(index)))) {
+                    throw new IOException("Rewritten record differs from original");
+                }
+            }
+            if (in.read() != -1) throw new IOException("Trailing rewritten log data");
         }
     }
 

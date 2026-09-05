@@ -34,6 +34,10 @@ public class Version {
     // 3rd digit: Network-specific builds. This is reserved for forks and is never set by upstream.
     public static final String VERSION = "1.8.0";
 
+    // Reader-first rollout. Raising this requires a separately reviewed network deployment:
+    // minimum-trade-version filters do not upgrade in-flight trades, disputes or mailbox recipients.
+    public static final int NETWORK_ENCRYPTION_VERSION = 1;
+
     /**
      * Holds a list of the tagged resource files for optimizing the getData requests.
      * This must not contain each version but only those where we add new version-tagged resource files for

@@ -94,10 +94,16 @@ public final class KeyRing {
     public boolean unlockKeys(@Nullable String password, boolean generateKeys) throws IncorrectPasswordException {
         if (isUnlocked()) return true;
         if (keyStorage.allKeyFilesExist()) {
-            symmetricKey = keyStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, password);
-            signatureKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_SIGNATURE, symmetricKey);
-            encryptionKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_ENCRYPTION, symmetricKey);
-            if (signatureKeyPair != null && encryptionKeyPair != null) pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
+            try {
+                symmetricKey = keyStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, password);
+                signatureKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_SIGNATURE, symmetricKey);
+                encryptionKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_ENCRYPTION, symmetricKey);
+                keyStorage.migrate(this, password);
+                pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
+            } catch (IncorrectPasswordException | RuntimeException e) {
+                lockKeys();
+                throw e;
+            }
         } else if (generateKeys) {
             generateKeys(password);
         }
@@ -111,11 +117,17 @@ public final class KeyRing {
      */
     public void generateKeys(String password) {
         if (isUnlocked()) throw new IllegalStateException("Current keyring must be closed to generate new keys");
+        if (keyStorage.anyKeyFilesExist()) throw new IllegalStateException("Incomplete existing account keys; restore the missing files before opening the account");
         symmetricKey = Encryption.generateSecretKey(256);
         signatureKeyPair = Sig.generateKeyPair();
         encryptionKeyPair = Encryption.generateKeyPair();
         pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
-        keyStorage.saveKeyRing(this, null, password);
+        try {
+            keyStorage.saveKeyRing(this, null, password);
+        } catch (RuntimeException e) {
+            lockKeys();
+            throw e;
+        }
     }
 
     // Don't print keys for security reasons

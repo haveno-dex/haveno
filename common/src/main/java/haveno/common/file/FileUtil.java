@@ -30,7 +30,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -237,12 +236,8 @@ public class FileUtil {
      * exists with neither file in place ({@link #renameFile} deletes the target first on Windows).
      */
     public static void atomicReplace(File source, File target) throws IOException {
-        try {
-            java.nio.file.Files.move(source.toPath(), target.toPath(),
-                    StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException e) {
-            renameFile(source, target);
-        }
+        java.nio.file.Files.move(source.toPath(), target.toPath(),
+                StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
     public static void copyFile(File origin, File target) throws IOException {
