@@ -126,6 +126,9 @@ public class MakerRecreateReserveTx extends TradeTask {
                 trade.getSelf().setReserveTxHex(reserveTx.getFullHex());
                 trade.getSelf().setReserveTxKey(reserveTx.getKey());
                 trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(reserveTx));
+
+                // The offer still owns its original inputs if the replacement selected different ones.
+                model.getXmrWalletService().freezeOutputs(offer.getOfferPayload().getReserveTxKeyImages());
             }
 
             // save process state

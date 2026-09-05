@@ -54,8 +54,10 @@ public class SharedPresentation {
                 } else if (!openOfferManager.getObservableList().isEmpty()) {
                     new Popup().warning(Res.get("seed.restore.openOffers.warn"))
                             .actionButtonText(Res.get("shared.yes"))
-                            .onAction(() -> openOfferManager.removeAllOpenOffers(() ->
-                                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate)))
+                            .onAction(() -> openOfferManager.removeAllOpenOffers(() -> {
+                                if (openOfferManager.getOpenOffers().isEmpty()) doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);
+                                else new Popup().warning(Res.get("seed.restore.openOffers.remaining")).show();
+                            }))
                             .show();
                 } else {
                     doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);

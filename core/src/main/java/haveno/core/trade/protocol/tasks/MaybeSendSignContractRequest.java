@@ -138,6 +138,12 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     }
                 }
 
+                // Record ownership before reconciliation can inspect the freshly frozen inputs.
+                if (depositTx != null) trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
+
+                // Keep the offer's reserve frozen if deposit creation selected different inputs.
+                if (trade instanceof MakerTrade) trade.getXmrWalletService().freezeOutputs(trade.getOffer().getOfferPayload().getReserveTxKeyImages());
+
                 // reset protocol timeout
                 trade.addInitProgressStep();
             }
@@ -156,7 +162,6 @@ public class MaybeSendSignContractRequest extends TradeTask {
                 trade.getSelf().setDepositTxFee(depositTx.getFee());
                 trade.getSelf().setDepositTxHex(depositTx.getFullHex());
                 trade.getSelf().setDepositTxKey(depositTx.getKey());
-                trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
             }
 
             // maker signs deposit hash nonce to avoid challenge protocol
