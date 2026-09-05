@@ -36,6 +36,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class EncryptedAppendLogTest {
 
@@ -95,6 +97,34 @@ public class EncryptedAppendLogTest {
     }
 
     @Test
+    public void testFailedLegacyMigrationPreservesHistoryAndAllowsFurtherAppends() throws Exception {
+        File file = new File(dir, "Test.log");
+        try (var out = new java.io.DataOutputStream(new java.io.FileOutputStream(file))) {
+            for (String value : List.of("old-first", "old-second")) {
+                byte[] encrypted = Encryption.encryptPayloadWithHmac(rec(value), key);
+                out.writeInt(encrypted.length);
+                out.write(encrypted);
+            }
+        }
+        byte[] original = Files.readAllBytes(file.toPath());
+        File blockedBackup = new File(dir, "backup");
+        assertTrue(blockedBackup.createNewFile());
+        EncryptedAppendLog log = newLog();
+        assertRecords(List.of("old-first", "old-second"), log.readAllValidRecords());
+        assertArrayEquals(original, Files.readAllBytes(file.toPath()));
+        log.append(rec("new-third"));
+        log.append(rec("new-fourth"));
+        List<String> expected = List.of("old-first", "old-second", "new-third", "new-fourth");
+        assertRecords(expected, newLog().readAllValidRecords());
+        assertArrayEquals(original, java.util.Arrays.copyOf(Files.readAllBytes(file.toPath()), original.length));
+
+        assertTrue(blockedBackup.delete());
+        assertRecords(expected, newLog().readAllValidRecords());
+        byte[] upgraded = Files.readAllBytes(file.toPath());
+        assertTrue(haveno.common.crypto.AuthenticatedEncryption.isEnvelope(java.util.Arrays.copyOfRange(upgraded, 4, upgraded.length)));
+    }
+
+    @Test
     public void testAppendThenReadInOrder() throws Exception {
         EncryptedAppendLog log = newLog();
         List<String> expected = List.of("alpha", "bravo", "charlie", "delta");
@@ -135,19 +165,123 @@ public class EncryptedAppendLogTest {
             raf.setLength(goodLength + 5); // keep the 3 good frames + a few bytes of the 4th
         }
 
-        List<byte[]> read = newLog().readAllValidRecords();
+        EncryptedAppendLog reader = newLog();
+        List<byte[]> read = reader.readAllValidRecords();
         assertRecords(full, read);
         // The torn tail must have been repaired on disk.
         assertEquals(goodLength, logFile.length(), "log should be truncated back to last good frame");
         // The dropped bytes must have been preserved first (a mid-log length corruption is
         // indistinguishable from a torn tail, so nothing is ever destroyed without a copy).
         assertEquals(1, corruptedBackupCount(), "pre-truncation copy must be preserved");
-        // And a re-read returns the same clean prefix.
-        assertRecords(full, newLog().readAllValidRecords());
+        assertTrue(reader.getTruncatedBackupFile().exists());
+        File marker = new File(dir, "Test.log.recovery-needed");
+        assertEquals(reader.getTruncatedBackupFile().getName(), Files.readString(marker.toPath()));
+        // A clean prefix must not make an unresolved recovery disappear on the next startup.
+        EncryptedAppendLog restarted = newLog();
+        assertRecords(full, restarted.readAllValidRecords());
+        assertEquals(reader.getTruncatedBackupFile(), restarted.getTruncatedBackupFile());
+        restarted.rewrite(read);
+        EncryptedAppendLog rewritten = newLog();
+        assertRecords(full, rewritten.readAllValidRecords());
+        assertEquals(reader.getTruncatedBackupFile(), rewritten.getTruncatedBackupFile());
+        Files.delete(marker.toPath());
+        EncryptedAppendLog reconciled = newLog();
+        assertRecords(full, reconciled.readAllValidRecords());
+        assertNull(reconciled.getTruncatedBackupFile());
     }
 
     @Test
-    public void testMidLogCorruptionBacksUpAndRebuildsFromPrefix() throws Exception {
+    public void testFailedRecoveryBackupOrMarkerNeverTruncatesTheLog() throws Exception {
+        for (boolean blockMarker : new boolean[]{false, true}) {
+            File incident = new File(dir, blockMarker ? "marker" : "backup");
+            assertTrue(incident.mkdir());
+            EncryptedAppendLog log = new EncryptedAppendLog(incident, "Test.log", key, 3);
+            log.append(rec("keep"));
+            File file = new File(incident, "Test.log");
+            Files.write(file.toPath(), new byte[]{1}, java.nio.file.StandardOpenOption.APPEND);
+            byte[] damaged = Files.readAllBytes(file.toPath());
+            File blocked = new File(incident, blockMarker ? "Test.log.recovery-needed" : FileUtil.CORRUPTED_BACKUP_FOLDER);
+            if (blockMarker) assertTrue(blocked.mkdir());
+            else assertTrue(blocked.createNewFile());
+            EncryptedAppendLog reader = new EncryptedAppendLog(incident, "Test.log", key, 3);
+            assertThrows(RuntimeException.class, reader::readAllValidRecords);
+            assertArrayEquals(damaged, Files.readAllBytes(file.toPath()));
+            assertThrows(RuntimeException.class, () -> reader.append(rec("new")));
+            assertArrayEquals(damaged, Files.readAllBytes(file.toPath()));
+            File[] backups = new File(incident, FileUtil.CORRUPTED_BACKUP_FOLDER).listFiles();
+            assertTrue(backups == null || backups.length == 0, "blocked marker retries must not accumulate backups");
+            assertTrue(blocked.delete());
+            EncryptedAppendLog recovered = new EncryptedAppendLog(incident, "Test.log", key, 3);
+            assertRecords(List.of("keep"), recovered.readAllValidRecords());
+            assertTrue(recovered.getTruncatedBackupFile().exists());
+            EncryptedAppendLog restarted = new EncryptedAppendLog(incident, "Test.log", key, 3);
+            assertRecords(List.of("keep"), restarted.readAllValidRecords());
+            assertTrue(restarted.getTruncatedBackupFile().exists());
+        }
+    }
+
+    @Test
+    public void testRepeatedTruncationPreservesBothBackupsAndFirstMarker() throws Exception {
+        EncryptedAppendLog log = newLog();
+        log.append(rec("first"));
+        File file = new File(dir, "Test.log");
+        Files.write(file.toPath(), new byte[]{1}, java.nio.file.StandardOpenOption.APPEND);
+        byte[] firstIncident = Files.readAllBytes(file.toPath());
+        EncryptedAppendLog firstReader = newLog();
+        assertRecords(List.of("first"), firstReader.readAllValidRecords());
+        File firstBackup = firstReader.getTruncatedBackupFile();
+        File marker = new File(dir, "Test.log.recovery-needed");
+        assertEquals(firstBackup.getName(), Files.readString(marker.toPath()));
+
+        firstReader.append(rec("second"));
+        Files.write(file.toPath(), new byte[]{2}, java.nio.file.StandardOpenOption.APPEND);
+        byte[] secondIncident = Files.readAllBytes(file.toPath());
+        EncryptedAppendLog secondReader = newLog();
+        assertRecords(List.of("first", "second"), secondReader.readAllValidRecords());
+        assertEquals(firstBackup, secondReader.getTruncatedBackupFile());
+        assertEquals(firstBackup.getName(), Files.readString(marker.toPath()));
+        assertArrayEquals(firstIncident, Files.readAllBytes(firstBackup.toPath()));
+        File[] laterBackups = firstBackup.getParentFile().listFiles((parent, name) -> !name.equals(firstBackup.getName()));
+        assertEquals(1, laterBackups.length);
+        assertArrayEquals(secondIncident, Files.readAllBytes(laterBackups[0].toPath()));
+        EncryptedAppendLog restarted = newLog();
+        assertRecords(List.of("first", "second"), restarted.readAllValidRecords());
+        assertEquals(firstBackup, restarted.getTruncatedBackupFile());
+    }
+
+    @Test
+    public void testInvalidRecoveryReferenceKeepsHistoryIncomplete() throws Exception {
+        newLog().append(rec("keep"));
+        File marker = new File(dir, "Test.log.recovery-needed");
+        for (String reference : List.of("../outside", "", "0_Test.log", "x".repeat(1025))) {
+            Files.writeString(marker.toPath(), reference);
+            EncryptedAppendLog reader = newLog();
+            assertRecords(List.of("keep"), reader.readAllValidRecords());
+            assertEquals(marker, reader.getTruncatedBackupFile());
+        }
+    }
+
+    @Test
+    public void testCompleteReplayRejectsPartialOrInvalidFramesWithoutRepair() throws Exception {
+        EncryptedAppendLog log = newLog();
+        log.append(rec("first"));
+        log.append(rec("second"));
+        File file = new File(dir, "Test.log");
+        byte[] original = Files.readAllBytes(file.toPath());
+        byte[] invalidLength = original.clone();
+        invalidLength[frameOffset(original, 1)] |= (byte) 0x80;
+        for (byte[] damaged : List.of(invalidLength, java.util.Arrays.copyOf(original, original.length - 1))) {
+            Files.write(file.toPath(), damaged);
+            EncryptedAppendLog reader = newLog();
+            assertThrows(IllegalStateException.class, reader::readAllRecords);
+            assertArrayEquals(damaged, Files.readAllBytes(file.toPath()));
+            assertNull(reader.getTruncatedBackupFile());
+            assertEquals(0, corruptedBackupCount());
+        }
+    }
+
+    @Test
+    public void testMidLogAuthenticationFailurePreservesEntireLog() throws Exception {
         EncryptedAppendLog log = newLog();
         List<String> all = List.of("keep-1", "keep-2", "CORRUPT-ME", "after-1", "after-2");
         for (String s : all) log.append(rec(s));
@@ -162,13 +296,11 @@ public class EncryptedAppendLogTest {
         bytes[offset + 4 + len / 2] ^= 0x5a;
         Files.write(logFile.toPath(), bytes);
 
-        List<byte[]> read = newLog().readAllValidRecords();
-        // Only the valid leading prefix survives.
-        assertRecords(List.of("keep-1", "keep-2"), read);
-        // Original corrupt log preserved for recovery.
-        assertEquals(1, corruptedBackupCount(), "corrupt log must be backed up");
-        // Log rebuilt clean from the prefix; re-read is stable and equal.
-        assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> newLog().readAllValidRecords());
+        org.junit.jupiter.api.Assertions.assertArrayEquals(bytes, Files.readAllBytes(logFile.toPath()));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> newLog().append(rec("must not append")));
+        org.junit.jupiter.api.Assertions.assertArrayEquals(bytes, Files.readAllBytes(logFile.toPath()));
+
     }
 
     @Test
@@ -258,12 +390,13 @@ public class EncryptedAppendLogTest {
     }
 
     @Test
-    public void testWrongKeyTreatsRecordsAsCorrupt() throws Exception {
+    public void testWrongKeyPreservesRecords() throws Exception {
         newLog().append(rec("secret"));
         // A different key cannot decrypt -> first full frame fails HMAC -> treated as corruption.
         EncryptedAppendLog wrongKeyLog = new EncryptedAppendLog(dir, "Test.log", Encryption.generateSecretKey(256), 3);
-        List<byte[]> read = wrongKeyLog.readAllValidRecords();
-        assertTrue(read.isEmpty(), "no records should be recovered with the wrong key");
-        assertEquals(1, corruptedBackupCount(), "undecryptable log must be backed up");
+        byte[] before = Files.readAllBytes(new File(dir, "Test.log").toPath());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, wrongKeyLog::readAllValidRecords);
+        org.junit.jupiter.api.Assertions.assertArrayEquals(before, Files.readAllBytes(new File(dir, "Test.log").toPath()));
+        assertRecords(List.of("secret"), newLog().readAllValidRecords());
     }
 }

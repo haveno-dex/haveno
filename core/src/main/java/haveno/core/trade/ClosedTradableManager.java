@@ -62,9 +62,13 @@ public class ClosedTradableManager implements PersistedDataHost {
     private final CleanupMailboxMessagesService cleanupMailboxMessagesService;
 
     private final TradableList<Tradable> closedTradables = new TradableList<>();
-    // Orders log appends with the list mutations they mirror; the list monitor is only held for
+    // Orders log appends with list mutations and cross-store moves; the list monitor is only held for
     // the in-memory part so readers never wait on disk I/O. Lock order: persistLock -> list monitor.
     private final Object persistLock = new Object();
+
+    Object getPersistLock() {
+        return persistLock;
+    }
 
     @Inject
     public ClosedTradableManager(KeyRing keyRing,
@@ -96,13 +100,13 @@ public class ClosedTradableManager implements PersistedDataHost {
                 // appends never rewrite the log from memory, so the history is recovered on a
                 // next start with a larger heap.
                 log.error("Out of memory loading closed trades; continuing with an empty list. Increase the heap (-Xmx) to recover the history.", e);
-                corruptedStorageFileHandler.addFile(ClosedTradesStore.LOG_FILE_NAME);
+                corruptedStorageFileHandler.addPreservedFile(ClosedTradesStore.LOG_FILE_NAME);
                 loaded = List.of();
             } catch (Throwable t) {
                 // A decode fault must not hang startup. The log is left intact for recovery;
                 // proceed empty but surface the problem.
                 log.error("Could not load closed trades; continuing with an empty list. The log on disk is left intact for recovery.", t);
-                corruptedStorageFileHandler.addFile(ClosedTradesStore.LOG_FILE_NAME);
+                corruptedStorageFileHandler.addPreservedFile(ClosedTradesStore.LOG_FILE_NAME);
                 loaded = List.of();
             }
             List<Tradable> result = loaded;
@@ -119,16 +123,29 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public void onAllServicesInitialized() {
+        if (isHistoryIncomplete()) {
+            log.warn("Closed-trade history is incomplete; deferring mailbox and sensitive-data cleanup until recovery and restart.");
+            return;
+        }
         cleanupMailboxMessagesService.handleTrades(getClosedTrades());
         maybeClearSensitiveData();
+    }
+
+    public boolean isHistoryIncomplete() {
+        return store.isHistoryIncomplete();
     }
 
     public void add(Tradable tradable) {
         synchronized (persistLock) {
             List<Trade> cleared;
             synchronized (closedTradables.getList()) {
-                if (!closedTradables.add(tradable)) return;
-                cleared = clearSensitiveDataForEligibleTrades();
+                if (isHistoryIncomplete()) {
+                    closedTradables.getList().removeIf(existing -> existing != tradable && existing.getId().equals(tradable.getId()));
+                }
+                // A rapid re-close can still be in the list while its earlier reopen write completes.
+                boolean added = closedTradables.add(tradable);
+                if (!added && !(tradable instanceof Trade)) return;
+                cleared = added ? clearSensitiveDataForEligibleTrades() : List.of();
             }
             try {
                 // Serialize and write outside the list monitor; persistLock keeps the log ordered.
@@ -159,9 +176,12 @@ public class ClosedTradableManager implements PersistedDataHost {
      * Re-persists an already-closed trade whose mutable state changed after the close (payout, ack
      * state, cleared process data). No-op when the trade is not in the closed list, so callers can
      * invoke it unconditionally; pending trades keep their own whole-list flush.
+     * Returns whether the trade still belongs to the closed store, including queued write retries.
      */
-    public void persistClosedTrade(Trade trade) {
+    public boolean persistClosedTrade(Trade trade) {
         synchronized (persistLock) {
+            // A reopened trade remains here until its pending-store write succeeds.
+            if (trade.getReopenCount() > 0 && !trade.isCompleted()) return false;
             boolean contained;
             synchronized (closedTradables.getList()) {
                 contained = closedTradables.stream().anyMatch(t -> t == trade); // by instance, since a failed trade can share the id
@@ -174,6 +194,7 @@ public class ClosedTradableManager implements PersistedDataHost {
                 // serialization can fail on a concurrently mutated trade; never throw into callers
                 log.error("Could not persist closed trade {}", trade.getId(), t);
             }
+            return contained;
         }
     }
 
@@ -264,10 +285,12 @@ public class ClosedTradableManager implements PersistedDataHost {
     }
 
     public boolean canTradeHaveSensitiveDataCleared(String tradeId) {
+        if (isHistoryIncomplete()) return false;
         Instant safeDate = getSafeDateForSensitiveDataClearing();
         synchronized (closedTradables.getList()) {
             return closedTradables.stream()
                     .filter(e -> e.getId().equals(tradeId))
+                    .filter(e -> !(e instanceof Trade) || ((Trade) e).getReopenCount() == 0 || ((Trade) e).isCompleted())
                     .filter(e -> e.getDate().toInstant().isBefore(safeDate))
                     .count() > 0;
         }

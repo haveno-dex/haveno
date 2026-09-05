@@ -39,6 +39,7 @@ public class RemovedPayloadsService implements PersistedDataHost {
     @Inject
     public RemovedPayloadsService(PersistenceManager<RemovedPayloadsMap> persistenceManager) {
         this.persistenceManager = persistenceManager;
+        this.persistenceManager.allowCorruptionRecovery();
 
         this.persistenceManager.initialize(removedPayloadsMap, PersistenceManager.Source.PRIVATE_LOW_PRIO);
     }

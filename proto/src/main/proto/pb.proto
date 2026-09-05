@@ -1718,6 +1718,7 @@ message Trade {
     bool is_completed = 28;
     string challenge = 29;
     int64 payout_height = 30;
+    int64 reopen_count = 31;
 }
 
 message BuyerAsMakerTrade {
@@ -1829,6 +1830,7 @@ message EncryptedConnectionList {
     string current_connection_url = 3;
     int64 refresh_period = 4; // negative: no automated refresh is activated, zero: automated refresh with default period, positive: automated refresh with configured period (value)
     bool auto_switch = 5;
+    int32 encryption_version = 6; // 0: legacy password key, 1: authenticated account master key
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

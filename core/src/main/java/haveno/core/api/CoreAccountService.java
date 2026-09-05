@@ -107,7 +107,7 @@ public class CoreAccountService {
     }
 
     public boolean accountExists() {
-        return keyStorage.allKeyFilesExist(); // public and private key pair indicate the existence of the account
+        return keyStorage.anyKeyFilesExist(); // an incomplete key directory must never become a new account
     }
 
     public boolean isAccountOpen() {
@@ -174,9 +174,14 @@ public class CoreAccountService {
         lockAccount();
         try {
             if (!isAccountOpen()) throw new IllegalStateException("Cannot change password on unopened account");
+            if (!PersistenceManager.allServicesInitialized.get()) {
+                throw new IllegalStateException("Wait for account startup and encryption migration to finish before changing the password");
+            }
             if ("".equals(oldPassword)) oldPassword = null; // normalize to null
             if (!StringUtils.equals(this.password, oldPassword)) throw new IllegalStateException("Incorrect password");
             if (newPassword != null && newPassword.length() < 8) throw new IllegalStateException("Password must be at least 8 characters");
+
+            KeyStorage.PreparedPasswordChange prepared = keyStorage.preparePasswordChange(keyRing, oldPassword, newPassword);
 
             // change wallet passwords before committing new account password
             // TODO: recover if wallet password change fails
@@ -185,10 +190,31 @@ public class CoreAccountService {
             }
 
             // commit new account password
-            keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
-            this.password = newPassword;
+            try {
+                prepared.commit();
+                this.password = newPassword;
+            } catch (RuntimeException e) {
+                // The atomic live-key replacement may have committed before a backup/cleanup failed.
+                // Wallets already use the new password, so keep memory consistent with the live wrapper.
+                try {
+                    if (java.security.MessageDigest.isEqual(keyRing.getSymmetricKey().getEncoded(),
+                            keyStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, newPassword).getEncoded())) {
+                        this.password = newPassword;
+                        throw new PasswordChangeCommittedException(e);
+                    }
+                } catch (IncorrectPasswordException ignored) {
+                    // The live wrapper did not commit; preserve the original password in memory.
+                }
+                throw e;
+            }
         } finally {
             accountLock.unlock();
+        }
+    }
+
+    public static final class PasswordChangeCommittedException extends IllegalStateException {
+        private PasswordChangeCommittedException(Throwable cause) {
+            super("Password changed, but account key backup or cleanup failed", cause);
         }
     }
 

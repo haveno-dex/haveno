@@ -52,7 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * KeyStorage uses password protection to save a symmetric key in PKCS#12 format.
+ * KeyStorage wraps the account master key with Argon2id and authenticated encryption.
  * The symmetric key is used to encrypt and decrypt other keys in the key ring and other types of persistence.
  */
 @Singleton
@@ -61,7 +61,7 @@ public class KeyStorage {
     private static final Logger log = LoggerFactory.getLogger(KeyStorage.class);
 
     public enum KeyEntry {
-        SYM_ENCRYPTION("sym.p12", Encryption.SYM_KEY_ALGO, "sym"), // symmetric encryption for persistence
+        SYM_ENCRYPTION("sym.key", Encryption.SYM_KEY_ALGO, "sym"), // symmetric encryption for persistence
         MSG_SIGNATURE("sig.key", Sig.KEY_ALGO, "sig"),
         MSG_ENCRYPTION("enc.key", Encryption.ASYM_KEY_ALGO, "enc");
 
@@ -97,6 +97,10 @@ public class KeyStorage {
         }
     }
 
+    private static final String LEGACY_KEY_FILE = "sym.p12";
+    // Contains only a dummy random key under a discarded random password, never an account key.
+    // Old builds must see a complete, locked keyring instead of generating a replacement identity.
+    private static final byte[] MIGRATION_GUARD = loadMigrationGuard();
     private final File storageDir;
 
     @Inject
@@ -105,24 +109,54 @@ public class KeyStorage {
     }
 
     public boolean allKeyFilesExist() {
-        return fileExists(KeyEntry.MSG_SIGNATURE) && fileExists(KeyEntry.MSG_ENCRYPTION) && fileExists(KeyEntry.SYM_ENCRYPTION);
+        return fileExists(KeyEntry.MSG_SIGNATURE) && fileExists(KeyEntry.MSG_ENCRYPTION) && (fileExists(KeyEntry.SYM_ENCRYPTION) || new File(storageDir, LEGACY_KEY_FILE).exists());
     }
 
     private boolean fileExists(KeyEntry keyEntry) {
         return new File(storageDir + "/" + keyEntry.getFileName()).exists();
     }
 
+    public boolean anyKeyFilesExist() {
+        return fileExists(KeyEntry.MSG_SIGNATURE) || fileExists(KeyEntry.MSG_ENCRYPTION)
+                || fileExists(KeyEntry.SYM_ENCRYPTION) || new File(storageDir, LEGACY_KEY_FILE).exists()
+                || new File(storageDir, "sym.key.bak").exists() || new File(storageDir, "sig.key.bak").exists()
+                || new File(storageDir, "enc.key.bak").exists() || new File(storageDir, "backup").exists()
+                || hasKeyTemps();
+    }
+
+    private static byte[] loadMigrationGuard() {
+        try (java.io.InputStream in = KeyStorage.class.getResourceAsStream("migration-guard.p12")) {
+            if (in == null) throw new IllegalStateException("Missing key migration guard resource");
+            return in.readAllBytes();
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot read key migration guard resource", e);
+        }
+    }
+
+    private boolean hasKeyTemps() {
+        if (!storageDir.exists()) return false;
+        String[] names = storageDir.list((dir, name) -> name.endsWith(".tmp")
+                && (name.startsWith("sym.") || name.startsWith("sig.key.") || name.startsWith("enc.key.")));
+        if (names == null) throw new IllegalStateException("Cannot list key directory");
+        return names.length != 0;
+    }
+
     private byte[] loadKeyBytes(KeyEntry keyEntry, SecretKey secretKey) {
-        File keyFile = new File(storageDir + "/" + keyEntry.getFileName());
-        try (FileInputStream fis = new FileInputStream(keyFile.getPath())) {
-            byte[] encodedKey = new byte[(int) keyFile.length()];
-            //noinspection ResultOfMethodCallIgnored
-            fis.read(encodedKey);
-            encodedKey = Encryption.decryptPayloadWithHmac(encodedKey, secretKey);
-            return encodedKey;
+        try {
+            byte[] encoded = readKeyFile(new File(storageDir, keyEntry.getFileName()));
+            return AuthenticatedEncryption.isEnvelope(encoded)
+                    ? AuthenticatedEncryption.decrypt(encoded, secretKey, "identity/" + keyEntry.getFileName())
+                    : Encryption.decryptPayloadWithHmac(encoded, secretKey);
         } catch (IOException | CryptoException e) {
-            log.error("Could not load key " + keyEntry.toString(), e.getMessage());
-            throw new RuntimeException("Could not load key " + keyEntry.toString(), e);
+            throw new IllegalStateException("Could not load " + keyEntry.getFileName(), e);
+        }
+    }
+
+    private static byte[] readKeyFile(File file) throws IOException {
+        try (FileInputStream in = new FileInputStream(file)) {
+            byte[] bytes = in.readNBytes(16 * 1024 + 1);
+            if (bytes.length > 16 * 1024) throw new IOException("Oversized key file " + file.getName());
+            return bytes;
         }
     }
 
@@ -133,7 +167,6 @@ public class KeyStorage {
      * @param secretKey  The symmetric key that protects the key entry file
      */
     public KeyPair loadKeyPair(KeyEntry keyEntry, SecretKey secretKey) {
-        FileUtil.rollingBackup(storageDir, keyEntry.getFileName(), 20);
         try {
             KeyFactory keyFactory = KeyFactory.getInstance(keyEntry.getAlgorithm());
             byte[] encodedPrivateKey = loadKeyBytes(keyEntry, secretKey);
@@ -170,16 +203,34 @@ public class KeyStorage {
      * @param password Optional password that protects the key
      */
     public SecretKey loadSecretKey(KeyEntry keyEntry, String password) throws IncorrectPasswordException {
-        FileUtil.rollingBackup(storageDir, keyEntry.getFileName(), 20);
+        if (keyEntry != KeyEntry.SYM_ENCRYPTION) throw new IllegalArgumentException("Expected account key entry");
+        File current = new File(storageDir, keyEntry.getFileName());
+        if (current.exists()) {
+            try {
+                return PasswordKey.unwrap(readKeyFile(current), password);
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not load account key", e);
+            }
+        }
+        try {
+            if (java.util.Arrays.equals(readKeyFile(new File(storageDir, LEGACY_KEY_FILE)), MIGRATION_GUARD)) {
+                throw new IllegalStateException("Migrated account is missing sym.key; restore its recovery copy");
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not load legacy account key", e);
+        }
         char[] passwordChars = password == null ? new char[0] : password.toCharArray();
         try {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
 
-            try (FileInputStream fileInputStream = new FileInputStream(storageDir + "/" + keyEntry.getFileName())) {
+            try (FileInputStream fileInputStream = new FileInputStream(new File(storageDir, LEGACY_KEY_FILE))) {
                 keyStore.load(fileInputStream, passwordChars);
             }
 
             Key key = keyStore.getKey(keyEntry.getAlias(), passwordChars);
+            if (!(key instanceof SecretKey) || key.getEncoded().length != 32) {
+                throw new IllegalStateException("Invalid legacy account key");
+            }
             return (SecretKey) key;
         } catch (UnrecoverableKeyException e) { // null password when password is required
             throw new IncorrectPasswordException("Incorrect password");
@@ -193,93 +244,180 @@ public class KeyStorage {
         } catch (Exception e) {
             log.error("Could not load key " + keyEntry.toString(), e);
             throw new RuntimeException("Could not load key " + keyEntry.toString(), e);
+        } finally {
+            java.util.Arrays.fill(passwordChars, '\0');
         }
     }
 
-    /**
-     * Saves the key ring to the key storage directory.
-     *
-     * @param keyRing  The key ring
-     * @param password Optional password
-     */
+    /** Migrates only after both identity keys have been decoded and validated by KeyRing. */
+    public void migrateKeyRing(KeyRing keyRing, String password) {
+        try {
+            if (!fileExists(KeyEntry.SYM_ENCRYPTION)) saveMasterKey(keyRing.getSymmetricKey(), password);
+            for (KeyEntry entry : new KeyEntry[]{KeyEntry.MSG_SIGNATURE, KeyEntry.MSG_ENCRYPTION}) {
+                if (!AuthenticatedEncryption.isEnvelope(readKeyFile(new File(storageDir, entry.getFileName())))) {
+                    PrivateKey key = entry == KeyEntry.MSG_SIGNATURE
+                            ? keyRing.getSignatureKeyPair().getPrivate() : keyRing.getEncryptionKeyPair().getPrivate();
+                    savePrivateKey(key, entry, keyRing.getSymmetricKey());
+                }
+            }
+            // A fully migrated account can unlock without writing. Repair missing recovery copies
+            // when possible; deletion of a real legacy password wrapper still requires a good copy.
+            File legacyFile = new File(storageDir, LEGACY_KEY_FILE);
+            boolean retiringLegacy = !legacyFile.exists() || !java.util.Arrays.equals(readKeyFile(legacyFile), MIGRATION_GUARD);
+            for (KeyEntry entry : KeyEntry.values()) {
+                refreshRecoveryCopy(entry.getFileName(), retiringLegacy);
+            }
+            retireLegacyWrappers();
+        } catch (IOException | CryptoException e) {
+            throw new IllegalStateException("Could not migrate account keys", e);
+        }
+    }
+
+    /** Password changes rewrap the same master; they never replace identity keys. */
     public void saveKeyRing(KeyRing keyRing, String oldPassword, String password) {
-        SecretKey symmetric = keyRing.getSymmetricKey();
-
-        // password protect the symmetric key
-        saveKey(symmetric, KeyEntry.SYM_ENCRYPTION.getAlias(), KeyEntry.SYM_ENCRYPTION.getFileName(), oldPassword, password);
-
-        // use symmetric encryption to encrypt the key pairs
-        saveKey(keyRing.getSignatureKeyPair().getPrivate(), KeyEntry.MSG_SIGNATURE.getFileName(), symmetric);
-        saveKey(keyRing.getEncryptionKeyPair().getPrivate(), KeyEntry.MSG_ENCRYPTION.getFileName(), symmetric);
-    }
-
-    /**
-     * Saves private key in PKCS#8 to a file and encrypts using the symmetric key.
-     *
-     * @param key       The key pair
-     * @param fileName  File name to save
-     * @param secretKey Secret key to encrypt the key pair
-     */
-    private void saveKey(PrivateKey key, String fileName, SecretKey secretKey) {
-        if (!storageDir.exists())
-            //noinspection ResultOfMethodCallIgnored
-            storageDir.mkdirs();
-
-        PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(key.getEncoded());
-        byte[] keyBytes = pkcs8EncodedKeySpec.getEncoded();
-        try (FileOutputStream fos = new FileOutputStream(storageDir + "/" + fileName)) {
-            keyBytes = Encryption.encryptPayloadWithHmac(keyBytes, secretKey);
-            fos.write(keyBytes);
-        } catch (Exception e) {
-            log.error("Could not save key " + fileName, e);
-            throw new RuntimeException("Could not save key " + fileName, e);
+        validatePassword(password);
+        try {
+            if (fileExists(KeyEntry.SYM_ENCRYPTION) || new File(storageDir, LEGACY_KEY_FILE).exists()) {
+                SecretKey existing = loadSecretKey(KeyEntry.SYM_ENCRYPTION, oldPassword);
+                if (!java.security.MessageDigest.isEqual(existing.getEncoded(), keyRing.getSymmetricKey().getEncoded())) {
+                    throw new IllegalStateException("Account key does not match stored key");
+                }
+            }
+            if (!fileExists(KeyEntry.MSG_SIGNATURE)) {
+                savePrivateKey(keyRing.getSignatureKeyPair().getPrivate(), KeyEntry.MSG_SIGNATURE, keyRing.getSymmetricKey());
+            }
+            if (!fileExists(KeyEntry.MSG_ENCRYPTION)) {
+                savePrivateKey(keyRing.getEncryptionKeyPair().getPrivate(), KeyEntry.MSG_ENCRYPTION, keyRing.getSymmetricKey());
+            }
+            saveMasterKey(keyRing.getSymmetricKey(), password);
+            retireLegacyWrappers();
+        } catch (IOException | CryptoException | IncorrectPasswordException e) {
+            throw new IllegalStateException("Could not save account keys", e);
         }
     }
 
-    /**
-     * Saves a SecretKey to a PKCS12 file.
-     *
-     * @param key         The symmetric key
-     * @param alias       Alias of the key entry in the key store
-     * @param fileName    Filename of the key store
-     * @param oldPassword Optional password to decrypt existing key store
-     * @param password    Optional password to encrypt the key store
-     */
-    private void saveKey(SecretKey key, String alias, String fileName, String oldPassword, String password) {
-        if (!storageDir.exists())
-            //noinspection ResultOfMethodCallIgnored
-            storageDir.mkdirs();
-
-        // password must be ascii
+    public static void validatePassword(String password) {
+        // Keep existing password compatibility with the Monero wallet and existing account UI.
         if (password != null && !password.matches("\\p{ASCII}*")) {
             throw new IllegalArgumentException("Password must be ASCII.");
         }
+    }
 
-        var oldPasswordChars = oldPassword == null ? new char[0] : oldPassword.toCharArray();
-        var passwordChars = password == null ? new char[0] : password.toCharArray();
+    public PreparedPasswordChange preparePasswordChange(KeyRing keyRing, String oldPassword, String newPassword) {
+        validatePassword(newPassword);
         try {
-            var path = storageDir + "/" + fileName;
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-
-            // load from existing file or initialize new
-            if (Files.exists(Path.of(path))) {
-                try (FileInputStream fileInputStream = new FileInputStream(path)) {
-                    keyStore.load(fileInputStream, oldPasswordChars);
-                }
+            SecretKey existing = loadSecretKey(KeyEntry.SYM_ENCRYPTION, oldPassword);
+            if (!java.security.MessageDigest.isEqual(existing.getEncoded(), keyRing.getSymmetricKey().getEncoded())) {
+                throw new IllegalStateException("Account key does not match stored key");
             }
-            else {
-                keyStore.load(null, null);
-            }
-
-            // store in the keystore
-            keyStore.setKeyEntry(alias, key, passwordChars, null);
-
-            try (FileOutputStream fileOutputStream = new FileOutputStream(path)) {
-                // save the keystore
-                keyStore.store(fileOutputStream, passwordChars);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Could not save key " + alias, e);
+            return new PreparedPasswordChange(wrapAndVerify(existing, newPassword));
+        } catch (IOException | CryptoException | IncorrectPasswordException e) {
+            throw new IllegalStateException("Could not prepare account password change", e);
         }
+    }
+
+    /** Completes expensive KDF work before external password listeners can change wallets. */
+    public final class PreparedPasswordChange {
+        private final byte[] wrapped;
+
+        private PreparedPasswordChange(byte[] wrapped) {
+            this.wrapped = wrapped;
+        }
+
+        public void commit() {
+            try {
+                writeMasterKey(wrapped);
+                retireLegacyWrappers();
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not commit account password change", e);
+            }
+        }
+    }
+
+    private void saveMasterKey(SecretKey key, String password) throws IOException, CryptoException {
+        writeMasterKey(wrapAndVerify(key, password));
+    }
+
+    private byte[] wrapAndVerify(SecretKey key, String password) throws IOException, CryptoException {
+        byte[] wrapped = PasswordKey.wrap(key, password);
+        try {
+            if (!java.security.MessageDigest.isEqual(key.getEncoded(), PasswordKey.unwrap(wrapped, password).getEncoded())) {
+                throw new IOException("Account key read-back mismatch");
+            }
+        } catch (IncorrectPasswordException e) {
+            throw new IOException("Account key read-back failed", e);
+        }
+        return wrapped;
+    }
+
+    private void writeMasterKey(byte[] wrapped) throws IOException {
+        writeKeyFile(KeyEntry.SYM_ENCRYPTION.getFileName(), wrapped);
+        writeKeyFile("sym.key.bak", wrapped);
+    }
+
+    private void savePrivateKey(PrivateKey key, KeyEntry entry, SecretKey master) throws IOException, CryptoException {
+        byte[] encoded = key.getEncoded();
+        try {
+            byte[] encrypted = AuthenticatedEncryption.encrypt(encoded, master, "identity/" + entry.getFileName());
+            byte[] verified = AuthenticatedEncryption.decrypt(encrypted, master, "identity/" + entry.getFileName());
+            try {
+                if (!java.security.MessageDigest.isEqual(encoded, verified)) throw new IOException("Identity read-back mismatch");
+            } finally {
+                java.util.Arrays.fill(verified, (byte) 0);
+            }
+            writeKeyFile(entry.getFileName(), encrypted);
+            writeKeyFile(entry.getFileName() + ".bak", encrypted);
+        } finally {
+            java.util.Arrays.fill(encoded, (byte) 0);
+        }
+    }
+
+    private void writeKeyFile(String name, byte[] bytes) throws IOException {
+        Path temp = Files.createTempFile(storageDir.toPath(), name + ".", ".tmp");
+        try {
+            try (FileOutputStream out = new FileOutputStream(temp.toFile())) {
+                out.write(bytes);
+                out.getFD().sync();
+            }
+            if (!java.security.MessageDigest.isEqual(bytes, readKeyFile(temp.toFile()))) {
+                throw new IOException("Key file read-back mismatch");
+            }
+            // Refuse filesystems without atomic replacement: never delete a live key to rename a temp.
+            Files.move(temp, new File(storageDir, name).toPath(),
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            FileUtil.syncDirectory(storageDir);
+        } finally {
+            Files.deleteIfExists(temp);
+        }
+    }
+
+    private void refreshRecoveryCopy(String name, boolean required) throws IOException {
+        try {
+            byte[] current = readKeyFile(new File(storageDir, name));
+            File backup = new File(storageDir, name + ".bak");
+            if (backup.isFile() && java.util.Arrays.equals(current, readKeyFile(backup))) return;
+            writeKeyFile(name + ".bak", current);
+        } catch (IOException e) {
+            if (required) throw e;
+            log.warn("Could not refresh recovery copy of {}; live keys remain usable", name, e);
+        }
+    }
+
+    private void retireLegacyWrappers() throws IOException {
+        File legacy = new File(storageDir, LEGACY_KEY_FILE);
+        if (!legacy.isFile() || !java.util.Arrays.equals(readKeyFile(legacy), MIGRATION_GUARD)) {
+            writeKeyFile(LEGACY_KEY_FILE, MIGRATION_GUARD);
+        }
+        for (File backup : FileUtil.getBackupFiles(storageDir, LEGACY_KEY_FILE)) {
+            if (backup.isFile() && backup.getName().matches("[0-9]+_sym\\.p12")
+                    && !java.util.Arrays.equals(readKeyFile(backup), MIGRATION_GUARD)) {
+                Files.delete(backup.toPath());
+                FileUtil.syncDirectory(backup.getParentFile());
+            }
+        }
+        File[] temps = storageDir.listFiles((dir, name) -> name.matches("(?:sym\\.(?:key(?:\\.bak)?|p12)|sig\\.key(?:\\.bak)?|enc\\.key(?:\\.bak)?)\\.[0-9]+\\.tmp"));
+        if (temps == null) throw new IOException("Cannot list key directory");
+        for (File temp : temps) Files.delete(temp.toPath());
+        if (temps.length > 0) FileUtil.syncDirectory(storageDir);
     }
 }
