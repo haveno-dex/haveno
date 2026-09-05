@@ -575,8 +575,13 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return offerPayload.getVersionNr();
     }
 
+    // Effective duration; the signed payload's raw period can be stale after legacy payment-method edits.
     public long getMaxTradePeriod() {
-        return offerPayload.getMaxTradePeriod();
+        if (PaymentMethod.ZELLE_ID.equals(getPaymentMethodId()) &&
+                (getExtraDataMap() == null || !"1".equals(getExtraDataMap().get(OfferPayload.ZELLE_ONE_DAY_TRADE_PERIOD)))) {
+            return PaymentMethod.ZELLE_LEGACY_MAX_TRADE_PERIOD;
+        }
+        return getPaymentMethod().getMaxTradePeriod();
     }
 
     public NodeAddress getOwnerNodeAddress() {

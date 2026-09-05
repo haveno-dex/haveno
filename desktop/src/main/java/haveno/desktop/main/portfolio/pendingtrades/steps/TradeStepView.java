@@ -756,7 +756,7 @@ public abstract class TradeStepView extends VBox {
         deadlineDate.setText(started ? Res.get(expired ? "portfolio.pending.tradeView.endedDate" :
                 "portfolio.pending.tradeView.deadlineDate", model.getDateForOpenDispute()) :
                 Res.get("portfolio.pending.remainingTimeDetail.startsAfter", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
-        String period = FormattingUtils.formatDurationAsWords(trade.getOffer().getPaymentMethod().getMaxTradePeriod(), false, false);
+        String period = FormattingUtils.formatDurationAsWords(trade.getMaxTradePeriod(), false, false);
         duration.setText(Res.get(expired ? "portfolio.pending.tradeView.periodWas" : started ?
                 "portfolio.pending.tradeView.periodRemaining" : "portfolio.pending.tradeView.maximumPeriod", period));
         timeLeftProgressBar.setProgress(expired ? 1 : started ? Math.min(1, Math.max(0, 1 - model.getRemainingTradeDurationAsPercentage())) : 0);

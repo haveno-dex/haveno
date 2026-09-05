@@ -104,6 +104,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     public static final String PAYPAL_EXTRA_INFO = "payPalExtraInfo";
     public static final String CASH_AT_ATM_EXTRA_INFO = "cashAtAtmExtraInfo";
     public static final String BLIK_EXTRA_INFO = "blikExtraInfo";
+    // Legacy Zelle payload periods can be stale after payment-method edits, so mark new one-day offers explicitly.
+    public static final String ZELLE_ONE_DAY_TRADE_PERIOD = "zelleOneDayTradePeriod";
 
     // Comma separated list of ordinal of a haveno.common.app.Capability. E.g. ordinal of
     // Capability.SIGNED_ACCOUNT_AGE_WITNESS is 11 and Capability.MEDIATION is 12 so if we want to signal that maker

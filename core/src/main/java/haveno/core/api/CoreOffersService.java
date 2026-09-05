@@ -70,7 +70,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -414,6 +416,16 @@ public class CoreOffersService {
             throw new IllegalArgumentException("Cannot edit offer with different maker fee, original maker fee: " + openOffer.getOffer().getOfferPayload().getMakerFeePct() + ", new maker fee: " + newMakerFee);
         }
 
+        // Refresh only the Zelle period marker, preserving the original offer's other metadata.
+        Map<String, String> extraDataMap = offerPayload.getExtraDataMap() == null ?
+                new HashMap<>() : new HashMap<>(offerPayload.getExtraDataMap());
+        if (newOfferPayload.getExtraDataMap() != null &&
+                "1".equals(newOfferPayload.getExtraDataMap().get(OfferPayload.ZELLE_ONE_DAY_TRADE_PERIOD))) {
+            extraDataMap.put(OfferPayload.ZELLE_ONE_DAY_TRADE_PERIOD, "1");
+        } else {
+            extraDataMap.remove(OfferPayload.ZELLE_ONE_DAY_TRADE_PERIOD);
+        }
+
         final OfferPayload editedPayload = new OfferPayload(offerPayload.getId(),
                 offerPayload.getDate(),
                 offerPayload.getOwnerNodeAddress(),
@@ -440,14 +452,14 @@ public class CoreOffersService {
                 Version.VERSION, // refresh version so outdated offers are re-signed
                 offerPayload.getBlockHeightAtOfferCreation(),
                 offerPayload.getMaxTradeLimit(),
-                offerPayload.getMaxTradePeriod(),
+                newOfferPayload.getMaxTradePeriod(),
                 offerPayload.isUseAutoClose(),
                 offerPayload.isUseReOpenAfterAutoClose(),
                 offerPayload.getLowerClosePrice(),
                 offerPayload.getUpperClosePrice(),
                 offerPayload.isPrivateOffer(),
                 offerPayload.getChallengeHash(),
-                offerPayload.getExtraDataMap(),
+                extraDataMap.isEmpty() ? null : extraDataMap,
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorSigner(),
                 offerPayload.getArbitratorSignature(),
