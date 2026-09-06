@@ -1080,6 +1080,15 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         removeFailedTrade(trade);
         if (!trade.isMaker()) xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
+        ThreadUtils.submitToPool(() -> {
+            if (isShutDownStarted) return;
+            try {
+                // Release inputs no longer owned by an open offer or trade.
+                xmrWalletService.fixReservedOutputs();
+            } catch (Exception e) {
+                log.warn("Error updating reserved outputs after removing trade {}", trade.getId(), e);
+            }
+        });
     }
 
     public void removeTrade(Trade trade) {
