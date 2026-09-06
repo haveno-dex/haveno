@@ -101,7 +101,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected AppModule module;
     protected Config config;
     @Getter
-    protected boolean isShutDownStarted;
+    protected volatile boolean isShutDownStarted;
     private final Object shutdownLock = new Object();
     private final List<ResultHandler> shutdownResultHandlers = new ArrayList<>();
     private boolean isShutdownComplete;
@@ -197,6 +197,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         // Attempt to login, subclasses should implement interactive login and or rpc login.
         CompletableFuture<Boolean> loginFuture = loginAccount();
         loginFuture.whenComplete((result, throwable) -> {
+            if (isShutDownStarted || keepRunningResult.get() == EXIT_RESTART) return;
             if (throwable != null) {
                 log.error("Error logging in to account", throwable);
                 shutDownNoPersist(null, false);
@@ -217,7 +218,8 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
     // a restore or delete during login requests a restart, so the application must not start against the changed data dir
     private void startApplicationUnlessRestarting() {
-        if (keepRunningResult.get() == EXIT_RESTART) log.info("Restart requested during login, not starting the application");
+        if (isShutDownStarted) log.info("Shutdown requested during startup, not starting the application");
+        else if (keepRunningResult.get() == EXIT_RESTART) log.info("Restart requested during login, not starting the application");
         else startApplication();
     }
 
