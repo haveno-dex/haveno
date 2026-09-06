@@ -1083,7 +1083,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         ThreadUtils.submitToPool(() -> {
             if (isShutDownStarted) return;
             try {
-                // Release inputs no longer owned by an open offer or trade.
+                // release inputs no longer owned by an open offer or trade
                 xmrWalletService.fixReservedOutputs();
             } catch (Exception e) {
                 log.warn("Error updating reserved outputs after removing trade {}", trade.getId(), e);

@@ -1,6 +1,7 @@
 # Haveno working guidance
 
 - Keep behavioral changes scoped to the request and consistent with the surrounding architecture, naming, formatting, and established patterns. Reuse existing utilities; introduce dependencies or abstractions only when there is a concrete need.
+- Before adding or editing comments, inspect nearby comments of the same kind and match their capitalization, punctuation, and layout. Check this explicitly in the final diff review; for example, use lowercase without trailing periods where surrounding line comments do so.
 - Use explicit Java imports, including static test assertion imports; Checkstyle forbids wildcard imports. For Java changes, run the affected modules' `checkstyleMain` and/or `checkstyleTest` tasks as applicable, alongside relevant compilation or tests.
 - Use repository evidence to resolve routine implementation choices. Do not invent product requirements or silently change behavior. State material assumptions, and ask only when missing information materially affects correctness, compatibility, data safety, or user-visible behavior. Continue independent work while clarification is pending.
 - If a request conflicts with existing architecture or correctness, explain the concrete conflict and recommend the smallest suitable resolution. Distinguish demonstrated defects from stylistic preferences; a hypothetical reviewer objection is not a reason to abandon the task.
