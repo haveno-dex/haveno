@@ -76,7 +76,7 @@ public class ProcessInitTradeRequest extends TradeTask {
                 try {
                     long tradePrice = request.getTradePrice();
                     offer.verifyTradePrice(tradePrice, true);
-                    trade.setPrice(tradePrice);
+                    processModel.getTradeManager().setTradePrice(trade, tradePrice);
                 } catch (TradePriceOutOfToleranceException e) {
                     failed(e.getMessage());
                     return;
