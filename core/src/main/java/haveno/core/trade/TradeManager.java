@@ -773,17 +773,27 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             trade.getSelf().setReserveTxHex(openOffer.getReserveTxHex());
             trade.getSelf().setReserveTxKey(openOffer.getReserveTxKey());
             trade.getSelf().setReserveTxKeyImages(offer.getOfferPayload().getReserveTxKeyImages());
-            try {
-                addMakerTrade(trade);
-            } catch (IllegalArgumentException e) {
-                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
+
+            // claim the offer atomically with cancellation
+            if (!openOfferManager.reserveOpenOffer(openOffer)) {
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " is already taken or unavailable", null);
                 return;
             }
 
-            // reserve and initialize only after the payment amount has been claimed
-            openOfferManager.reserveOpenOffer(openOffer);
-            shutDownPriorFailedTrades(request.getOfferId());
+            boolean tradeAdded = false;
             try {
+                addMakerTrade(trade);
+                tradeAdded = true;
+            } catch (IllegalArgumentException e) {
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
+                return;
+            } finally {
+                if (!tradeAdded) openOfferManager.unreserveOpenOffer(openOffer);
+            }
+
+            // initialize only after the offer and payment amount have been claimed
+            try {
+                shutDownPriorFailedTrades(request.getOfferId());
                 initTradeAndProtocol(trade, createTradeProtocol(trade));
             } catch (Exception e) {
                 log.warn("Maker error initializing trade protocol, tradeId={}", trade.getId(), e);
