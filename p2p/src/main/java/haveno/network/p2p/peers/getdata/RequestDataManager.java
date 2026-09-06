@@ -611,6 +611,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
             if (handlerMap.containsKey(nodeAddress)) {
                 handlerMap.get(nodeAddress).cancel();
                 handlerMap.remove(nodeAddress);
+                // a canceled handler reports no fault, so retry unless other requests are still open
+                if (!stopped && handlerMap.isEmpty()) restart();
             }
         } else {
             log.trace("closeRequestDataHandler: nodeAddress not set in connection {}", connection);
