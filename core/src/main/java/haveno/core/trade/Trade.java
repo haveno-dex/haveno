@@ -2760,10 +2760,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     @Nullable
     public Volume getVolume() {
+        return getVolume(price);
+    }
+
+    @Nullable
+    public Volume getVolume(long price) {
         try {
-            if (getAmount() != null && getPrice() != null) {
-                Volume volumeByAmount = getPrice().getVolumeByAmount(getAmount());
-                if (offer != null) volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, offer.getPaymentMethod().getId());
+            if (getAmount() != null && offer != null) {
+                Volume volumeByAmount = getPrice(price).getVolumeByAmount(getAmount());
+                volumeByAmount = VolumeUtil.getAdjustedVolume(volumeByAmount, offer.getPaymentMethod().getId());
                 return volumeByAmount;
             } else {
                 return null;
@@ -3091,6 +3096,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
      * Returns the price as XMR/QUOTE.
      */
     public Price getPrice() {
+        return getPrice(price);
+    }
+
+    private Price getPrice(long price) {
         boolean isInverted = getOffer().isInverted(); // return uninverted price
         return Price.valueOf(offer.getCounterCurrencyCode(), isInverted ? PriceUtil.invertLongPrice(price, offer.getCounterCurrencyCode()) : price);
     }
