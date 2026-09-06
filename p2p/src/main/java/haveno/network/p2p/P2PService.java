@@ -104,6 +104,7 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     private final Subscription networkReadySubscription;
     private boolean isBootstrapped;
+    private boolean initialDataReceived;
     private final KeepAliveManager keepAliveManager;
     private final Socks5ProxyProvider socks5ProxyProvider;
 
@@ -331,8 +332,17 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Override
     public void onDataReceived() {
-        applyIsBootstrapped(P2PServiceListener::onDataReceived);
+        if (initialDataReceived) return;
+        initialDataReceived = true;
 
+        // A seed failure can complete bootstrap before data arrives.
+        if (isBootstrapped) {
+            synchronized (p2pServiceListeners) {
+                p2pServiceListeners.forEach(P2PServiceListener::onDataReceived);
+            }
+        } else {
+            applyIsBootstrapped(P2PServiceListener::onDataReceived);
+        }
     }
 
     private void applyIsBootstrapped(Consumer<P2PServiceListener> listenerHandler) {
