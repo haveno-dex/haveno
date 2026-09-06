@@ -4478,6 +4478,15 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
             // freeze outputs until spent
             xmrWalletService.freezeOutputs(getSelf().getReserveTxKeyImages());
+
+            // Release unused offer inputs; failed-trade restoration reconciles after restoring ownership.
+            if (this instanceof MakerTrade && processModel.getTradeManager().hasOpenTrade(this)) {
+                try {
+                    xmrWalletService.fixReservedOutputs();
+                } catch (Exception e) {
+                    log.warn("Error updating reserved outputs after publishing deposits for trade {}", getId(), e);
+                }
+            }
             
             // backup trade wallet after creation
             maybeBackupWallet();
