@@ -138,10 +138,10 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     }
                 }
 
-                // Record ownership before reconciliation can inspect the freshly frozen inputs.
+                // record ownership before reconciliation can inspect the freshly frozen inputs
                 if (depositTx != null) trade.getSelf().setReserveTxKeyImages(HavenoUtils.getInputKeyImages(depositTx));
 
-                // Keep the offer's reserve frozen if deposit creation selected different inputs.
+                // keep the offer's reserve frozen if deposit creation selected different inputs
                 if (trade instanceof MakerTrade) trade.getXmrWalletService().freezeOutputs(trade.getOffer().getOfferPayload().getReserveTxKeyImages());
 
                 // reset protocol timeout
