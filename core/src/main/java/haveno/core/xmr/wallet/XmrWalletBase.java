@@ -80,7 +80,7 @@ public abstract class XmrWalletBase {
     protected final DownloadListener syncProgressListener = new DownloadListener();
     protected final LongProperty walletHeight = new SimpleLongProperty(0);
     @Getter
-    protected boolean isShutDownStarted;
+    protected volatile boolean isShutDownStarted;
     @Getter
     protected boolean isShutDown;
 

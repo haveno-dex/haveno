@@ -113,6 +113,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -138,8 +139,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
 
-    private boolean isShutDownStarted;
-    private boolean isShutDown;
+    private volatile boolean isShutDownStarted;
+    private volatile boolean isShutDown;
     private final User user;
     @Getter
     private final KeyRing keyRing;
@@ -168,6 +169,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final TradableList<Trade> tradableList = new TradableList<>();
     @Getter
     private final BooleanProperty tradesInitialized = new SimpleBooleanProperty();
+    @Getter
+    private final CompletableFuture<Void> tradeInitializationFuture = new CompletableFuture<>();
     @Getter
     private final LongProperty numPendingTrades = new SimpleLongProperty();
     private final ReferralIdService referralIdService;
@@ -388,18 +391,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         log.info("{}.onShutDownStarted()", getClass().getSimpleName());
         isShutDownStarted = true;
 
-        // skip trade shut down if not initialized
-        if (!HavenoUtils.isSeedNode() && !tradesInitialized.get()) {
-            log.warn("Skipping start trade shut down because trades were not initialized");
-            return;
-        }
-
         // collect trades to prepare for shut down
         List<Trade> trades = getAllTrades();
 
         // prepare to shut down trades in parallel
         Set<Runnable> tasks = new HashSet<Runnable>();
         for (Trade trade : trades) tasks.add(() -> {
+            if (!trade.isInitialized()) return;
             try {
                 trade.onShutDownStarted();
             } catch (Exception e) {
@@ -424,18 +422,13 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     private void closeAllTrades() {
 
-        // skip trade shut down if not initialized
-        if (!HavenoUtils.isSeedNode() && !tradesInitialized.get()) {
-            log.warn("Skipping trade shut down because trades were not initialized");
-            return;
-        }
-
         // collect trades to shutdown
         List<Trade> trades = getAllTrades();
 
         // shut down trades in parallel
         Set<Runnable> tasks = new HashSet<Runnable>();
         for (Trade trade : trades) tasks.add(() -> {
+            if (!trade.isInitialized()) return;
             try {
                 trade.shutDown();
             } catch (Exception e) {
@@ -489,9 +482,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             int threadPoolSize = 10;
             Set<Runnable> initTradeTasks = new HashSet<Runnable>();
             Set<Trade> tradesToSkip = new HashSet<Trade>();
-            Set<Trade> uninitializedTrades = new HashSet<Trade>();
             for (Trade trade : trades) {
-                initTradeTasks.add(getInitTradeTask(trade, tradesToSkip, uninitializedTrades));
+                initTradeTasks.add(getInitTradeTask(trade, tradesToSkip));
             };
             ThreadUtils.awaitTasks(initTradeTasks, threadPoolSize);
             log.info("Done initializing trades");
@@ -499,6 +491,47 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // remove skipped trades
             trades.removeAll(tradesToSkip);
+
+            // repair main wallet reservations before offers or UI actions can spend its outputs
+            if (!HavenoUtils.isSeedNode()) {
+                try {
+                    xmrWalletService.fixReservedOutputs();
+                } catch (Exception e) {
+                    log.warn("Error repairing reserved outputs before trade wallet initialization: {}\n", e.getMessage(), e);
+                }
+            }
+
+            // open trade wallets off the setup thread after all protocols have registered their listeners
+            ThreadUtils.submitToPool(() -> initTradeWallets(trades));
+        } catch (Exception e) {
+            log.warn("Error initializing trades: {}\n", e.getMessage(), e);
+            if (!isShutDownStarted) tradeInitializationFuture.completeExceptionally(e);
+        }
+    }
+
+    private void initTradeWallets(List<Trade> trades) {
+        try {
+            Set<Trade> uninitializedTrades = new HashSet<Trade>();
+            Set<Runnable> initWalletTasks = new HashSet<Runnable>();
+            for (Trade trade : trades) {
+                initWalletTasks.add(() -> {
+                    if (isShutDownStarted || trade.getInitError() != null) return;
+                    try {
+                        trade.initializeWallet();
+
+                        // record if protocol didn't initialize, except closed trades, which are terminal
+                        if (!trade.isDepositsPublished() && !closedTradableManager.getClosedTrades().contains(trade)) {
+                            synchronized (uninitializedTrades) {
+                                uninitializedTrades.add(trade);
+                            }
+                        }
+                    } catch (Exception e) {
+                        handleTradeInitializationError(trade, e);
+                    }
+                });
+            }
+            ThreadUtils.awaitTasks(initWalletTasks, 10);
+            if (isShutDownStarted) return;
 
             // process after all trades initialized
             if (!HavenoUtils.isSeedNode()) {
@@ -531,7 +564,9 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // notify that persisted trades initialized
             log.info("Done postprocessing after initializing trades");
             if (isShutDownStarted) return;
-            tradesInitialized.set(true);
+            UserThread.execute(() -> {
+                if (!isShutDownStarted) tradesInitialized.set(true);
+            });
             getObservableList().addListener((ListChangeListener<Trade>) change -> onTradesChanged());
             onTradesChanged();
 
@@ -542,12 +577,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             String referralId = referralIdService.getOptionalReferralId().orElse(null);
             boolean isTorNetworkNode = p2PService.getNetworkNode() instanceof TorNetworkNode;
             tradeStatisticsManager.maybePublishTradeStatistics(nonFailedTrades, referralId, isTorNetworkNode);
+            if (!isShutDownStarted) tradeInitializationFuture.complete(null);
         } catch (Exception e) {
             log.warn("Error initializing trades: {}\n", e.getMessage(), e);
+            if (!isShutDownStarted) tradeInitializationFuture.completeExceptionally(e);
         }
     }
 
-    private Runnable getInitTradeTask(Trade trade, Set<Trade> tradesToSkip, Set<Trade> uninitializedTrades) {
+    private Runnable getInitTradeTask(Trade trade, Set<Trade> tradesToSkip) {
         return () -> {
             try {
 
@@ -580,22 +617,18 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 }
 
                 // initialize trade
-                initTrade(trade);
-
-                // record if protocol didn't initialize, except closed trades, which are terminal
-                if (!trade.isDepositsPublished() && !closedTradableManager.getClosedTrades().contains(trade)) {
-                    synchronized (uninitializedTrades) {
-                        uninitializedTrades.add(trade);
-                    }
-                }
+                initTrade(trade, false);
             } catch (Exception e) {
-                if (!isShutDownStarted) {
-                    log.warn("Error initializing {} {}: {}\n", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
-                    trade.setInitError(e);
-                    trade.prependErrorMessage(e.getMessage());
-                }
+                handleTradeInitializationError(trade, e);
             }
         };
+    }
+
+    private void handleTradeInitializationError(Trade trade, Exception e) {
+        if (isShutDownStarted) return;
+        log.warn("Error initializing {} {}: {}\n", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+        trade.setInitError(e);
+        trade.prependErrorMessage(e.getMessage());
     }
 
     // remove trades with duplicate uids from their stores, which can happen when a move between stores is interrupted
@@ -630,9 +663,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     private void initTrade(Trade trade) {
+        initTrade(trade, true);
+    }
+
+    private void initTrade(Trade trade, boolean initializeWallet) {
         if (isShutDown) return;
         if (getTradeProtocol(trade) != null) return;
         initTradeAndProtocol(trade, createTradeProtocol(trade));
+        if (initializeWallet) trade.initializeWallet();
         requestPersistence();
     }
 
@@ -1276,7 +1314,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 try {
                     initTrade(trade);
                 } catch (Exception e) {
-                    log.warn("Error initializing {} {} on move to pending trades", trade.getClass().getSimpleName(), trade.getShortId(), e);
+                    handleTradeInitializationError(trade, e);
                 }
             });
         }

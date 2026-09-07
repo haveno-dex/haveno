@@ -19,6 +19,7 @@ package haveno.core.app;
 
 import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
+import haveno.common.ThreadUtils;
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -210,7 +211,9 @@ public class DomainInitialisation {
         marketAlerts.onAllServicesInitialized();
         triggerPriceService.onAllServicesInitialized();
 
-        mailboxMessageService.onAllServicesInitialized();
+        // deliver startup mailbox messages after the trade initialization attempt, including recovery errors
+        tradeManager.getTradeInitializationFuture().whenComplete((result, error) ->
+                ThreadUtils.submitToPool(mailboxMessageService::onAllServicesInitialized));
 
         if (revolutAccountsUpdateHandler != null && user.getPaymentAccountsAsObservable() != null) {
             revolutAccountsUpdateHandler.accept(user.getPaymentAccountsAsObservable().stream()
