@@ -74,6 +74,7 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -90,10 +91,10 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
@@ -140,10 +141,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private ListChangeListener<PendingTradesListItem> tradesListChangeListener;
     private final Map<String, Long> newChatMessagesByTradeMap = new HashMap<>();
     private String tradeIdOfOpenChat;
-    private double chatPopupStageXPosition = -1;
-    private double chatPopupStageYPosition = -1;
-    private ChangeListener<Number> xPositionListener;
-    private ChangeListener<Number> yPositionListener;
 
     private final Map<String, Button> buttonByTrade = new HashMap<>();
     private final Map<String, JFXBadge> badgeByTrade = new HashMap<>();
@@ -557,8 +554,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         chatPopupStage = new Stage();
         chatPopupStage.setTitle(Res.get("tradeChat.chatWindowTitle", trade.getShortId()));
-        StackPane owner = MainView.getRootContainer();
-        Scene rootScene = owner.getScene();
+        Scene rootScene = MainView.getRootContainer().getScene();
 
         // keep a top-level window so the WM shows maximize/fullscreen
         chatPopupStage.initModality(Modality.NONE);
@@ -569,13 +565,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             trade.getChatMessages().forEach(m -> m.setWasDisplayed(true));
             model.dataModel.getTradeManager().requestPersistence();
             tradeIdOfOpenChat = null;
-
-            if (xPositionListener != null) {
-                chatPopupStage.xProperty().removeListener(xPositionListener);
-            }
-            if (yPositionListener != null) {
-                chatPopupStage.xProperty().removeListener(yPositionListener);
-            }
 
             UserThread.execute(() -> {
                 trade.stateProperty().removeListener(tradeStateListener);
@@ -596,27 +585,30 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         });
         chatPopupStage.setScene(scene);
 
-        chatPopupStage.setWidth(Layout.CHAT_WINDOW_WIDTH);
-        chatPopupStage.setHeight(Layout.CHAT_WINDOW_HEIGHT);
+        Window rootSceneWindow = rootScene.getWindow();
+        // use the screen containing the largest part of the application window
+        Rectangle2D screenBounds = Screen.getScreensForRectangle(rootSceneWindow.getX(), rootSceneWindow.getY(),
+                rootSceneWindow.getWidth(), rootSceneWindow.getHeight())
+                .stream().max(Comparator.comparingDouble(screen -> {
+                    Rectangle2D bounds = screen.getBounds();
+                    double width = Math.min(rootSceneWindow.getX() + rootSceneWindow.getWidth(), bounds.getMaxX())
+                            - Math.max(rootSceneWindow.getX(), bounds.getMinX());
+                    double height = Math.min(rootSceneWindow.getY() + rootSceneWindow.getHeight(), bounds.getMaxY())
+                            - Math.max(rootSceneWindow.getY(), bounds.getMinY());
+                    return Math.max(0, width) * Math.max(0, height);
+                })).orElse(Screen.getPrimary()).getVisualBounds();
+        chatPopupStage.setWidth(Math.min(Layout.CHAT_WINDOW_WIDTH, Math.min(rootScene.getWidth(), screenBounds.getWidth())));
+        chatPopupStage.setHeight(Math.min(Layout.CHAT_WINDOW_HEIGHT, Math.min(rootScene.getHeight(), screenBounds.getHeight())));
         chatPopupStage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
         chatPopupStage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
         chatPopupStage.setOpacity(0);
         chatPopupStage.show();
 
-        xPositionListener = (observable, oldValue, newValue) -> chatPopupStageXPosition = (double) newValue;
-        chatPopupStage.xProperty().addListener(xPositionListener);
-        yPositionListener = (observable, oldValue, newValue) -> chatPopupStageYPosition = (double) newValue;
-        chatPopupStage.yProperty().addListener(yPositionListener);
-
-        if (chatPopupStageXPosition == -1) {
-            Window rootSceneWindow = rootScene.getWindow();
-            double titleBarHeight = rootSceneWindow.getHeight() - rootScene.getHeight();
-            chatPopupStage.setX(Math.round(rootSceneWindow.getX() + (owner.getWidth() - chatPopupStage.getWidth() / 4 * 3)));
-            chatPopupStage.setY(Math.round(rootSceneWindow.getY() + titleBarHeight + (owner.getHeight() - chatPopupStage.getHeight() / 4 * 3)));
-        } else {
-            chatPopupStage.setX(chatPopupStageXPosition);
-            chatPopupStage.setY(chatPopupStageYPosition);
-        }
+        // center each new chat over the current application window and keep it on-screen
+        double x = Math.round(rootSceneWindow.getX() + rootScene.getX() + (rootScene.getWidth() - chatPopupStage.getWidth()) / 2);
+        double y = Math.round(rootSceneWindow.getY() + rootScene.getY() + (rootScene.getHeight() - chatPopupStage.getHeight()) / 2);
+        chatPopupStage.setX(Math.max(screenBounds.getMinX(), Math.min(x, screenBounds.getMaxX() - chatPopupStage.getWidth())));
+        chatPopupStage.setY(Math.max(screenBounds.getMinY(), Math.min(y, screenBounds.getMaxY() - chatPopupStage.getHeight())));
 
         // Delay display to next render frame to avoid that the popup is first quickly displayed in default position
         // and after a short moment in the correct position
