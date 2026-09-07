@@ -67,11 +67,11 @@ public abstract class HeroInfoWindow<T extends HeroInfoWindow<T>> extends Overla
         display();
     }
 
-    // the lone close button is the primary action; windows using an action button hide it
+    // the lone close button is the primary action
     @Override
     protected void addButtons() {
         super.addButtons();
-        if (closeButton != null) {
+        if (closeButton != null && actionButton == null) {
             closeButton.getStyleClass().remove("compact-button");
             closeButton.getStyleClass().add("action-button");
         }

@@ -21,15 +21,14 @@ import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
 
 /**
- * Shown after a first successful trade: a success header with icon, then rows
- * inviting feedback and pointing to community support.
+ * Shown after completing a trade, with history guidance, feedback and
+ * community support.
  */
 public class TradeFeedbackWindow extends HeroInfoWindow<TradeFeedbackWindow> {
 
     @Override
     public void show() {
-        hideCloseButton();
-        if (actionButtonText == null) actionButtonText = Res.get("tradeFeedbackWindow.done");
+        if (closeButtonText == null) closeButtonText = Res.get("tradeFeedbackWindow.done");
         super.show();
     }
 
@@ -39,6 +38,11 @@ public class TradeFeedbackWindow extends HeroInfoWindow<TradeFeedbackWindow> {
                 createHeader(MaterialDesignIcon.CHECK_CIRCLE,
                         Res.get("tradeFeedbackWindow.title"),
                         Res.get("tradeFeedbackWindow.subtitle")),
+                createFeatureRow(MaterialDesignIcon.HISTORY,
+                        ACCENT_PRIMARY,
+                        Res.get("portfolio.tab.history"),
+                        Res.get("portfolio.pending.step5_buyer.tradeCompleted.msg")),
+                createSeparator(),
                 createFeatureRow(MaterialDesignIcon.STAR,
                         ACCENT_AMBER,
                         Res.get("tradeFeedbackWindow.feedback.title"),
