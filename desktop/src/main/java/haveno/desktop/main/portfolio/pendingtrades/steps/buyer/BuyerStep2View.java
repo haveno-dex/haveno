@@ -276,11 +276,11 @@ public class BuyerStep2View extends TradeStepView {
         paymentAccountGridPane = createGridPane();
         TitledGroupBg accountTitledGroupBg = addTitledGroupBg(paymentAccountGridPane, paymentAccountGridRow, 4,
                 Res.get("portfolio.pending.step2_buyer.startPaymentUsing", Res.get(paymentMethodId)),
-                Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
+                Layout.COMPACT_GROUP_DISTANCE);
         TextFieldWithCopyIcon field = addTopLabelTextFieldWithCopyIcon(paymentAccountGridPane, paymentAccountGridRow, 0,
                 Res.get("portfolio.pending.step2_buyer.amountToTransfer"),
                 model.getFiatVolume(),
-                Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR).second;
+                Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE).second;
         field.setCopyWithoutCurrencyPostFix(true);
 
         //preland: this fixes a textarea layout glitch // TODO: can this be removed now?
