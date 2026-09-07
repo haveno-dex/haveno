@@ -236,9 +236,11 @@ public class BroadcastHandler implements PeerManager.Listener {
                     numOfCompletedBroadcasts,
                     numOfFailedBroadcasts);
 
-            maybeNotifyListeners(broadcastRequests);
-
-            cleanup();
+            try {
+                maybeNotifyListeners(broadcastRequests);
+            } finally {
+                cleanup();
+            }
 
         }, timeoutDelay, TimeUnit.MILLISECONDS);
     }
@@ -271,8 +273,11 @@ public class BroadcastHandler implements PeerManager.Listener {
                     return;
                 }
 
-                maybeNotifyListeners(broadcastRequestsForConnection);
-                checkForCompletion();
+                try {
+                    maybeNotifyListeners(broadcastRequestsForConnection);
+                } finally {
+                    checkForCompletion();
+                }
             }
 
             @Override
@@ -284,8 +289,11 @@ public class BroadcastHandler implements PeerManager.Listener {
                 log.warn("Broadcast to " + connection.getPeersNodeAddressOptional() + " failed. ", throwable);
                 numOfFailedBroadcasts.incrementAndGet();
 
-                maybeNotifyListeners(broadcastRequestsForConnection);
-                checkForCompletion();
+                try {
+                    maybeNotifyListeners(broadcastRequestsForConnection);
+                } finally {
+                    checkForCompletion();
+                }
             }
         }, MoreExecutors.directExecutor());
     }
