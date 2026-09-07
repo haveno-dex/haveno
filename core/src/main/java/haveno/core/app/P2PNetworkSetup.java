@@ -184,6 +184,7 @@ public class P2PNetworkSetup {
             @Override
             public void onDataReceived() {
                 log.debug("onRequestingDataCompleted");
+                bootstrapWarning.set(null);
                 initialP2PNetworkDataReceived.set(true);
                 bootstrapState.set(Res.get("mainView.bootstrapState.initialDataReceived"));
                 splashP2PNetworkAnimationVisible.set(false);
