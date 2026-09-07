@@ -163,7 +163,9 @@ public class WalletAppSetup {
                             } else if (walletDownloadPercentageD >= 0) {
                                 long blocksRemaining = xmrWalletService.blocksRemainingProperty().get();
                                 if (blocksRemaining < 0) blocksRemaining = bestChainHeight == null ? 0 : Math.max(0, bestChainHeight - Math.max(appliedWalletHeight, 1)); // estimate from chain tip until the wallet reports its height
-                                String synchronizingWith = Res.get("mainView.footer.xmrInfo.synchronizingWallet", getXmrWalletNetworkAsString(), getBlocksRemainingAsString(blocksRemaining), FormattingUtils.formatToClampedRoundedPercentWithSymbol(walletDownloadPercentageD));
+                                String synchronizingWith = blocksRemaining > 0 || walletDownloadPercentageD > 0
+                                        ? Res.get("mainView.footer.xmrInfo.synchronizingWallet", getXmrWalletNetworkAsString(), getBlocksRemainingAsString(blocksRemaining), FormattingUtils.formatToClampedRoundedPercentWithSymbol(walletDownloadPercentageD))
+                                        : Res.get("mainView.footer.xmrInfo.synchronizingWalletStart", getXmrWalletNetworkAsString());
                                 result = Res.get("mainView.footer.xmrInfo", synchronizingWith, "");
                                 getXmrSplashSyncIconId().set(""); // clear synced icon
                             } else {
