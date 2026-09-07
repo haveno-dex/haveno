@@ -1596,7 +1596,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 if (otherVolume != null && otherVolume.getValue() != volume.getValue()) continue;
                 log.warn("Rejecting ambiguous maker payment, tradeId={}, conflictingTradeId={}, paymentAmount={} {}",
                         trade.getId(), other.getId(), volume, volume.getCurrencyCode());
-                throw new IllegalArgumentException("The maker already has an unresolved trade with this payment amount and payment account. Please choose a different amount or try again later.");
+                throw new IllegalArgumentException("This offer is temporarily unavailable for the selected amount. Please choose a different amount or try again later.");
             }
             // Keep repricing atomic with admission, including the arbitrator's final price.
             trade.setPrice(price);
