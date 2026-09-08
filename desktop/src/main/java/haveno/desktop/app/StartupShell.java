@@ -45,6 +45,8 @@ public class StartupShell extends StackPane {
 
     // logo size, fixed so the branding never shifts across the startup phases
     private static final double LOGO_FIT_WIDTH = 450;
+    // match the password prompt's height so progress screens preserve its centered position
+    private static final double CONTENT_HEIGHT = 140;
     // slim landscape logo shown while tall content like the first-run wizard needs the vertical space
     private static final double COMPACT_LOGO_FIT_WIDTH = 190;
 
@@ -68,6 +70,7 @@ public class StartupShell extends StackPane {
         applySplashLogo();
 
         contentSlot.setAlignment(Pos.TOP_CENTER);
+        contentSlot.setMinHeight(CONTENT_HEIGHT);
 
         Label versionLabel = new AutoTooltipLabel(FormattingUtils.formatVersion());
         versionLabel.setStyle("-fx-font-size: 0.9em; -fx-text-fill: -bs-color-gray-6;");
@@ -124,20 +127,13 @@ public class StartupShell extends StackPane {
         getChildren().addAll(appLayer, overlay);
     }
 
-    /**
-     * Swap the center content: the password prompt during login, the sync status while connecting. The first
-     * content sizes the slot and is centered with the logo; before a shorter screen replaces it, the slot is
-     * locked to the outgoing (taller) height so the logo stays put across the swap.
-     */
+    /** Swap startup content within the reserved space, allowing taller error messages to grow as needed. */
     public void setContent(Region content) {
-        if (!contentSlot.getChildren().isEmpty() && contentSlot.getHeight() > 0) {
-            contentSlot.setMinHeight(contentSlot.getHeight());
-        }
         contentSlot.getChildren().setAll(content);
     }
 
     // Switch between the slim landscape logo (compact, for tall content like the first-run wizard) and the full splash
-    // logo. Leaving compact mode releases the content slot's height lock so the next content centers with the full logo.
+    // logo. The wizard sizes to its content; other startup screens share a minimum content height.
     public void setCompactBranding(boolean compact) {
         if (compactBranding == compact) return;
         compactBranding = compact;
@@ -147,12 +143,13 @@ public class StartupShell extends StackPane {
             GUIUtil.setBrandingLogo(logo, preferences, "/images/logo_splash_landscape_light_mode.png",
                     "/images/logo_splash_landscape_dark_mode.png", COMPACT_LOGO_FIT_WIDTH, 0);
             VBox.setMargin(contentSlot, new Insets(16, 0, 0, 0));
+            contentSlot.setMinHeight(Region.USE_COMPUTED_SIZE);
             setWizardBackdrop(true);
         } else {
             logo.setFitWidth(LOGO_FIT_WIDTH);
             applySplashLogo();
             VBox.setMargin(contentSlot, new Insets(30, 0, 0, 0));
-            contentSlot.setMinHeight(Region.USE_COMPUTED_SIZE);
+            contentSlot.setMinHeight(CONTENT_HEIGHT);
             setWizardBackdrop(false);
         }
     }

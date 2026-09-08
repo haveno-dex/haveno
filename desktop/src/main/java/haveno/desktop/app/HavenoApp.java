@@ -56,7 +56,6 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.debug.DebugView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -91,6 +90,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
@@ -198,10 +198,13 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     public void showLoginProgress() {
-        BusyAnimation busy = new BusyAnimation();
-        busy.setPrefSize(24, 24);
-        busy.setMaxSize(24, 24);
-        VBox content = new VBox(15, busy, new AutoTooltipLabel(Res.get("password.startup.opening")));
+        Label message = new AutoTooltipLabel(Res.get("password.startup.opening"));
+        message.setPrefHeight(30);
+        message.setAlignment(Pos.CENTER);
+        ProgressBar progress = new ProgressBar();
+        progress.setPrefWidth(305);
+        progress.getStyleClass().add("splash-progress");
+        VBox content = new VBox(10, message, progress);
         content.setAlignment(Pos.TOP_CENTER);
         startupShell = getOrCreateShell();
         startupShell.setContent(content);
