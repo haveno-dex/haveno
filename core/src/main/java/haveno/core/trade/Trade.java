@@ -423,7 +423,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private double initProgress = 0;
     @Getter
     @Setter
-    private Exception initError;
+    private volatile Exception initError;
 
     //  Mutable
     private long amount;
@@ -482,8 +482,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     //  Mutable
     @Getter
-    transient private boolean isInitialized;
-    transient private boolean isFullyInitialized;
+    transient private volatile boolean isInitialized;
+    transient private volatile boolean isFullyInitialized;
 
     // Added in v1.2.0
     transient private ObjectProperty<BigInteger> tradeAmountProperty;
@@ -667,7 +667,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public void initialize(ProcessModelServiceProvider serviceProvider) {
         if (isInitialized) throw new IllegalStateException(getClass().getSimpleName() + " " + getId() + " is already initialized");
 
-        // reset shut down state
+        // reset initialization and shut down state
+        initError = null;
+        isFullyInitialized = false;
         isShutDownStarted = false;
         isShutDown = false;
 
@@ -840,8 +842,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
         // trade is initialized
         isInitialized = true;
+    }
 
-        // init polling if deposit requested
+    void initializeWallet() {
+        if (!isInitialized || isFullyInitialized || isShutDownStarted) return;
         maybeInitPolling(false);
         isFullyInitialized = true;
     }
@@ -916,7 +920,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     public void awaitInitialized() {
-        while (!isFullyInitialized) HavenoUtils.waitFor(100); // TODO: use proper notification and refactor isInitialized, fullyInitialized, and arbitrator idling
+        while (!isFullyInitialized) {
+            if (isShutDownStarted) throw new IllegalStateException("Trade shut down during initialization: " + getId());
+            if (initError != null) throw new IllegalStateException("Trade initialization failed: " + getId(), initError);
+            HavenoUtils.waitFor(100); // TODO: use proper notification and refactor isInitialized, fullyInitialized, and arbitrator idling
+        }
     }
 
     // TODO: throw if trade manager is null
