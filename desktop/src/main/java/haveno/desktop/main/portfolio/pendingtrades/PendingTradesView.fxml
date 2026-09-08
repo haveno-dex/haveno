@@ -33,7 +33,7 @@
     <!-- scroll pane provides a horizontal bar when the window is narrower than the table's min width -->
     <ScrollPane fx:id="tableScrollPane" fitToWidth="true" fitToHeight="true" vbarPolicy="NEVER"
                 focusTraversable="false" styleClass="table-scroll-pane" VBox.vgrow="SOMETIMES">
-        <TableView fx:id="tableView">
+        <TableView fx:id="tableView" styleClass="clickable-rows">
             <columns>
                 <TableColumn fx:id="tradeIdColumn" minWidth="100"/>
                 <TableColumn fx:id="dateColumn" minWidth="170"/>
