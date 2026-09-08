@@ -2622,6 +2622,12 @@ textfield */
     -fx-background-color: transparent;
 }
 
+/* opaque lane keeps horizontally scrolling cells from showing through the pinned vertical bar */
+.table-scroll-pane .table-view > .virtual-flow > .scroll-bar:vertical {
+    -fx-background-color: -bs-background-color;
+    -fx-background-insets: 0;
+}
+
 /* validation */
 .validation-error {
     -fx-text-fill: -bs-red;

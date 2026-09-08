@@ -1354,16 +1354,21 @@ public class GUIUtil {
     // scrolls a constrained-resize table horizontally in its wrapping scroll pane on narrow windows: the table's min
     // width follows the sum of visible column min widths, so the pane pans header and rows together instead of clipping
     public static <T> void applyTableHorizontalScroll(ScrollPane scrollPane, TableView<T> tableView) {
+        AtomicReference<ScrollBar> verticalBar = new AtomicReference<>();
         InvalidationListener updater = obs -> {
+            ScrollBar bar = verticalBar.get();
+            double scrollbarWidth = bar != null && bar.isVisible() ? bar.getWidth() : 0;
+            double oldMinWidth = tableView.getMinWidth();
             tableView.setMinWidth(
                     tableView.getItems() == null || tableView.getItems().isEmpty() ? 0 :
                             tableView.getColumns().stream()
                                     .filter(TableColumn::isVisible)
                                     .mapToDouble(TableColumn::getMinWidth)
-                                    .sum());
-            // a min width grown past the table's width does not reliably reach the pane skin,
-            // leaving trailing columns clipped without a bar; force a pane layout pass
-            if (tableView.getMinWidth() > tableView.getWidth()) UserThread.execute(() -> {
+                                    .sum() + scrollbarWidth + tableView.snappedLeftInset() + tableView.snappedRightInset());
+            // min width changes during the table's layout do not reliably reach the pane skin;
+            // force a pane layout pass when columns or the vertical scrollbar change the required width
+            if (tableView.getMinWidth() != oldMinWidth) UserThread.execute(() -> {
+                if (tableView.getParent() != null) tableView.getParent().requestLayout();
                 scrollPane.requestLayout();
                 scrollPane.layout();
             });
@@ -1372,6 +1377,7 @@ public class GUIUtil {
             column.visibleProperty().addListener(updater);
             column.minWidthProperty().addListener(updater);
         }
+        tableView.insetsProperty().addListener(updater);
 
         // follow rows across items list swaps; change listeners cannot be used here because they
         // are suppressed when an empty items list is replaced by another empty list
@@ -1424,6 +1430,27 @@ public class GUIUtil {
         scrollPane.hvalueProperty().addListener(vbarPinner);
         scrollPane.viewportBoundsProperty().addListener(vbarPinner);
         tableView.widthProperty().addListener(vbarPinner);
+
+        // reserve the vertical bar's lane even at the table's min width, and follow skin replacements
+        InvalidationListener skinListener = obs -> {
+            ScrollBar oldBar = verticalBar.getAndSet(null);
+            if (oldBar != null) {
+                oldBar.visibleProperty().removeListener(updater);
+                oldBar.widthProperty().removeListener(updater);
+            }
+            for (Node node : tableView.lookupAll(".scroll-bar")) {
+                if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.VERTICAL) {
+                    verticalBar.set(bar);
+                    bar.visibleProperty().addListener(updater);
+                    bar.widthProperty().addListener(updater);
+                    break;
+                }
+            }
+            updater.invalidated(null);
+            vbarPinner.invalidated(null);
+        };
+        tableView.skinProperty().addListener(skinListener);
+        skinListener.invalidated(null);
     }
 
     private static void applyRoundedArc(TableView<?> tableView) {
