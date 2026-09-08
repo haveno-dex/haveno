@@ -36,6 +36,7 @@ import haveno.network.p2p.network.OutboundConnection;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -50,6 +51,7 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
 
     private final NetworkNode networkNode;
     private final PeerManager peerManager;
+    private final Clock clock;
     private final Map<String, KeepAliveHandler> handlerMap = new HashMap<>();
 
     private boolean stopped;
@@ -63,9 +65,11 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
 
     @Inject
     public KeepAliveManager(NetworkNode networkNode,
-                            PeerManager peerManager) {
+                            PeerManager peerManager,
+                            Clock clock) {
         this.networkNode = networkNode;
         this.peerManager = peerManager;
+        this.clock = clock;
 
         this.networkNode.addMessageListener(this);
         this.networkNode.addConnectionListener(this);
@@ -183,26 +187,27 @@ public class KeepAliveManager implements MessageListener, ConnectionListener, Pe
         if (!stopped) {
             networkNode.getConfirmedConnections().stream()
                     .filter(connection -> connection instanceof OutboundConnection &&
-                            connection.getStatistic().getLastActivityAge() > LAST_ACTIVITY_AGE_MS)
+                            !connection.isStopped() &&
+                            connection.getStatistic().getLastReceivedMessageAge() > LAST_ACTIVITY_AGE_MS)
                     .forEach(connection -> {
                         final String uid = connection.getUid();
                         synchronized (handlerMap) {
                             if (!handlerMap.containsKey(uid)) {
                                 KeepAliveHandler keepAliveHandler = new KeepAliveHandler(networkNode, peerManager, new KeepAliveHandler.Listener() {
                                     @Override
-                                    public void onComplete() {
+                                    public void onComplete(KeepAliveHandler handler) {
                                         synchronized (handlerMap) {
-                                            handlerMap.remove(uid);
+                                            handlerMap.remove(uid, handler);
                                         }
                                     }
 
                                     @Override
-                                    public void onFault(String errorMessage) {
+                                    public void onFault(String errorMessage, KeepAliveHandler handler) {
                                         synchronized (handlerMap) {
-                                            handlerMap.remove(uid);
+                                            handlerMap.remove(uid, handler);
                                         }
                                     }
-                                });
+                                }, clock);
                                 handlerMap.put(uid, keepAliveHandler);
                                 keepAliveHandler.sendPingAfterRandomDelay(connection);
                             } else {

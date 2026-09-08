@@ -27,7 +27,11 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -159,4 +163,28 @@ public class LocalhostNetworkNodeTest {
         statistic.updateLastActivityTimestamp();
         assertEquals(receivedTimestamp, statistic.getLastReceivedMessageTimestamp());
     }
+
+    @Test
+    public void testReadProgressIsRecordedBeforeAnEnvelopeCompletes() throws Exception {
+        Class<?> streamClass = Class.forName(Connection.class.getName() + "$EofTrackingInputStream");
+        Constructor<?> constructor = streamClass.getDeclaredConstructor(InputStream.class);
+        constructor.setAccessible(true);
+        Field inputField = Connection.class.getDeclaredField("protoInputStream");
+        inputField.setAccessible(true);
+        for (boolean bulkRead : new boolean[]{false, true}) {
+            InputStream stream = (InputStream) constructor.newInstance(new ByteArrayInputStream(new byte[]{1, 2}));
+            Connection connection = mock(Connection.class, CALLS_REAL_METHODS);
+            inputField.set(connection, stream);
+            assertEquals(0L, connection.getLastReadTimestamp());
+
+            if (bulkRead) assertEquals(2, stream.read(new byte[2], 0, 2));
+            else assertEquals(1, stream.read());
+            assertTrue(connection.getLastReadTimestamp() > 0);
+            if (!bulkRead) assertEquals(2, stream.read());
+            long lastReadTimestamp = connection.getLastReadTimestamp();
+            assertEquals(-1, stream.read());
+            assertEquals(lastReadTimestamp, connection.getLastReadTimestamp());
+        }
+    }
+
 }

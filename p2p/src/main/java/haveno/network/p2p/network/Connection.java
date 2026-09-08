@@ -662,6 +662,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         return peersNodeAddressOptional.isPresent();
     }
 
+    public long getLastReadTimestamp() {
+        return protoInputStream.lastReadTimestamp;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // ShutDown
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -803,6 +807,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     // records a clean end of stream, so a frame truncated by a disconnect is not mistaken for malformed data
     private static class EofTrackingInputStream extends FilterInputStream {
         private boolean eof;
+        private volatile long lastReadTimestamp;
 
         private EofTrackingInputStream(InputStream in) {
             super(in);
@@ -812,6 +817,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         public int read() throws IOException {
             int b = in.read();
             if (b == -1) eof = true;
+            else lastReadTimestamp = System.currentTimeMillis();
             return b;
         }
 
@@ -819,6 +825,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         public int read(byte[] b, int off, int len) throws IOException {
             int n = in.read(b, off, len);
             if (n == -1) eof = true;
+            else if (n > 0) lastReadTimestamp = System.currentTimeMillis();
             return n;
         }
     }

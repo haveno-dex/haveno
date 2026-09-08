@@ -21,9 +21,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import haveno.common.ClockWatcher;
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.MessageListener;
 import haveno.network.p2p.network.NetworkNode;
@@ -32,17 +35,20 @@ import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
 import haveno.network.utils.EventThrottler;
 import haveno.network.utils.EventThrottler.ThrottleResult;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.time.Clock;
 import java.util.Random;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 class KeepAliveHandler implements MessageListener {
     private static final Logger log = LoggerFactory.getLogger(KeepAliveHandler.class);
     private static final int DELAY_MS = 10_000;
+    private static final int TIMEOUT_SEC = 240;
+    private static final int TIMEOUT_CHECK_INTERVAL_SEC = 10;
     private static final long LOG_THROTTLE_INTERVAL_MS = 60000; // throttle logging warnings to once every 60 seconds
     private static EventThrottler throttler = new EventThrottler(LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
@@ -52,10 +58,10 @@ class KeepAliveHandler implements MessageListener {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public interface Listener {
-        void onComplete();
+        void onComplete(KeepAliveHandler handler);
 
         @SuppressWarnings("UnusedParameters")
-        void onFault(String errorMessage);
+        void onFault(String errorMessage, KeepAliveHandler handler);
     }
 
 
@@ -66,26 +72,35 @@ class KeepAliveHandler implements MessageListener {
     private final NetworkNode networkNode;
     private final PeerManager peerManager;
     private final Listener listener;
+    private final Clock clock;
     private final int nonce = new Random().nextInt();
+    // Handler state is confined to the connection thread.
     @Nullable
     private Connection connection;
     private boolean stopped;
     private Timer delayTimer;
+    private Timer timeoutTimer;
     private long sendTs;
+    private long lastReadTimestamp;
+    private long timeoutDeadline;
+    private long lastTimeoutCheck;
+    private int timeoutEpoch;
+    private boolean pingSent;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public KeepAliveHandler(NetworkNode networkNode, PeerManager peerManager, Listener listener) {
+    public KeepAliveHandler(NetworkNode networkNode, PeerManager peerManager, Listener listener, Clock clock) {
         this.networkNode = networkNode;
         this.peerManager = peerManager;
         this.listener = listener;
+        this.clock = clock;
     }
 
     public void cancel() {
-        cleanup();
+        ThreadUtils.execute(this::cleanup, Connection.THREAD_ID);
     }
 
 
@@ -94,44 +109,112 @@ class KeepAliveHandler implements MessageListener {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void sendPingAfterRandomDelay(Connection connection) {
-        delayTimer = UserThread.runAfterRandomDelay(() -> sendPing(connection), 1, DELAY_MS, TimeUnit.MILLISECONDS);
+        ThreadUtils.execute(() -> {
+            if (!stopped) {
+                delayTimer = UserThread.runAfterRandomDelay(() ->
+                        ThreadUtils.execute(() -> sendPing(connection), Connection.THREAD_ID), 1, DELAY_MS, TimeUnit.MILLISECONDS);
+            }
+        }, Connection.THREAD_ID);
     }
 
     private void sendPing(Connection connection) {
-        if (!stopped) {
-            Ping ping = new Ping(nonce, connection.getStatistic().roundTripTimeProperty().get());
-            sendTs = System.currentTimeMillis();
+        if (stopped) return;
+        this.connection = connection;
+        Ping ping = new Ping(nonce, connection.getStatistic().roundTripTimeProperty().get());
+        sendTs = clock.millis();
+        lastReadTimestamp = connection.getLastReadTimestamp();
+
+        // Register before sending, as the pong can arrive before the send callback.
+        connection.addMessageListener(this);
+        startTimeout(TimeUnit.SECONDS.toMillis(TIMEOUT_SEC));
+        try {
             SettableFuture<Connection> future = networkNode.sendMessage(connection, ping);
-            Futures.addCallback(future, new FutureCallback<Connection>() {
+            Futures.addCallback(future, new FutureCallback<>() {
                 @Override
-                public void onSuccess(Connection connection) {
-                    if (!stopped) {
-                        KeepAliveHandler.this.connection = connection;
-                        connection.addMessageListener(KeepAliveHandler.this);
-                    } else {
-                        log.trace("We have stopped already. We ignore that networkNode.sendMessage.onSuccess call.");
-                    }
+                public void onSuccess(Connection result) {
+                    ThreadUtils.execute(() -> {
+                        if (stopped) return;
+                        pingSent = true;
+                        lastReadTimestamp = connection.getLastReadTimestamp();
+                        // Give the peer a full reply window after the queued write completes.
+                        startTimeout(TimeUnit.SECONDS.toMillis(TIMEOUT_SEC));
+                    }, Connection.THREAD_ID);
                 }
 
                 @Override
-                public void onFailure(@NotNull Throwable throwable) {
-                    if (!stopped) {
-                        String errorMessage = "Sending ping to " + connection +
-                                " failed. That is expected if the peer is offline.\n\tping=" + ping +
-                                ".\n\tException=" + throwable.getMessage();
-                        cleanup();
-                        //peerManager.shutDownConnection(connection, CloseConnectionReason.SEND_MSG_FAILURE);
-                        log.info(errorMessage);
-                        peerManager.handleConnectionFault(connection);
-                        listener.onFault(errorMessage);
-                    } else {
-                        log.trace("We have stopped already. We ignore that networkNode.sendMessage.onFailure call.");
-                    }
+                public void onFailure(Throwable throwable) {
+                    ThreadUtils.execute(() -> handleSendFailure(throwable), Connection.THREAD_ID);
                 }
             }, MoreExecutors.directExecutor());
-        } else {
-            log.trace("We have stopped already. We ignore that sendPing call.");
+        } catch (RuntimeException e) {
+            handleSendFailure(e);
         }
+    }
+
+    private void handleSendFailure(Throwable throwable) {
+        if (stopped) return;
+        cleanup();
+        String errorMessage = "Sending ping to " + connection + " failed: " + throwable.getMessage();
+        if (throwable instanceof RejectedExecutionException) log.debug(errorMessage);
+        else log.info(errorMessage);
+        // Connection handles socket failures; a rejected local send does not prove a peer fault.
+        listener.onFault(errorMessage, this);
+    }
+
+    private void startTimeout(long delayMs) {
+        long now = clock.millis();
+        timeoutDeadline = now + delayMs;
+        lastTimeoutCheck = now;
+        scheduleTimeoutCheck();
+    }
+
+    private void scheduleTimeoutCheck() {
+        if (timeoutTimer != null) timeoutTimer.stop();
+        int epoch = ++timeoutEpoch;
+        long delayMs = Math.min(TimeUnit.SECONDS.toMillis(TIMEOUT_CHECK_INTERVAL_SEC),
+                Math.max(1, timeoutDeadline - clock.millis()));
+        timeoutTimer = UserThread.runAfter(() -> ThreadUtils.execute(() -> {
+            if (!stopped && epoch == timeoutEpoch) onTimeout();
+        }, Connection.THREAD_ID), delayMs, TimeUnit.MILLISECONDS);
+    }
+
+    private void onTimeout() {
+        long now = clock.millis();
+        long elapsed = now - lastTimeoutCheck;
+        // Retire pre-suspension probes even if this callback runs before the wake listener.
+        if (connection.isStopped() || elapsed < 0 || elapsed > ClockWatcher.IDLE_TOLERANCE_MS) {
+            cleanup();
+            listener.onComplete(this);
+            return;
+        }
+        lastTimeoutCheck = now;
+        if (now < timeoutDeadline) {
+            scheduleTimeoutCheck();
+            return;
+        }
+
+        // A pong can be queued behind a large envelope that is still being received.
+        long currentReadTimestamp = connection.getLastReadTimestamp();
+        if (currentReadTimestamp > lastReadTimestamp) {
+            lastReadTimestamp = currentReadTimestamp;
+            long remainingMs = TimeUnit.SECONDS.toMillis(TIMEOUT_SEC) - (now - currentReadTimestamp);
+            if (remainingMs > 0) {
+                startTimeout(remainingMs);
+                return;
+            }
+        }
+        handleFault((pingSent ? "Peer did not answer ping" : "Sending ping did not complete") +
+                        " and no data was received for " + TIMEOUT_SEC + " seconds: " + connection,
+                pingSent ? CloseConnectionReason.SOCKET_TIMEOUT : CloseConnectionReason.SEND_MSG_TIMEOUT);
+    }
+
+    private void handleFault(String errorMessage, CloseConnectionReason closeConnectionReason) {
+        if (stopped) return;
+        cleanup();
+        log.info(errorMessage);
+        peerManager.handleConnectionFault(connection);
+        listener.onFault(errorMessage, this);
+        if (!connection.isStopped()) connection.shutDown(closeConnectionReason);
     }
 
 
@@ -142,20 +225,19 @@ class KeepAliveHandler implements MessageListener {
     @Override
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
         if (networkEnvelope instanceof Pong) {
-            if (!stopped) {
+            ThreadUtils.execute(() -> {
+                if (stopped || connection != this.connection) return;
                 Pong pong = (Pong) networkEnvelope;
                 if (pong.getRequestNonce() == nonce) {
-                    int roundTripTime = (int) (System.currentTimeMillis() - sendTs);
+                    int roundTripTime = (int) (clock.millis() - sendTs);
                     connection.getStatistic().setRoundTripTime(roundTripTime);
                     cleanup();
-                    listener.onComplete();
+                    listener.onComplete(this);
                 } else {
-                    throttleWarn("Nonce not matching. That should never happen.\n" + 
-                            "\tWe drop that message. nonce=" + nonce + ", requestNonce=" + pong.getRequestNonce() + ", peerNodeAddress=" + connection.getPeersNodeAddressOptional().orElseGet(null));
+                    throttleWarn("Nonce not matching. That should never happen.\n" +
+                            "\tWe drop that message. nonce=" + nonce + ", requestNonce=" + pong.getRequestNonce() + ", peerNodeAddress=" + connection.getPeersNodeAddressOptional().orElse(null));
                 }
-            } else {
-                log.trace("We have stopped already. We ignore that onMessage call.");
-            }
+            }, Connection.THREAD_ID);
         }
     }
 
@@ -167,6 +249,10 @@ class KeepAliveHandler implements MessageListener {
         if (delayTimer != null) {
             delayTimer.stop();
             delayTimer = null;
+        }
+        if (timeoutTimer != null) {
+            timeoutTimer.stop();
+            timeoutTimer = null;
         }
     }
 
