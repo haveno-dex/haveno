@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class CommonSetup {
     private static final int SHUTDOWN_WATCHDOG_MINUTES = 4;
     private static final AtomicBoolean exitScheduled = new AtomicBoolean();
-    private static final AtomicBoolean shutdownSignalReceived = new AtomicBoolean();
+    private static final AtomicBoolean shutdownWatchdogStarted = new AtomicBoolean();
     private static final AtomicBoolean shutdownHookRunning = new AtomicBoolean();
     private static final AtomicBoolean pipelineDisposedNpeLogged = new AtomicBoolean();
     private static volatile Thread shutdownHook;
@@ -124,9 +124,9 @@ public class CommonSetup {
         Thread.currentThread().setUncaughtExceptionHandler(handler);
     }
 
-    // true once an application exit is scheduled, a termination signal was received, or the JVM shutdown hook has started
+    // true once application exit is requested or the JVM shutdown hook has started
     private static boolean isShutdownInProgress() {
-        return exitScheduled.get() || shutdownSignalReceived.get() || shutdownHookRunning.get();
+        return exitScheduled.get() || shutdownWatchdogStarted.get() || shutdownHookRunning.get();
     }
 
     private static RepeatedThrow trackThrowSite(Throwable throwable) {
@@ -206,10 +206,10 @@ public class CommonSetup {
         shutdownHook = hook;
     }
 
-    // Halts the process if a signal-initiated graceful shutdown does not complete in time,
-    // since the handled signals no longer trigger the JVM's own bounded shutdown sequence.
-    private static void startShutdownWatchdog() {
-        if (!shutdownSignalReceived.compareAndSet(false, true)) {
+    // Halts the process if graceful shutdown for application exit does not complete in time.
+    // Applies to UI requests and signals which do not trigger the JVM shutdown sequence.
+    public static void startShutdownWatchdog() {
+        if (!shutdownWatchdogStarted.compareAndSet(false, true)) {
             return;
         }
 

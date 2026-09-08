@@ -345,6 +345,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     // This might need to be overwritten in case the application is not using all modules
     @Override
     public void gracefulShutDown(ResultHandler onShutdown, boolean systemExit) {
+        if (systemExit) CommonSetup.startShutdownWatchdog();
         log.info("Starting graceful shut down of {}", getClass().getSimpleName());
 
         // consume shutdownCompletedHandler so it runs once even when repeated requests join
@@ -393,34 +394,47 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
             // shut down open offer manager
             log.info("Shutting down OpenOfferManager");
-            injector.getInstance(OpenOfferManager.class).shutDown(() -> {
-
-                // listen for shut down of wallets setup
-                injector.getInstance(WalletsSetup.class).shutDownComplete.addListener((ov, o, n) -> {
-
-                    // shut down p2p service
-                    log.info("Shutting down P2P service");
-                    injector.getInstance(P2PService.class).shutDown(() -> {
-
-                        // done shutting down
-                        log.info("Graceful shutdown completed. Exiting now.");
-                        module.close(injector);
-                        completeShutdown(EXIT_SUCCESS);
-                    });
-                });
-
-                // shut down trade and wallet services
-                log.info("Shutting down trade and wallet services");
-                injector.getInstance(OfferBookService.class).shutDown();
-                injector.getInstance(TradeManager.class).shutDown();
-                injector.getInstance(BtcWalletService.class).shutDown();
-                injector.getInstance(XmrWalletService.class).shutDown();
-                injector.getInstance(XmrConnectionService.class).shutDown();
-                injector.getInstance(WalletsSetup.class).shutDown();
-            });
+            injector.getInstance(OpenOfferManager.class).shutDown(this::shutDownWalletsAndP2P);
         } catch (Throwable t) {
             log.error("App shutdown failed with exception: {}\n", t.getMessage(), t);
             completeShutdown(EXIT_FAILURE);
+        }
+    }
+
+    private void shutDownWalletsAndP2P() {
+        log.info("Shutting down trade and wallet services");
+        runShutDownTask("OfferBookService", () -> injector.getInstance(OfferBookService.class).shutDown());
+        runShutDownTask("TradeManager", () -> injector.getInstance(TradeManager.class).shutDown());
+        runShutDownTask("BtcWalletService", () -> injector.getInstance(BtcWalletService.class).shutDown());
+        runShutDownTask("XmrWalletService", () -> injector.getInstance(XmrWalletService.class).shutDown());
+        runShutDownTask("XmrConnectionService", () -> injector.getInstance(XmrConnectionService.class).shutDown());
+        // wallets setup waits for termination before returning, so continue even if its cleanup fails
+        runShutDownTask("WalletsSetup", () -> injector.getInstance(WalletsSetup.class).shutDown());
+
+        log.info("Shutting down P2P service");
+        try {
+            injector.getInstance(P2PService.class).shutDown(() -> {
+                log.info("Graceful shutdown completed. Exiting now.");
+                int exitCode = EXIT_SUCCESS;
+                try {
+                    module.close(injector);
+                } catch (Throwable t) {
+                    log.error("Failed to close application module", t);
+                    exitCode = EXIT_FAILURE;
+                }
+                completeShutdown(exitCode);
+            });
+        } catch (Throwable t) {
+            log.error("Failed to shut down P2P service", t);
+            completeShutdown(EXIT_FAILURE);
+        }
+    }
+
+    private void runShutDownTask(String service, Runnable task) {
+        try {
+            task.run();
+        } catch (Throwable t) {
+            log.error("Failed to shut down {}", service, t);
         }
     }
 
