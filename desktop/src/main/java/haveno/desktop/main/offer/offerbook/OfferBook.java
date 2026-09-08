@@ -134,8 +134,15 @@ public class OfferBook {
 
     public void refreshOffer(Offer offer) {
         synchronized (offerBookListItems) {
-            offerBookListItems.removeIf(item -> item.getOffer().getId().equals(offer.getId()));
-            offerBookListItems.add(new OfferBookListItem(offer));
+            P2PDataStorage.ByteArray hashOfPayload = new P2PDataStorage.ByteArray(offer.getOfferPayload().getHash());
+            for (int i = 0; i < offerBookListItems.size(); i++) {
+                OfferBookListItem item = offerBookListItems.get(i);
+                // A delayed refresh must not restore a removed offer or replace an edited payload.
+                if (item.getOffer().getId().equals(offer.getId()) && item.getHashOfPayload().equals(hashOfPayload)) {
+                    offerBookListItems.set(i, new OfferBookListItem(offer));
+                    return;
+                }
+            }
         }
     }
 
