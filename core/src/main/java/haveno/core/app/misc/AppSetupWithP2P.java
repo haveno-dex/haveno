@@ -18,6 +18,7 @@
 package haveno.core.app.misc;
 
 import com.google.inject.Inject;
+import haveno.common.ClockWatcher;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
@@ -45,6 +46,7 @@ public class AppSetupWithP2P extends AppSetup {
     protected final FilterManager filterManager;
     private final P2PDataStorage p2PDataStorage;
     private final PeerManager peerManager;
+    private final ClockWatcher clockWatcher;
     protected final TradeStatisticsManager tradeStatisticsManager;
     protected ArrayList<PersistedDataHost> persistedDataHosts;
     protected BooleanProperty p2pNetWorkReady;
@@ -53,6 +55,7 @@ public class AppSetupWithP2P extends AppSetup {
     public AppSetupWithP2P(P2PService p2PService,
                            P2PDataStorage p2PDataStorage,
                            PeerManager peerManager,
+                           ClockWatcher clockWatcher,
                            TradeStatisticsManager tradeStatisticsManager,
                            AccountAgeWitnessService accountAgeWitnessService,
                            SignedWitnessService signedWitnessService,
@@ -62,6 +65,7 @@ public class AppSetupWithP2P extends AppSetup {
         this.p2PService = p2PService;
         this.p2PDataStorage = p2PDataStorage;
         this.peerManager = peerManager;
+        this.clockWatcher = clockWatcher;
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.signedWitnessService = signedWitnessService;
@@ -87,6 +91,7 @@ public class AppSetupWithP2P extends AppSetup {
 
     @Override
     protected void initBasicServices() {
+        clockWatcher.start();
         String postFix = "_" + config.baseCurrencyNetwork.name();
         p2PDataStorage.readFromResources(postFix, this::startInitP2PNetwork);
     }
