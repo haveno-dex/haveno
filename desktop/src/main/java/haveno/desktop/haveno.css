@@ -419,7 +419,7 @@
     -fx-background-color: derive(-bs-background-color, 5%);
 }
 .list-view .list-cell:hover,
-.table-view .table-cell:hover {
+.table-view .table-row-cell:filled .table-cell:hover {
     -fx-background: -bs-combo-popup-hover;
     -fx-background-color: -bs-combo-popup-hover;
 }
@@ -1825,7 +1825,7 @@ textfield */
 .cell-faded {
     -fx-opacity: 0.4;
 }
-.table-view .table-row-cell:hover .table-cell {
+.table-view .table-row-cell:filled:hover .table-cell {
     -fx-background: -bs-combo-popup-hover;
     -fx-background-color: -bs-combo-popup-hover;
     -fx-border-color: transparent;
@@ -2285,11 +2285,11 @@ textfield */
 }
 
 /* Full-row hover tint incl. the filler edge; cell borders go transparent so the translucent tint
-   can't stack into a grid outline. The .offer-table specificity outweighs the dark theme's row rules. */
-.table-view.offer-table .table-row-cell:hover {
+   can't stack into a grid outline. Theme overrides supply the final hover color. */
+.table-view.offer-table .table-row-cell:filled:hover {
     -fx-background-color: -bs-combo-popup-hover;
 }
-.table-view.offer-table .table-row-cell:hover .table-cell {
+.table-view.offer-table .table-row-cell:filled:hover .table-cell {
     -fx-background: -bs-combo-popup-hover;
     -fx-background-color: -bs-combo-popup-hover;
     -fx-border-color: transparent;
