@@ -262,7 +262,7 @@ public abstract class NetworkNode implements MessageListener {
                     outBoundConnections.remove(connection);
                     return false;
                 })
-                .max(Comparator.comparingLong(connection -> connection.getStatistic().getLastActivityTimestamp())) // prefer the most recently active connection
+                .max(Comparator.comparingLong(connection -> connection.getStatistic().getLastReceivedMessageTimestamp())) // local writes do not prove the peer is responsive
                 .orElse(null);
     }
 

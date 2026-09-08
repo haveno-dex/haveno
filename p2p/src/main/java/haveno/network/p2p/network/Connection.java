@@ -1108,6 +1108,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                             throttleInfo("We got a " + networkEnvelope.getClass().getSimpleName() + " from a peer with yet unknown address on connection with uid=" + uid);
                         }
 
+                        statistic.updateLastReceivedMessageTimestamp();
                         onMessage(networkEnvelope, this);
                         ThreadUtils.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size), THREAD_ID);
                     }
