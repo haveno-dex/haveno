@@ -125,6 +125,7 @@
     -bs-color-background-pane: -bs-background-color;
     -bs-color-background-row-even: -bs-color-background-pane;
     -bs-color-background-row-odd: derive(-bs-color-background-pane, -6%);
+    -bs-color-background-row-hover: #e8f0fb;
     -bs-color-table-cell-dim: -bs-color-gray-ccc;
     -bs-color-background-popup: white;
     -bs-color-background-popup-blur: white;
@@ -146,6 +147,30 @@
     -fx-dark-text-color: black;
     -fx-mid-text-color: black;
     -fx-light-text-color: black;
+    /* muted selection stays visible while interacting with the selected row's details */
+    -fx-selection-bar: #cfe0f6;
+    -fx-selection-bar-non-focused: -fx-selection-bar;
+}
+
+.table-view .table-row-cell:filled:hover,
+.table-view.offer-table .table-row-cell:filled:hover {
+    -fx-background-color: -bs-color-background-row-hover;
+}
+.table-view .table-row-cell:filled:hover .table-cell,
+.table-view.offer-table .table-row-cell:filled:hover .table-cell {
+    -fx-background: -bs-color-background-row-hover;
+    -fx-background-color: -bs-color-background-row-hover;
+    -fx-border-color: transparent;
+}
+.table-view .table-row-cell:filled:selected,
+.table-view.offer-table .table-row-cell:filled:selected {
+    -fx-background-color: -fx-selection-bar;
+}
+.table-view .table-row-cell:filled:selected .table-cell,
+.table-view.offer-table .table-row-cell:filled:selected .table-cell {
+    -fx-background: -fx-selection-bar;
+    -fx-background-color: -fx-selection-bar;
+    -fx-border-color: -fx-selection-bar;
 }
 
 .warning-box {
