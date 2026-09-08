@@ -26,7 +26,6 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.notifications.Notification;
-import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TradeFeedbackWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.closedtrades.ClosedTradesView;
@@ -133,20 +132,8 @@ public class BuyerStep4View extends TradeStepView {
         if (!DevEnv.isDevMode() && preferences.showAgain(key)) {
             UserThread.runAfter(() -> new TradeFeedbackWindow()
                     .dontShowAgainId(key)
-                    .onAction(this::showNavigateToClosedTradesViewPopup)
-                    .show(), 500, TimeUnit.MILLISECONDS);
-        } else {
-            showNavigateToClosedTradesViewPopup();
-        }
-    }
-
-    private void showNavigateToClosedTradesViewPopup() {
-        if (!DevEnv.isDevMode()) {
-            UserThread.runAfter(() -> new Popup().headLine(Res.get("portfolio.pending.step5_buyer.tradeCompleted.headline"))
-                    .feedback(Res.get("portfolio.pending.step5_buyer.tradeCompleted.msg"))
                     .actionButtonTextWithGoTo("portfolio.tab.history")
                     .onAction(() -> model.dataModel.navigation.navigateTo(MainView.class, PortfolioView.class, ClosedTradesView.class))
-                    .dontShowAgainId("tradeCompleteWithdrawCompletedInfo")
                     .show(), 500, TimeUnit.MILLISECONDS);
         }
     }
