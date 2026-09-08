@@ -167,6 +167,17 @@
     -fx-cursor: hand;
 }
 
+.jfx-button > .jfx-rippler {
+    -jfx-rippler-disabled: true;
+}
+
+/* show a static pressed tint within each button's background shape */
+.jfx-button:armed > .jfx-rippler {
+    -fx-background-color: rgba(0, 0, 0, 0.16);
+    -fx-background-radius: inherit;
+    -fx-background-insets: inherit;
+}
+
 .jfx-button:hover, .jfx-button:focused {
     -fx-background-color: derive(-bs-color-gray-2, -10%);
 }
