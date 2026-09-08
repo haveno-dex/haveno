@@ -42,6 +42,7 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.takeoffer.TakeOfferModel;
+import haveno.core.payment.PaymentAccountUtil;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.traderchat.TradeChatSession;
@@ -116,6 +117,9 @@ class CoreTradesService {
             var paymentAccount = user.getPaymentAccount(paymentAccountId);
             if (paymentAccount == null)
                 throw new IllegalArgumentException(format("payment account with id '%s' not found", paymentAccountId));
+            if (!PaymentAccountUtil.isPaymentAccountValidForOffer(offer, paymentAccount))
+                throw new IllegalArgumentException(format("cannot take %s offer with payment account %s",
+                        offer.getCounterCurrencyCode(), paymentAccountId));
 
             var useSavingsWallet = true;
 
