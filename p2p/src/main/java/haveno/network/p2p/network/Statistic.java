@@ -134,6 +134,7 @@ public class Statistic {
 
     private final Date creationDate;
     private volatile long lastActivityTimestamp = System.currentTimeMillis();
+    private volatile long lastReceivedMessageTimestamp;
     private final AtomicLong sentBytes = new AtomicLong(0);
     private final LongProperty sentBytesProperty = new SimpleLongProperty(0);
     private final AtomicLong receivedBytes = new AtomicLong(0);
@@ -162,6 +163,10 @@ public class Statistic {
         } else {
             lastActivityTimestamp = System.currentTimeMillis();
         }
+    }
+
+    void updateLastReceivedMessageTimestamp() {
+        lastReceivedMessageTimestamp = System.currentTimeMillis();
     }
 
     void addSentBytes(int value) {
@@ -233,6 +238,15 @@ public class Statistic {
 
     public long getLastActivityAge() {
         return System.currentTimeMillis() - lastActivityTimestamp;
+    }
+
+    public long getLastReceivedMessageTimestamp() {
+        return lastReceivedMessageTimestamp;
+    }
+
+    public long getLastReceivedMessageAge() {
+        long timestamp = lastReceivedMessageTimestamp;
+        return System.currentTimeMillis() - (timestamp == 0 ? creationDate.getTime() : timestamp);
     }
 
     public long getSentBytesProperty() {
