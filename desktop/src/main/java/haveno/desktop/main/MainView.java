@@ -1021,7 +1021,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
             // Japanese fonts are dense, increase top nav button text size
             if (model.getPreferences() != null && "ja".equals(model.getPreferences().getUserLanguage())) {
-                this.getStyleClass().setAll("nav-secondary-button-japanese");
+                this.getStyleClass().add("nav-secondary-button-japanese");
             }
 
             // add icon
