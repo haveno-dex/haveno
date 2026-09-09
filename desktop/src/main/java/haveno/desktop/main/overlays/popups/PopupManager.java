@@ -18,6 +18,7 @@
 package haveno.desktop.main.overlays.popups;
 
 import haveno.common.UserThread;
+import haveno.desktop.main.overlays.Overlay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,11 +28,11 @@ import java.util.concurrent.TimeUnit;
 
 public class PopupManager {
     private static final Logger log = LoggerFactory.getLogger(PopupManager.class);
-    private static final Queue<Popup> popups = new LinkedBlockingQueue<>(5);
+    private static final Queue<Overlay<?>> popups = new LinkedBlockingQueue<>(5);
 
-    private static Popup displayedPopup;
+    private static Overlay<?> displayedPopup;
 
-    public static void queueForDisplay(Popup popup) {
+    public static void queueForDisplay(Overlay<?> popup) {
         if (hasDuplicatePopup(popup)) {
             log.warn("The popup is already in the queue or displayed.\n\t" +
                    "New popup not added=" + popup);
@@ -44,7 +45,7 @@ public class PopupManager {
         displayNext();
     }
 
-    public static void onHidden(Popup popup) {
+    public static void onHidden(Overlay<?> popup) {
         if (displayedPopup == null || displayedPopup == popup) {
             displayedPopup = null;
             UserThread.runAfter(() -> { displayNext(); }, 100, TimeUnit.MILLISECONDS);
@@ -61,16 +62,16 @@ public class PopupManager {
         if (displayedPopup == null) {
             if (!popups.isEmpty()) {
                 displayedPopup = popups.poll();
-                displayedPopup.onReadyForDisplay();
+                displayedPopup.display();
             }
         }
     }
 
-    private static boolean hasDuplicatePopup(Popup popup) {
+    private static boolean hasDuplicatePopup(Overlay<?> popup) {
         if (displayedPopup != null && displayedPopup.toString().equals(popup.toString())) {
             return true;
         }
-        for (Popup p : popups) {
+        for (Overlay<?> p : popups) {
             if (p.toString().equals(popup.toString())) {
                 return true;
             }

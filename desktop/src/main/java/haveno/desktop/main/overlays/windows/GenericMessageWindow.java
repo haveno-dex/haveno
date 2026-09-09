@@ -18,6 +18,7 @@
 package haveno.desktop.main.overlays.windows;
 
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.PopupManager;
 import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -44,7 +45,17 @@ public class GenericMessageWindow extends Overlay<GenericMessageWindow> {
         addContent();
         addButtons();
         applyStyles();
-        display();
+        onShow();
+    }
+
+    @Override
+    protected void onShow() {
+        PopupManager.queueForDisplay(this);
+    }
+
+    @Override
+    protected void onHidden() {
+        PopupManager.onHidden(this);
     }
 
     public GenericMessageWindow preamble(String preamble) {
