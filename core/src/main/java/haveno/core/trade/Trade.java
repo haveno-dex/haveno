@@ -673,6 +673,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         isShutDownStarted = false;
         isShutDown = false;
 
+        // close leftover offers before early returns or wallet errors when restoring a funded maker trade
+        if (isMaker() && isDepositsPublished()) {
+            processModel.getOpenOfferManager().closeSpentOffer(getOffer());
+        }
+
         // skip initialization if trade is complete
         // starting in v1.0.19, seller resends payment received message until acked or stored in mailbox
         if (isFinished()) {
