@@ -562,7 +562,11 @@ public final class XmrConnectionService {
     }
 
     public synchronized boolean requestConnectionSwitch(MoneroRpcConnection sourceConnection, XmrWalletBase requester) {
-        log.warn("Requesting connection switch to next best monerod, source monerod={}, proxyUri={}", sourceConnection == null ? null : sourceConnection.getUri(), sourceConnection == null ? null : sourceConnection.getProxyUri());
+        return requestConnectionSwitch(sourceConnection, requester, false);
+    }
+
+    public synchronized boolean requestConnectionSwitch(MoneroRpcConnection sourceConnection, XmrWalletBase requester, boolean skipCooldown) {
+        log.warn("Requesting connection switch to next best monerod, source monerod={}, proxyUri={}, skipCooldown={}", sourceConnection == null ? null : sourceConnection.getUri(), sourceConnection == null ? null : sourceConnection.getProxyUri(), skipCooldown);
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL) {
             log.warn("Requesting connection switch on testnet", new RuntimeException("Stack trace"));
         }
@@ -601,7 +605,7 @@ public final class XmrConnectionService {
         if (HavenoUtils.isWalletInitialized()) {
 
             // skip if last switch was too recent
-            if (System.currentTimeMillis() - lastSwitchTimestamp < SKIP_SWITCH_WITHIN_MS) {
+            if (!skipCooldown && System.currentTimeMillis() - lastSwitchTimestamp < SKIP_SWITCH_WITHIN_MS) {
                 log.warn("Skipping switch to next best Monero connection because last switch was less than {} seconds ago", SKIP_SWITCH_WITHIN_MS / 1000);
                 return false;
             }

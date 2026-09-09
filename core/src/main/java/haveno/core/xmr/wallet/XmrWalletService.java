@@ -2284,7 +2284,20 @@ public class XmrWalletService extends XmrWalletBase {
 
     public void handleMainWalletError(Exception e, MoneroRpcConnection sourceConnection, int numAttempts) {
         if (HavenoUtils.isUnresponsive(e)) forceCloseMainWallet(); // wallet can be stuck a while
-        if (numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0) requestConnectionSwitchSynchronous(sourceConnection); // request connection switch every n attempts
+        // bounded transaction retries can exhaust their attempts before the normal switch cooldown expires
+        if (numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0) requestConnectionSwitchSynchronous(sourceConnection, true);
+
+        // transaction retries hold walletLock, so apply even a concurrent switch whose listener is waiting on that lock
+        if (!isShutDownStarted && accountService.isAccountOpen()) {
+            MoneroRpcConnection connection = xmrConnectionService.getConnection();
+            if (connection != null) {
+                try {
+                    onConnectionChanged(connection);
+                } catch (Exception connectionError) {
+                    log.warn("Error applying connection to main wallet during transaction retry: {}", connectionError.getMessage());
+                }
+            }
+        }
         initMainWallet();
     }
 
@@ -2561,10 +2574,14 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
+        return requestConnectionSwitchSynchronous(sourceConnection, false);
+    }
+
+    private boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection, boolean skipCooldown) {
         synchronized (requestConnectionSwitchSynchronousLock) {
             isProcessingRequestConnectionSwitchSynchronous = true;
             try {
-                if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this)) {
+                if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this, skipCooldown)) {
                     onConnectionChanged(xmrConnectionService.getConnection()); // handle connection change on same thread
                     return true;
                 }
