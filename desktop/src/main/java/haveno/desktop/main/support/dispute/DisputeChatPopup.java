@@ -101,11 +101,10 @@ public class DisputeChatPopup {
 
         AnchorPane pane = new AnchorPane(chatView);
         pane.setPrefSize(760, 500);
-        AnchorPane.setLeftAnchor(chatView, 10d);
-        AnchorPane.setRightAnchor(chatView, 10d);
-        AnchorPane.setTopAnchor(chatView, -20d);
-        AnchorPane.setBottomAnchor(chatView, 10d);
-        pane.getStyleClass().add("dispute-chat-border");
+        AnchorPane.setLeftAnchor(chatView, 0d);
+        AnchorPane.setRightAnchor(chatView, 0d);
+        AnchorPane.setTopAnchor(chatView, 0d);
+        AnchorPane.setBottomAnchor(chatView, 0d);
         if (selectedDispute.isClosed()) {
             chatView.display(concreteDisputeSession, null, pane.widthProperty());
         } else {

@@ -508,10 +508,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         AnchorPane pane = new AnchorPane(chatView);
         pane.setPrefSize(760, 500);
-        AnchorPane.setLeftAnchor(chatView, 10d);
-        AnchorPane.setRightAnchor(chatView, 10d);
-        AnchorPane.setTopAnchor(chatView, -20d);
-        AnchorPane.setBottomAnchor(chatView, 10d);
+        AnchorPane.setLeftAnchor(chatView, 0d);
+        AnchorPane.setRightAnchor(chatView, 0d);
+        AnchorPane.setTopAnchor(chatView, 0d);
+        AnchorPane.setBottomAnchor(chatView, 0d);
 
         boolean isTaker = !model.dataModel.isMaker(trade.getOffer());
         TradeChatSession tradeChatSession = new TradeChatSession(trade, isTaker);
