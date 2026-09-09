@@ -2375,6 +2375,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
             // unregister trade
             processModel.getTradeManager().unregisterTrade(this);
+
+            // retry spent-input cleanup after releasing ownership, preserving any new trade reservation
+            if (this instanceof MakerTrade && openOffer.isPresent()) {
+                processModel.getOpenOfferManager().removeOpenOfferIfSpent(openOffer.get());
+            }
         }
     }
 

@@ -43,7 +43,6 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.taskrunner.Task;
 import haveno.core.offer.Offer;
-import haveno.core.offer.OpenOffer;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerTrade;
@@ -1157,12 +1156,10 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
 
         // remove offer on unacceptable 2nd nack
         String warningMessage = "Your offer (" + trade.getOffer().getShortId() + ") has been removed because there was a problem taking the trade.\n\nError message: " + ackMessage.getErrorMessage();
-        OpenOffer openOffer = HavenoUtils.openOfferManager.getOpenOffer(trade.getId()).orElse(null);
-        if (openOffer != null) {
-            HavenoUtils.openOfferManager.removeOpenOffer(openOffer, null, null);
+        if (HavenoUtils.openOfferManager.removeOpenOfferOnTradeError(trade)) {
             HavenoUtils.setTopError(warningMessage);
+            log.warn(warningMessage);
         }
-        log.warn(warningMessage);
     }
 
     private static boolean isAcceptableInitTradeRequestNack(AckMessage ackMessage) {
