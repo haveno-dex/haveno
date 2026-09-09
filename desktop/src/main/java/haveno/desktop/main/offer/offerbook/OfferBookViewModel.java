@@ -57,7 +57,6 @@ import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableViewModel;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.offer.OfferView;
-import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.DisplayUtils;
@@ -379,12 +378,14 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         showNoDepositOffers = isSelected;
         preferences.setShowNoDepositOffers(isSelected);
         filterOffers();
+        fillCurrencies();
     }
 
     void onShowPrivateOffers(boolean isSelected) {
         showPrivateOffers = isSelected;
         preferences.setShowPrivateOffers(isSelected);
         filterOffers();
+        fillCurrencies();
     }
 
 
@@ -398,14 +399,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     SortedList<OfferBookListItem> getOfferList() {
         return sortedItems;
-    }
-
-    Map<String, Integer> getBuyOfferCounts() {
-        return offerBook.getBuyOfferCountMap();
-    }
-
-    Map<String, Integer> getSellOfferCounts() {
-        return offerBook.getSellOfferCountMap();
     }
 
     boolean isMyOffer(Offer offer) {
@@ -425,19 +418,21 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     Map<String, Integer> getOfferCounts() {
-        return OfferViewUtil.isShownAsBuyOffer(getDirection(), getSelectedTradeCurrency()) ? getSellOfferCounts() : getBuyOfferCounts();
+        Map<String, Integer> counts = new HashMap<>();
+        for (OfferBookListItem item : new ArrayList<>(offerBook.getOfferBookListItems())) {
+            Offer offer = item.getOffer();
+            if (offer.getDirection() != direction && matchesOfferType(item)) {
+                counts.merge(offer.getCounterCurrencyCode(), 1, Integer::sum);
+            }
+        }
+        return counts;
     }
 
     // Number of offers per payment method matching currency, direction, passphrase, and no-deposit filters.
     Map<String, Integer> getPaymentMethodOfferCounts() {
         Map<String, Integer> counts = new HashMap<>();
-        Predicate<OfferBookListItem> predicate = getCurrencyAndMethodPredicate(direction, selectedTradeCurrency, false);
-        // Apply lock/passphrase and no-deposit filters (matching filterOffers logic)
-        predicate = predicate.and(offerBookListItem -> {
-            if (direction == OfferDirection.BUY && showNoDepositOffers) return offerBookListItem.getOffer().hasBuyerAsTakerWithoutDeposit();
-            if (showPrivateOffers) return offerBookListItem.getOffer().isPrivateOffer();
-            return !offerBookListItem.getOffer().isPrivateOffer();
-        });
+        Predicate<OfferBookListItem> predicate = getCurrencyAndMethodPredicate(direction, selectedTradeCurrency, false)
+                .and(this::matchesOfferType);
         for (OfferBookListItem item : new ArrayList<>(offerBook.getOfferBookListItems())) {
             if (predicate.test(item)) {
                 counts.merge(item.getOffer().getPaymentMethod().getId(), 1, Integer::sum);
@@ -690,12 +685,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency, true).and(getOffersMatchingMyAccountsPredicate()) :
                 getCurrencyAndMethodPredicate(direction, selectedTradeCurrency, true);
 
-        // no deposit filter shows only no-deposit offers, lock filter shows only private offers, otherwise only public offers
-        predicate = predicate.and(offerBookListItem -> {
-            if (direction == OfferDirection.BUY && showNoDepositOffers) return offerBookListItem.getOffer().hasBuyerAsTakerWithoutDeposit();
-            if (showPrivateOffers) return offerBookListItem.getOffer().isPrivateOffer();
-            return !offerBookListItem.getOffer().isPrivateOffer();
-        });
+        predicate = predicate.and(this::matchesOfferType);
 
         if (!filterText.isEmpty()) {
 
@@ -744,6 +734,14 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             filteredItems.setPredicate(predicate);
             filterTextHidesOffers.set(false);
         }
+    }
+
+    private boolean matchesOfferType(OfferBookListItem item) {
+        // no deposit filter shows only no-deposit offers, lock filter shows only private offers, otherwise only public offers
+        Offer offer = item.getOffer();
+        if (direction == OfferDirection.BUY && showNoDepositOffers) return offer.hasBuyerAsTakerWithoutDeposit();
+        if (showPrivateOffers) return offer.isPrivateOffer();
+        return !offer.isPrivateOffer();
     }
 
     abstract Predicate<OfferBookListItem> getCurrencyAndMethodPredicate(OfferDirection direction,

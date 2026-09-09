@@ -123,6 +123,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     private final SignedWitnessService signedWitnessService;
 
     protected AutocompleteComboBox<TradeCurrency> currencyComboBox;
+    private Map<String, Integer> currencyOfferCounts;
     private AutocompleteComboBox<PaymentMethod> paymentMethodComboBox;
     private AutoTooltipButton createOfferButton;
     private AutoTooltipTextField filterInputField;
@@ -375,10 +376,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     @Override
     protected void activate() {
 
-        Map<String, Integer> offerCounts = model.getOfferCounts();
-        currencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory(Res.get("shared.oneOffer"),
-                Res.get("shared.multipleOffers"),
-                offerCounts));
+        updateCurrencyCellFactory();
+        currencyComboBox.setOnShowing(e -> updateCurrencyCellFactory());
 
         currencyComboBox.setConverter(new CurrencyStringConverter(currencyComboBox));
         currencyComboBox.getEditor().getStyleClass().add("combo-box-editor-bold");
@@ -410,26 +409,26 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         noDepositOffersToggleButton.setOnAction(e -> {
             boolean selected = noDepositOffersToggleButton.isSelected();
             model.onShowNoDepositOffers(selected);
-            paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
-            updatePaymentMethodCellFactory();
-            updatePaymentMethodComboBoxEditor();
             if (selected && privateOffersToggleButton.isSelected()) {
                 privateOffersToggleButton.setSelected(false);
                 model.onShowPrivateOffers(false);
             }
+            paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
+            updatePaymentMethodCellFactory();
+            updatePaymentMethodComboBoxEditor();
         });
 
         privateOffersToggleButton.setSelected(model.showPrivateOffers);
         privateOffersToggleButton.setOnAction(e -> {
             boolean selected = privateOffersToggleButton.isSelected();
             model.onShowPrivateOffers(selected);
-            paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
-            updatePaymentMethodCellFactory();
-            updatePaymentMethodComboBoxEditor();
             if (selected && noDepositOffersToggleButton.isSelected()) {
                 noDepositOffersToggleButton.setSelected(false);
                 model.onShowNoDepositOffers(false);
             }
+            paymentMethodComboBox.setAutocompleteItems(model.getPaymentMethods());
+            updatePaymentMethodCellFactory();
+            updatePaymentMethodComboBoxEditor();
         });
 
         model.getOfferList().comparatorProperty().bind(tableView.comparatorProperty());
@@ -506,6 +505,15 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         });
     }
 
+    private void updateCurrencyCellFactory() {
+        Map<String, Integer> offerCounts = model.getOfferCounts();
+        if (offerCounts.equals(currencyOfferCounts)) return;
+        currencyOfferCounts = offerCounts;
+        currencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory(Res.get("shared.oneOffer"),
+                Res.get("shared.multipleOffers"),
+                currencyOfferCounts));
+    }
+
     private void updatePaymentMethodCellFactory() {
         paymentMethodComboBox.setCellFactory(GUIUtil.getPaymentMethodCellFactory(Res.get("shared.oneOffer"),
                 Res.get("shared.multipleOffers"),
@@ -540,6 +548,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     @Override
     protected void deactivate() {
+        currencyComboBox.setOnShowing(null);
         createOfferButton.setOnAction(null);
         matchingOffersToggleButton.setOnAction(null);
         matchingOffersToggleButton.disableProperty().unbind();
