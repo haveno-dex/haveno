@@ -75,6 +75,11 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         addContent();
         addButtons();
         applyStyles();
+        onShow();
+    }
+
+    @Override
+    protected void onShow() {
         display();
     }
 

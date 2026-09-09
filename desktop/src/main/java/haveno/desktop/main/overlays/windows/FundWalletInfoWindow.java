@@ -23,6 +23,7 @@ import haveno.core.user.DontShowAgainLookup;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipCheckBox;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.main.overlays.popups.PopupManager;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -72,6 +73,17 @@ public class FundWalletInfoWindow extends TxHeroWindow<FundWalletInfoWindow> {
     public void show() {
         if (dontShowAgainId != null && !DontShowAgainLookup.showAgain(dontShowAgainId)) return;
         showHeroWindow();
+    }
+
+    @Override
+    protected void onShow() {
+        PopupManager.queueForDisplay(this);
+    }
+
+    @Override
+    protected void onHidden() {
+        super.onHidden();
+        PopupManager.onHidden(this);
     }
 
     @Override

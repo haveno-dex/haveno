@@ -27,10 +27,6 @@ public class Popup extends Overlay<Popup> {
     public Popup() {
     }
 
-    public void onReadyForDisplay() {
-        super.display();
-    }
-
     @Override
     protected void onShow() {
         PopupManager.queueForDisplay(this);
