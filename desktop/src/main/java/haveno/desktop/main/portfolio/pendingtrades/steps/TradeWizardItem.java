@@ -17,63 +17,111 @@
 
 package haveno.desktop.main.portfolio.pendingtrades.steps;
 
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import haveno.common.UserThread;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
+import haveno.core.locale.Res;
+import haveno.desktop.util.GlyphsDude;
+import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
+import javafx.geometry.Orientation;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
-import javafx.scene.text.Text;
-import org.jetbrains.annotations.NotNull;
+import javafx.scene.control.Separator;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 
-import static haveno.desktop.util.FormBuilder.getBigIcon;
+public class TradeWizardItem extends HBox {
+    private static final PseudoClass CURRENT = PseudoClass.getPseudoClass("current");
+    private static final PseudoClass COMPLETE = PseudoClass.getPseudoClass("complete");
+    private static final PseudoClass WARNING = PseudoClass.getPseudoClass("warning");
+    private final String number;
+    private final String title;
+    private final Label circle;
+    private final Label caption = new Label();
+    private final Class<? extends TradeStepView> viewClass;
+    private String stepCaption = "";
+    private String warningCaption;
 
-public class TradeWizardItem extends Label {
-    private final String iconLabel;
+    public TradeWizardItem(Class<? extends TradeStepView> viewClass, String title, String number) {
+        this.viewClass = viewClass;
+        this.title = title;
+        this.number = number;
+        circle = new Label(number);
+        circle.setGraphic(GlyphsDude.createIcon(FontAwesomeIcon.CHECK, "14"));
+        circle.getStyleClass().add("trade-step-circle");
+        Label heading = new Label(title);
+        heading.setWrapText(true);
+        heading.getStyleClass().add("trade-step-title");
+        caption.getStyleClass().add("trade-step-caption");
+        caption.setWrapText(true);
+        VBox text = new VBox(3, heading, caption);
+        text.setMinWidth(0);
+        getChildren().addAll(circle, text);
+        getStyleClass().add("trade-step");
+        setAlignment(Pos.CENTER_LEFT);
+        setSpacing(10);
+        setMinWidth(0);
+        setMaxWidth(Double.MAX_VALUE);
+        setMouseTransparent(true);
+        setDisabled();
+    }
 
     public Class<? extends TradeStepView> getViewClass() {
         return viewClass;
     }
 
-    private final Class<? extends TradeStepView> viewClass;
-
-    public TradeWizardItem(Class<? extends TradeStepView> viewClass, String title, String iconLabel) {
-        this.viewClass = viewClass;
-        this.iconLabel = iconLabel;
-
-        setMouseTransparent(true);
-        setText(title);
-//        setPrefHeight(40);
-        setPrefWidth(360);
-        setAlignment(Pos.CENTER_LEFT);
-        setDisabled();
+    public void addConnector() {
+        Separator connector = new Separator(Orientation.HORIZONTAL);
+        connector.setMinWidth(12);
+        connector.setPrefWidth(12);
+        connector.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(connector, Priority.ALWAYS);
+        getChildren().add(connector);
     }
 
     public void setDisabled() {
-        setId("trade-wizard-item-background-disabled");
-        UserThread.execute(() -> setGraphic(getStackPane("trade-step-disabled-bg")));
+        pseudoClassStateChanged(CURRENT, false);
+        pseudoClassStateChanged(COMPLETE, false);
+        circle.setText(number);
+        circle.setContentDisplay(ContentDisplay.TEXT_ONLY);
+        warningCaption = null;
+        setCaption("");
     }
 
-
     public void setActive() {
-        setId("trade-wizard-item-background-active");
-        UserThread.execute(() -> setGraphic(getStackPane("trade-step-active-bg")));
+        pseudoClassStateChanged(CURRENT, true);
+        pseudoClassStateChanged(COMPLETE, false);
+        circle.setText(number);
+        circle.setContentDisplay(ContentDisplay.TEXT_ONLY);
+        setCaption(Res.get("portfolio.pending.tradeView.yourTurn"));
     }
 
     public void setCompleted() {
-        setId("trade-wizard-item-background-active");
-        final Text icon = getBigIcon(MaterialDesignIcon.CHECK_CIRCLE);
-        icon.getStyleClass().add("trade-step-active-bg");
-        UserThread.execute(() -> setGraphic(icon));
+        pseudoClassStateChanged(CURRENT, false);
+        pseudoClassStateChanged(COMPLETE, true);
+        circle.setText("✓");
+        circle.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        warningCaption = null;
+        setCaption(number.equals("4") ? "" : Res.get("portfolio.pending.tradeView.complete"));
     }
 
-    @NotNull
-    private StackPane getStackPane(String styleClass) {
-        StackPane stackPane = new StackPane();
-        final Label label = new Label(iconLabel);
-        label.getStyleClass().add("trade-step-label");
-        final Text icon = getBigIcon(MaterialDesignIcon.CIRCLE);
-        icon.getStyleClass().add(styleClass);
-        stackPane.getChildren().addAll(icon, label);
-        return stackPane;
+    public void setCaption(String value) {
+        stepCaption = value;
+        updateCaption();
+    }
+
+    public void setWarningCaption(String value) {
+        warningCaption = value;
+        updateCaption();
+    }
+
+    private void updateCaption() {
+        boolean warning = warningCaption != null && getPseudoClassStates().contains(CURRENT);
+        String value = warning ? warningCaption : stepCaption;
+        pseudoClassStateChanged(WARNING, warning);
+        caption.setText(value);
+        caption.setVisible(!value.isEmpty());
+        caption.setManaged(!value.isEmpty());
+        setAccessibleText(value.isEmpty() ? title : title + ": " + value);
     }
 }

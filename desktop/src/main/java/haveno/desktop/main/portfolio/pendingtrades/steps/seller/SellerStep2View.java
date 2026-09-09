@@ -22,10 +22,9 @@ import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import haveno.desktop.util.Layout;
+import haveno.desktop.main.portfolio.pendingtrades.TradeFormPane;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 
 public class SellerStep2View extends TradeStepView {
 
@@ -39,15 +38,16 @@ public class SellerStep2View extends TradeStepView {
 
     @Override
     protected void addContent() {
-        addTradeInfoBlock();
         addInfoBlock();
+        gridPane.add(createAmountPanel(Res.get("portfolio.pending.tradeView.expectedPayment")), 0, ++gridRow, 2, 1);
         checkNotNull(model.dataModel.getTrade(), "No trade found");
         checkNotNull(model.dataModel.getTrade().getOffer(), "No offer found");
         if (model.dataModel.getSellersPaymentAccountPayload() instanceof F2FAccountPayload) {
-            addTitledGroupBg(gridPane, ++gridRow, 4,
-                    Res.get("portfolio.pending.step2_seller.f2fInfo.headline"), Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
-            gridRow = F2FForm.addStep2Form(gridPane, --gridRow, model.dataModel.getSellersPaymentAccountPayload(),
-                    model.dataModel.getTrade().getOffer(), Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR, false);
+            TradeFormPane details = new TradeFormPane();
+            F2FForm.addStep2Form(details, -1, model.dataModel.getSellersPaymentAccountPayload(),
+                    model.dataModel.getTrade().getOffer(), 0, false);
+            details.finish(false);
+            gridPane.add(details, 0, ++gridRow, 2, 1);
         }
     }
 
@@ -72,12 +72,12 @@ public class SellerStep2View extends TradeStepView {
 
     @Override
     protected String getInfoBlockTitle() {
-        return Res.get("portfolio.pending.step2_seller.waitPayment.headline");
+        return Res.get("portfolio.pending.tradeView.waitingBuyerTitle");
     }
 
     @Override
     protected String getInfoText() {
-        return Res.get("portfolio.pending.step2_seller.waitPayment.msg", getCurrencyCode(trade));
+        return Res.get("portfolio.pending.tradeView.waitingBuyerInfo", getCurrencyCode(trade));
     }
 
 
@@ -87,9 +87,7 @@ public class SellerStep2View extends TradeStepView {
 
     @Override
     protected String getFirstHalfOverWarnText() {
-        return Res.get("portfolio.pending.step2_seller.warn",
-                getCurrencyCode(trade),
-                model.getDateForOpenDispute());
+        return Res.get("portfolio.pending.tradeView.waitingBuyerHalf");
     }
 
 
@@ -99,7 +97,7 @@ public class SellerStep2View extends TradeStepView {
 
     @Override
     protected String getPeriodOverWarnText() {
-        return Res.get("portfolio.pending.step2_seller.openForDispute");
+        return Res.get("portfolio.pending.tradeView.waitingBuyerExpired");
     }
 
     @Override

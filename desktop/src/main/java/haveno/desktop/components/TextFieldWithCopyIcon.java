@@ -19,24 +19,22 @@ package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
 
-import haveno.common.UserThread;
-import haveno.common.util.Utilities;
-import haveno.core.locale.Res;
-import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.AnchorPane;
 
 public class TextFieldWithCopyIcon extends AnchorPane {
 
     private final StringProperty text = new SimpleStringProperty();
+    private final Label copyLabel = new Label();
     private final TextField textField;
+    private TextArea wrappedTextArea;
     private boolean copyWithoutCurrencyPostFix;
     private boolean copyTextAfterDelimiter;
 
@@ -49,13 +47,10 @@ public class TextFieldWithCopyIcon extends AnchorPane {
     }
 
     public TextFieldWithCopyIcon(String customStyleClass) {
-        Label copyLabel = new Label();
         copyLabel.setLayoutY(Layout.FLOATING_ICON_Y);
         copyLabel.getStyleClass().addAll("icon", "highlight");
         if (customStyleClass != null) copyLabel.getStyleClass().add(customStyleClass + "-icon");
-        copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
-        copyLabel.setGraphic(GUIUtil.getCopyIcon());
-        copyLabel.setOnMouseClicked(e -> {
+        GUIUtil.configureCopyIcon(copyLabel, () -> {
             String text = getText();
             if (text != null && text.length() > 0) {
                 String copyText;
@@ -74,14 +69,10 @@ public class TextFieldWithCopyIcon extends AnchorPane {
                 } else {
                     copyText = text;
                 }
-                Utilities.copyToClipboard(copyText);
-                Tooltip tp = new Tooltip(Res.get("shared.copiedToClipboard"));
-                Node node = (Node) e.getSource();
-                UserThread.runAfter(() -> tp.hide(), 1);
-                tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
+                return copyText;
             }
+            return text;
         });
-        Accessibility.asButton(copyLabel, Res.get("shared.copyToClipboard"));
         textField = new JFXTextField();
         textField.setEditable(false);
         if (customStyleClass != null) textField.getStyleClass().add(customStyleClass);
@@ -95,6 +86,30 @@ public class TextFieldWithCopyIcon extends AnchorPane {
         AnchorPane.setBottomAnchor(textField, 0.0);
         textField.focusTraversableProperty().set(focusTraversableProperty().get());
         getChildren().addAll(textField, copyLabel);
+    }
+
+    public void setWrapText(boolean wrap) {
+        AnchorPane.setTopAnchor(copyLabel, wrap ? 2.0 : 0.0);
+        AnchorPane.setBottomAnchor(copyLabel, wrap ? null : 0.0);
+        if (wrap && wrappedTextArea == null) {
+            wrappedTextArea = new TextArea();
+            wrappedTextArea.setEditable(false);
+            wrappedTextArea.setWrapText(true);
+            wrappedTextArea.setMinHeight(0);
+            wrappedTextArea.textProperty().bind(text);
+            wrappedTextArea.tooltipProperty().bind(textField.tooltipProperty());
+            wrappedTextArea.focusTraversableProperty().bind(focusTraversableProperty());
+            AnchorPane.setLeftAnchor(wrappedTextArea, 0.0);
+            AnchorPane.setRightAnchor(wrappedTextArea, 30.0);
+            getChildren().add(0, wrappedTextArea);
+            GUIUtil.adjustHeightAutomatically(wrappedTextArea, null, false, 8.0);
+        }
+        textField.setVisible(!wrap);
+        textField.setManaged(!wrap);
+        if (wrappedTextArea != null) {
+            wrappedTextArea.setVisible(wrap);
+            wrappedTextArea.setManaged(wrap);
+        }
     }
 
     public void setPromptText(String value) {

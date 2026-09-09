@@ -21,10 +21,10 @@ import haveno.core.locale.Res;
 import haveno.core.trade.Trade;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.SimpleMarkdownLabel;
-import haveno.desktop.components.TitledGroupBg;
+import javafx.scene.control.Label;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 @Slf4j
-public class TradeStepInfo {
+public class TradeStepInfo extends VBox {
 
     public enum State {
         UNDEFINED,
@@ -53,9 +53,8 @@ public class TradeStepInfo {
         TRADE_COMPLETED
     }
 
-    private final TitledGroupBg titledGroupBg;
+    private final Label titledGroupBg;
     private final SimpleMarkdownLabel label;
-    private final SimpleMarkdownLabel footerLabel;
     private final AutoTooltipButton button;
     @Nullable
     @Setter
@@ -66,23 +65,17 @@ public class TradeStepInfo {
     private Supplier<String> periodOverWarnTextSupplier = () -> "";
     private Supplier<String> depositTxMissingWarnTextSupplier = () -> "";
 
-    TradeStepInfo(TitledGroupBg titledGroupBg,
-                  SimpleMarkdownLabel label,
-                  AutoTooltipButton button,
-                  SimpleMarkdownLabel footerLabel) {
-        this.titledGroupBg = titledGroupBg;
-        this.label = label;
-        this.button = button;
-        this.footerLabel = footerLabel;
-        GridPane.setColumnIndex(button, 0);
-
+    public TradeStepInfo() {
+        setSpacing(12);
+        getStyleClass().add("trade-support-state");
+        titledGroupBg = new Label();
+        titledGroupBg.setWrapText(true);
+        titledGroupBg.getStyleClass().add("trade-section-heading");
+        label = new SimpleMarkdownLabel("");
+        button = new AutoTooltipButton();
+        button.setMaxWidth(Double.MAX_VALUE);
+        getChildren().addAll(titledGroupBg, label, button);
         setState(State.SHOW_GET_HELP_BUTTON);
-    }
-
-    void removeItselfFrom(GridPane leftGridPane) {
-        leftGridPane.getChildren().remove(titledGroupBg);
-        leftGridPane.getChildren().remove(label);
-        leftGridPane.getChildren().remove(button);
     }
 
     public void setOnAction(EventHandler<ActionEvent> e) {
@@ -103,6 +96,14 @@ public class TradeStepInfo {
 
     public void setState(State state) {
         this.state = state;
+        boolean visible = state != State.SHOW_GET_HELP_BUTTON && state != State.TRADE_COMPLETED && state != State.UNDEFINED;
+        setVisible(visible);
+        setManaged(visible);
+        boolean showTitle = state != State.WARN_HALF_PERIOD && state != State.WARN_PERIOD_OVER &&
+                state != State.IN_ARBITRATION_SELF_REQUESTED && state != State.IN_ARBITRATION_PEER_REQUESTED;
+        titledGroupBg.setVisible(showTitle);
+        titledGroupBg.setManaged(showTitle);
+        button.getStyleClass().remove("action-button");
         switch (state) {
             case UNDEFINED:
                 break;
@@ -110,7 +111,7 @@ public class TradeStepInfo {
                 // grey button
                 titledGroupBg.setText(Res.get("portfolio.pending.support.headline.getHelp"));
                 label.updateContent("");
-                button.setText(Res.get("portfolio.pending.support.button.getHelp").toUpperCase());
+                button.setText(Res.get("portfolio.pending.support.button.getHelp"));
                 button.setId(null);
                 button.getStyleClass().remove("action-button");
                 button.setDisable(false);
@@ -119,27 +120,27 @@ public class TradeStepInfo {
                 // red button
                 String text = trade.getDisputeState().isOpen() ? Res.get("portfolio.pending.supportTicketOpened") : Res.get("portfolio.pending.arbitrationRequested");
                 titledGroupBg.setText(text);
-                label.updateContent(Res.get("portfolio.pending.disputeOpenedByUser", Res.get("portfolio.pending.communicateWithArbitrator")));
-                button.setText(text.toUpperCase());
+                label.updateContent(Res.get("portfolio.pending.tradeView.disputeSelf"));
+                button.setText(trade.getDisputeState().isOpen() ? Res.get("portfolio.pending.tradeView.viewDispute") : text);
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
-                button.setDisable(true);
+                button.setDisable(!trade.getDisputeState().isOpen());
                 break;
             case IN_ARBITRATION_PEER_REQUESTED:
                 // red button
                 text = trade.getDisputeState().isOpen() ? Res.get("portfolio.pending.supportTicketOpened") : Res.get("portfolio.pending.arbitrationRequested");
                 titledGroupBg.setText(text);
-                label.updateContent(Res.get("portfolio.pending.disputeOpenedByPeer", Res.get("portfolio.pending.communicateWithArbitrator")));
-                button.setText(text.toUpperCase());
+                label.updateContent(Res.get("portfolio.pending.tradeView.disputePeer"));
+                button.setText(trade.getDisputeState().isOpen() ? Res.get("portfolio.pending.tradeView.viewDispute") : text);
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
-                button.setDisable(true);
+                button.setDisable(!trade.getDisputeState().isOpen());
                 break;
             case MEDIATION_RESULT:
                 // green button
                 titledGroupBg.setText(Res.get("portfolio.pending.mediationResult.headline"));
                 label.updateContent(Res.get("portfolio.pending.mediationResult.info.noneAccepted"));
-                button.setText(Res.get("portfolio.pending.mediationResult.button").toUpperCase());
+                button.setText(Res.get("portfolio.pending.mediationResult.button"));
                 button.setId(null);
                 button.getStyleClass().add("action-button");
                 button.setDisable(false);
@@ -148,7 +149,7 @@ public class TradeStepInfo {
                 // green button deactivated
                 titledGroupBg.setText(Res.get("portfolio.pending.mediationResult.headline"));
                 label.updateContent(Res.get("portfolio.pending.mediationResult.info.selfAccepted"));
-                button.setText(Res.get("portfolio.pending.mediationResult.button").toUpperCase());
+                button.setText(Res.get("portfolio.pending.mediationResult.button"));
                 button.setId(null);
                 button.getStyleClass().add("action-button");
                 button.setDisable(false);
@@ -157,7 +158,7 @@ public class TradeStepInfo {
                 // green button
                 titledGroupBg.setText(Res.get("portfolio.pending.mediationResult.headline"));
                 label.updateContent(Res.get("portfolio.pending.mediationResult.info.peerAccepted"));
-                button.setText(Res.get("portfolio.pending.mediationResult.button").toUpperCase());
+                button.setText(Res.get("portfolio.pending.mediationResult.button"));
                 button.setId(null);
                 button.getStyleClass().add("action-button");
                 button.setDisable(false);
@@ -166,7 +167,7 @@ public class TradeStepInfo {
                 // red button
                 titledGroupBg.setText(Res.get("portfolio.pending.refundRequested"));
                 label.updateContent(Res.get("portfolio.pending.disputeOpenedByUser", Res.get("portfolio.pending.communicateWithArbitrator")));
-                button.setText(Res.get("portfolio.pending.refundRequested").toUpperCase());
+                button.setText(Res.get("portfolio.pending.refundRequested"));
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
                 button.setDisable(true);
@@ -175,7 +176,7 @@ public class TradeStepInfo {
                 // red button
                 titledGroupBg.setText(Res.get("portfolio.pending.refundRequested"));
                 label.updateContent(Res.get("portfolio.pending.disputeOpenedByPeer", Res.get("portfolio.pending.communicateWithArbitrator")));
-                button.setText(Res.get("portfolio.pending.refundRequested").toUpperCase());
+                button.setText(Res.get("portfolio.pending.refundRequested"));
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
                 button.setDisable(true);
@@ -184,7 +185,7 @@ public class TradeStepInfo {
                 // orange button
                 titledGroupBg.setText(Res.get("portfolio.pending.support.headline.halfPeriodOver"));
                 label.updateContent(firstHalfOverWarnTextSupplier.get());
-                button.setText(Res.get("portfolio.pending.support.button.getHelp").toUpperCase());
+                button.setText(Res.get("portfolio.pending.support.button.getHelp"));
                 button.setId(null);
                 button.getStyleClass().remove("action-button");
                 button.setDisable(false);
@@ -193,7 +194,7 @@ public class TradeStepInfo {
                 // red button
                 titledGroupBg.setText(Res.get("portfolio.pending.support.headline.periodOver"));
                 label.updateContent(periodOverWarnTextSupplier.get());
-                button.setText(Res.get("portfolio.pending.openSupport").toUpperCase());
+                button.setText(Res.get("portfolio.pending.tradeView.openDispute"));
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
                 button.setDisable(false);
@@ -202,21 +203,13 @@ public class TradeStepInfo {
                 // red button
                 titledGroupBg.setText(Res.get("portfolio.pending.support.headline.depositTxMissing"));
                 label.updateContent(depositTxMissingWarnTextSupplier.get());
-                button.setText(Res.get("portfolio.pending.openSupport").toUpperCase());
+                button.setText(Res.get("portfolio.pending.tradeView.openDispute"));
                 button.setId("open-dispute-button");
                 button.getStyleClass().remove("action-button");
                 button.setDisable(false);
                 break;
             case TRADE_COMPLETED:
-                // hide group and release its space so it doesn't stretch the step view
-                titledGroupBg.setVisible(false);
-                titledGroupBg.setManaged(false);
-                label.setVisible(false);
-                label.setManaged(false);
-                button.setVisible(false);
-                button.setManaged(false);
-                footerLabel.setVisible(false);
-                footerLabel.setManaged(false);
+                break;
             default:
                 break;
         }

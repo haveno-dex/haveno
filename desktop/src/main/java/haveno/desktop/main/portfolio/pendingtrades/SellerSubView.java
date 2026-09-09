@@ -49,9 +49,9 @@ public class SellerSubView extends TradeSubView {
 
     @Override
     protected void addWizards() {
-        step1 = new TradeWizardItem(SellerStep1View.class, Res.get("portfolio.pending.step1.waitForConf"), "1");
-        step2 = new TradeWizardItem(SellerStep2View.class, Res.get("portfolio.pending.step2_seller.waitPaymentSent"), "2");
-        step3 = new TradeWizardItem(SellerStep3View.class, Res.get("portfolio.pending.step3_seller.confirmPaymentReceived"), "3");
+        step1 = new TradeWizardItem(SellerStep1View.class, Res.get("portfolio.pending.tradeView.depositConfirmations"), "1");
+        step2 = new TradeWizardItem(SellerStep2View.class, Res.get("portfolio.pending.tradeView.paymentSent"), "2");
+        step3 = new TradeWizardItem(SellerStep3View.class, Res.get("portfolio.pending.tradeView.confirmReceipt"), "3");
         step4 = new TradeWizardItem(SellerStep4View.class, Res.get("portfolio.pending.step5.completed"), "4");
 
         addWizardsToGridPane(step1);
@@ -88,17 +88,20 @@ public class SellerSubView extends TradeSubView {
                 case STEP2:
                     step1.setCompleted();
                     showItem(step2);
+                    step2.setCaption(Res.get("portfolio.pending.tradeView.waitingBuyer"));
                     break;
                 case STEP3:
                     step1.setCompleted();
                     step2.setCompleted();
                     showItem(step3);
+                    step3.setCaption(Res.get("portfolio.pending.tradeView.yourTurn"));
                     break;
                 case STEP4:
                     step1.setCompleted();
                     step2.setCompleted();
                     step3.setCompleted();
                     showItem(step4);
+                    step4.setCompleted();
                     break;
                 default:
                     log.warn("unhandled viewState " + sellerState);

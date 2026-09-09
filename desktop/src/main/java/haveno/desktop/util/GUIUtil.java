@@ -69,6 +69,7 @@ import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
@@ -83,10 +84,12 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.DatePicker;
@@ -128,6 +131,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import javafx.util.Callback;
+import javafx.util.Duration;
 import javafx.util.StringConverter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroUtils;
@@ -156,6 +160,7 @@ import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Currency;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -168,6 +173,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -1004,6 +1010,38 @@ public class GUIUtil {
         stage.show();
     }
 
+    public static void showCenteredChatWindow(Stage stage, Scene rootScene) {
+        Window rootSceneWindow = rootScene.getWindow();
+        // use the screen containing the largest part of the application window
+        Rectangle2D screenBounds = Screen.getScreensForRectangle(rootSceneWindow.getX(), rootSceneWindow.getY(),
+                rootSceneWindow.getWidth(), rootSceneWindow.getHeight())
+                .stream().max(Comparator.comparingDouble(screen -> {
+                    Rectangle2D bounds = screen.getBounds();
+                    double width = Math.min(rootSceneWindow.getX() + rootSceneWindow.getWidth(), bounds.getMaxX())
+                            - Math.max(rootSceneWindow.getX(), bounds.getMinX());
+                    double height = Math.min(rootSceneWindow.getY() + rootSceneWindow.getHeight(), bounds.getMaxY())
+                            - Math.max(rootSceneWindow.getY(), bounds.getMinY());
+                    return Math.max(0, width) * Math.max(0, height);
+                })).orElse(Screen.getPrimary()).getVisualBounds();
+        stage.setWidth(Math.min(Layout.CHAT_WINDOW_WIDTH, Math.min(rootScene.getWidth(), screenBounds.getWidth())));
+        stage.setHeight(Math.min(Layout.CHAT_WINDOW_HEIGHT, Math.min(rootScene.getHeight(), screenBounds.getHeight())));
+        stage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
+        stage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
+        // set the native window background before the first frame is rendered
+        stage.getScene().setFill(CssTheme.isDarkTheme() ? Color.BLACK : Color.WHITE);
+        stage.setOpacity(0);
+        stage.show();
+
+        // center each new chat over the current application window and keep it on-screen
+        double x = Math.round(rootSceneWindow.getX() + rootScene.getX() + (rootScene.getWidth() - stage.getWidth()) / 2);
+        double y = Math.round(rootSceneWindow.getY() + rootScene.getY() + (rootScene.getHeight() - stage.getHeight()) / 2);
+        stage.setX(Math.max(screenBounds.getMinX(), Math.min(x, screenBounds.getMaxX() - stage.getWidth())));
+        stage.setY(Math.max(screenBounds.getMinY(), Math.min(y, screenBounds.getMaxY() - stage.getHeight())));
+
+        // reveal after positioning to avoid flashing at the default position
+        UserThread.execute(() -> stage.setOpacity(1));
+    }
+
     public static StringConverter<PaymentAccount> getPaymentAccountsComboBoxStringConverter() {
         return new StringConverter<>() {
             @Override
@@ -1813,17 +1851,26 @@ public class GUIUtil {
     }
 
     public static void adjustHeightAutomatically(TextArea textArea, Double maxHeight) {
+        adjustHeightAutomatically(textArea, maxHeight, true);
+    }
+
+    public static void adjustHeightAutomatically(TextArea textArea, Double maxHeight, boolean loadSceneStyles) {
+        adjustHeightAutomatically(textArea, maxHeight, loadSceneStyles, null);
+    }
+
+    public static void adjustHeightAutomatically(TextArea textArea, Double maxHeight, boolean loadSceneStyles, Double extraHeight) {
         textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
             if (newScene != null) {
                 // avoid javafx css warning
-                CssTheme.loadSceneStyles(newScene, CssTheme.getCurrentTheme(), false);
+                if (loadSceneStyles) CssTheme.loadSceneStyles(newScene, CssTheme.getCurrentTheme(), false);
                 textArea.applyCss();
                 var text = textArea.lookup(".text");
 
                 textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
                     Insets padding = textArea.getInsets();
                     double topBottomPadding = padding.getTop() + padding.getBottom();
-                    double prefHeight = textArea.getFont().getSize() + text.getBoundsInLocal().getHeight() + topBottomPadding;
+                    double prefHeight = (extraHeight == null ? textArea.getFont().getSize() : extraHeight) +
+                            text.getBoundsInLocal().getHeight() + topBottomPadding;
                     return maxHeight == null ? prefHeight : Math.min(prefHeight, maxHeight);
                 }, text.boundsInLocalProperty()));
 
@@ -1874,6 +1921,42 @@ public class GUIUtil {
         MaterialDesignIconView copyIcon = new MaterialDesignIconView(MaterialDesignIcon.CONTENT_COPY, "1.35em");
         Accessibility.mute(copyIcon);
         return copyIcon;
+    }
+
+    public static void configureCopyIcon(Labeled control, Supplier<String> contents) {
+        control.setGraphic(getCopyIcon());
+        Tooltip hover = new Tooltip(Res.get("shared.copyToClipboard"));
+        Tooltip feedback = new Tooltip(Res.get("shared.copiedToClipboard"));
+        control.setTooltip(hover);
+        PauseTransition timeout = new PauseTransition(Duration.seconds(1));
+        Runnable reset = () -> {
+            timeout.stop();
+            feedback.hide();
+            control.setTooltip(hover);
+        };
+        timeout.setOnFinished(event -> reset.run());
+        control.sceneProperty().addListener((observable, oldScene, newScene) -> reset.run());
+        Runnable copy = () -> {
+            String text = contents.get();
+            if (text == null || text.isEmpty()) return;
+            Utilities.copyToClipboard(text);
+            // anchor feedback to the glyph even when the copy label stretches to fit a field
+            Node graphic = control.getGraphic();
+            Bounds bounds = graphic.localToScreen(graphic.getBoundsInLocal());
+            if (bounds != null) {
+                control.setTooltip(null);
+                hover.hide();
+                feedback.show(control, bounds.getCenterX() + Layout.PADDING, bounds.getCenterY() + Layout.PADDING);
+                timeout.playFromStart();
+            }
+        };
+        if (control instanceof ButtonBase button) {
+            button.setAccessibleText(Res.get("shared.copyToClipboard"));
+            button.setOnAction(event -> copy.run());
+        } else {
+            control.setOnMouseClicked(event -> copy.run());
+            Accessibility.asButton(control, Res.get("shared.copyToClipboard"));
+        }
     }
 
     public static Tuple2<StackPane, ImageView> getSmallXmrQrCodePane() {

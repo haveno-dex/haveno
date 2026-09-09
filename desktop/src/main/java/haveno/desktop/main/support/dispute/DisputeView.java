@@ -169,6 +169,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
     @Getter
     protected Dispute selectedDispute;
+    @Nullable
+    private String tradeIdToSelect;
 
     private Subscription selectedDisputeSubscription;
     protected FilteredList<Dispute> filteredList;
@@ -347,6 +349,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
             tableView.getSelectionModel().select(0);
 
         GUIUtil.requestFocus(tableView);
+
+        if (tradeIdToSelect != null) UserThread.execute(this::selectRequestedDispute);
     }
 
     @Override
@@ -354,6 +358,25 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         filterTextField.textProperty().removeListener(filterTextFieldListener);
         sortedList.comparatorProperty().unbind();
         selectedDisputeSubscription.unsubscribe();
+        tradeIdToSelect = null;
+    }
+
+    public void setTradeIdToSelect(@Nullable String tradeId) {
+        tradeIdToSelect = tradeId;
+    }
+
+    private void selectRequestedDispute() {
+        String tradeId = tradeIdToSelect;
+        tradeIdToSelect = null;
+        if (tradeId == null || root.getScene() == null) return;
+        disputeManager.getDisputesAsObservableList().stream()
+                .filter(dispute -> dispute.getTradeId().equals(tradeId))
+                .filter(dispute -> getFilterResult(dispute, "") != FilterResult.NO_MATCH)
+                .findFirst().ifPresent(dispute -> {
+                    if (!sortedList.contains(dispute)) filterTextField.clear();
+                    tableView.getSelectionModel().select(dispute);
+                    tableView.scrollTo(dispute);
+                });
     }
 
 
@@ -1458,7 +1481,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     private void openChat(Dispute dispute) {
         chatPopup.openChat(dispute, getConcreteDisputeChatSession(dispute), getCounterpartyName());
         dispute.setDisputeSeen(senderFlag());
-        newBadgeByDispute.get(dispute.getId()).setVisible(dispute.isNew());
+        JFXBadge newBadge = newBadgeByDispute.get(dispute.getId());
+        if (newBadge != null) newBadge.setVisible(dispute.isNew());
         updateChatMessageCount(dispute, chatBadgeByDispute.get(dispute.getId()));
     }
 

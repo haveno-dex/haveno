@@ -24,6 +24,10 @@ import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
+import haveno.core.monetary.Price;
 import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
@@ -40,10 +44,10 @@ import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
 import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
-import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
+import java.text.DateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -241,6 +245,10 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         return item == null ? "" : tradeUtil.getMarketDescription(item.getTrade());
     }
 
+    public long getRemainingTradeDuration() {
+        return tradeUtil.getRemainingTradeDuration(dataModel.getTrade());
+    }
+
     public String getRemainingTradeDurationAsWords() {
         checkNotNull(dataModel.getTrade(), "model's trade must not be null");
         return tradeUtil.getRemainingTradeDurationAsWords(dataModel.getTrade());
@@ -253,7 +261,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
     public String getDateForOpenDispute() {
         checkNotNull(dataModel.getTrade(), "model's trade must not be null");
-        return DisplayUtils.formatDateTime(tradeUtil.getDateForOpenDispute(dataModel.getTrade()));
+        return FormattingUtils.formatDateTime(tradeUtil.getDateForOpenDispute(dataModel.getTrade()),
+                DateFormat.getDateInstance(DateFormat.DEFAULT, GlobalSettings.getLocale()),
+                DateFormat.getTimeInstance(DateFormat.SHORT, GlobalSettings.getLocale()));
     }
 
     public boolean showWarning() {
@@ -293,6 +303,17 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         return dataModel.getTrade() != null
                 ? VolumeUtil.formatVolumeWithCode(dataModel.getTrade().getVolume())
                 : "";
+    }
+
+    public String getTradePrice() {
+        Trade trade = dataModel.getTrade();
+        Price price = trade == null ? null : trade.getPrice();
+        if (price == null) return Res.get("shared.na");
+        String currencyCode = price.getCurrencyCode();
+        String formattedPrice = CurrencyUtil.isFiatCurrency(currencyCode)
+                ? FormattingUtils.formatMarketPrice(price.getDoubleValue(), 2)
+                : FormattingUtils.formatPrice(price);
+        return formattedPrice + " " + currencyCode + "/" + Res.getBaseCurrencyCode();
     }
 
     public String getTradeFee() {

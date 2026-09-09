@@ -49,9 +49,9 @@ public class BuyerSubView extends TradeSubView {
 
     @Override
     protected void addWizards() {
-        step1 = new TradeWizardItem(BuyerStep1View.class, Res.get("portfolio.pending.step1.waitForConf"), "1");
-        step2 = new TradeWizardItem(BuyerStep2View.class, Res.get("portfolio.pending.step2_buyer.startPayment"), "2");
-        step3 = new TradeWizardItem(BuyerStep3View.class, Res.get("portfolio.pending.step3_buyer.waitPaymentArrived"), "3");
+        step1 = new TradeWizardItem(BuyerStep1View.class, Res.get("portfolio.pending.tradeView.depositConfirmations"), "1");
+        step2 = new TradeWizardItem(BuyerStep2View.class, Res.get("portfolio.pending.tradeView.sendPayment"), "2");
+        step3 = new TradeWizardItem(BuyerStep3View.class, Res.get("portfolio.pending.tradeView.paymentReceived"), "3");
         step4 = new TradeWizardItem(BuyerStep4View.class, Res.get("portfolio.pending.step5.completed"), "4");
 
         addWizardsToGridPane(step1);
@@ -93,12 +93,14 @@ public class BuyerSubView extends TradeSubView {
                     step1.setCompleted();
                     step2.setCompleted();
                     showItem(step3);
+                    step3.setCaption(Res.get("portfolio.pending.tradeView.waitingSeller"));
                     break;
                 case STEP4:
                     step1.setCompleted();
                     step2.setCompleted();
                     step3.setCompleted();
                     showItem(step4);
+                    step4.setCompleted();
                     break;
                 default:
                     log.warn("unhandled buyerState " + buyerState);

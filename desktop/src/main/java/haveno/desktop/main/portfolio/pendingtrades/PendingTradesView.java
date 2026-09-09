@@ -57,7 +57,6 @@ import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
-import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -74,11 +73,12 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
@@ -89,15 +89,15 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.stage.Window;
 import javafx.util.Callback;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -105,7 +105,7 @@ import org.fxmisc.easybind.Subscription;
 @FxmlView
 public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTradesViewModel> {
     private static final double TABLE_ROW_HEIGHT = 36;
-    private static final int MAX_VISIBLE_ROWS = 5;
+    private static final int MAX_VISIBLE_ROWS = 4;
 
     public interface ChatCallback {
         void onOpenChat(Trade trade);
@@ -121,6 +121,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private final Preferences preferences;
     @FXML
     FilterBox filterBox;
+    @FXML
+    Label tradesTitle, tradesCount;
     @FXML
     TableView<PendingTradesListItem> tableView;
     @FXML
@@ -178,6 +180,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
     @Override
     public void initialize() {
+        root.getStylesheets().add(PendingTradesView.class.getResource("trade-view.css").toExternalForm());
+        tradesTitle.setText(Res.get("portfolio.tab.pendingTrades"));
+        filterBox.setInputFillWidth(0);
         GUIUtil.applyTableStyle(tableView);
 
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
@@ -212,6 +217,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         // an empty detail pane still claims its default height, so keep it out of the layout
         scrollView.visibleProperty().bind(scrollView.contentProperty().isNotNull());
         scrollView.managedProperty().bind(scrollView.visibleProperty());
+        configureTradeNavigation();
 
         tradeIdColumn.setComparator(Comparator.comparing(o -> o.getTrade().getId()));
         dateColumn.setComparator(Comparator.comparing(o -> o.getTrade().getDate()));
@@ -300,17 +306,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
 
-        // fit the header plus whole rows up to a cap so rows are never partially clipped;
-        // 2px slack keeps the VirtualFlow from showing a scrollbar at an exact fit
-        tableScrollPane.prefHeightProperty().bind(Bindings.createDoubleBinding(
-                () -> getTableHeaderHeight() + TABLE_ROW_HEIGHT * Math.min(Math.max(sortedList.size(), 1), MAX_VISIBLE_ROWS) + 2
-                        + getTableHbarHeight(),
-                sortedList, tableView.widthProperty(), tableScrollPane.viewportBoundsProperty()));
-        tableScrollPane.minHeightProperty().bind(tableScrollPane.prefHeightProperty());
-        // with no trades there is no detail view to make room for, so fill the height like the sibling tabs
-        tableScrollPane.maxHeightProperty().bind(Bindings.when(Bindings.isEmpty(sortedList))
-                .then(Double.MAX_VALUE).otherwise(tableScrollPane.prefHeightProperty()));
+        configureTableHeight();
 
+        tradesCount.textProperty().bind(Bindings.size(list).asString());
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
         filterBox.setPromptText(Res.get("shared.filter"));
         filterBox.activate();
@@ -353,8 +351,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
             model.onSelectedItemChanged(selectedItem);
 
-            if (selectedSubView != null && selectedItem != null)
+            if (selectedSubView != null && selectedItem != null) {
                 selectedSubView.activate();
+                selectedSubView.setOpenChatTradeId(tradeIdOfOpenChat);
+            }
         });
 
         selectedTableItemSubscription = EasyBind.subscribe(tableView.getSelectionModel().selectedItemProperty(),
@@ -370,6 +370,19 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         list.addListener(tradesListChangeListener);
         updateNewChatMessagesByTradeMap();
         model.getMempoolStatus().addListener(getMempoolStatusListener);
+    }
+
+    private void configureTableHeight() {
+        // fit the header plus whole rows up to a cap so rows are never partially clipped;
+        // 2px slack keeps the VirtualFlow from showing a scrollbar at an exact fit
+        tableScrollPane.prefHeightProperty().bind(Bindings.createDoubleBinding(
+                () -> getTableHeaderHeight() + TABLE_ROW_HEIGHT * Math.min(Math.max(tableView.getItems().size(), 1), MAX_VISIBLE_ROWS) + 2
+                        + getTableHbarHeight(),
+                tableView.getItems(), tableView.widthProperty(), tableScrollPane.viewportBoundsProperty()));
+        tableScrollPane.minHeightProperty().bind(tableScrollPane.prefHeightProperty());
+        // with no trades there is no detail view to make room for, so fill the height like the sibling tabs
+        tableScrollPane.maxHeightProperty().bind(Bindings.when(Bindings.isEmpty(tableView.getItems()))
+                .then(Double.MAX_VALUE).otherwise(tableScrollPane.prefHeightProperty()));
     }
 
     // measured once the skin exists (width dependency triggers re-evaluation after first layout)
@@ -391,6 +404,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @Override
     protected void deactivate() {
         filterBox.deactivate();
+        tradesCount.textProperty().unbind();
         sortedList.comparatorProperty().unbind();
         selectedItemSubscription.unsubscribe();
         selectedTableItemSubscription.unsubscribe();
@@ -402,6 +416,26 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         if (scene != null)
             scene.removeEventHandler(KeyEvent.KEY_RELEASED, keyEventEventHandler);
+    }
+
+    private void configureTradeNavigation() {
+        Runnable scrollToTop = () -> scrollView.setVvalue(scrollView.getVmin());
+        scrollView.contentProperty().addListener((observable, oldContent, newContent) -> {
+            if (oldContent instanceof TradeSubView oldView) oldView.setStepChangedCallback(null);
+            if (newContent instanceof TradeSubView newView) newView.setStepChangedCallback(scrollToTop);
+            scrollToTop.run();
+        });
+        tableView.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            if (event.getButton() != MouseButton.PRIMARY || !(event.getTarget() instanceof Node target)) return;
+            for (Node node = target; node != null && node != tableView; node = node.getParent()) {
+                // row actions keep their own navigation behavior
+                if (node instanceof ButtonBase || node instanceof PeerInfoIconTrading) return;
+                if (node instanceof TableRow<?> row) {
+                    if (!row.isEmpty() && row.isSelected()) scrollToTop.run();
+                    return;
+                }
+            }
+        });
     }
 
     private void removeSelectedSubView() {
@@ -500,6 +534,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         trade.getChatMessages().forEach(m -> m.setWasDisplayed(true));
         model.dataModel.getTradeManager().requestPersistence();
         tradeIdOfOpenChat = trade.getId();
+        if (selectedSubView != null) selectedSubView.setOpenChatTradeId(tradeIdOfOpenChat);
 
         ChatView chatView = new ChatView(traderChatManager, Res.get("offerbook.trader"));
         chatView.setAllowAttachments(false);
@@ -518,7 +553,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         tradeStateListener = (observable, oldValue, newValue) -> {
             UserThread.execute(() -> {
-                if (trade.isPayoutPublished()) {
+                if (trade.getId().equals(tradeIdOfOpenChat) && trade.isPayoutPublished()) {
                     if (chatPopupStage.isShowing()) {
                         chatPopupStage.hide();
                     }
@@ -529,7 +564,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         disputeStateListener = (observable, oldValue, newValue) -> {
             UserThread.execute(() -> {
-                if (newValue == Trade.DisputeState.DISPUTE_CLOSED || newValue == Trade.DisputeState.REFUND_REQUEST_CLOSED) {
+                if (trade.getId().equals(tradeIdOfOpenChat) &&
+                        (newValue == Trade.DisputeState.DISPUTE_CLOSED || newValue == Trade.DisputeState.REFUND_REQUEST_CLOSED)) {
                     chatPopupStage.hide();
                 }
             });
@@ -538,9 +574,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         mediationResultStateListener = (observable, oldValue, newValue) -> {
             UserThread.execute(() -> {
-                if (newValue == MediationResultState.PAYOUT_TX_PUBLISHED ||
+                if (trade.getId().equals(tradeIdOfOpenChat) && (newValue == MediationResultState.PAYOUT_TX_PUBLISHED ||
                         newValue == MediationResultState.RECEIVED_PAYOUT_TX_PUBLISHED_MSG ||
-                        newValue == MediationResultState.PAYOUT_TX_SEEN_IN_NETWORK) {
+                        newValue == MediationResultState.PAYOUT_TX_SEEN_IN_NETWORK)) {
                     chatPopupStage.hide();
                 }
             });
@@ -548,6 +584,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         trade.mediationResultStateProperty().addListener(mediationResultStateListener);
 
         chatView.display(tradeChatSession, pane.widthProperty());
+        Subscription payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(),
+                payoutState -> chatView.setInputBoxVisible(!trade.isPayoutPublished()));
 
         chatView.activate();
         chatView.scrollToBottom();
@@ -560,17 +598,17 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatPopupStage.initModality(Modality.NONE);
         chatPopupStage.initStyle(StageStyle.DECORATED);
         chatPopupStage.setOnHiding(event -> {
+            payoutStateSubscription.unsubscribe();
             chatView.deactivate();
             // at close we set all as displayed. While open we ignore updates of the numNewMsg in the list icon.
             trade.getChatMessages().forEach(m -> m.setWasDisplayed(true));
             model.dataModel.getTradeManager().requestPersistence();
             tradeIdOfOpenChat = null;
+            if (selectedSubView != null) selectedSubView.setOpenChatTradeId(null);
 
-            UserThread.execute(() -> {
-                trade.stateProperty().removeListener(tradeStateListener);
-                trade.disputeStateProperty().addListener(disputeStateListener);
-                trade.mediationResultStateProperty().addListener(mediationResultStateListener);
-            });
+            trade.stateProperty().removeListener(tradeStateListener);
+            trade.disputeStateProperty().removeListener(disputeStateListener);
+            trade.mediationResultStateProperty().removeListener(mediationResultStateListener);
 
             traderChatManager.requestPersistence();
         });
@@ -585,38 +623,12 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         });
         chatPopupStage.setScene(scene);
 
-        Window rootSceneWindow = rootScene.getWindow();
-        // use the screen containing the largest part of the application window
-        Rectangle2D screenBounds = Screen.getScreensForRectangle(rootSceneWindow.getX(), rootSceneWindow.getY(),
-                rootSceneWindow.getWidth(), rootSceneWindow.getHeight())
-                .stream().max(Comparator.comparingDouble(screen -> {
-                    Rectangle2D bounds = screen.getBounds();
-                    double width = Math.min(rootSceneWindow.getX() + rootSceneWindow.getWidth(), bounds.getMaxX())
-                            - Math.max(rootSceneWindow.getX(), bounds.getMinX());
-                    double height = Math.min(rootSceneWindow.getY() + rootSceneWindow.getHeight(), bounds.getMaxY())
-                            - Math.max(rootSceneWindow.getY(), bounds.getMinY());
-                    return Math.max(0, width) * Math.max(0, height);
-                })).orElse(Screen.getPrimary()).getVisualBounds();
-        chatPopupStage.setWidth(Math.min(Layout.CHAT_WINDOW_WIDTH, Math.min(rootScene.getWidth(), screenBounds.getWidth())));
-        chatPopupStage.setHeight(Math.min(Layout.CHAT_WINDOW_HEIGHT, Math.min(rootScene.getHeight(), screenBounds.getHeight())));
-        chatPopupStage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
-        chatPopupStage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
-        chatPopupStage.setOpacity(0);
-        chatPopupStage.show();
-
-        // center each new chat over the current application window and keep it on-screen
-        double x = Math.round(rootSceneWindow.getX() + rootScene.getX() + (rootScene.getWidth() - chatPopupStage.getWidth()) / 2);
-        double y = Math.round(rootSceneWindow.getY() + rootScene.getY() + (rootScene.getHeight() - chatPopupStage.getHeight()) / 2);
-        chatPopupStage.setX(Math.max(screenBounds.getMinX(), Math.min(x, screenBounds.getMaxX() - chatPopupStage.getWidth())));
-        chatPopupStage.setY(Math.max(screenBounds.getMinY(), Math.min(y, screenBounds.getMaxY() - chatPopupStage.getHeight())));
-
-        // Delay display to next render frame to avoid that the popup is first quickly displayed in default position
-        // and after a short moment in the correct position
-        UserThread.execute(() -> chatPopupStage.setOpacity(1));
+        GUIUtil.showCenteredChatWindow(chatPopupStage, rootScene);
         updateChatMessageCount(trade, badgeByTrade.get(trade.getId()));
     }
 
     private void updateChatMessageCount(Trade trade, JFXBadge badge) {
+        if (badge == null) return;
         UserThread.execute(() -> {
             if (!trade.getId().equals(tradeIdOfOpenChat)) {
                 updateNewChatMessagesByTradeMap();

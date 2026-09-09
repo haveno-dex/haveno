@@ -123,6 +123,7 @@
     -bs-login-prompt-text: #7a7a82;
     -bs-color-background-form-field-readonly: -bs-color-gray-1;
     -bs-color-background-pane: -bs-background-color;
+    -bs-trade-sidebar-background: rgba(0, 0, 0, 0.025);
     -bs-color-background-row-even: -bs-color-background-pane;
     -bs-color-background-row-odd: derive(-bs-color-background-pane, -6%);
     -bs-color-background-row-hover: #e8f0fb;
