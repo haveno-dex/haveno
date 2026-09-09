@@ -32,6 +32,11 @@ public class BuyerStep1View extends TradeStepView {
     }
 
     @Override
+    protected void addContent() {
+        addConfirmationInfo();
+    }
+
+    @Override
     protected void onPendingTradesInitialized() {
         super.onPendingTradesInitialized();
         //validatePayoutTx(); // TODO (woodser): no payout tx in xmr integration, do something else?

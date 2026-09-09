@@ -60,6 +60,7 @@
     -bs-login-field-focus-glow: rgba(56, 128, 255, 0.36);
     -bs-login-prompt-text: #9a9a9e;
     -bs-color-background-pane: rgb(15, 15, 15);
+    -bs-trade-sidebar-background: rgba(255, 255, 255, 0.018);
     -bs-color-background-row-even: rgb(19, 19, 19);
     -bs-color-background-row-odd: rgb(9, 9, 9);
     -bs-color-background-row-hover: rgb(33, 33, 33);

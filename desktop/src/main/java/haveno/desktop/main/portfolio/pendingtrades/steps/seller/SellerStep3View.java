@@ -34,11 +34,13 @@ import haveno.core.payment.payload.CashDepositAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.core.payment.payload.HalCashAccountPayload;
 import haveno.core.payment.payload.MoneyGramAccountPayload;
+import haveno.core.payment.payload.MbWayAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.SepaAccountPayload;
 import haveno.core.payment.payload.SepaInstantAccountPayload;
 import haveno.core.payment.payload.USPostalMoneyOrderAccountPayload;
 import haveno.core.payment.payload.WesternUnionAccountPayload;
+import haveno.core.payment.payload.ZelleAccountPayload;
 import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
 import haveno.core.user.DontShowAgainLookup;
@@ -47,8 +49,13 @@ import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.InfoTextField;
 import haveno.desktop.components.TextFieldWithCopyIcon;
 import haveno.desktop.components.indicator.TxConfidenceIndicator;
+import haveno.desktop.components.paymentmethods.MbWayForm;
+import haveno.desktop.components.paymentmethods.SepaForm;
+import haveno.desktop.components.paymentmethods.SepaInstantForm;
+import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
+import haveno.desktop.main.portfolio.pendingtrades.TradeFormPane;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
@@ -65,14 +72,10 @@ import org.fxmisc.easybind.Subscription;
 import javax.annotation.Nullable;
 import java.util.Optional;
 
-import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabelAfterGroup;
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithCopyIcon;
 import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 import static haveno.desktop.util.Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR;
 import static haveno.desktop.util.Layout.FLOATING_LABEL_DISTANCE;
-import static haveno.desktop.util.Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR;
 
 public class SellerStep3View extends TradeStepView {
 
@@ -181,15 +184,15 @@ public class SellerStep3View extends TradeStepView {
     protected void addContent() {
         gridPane.getColumnConstraints().get(1).setHgrow(Priority.ALWAYS);
 
-        addTradeInfoBlock();
-
-        addTitledGroupBg(gridPane, ++gridRow, 3,
-                Res.get("portfolio.pending.step3_seller.confirmPaymentReceipt"), GROUP_DISTANCE_WITHOUT_SEPARATOR);
-
-        TextFieldWithCopyIcon field = addTopLabelTextFieldWithCopyIcon(gridPane, gridRow,
-                Res.get("portfolio.pending.step3_seller.amountToReceive"),
-                model.getFiatVolume(), COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR).second;
-        field.setCopyWithoutCurrencyPostFix(true);
+        addHeading(Res.get("portfolio.pending.tradeView.receiveAmount", model.getFiatVolume()));
+        infoLabel = new Label(getInfoText());
+        infoLabel.setWrapText(true);
+        infoLabel.getStyleClass().add("trade-body");
+        infoLabel.setMaxWidth(640);
+        gridPane.add(infoLabel, 0, ++gridRow, 2, 1);
+        gridPane.add(createAmountPanel(Res.get("portfolio.pending.step3_seller.amountToReceive")), 0, ++gridRow, 2, 1);
+        TradeFormPane details = new TradeFormPane();
+        int detailsRow = 0;
 
         String myPaymentDetails = "";
         String peersPaymentDetails = "";
@@ -197,9 +200,10 @@ public class SellerStep3View extends TradeStepView {
         String peersTitle = "";
         String currencyName = getCurrencyName(trade);
         Contract contract = trade.getContract();
+        PaymentAccountPayload peersPaymentAccountPayload = null;
         if (contract != null) {
             PaymentAccountPayload myPaymentAccountPayload = trade.getSeller().getPaymentAccountPayload();
-            PaymentAccountPayload peersPaymentAccountPayload = trade.getBuyer().getPaymentAccountPayload();
+            peersPaymentAccountPayload = trade.getBuyer().getPaymentAccountPayload();
 
             myPaymentDetails = PaymentAccountUtil.findPaymentAccount(myPaymentAccountPayload, model.getUser())
                     .map(PaymentAccount::getAccountName)
@@ -213,11 +217,8 @@ public class SellerStep3View extends TradeStepView {
                 myTitle = Res.get("portfolio.pending.step3_seller.yourAddress", currencyName);
                 peersTitle = Res.get("portfolio.pending.step3_seller.buyersAddress", currencyName);
             } else {
-                if (myPaymentDetails.isEmpty()) {
-                    // Not expected
-                    myPaymentDetails = myPaymentAccountPayload != null ?
-                            myPaymentAccountPayload.getPaymentDetails() : "NA";
-                }
+                String recordedDetails = myPaymentAccountPayload != null ? myPaymentAccountPayload.getPaymentDetails() : Res.get("shared.na");
+                myPaymentDetails = myPaymentDetails.isEmpty() ? recordedDetails : myPaymentDetails + " · " + recordedDetails;
                 peersPaymentDetails = peersPaymentAccountPayload != null ?
                         peersPaymentAccountPayload.getPaymentDetails() : "NA";
                 myTitle = Res.get("portfolio.pending.step3_seller.yourAccount");
@@ -244,41 +245,63 @@ public class SellerStep3View extends TradeStepView {
             hBox.setSpacing(10);
             hBox.getChildren().addAll(vBox, assetTxConfidenceIndicator);
 
-            GridPane.setRowIndex(hBox, gridRow);
+            GridPane.setRowIndex(hBox, detailsRow);
             GridPane.setColumnIndex(hBox, 1);
             GridPane.setMargin(hBox, new Insets(COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR + FLOATING_LABEL_DISTANCE,
                     0,
                     0,
                     0));
-            gridPane.getChildren().add(hBox);
+            details.getChildren().add(hBox);
         }
 
-        TextFieldWithCopyIcon myPaymentDetailsTextField = addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow,
-                0, myTitle, myPaymentDetails).second;
-        myPaymentDetailsTextField.setMouseTransparent(false);
-        myPaymentDetailsTextField.setTooltip(new Tooltip(myPaymentDetails));
+        if (model.isBlockChainMethod()) {
+            TextFieldWithCopyIcon myPaymentDetailsTextField = addCompactTopLabelTextFieldWithCopyIcon(details, ++detailsRow,
+                    0, myTitle, myPaymentDetails).second;
+            myPaymentDetailsTextField.setMouseTransparent(false);
+            myPaymentDetailsTextField.setTooltip(new Tooltip(myPaymentDetails));
+        } else {
+            Label detailsTitle = new Label(Res.get("portfolio.pending.tradeView.buyersDetails"));
+            detailsTitle.getStyleClass().add("trade-section-heading");
+            gridPane.add(detailsTitle, 0, ++gridRow, 2, 1);
+        }
 
-        TextFieldWithCopyIcon peersPaymentDetailsTextField = addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow,
-                1, peersTitle, peersPaymentDetails).second;
-        peersPaymentDetailsTextField.setMouseTransparent(false);
-        peersPaymentDetailsTextField.setTooltip(new Tooltip(peersPaymentDetails));
+        // reuse identity-only forms; special methods retain their complete account details
+        if (peersPaymentAccountPayload instanceof ZelleAccountPayload) {
+            detailsRow = ZelleForm.addFormForBuyer(details, detailsRow, peersPaymentAccountPayload);
+        } else if (peersPaymentAccountPayload instanceof MbWayAccountPayload) {
+            detailsRow = MbWayForm.addFormForBuyer(details, detailsRow, peersPaymentAccountPayload);
+        } else if (peersPaymentAccountPayload instanceof SepaAccountPayload) {
+            detailsRow = SepaForm.addFormForBuyer(details, detailsRow, peersPaymentAccountPayload);
+        } else if (peersPaymentAccountPayload instanceof SepaInstantAccountPayload) {
+            detailsRow = SepaInstantForm.addFormForBuyer(details, detailsRow, peersPaymentAccountPayload);
+        } else {
+            TextFieldWithCopyIcon peersPaymentDetailsTextField = addCompactTopLabelTextFieldWithCopyIcon(details, ++detailsRow,
+                    0, peersTitle, peersPaymentDetails).second;
+            peersPaymentDetailsTextField.setMouseTransparent(false);
+            peersPaymentDetailsTextField.setTooltip(new Tooltip(peersPaymentDetails));
+        }
 
         String counterCurrencyTxId = trade.getCounterCurrencyTxId();
         String counterCurrencyExtraData = trade.getCounterCurrencyExtraData();
         if (counterCurrencyTxId != null && !counterCurrencyTxId.isEmpty() &&
                 counterCurrencyExtraData != null && !counterCurrencyExtraData.isEmpty()) {
-            TextFieldWithCopyIcon txHashTextField = addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow,
+            TextFieldWithCopyIcon txHashTextField = addCompactTopLabelTextFieldWithCopyIcon(details, ++detailsRow,
                     0, Res.get("portfolio.pending.step3_seller.xmrTxHash"), counterCurrencyTxId).second;
             txHashTextField.setMouseTransparent(false);
-            txHashTextField.setTooltip(new Tooltip(myPaymentDetails));
+            txHashTextField.setTooltip(new Tooltip(counterCurrencyTxId));
 
-            TextFieldWithCopyIcon txKeyDetailsTextField = addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow,
+            TextFieldWithCopyIcon txKeyDetailsTextField = addCompactTopLabelTextFieldWithCopyIcon(details, detailsRow,
                     1, Res.get("portfolio.pending.step3_seller.xmrTxKey"), counterCurrencyExtraData).second;
             txKeyDetailsTextField.setMouseTransparent(false);
-            txKeyDetailsTextField.setTooltip(new Tooltip(peersPaymentDetails));
+            txKeyDetailsTextField.setTooltip(new Tooltip(counterCurrencyExtraData));
         }
 
-        Tuple4<Button, BusyAnimation, Label, HBox> tuple = addButtonBusyAnimationLabelAfterGroup(gridPane, ++gridRow,
+        details.finish(model.isBlockChainMethod());
+        gridPane.add(details, 0, ++gridRow, 2, 1);
+        if (!model.isBlockChainMethod())
+            gridPane.add(createAccountSummary(Res.getWithCol("portfolio.pending.tradeView.receivingTo"), myPaymentDetails), 0, ++gridRow, 2, 1);
+
+        Tuple4<Button, BusyAnimation, Label, HBox> tuple = addConfirmationButton(gridPane, ++gridRow,
                 Res.get("portfolio.pending.step3_seller.confirmReceipt"));
 
         HBox hBox = tuple.fourth;
@@ -304,9 +327,9 @@ public class SellerStep3View extends TradeStepView {
     protected String getInfoText() {
         String currencyName = getCurrencyName(trade);
         if (model.isBlockChainMethod()) {
-            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.crypto", currencyName));
+            return Res.get("portfolio.pending.tradeView.receiptInfo", currencyName, Res.get("portfolio.pending.step3_seller.buyerStartedPayment.crypto", currencyName));
         } else {
-            return Res.get("portfolio.pending.step3_seller.buyerStartedPayment", Res.get("portfolio.pending.step3_seller.buyerStartedPayment.traditional", currencyName));
+            return Res.get("portfolio.pending.tradeView.receiptInfo", currencyName, Res.get("portfolio.pending.step3_seller.buyerStartedPayment.traditional", currencyName));
         }
     }
 
@@ -316,12 +339,9 @@ public class SellerStep3View extends TradeStepView {
 
     @Override
     protected String getFirstHalfOverWarnText() {
-        String substitute = model.isBlockChainMethod() ?
-                Res.get("portfolio.pending.step3_seller.warn.part1a", getCurrencyName(trade)) :
-                Res.get("portfolio.pending.step3_seller.warn.part1b");
-        return Res.get("portfolio.pending.step3_seller.warn.part2", substitute);
-
-
+        return Res.get("portfolio.pending.tradeView.receiptHalf", Res.get(model.isBlockChainMethod() ?
+                "portfolio.pending.step3_seller.buyerStartedPayment.crypto" :
+                "portfolio.pending.step3_seller.buyerStartedPayment.traditional", getCurrencyName(trade)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -330,7 +350,7 @@ public class SellerStep3View extends TradeStepView {
 
     @Override
     protected String getPeriodOverWarnText() {
-        return Res.get("portfolio.pending.step3_seller.openForDispute");
+        return Res.get("portfolio.pending.tradeView.receiptExpired");
     }
 
     @Override
@@ -448,15 +468,15 @@ public class SellerStep3View extends TradeStepView {
         log.info("User pressed the [Confirm payment receipt] button for Trade {}", trade.getShortId());
         busyAnimation.play();
         setTradeStatus(Res.get("shared.preparingConfirmation"));
-        confirmButton.setDisable(true);
+        disableConfirmationButton(confirmButton);
 
         model.dataModel.onPaymentReceived(() -> {
-        }, errorMessage -> {
+        }, errorMessage -> UserThread.execute(() -> {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentReceivedPermitted());
-            UserThread.execute(() -> setTradeStatus("Error confirming payment received."));
-        });
+            setTradeStatus("Error confirming payment received.");
+        }));
     }
 
     private Optional<String> getOptionalHolderName() {

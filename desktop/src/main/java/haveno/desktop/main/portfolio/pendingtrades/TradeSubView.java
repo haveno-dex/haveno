@@ -17,163 +17,195 @@
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
+import com.jfoenix.controls.JFXBadge;
 import haveno.core.locale.Res;
+import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.desktop.components.AutoTooltipButton;
-import haveno.desktop.components.SimpleMarkdownLabel;
-import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeWizardItem;
-import haveno.desktop.util.Layout;
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.scene.control.Separator;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.GridPane;
+import haveno.desktop.util.GlyphsDude;
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.Subscription;
-
-import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
-import static haveno.desktop.util.FormBuilder.addSimpleMarkdownLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import org.fxmisc.easybind.EasyBind;
 
 @Slf4j
-public abstract class TradeSubView extends HBox {
+public abstract class TradeSubView extends VBox {
     protected final PendingTradesViewModel model;
-    protected VBox leftVBox;
-    private AnchorPane contentPane;
+    protected final TradeStepInfo tradeStepInfo;
+    private final HBox summary = new HBox(14);
+    private final HBox steps = new HBox(14);
+    private final VBox contentPane = new VBox();
     private TradeStepView tradeStepView;
-    protected TradeStepInfo tradeStepInfo;
-    private GridPane leftGridPane;
-    private TitledGroupBg tradeProcessTitledGroupBg;
-    private int leftGridPaneRowIndex = 0;
     Subscription viewStateSubscription;
     private PendingTradesView.ChatCallback chatCallback;
     private Runnable closeCallback;
-
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Constructor, Initialisation
-    ///////////////////////////////////////////////////////////////////////////////////////////
+    private Runnable stepChangedCallback;
+    private ListChangeListener<ChatMessage> chatListener;
+    private JFXBadge chatBadge;
+    private String openChatTradeId;
+    private Trade trade;
+    private boolean active;
+    private boolean completed;
+    private Subscription payoutSubscription;
 
     public TradeSubView(PendingTradesViewModel model) {
         this.model = model;
-        HBox.setHgrow(this, Priority.ALWAYS);
-        setSpacing(Layout.PADDING_WINDOW);
-        buildViews();
+        tradeStepInfo = new TradeStepInfo();
+        setSpacing(16);
+        setMinWidth(0);
+        getStyleClass().add("trade-detail-view");
+        getStylesheets().add(TradeSubView.class.getResource("trade-view.css").toExternalForm());
+        summary.setAlignment(Pos.CENTER_LEFT);
+        summary.getStyleClass().add("trade-summary");
+        steps.getStyleClass().add("trade-steps");
+        steps.setAlignment(Pos.CENTER_LEFT);
+        steps.setMinHeight(Region.USE_PREF_SIZE);
+        addWizards();
+        VBox workspace = new VBox(steps, contentPane);
+        workspace.getStyleClass().add("trade-workspace");
+        workspace.setMinWidth(0);
+        workspace.setMinHeight(Region.USE_PREF_SIZE);
+        getChildren().addAll(summary, workspace);
     }
 
     protected void activate() {
+        active = true;
+        trade = model.dataModel.getTrade();
+        buildSummary();
+        payoutSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> Platform.runLater(() -> {
+            if (active) updateChatAvailability();
+        }));
+        updateChatAvailability();
+        chatListener = change -> Platform.runLater(() -> {
+            if (active) updateChatBadge();
+        });
+        trade.getChatMessages().addListener(chatListener);
+        updateChatBadge();
     }
 
     protected void deactivate() {
-        if (viewStateSubscription != null)
-            viewStateSubscription.unsubscribe();
-
-        if (tradeStepView != null)
-            tradeStepView.deactivate();
-
-        if (tradeStepInfo != null)
-            tradeStepInfo.removeItselfFrom(leftGridPane);
+        active = false;
+        if (payoutSubscription != null) {
+            payoutSubscription.unsubscribe();
+            payoutSubscription = null;
+        }
+        if (viewStateSubscription != null) viewStateSubscription.unsubscribe();
+        if (tradeStepView != null) tradeStepView.deactivate();
+        if (trade != null && chatListener != null) trade.getChatMessages().removeListener(chatListener);
     }
 
-    private void buildViews() {
-        addLeftBox();
-        addContentPane();
+    private void buildSummary() {
+        String titleKey = trade.isArbitrator() ? "portfolio.pending.tradeView.arbitratorSummary" :
+                trade.isBuyer() ? "portfolio.pending.tradeView.buySummary" : "portfolio.pending.tradeView.sellSummary";
+        String roleKey = trade.isArbitrator() ? "portfolio.pending.tradeView.arbitratorRole" :
+                trade.isBuyer() ? "portfolio.pending.tradeView.buyerRole" : "portfolio.pending.tradeView.sellerRole";
+        Label title = new Label(Res.get(titleKey, model.getTradeVolume(), model.getFiatVolume()));
+        title.getStyleClass().add("trade-summary-title");
+        title.setWrapText(true);
+        Label detail = new Label(Res.get("portfolio.pending.tradeView.summaryDetail", Res.get(trade.getOffer().getPaymentMethod().getId()),
+                trade.getShortId(), Res.get(roleKey)) + " · " + model.getTradePrice());
+        detail.getStyleClass().add("trade-secondary");
+        detail.setWrapText(true);
+        VBox text = new VBox(5, title, detail);
+        text.setMinWidth(0);
+        HBox.setHgrow(text, Priority.ALWAYS);
+        AutoTooltipButton chat = new AutoTooltipButton(Res.get("portfolio.pending.support.button.getHelp"));
+        chat.getStyleClass().add("trade-chat-button");
+        chat.setGraphic(GlyphsDude.createIcon(MaterialDesignIcon.COMMENT_OUTLINE, "16"));
+        chat.getGraphic().getStyleClass().add("trade-chat-icon");
+        chat.setGraphicTextGap(10);
+        chat.setOnAction(event -> {
+            if (!completed && !trade.isPayoutPublished() && chatCallback != null) chatCallback.onOpenChat(trade);
+            updateChatBadge();
+        });
+        chatBadge = new JFXBadge(chat, Pos.TOP_RIGHT);
+        chatBadge.setMinWidth(Region.USE_PREF_SIZE);
+        summary.getChildren().setAll(text, chatBadge);
+    }
 
-        leftGridPane = new GridPane();
-        leftGridPane.setPrefWidth(340);
-        leftGridPane.setHgap(Layout.GRID_GAP);
-        leftGridPane.setVgap(Layout.GRID_GAP);
-        VBox.setMargin(leftGridPane, new Insets(0, 10, 10, 10));
-        leftVBox.getChildren().add(leftGridPane);
+    private void updateChatAvailability() {
+        if (chatBadge == null) return;
+        boolean available = !completed && !trade.isPayoutPublished();
+        chatBadge.setVisible(available);
+        chatBadge.setManaged(available);
+        chatBadge.setDisable(!available);
+    }
 
-        leftGridPaneRowIndex = 0;
-        tradeProcessTitledGroupBg = addTitledGroupBg(leftGridPane, leftGridPaneRowIndex, 1, Res.get("portfolio.pending.tradeProcess"));
-        tradeProcessTitledGroupBg.getStyleClass().add("last");
+    void setOpenChatTradeId(String tradeId) {
+        openChatTradeId = tradeId;
+        updateChatBadge();
+    }
 
-        addWizards();
-
-        TitledGroupBg titledGroupBg = addTitledGroupBg(leftGridPane, ++leftGridPaneRowIndex, 1, "", 10);
-        titledGroupBg.getStyleClass().add("last");
-
-        SimpleMarkdownLabel label = addSimpleMarkdownLabel(leftGridPane, ++leftGridPaneRowIndex);
-        AutoTooltipButton button = (AutoTooltipButton) addButtonAfterGroup(leftGridPane, ++leftGridPaneRowIndex, "");
-        SimpleMarkdownLabel footerLabel = addSimpleMarkdownLabel(leftGridPane, ++leftGridPaneRowIndex, Res.get("portfolio.pending.stillNotResolved"), 10);
-        footerLabel.getStyleClass().add("medium-text");
-        tradeStepInfo = new TradeStepInfo(titledGroupBg, label, button, footerLabel);
+    void updateChatBadge() {
+        if (chatBadge == null) return;
+        long unread;
+        synchronized (trade.getChatMessages()) {
+            unread = trade.getChatMessages().stream().filter(message -> !message.isWasDisplayed() && !message.isSystemMessage()).count();
+        }
+        if (openChatTradeId != null && openChatTradeId.equals(trade.getId())) unread = 0;
+        chatBadge.setText(unread == 0 ? "" : Long.toString(unread));
+        chatBadge.setEnabled(unread > 0);
+        chatBadge.refreshBadge();
     }
 
     void showItem(TradeWizardItem item) {
         item.setActive();
-        createAndAddTradeStepView(item.getViewClass());
+        createAndAddTradeStepView(item);
     }
 
     protected abstract void addWizards();
 
     protected void onViewStateChanged(PendingTradesViewModel.State viewState) {
-        tradeStepInfo.setTrade(model.getTrade());
+        tradeStepInfo.setTrade(model.dataModel.getTrade());
+        completed = viewState == PendingTradesViewModel.BuyerState.STEP4 || viewState == PendingTradesViewModel.SellerState.STEP4;
+        updateChatAvailability();
     }
 
-    void addWizardsToGridPane(TradeWizardItem tradeWizardItem) {
-        if (leftGridPaneRowIndex == 0)
-            GridPane.setMargin(tradeWizardItem, new Insets(Layout.FIRST_ROW_DISTANCE + Layout.FLOATING_LABEL_DISTANCE, 0, 0, 0));
-
-        GridPane.setRowIndex(tradeWizardItem, leftGridPaneRowIndex++);
-        leftGridPane.getChildren().add(tradeWizardItem);
-        GridPane.setRowSpan(tradeProcessTitledGroupBg, leftGridPaneRowIndex);
-        GridPane.setFillWidth(tradeWizardItem, true);
+    void addWizardsToGridPane(TradeWizardItem item) {
+        item.setPrefWidth(0);
+        HBox.setHgrow(item, Priority.ALWAYS);
+        steps.getChildren().add(item);
     }
 
     void addLineSeparatorToGridPane() {
-        final Separator separator = new Separator(Orientation.VERTICAL);
-        separator.setMinHeight(10);
-        GridPane.setMargin(separator, new Insets(0, 0, 0, 13));
-        GridPane.setHalignment(separator, HPos.LEFT);
-        GridPane.setRowIndex(separator, leftGridPaneRowIndex++);
-        leftGridPane.getChildren().add(separator);
+        ((TradeWizardItem) steps.getChildren().get(steps.getChildren().size() - 1)).addConnector();
     }
 
-    private void createAndAddTradeStepView(Class<? extends TradeStepView> viewClass) {
-        if (tradeStepView != null)
-            tradeStepView.deactivate();
+    private void createAndAddTradeStepView(TradeWizardItem item) {
+        Class<? extends TradeStepView> viewClass = item.getViewClass();
+        boolean changedStep = tradeStepView != null && tradeStepView.getClass() != viewClass;
+        boolean expanded = tradeStepView != null && tradeStepView.isDepositDetailsExpanded();
+        if (tradeStepView != null) tradeStepView.deactivate();
         try {
             tradeStepView = viewClass.getDeclaredConstructor(PendingTradesViewModel.class).newInstance(model);
+            tradeStepView.setDepositDetailsExpanded(expanded);
+            tradeStepView.setStepCaptionHandler(item::setCaption);
+            tradeStepView.setStepWarningHandler(item::setWarningCaption);
             contentPane.getChildren().setAll(tradeStepView);
             tradeStepView.setTradeStepInfo(tradeStepInfo);
-            ChatCallback chatCallback = trade -> {
-                // call up the chain to open chat
-                if (this.chatCallback != null) {
-                    this.chatCallback.onOpenChat(trade);
-                }
-            };
-            tradeStepView.setChatCallback(chatCallback);
+            tradeStepView.setChatCallback(selectedTrade -> {
+                if (chatCallback != null) chatCallback.onOpenChat(selectedTrade);
+                updateChatBadge();
+            });
             tradeStepView.setCloseCallback(() -> {
                 if (closeCallback != null) closeCallback.run();
             });
             tradeStepView.activate();
+            if (changedStep && stepChangedCallback != null) stepChangedCallback.run();
         } catch (Exception e) {
             log.error("Creating viewClass {} caused an error {}\n", viewClass, e.getMessage(), e);
         }
     }
-
-    private void addLeftBox() {
-        leftVBox = new VBox();
-        leftVBox.setSpacing(Layout.SPACING_V_BOX);
-        leftVBox.setMinWidth(290);
-        getChildren().add(leftVBox);
-    }
-
-    private void addContentPane() {
-        contentPane = new AnchorPane();
-        HBox.setHgrow(contentPane, Priority.SOMETIMES);
-        getChildren().add(contentPane);
-    }
-
 
     public interface ChatCallback {
         void onOpenChat(Trade trade);
@@ -186,6 +218,8 @@ public abstract class TradeSubView extends HBox {
     public void setCloseCallback(Runnable closeCallback) {
         this.closeCallback = closeCallback;
     }
+
+    void setStepChangedCallback(Runnable stepChangedCallback) {
+        this.stepChangedCallback = stepChangedCallback;
+    }
 }
-
-

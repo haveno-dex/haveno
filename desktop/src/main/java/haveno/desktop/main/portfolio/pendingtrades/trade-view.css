@@ -1,0 +1,442 @@
+/*
+ * This file is part of Haveno.
+ *
+ * Haveno is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * Haveno is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+.pending-trades-toolbar {
+    -fx-padding: 0 0 2 0;
+}
+.pending-trades-toolbar .pending-trades-title {
+    -fx-font-size: 18px;
+    -fx-text-fill: -bs-text-color;
+}
+.pending-trades-toolbar .pending-trades-count {
+    -fx-font-size: 12px;
+    -fx-text-fill: -bs-color-gray-6;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-radius: 4;
+    -fx-padding: 3 8;
+}
+
+.trade-detail-view {
+    -fx-padding: 18 16 12 0;
+}
+.trade-detail-view .trade-summary {
+    -fx-padding: 0 4 2 4;
+}
+.trade-detail-view .trade-summary-title {
+    -fx-font-size: 26px;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+.trade-detail-view .trade-secondary,
+.trade-detail-view .trade-step-caption,
+.trade-detail-view .trade-field-label {
+    -fx-text-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-secondary {
+    -fx-font-size: 13px;
+    -fx-line-spacing: 3px;
+}
+.trade-detail-view .trade-field-label,
+.trade-detail-view .trade-step-caption {
+    -fx-font-size: 12px;
+}
+.trade-detail-view .trade-workspace {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 10;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+}
+.trade-detail-view .trade-panel {
+    -fx-padding: 0 0 18;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 0 0 1;
+}
+.trade-detail-view .trade-action-panel {
+    -fx-padding: 22 28 10;
+    -fx-border-width: 0;
+}
+.trade-detail-view .trade-action-panel:completed {
+    -fx-padding: 22 28;
+}
+.trade-detail-view .trade-sidebar {
+    -fx-background-color: -bs-trade-sidebar-background;
+    -fx-background-radius: 0 0 9 0;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 0 0 0 1;
+    -fx-padding: 20 22 18;
+}
+.trade-detail-view .trade-sidebar:compact {
+    -fx-background-radius: 0 0 9 9;
+    -fx-border-width: 1 0 0;
+}
+.trade-detail-view .trade-action-title {
+    -fx-font-size: 20px;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+.trade-detail-view .trade-confirmation-button:busy {
+    -fx-background-color: -bs-color-background-form-field;
+    -fx-text-fill: -bs-text-color;
+    -fx-opacity: 1;
+    -fx-cursor: default;
+}
+.trade-detail-view .trade-action-panel .action-button {
+    -fx-font-size: 14px;
+    -fx-padding: 10 22;
+}
+.trade-detail-view .trade-confirmation-button .busyanimation,
+.trade-detail-view .trade-confirmation-button .label {
+    -fx-opacity: 1;
+}
+.trade-detail-view .trade-confirmation-button .busyanimation .arc {
+    -fx-stroke: -bs-hero-primary;
+    -fx-stroke-width: 2;
+}
+.trade-detail-view .trade-section-heading {
+    -fx-font-size: 14px;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+.trade-detail-view .trade-body {
+    -fx-font-size: 14px;
+    -fx-text-fill: -bs-color-gray-6;
+    -fx-line-spacing: 3px;
+}
+.trade-detail-view .trade-steps {
+    -fx-padding: 14 22;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 0 0 1;
+}
+.trade-detail-view .trade-step-circle {
+    -fx-min-width: 30;
+    -fx-pref-width: 30;
+    -fx-max-width: 30;
+    -fx-min-height: 30;
+    -fx-pref-height: 30;
+    -fx-max-height: 30;
+    -fx-alignment: center;
+    -fx-border-color: -bs-color-gray-6;
+    -fx-border-radius: 30;
+    -fx-text-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-step-title {
+    -fx-font-size: 14px;
+    -fx-text-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-step:current .trade-step-circle {
+    -fx-background-color: -bs-color-primary-dark;
+    -fx-background-radius: 30;
+    -fx-border-color: -bs-color-primary-dark;
+    -fx-text-fill: white;
+}
+.trade-detail-view .trade-step:current .trade-step-title {
+    -fx-text-fill: -bs-hero-primary;
+}
+.trade-detail-view .trade-step:complete .trade-step-circle {
+    -fx-border-color: -bs-rd-green;
+    -fx-text-fill: -bs-rd-green;
+}
+.trade-detail-view .trade-step:complete .trade-step-circle .glyph-icon {
+    -fx-fill: -bs-rd-green;
+}
+.trade-detail-view .trade-step:complete .trade-step-title {
+    -fx-text-fill: -bs-text-color;
+}
+.trade-detail-view .separator .line {
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 1 0 0 0;
+}
+.trade-detail-view .trade-step:complete .separator .line {
+    -fx-border-color: -bs-rd-green;
+}
+.trade-detail-view .trade-step:current:warning .trade-step-circle {
+    -fx-background-color: -bs-rd-error-red;
+    -fx-border-color: -bs-rd-error-red;
+}
+.trade-detail-view .trade-step:current:warning .trade-step-title {
+    -fx-text-fill: -bs-rd-error-red;
+}
+.trade-detail-view .trade-amount-panel,
+.trade-detail-view .trade-confirmations {
+    -fx-background-color: -bs-confirm-sheet-background;
+    -fx-background-radius: 8;
+    -fx-padding: 14 20;
+}
+.trade-detail-view .trade-amount-value {
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-border-color: transparent;
+    -fx-font-size: 30px;
+    -fx-text-fill: -bs-text-color;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+.trade-detail-view .trade-payment-field .text-field,
+.trade-detail-view .trade-payment-field .text-area {
+    -fx-font-size: 14px;
+    -fx-text-fill: -bs-text-color;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+.trade-detail-view .trade-payment-field {
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 0 4 0;
+}
+.trade-detail-view .trade-payment-field .text-area .content {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+.trade-detail-view .trade-payment-field .text-area .scroll-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+.trade-detail-view .trade-payment-field .text-area .scroll-bar:vertical,
+.trade-detail-view .trade-payment-field .text-area .scroll-bar:horizontal {
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+    -fx-opacity: 0;
+}
+.trade-detail-view .trade-confirmation-count {
+    -fx-font-size: 38px;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-text-color;
+}
+.trade-detail-view .trade-confirmation-target {
+    -fx-font-size: 22px;
+    -fx-text-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-progress {
+    -fx-pref-height: 4;
+    -fx-min-height: 4;
+    -fx-max-height: 4;
+    -fx-padding: 0;
+}
+.trade-detail-view .trade-progress .track {
+    -fx-background-color: -bs-color-gray-1;
+    -fx-background-radius: 4;
+    -fx-background-insets: 0;
+}
+.trade-detail-view .trade-progress .bar {
+    -fx-background-color: -bs-color-primary;
+    -fx-background-radius: 4;
+    -fx-background-insets: 0;
+    -fx-padding: 2;
+}
+.trade-detail-view .trade-deadline-value {
+    -fx-font-size: 24px;
+    -fx-text-fill: -bs-text-color;
+}
+.trade-detail-view .trade-deadline-number {
+    -fx-font-size: 28px;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-fill: -bs-text-color;
+}
+.trade-detail-view .trade-deadline-unit {
+    -fx-font-size: 14px;
+    -fx-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-panel:expired .trade-deadline-value {
+    -fx-text-fill: -bs-rd-error-red;
+}
+.trade-detail-view .trade-panel:second-half .trade-progress .bar {
+    -fx-background-color: -bs-warning;
+}
+.trade-detail-view .trade-panel:expired .trade-progress .bar {
+    -fx-background-color: -bs-rd-error-red;
+}
+.trade-detail-view .trade-deposits-panel {
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+.trade-detail-view .trade-deposit-details {
+    -fx-padding: 0 0 18;
+}
+.trade-detail-view .trade-deposits-toggle {
+    -fx-background-color: transparent;
+    /* cover adjacent dividers so the hover edges stay flat */
+    -fx-background-insets: -1 0 -1 0;
+    -fx-background-radius: 4;
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-padding: 16 12;
+    -fx-alignment: center-left;
+    -fx-cursor: hand;
+}
+.trade-detail-view .trade-deposits-toggle:hover {
+    -fx-background-color: -bs-color-gray-1;
+}
+.trade-detail-view .trade-deposits-toggle:selected {
+    -fx-background-radius: 4 4 0 0;
+    -fx-border-radius: 4 4 0 0;
+}
+.trade-detail-view .trade-deposits-toggle:focus-visible {
+    -fx-border-color: -bs-color-primary;
+}
+.trade-detail-view .trade-deposits-toggle .label {
+    -fx-text-fill: -bs-text-color;
+    -fx-font-size: 13px;
+}
+.trade-detail-view .trade-deposits-toggle .trade-deposit-status-icon:confirmed {
+    -fx-text-fill: -bs-rd-green;
+}
+.trade-detail-view .trade-deposit {
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 14 0 0 0;
+}
+.trade-detail-view .trade-deposit-id {
+    -fx-text-fill: -bs-color-gray-6;
+    -fx-font-size: 12px;
+    -fx-font-family: monospace;
+}
+.trade-detail-view .trade-deposit .hyperlink {
+    -fx-text-fill: -bs-hero-primary;
+    -fx-font-size: 12px;
+    -fx-padding: 0;
+    -fx-underline: false;
+}
+.trade-detail-view .trade-deposit .hyperlink:hover {
+    -fx-underline: true;
+}
+.trade-detail-view .trade-deposit .label:invalid {
+    -fx-text-fill: -bs-rd-error-red;
+}
+.trade-detail-view .trade-deposit .label:confirmed {
+    -fx-text-fill: -bs-rd-green;
+}
+.trade-detail-view .trade-info-button,
+.trade-detail-view .trade-copy-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 3;
+    -fx-cursor: hand;
+}
+.trade-detail-view .trade-info-button .text {
+    -fx-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-amount-currency {
+    -fx-text-fill: -bs-color-gray-6;
+    -fx-font-size: 20px;
+}
+.trade-detail-view .trade-help {
+    -fx-padding: 18 0 0;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 1 0 0;
+}
+.trade-detail-view .trade-help .markdown-label {
+    -fx-line-spacing: 3px;
+}
+.trade-detail-view .trade-help .text,
+.trade-detail-view .trade-support-state .text {
+    -fx-fill: -bs-color-gray-6;
+    -fx-font-size: 13px;
+}
+.trade-detail-view .trade-support-state {
+    -fx-padding: 16 0 0 0;
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 1 0 0 0;
+}
+.trade-detail-view .trade-chat-button {
+    -fx-background-color: transparent;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-radius: 30;
+    -fx-padding: 10 18;
+}
+
+.trade-detail-view .trade-chat-button .text {
+    -fx-fill: -bs-text-color;
+}
+.trade-detail-view .trade-copy-button:focus-visible,
+.trade-detail-view .trade-info-button:focused {
+    -fx-border-color: -bs-color-primary;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+}
+
+.trade-detail-view .trade-chat-icon {
+    -fx-fill: -bs-text-color;
+}
+.trade-detail-view .trade-muted-icon {
+    -fx-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-copy-icon {
+    -fx-fill: -bs-hero-primary;
+}
+.trade-detail-view .trade-support-state #open-dispute-button {
+    -fx-background-color: transparent;
+    -fx-border-color: -bs-rd-error-red;
+    -fx-border-width: 1;
+    -fx-border-radius: 30;
+    -fx-text-fill: -bs-text-color;
+}
+
+.trade-detail-view .hyperlink {
+    -fx-text-fill: -bs-hero-primary;
+    -fx-underline: false;
+}
+.trade-detail-view .hyperlink:hover {
+    -fx-underline: true;
+}
+.trade-detail-view .trade-help .hyperlink .text {
+    -fx-fill: -bs-hero-primary;
+}
+.trade-detail-view .trade-help .hyperlink {
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+.trade-detail-view .trade-account-summary {
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+.trade-detail-view .trade-account-summary .text-area {
+    -fx-font-size: 13px;
+    -fx-text-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-account-summary .text-area .scroll-pane {
+    -fx-border-width: 0;
+}
+.trade-detail-view .trade-message-status {
+    -fx-background-color: -bs-confirm-sheet-background;
+    -fx-background-radius: 20;
+    -fx-padding: 8 14;
+    -fx-font-size: 13px;
+    -fx-text-fill: -bs-text-color;
+}
+.trade-detail-view .trade-message-status .glyph-icon {
+    -fx-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-message-status:delivered .glyph-icon,
+.trade-detail-view .trade-completed-icon {
+    -fx-fill: -bs-rd-green;
+}
+.trade-detail-view .trade-message-status:failed,
+.trade-detail-view .trade-message-status:failed .glyph-icon {
+    -fx-text-fill: -bs-rd-error-red;
+    -fx-fill: -bs-rd-error-red;
+}
+.trade-detail-view .trade-completed-summary {
+    -fx-background-color: -bs-confirm-sheet-background;
+    -fx-background-radius: 8;
+    -fx-padding: 18 20;
+}
+.trade-detail-view .trade-completed-summary .trade-payment-field {
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}

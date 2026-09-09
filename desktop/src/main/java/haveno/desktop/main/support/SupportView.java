@@ -50,6 +50,7 @@ import haveno.core.support.dispute.mediation.mediator.MediatorManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
+import haveno.core.trade.Trade;
 import haveno.desktop.Navigation;
 import haveno.desktop.util.Accessibility;
 import haveno.desktop.common.view.ActivatableView;
@@ -60,6 +61,7 @@ import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.offer.signedoffer.SignedOfferView;
 import haveno.desktop.main.overlays.windows.SupportInfoWindow;
+import haveno.desktop.main.support.dispute.DisputeView;
 import haveno.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
 import haveno.desktop.main.support.dispute.agent.mediation.MediatorView;
 import haveno.desktop.main.support.dispute.agent.refund.RefundAgentView;
@@ -147,10 +149,14 @@ public class SupportView extends ActivatableView<TabPane, Void> {
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1)
-                UserThread.execute(() -> loadView(viewPath.tip()));
+                UserThread.execute(() -> {
+                    if (root.getScene() != null && viewPath.equals(navigation.getCurrentPath()))
+                        loadView(viewPath.tip(), data);
+                });
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {
+            if (newValue == currentTab) return;
             if (newValue == tradersArbitrationDisputesTab)
                 navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class);
             else if (newValue == tradersMediationDisputesTab)
@@ -283,10 +289,11 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         refundAgentManager.getObservableMap().removeListener(refundAgentMapChangeListener);
         root.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
         navigation.removeListener(navigationListener);
+        if (currentTab != null) currentTab.setContent(null);
         currentTab = null;
     }
 
-    private void loadView(Class<? extends View> viewClass) {
+    private void loadView(Class<? extends View> viewClass, @Nullable Object data) {
         // we want to get activate/deactivate called, so we remove the old view on tab change
         if (currentTab != null)
             currentTab.setContent(null);
@@ -312,6 +319,9 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         }
 
         if (currentTab != null) {
+            // set the target before attaching the view triggers activation
+            if (view instanceof DisputeView disputeView)
+                disputeView.setTradeIdToSelect(data instanceof Trade ? ((Trade) data).getId() : null);
             currentTab.setContent(view.getRoot());
             root.getSelectionModel().select(currentTab);
         }

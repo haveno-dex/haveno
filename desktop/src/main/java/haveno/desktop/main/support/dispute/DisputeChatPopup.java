@@ -22,7 +22,7 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
-import haveno.desktop.util.Layout;
+import haveno.desktop.util.GUIUtil;
 
 import haveno.core.locale.Res;
 import haveno.core.support.dispute.Dispute;
@@ -33,21 +33,15 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
 
-import haveno.common.UserThread;
-
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.stage.Window;
 
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.StackPane;
-
-import javafx.beans.value.ChangeListener;
 
 import java.util.Date;
 import java.util.List;
@@ -64,8 +58,6 @@ public class DisputeChatPopup {
     protected final CoinFormatter formatter;
     protected final Preferences preferences;
     private final ChatCallback chatCallback;
-    private double chatPopupStageXPosition = -1;
-    private double chatPopupStageYPosition = -1;
     @Getter private Dispute selectedDispute;
 
     DisputeChatPopup(DisputeManager<? extends DisputeList<Dispute>> disputeManager,
@@ -126,8 +118,7 @@ public class DisputeChatPopup {
         chatPopupStage = new Stage();
         chatPopupStage.setTitle(Res.get("disputeChat.chatWindowTitle", selectedDispute.getShortTradeId())
                 + " " + selectedDispute.getRoleString());
-        StackPane owner = MainView.getRootContainer();
-        Scene rootScene = owner.getScene();
+        Scene rootScene = MainView.getRootContainer().getScene();
 
         // keep a top-level window so the WM shows maximize/fullscreen
         chatPopupStage.initModality(Modality.NONE);
@@ -149,31 +140,7 @@ public class DisputeChatPopup {
             }
         });
         chatPopupStage.setScene(scene);
-        chatPopupStage.setWidth(Layout.CHAT_WINDOW_WIDTH);
-        chatPopupStage.setHeight(Layout.CHAT_WINDOW_HEIGHT);
-        chatPopupStage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
-        chatPopupStage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
-        chatPopupStage.setOpacity(0);
-        chatPopupStage.show();
-
-        ChangeListener<Number> xPositionListener = (observable, oldValue, newValue) -> chatPopupStageXPosition = (double) newValue;
-        chatPopupStage.xProperty().addListener(xPositionListener);
-        ChangeListener<Number> yPositionListener = (observable, oldValue, newValue) -> chatPopupStageYPosition = (double) newValue;
-        chatPopupStage.yProperty().addListener(yPositionListener);
-
-        if (chatPopupStageXPosition == -1) {
-            Window rootSceneWindow = rootScene.getWindow();
-            double titleBarHeight = rootSceneWindow.getHeight() - rootScene.getHeight();
-            chatPopupStage.setX(Math.round(rootSceneWindow.getX() + (owner.getWidth() - chatPopupStage.getWidth() / 4 * 3)));
-            chatPopupStage.setY(Math.round(rootSceneWindow.getY() + titleBarHeight + (owner.getHeight() - chatPopupStage.getHeight() / 4 * 3)));
-        } else {
-            chatPopupStage.setX(chatPopupStageXPosition);
-            chatPopupStage.setY(chatPopupStageYPosition);
-        }
-
-        // Delay display to next render frame to avoid that the popup is first quickly displayed in default position
-        // and after a short moment in the correct position
-        UserThread.execute(() -> chatPopupStage.setOpacity(1));
+        GUIUtil.showCenteredChatWindow(chatPopupStage, rootScene);
     }
 
     private void doTextAttachment(ChatView chatView) {

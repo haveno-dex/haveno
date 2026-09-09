@@ -18,25 +18,19 @@
 package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
-import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
 import haveno.core.network.MessageState;
-import haveno.desktop.components.TextFieldWithIcon;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
-import haveno.desktop.util.Layout;
+import haveno.desktop.util.GlyphsDude;
 import javafx.beans.value.ChangeListener;
+import javafx.css.PseudoClass;
 import javafx.scene.control.Label;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-
-import static haveno.desktop.util.FormBuilder.addMultilineLabel;
-import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
-import static haveno.desktop.util.FormBuilder.addTopLabelTextFieldWithIconLabel;
 
 public class BuyerStep3View extends TradeStepView {
     private final ChangeListener<MessageState> messageStateChangeListener;
-    private TextFieldWithIcon textFieldWithIcon;
+    private Label messageStatus;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -73,57 +67,61 @@ public class BuyerStep3View extends TradeStepView {
 
     @Override
     protected void addInfoBlock() {
-        addTitledGroupBg(gridPane, ++gridRow, 2, getInfoBlockTitle(), Layout.GROUP_DISTANCE_WITHOUT_SEPARATOR);
-        infoLabel = addMultilineLabel(gridPane, gridRow, "", Layout.COMPACT_FIRST_ROW_AND_GROUP_DISTANCE_WITHOUT_SEPARATOR);
-        GridPane.setColumnSpan(infoLabel, 2);
-        Tuple4<VBox, Label, TextFieldWithIcon, Label> tuple = addTopLabelTextFieldWithIconLabel(gridPane, ++gridRow,
-                Res.get("portfolio.pending.step3_buyer.wait.msgStateInfo.label"), 0);
-        GridPane.setColumnSpan(tuple.first, 2);
-        textFieldWithIcon = tuple.third;
-        statusLabel = tuple.fourth;
+        super.addInfoBlock();
+        messageStatus = new Label();
+        messageStatus.setWrapText(true);
+        messageStatus.setGraphicTextGap(8);
+        messageStatus.getStyleClass().add("trade-message-status");
+        statusLabel = new Label();
+        statusLabel.getStyleClass().add("trade-secondary");
+        statusLabel.setWrapText(true);
+        statusLabel.visibleProperty().bind(statusLabel.textProperty().isNotEmpty());
+        statusLabel.managedProperty().bind(statusLabel.visibleProperty());
+        VBox status = new VBox(8, messageStatus, statusLabel);
+        gridPane.add(status, 0, ++gridRow, 2, 1);
     }
 
     @Override
     protected String getInfoBlockTitle() {
-        return Res.get("portfolio.pending.step3_buyer.wait.headline");
+        return Res.get("portfolio.pending.tradeView.waitingSellerTitle");
     }
 
     @Override
     protected String getInfoText() {
-        return Res.get("portfolio.pending.step3_buyer.wait.info", getCurrencyCode(trade));
+        return Res.get("portfolio.pending.tradeView.waitingSellerInfo", getCurrencyCode(trade));
     }
 
     private void updateMessageStateInfo() {
         MessageState messageState = model.getPaymentSentMessageStateProperty().get();
-        textFieldWithIcon.setText(Res.get("message.state." + messageState.name()));
-        Label iconLabel = textFieldWithIcon.getIconLabel();
+        if (messageState == null) messageState = MessageState.UNDEFINED;
+        messageStatus.setText(Res.get("portfolio.pending.tradeView.notification." + messageState.name()));
+        messageStatus.pseudoClassStateChanged(PseudoClass.getPseudoClass("delivered"),
+                messageState == MessageState.ARRIVED || messageState == MessageState.ACKNOWLEDGED);
+        messageStatus.pseudoClassStateChanged(PseudoClass.getPseudoClass("failed"),
+                messageState == MessageState.FAILED || messageState == MessageState.NACKED);
+        FontAwesomeIcon icon;
         switch (messageState) {
-            case UNDEFINED:
-                textFieldWithIcon.setIcon(FontAwesomeIcon.QUESTION);
-                iconLabel.getStyleClass().add("trade-msg-state-undefined");
-                break;
             case SENT:
-                textFieldWithIcon.setIcon(FontAwesomeIcon.ARROW_RIGHT);
-                iconLabel.getStyleClass().add("trade-msg-state-sent");
+                icon = FontAwesomeIcon.ARROW_RIGHT;
                 break;
             case ARRIVED:
-                textFieldWithIcon.setIcon(FontAwesomeIcon.CHECK);
-                iconLabel.getStyleClass().add("trade-msg-state-arrived");
+                icon = FontAwesomeIcon.CHECK;
                 break;
             case STORED_IN_MAILBOX:
-                textFieldWithIcon.setIcon(FontAwesomeIcon.ENVELOPE_ALT);
-                iconLabel.getStyleClass().add("trade-msg-state-stored");
+                icon = FontAwesomeIcon.ENVELOPE_ALT;
                 break;
             case ACKNOWLEDGED:
-                textFieldWithIcon.setIcon(FontAwesomeIcon.CHECK_CIRCLE);
-                iconLabel.getStyleClass().add("trade-msg-state-stored");
+                icon = FontAwesomeIcon.CHECK_CIRCLE;
                 break;
             case FAILED:
             case NACKED:
-                textFieldWithIcon.setIcon(FontAwesomeIcon.EXCLAMATION_CIRCLE);
-                iconLabel.getStyleClass().add("trade-msg-state-acknowledged");
+                icon = FontAwesomeIcon.EXCLAMATION_CIRCLE;
+                break;
+            default:
+                icon = FontAwesomeIcon.CLOCK_ALT;
                 break;
         }
+        messageStatus.setGraphic(GlyphsDude.createIcon(icon, "14"));
     }
 
 
@@ -133,10 +131,7 @@ public class BuyerStep3View extends TradeStepView {
 
     @Override
     protected String getFirstHalfOverWarnText() {
-        String substitute = model.isBlockChainMethod() ?
-                Res.get("portfolio.pending.step3_buyer.warn.part1a", getCurrencyCode(trade)) :
-                Res.get("portfolio.pending.step3_buyer.warn.part1b");
-        return Res.get("portfolio.pending.step3_buyer.warn.part2", substitute);
+        return Res.get("portfolio.pending.tradeView.waitingSellerHalf");
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -145,7 +140,7 @@ public class BuyerStep3View extends TradeStepView {
 
     @Override
     protected String getPeriodOverWarnText() {
-        return Res.get("portfolio.pending.step3_buyer.openForDispute");
+        return Res.get("portfolio.pending.tradeView.waitingSellerExpired");
     }
 
     @Override
