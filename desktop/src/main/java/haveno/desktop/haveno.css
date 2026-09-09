@@ -3046,8 +3046,9 @@ textfield */
 
 #message-list-view.list-view {
     -fx-background-color: transparent;
-    -fx-background-insets: 0, 1;
-    -fx-padding: 1;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
     -fx-background-image: url("../../images/chatbg_light.png");
     -fx-background-repeat: repeat;
     -fx-background-position: 0 0;
@@ -3056,8 +3057,8 @@ textfield */
 
 #message-list-view.list-view:focused {
     -fx-background-color: transparent;
-    -fx-background-insets: 0, 1;
-    -fx-padding: 1;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
 }
 
 /* bubble */
@@ -3749,10 +3750,6 @@ textfield */
     -fx-text-fill: -bs-rd-message-bubble;
     -fx-fill: -bs-rd-message-bubble;
     -fx-font-size: 0.846em;
-}
-
-.dispute-chat-border {
-    -fx-background-color: -bs-support-chat-background;
 }
 
 /********************************************************************************************************************

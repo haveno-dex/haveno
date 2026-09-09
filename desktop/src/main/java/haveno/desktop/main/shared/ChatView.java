@@ -198,7 +198,7 @@ public class ChatView extends AnchorPane {
         messageListView.setId("message-list-view");
 
         messageListView.setMinHeight(150);
-        AnchorPane.setTopAnchor(messageListView, 30d);
+        AnchorPane.setTopAnchor(messageListView, displayHeader ? 30d : 0d);
         AnchorPane.setRightAnchor(messageListView, 0d);
         AnchorPane.setLeftAnchor(messageListView, 0d);
 
@@ -255,11 +255,11 @@ public class ChatView extends AnchorPane {
             messagesInputBox.getChildren().addAll(inputTextArea, buttonBox);
             VBox.setVgrow(buttonBox, Priority.ALWAYS);
 
-            AnchorPane.setRightAnchor(messagesInputBox, 0d);
-            AnchorPane.setBottomAnchor(messagesInputBox, 5d);
-            AnchorPane.setLeftAnchor(messagesInputBox, 0d);
+            AnchorPane.setRightAnchor(messagesInputBox, displayHeader ? 0d : 10d);
+            AnchorPane.setBottomAnchor(messagesInputBox, displayHeader ? 5d : 15d);
+            AnchorPane.setLeftAnchor(messagesInputBox, displayHeader ? 0d : 10d);
 
-            AnchorPane.setBottomAnchor(messageListView, 120d);
+            AnchorPane.setBottomAnchor(messageListView, displayHeader ? 120d : 130d);
 
             this.getChildren().addAll(messageListView, messagesInputBox);
         } else {
@@ -757,7 +757,8 @@ public class ChatView extends AnchorPane {
         if (messagesInputBox != null) {
             messagesInputBox.setVisible(visible);
             messagesInputBox.setManaged(visible);
-            AnchorPane.setBottomAnchor(messageListView, visible ? 120d : 0d);
+            double inputBoxHeight = displayHeader ? 120d : 130d;
+            AnchorPane.setBottomAnchor(messageListView, visible ? inputBoxHeight : 0d);
         }
     }
 
