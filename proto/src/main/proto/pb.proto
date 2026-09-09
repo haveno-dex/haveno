@@ -1534,6 +1534,8 @@ message TradableLogEntry {
         Tradable upsert = 1;
         string delete_id = 2;
     }
+    // Local persistence identity, retained when a failed mutation is retried.
+    string mutation_id = 3;
 }
 
 message Offer {

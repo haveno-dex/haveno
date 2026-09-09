@@ -252,6 +252,22 @@ public class EncryptedAppendLog {
     }
 
     /**
+     * Forces the log's current contents to disk. Records that replay after a process crash may still
+     * be unsynced when the crash cut an append short of its fsync.
+     */
+    public void sync() {
+        synchronized (lock) {
+            File logFile = logFile();
+            if (!logFile.exists()) return;
+            try (FileChannel ch = FileChannel.open(logFile.toPath(), StandardOpenOption.WRITE)) {
+                ch.force(true);
+            } catch (IOException e) {
+                throw new RuntimeException("Could not sync " + fileName, e);
+            }
+        }
+    }
+
+    /**
      * Atomically replaces the log with a fresh one containing exactly {@code records} (compaction or
      * migration). Writes to a temp file, fsyncs, then renames into place; a failure leaves the
      * existing log untouched.
