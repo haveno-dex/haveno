@@ -20,6 +20,7 @@ package haveno.desktop.main.funds.transactions;
 import com.google.inject.Inject;
 import java.util.function.Function;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.locale.Res;
@@ -32,6 +33,7 @@ import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AddressWithIconAndDirection;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.list.FilterBox;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
@@ -51,6 +53,7 @@ import javafx.collections.transformation.SortedList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -79,7 +82,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @FXML
     TableColumn<TransactionsListItem, TransactionsListItem> dateColumn, detailsColumn, addressColumn, transactionColumn, amountColumn, txFeeColumn, confidenceColumn, memoColumn;
     @FXML
-    Label numItems;
+    Label numItems, loadErrorLabel;
     @FXML
     Region spacer;
     @FXML
@@ -99,6 +102,12 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     private EventHandler<KeyEvent> keyEventEventHandler;
     private Scene scene;
+    private BusyAnimation busyAnimation;
+    private AutoTooltipLabel placeholderLabel;
+    private boolean active;
+    private boolean hasLoadedTransactions;
+    private long activationId;
+    private static final String THREAD_ID = TransactionsView.class.getName();
 
     private final TransactionsUpdater transactionsUpdater = new TransactionsUpdater();
 
@@ -132,7 +141,6 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         this.offerDetailsWindow = offerDetailsWindow;
         this.txDetailsWindow = txDetailsWindow;
         this.displayedTransactions = displayedTransactionsFactory.create();
-        updateList();
     }
 
     @Override
@@ -151,7 +159,11 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         memoColumn.setGraphic(new AutoTooltipLabel(Res.get("funds.tx.memo")));
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        tableView.setPlaceholder(new AutoTooltipLabel(Res.get("funds.tx.noTxAvailable")));
+        busyAnimation = new BusyAnimation(false);
+        placeholderLabel = new AutoTooltipLabel();
+        VBox placeholder = new VBox(10, busyAnimation, placeholderLabel);
+        placeholder.setAlignment(Pos.CENTER);
+        tableView.setPlaceholder(placeholder);
         GUIUtil.applyTableHorizontalScroll(tableScrollPane, tableView);
         tableView.getStyleClass().add("non-interactive-table");
 
@@ -187,11 +199,16 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         numItems.setId("num-offers");
         numItems.setPadding(new Insets(-5, 0, 0, 10));
+        numItems.setVisible(false);
+        loadErrorLabel.setText(Res.get("funds.tx.loadFailed"));
+        loadErrorLabel.managedProperty().bind(loadErrorLabel.visibleProperty());
         exportButton.updateText(Res.get("shared.exportCSV"));
+        exportButton.setDisable(true);
     }
 
     @Override
     protected void activate() {
+        active = true;
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
         tableView.setItems(sortedList);
         updateList();
@@ -234,6 +251,9 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     @Override
     protected void deactivate() {
+        active = false;
+        activationId++;
+        busyAnimation.stop();
         filterBox.deactivate();
         sortedList.comparatorProperty().unbind();
         xmrWalletService.removeWalletListener(transactionsUpdater);
@@ -245,15 +265,44 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void updateList() {
-        synchronized (displayedTransactions) { // wallet listeners update concurrently, so serialize and pass a snapshot to the UI thread
-            displayedTransactions.update();
-            List<TransactionsListItem> snapshot = new ArrayList<>(displayedTransactions);
-            UserThread.execute(() -> {
-                observableList.setAll(snapshot);
-                // hide the memo column when no transaction has a memo
-                memoColumn.setVisible(snapshot.stream().anyMatch(item -> item.getMemo() != null && !item.getMemo().isEmpty()));
-            });
-        }
+        UserThread.execute(() -> {
+            if (!active) return;
+            long currentActivation = activationId;
+            if (!hasLoadedTransactions) {
+                placeholderLabel.setText("");
+                busyAnimation.play();
+            }
+            ThreadUtils.execute(() -> {
+                try {
+                    synchronized (displayedTransactions) { // keep each refresh and its UI snapshot together
+                        displayedTransactions.update();
+                        List<TransactionsListItem> snapshot = new ArrayList<>(displayedTransactions);
+                        UserThread.execute(() -> {
+                            if (!active || currentActivation != activationId) return;
+                            hasLoadedTransactions = true;
+                            busyAnimation.stop();
+                            placeholderLabel.setText(Res.get("funds.tx.noTxAvailable"));
+                            loadErrorLabel.setVisible(false);
+                            observableList.setAll(snapshot);
+                            GUIUtil.updateFilterPlaceholder(tableView, sortedList.isEmpty() && !observableList.isEmpty());
+                            numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
+                            numItems.setVisible(true);
+                            exportButton.setDisable(false);
+                            // hide the memo column when no transaction has a memo
+                            memoColumn.setVisible(snapshot.stream().anyMatch(item -> item.getMemo() != null && !item.getMemo().isEmpty()));
+                        });
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not update transactions list", e);
+                    UserThread.execute(() -> {
+                        if (!active || currentActivation != activationId) return;
+                        busyAnimation.stop();
+                        placeholderLabel.setText(Res.get("funds.tx.loadFailed"));
+                        loadErrorLabel.setVisible(!observableList.isEmpty());
+                    });
+                }
+            }, THREAD_ID);
+        });
     }
 
     private void openTxInBlockExplorer(TransactionsListItem item) {
