@@ -25,6 +25,7 @@ import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.AliPayAccount;
@@ -44,6 +45,7 @@ import haveno.core.payment.payload.SpecificBanksAccountPayload;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
@@ -61,6 +63,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
@@ -459,6 +462,80 @@ public class OfferBookViewModelTest {
         assertEquals("(-12.00%)", model.getPriceAsPercentage(item));
         assertEquals("12557.2046", model.getPrice(lowItem));
         assertEquals("(1.00%)", model.getPriceAsPercentage(lowItem));
+    }
+
+    @Test
+    public void testOfferCountsFollowOfferTypeFilters() {
+        OfferBookViewModel model = getOfferCountModel(OfferDirection.BUY);
+        model.onSetTradeCurrency(usd);
+
+        assertEquals(Map.of("USD", 2, "EUR", 1), model.getOfferCounts());
+        assertEquals(Map.of(PaymentMethod.SEPA_ID, 2), model.getPaymentMethodOfferCounts());
+        assertEquals(2, model.getOfferList().size());
+
+        model.onShowNoDepositOffers(true);
+        assertEquals(Map.of("USD", 1, "EUR", 1), model.getOfferCounts());
+        assertEquals(Map.of(PaymentMethod.SEPA_ID, 1), model.getPaymentMethodOfferCounts());
+        assertEquals(1, model.getOfferList().size());
+
+        model.onShowPrivateOffers(true);
+        model.onShowNoDepositOffers(false);
+        assertEquals(Map.of("USD", 1, "EUR", 3), model.getOfferCounts());
+        assertEquals(Map.of(PaymentMethod.SEPA_ID, 1), model.getPaymentMethodOfferCounts());
+        assertEquals("EUR", model.getTradeCurrencies().get(1).getCode());
+
+        model.onShowPrivateOffers(false);
+        assertEquals(Map.of("USD", 2, "EUR", 1), model.getOfferCounts());
+        assertEquals("USD", model.getTradeCurrencies().get(1).getCode());
+    }
+
+    @Test
+    public void testSellOfferCountsIgnoreNoDepositFilter() {
+        OfferBookViewModel model = getOfferCountModel(OfferDirection.SELL);
+        model.onSetTradeCurrency(usd);
+        model.onShowNoDepositOffers(true);
+
+        assertEquals(Map.of("USD", 1), model.getOfferCounts());
+        assertEquals(Map.of(PaymentMethod.SEPA_ID, 1), model.getPaymentMethodOfferCounts());
+        assertEquals(1, model.getOfferList().size());
+
+        model.onShowPrivateOffers(true);
+        assertTrue(model.getOfferCounts().isEmpty());
+        assertTrue(model.getPaymentMethodOfferCounts().isEmpty());
+        assertTrue(model.getOfferList().isEmpty());
+    }
+
+    private OfferBookViewModel getOfferCountModel(OfferDirection direction) {
+        OfferBook offerBook = mock(OfferBook.class);
+        ObservableList<OfferBookListItem> items = FXCollections.observableArrayList(
+                getOfferCountItem("USD", OfferDirection.SELL, false, false),
+                getOfferCountItem("USD", OfferDirection.SELL, false, false),
+                getOfferCountItem("EUR", OfferDirection.SELL, false, false),
+                getOfferCountItem("EUR", OfferDirection.SELL, true, false),
+                getOfferCountItem("EUR", OfferDirection.SELL, true, false),
+                getOfferCountItem("USD", OfferDirection.SELL, true, true),
+                getOfferCountItem("EUR", OfferDirection.SELL, true, true),
+                getOfferCountItem("USD", OfferDirection.BUY, false, false));
+        when(offerBook.getOfferBookListItems()).thenReturn(items);
+        Preferences preferences = mock(Preferences.class);
+        when(preferences.getTraditionalCurrenciesAsObservable()).thenReturn(
+                FXCollections.observableArrayList(usd, new TraditionalCurrency("EUR")));
+        OfferBookViewModel model = new FiatOfferBookViewModel(user, mock(OpenOfferManager.class), offerBook,
+                preferences, null, null, null, null, null, null, getPriceUtil(), null, coinFormatter, null);
+        model.initWithDirection(direction);
+        return model;
+    }
+
+    private OfferBookListItem getOfferCountItem(String currency, OfferDirection direction, boolean isPrivate, boolean noDeposit) {
+        Offer offer = mock(Offer.class);
+        when(offer.getCounterCurrencyCode()).thenReturn(currency);
+        when(offer.getDirection()).thenReturn(direction);
+        when(offer.isPrivateOffer()).thenReturn(isPrivate);
+        when(offer.hasBuyerAsTakerWithoutDeposit()).thenReturn(noDeposit);
+        when(offer.getPaymentMethod()).thenReturn(PaymentMethod.SEPA);
+        OfferBookListItem item = mock(OfferBookListItem.class);
+        when(item.getOffer()).thenReturn(offer);
+        return item;
     }
 
     private PaymentAccount getAliPayAccount(String currencyCode) {
