@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -47,24 +48,18 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import lombok.Getter;
-import org.fxmisc.easybind.EasyBind;
-import org.fxmisc.easybind.Subscription;
-import org.fxmisc.easybind.monadic.MonadicBinding;
 
 @Singleton
 public class MarketPricePresentation {
+    private static final Comparator<String> CURRENCY_CODE_COMPARATOR = Comparator.comparing(CurrencyUtil::isCryptoCurrency)
+            .thenComparing(Comparator.naturalOrder());
     private final Preferences preferences;
     private final PriceFeedService priceFeedService;
     @Getter
     private final ObservableList<PriceFeedComboBoxItem> priceFeedComboBoxItems = FXCollections.observableArrayList();
-    @Getter // items with a known price, shown in the selector
+    @Getter // items with a known price and the active currency, shown in the selector
     private final ObservableList<PriceFeedComboBoxItem> availablePriceFeedComboBoxItems = FXCollections.observableArrayList();
-    @SuppressWarnings("FieldCanBeLocal")
-    private MonadicBinding<String> marketPriceBinding;
-    @SuppressWarnings({"FieldCanBeLocal", "unused"})
-    private Subscription priceFeedAllLoadedSubscription;
 
-    private final StringProperty marketPriceCurrencyCode = new SimpleStringProperty("");
     private final ObjectProperty<PriceFeedComboBoxItem> selectedPriceFeedComboBoxItemProperty = new SimpleObjectProperty<>();
     private final BooleanProperty isFiatCurrencyPriceFeedSelected = new SimpleBooleanProperty(true);
     private final BooleanProperty isCryptoCurrencyPriceFeedSelected = new SimpleBooleanProperty(false);
@@ -91,25 +86,16 @@ public class MarketPricePresentation {
     }
 
     public void setup() {
-        fillPriceFeedComboBoxItems();
-        setupMarketPriceFeed();
-
+        // initialize bound controls on the user thread after background startup
+        UserThread.execute(() -> {
+            fillPriceFeedComboBoxItems();
+            setupMarketPriceFeed();
+        });
     }
 
     public void setPriceFeedComboBoxItem(PriceFeedComboBoxItem item) {
-        if (item != null) {
-            Optional<PriceFeedComboBoxItem> itemOptional = findPriceFeedComboBoxItem(priceFeedService.currencyCodeProperty().get());
-            if (itemOptional.isPresent())
-                selectedPriceFeedComboBoxItemProperty.set(itemOptional.get());
-            else
-                findPriceFeedComboBoxItem(preferences.getPreferredTradeCurrency().getCode())
-                        .ifPresent(selectedPriceFeedComboBoxItemProperty::set);
-
+        if (item != null && !item.currencyCode.equals(CurrencyUtil.getCurrencyCodeBase(priceFeedService.getCurrencyCode())))
             priceFeedService.setCurrencyCode(item.currencyCode);
-        } else {
-            findPriceFeedComboBoxItem(preferences.getPreferredTradeCurrency().getCode())
-                    .ifPresent(selectedPriceFeedComboBoxItemProperty::set);
-        }
     }
 
     private void fillPriceFeedComboBoxItems() {
@@ -125,62 +111,55 @@ public class MarketPricePresentation {
         // create price feed items sorted by code, fiat before cryptos
         List<PriceFeedComboBoxItem> currencyItems = uniqueCurrencyCodeBases
                 .stream()
-                .sorted(Comparator.comparing(CurrencyUtil::isCryptoCurrency).thenComparing(Comparator.naturalOrder()))
-                .map(currencyCodeBase -> new PriceFeedComboBoxItem(currencyCodeBase))
+                .sorted(CURRENCY_CODE_COMPARATOR)
+                .map(currencyCodeBase -> findPriceFeedComboBoxItem(currencyCodeBase).orElseGet(() -> {
+                    PriceFeedComboBoxItem selectedItem = selectedPriceFeedComboBoxItemProperty.get();
+                    return selectedItem != null && selectedItem.currencyCode.equals(currencyCodeBase)
+                            ? selectedItem : new PriceFeedComboBoxItem(currencyCodeBase);
+                }))
                 .collect(Collectors.toList());
-        priceFeedComboBoxItems.setAll(currencyItems);
+        if (!currencyItems.equals(priceFeedComboBoxItems)) priceFeedComboBoxItems.setAll(currencyItems);
     }
 
     private void setupMarketPriceFeed() {
-        priceFeedService.startRequestingPrices(price -> marketPrice.set(FormattingUtils.formatMarketPrice(price, priceFeedService.getCurrencyCode())),
-                (errorMessage, throwable) -> marketPrice.set(Res.get("shared.na")));
-
-        marketPriceBinding = EasyBind.combine(
-                marketPriceCurrencyCode, marketPrice,
-                (currencyCode, price) -> {
-                    MarketPrice currentPrice = priceFeedService.getMarketPrice(currencyCode);
-                    String currentPriceStr = currentPrice == null ? Res.get("shared.na") : FormattingUtils.formatMarketPrice(currentPrice.getPrice(), currencyCode);
-                    return CurrencyUtil.getCurrencyPair(currencyCode) + ": " + currentPriceStr;
-                });
-
-        marketPriceBinding.subscribe((observable, oldValue, newValue) -> {
-            UserThread.execute(() -> {
-                if (newValue != null && !newValue.equals(oldValue)) {
-                    setMarketPriceInItems();
-
-                    String code = priceFeedService.currencyCodeProperty().get();
-                    Optional<PriceFeedComboBoxItem> itemOptional = findPriceFeedComboBoxItem(code);
-                    if (itemOptional.isPresent()) {
-                        itemOptional.get().setDisplayString(newValue);
-                        selectedPriceFeedComboBoxItemProperty.set(itemOptional.get());
-                    } else {
-                        if (CurrencyUtil.isCryptoCurrency(code)) {
-                            CurrencyUtil.getCryptoCurrency(code).ifPresent(cryptoCurrency -> {
-                                preferences.addCryptoCurrency(cryptoCurrency);
-                                fillPriceFeedComboBoxItems();
-                            });
-                        } else {
-                            CurrencyUtil.getTraditionalCurrency(code).ifPresent(traditionalCurrency -> {
-                                preferences.addTraditionalCurrency(traditionalCurrency);
-                                fillPriceFeedComboBoxItems();
-                            });
-                        }
-                    }
-
-                    if (selectedPriceFeedComboBoxItemProperty.get() != null)
-                        selectedPriceFeedComboBoxItemProperty.get().setDisplayString(newValue);
-                }
-            });
-        });
-
-        marketPriceCurrencyCode.bind(priceFeedService.currencyCodeProperty());
-
-        priceFeedAllLoadedSubscription = EasyBind.subscribe(priceFeedService.updateCounterProperty(), updateCounter -> UserThread.execute(() -> setMarketPriceInItems()));
+        priceFeedService.currencyCodeProperty().addListener((observable, oldValue, newValue) ->
+                UserThread.execute(this::updateSelectedPriceFeedComboBoxItem));
+        priceFeedService.updateCounterProperty().addListener((observable, oldValue, newValue) ->
+                UserThread.execute(this::setMarketPriceInItems));
 
         preferences.getTradeCurrenciesAsObservable().addListener((ListChangeListener<TradeCurrency>) c -> UserThread.runAfter(() -> {
             fillPriceFeedComboBoxItems();
             setMarketPriceInItems();
         }, 100, TimeUnit.MILLISECONDS));
+
+        updateSelectedPriceFeedComboBoxItem();
+        priceFeedService.startRequestingPrices(price -> marketPrice.set(FormattingUtils.formatMarketPrice(price, priceFeedService.getCurrencyCode())),
+                (errorMessage, throwable) -> marketPrice.set(Res.get("shared.na")));
+    }
+
+    private void updateSelectedPriceFeedComboBoxItem() {
+        String currencyCode = priceFeedService.getCurrencyCode();
+        if (currencyCode == null) {
+            selectedPriceFeedComboBoxItemProperty.set(null);
+        } else {
+            if (findPriceFeedComboBoxItem(currencyCode).isEmpty()) {
+                // add currencies selected by other screens, but do not undo preference removals on price updates
+                if (CurrencyUtil.isCryptoCurrency(currencyCode))
+                    CurrencyUtil.getCryptoCurrency(currencyCode).ifPresent(preferences::addCryptoCurrency);
+                else
+                    CurrencyUtil.getTraditionalCurrency(currencyCode).ifPresent(preferences::addTraditionalCurrency);
+                fillPriceFeedComboBoxItems();
+            }
+            PriceFeedComboBoxItem selectedItem = findPriceFeedComboBoxItem(currencyCode).orElseGet(() -> {
+                PriceFeedComboBoxItem currentItem = selectedPriceFeedComboBoxItemProperty.get();
+                String currencyCodeBase = CurrencyUtil.getCurrencyCodeBase(currencyCode);
+                return currentItem != null && currentItem.currencyCode.equals(currencyCodeBase)
+                        ? currentItem : new PriceFeedComboBoxItem(currencyCodeBase);
+            });
+            setMarketPriceInItem(selectedItem);
+            selectedPriceFeedComboBoxItemProperty.set(selectedItem);
+        }
+        setMarketPriceInItems();
     }
 
     private Optional<PriceFeedComboBoxItem> findPriceFeedComboBoxItem(String currencyCode) {
@@ -190,36 +169,37 @@ public class MarketPricePresentation {
     }
 
     private void setMarketPriceInItems() {
-        priceFeedComboBoxItems.forEach(item -> {
-            String currencyCode = item.currencyCode;
-            MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
-            String priceString;
-            if (marketPrice != null && marketPrice.isPriceAvailable()) {
-                priceString = FormattingUtils.formatMarketPrice(marketPrice.getPrice(), currencyCode);
-                item.setPriceAvailable(true);
-                item.setExternallyProvidedPrice(marketPrice.isExternallyProvidedPrice());
-            } else {
-                priceString = Res.get("shared.na");
-                item.setPriceAvailable(false);
-            }
-            item.setDisplayString(CurrencyUtil.getCurrencyPair(currencyCode) + ": " + priceString);
+        priceFeedComboBoxItems.forEach(this::setMarketPriceInItem);
+        PriceFeedComboBoxItem selectedItem = selectedPriceFeedComboBoxItemProperty.get();
+        if (selectedItem != null && !priceFeedComboBoxItems.contains(selectedItem))
+            setMarketPriceInItem(selectedItem);
 
-            final String code = item.currencyCode;
-            if (selectedPriceFeedComboBoxItemProperty.get() != null &&
-                    selectedPriceFeedComboBoxItemProperty.get().currencyCode.equals(code)) {
-                isFiatCurrencyPriceFeedSelected.set(CurrencyUtil.isTraditionalCurrency(code) && CurrencyUtil.getTraditionalCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
-                isCryptoCurrencyPriceFeedSelected.set(CurrencyUtil.isCryptoCurrency(code) && CurrencyUtil.getCryptoCurrency(code).isPresent() && item.isPriceAvailable() && item.isExternallyProvidedPrice());
-                isExternallyProvidedPrice.set(item.isExternallyProvidedPrice());
-                isPriceAvailable.set(item.isPriceAvailable());
-                marketPriceUpdated.set(marketPriceUpdated.get() + 1);
-            }
-        });
-
-        // hide currencies without a price from the selector
-        List<PriceFeedComboBoxItem> availableItems = priceFeedComboBoxItems.stream()
-                .filter(PriceFeedComboBoxItem::isPriceAvailable)
+        // keep the active currency visible without a price or a preference entry
+        List<PriceFeedComboBoxItem> availableItems = Stream.concat(priceFeedComboBoxItems.stream(), Stream.ofNullable(selectedItem))
+                .filter(item -> item.isPriceAvailable() || item == selectedItem)
+                .distinct()
+                .sorted(Comparator.comparing(item -> item.currencyCode, CURRENCY_CODE_COMPARATOR))
                 .collect(Collectors.toList());
         if (!availableItems.equals(availablePriceFeedComboBoxItems)) availablePriceFeedComboBoxItems.setAll(availableItems);
+
+        String currencyCode = selectedItem == null ? null : selectedItem.currencyCode;
+        boolean priceAvailable = selectedItem != null && selectedItem.isPriceAvailable();
+        boolean externallyProvidedPrice = priceAvailable && selectedItem.isExternallyProvidedPrice();
+        isFiatCurrencyPriceFeedSelected.set(externallyProvidedPrice && CurrencyUtil.isTraditionalCurrency(currencyCode) && CurrencyUtil.getTraditionalCurrency(currencyCode).isPresent());
+        isCryptoCurrencyPriceFeedSelected.set(externallyProvidedPrice && CurrencyUtil.isCryptoCurrency(currencyCode) && CurrencyUtil.getCryptoCurrency(currencyCode).isPresent());
+        isExternallyProvidedPrice.set(externallyProvidedPrice);
+        isPriceAvailable.set(priceAvailable);
+        marketPriceUpdated.set(marketPriceUpdated.get() + 1);
+    }
+
+    private void setMarketPriceInItem(PriceFeedComboBoxItem item) {
+        String currencyCode = item.currencyCode;
+        MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
+        boolean priceAvailable = marketPrice != null && marketPrice.isPriceAvailable();
+        item.setPriceAvailable(priceAvailable);
+        item.setExternallyProvidedPrice(priceAvailable && marketPrice.isExternallyProvidedPrice());
+        String priceString = priceAvailable ? FormattingUtils.formatMarketPrice(marketPrice.getPrice(), currencyCode) : Res.get("shared.na");
+        item.setDisplayString(CurrencyUtil.getCurrencyPair(currencyCode) + ": " + priceString);
     }
 
     public ObjectProperty<PriceFeedComboBoxItem> getSelectedPriceFeedComboBoxItemProperty() {

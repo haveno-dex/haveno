@@ -224,10 +224,7 @@ public class PriceFeedService {
             boolean success = applyPriceToConsumer();
             if (success) {
                 ThreadUtils.execute(() -> retryDelay = 0, THREAD_ID); // reset backoff; retryDelay is accessed on THREAD_ID
-                MarketPrice marketPrice;
-                synchronized (cache) {
-                    marketPrice = cache.get(currencyCode);
-                }
+                MarketPrice marketPrice = getMarketPrice(currencyCode);
                 if (marketPrice != null)
                     log.debug("Received new {} from provider {} after {} sec.",
                             marketPrice,
@@ -458,9 +455,9 @@ public class PriceFeedService {
         String errorMessage = null;
         if (currencyCode != null) {
             String baseUrl = priceProvider.getBaseUrl();
-            if (cache.containsKey(currencyCode)) {
+            MarketPrice marketPrice = getMarketPrice(currencyCode);
+            if (marketPrice != null) {
                 try {
-                    MarketPrice marketPrice = cache.get(currencyCode);
                     if (marketPrice.isExternallyProvidedPrice()) {
                         if (marketPrice.isRecentPriceAvailable()) {
                             if (priceConsumer != null)
