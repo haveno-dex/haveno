@@ -51,6 +51,7 @@
     </ScrollPane>
     <HBox spacing="10">
         <Label fx:id="numItems"/>
+        <Label fx:id="loadErrorLabel" styleClass="error-text" visible="false" managed="false"/>
         <Region fx:id="spacer"/>
         <AutoTooltipButton fx:id="exportButton"/>
     </HBox>

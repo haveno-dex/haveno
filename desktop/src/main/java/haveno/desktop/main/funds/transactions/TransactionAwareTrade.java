@@ -75,20 +75,22 @@ class TransactionAwareTrade implements TransactionAwareTradable {
 
     private boolean isDisputedPayoutTx(String txId) {
         String delegateId = trade.getId();
-        ObservableList<Dispute> disputes = arbitrationManager.getDisputesAsObservableList();
-
         boolean isAnyDisputeRelatedToThis = arbitrationManager.getDisputedTradeIds().contains(trade.getId());
+        if (!isAnyDisputeRelatedToThis) return false;
 
-        return isAnyDisputeRelatedToThis && disputes.stream()
-                .anyMatch(dispute -> {
-                    String disputePayoutTxId = dispute.getDisputePayoutTxId();
-                    boolean isDisputePayoutTx = txId.equals(disputePayoutTxId);
+        ObservableList<Dispute> disputes = arbitrationManager.getDisputesAsObservableList();
+        synchronized (disputes) {
+            return disputes.stream()
+                    .anyMatch(dispute -> {
+                        String disputePayoutTxId = dispute.getDisputePayoutTxId();
+                        boolean isDisputePayoutTx = txId.equals(disputePayoutTxId);
 
-                    String disputeTradeId = dispute.getTradeId();
-                    boolean isDisputeRelatedToThis = delegateId.equals(disputeTradeId);
+                        String disputeTradeId = dispute.getTradeId();
+                        boolean isDisputeRelatedToThis = delegateId.equals(disputeTradeId);
 
-                    return isDisputePayoutTx && isDisputeRelatedToThis;
-                });
+                        return isDisputePayoutTx && isDisputeRelatedToThis;
+                    });
+        }
     }
 
 //    boolean isDelayedPayoutTx(String txId) {

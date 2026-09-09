@@ -23,8 +23,10 @@ import com.google.inject.Singleton;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.Tradable;
+import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
+import java.util.List;
 import java.util.Set;
 
 @Singleton
@@ -46,11 +48,13 @@ public class TradableRepository {
     }
 
     Set<Tradable> getAll() {
-        return ImmutableSet.<Tradable>builder()
-                .addAll(openOfferManager.getObservableList())
-                .addAll(tradeManager.getObservableList())
-                .addAll(closedTradableManager.getObservableList())
-                .addAll(failedTradesManager.getObservableList())
-                .build();
+        ImmutableSet.Builder<Tradable> tradables = ImmutableSet.<Tradable>builder()
+                .addAll(openOfferManager.getOpenOffers())
+                .addAll(tradeManager.getOpenTrades())
+                .addAll(closedTradableManager.getTradableList());
+        List<Trade> failedTrades = failedTradesManager.getObservableList();
+        synchronized (failedTrades) {
+            return tradables.addAll(failedTrades).build();
+        }
     }
 }

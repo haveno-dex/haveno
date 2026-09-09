@@ -17,12 +17,10 @@
 
 package haveno.desktop.main.funds.transactions;
 
-import haveno.core.trade.Tradable;
 import haveno.core.xmr.wallet.XmrWalletService;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 class DisplayedTransactions extends ObservableListDecorator<TransactionsListItem> {
@@ -48,16 +46,16 @@ class DisplayedTransactions extends ObservableListDecorator<TransactionsListItem
 
     private List<TransactionsListItem> getTransactionListItems() {
         List<MoneroTxWallet> transactions = xmrWalletService.getTxs(false);
+        List<TransactionAwareTradable> tradables = tradableRepository.getAll().stream()
+                .map(transactionAwareTradableFactory::create)
+                .collect(Collectors.toList());
         return transactions.stream()
-                .map(this::convertTransactionToListItem)
+                .map(transaction -> convertTransactionToListItem(transaction, tradables))
                 .collect(Collectors.toList());
     }
 
-    private TransactionsListItem convertTransactionToListItem(MoneroTxWallet transaction) {
-        Set<Tradable> tradables = tradableRepository.getAll();
-
+    private TransactionsListItem convertTransactionToListItem(MoneroTxWallet transaction, List<TransactionAwareTradable> tradables) {
         TransactionAwareTradable maybeTradable = tradables.stream()
-                .map(transactionAwareTradableFactory::create)
                 .filter(tradable -> tradable.isRelatedToTransaction(transaction))
                 .findAny()
                 .orElse(null);
