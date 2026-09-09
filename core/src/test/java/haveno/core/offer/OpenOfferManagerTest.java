@@ -9,10 +9,15 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrKeyImagePoller;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.trade.BuyerAsMakerTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradableList;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.trade.protocol.ProcessModelServiceProvider;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NetworkNotReadyException;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.peers.PeerManager;
@@ -31,6 +36,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
+import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static haveno.core.offer.OfferMaker.btcUsdOffer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -443,6 +449,108 @@ public class OpenOfferManagerTest {
     }
 
     @Test
+    public void testInitializePublishedMakerTradeClosesRestoredOffersWithoutWallet() {
+        assertInitializeRestoredMakerOffer(Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK, false, true, OpenOffer.State.CLOSED);
+    }
+
+    @Test
+    public void testInitializePublishedMakerTradeClosesRestoredOffersWhenNetworkNotReady() {
+        assertInitializeRestoredMakerOffer(Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK, false, false, OpenOffer.State.CLOSED);
+    }
+
+    @Test
+    public void testInitializeCompletedMakerTradeClosesRestoredOffers() {
+        assertInitializeRestoredMakerOffer(Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK, true, true, OpenOffer.State.CLOSED);
+    }
+
+    @Test
+    public void testInitializeUnfundedMakerTradePreservesRestoredOffers() {
+        assertInitializeRestoredMakerOffer(Trade.State.MULTISIG_COMPLETED, false, true, OpenOffer.State.AVAILABLE);
+    }
+
+    @Test
+    public void testInitializeFailedDepositMakerTradePreservesRestoredOffers() {
+        assertInitializeRestoredMakerOffer(Trade.State.PUBLISH_DEPOSIT_TX_REQUEST_FAILED, false, true, OpenOffer.State.AVAILABLE);
+    }
+
+    private void assertInitializeRestoredMakerOffer(Trade.State tradeState, boolean completed, boolean networkReady, OpenOffer.State expectedState) {
+        P2PService p2PService = mock(P2PService.class);
+        OfferBookService offerBookService = mock(OfferBookService.class);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
+        XmrWalletService xmrWalletService = mock(XmrWalletService.class);
+        TradeManager tradeManager = mock(TradeManager.class);
+        ProcessModelServiceProvider serviceProvider = mock(ProcessModelServiceProvider.class);
+        ArbitratorManager arbitratorManager = mock(ArbitratorManager.class);
+        TradeManager originalTradeManager = HavenoUtils.tradeManager;
+        OpenOfferManager originalOpenOfferManager = HavenoUtils.openOfferManager;
+
+        when(p2PService.isBootstrapped()).thenReturn(networkReady);
+        when(xmrWalletService.getXmrConnectionService()).thenReturn(xmrConnectionService);
+        when(xmrConnectionService.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
+        when(serviceProvider.getArbitratorManager()).thenReturn(arbitratorManager);
+        if (!networkReady) {
+            doThrow(new NetworkNotReadyException()).when(offerBookService).removeOffer(any(), any(), any());
+        }
+
+        try {
+            HavenoUtils.tradeManager = tradeManager;
+            OpenOfferManager manager = createOfferManager(p2PService, offerBookService, xmrConnectionService, xmrWalletService);
+            when(serviceProvider.getOpenOfferManager()).thenReturn(manager);
+
+            OpenOffer openOffer = new OpenOffer(make(btcUsdOffer));
+            openOffer.getOffer().getOfferPayload().setReserveTxKeyImages(List.of("reserve"));
+            openOffer.setState(OpenOffer.State.AVAILABLE);
+            OpenOffer clonedOffer = new OpenOffer(make(btcUsdOffer.but(with(OfferMaker.id, "clone"))), 0, openOffer);
+            clonedOffer.getOffer().getOfferPayload().setReserveTxKeyImages(List.of("reserve"));
+            OpenOffer unrelatedOffer = new OpenOffer(make(btcUsdOffer.but(with(OfferMaker.id, "unrelated"))));
+            unrelatedOffer.setState(OpenOffer.State.AVAILABLE);
+            manager.getObservableList().addAll(openOffer, clonedOffer, unrelatedOffer);
+
+            Offer offer = openOffer.getOffer();
+            ProcessModel processModel = new ProcessModel(offer.getId(), "account", null);
+            processModel.applyTransient(serviceProvider, tradeManager, offer);
+            Trade trade = new BuyerAsMakerTrade(offer, offer.getAmount(), offer.getPrice().getValue(),
+                    xmrWalletService, processModel, "restored-maker", null, null, null, null);
+            trade.getMaker().setDepositTxHash("maker-deposit");
+            trade.getTaker().setDepositTxHash("taker-deposit");
+            trade.setState(tradeState);
+            if (completed) {
+                trade.setPayoutState(Trade.PayoutState.PAYOUT_FINALIZED);
+                trade.setCompleted(true);
+            }
+            when(tradeManager.getOpenTrade(offer.getId())).thenReturn(completed ? Optional.empty() : Optional.of(trade));
+
+            if (trade.isDepositRequested() && !completed) {
+                RuntimeException error = assertThrows(RuntimeException.class, () -> trade.initialize(serviceProvider));
+                assertTrue(error.getMessage().startsWith("Missing trade wallet"));
+            } else {
+                trade.initialize(serviceProvider);
+            }
+
+            assertEquals(expectedState, openOffer.getState());
+            assertEquals(expectedState, clonedOffer.getState());
+            assertEquals(OpenOffer.State.AVAILABLE, unrelatedOffer.getState());
+            assertTrue(manager.getOpenOffer(unrelatedOffer.getId()).isPresent());
+            if (expectedState == OpenOffer.State.CLOSED) {
+                assertTrue(manager.getOpenOffer(offer.getId()).isEmpty());
+                assertTrue(manager.getOpenOffer(clonedOffer.getId()).isEmpty());
+                assertFalse(manager.reserveOpenOffer(openOffer));
+                verify(offerBookService, times(2)).removeOffer(any(), any(), any());
+                verify(xmrWalletService).resetAddressEntriesForOpenOffer(offer.getId());
+                verify(xmrWalletService).resetAddressEntriesForOpenOffer(clonedOffer.getId());
+            } else {
+                assertTrue(manager.getOpenOffer(offer.getId()).isPresent());
+                assertTrue(manager.getOpenOffer(clonedOffer.getId()).isPresent());
+                verify(offerBookService, never()).removeOffer(any(), any(), any());
+            }
+            verify(xmrWalletService, never()).thawOutputs(any());
+        } finally {
+            HavenoUtils.tradeManager = originalTradeManager;
+            HavenoUtils.openOfferManager = originalOpenOfferManager;
+        }
+    }
+
+    @Test
     public void testSpentNotificationDuringUnreserveIsNotLost() throws Exception {
         P2PService p2PService = mock(P2PService.class);
         OfferBookService offerBookService = mock(OfferBookService.class);
@@ -503,13 +611,20 @@ public class OpenOfferManagerTest {
     private OpenOfferManager createOfferManager(P2PService p2PService,
                                                 OfferBookService offerBookService,
                                                 XmrConnectionService xmrConnectionService) {
+        return createOfferManager(p2PService, offerBookService, xmrConnectionService, null);
+    }
+
+    private OpenOfferManager createOfferManager(P2PService p2PService,
+                                                OfferBookService offerBookService,
+                                                XmrConnectionService xmrConnectionService,
+                                                XmrWalletService xmrWalletService) {
         return new OpenOfferManager(coreContext,
                 null,
                 null,
                 p2PService,
                 xmrConnectionService,
                 null,
-                null,
+                xmrWalletService,
                 null,
                 offerBookService,
                 null,
