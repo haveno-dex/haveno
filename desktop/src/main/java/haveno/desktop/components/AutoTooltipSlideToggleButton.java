@@ -1,30 +1,46 @@
 package haveno.desktop.components;
 
-import com.jfoenix.controls.JFXToggleButton;
-import com.jfoenix.skins.JFXToggleButtonSkin;
-import javafx.scene.control.Skin;
+import haveno.core.locale.GlobalSettings;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 
-import static haveno.desktop.components.TooltipUtil.showTooltipIfTruncated;
+public class AutoTooltipSlideToggleButton extends AutoTooltipToggleButton {
 
-public class AutoTooltipSlideToggleButton extends JFXToggleButton {
     public AutoTooltipSlideToggleButton() {
-        super();
-    }
+        getStyleClass().setAll("pill-toggle-button");
 
-    @Override
-    protected Skin<?> createDefaultSkin() {
-        return new AutoTooltipSlideToggleButton.AutoTooltipSlideToggleButtonSkin(this);
-    }
+        Region selectedTrack = new Region();
+        selectedTrack.getStyleClass().add("pill-toggle-selected-track");
+        selectedTrack.setOpacity(0);
 
-    private class AutoTooltipSlideToggleButtonSkin extends JFXToggleButtonSkin {
-        public AutoTooltipSlideToggleButtonSkin(JFXToggleButton toggleButton) {
-            super(toggleButton);
-        }
+        Region thumb = new Region();
+        thumb.getStyleClass().add("pill-toggle-thumb");
+        thumb.setTranslateX(-7);
 
-        @Override
-        protected void layoutChildren(double x, double y, double w, double h) {
-            super.layoutChildren(x, y, w, h);
-            showTooltipIfTruncated(this, getSkinnable());
-        }
+        StackPane track = new StackPane(selectedTrack, thumb);
+        track.getStyleClass().add("pill-toggle-track");
+        track.setMouseTransparent(true);
+        setGraphic(track);
+
+        Timeline animation = new Timeline();
+        selectedProperty().addListener((observable, oldValue, selected) -> {
+            animation.stop();
+            double position = selected ? 7 : -7;
+            double opacity = selected ? 1 : 0;
+            if (getScene() == null || !GlobalSettings.getUseAnimations()) {
+                thumb.setTranslateX(position);
+                selectedTrack.setOpacity(opacity);
+            } else {
+                animation.getKeyFrames().setAll(new KeyFrame(Duration.millis(160),
+                        new KeyValue(thumb.translateXProperty(), position, Interpolator.EASE_BOTH),
+                        new KeyValue(selectedTrack.opacityProperty(), opacity, Interpolator.EASE_BOTH)));
+                animation.playFromStart();
+            }
+        });
     }
 }

@@ -469,15 +469,6 @@
     -jfx-disable-animation: true;
 }
 
-.jfx-toggle-button,
-.jfx-toggle-button:armed,
-.jfx-toggle-button:hover,
-.jfx-toggle-button:focused,
-.jfx-toggle-button:selected,
-.jfx-toggle-button:focused:selected {
-    -jfx-disable-visual-focus: true;
-}
-
 .jfx-text-area > .input-line {
     -fx-background-color: transparent;
 }

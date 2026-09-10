@@ -575,7 +575,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
         showVolumeAsUsdToggleButton = new AutoTooltipSlideToggleButton();
         showVolumeAsUsdToggleButton.setText(Res.get("market.trades.showVolumeInUSD"));
-        showVolumeAsUsdToggleButton.setPadding(new Insets(-15, 0, 0, 10));
+        VBox.setMargin(showVolumeAsUsdToggleButton, new Insets(0, 0, 0, 10));
 
         VBox vBox = new VBox();
         AnchorPane.setTopAnchor(vBox, 15d);

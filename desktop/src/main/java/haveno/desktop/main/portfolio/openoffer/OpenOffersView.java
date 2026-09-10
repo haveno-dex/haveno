@@ -59,6 +59,7 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -69,7 +70,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
@@ -242,7 +242,8 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         searchBox.setSpacing(5);
         HBox.setHgrow(searchBoxSpacer, Priority.ALWAYS);
 
-        selectToggleButton.setPadding(new Insets(0, 60, -20, 0));
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setMargin(selectToggleButton, new Insets(0, 60, 0, 0));
         selectToggleButton.setText(Res.get("shared.enabled"));
         selectToggleButton.setDisable(true);
 
@@ -855,7 +856,6 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                     @Override
                     public TableCell<OpenOfferListItem, OpenOfferListItem> call(TableColumn<OpenOfferListItem, OpenOfferListItem> column) {
                         return new TableCell<>() {
-                            final ImageView iconView = new ImageView();
                             AutoTooltipSlideToggleButton checkBox;
 
                             private void updateState(@NotNull OpenOffer openOffer) {
@@ -884,8 +884,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
                                     if (checkBox == null) {
                                         checkBox = new AutoTooltipSlideToggleButton();
-                                        checkBox.setPadding(new Insets(-7, 0, -7, 0));
-                                        checkBox.setGraphic(iconView);
+                                        Accessibility.setName(checkBox, Res.get("shared.enabled"));
                                     }
                                     checkBox.setDisable(model.dataModel.isTriggered(openOffer));
                                     checkBox.setOnAction(event -> {
