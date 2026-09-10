@@ -52,8 +52,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -133,6 +135,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     @FXML
     AutoTooltipSlideToggleButton selectToggleButton;
 
+    private final IntegerProperty offerStateUpdateCounter = new SimpleIntegerProperty();
     private final Navigation navigation;
     private final OfferDetailsWindow offerDetailsWindow;
     private SortedList<OpenOfferListItem> sortedList;
@@ -284,7 +287,6 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                     sortedList.forEach(openOfferListItem -> onDeactivateOpenOffer(openOfferListItem.getOpenOffer()));
                 }
             }
-            tableView.refresh();
         });
 
         numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
@@ -352,8 +354,13 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         root.widthProperty().removeListener(widthListener);
     }
 
+    private ObservableValue<OpenOfferListItem> getCellValue(OpenOfferListItem item) {
+        return offerStateUpdateCounter.map(counter -> item);
+    }
+
     private void refresh() {
-        tableView.refresh();
+        // update cell contents without recreating their animated toggles
+        offerStateUpdateCounter.set(offerStateUpdateCounter.get() + 1);
         updateSelectToggleButtonState();
     }
 
@@ -534,7 +541,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setOfferIdColumnCellFactory() {
-        offerIdColumn.setCellValueFactory((openOfferListItem) -> new ReadOnlyObjectWrapper<>(openOfferListItem.getValue()));
+        offerIdColumn.setCellValueFactory((openOfferListItem) -> getCellValue(openOfferListItem.getValue()));
         offerIdColumn.getStyleClass().addAll("number-column");
         offerIdColumn.setCellFactory(
                 new Callback<>() {
@@ -574,7 +581,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setGroupIdCellFactory() {
-        groupIdColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
+        groupIdColumn.setCellValueFactory((offerListItem) -> getCellValue(offerListItem.getValue()));
         groupIdColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -623,7 +630,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setDateColumnCellFactory() {
-        dateColumn.setCellValueFactory((openOfferListItem) -> new ReadOnlyObjectWrapper<>(openOfferListItem.getValue()));
+        dateColumn.setCellValueFactory((openOfferListItem) -> getCellValue(openOfferListItem.getValue()));
         dateColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -647,7 +654,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setAmountColumnCellFactory() {
-        amountColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
+        amountColumn.setCellValueFactory((offer) -> getCellValue(offer.getValue()));
         amountColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -672,7 +679,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setPriceColumnCellFactory() {
-        priceColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
+        priceColumn.setCellValueFactory((offer) -> getCellValue(offer.getValue()));
         priceColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -697,7 +704,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setDeviationColumnCellFactory() {
-        deviationColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
+        deviationColumn.setCellValueFactory((offer) -> getCellValue(offer.getValue()));
         deviationColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -724,7 +731,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setTriggerPriceColumnCellFactory() {
-        triggerPriceColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
+        triggerPriceColumn.setCellValueFactory((offerListItem) -> getCellValue(offerListItem.getValue()));
         triggerPriceColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -748,7 +755,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setVolumeColumnCellFactory() {
-        volumeColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
+        volumeColumn.setCellValueFactory((offer) -> getCellValue(offer.getValue()));
         volumeColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -773,7 +780,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setPaymentMethodColumnCellFactory() {
-        paymentMethodColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
+        paymentMethodColumn.setCellValueFactory((offer) -> getCellValue(offer.getValue()));
         paymentMethodColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -798,7 +805,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setDirectionColumnCellFactory() {
-        directionColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
+        directionColumn.setCellValueFactory((offer) -> getCellValue(offer.getValue()));
         directionColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -825,7 +832,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setMarketColumnCellFactory() {
-        marketColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
+        marketColumn.setCellValueFactory((offer) -> getCellValue(offer.getValue()));
         marketColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -850,7 +857,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setDeactivateColumnCellFactory() {
-        deactivateItemColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
+        deactivateItemColumn.setCellValueFactory((offerListItem) -> getCellValue(offerListItem.getValue()));
         deactivateItemColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -894,7 +901,6 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                             onDeactivateOpenOffer(openOffer);
                                         }
                                         updateState(openOffer);
-                                        tableView.refresh();
                                     });
                                     updateState(openOffer);
                                     setGraphic(checkBox);
@@ -913,7 +919,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     private void setRemoveColumnCellFactory() {
         removeItemColumn.getStyleClass().addAll("avatar-column");
-        removeItemColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
+        removeItemColumn.setCellValueFactory((offerListItem) -> getCellValue(offerListItem.getValue()));
         removeItemColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -947,7 +953,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     private void setDuplicateColumnCellFactory() {
         duplicateItemColumn.getStyleClass().add("avatar-column");
-        duplicateItemColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
+        duplicateItemColumn.setCellValueFactory((offerListItem) -> getCellValue(offerListItem.getValue()));
         duplicateItemColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -981,7 +987,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     private void setCloneColumnCellFactory() {
         cloneItemColumn.getStyleClass().add("avatar-column");
-        cloneItemColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
+        cloneItemColumn.setCellValueFactory((offerListItem) -> getCellValue(offerListItem.getValue()));
         cloneItemColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -1014,7 +1020,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setTriggerIconColumnCellFactory() {
-        triggerIconColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
+        triggerIconColumn.setCellValueFactory((offerListItem) -> getCellValue(offerListItem.getValue()));
         triggerIconColumn.setCellFactory(
                 new Callback<>() {
                     @Override
@@ -1052,7 +1058,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void setEditColumnCellFactory() {
-        editItemColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
+        editItemColumn.setCellValueFactory((offerListItem) -> getCellValue(offerListItem.getValue()));
         editItemColumn.setCellFactory(
                 new Callback<>() {
                     @Override
