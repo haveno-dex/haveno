@@ -411,6 +411,7 @@ configure(project(':proto')) {
 
 configure(project(':assets')) {
     dependencies {
+        implementation libs.bcprov.jdk18on
         implementation(libs.bitcoinj) {
             exclude(module: 'bcprov-jdk15on')
             exclude(module: 'guava')

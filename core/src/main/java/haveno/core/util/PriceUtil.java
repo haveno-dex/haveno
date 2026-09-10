@@ -54,9 +54,10 @@ public class PriceUtil {
     }
 
     public static MonetaryValidator getPriceValidator(String currencyCode) {
+        // Trigger and alert values keep the existing downstream rounding
         return CurrencyUtil.isPricePrecise(currencyCode) ?
                 new AmountValidator4Decimals() :
-                new AmountValidator8Decimals();
+                new AmountValidator8Decimals(false);
     }
 
     public static InputValidator.ValidationResult isTriggerPriceValid(String triggerPriceAsString,
