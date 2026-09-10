@@ -74,6 +74,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.event.EventTarget;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -235,17 +236,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
 
         Tuple2<ComboBox<PriceFeedComboBoxItem>, VBox> marketPriceBox = getMarketPriceBox();
-        ComboBox<PriceFeedComboBoxItem> priceComboBox = marketPriceBox.first;
-
-        priceComboBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
-                model.setPriceFeedComboBoxItem(newValue));
-        ChangeListener<PriceFeedComboBoxItem> selectedPriceFeedItemListener = (observable, oldValue, newValue) -> {
-            if (newValue != null)
-                priceComboBox.getSelectionModel().select(newValue);
-
-        };
-        model.getSelectedPriceFeedComboBoxItemProperty().addListener(selectedPriceFeedItemListener);
-        priceComboBox.setItems(model.getPriceFeedComboBoxItems());
 
         Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"),
                 () -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class));
@@ -509,6 +499,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                     textProperty().bind(item.displayStringProperty);
                 } else {
                     textProperty().unbind();
+                    setText(null);
                 }
             }
         };
@@ -527,6 +518,31 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         ListCell<PriceFeedComboBoxItem> buttonCell = getPriceFeedComboBoxListCell();
         buttonCell.setId("price-feed-combo");
         priceComboBox.setButtonCell(buttonCell);
+
+        // list mutations can change the combo selection; only forward selections made outside synchronization
+        boolean[] updatingPriceComboBox = new boolean[1];
+        Runnable synchronizePriceComboBox = () -> {
+            updatingPriceComboBox[0] = true;
+            try {
+                if (!priceComboBox.getItems().equals(model.getPriceFeedComboBoxItems())) {
+                    // clear the value so the skin rebinds the button cell after replacing rows
+                    priceComboBox.setValue(null);
+                    priceComboBox.getItems().setAll(model.getPriceFeedComboBoxItems());
+                }
+                PriceFeedComboBoxItem selectedItem = model.getSelectedPriceFeedComboBoxItemProperty().get();
+                priceComboBox.getSelectionModel().select(selectedItem);
+                priceComboBox.setValue(selectedItem);
+            } finally {
+                updatingPriceComboBox[0] = false;
+            }
+        };
+        model.getPriceFeedComboBoxItems().addListener((ListChangeListener<PriceFeedComboBoxItem>) c -> synchronizePriceComboBox.run());
+        model.getSelectedPriceFeedComboBoxItemProperty().addListener((observable, oldValue, newValue) -> synchronizePriceComboBox.run());
+
+        priceComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (!updatingPriceComboBox[0]) model.setPriceFeedComboBoxItem(newValue);
+        });
+        synchronizePriceComboBox.run();
 
         Label marketPriceLabel = new Label();
 
