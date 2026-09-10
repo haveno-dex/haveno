@@ -3481,7 +3481,7 @@ textfield */
     -fx-background-insets: 44;
     -fx-background-radius: 8;
     -fx-border-radius: 8;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow-light-mode, 44, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, -bs-popup-shadow-light-mode, 28, 0, 0, 2);
 }
 
 .notification-popup-bg, .peer-info-popup-bg {
@@ -3489,7 +3489,7 @@ textfield */
     -fx-text-fill: -bs-rd-font-dark;
     -fx-background-color: -bs-color-background-popup;
     -fx-background-insets: 44;
-    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow-light-mode, 44, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, -bs-popup-shadow-light-mode, 28, 0, 0, 2);
     -fx-background-radius: 8;
     -fx-border-radius: 8;
 }
@@ -3503,7 +3503,7 @@ textfield */
 }
 
 .popup-dropshadow {
-    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow, 20, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, -bs-popup-shadow, 28, 0, 0, 2);
 }
 
 /* Scroll shell for popups capped to the default window size (Overlay#constrainToScreen) */
@@ -3530,8 +3530,10 @@ textfield */
     -fx-effect: null;
 }
 
+/* keep compact popup shadows inside their narrower transparent margins */
+.grid-pane.popup-dropshadow,
 .popup-scroll-shell.popup-dropshadow {
-    -fx-effect: dropshadow(gaussian, -bs-text-color-dropshadow, 20, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, -bs-popup-shadow, 12, 0, 0, 0);
 }
 
 /* inside the capped shell, keep the standard grid-pane inset from the visible card edge (35 padding - 10 bg insets) */

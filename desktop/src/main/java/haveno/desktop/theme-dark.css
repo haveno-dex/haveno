@@ -133,7 +133,8 @@
     -bs-rd-font-balance-label: #999999;
 
     -bs-text-color-dropshadow: rgba(45, 45, 49, .75);
-    -bs-text-color-dropshadow-light-mode: transparent;
+    -bs-popup-shadow: rgba(45, 45, 49, 0.45);
+    -bs-popup-shadow-light-mode: transparent;
     -bs-text-color-transparent: rgba(29, 29, 33, 0.2);
     -bs-color-gray-line: #504f52;
 
