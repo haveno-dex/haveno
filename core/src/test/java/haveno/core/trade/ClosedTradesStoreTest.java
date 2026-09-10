@@ -18,6 +18,7 @@
 package haveno.core.trade;
 
 import com.google.inject.Provider;
+import haveno.common.UserThread;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
@@ -40,10 +41,26 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class ClosedTradesStoreTest {
 
@@ -264,6 +281,380 @@ public class ClosedTradesStoreTest {
         EncryptedAppendLog clearedPending = new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1);
         assertTrue(clearedPending.readAllValidRecords().isEmpty(), "pending queue must be cleared after recovery");
         assertEquals(List.of("b"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testCommittedPendingUpdateCannotOverwriteNewerUpdateOnRestart() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+            doThrow(new IllegalStateException("Simulated append failure"))
+                    .doCallRealMethod().when(main).appendAll(anyList());
+            doThrow(new IllegalStateException("Simulated queue clear failure"))
+                    .when(pending).rewrite(List.of());
+
+            store.appendUpsert(openOffer("same", 1));
+            assertEquals(1, pending.readAllValidRecords().size());
+            store.appendUpsert(openOffer("same", 2));
+
+            List<Tradable> loaded = newStore().load();
+            assertEquals(List.of("same"), ids(loaded));
+            assertEquals(2, ((OpenOffer) loaded.get(0)).getTriggerPrice());
+            assertTrue(pending.readAllValidRecords().isEmpty());
+        }
+    }
+
+    @Test
+    public void testCommittedPendingDeleteCannotRemoveReaddedTradeOnRestart() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            store.appendUpsert(openOffer("same", 1));
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+            doThrow(new IllegalStateException("Simulated append failure"))
+                    .doCallRealMethod().when(main).appendAll(anyList());
+            doThrow(new IllegalStateException("Simulated queue clear failure"))
+                    .when(pending).rewrite(List.of());
+
+            store.appendDelete("same");
+            store.flushFailedEntries();
+            store.appendUpsert(openOffer("same", 2));
+
+            List<Tradable> loaded = newStore().load();
+            assertEquals(List.of("same"), ids(loaded));
+            assertEquals(2, ((OpenOffer) loaded.get(0)).getTriggerPrice());
+        }
+    }
+
+    @Test
+    public void testCommittedReceiptsAreSyncedBeforeQueueIsCleared() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            newStore().appendUpsert(openOffer("same", 1));
+            byte[] committed = new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3).readAllValidRecords().get(0);
+            new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1)
+                    .rewrite(List.of(committed));
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            ClosedTradesStore store = newStore();
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+
+            assertEquals(List.of("same"), ids(store.load()));
+
+            InOrder inOrder = inOrder(main, pending);
+            inOrder.verify(main).sync();
+            inOrder.verify(pending).rewrite(List.of());
+            verify(main, never()).appendAll(anyList());
+            assertTrue(pending.readAllValidRecords().isEmpty());
+        }
+    }
+
+    @Test
+    public void testCommittedReceiptsAreSyncedBeforePendingSnapshotIsReplaced() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            newStore().appendUpsert(openOffer("a", 1));
+            byte[] committed = new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3).readAllValidRecords().get(0);
+            new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1)
+                    .rewrite(List.of(committed, ClosedTradesStore.upsertBytes(openOffer("b", 1))));
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            doThrow(new IllegalStateException("Simulated append failure")).when(main).appendAll(anyList());
+            ClosedTradesStore store = newStore();
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+
+            assertEquals(List.of("a", "b"), ids(store.load()));
+
+            InOrder inOrder = inOrder(main, pending);
+            inOrder.verify(main).sync();
+            inOrder.verify(pending).rewrite(anyList());
+            assertEquals(1, pending.readAllValidRecords().size());
+        }
+    }
+
+    private static void setLog(ClosedTradesStore store, String name, EncryptedAppendLog log) throws Exception {
+        var field = ClosedTradesStore.class.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(store, log);
+    }
+
+    @Test
+    public void testLaterIdenticalDeleteIsStillRecovered() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            store.appendUpsert(openOffer("same", 1));
+            store.appendDelete("same");
+            store.appendUpsert(openOffer("same", 2));
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            setLog(store, "appendLog", main);
+            doThrow(new IllegalStateException("Simulated append failure")).when(main).appendAll(anyList());
+
+            store.appendDelete("same");
+
+            assertTrue(newStore().load().isEmpty(), "equal payloads can represent separate mutations");
+        }
+    }
+
+    @Test
+    public void testPartialBatchRestartPreservesReaddedTradeOrder() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            store.appendUpsert(openOffer("a", 0));
+            store.appendUpsert(openOffer("b", 0));
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            setLog(store, "appendLog", main);
+            doThrow(new IllegalStateException("Simulated append failure")).when(main).appendAll(anyList());
+            store.appendEntries(List.of(ClosedTradesStore.deleteBytes("a"),
+                    ClosedTradesStore.upsertBytes(openOffer("a", 1)),
+                    ClosedTradesStore.upsertBytes(openOffer("c", 0))));
+            doAnswer(invocation -> {
+                List<byte[]> batch = invocation.getArgument(0);
+                new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME, keyRing.getSymmetricKey(), 3)
+                        .appendAll(batch.subList(0, 2));
+                throw new OutOfMemoryError("Simulated process termination during batch append");
+            }).when(main).appendAll(anyList());
+            assertThrows(OutOfMemoryError.class, store::flushFailedEntries);
+
+            assertEquals(List.of("b", "a", "c"), ids(newStore().load()));
+            assertEquals(List.of("b", "a", "c"), ids(newStore().load()));
+            assertEquals(5, new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3).readAllValidRecords().size());
+        }
+    }
+
+    @Test
+    public void testFailedPendingClearDefersCompactionUntilRestartRecovery() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+            doThrow(new IllegalStateException("Simulated append failure"))
+                    .doCallRealMethod().when(main).appendAll(anyList());
+            doThrow(new IllegalStateException("Simulated queue clear failure"))
+                    .when(pending).rewrite(List.of());
+            store.appendUpsert(openOffer("same", 0));
+            for (int i = 1; i <= 600; i++) store.appendUpsert(openOffer("same", i));
+
+            ClosedTradesStore reader = newStore();
+            setLog(reader, "appendLog", main);
+            setLog(reader, "pendingLog", pending);
+            List<Tradable> loaded = reader.load();
+            assertEquals(600, ((OpenOffer) loaded.get(0)).getTriggerPrice());
+            verify(main, never()).rewrite(anyList());
+
+            assertEquals(600, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
+            assertEquals(1, new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3).readAllValidRecords().size());
+            assertEquals(600, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
+        }
+    }
+
+    @Test
+    public void testLegacyPendingIdentitiesAreDurableBeforeAppend() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            pending.rewrite(List.of(protobuf.TradableLogEntry.newBuilder()
+                    .setUpsert((protobuf.Tradable) openOffer("same", 1).toProtoMessage()).build().toByteArray()));
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            doAnswer(invocation -> {
+                List<byte[]> batch = invocation.getArgument(0);
+                String durableId = protobuf.TradableLogEntry.parseFrom(pending.readAllValidRecords().get(0)).getMutationId();
+                assertFalse(durableId.isEmpty());
+                assertEquals(durableId, protobuf.TradableLogEntry.parseFrom(batch.get(0)).getMutationId());
+                return invocation.callRealMethod();
+            }).when(main).appendAll(anyList());
+            doThrow(new OutOfMemoryError("Simulated process termination before queue clear"))
+                    .when(pending).rewrite(List.of());
+            ClosedTradesStore store = newStore();
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+
+            assertThrows(OutOfMemoryError.class, store::load);
+
+            ClosedTradesStore restarted = newStore();
+            restarted.appendUpsert(openOffer("same", 2));
+            assertEquals(2, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
+        }
+    }
+
+    @Test
+    public void testFailedLegacyPendingMigrationDefersAppendWithoutHidingHistory() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            newStore().appendUpsert(openOffer("main", 0));
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            pending.rewrite(List.of(protobuf.TradableLogEntry.newBuilder()
+                    .setUpsert((protobuf.Tradable) openOffer("queued", 1).toProtoMessage()).build().toByteArray()));
+            byte[] originalPending = Files.readAllBytes(new File(dir, ClosedTradesStore.PENDING_FILE_NAME).toPath());
+            doThrow(new IllegalStateException("Simulated legacy queue rewrite failure"))
+                    .when(pending).rewrite(anyList());
+            ClosedTradesStore store = newStore();
+            setLog(store, "pendingLog", pending);
+
+            assertEquals(List.of("main", "queued"), ids(store.load()));
+            assertEquals(1, new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3).readAllValidRecords().size());
+            assertArrayEquals(originalPending,
+                    Files.readAllBytes(new File(dir, ClosedTradesStore.PENDING_FILE_NAME).toPath()));
+            doCallRealMethod().when(pending).rewrite(anyList());
+            store.appendUpsert(openOffer("queued", 2));
+
+            assertEquals(2, ((OpenOffer) newStore().load().get(1)).getTriggerPrice());
+        }
+    }
+
+    @Test
+    public void testAppendBeforeLoadRecoversOlderPendingFirst() throws Exception {
+        new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1)
+                .rewrite(List.of(ClosedTradesStore.upsertBytes(openOffer("same", 1))));
+
+        newStore().appendUpsert(openOffer("same", 2));
+
+        assertEquals(2, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
+    }
+
+    @Test
+    public void testFailedClearIsRetriedWithEmptyMemoryQueue() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            pending.rewrite(List.of(ClosedTradesStore.upsertBytes(openOffer("queued", 1))));
+            doThrow(new IllegalStateException("Simulated queue clear failure"))
+                    .doCallRealMethod().when(pending).rewrite(List.of());
+            ClosedTradesStore store = newStore();
+            setLog(store, "pendingLog", pending);
+            store.load();
+            assertEquals(1, pending.readAllValidRecords().size());
+            ArgumentCaptor<Runnable> retry = ArgumentCaptor.forClass(Runnable.class);
+            userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(30L)));
+
+            retry.getValue().run();
+
+            assertTrue(pending.readAllValidRecords().isEmpty());
+            assertEquals(List.of("queued"), ids(newStore().load()));
+        }
+    }
+
+    @Test
+    public void testOlderPendingSnapshotCannotOverwriteNewerBatchOnRestart() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+            doThrow(new IllegalStateException("Simulated append failure"))
+                    .doThrow(new IllegalStateException("Simulated repeated append failure"))
+                    .doCallRealMethod().when(main).appendAll(anyList());
+            store.appendUpsert(openOffer("same", 1));
+            doThrow(new IllegalStateException("Simulated pending rewrite failure")).when(pending).rewrite(anyList());
+            store.appendUpsert(openOffer("same", 2));
+            store.appendUpsert(openOffer("same", 3));
+
+            assertEquals(3, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
+        }
+    }
+
+    @Test
+    public void testMainReadFailureStillDurablyQueuesNewWritesAlongsideOldPending() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore writer = newStore();
+            writer.appendUpsert(openOffer("committed", 1));
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+                    keyRing.getSymmetricKey(), 3));
+            byte[] committed = main.readAllValidRecords().get(0);
+            writer.appendUpsert(openOffer("committed", 2));
+            EncryptedAppendLog pending = new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1);
+            pending.rewrite(List.of(committed, protobuf.TradableLogEntry.newBuilder()
+                    .setUpsert((protobuf.Tradable) openOffer("queued", 1).toProtoMessage()).build().toByteArray()));
+            doThrow(new IllegalStateException("Simulated main-log read failure")).when(main).readAllValidRecords();
+            ClosedTradesStore store = newStore();
+            setLog(store, "appendLog", main);
+
+            store.appendUpsert(openOffer("new", 3));
+
+            assertEquals(3, pending.readAllValidRecords().size());
+            assertFalse(protobuf.TradableLogEntry.parseFrom(pending.readAllValidRecords().get(1)).getMutationId().isEmpty());
+            doCallRealMethod().when(main).readAllValidRecords();
+            store.appendUpsert(openOffer("next", 4));
+            List<Tradable> loaded = newStore().load();
+            assertEquals(List.of("committed", "queued", "new", "next"), ids(loaded));
+            assertEquals(2, ((OpenOffer) loaded.get(0)).getTriggerPrice());
+            assertEquals(3, ((OpenOffer) loaded.get(2)).getTriggerPrice());
+        }
+    }
+
+    @Test
+    public void testMainReadFailureCanCreateFirstDurableQueue() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            EncryptedAppendLog main = mock(EncryptedAppendLog.class);
+            doThrow(new IllegalStateException("Simulated main-log read failure")).when(main).readAllValidRecords();
+            setLog(store, "appendLog", main);
+
+            store.appendUpsert(openOffer("new", 3));
+
+            assertEquals(List.of("new"), ids(newStore().load()));
+        }
+    }
+
+    @Test
+    public void testEmptyPendingFileDoesNotNeedClearingOnStartup() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1).rewrite(List.of());
+            ClosedTradesStore store = newStore();
+            setLog(store, "pendingLog", pending);
+
+            assertTrue(store.load().isEmpty());
+
+            verify(pending, never()).rewrite(anyList());
+            userThread.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    public void testIdleShutdownFlushDoesNotInitializeLockedStore() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            EncryptedAppendLog main = mock(EncryptedAppendLog.class);
+            EncryptedAppendLog pending = mock(EncryptedAppendLog.class);
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+            keyRing.lockKeys();
+
+            store.flushFailedEntries();
+
+            verifyNoInteractions(main, pending);
+            userThread.verifyNoInteractions();
+        }
     }
 
     @Test

@@ -21,6 +21,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.google.protobuf.InvalidProtocolBufferException;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
@@ -37,6 +38,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,6 +53,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>The log holds {@link protobuf.TradableLogEntry} records: an {@code upsert} adds or replaces
  * the tradable with the matching id, a {@code delete_id} tombstones one. Replaying in order
  * (latest-wins per id, first-seen position kept) reconstructs the equivalent list.
+ * A mutation ID distinguishes retries from later writes with identical contents.
  *
  * <p>Writes never throw into callers: a failed batch is kept in memory, mirrored to a pending file
  * so it survives a process kill, and retried in order before the next write. Appends must be issued
@@ -86,6 +89,11 @@ public class ClosedTradesStore {
     // Entries whose write failed (e.g. disk full); mirrored to the pending file (best effort) and
     // retried in order before the next write, on a timer, and at shutdown.
     private final List<byte[]> failedEntries = new ArrayList<>();
+    private boolean pendingEntriesLoaded = false; // guarded by failedEntries
+    private boolean pendingReceiptsChecked = false; // guarded by failedEntries
+    private boolean pendingClearRequired = false; // guarded by failedEntries
+    private boolean pendingMigrationRequired = false; // guarded by failedEntries
+    private boolean receiptsUnsynced = false; // guarded by failedEntries
     private boolean retryScheduled = false; // guarded by failedEntries
     private static final long RETRY_DELAY_SEC = 30;
 
@@ -137,51 +145,132 @@ public class ClosedTradesStore {
     /**
      * Appends the given pre-encoded {@link protobuf.TradableLogEntry} records as one batch with a
      * single fsync. Never throws (a failed batch is queued and retried) except OutOfMemoryError,
-     * so heap exhaustion is never mistaken for a write failure.
+     * so heap exhaustion is never mistaken for a write failure. New mutations must be encoded with
+     * {@link #upsertBytes} or {@link #deleteBytes}; retries retain those bytes and their identities.
      */
     public void appendEntries(List<byte[]> entries) {
         synchronized (failedEntries) {
-            boolean hadFailed = !failedEntries.isEmpty();
-            List<byte[]> batch;
-            if (failedEntries.isEmpty()) {
-                batch = entries;
-            } else {
-                batch = new ArrayList<>(failedEntries.size() + entries.size());
-                batch.addAll(failedEntries);
-                batch.addAll(entries);
-            }
-            if (batch.isEmpty()) return;
+            if (entries.isEmpty() && failedEntries.isEmpty() && !pendingClearRequired) return;
+            List<byte[]> newEntries = entries;
             try {
-                appendLog().appendAll(batch);
-                failedEntries.clear();
-                if (hadFailed) clearPendingQueue(); // the recovered records are in the log now
+                // Recover older writes before accepting new ones, even when append precedes load.
+                loadPendingEntries();
+                if (!pendingReceiptsChecked) reconcilePendingEntries(appendLog().readAllValidRecords());
+                failedEntries.addAll(newEntries);
+                newEntries = List.of();
+                // Legacy queued records need durable identities before a retry can commit them.
+                if (pendingMigrationRequired) {
+                    syncReceipts();
+                    pendingLog().rewrite(failedEntries);
+                    pendingMigrationRequired = false;
+                }
+                if (!failedEntries.isEmpty()) {
+                    appendLog().appendAll(failedEntries);
+                    failedEntries.clear();
+                    receiptsUnsynced = false; // the append fsynced the log
+                }
+                if (pendingClearRequired) clearPendingQueue();
             } catch (OutOfMemoryError e) {
                 throw e;
             } catch (Throwable t) {
+                failedEntries.addAll(newEntries);
                 log.error("Could not append {} record(s) to {}; queueing them for retry.",
-                        batch.size(), LOG_FILE_NAME, t);
-                failedEntries.clear();
-                failedEntries.addAll(batch);
-                persistPendingQueue(batch);
-                if (!retryScheduled) {
-                    retryScheduled = true;
-                    UserThread.runAfter(() -> {
-                        synchronized (failedEntries) {
-                            retryScheduled = false;
-                        }
-                        flushFailedEntries();
-                    }, RETRY_DELAY_SEC);
+                        failedEntries.size(), LOG_FILE_NAME, t);
+                // Preserve the combined queue even when main-log reads fail, but never replace an
+                // unreadable pending file. Receipts are checked once the main log can be read.
+                if (pendingEntriesLoaded) {
+                    pendingClearRequired = true;
+                    persistPendingQueue(failedEntries);
                 }
+                scheduleRetry();
             }
         }
     }
 
     /**
-     * Retries any queued failed entries now; no-op when the queue is empty. Called on a timer after
-     * a failed write and from the shutdown sequence, so queued mutations do not die with the process.
+     * Retries failed appends and outstanding queue clears. Called on a timer after failure and
+     * from the shutdown sequence, so queued mutations do not die with the process.
      */
     public void flushFailedEntries() {
         appendEntries(List.of());
+    }
+
+    // Called under the queue monitor for either a failed append or an outstanding queue clear.
+    private void scheduleRetry() {
+        if (retryScheduled) return;
+        retryScheduled = true;
+        UserThread.runAfter(() -> {
+            synchronized (failedEntries) {
+                retryScheduled = false;
+            }
+            flushFailedEntries();
+        }, RETRY_DELAY_SEC);
+    }
+
+    // Called under the queue monitor before main-log reads, so a main-log failure cannot prevent
+    // new writes from being durably queued alongside older ones.
+    private void loadPendingEntries() {
+        if (!pendingEntriesLoaded) {
+            List<byte[]> pending = pendingLog().readAllValidRecords();
+            List<byte[]> recovered = new ArrayList<>(pending.size());
+            for (byte[] record : pending) {
+                if (mutationId(record).isEmpty()) {
+                    record = withMutationId(record);
+                    pendingMigrationRequired = true;
+                }
+                recovered.add(record);
+            }
+            if (pendingMigrationRequired) {
+                log.warn("Recovering legacy pending records without mutation IDs; their pre-upgrade commit status cannot be verified.");
+            }
+            failedEntries.addAll(0, recovered);
+            pendingClearRequired = !pending.isEmpty() || new File(dir, PENDING_FILE_NAME + ".tmp").exists();
+            pendingEntriesLoaded = true;
+        }
+    }
+
+    // Main-log identities are receipts: a committed mutation must not replay after a newer update
+    // merely because queue clearing failed. Called under the queue monitor before replay or writes.
+    private void reconcilePendingEntries(List<byte[]> records) {
+        // Bound receipt lookup to the queue, rather than retaining an ID for every historical write.
+        Set<String> uncommittedIds = new HashSet<>();
+        for (byte[] record : failedEntries) {
+            String id = mutationId(record);
+            if (!id.isEmpty()) uncommittedIds.add(id);
+        }
+        if (!uncommittedIds.isEmpty()) {
+            for (byte[] record : records) uncommittedIds.remove(mutationId(record));
+            if (failedEntries.removeIf(record -> {
+                String id = mutationId(record);
+                return !id.isEmpty() && !uncommittedIds.contains(id);
+            })) receiptsUnsynced = true;
+        }
+        pendingReceiptsChecked = true;
+    }
+
+    private static String mutationId(byte[] record) {
+        try {
+            return protobuf.TradableLogEntry.parseFrom(record).getMutationId();
+        } catch (InvalidProtocolBufferException e) {
+            return ""; // Preserve undecodable records; load reports them and suppresses compaction.
+        }
+    }
+
+    private static byte[] withMutationId(byte[] record) {
+        try {
+            return protobuf.TradableLogEntry.parseFrom(record).toBuilder()
+                    .setMutationId(UUID.randomUUID().toString()).build().toByteArray();
+        } catch (InvalidProtocolBufferException e) {
+            return record;
+        }
+    }
+
+    // Receipts may have replayed from an unsynced main-log tail (a crash cut an append short of its
+    // fsync); force them to disk before any pending rewrite can drop their queued copy.
+    private void syncReceipts() {
+        if (!receiptsUnsynced) return;
+        appendLog().sync();
+        receiptsUnsynced = false;
     }
 
     // Best-effort durable copy of the failed-write queue, so a queued batch survives a process
@@ -189,7 +278,9 @@ public class ClosedTradesStore {
     // retry succeeds.
     private void persistPendingQueue(List<byte[]> records) {
         try {
+            syncReceipts();
             pendingLog().rewrite(records);
+            pendingMigrationRequired = false;
         } catch (OutOfMemoryError e) {
             throw e;
         } catch (Throwable t) {
@@ -199,17 +290,22 @@ public class ClosedTradesStore {
 
     private void clearPendingQueue() {
         try {
-            if (pendingLog().exists()) pendingLog().rewrite(List.of());
+            // Also replaces a leftover rewrite temp when no live pending file was created.
+            syncReceipts();
+            pendingLog().rewrite(List.of());
+            pendingClearRequired = false;
         } catch (OutOfMemoryError e) {
             throw e;
         } catch (Throwable t) {
             log.warn("Could not clear the failed-write queue {}", PENDING_FILE_NAME, t);
+            scheduleRetry();
         }
     }
 
     static byte[] upsertBytes(Tradable tradable) {
         return protobuf.TradableLogEntry.newBuilder()
                 .setUpsert((protobuf.Tradable) tradable.toProtoMessage())
+                .setMutationId(UUID.randomUUID().toString())
                 .build()
                 .toByteArray();
     }
@@ -217,6 +313,7 @@ public class ClosedTradesStore {
     static byte[] deleteBytes(String id) {
         return protobuf.TradableLogEntry.newBuilder()
                 .setDeleteId(id)
+                .setMutationId(UUID.randomUUID().toString())
                 .build()
                 .toByteArray();
     }
@@ -233,11 +330,19 @@ public class ClosedTradesStore {
      * compaction suppressed so a fixed build can recover them.
      */
     public List<Tradable> load() {
+        synchronized (failedEntries) {
+            return loadLocked();
+        }
+    }
+
+    private List<Tradable> loadLocked() {
+        loadPendingEntries();
         List<byte[]> records = appendLog().readAllValidRecords();
+        reconcilePendingEntries(records);
 
         // Merge in records whose append failed in a previous session; they replay after the log
         // and are re-appended to it below.
-        List<byte[]> pendingRecords = pendingLog().readAllValidRecords();
+        List<byte[]> pendingRecords = new ArrayList<>(failedEntries);
         if (!pendingRecords.isEmpty()) {
             log.warn("Recovering {} record(s) from {} after a failed write in a previous session.",
                     pendingRecords.size(), PENDING_FILE_NAME);
@@ -290,19 +395,16 @@ public class ClosedTradesStore {
 
         // Re-append the recovered pending records to the log (clears the pending file on success),
         // so the on-disk log replays to this same state.
-        if (!pendingRecords.isEmpty()) {
-            synchronized (failedEntries) {
-                failedEntries.addAll(0, pendingRecords);
-            }
-            flushFailedEntries();
-        }
+        flushFailedEntries();
 
         maybeMergeLegacy(byId, seenIds);
 
         List<Tradable> result = new ArrayList<>(byId.values());
-        // Never compact while undecodable records exist - a rewrite from the decoded trades would
-        // permanently drop them.
-        if (skipped == 0) maybeCompact(records.size(), result, deletedIds);
+        // Compaction discards mutation identities. Keep them until the pending queue is cleared,
+        // and never rewrite from undecodable records or an uncommitted in-memory queue.
+        if (skipped == 0 && !pendingClearRequired && failedEntries.isEmpty()) {
+            maybeCompact(records.size(), result, deletedIds);
+        }
         return result;
     }
 
