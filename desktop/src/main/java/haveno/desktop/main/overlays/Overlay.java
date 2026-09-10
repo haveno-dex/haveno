@@ -655,7 +655,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     // the outermost visible popup node: the scroll shell when capped, else the content itself
-    private Region getDisplayContainer() {
+    protected Region getDisplayContainer() {
         return capShell != null ? capShell : getRootContainer();
     }
 
