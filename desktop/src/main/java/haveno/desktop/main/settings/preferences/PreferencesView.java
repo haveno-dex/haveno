@@ -316,7 +316,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         if (displayStandbyModeFeature) {
             // AvoidStandbyModeService feature works only on OSX & Windows
             avoidStandbyMode = addSlideToggleButton(optionsGridPane, ++gridRow,
-                    Res.get("setting.preferences.avoidStandbyMode"), 8); // top margins compensate the toggle skin's ripple overflow
+                    Res.get("setting.preferences.avoidStandbyMode"), 8);
         }
 
         useSoundForNotifications = addSlideToggleButton(optionsGridPane, ++gridRow,

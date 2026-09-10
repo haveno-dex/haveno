@@ -660,19 +660,65 @@ tree-table-view:focused {
     -fx-border-insets: 0 0 0 0;
 }
 
-.jfx-toggle-button,
-.jfx-toggle-button:armed,
-.jfx-toggle-button:hover,
-.jfx-toggle-button:focused,
-.jfx-toggle-button:selected,
-.jfx-toggle-button:focused:selected {
-    -jfx-toggle-color: -bs-color-primary-dark;
-    -jfx-size: 8;
-    -fx-padding: -6 8 -6 8; /* offset skin's ripple padding to tighten stacked toggles */
+.pill-toggle-button {
+    -bs-pill-toggle-color: -bs-color-primary;
+    -fx-background-color: transparent;
+    -fx-padding: 6;
+    -fx-graphic-text-gap: 8;
+    -fx-alignment: center-left;
+    -fx-text-fill: -bs-rd-font-dark-gray;
+    -fx-cursor: hand;
 }
 
-.jfx-toggle-button:hover {
-    -fx-cursor: hand;
+.pill-toggle-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+.pill-toggle-track {
+    -fx-min-width: 32;
+    -fx-pref-width: 32;
+    -fx-max-width: 32;
+    -fx-min-height: 18;
+    -fx-pref-height: 18;
+    -fx-max-height: 18;
+    -fx-background-color: -bs-color-gray-2;
+    -fx-background-radius: 9;
+}
+
+.pill-toggle-selected-track {
+    -fx-background-color: -bs-pill-toggle-color;
+    -fx-background-radius: 9;
+}
+
+.pill-toggle-thumb {
+    -fx-min-width: 14;
+    -fx-pref-width: 14;
+    -fx-max-width: 14;
+    -fx-min-height: 14;
+    -fx-pref-height: 14;
+    -fx-max-height: 14;
+    -fx-background-color: white;
+    -fx-background-radius: 7;
+}
+
+.pill-toggle-button:hover .pill-toggle-track {
+    -fx-background-color: derive(-bs-color-gray-2, -6%);
+}
+
+.pill-toggle-button:hover .pill-toggle-selected-track {
+    -fx-background-color: derive(-bs-pill-toggle-color, -6%);
+}
+
+.pill-toggle-button:focus-visible .pill-toggle-track {
+    -fx-border-color: -bs-hero-primary;
+    -fx-border-width: 1.5;
+    -fx-border-insets: -3;
+    -fx-border-radius: 12;
+}
+
+.pill-toggle-button:armed .pill-toggle-thumb {
+    -fx-scale-x: 0.94;
+    -fx-scale-y: 0.94;
 }
 
 .jfx-text-area {
@@ -3268,47 +3314,47 @@ textfield */
 }
 
 #charts-legend-toggle0 {
-    -jfx-toggle-color: -bs-chart-dao-line1
+    -bs-pill-toggle-color: -bs-chart-dao-line1;
 }
 
 #charts-legend-toggle1 {
-    -jfx-toggle-color: -bs-chart-dao-line2;
+    -bs-pill-toggle-color: -bs-chart-dao-line2;
 }
 
 #charts-legend-toggle2 {
-    -jfx-toggle-color: -bs-chart-dao-line3;
+    -bs-pill-toggle-color: -bs-chart-dao-line3;
 }
 
 #charts-legend-toggle3 {
-    -jfx-toggle-color: -bs-chart-dao-line4;
+    -bs-pill-toggle-color: -bs-chart-dao-line4;
 }
 
 #charts-legend-toggle4 {
-    -jfx-toggle-color: -bs-chart-dao-line5;
+    -bs-pill-toggle-color: -bs-chart-dao-line5;
 }
 
 #charts-legend-toggle5 {
-    -jfx-toggle-color: -bs-chart-dao-line6;
+    -bs-pill-toggle-color: -bs-chart-dao-line6;
 }
 
 #charts-legend-toggle6 {
-    -jfx-toggle-color: -bs-chart-dao-line7;
+    -bs-pill-toggle-color: -bs-chart-dao-line7;
 }
 
 #charts-legend-toggle7 {
-    -jfx-toggle-color: -bs-chart-dao-line8;
+    -bs-pill-toggle-color: -bs-chart-dao-line8;
 }
 
 #charts-legend-toggle8 {
-    -jfx-toggle-color: -bs-chart-dao-line9;
+    -bs-pill-toggle-color: -bs-chart-dao-line9;
 }
 
 #charts-legend-toggle9 {
-    -jfx-toggle-color: -bs-chart-dao-line10;
+    -bs-pill-toggle-color: -bs-chart-dao-line10;
 }
 
 #charts-legend-toggle10 {
-    -jfx-toggle-color: -bs-chart-dao-line11;
+    -bs-pill-toggle-color: -bs-chart-dao-line11;
 }
 
 #charts-dao .chart-series-line {

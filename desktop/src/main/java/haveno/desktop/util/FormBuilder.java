@@ -20,7 +20,6 @@ package haveno.desktop.util;
 import com.jfoenix.controls.JFXComboBox;
 //import com.jfoenix.controls.JFXDatePicker;
 import com.jfoenix.controls.JFXTextArea;
-import com.jfoenix.controls.JFXToggleButton;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.GlyphIcons;
 import haveno.common.util.Tuple2;
@@ -968,7 +967,7 @@ public class FormBuilder {
                                                                                                          String toggleButtonTitle) {
 
         InputTextField inputTextField = new InputTextField();
-        ToggleButton toggleButton = new JFXToggleButton();
+        ToggleButton toggleButton = new AutoTooltipSlideToggleButton();
         toggleButton.setText(toggleButtonTitle);
         VBox.setMargin(toggleButton, new Insets(4, 0, 0, 0));
 
@@ -987,7 +986,7 @@ public class FormBuilder {
 
         InputTextField inputTextField = new InputTextField();
         Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, title, inputTextField, 0);
-        ToggleButton toggleButton = new JFXToggleButton();
+        ToggleButton toggleButton = new AutoTooltipSlideToggleButton();
         toggleButton.setText(toggleButtonTitle);
         HBox hBox = new HBox();
         hBox.getChildren().addAll(topLabelWithVBox.second, toggleButton);
