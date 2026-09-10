@@ -77,7 +77,8 @@
     -bs-rd-font-confirmation-label: #504f52;
     -bs-rd-font-balance-label: rgb(215, 215, 215, 1);
     -bs-text-color-dropshadow: rgba(0, 0, 0, 0.54);
-    -bs-text-color-dropshadow-light-mode: rgba(0, 0, 0, 0.54);
+    -bs-popup-shadow: rgba(0, 0, 0, 0.22);
+    -bs-popup-shadow-light-mode: -bs-popup-shadow;
     -bs-text-color-transparent: rgba(0, 0, 0, 0.2);
     -bs-color-gray-line: #979797;
     -bs-rd-separator: #dbdbdb;
