@@ -309,7 +309,7 @@ public class SignedWitnessService {
         List<SignedWitness> path = new ArrayList<>();
         for (SignedWitness signedWitness : getSignedWitnessSetByOwnerPubKey(ownerPubKey, new Stack<>())) {
             if (isValidSignerWitnessInternal(signedWitness, childSignedWitnessDateMillis, new Stack<>(), path)) {
-                return new HashSet<>(path);
+                return path.size() <= MAX_SIGNER_CHAIN_SIZE ? new HashSet<>(path) : new HashSet<>();
             }
         }
         return new HashSet<>();
@@ -319,6 +319,10 @@ public class SignedWitnessService {
     // signer's pub key up to an arbitrator root; each witness is self-verifiable, so this adds no trust, only heals gaps.
     public void addValidSignerChain(Collection<SignedWitness> signerChain, byte[] signerPubKey) {
         if (signerChain == null) return;
+        if (signerChain.size() > MAX_SIGNER_CHAIN_SIZE) {
+            log.warn("Ignoring oversized signer chain with {} witnesses", signerChain.size());
+            return;
+        }
 
         // index the received witnesses by owner pub key
         Map<P2PDataStorage.ByteArray, Set<SignedWitness>> byOwnerPubKey = new HashMap<>();

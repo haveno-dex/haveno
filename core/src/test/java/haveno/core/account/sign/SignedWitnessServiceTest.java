@@ -38,6 +38,7 @@ import java.security.KeyPair;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -54,6 +55,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class SignedWitnessServiceTest {
@@ -183,6 +185,21 @@ public class SignedWitnessServiceTest {
         // Delivering the valid signer chain in-band heals validation.
         signedWitnessService.addValidSignerChain(List.of(sw1, sw2), signer3PubKey);
         assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew3));
+    }
+
+    @Test
+    public void testAddValidSignerChainRejectsOversizedInputBeforeReadingWitnesses() {
+        SignedWitness witness = mock(SignedWitness.class);
+        signedWitnessService.addValidSignerChain(Collections.nCopies(SignedWitnessService.MAX_SIGNER_CHAIN_SIZE + 1, witness), signer3PubKey);
+        verifyNoInteractions(witness);
+        assertTrue(signedWitnessService.getSignedWitnessMapValues().isEmpty());
+    }
+
+    @Test
+    public void testAddValidSignerChainAcceptsInputAtSizeLimit() {
+        SignedWitness witness = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+        signedWitnessService.addValidSignerChain(Collections.nCopies(SignedWitnessService.MAX_SIGNER_CHAIN_SIZE, witness), witnessOwner1PubKey);
+        assertTrue(signedWitnessService.getSignedWitnessMapValues().contains(witness));
     }
 
     // A forged/invalid witness supplied as a "signer chain" must be rejected, so no trust is gained.
