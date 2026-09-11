@@ -71,6 +71,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
@@ -573,7 +574,7 @@ public class CoreApi {
         return coreTradesService.getTrade(tradeId);
     }
 
-    public List<Trade> getTrades(GetTradesRequest.Category category) {
+    public List<Trade> getTrades(@Nullable GetTradesRequest.Category category) {
         return coreTradesService.getTrades(category);
     }
 
