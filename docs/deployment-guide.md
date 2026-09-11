@@ -173,6 +173,23 @@ The arbitrator is now registered and ready to accept requests for dispute resolu
 Daemon instances require a non-empty API password. Set `HAVENO_API_PASSWORD` to a
 strong secret before running [run-arbitrator-daemon.sh](../scripts/deployment/run-arbitrator-daemon.sh).
 
+To publish the API over Tor, use `--apiHiddenService=true`. Bundled Tor waits until
+login so persisted bridge settings are loaded; the local API remains available to
+unlock the account. For remote unlock after a restart, also set
+`--apiHiddenServiceBeforeLogin=true`. This explicitly allows startup Tor settings
+or defaults before encrypted bridge preferences are available. The resulting Tor
+instance is shared with P2P: unlocking does not restart it to apply bridge preferences.
+The API onion address is unchanged by this option.
+
+If bridges are needed before login, supply a complete configuration through
+`--torrcFile` with owner-only file permissions. Use space-separated directives,
+including `UseBridges 1` and `Bridge <bridge line>`. The bundled parser retains only
+the last occurrence of repeated directives, so supply one `Bridge` line. Missing,
+unreadable, or unsupported configuration fails Tor startup instead of using defaults.
+Alternatively, [configure an external Tor](external-tor-usage.md) with
+`--torControlPort`; its API hidden service can start before login without the extra
+flag because its network settings are independent of encrypted preferences.
+
 > [!note]
 > * Arbitrators must use a local Monero node with unrestricted RPC in order to submit and flush transactions from the pool.
 > * Arbitrators should remain online as much as possible in order to balance trades and avoid clients spending time trying to contact offline arbitrators. A VPS or dedicated machine running 24/7 is highly recommended.
