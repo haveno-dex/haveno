@@ -17,6 +17,7 @@
 
 package haveno.common.persistence;
 
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
 import haveno.common.file.FileUtil;
@@ -29,26 +30,29 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import javax.crypto.SecretKey;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * An append-only, encrypted, crash-safe record log.
  *
  * <p>Each record is framed as {@code [4-byte big-endian length][ciphertext]}, with
- * {@code ciphertext = Encryption.encryptPayloadWithHmac(record)}. The length prefix lives outside
+ * {@code ciphertext} an authenticated encryption envelope. The length prefix lives outside
  * the ciphertext so frames can be located and a torn tail truncated without decrypting. Appends
  * fsync, so a crash or failed write (e.g. disk full) can only leave a partial trailing frame; the
  * log tracks its known-good length and truncates such a tear away before the next append.
  *
- * <p>Replay ({@link #readAllValidRecords()}) self-repairs: a torn tail is truncated back to the
- * last good frame, and mid-log corruption (bad length prefix or hmac) rebuilds the log from the
- * valid prefix so the maximum recoverable history survives. The dropped bytes are always preserved
- * first in a timestamped copy under {@code backup_of_corrupted_data/}.
+ * <p>Replay ({@link #readAllValidRecords()}) repairs torn tails and invalid length prefixes after
+ * preserving the original in a timestamped copy under {@code backup_of_corrupted_data/}.
+ * Failed authentication preserves the live file and stops replay. Legacy frames migrate after
+ * successful replay; replacements are verified before the live log changes.
  *
  * <p>Records are opaque {@code byte[]}; domain encoding is the caller's responsibility. Appends are
  * serialized on the instance monitor; callers that need the log to match an in-memory order must
@@ -65,6 +69,9 @@ public class EncryptedAppendLog {
     // File length up to which all frames are known intact (-1 until the first replay establishes
     // it), so a failed append's partial frame is truncated before the next write can bury it.
     private long knownGoodLength = -1;
+    // Keep unresolved recovery visible across restarts, and throughout the current session.
+    @Getter
+    private volatile File truncatedBackupFile;
 
     public EncryptedAppendLog(File dir, String fileName, SecretKey secretKey, int numMaxBackupFiles) {
         this.dir = dir;
@@ -79,6 +86,53 @@ public class EncryptedAppendLog {
 
     private File tempFile() {
         return new File(dir, fileName + ".tmp");
+    }
+
+    private File recoveryMarkerFile() {
+        return new File(dir, fileName + ".recovery-needed");
+    }
+
+    private void readRecoveryMarker() {
+        File marker = recoveryMarkerFile();
+        if (truncatedBackupFile != null || !marker.exists()) return;
+        truncatedBackupFile = marker;
+        try (FileInputStream in = new FileInputStream(marker)) {
+            byte[] bytes = in.readNBytes(1025);
+            String backupName = new String(bytes, StandardCharsets.UTF_8);
+            if (bytes.length > 1024 || !backupName.matches("[0-9]+_" + java.util.regex.Pattern.quote(fileName))) {
+                log.warn("Invalid recovery marker {}; keeping history incomplete", marker);
+                return;
+            }
+            File backup = new File(new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER), backupName);
+            if (backup.isFile()) truncatedBackupFile = backup;
+        } catch (IOException e) {
+            log.warn("Could not read recovery marker {}; keeping history incomplete", marker, e);
+        }
+    }
+
+    private void preserveTruncatedLog(File logFile, File backupFile) throws IOException {
+        File marker = recoveryMarkerFile();
+        boolean newMarker = !marker.exists();
+        if (!newMarker && !marker.isFile()) throw new IOException("Invalid recovery marker " + marker);
+        // Check marker access before making another full backup on each failed retry.
+        try (FileChannel markerChannel = newMarker
+                ? FileChannel.open(marker.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+                : FileChannel.open(marker.toPath(), StandardOpenOption.WRITE)) {
+            // A previous attempt may have created the marker but failed to sync it.
+            if (!newMarker) markerChannel.force(true);
+            FileUtil.copyFile(logFile, backupFile);
+            try (FileChannel channel = FileChannel.open(backupFile.toPath(), StandardOpenOption.WRITE)) {
+                channel.force(true);
+            }
+            FileUtil.syncDirectory(backupFile.getParentFile());
+            if (newMarker) {
+                ByteBuffer bytes = ByteBuffer.wrap(backupFile.getName().getBytes(StandardCharsets.UTF_8));
+                while (bytes.hasRemaining()) markerChannel.write(bytes);
+                markerChannel.force(true);
+            }
+            FileUtil.syncDirectory(dir);
+        }
+        if (truncatedBackupFile == null) truncatedBackupFile = backupFile;
     }
 
     public boolean exists() {
@@ -100,7 +154,7 @@ public class EncryptedAppendLog {
     public void appendAll(List<byte[]> records) throws CryptoException {
         if (records.isEmpty()) return;
         List<byte[]> ciphertexts = new ArrayList<>(records.size());
-        for (byte[] record : records) ciphertexts.add(Encryption.encryptPayloadWithHmac(record, secretKey));
+        for (byte[] record : records) ciphertexts.add(AuthenticatedEncryption.encrypt(record, secretKey, "append-log/" + fileName));
         synchronized (lock) {
             if (!dir.exists() && !dir.mkdir()) log.warn("make dir failed {}", dir);
             repairTailBeforeAppend();
@@ -133,7 +187,7 @@ public class EncryptedAppendLog {
         if (knownGoodLength < 0) {
             // First write of this session without a prior replay: replay once to validate the tail
             // (and self-repair it), which also initializes knownGoodLength.
-            readAllValidRecords();
+            readRecords(false, false);
             return;
         }
         File logFile = logFile();
@@ -143,7 +197,7 @@ public class EncryptedAppendLog {
             // The file shrank behind our back; fall back to a full replay to re-establish the boundary.
             log.warn("{} is shorter ({}) than its known-good length ({}); re-validating.", fileName, fileLength, knownGoodLength);
             knownGoodLength = -1;
-            readAllValidRecords();
+            readRecords(false, false);
             return;
         }
         log.warn("Truncating {} bytes of torn/unknown tail from {} before appending (known-good length {}).",
@@ -160,7 +214,19 @@ public class EncryptedAppendLog {
      * backs up + rebuilds on mid-log corruption (see class javadoc).
      */
     public List<byte[]> readAllValidRecords() {
+        return readRecords(true, false);
+    }
+
+    /**
+     * Replays every record, preserving the live file and failing if any frame is incomplete or invalid.
+     */
+    public List<byte[]> readAllRecords() {
+        return readRecords(true, true);
+    }
+
+    private List<byte[]> readRecords(boolean migrateLegacy, boolean requireComplete) {
         synchronized (lock) {
+            readRecoveryMarker();
             File logFile = logFile();
             List<byte[]> records = new ArrayList<>();
             if (!logFile.exists()) {
@@ -185,6 +251,7 @@ public class EncryptedAppendLog {
             long goodLength = 0;
             boolean tornTail = false;
             boolean corrupt = false;
+            boolean legacy = false;
 
             try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(logFile)))) {
                 while (goodLength < fileLength) {
@@ -208,12 +275,15 @@ public class EncryptedAppendLog {
                     in.readFully(ciphertext);
                     byte[] record;
                     try {
-                        record = Encryption.decryptPayloadWithHmac(ciphertext, secretKey);
+                        record = AuthenticatedEncryption.isEnvelope(ciphertext)
+                                ? AuthenticatedEncryption.decrypt(ciphertext, secretKey, "append-log/" + fileName)
+                                : Encryption.decryptPayloadWithHmac(ciphertext, secretKey);
                     } catch (CryptoException e) {
-                        // A fully-present frame that fails its HMAC is not a torn write -> real corruption.
-                        corrupt = true;
-                        break;
+                        knownGoodLength = -1;
+                        throw new IllegalStateException("Cannot authenticate " + fileName + " at offset " + goodLength
+                                + "; log preserved", e);
                     }
+                    legacy |= !AuthenticatedEncryption.isEnvelope(ciphertext);
                     records.add(record);
                     goodLength += 4L + len;
                 }
@@ -221,6 +291,12 @@ public class EncryptedAppendLog {
                 tornTail = true; // hit EOF mid-frame
             } catch (IOException e) {
                 throw new RuntimeException("Could not read " + fileName, e);
+            }
+
+            if (requireComplete && (corrupt || tornTail)) {
+                knownGoodLength = -1;
+                throw new IllegalStateException("Cannot replay every record in " + fileName
+                        + " at offset " + goodLength + "; log preserved");
             }
 
             try {
@@ -238,14 +314,24 @@ public class EncryptedAppendLog {
                                         "Pre-truncation copy preserved at {}.",
                                 fileName, goodLength, records.size(), fileLength - goodLength, backupFile);
                     }
-                    FileUtil.copyFile(logFile, backupFile);
+                    preserveTruncatedLog(logFile, backupFile);
                     truncateTo(logFile, goodLength);
                     knownGoodLength = goodLength;
                 } else {
                     knownGoodLength = fileLength;
                 }
             } catch (IOException e) {
+                knownGoodLength = -1;
                 throw new RuntimeException("Could not repair " + fileName, e);
+            }
+            if (migrateLegacy && legacy && !corrupt && !tornTail && truncatedBackupFile == null) {
+                try {
+                    rewrite(records);
+                } catch (RuntimeException e) {
+                    // Keep successfully replayed history available. The next append revalidates
+                    // the live file without requiring an optional migration to succeed first.
+                    log.warn("Could not upgrade encryption of {}; deferring migration", fileName, e);
+                }
             }
             return records;
         }
@@ -283,18 +369,32 @@ public class EncryptedAppendLog {
                 try (FileOutputStream fos = new FileOutputStream(tempFile);
                      DataOutputStream out = new DataOutputStream(new BufferedOutputStream(fos))) {
                     for (byte[] record : records) {
-                        byte[] ciphertext = Encryption.encryptPayloadWithHmac(record, secretKey);
+                        byte[] ciphertext = AuthenticatedEncryption.encrypt(record, secretKey, "append-log/" + fileName);
                         writeFrame(out, ciphertext);
                         written += 4L + ciphertext.length;
                     }
                     out.flush();
                     fos.getFD().sync();
                 }
-                // Keep a rolling backup of the pre-rewrite log as a safety net against a faulty compaction.
-                if (logFile.exists()) FileUtil.rollingBackup(dir, fileName, numMaxBackupFiles);
+                // Verify exact record bytes before replacing the only live financial history.
+                try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(tempFile)))) {
+                    for (byte[] expected : records) {
+                        int length = in.readInt();
+                        if (length <= 0 || length > tempFile.length() - 4) throw new IOException("Invalid rewritten log frame");
+                        byte[] encrypted = new byte[length];
+                        in.readFully(encrypted);
+                        byte[] actual = AuthenticatedEncryption.decrypt(encrypted, secretKey, "append-log/" + fileName);
+                        if (!java.security.MessageDigest.isEqual(expected, actual)) throw new IOException("Rewritten log verification failed");
+                    }
+                    if (in.read() != -1) throw new IOException("Unexpected trailing rewritten log data");
+                }
+                if (logFile.exists() && !FileUtil.rollingBackup(dir, fileName, numMaxBackupFiles)) {
+                    throw new IOException("Could not back up log before replacement");
+                }
                 FileUtil.atomicReplace(tempFile, logFile);
                 knownGoodLength = written;
             } catch (IOException | CryptoException e) {
+                knownGoodLength = -1; // the rename may have completed before directory sync failed
                 throw new RuntimeException("Could not rewrite " + fileName, e);
             } finally {
                 // Never delete the temp while the log itself is missing (a failed non-atomic swap):

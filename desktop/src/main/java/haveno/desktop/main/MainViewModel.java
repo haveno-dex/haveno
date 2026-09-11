@@ -495,6 +495,11 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .useShutDownButton()
                 .show());
 
+        corruptedStorageFileHandler.getPreservedFiles().ifPresent(files -> new Popup()
+                .warning(Res.get("popup.warning.incompleteHistory", files.toString(), config.appDataDir))
+                .useShutDownButton()
+                .show());
+
         havenoSetup.getXmrDaemonSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrDaemonSyncProgress());
         havenoSetup.getXmrWalletSyncProgress().addListener((observable, oldValue, newValue) -> updateXmrWalletSyncProgress());
 

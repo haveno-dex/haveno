@@ -41,6 +41,7 @@ import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.proto.ProtoUtil;
@@ -537,6 +538,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     @Getter
     private boolean isCompleted;
     @Getter
+    private long reopenCount;
+    @Getter
     private final String challenge;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -961,6 +964,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     public void setCompleted(boolean completed) {
         this.isCompleted = completed;
         if (isInitialized && isFinished()) clearAndShutDown();
+    }
+
+    void incrementReopenCount() {
+        reopenCount = Math.incrementExact(reopenCount);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1945,9 +1952,11 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         try {
 
             // decrypt payment account payload
-            getTradePeer().setPaymentAccountKey(paymentAccountKey);
-            SecretKey sk = Encryption.getSecretKeyFromBytes(getTradePeer().getPaymentAccountKey());
-            byte[] decryptedPaymentAccountPayload = Encryption.decrypt(getTradePeer().getEncryptedPaymentAccountPayload(), sk);
+            SecretKey sk = Encryption.getSecretKeyFromBytes(paymentAccountKey);
+            byte[] encryptedPayload = getTradePeer().getEncryptedPaymentAccountPayload();
+            byte[] decryptedPaymentAccountPayload = AuthenticatedEncryption.isEnvelope(encryptedPayload)
+                    ? AuthenticatedEncryption.decrypt(encryptedPayload, sk, "payment-account")
+                    : Encryption.decrypt(encryptedPayload, sk);
             CoreNetworkProtoResolver resolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone()); // TODO: reuse resolver from elsewhere?
             PaymentAccountPayload paymentAccountPayload = resolver.fromProto(protobuf.PaymentAccountPayload.parseFrom(decryptedPaymentAccountPayload));
 
@@ -1955,7 +1964,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             byte[] peerPaymentAccountPayloadHash = this instanceof MakerTrade ? getContract().getTakerPaymentAccountPayloadHash() : getContract().getMakerPaymentAccountPayloadHash();
             HavenoUtils.verifyPaymentAccountPayloadHash(paymentAccountPayload, peerPaymentAccountPayloadHash, "peer");
 
-            // set payment account payload
+            // Publish the key and payload only after decryption and contract verification succeed.
+            getTradePeer().setPaymentAccountKey(paymentAccountKey);
             getTradePeer().setPaymentAccountPayload(paymentAccountPayload);
             processModel.getPaymentAccountDecryptedProperty().set(true);
         } catch (Exception e) {
@@ -4555,7 +4565,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 .setLockTime(lockTime)
                 .setStartTime(startTime)
                 .setUid(uid)
-                .setIsCompleted(isCompleted);
+                .setIsCompleted(isCompleted)
+                .setReopenCount(reopenCount);
 
         synchronized (getChatMessages()) {
             builder.addAllChatMessage(getChatMessages().stream()
@@ -4599,6 +4610,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         trade.setStartTime(proto.getStartTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
         trade.setCompleted(proto.getIsCompleted());
+        if (proto.getReopenCount() < 0) throw new IllegalArgumentException("Invalid trade reopen count");
+        trade.reopenCount = proto.getReopenCount();
         trade.payoutHeight = proto.getPayoutHeight() == 0 ? null : proto.getPayoutHeight();
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()

@@ -171,6 +171,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         this.protectedDataStoreService = protectedDataStoreService;
         this.resourceDataStoreService = resourceDataStoreService;
         this.persistenceManager = persistenceManager;
+        this.persistenceManager.allowCorruptionRecovery();
         this.removedPayloadsService = removedPayloadsService;
         this.clock = clock;
         this.maxSequenceNumberMapSizeBeforePurge = maxSequenceNumberBeforePurge;

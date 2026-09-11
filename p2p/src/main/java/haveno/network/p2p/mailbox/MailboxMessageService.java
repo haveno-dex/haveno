@@ -499,7 +499,8 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 .getPrefixedSealedAndSignedMessage();
         SealedAndSigned sealedAndSigned = prefixedSealedAndSignedMessage.getSealedAndSigned();
         String uid = prefixedSealedAndSignedMessage.getUid();
-        if (ignoredMailboxService.isIgnored(uid)) {
+        boolean isReceiver = keyRing.getPubKeyRing().getSignaturePubKey().equals(protectedMailboxStorageEntry.getReceiversPubKey());
+        if (!isReceiver && ignoredMailboxService.isIgnored(uid)) {
             // We had persisted a past failed decryption attempt on that message so we don't try again and return early
             return new MailboxItem(protectedMailboxStorageEntry, null);
         }
@@ -508,9 +509,8 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
             checkArgument(decryptedMessageWithPubKey.getNetworkEnvelope() instanceof MailboxMessage);
             return new MailboxItem(protectedMailboxStorageEntry, decryptedMessageWithPubKey);
         } catch (CryptoException ignore) {
-            // Expected if message was not intended for us
-            // We persist those entries so at the next startup we do not need to try to decrypt it anymore
-            ignoredMailboxService.ignore(uid, protectedMailboxStorageEntry.getCreationTimeStamp());
+            // A reader upgrade can make an addressed message decryptable, so only cache other recipients' failures.
+            if (!isReceiver) ignoredMailboxService.ignore(uid, protectedMailboxStorageEntry.getCreationTimeStamp());
         } catch (ProtobufferException e) {
             log.error(e.toString());
             e.getStackTrace();
@@ -545,6 +545,12 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
     private void handleMailboxItem(MailboxItem mailboxItem) {
         String uid = mailboxItem.getUid();
         synchronized (mailboxMessageList) {
+            if (mailboxItem.isMine()) {
+                // A recovered message replaces its formerly undecryptable entry under the outer UID.
+                String outerUid = mailboxItem.getProtectedMailboxStorageEntry().getMailboxStoragePayload().getPrefixedSealedAndSignedMessage().getUid();
+                MailboxItem previous = mailboxItemsByUid.get(outerUid);
+                if (previous != null && !previous.isMine()) removeMailboxItemFromLocalStore(outerUid);
+            }
             if (!mailboxItemsByUid.containsKey(uid)) {
                 mailboxItemsByUid.put(uid, mailboxItem);
                 mailboxMessageList.add(mailboxItem);

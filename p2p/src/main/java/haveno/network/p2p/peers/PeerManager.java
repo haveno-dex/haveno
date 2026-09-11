@@ -160,6 +160,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         this.seedNodeAddresses = new HashSet<>(seedNodeRepository.getSeedNodeAddresses());
         this.clockWatcher = clockWatcher;
         this.persistenceManager = persistenceManager;
+        this.persistenceManager.allowCorruptionRecovery();
 
         this.persistenceManager.initialize(peerList, PersistenceManager.Source.PRIVATE_LOW_PRIO);
         this.networkNode.addConnectionListener(this);
