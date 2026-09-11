@@ -187,7 +187,7 @@ public class BuyerStep2View extends TradeStepView {
                 if (trade.isDepositsUnlocked() && !trade.isPaymentSent()) {
                     busyAnimation.stop();
                     setTradeStatus("");
-                    showPopup();
+                    maybeShowPaymentReminder();
                 } else if (state.ordinal() <= Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG.ordinal()) {
                     switch (state) {
                         case BUYER_CONFIRMED_PAYMENT_SENT:
@@ -810,7 +810,9 @@ public class BuyerStep2View extends TradeStepView {
                 payload instanceof BlikAccountPayload);
     }
 
-    private void showPopup() {
+    @Override
+    protected void showPaymentReminder() {
+        if (!trade.isDepositsUnlocked() || trade.isPaymentSent()) return;
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
         if (paymentAccountPayload != null && !trade.isPayoutPublished()) {
             String message = Res.get("portfolio.pending.step2.confReached");

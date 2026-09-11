@@ -117,6 +117,9 @@ public abstract class TradeStepView extends VBox {
     protected TradeConfirmationPane confirmationPane;
     private ChangeListener<Boolean> walletSyncedListener;
     private boolean active;
+    private final ChangeListener<Boolean> chatOpenListener = (observable, oldValue, newValue) -> {
+        if (!newValue) maybeShowPaymentReminder();
+    };
     private boolean completed;
     private Consumer<String> stepCaptionHandler;
     private Consumer<String> stepWarningHandler;
@@ -227,6 +230,7 @@ public abstract class TradeStepView extends VBox {
 
     public void activate() {
         active = true;
+        model.getChatOpen().addListener(chatOpenListener);
         if (selfDeposit != null)
             selfTxIdSubscription = EasyBind.subscribe(model.dataModel.isMaker() ? model.dataModel.makerTxId : model.dataModel.takerTxId,
                     id -> updateDepositSummary());
@@ -386,8 +390,19 @@ public abstract class TradeStepView extends VBox {
         }
     }
 
+    protected void maybeShowPaymentReminder() {
+        // recheck after chat closes so replacing it or leaving this view cannot show a stale reminder
+        UserThread.execute(() -> {
+            if (active && !model.getChatOpen().get()) showPaymentReminder();
+        });
+    }
+
+    protected void showPaymentReminder() {
+    }
+
     public void deactivate() {
         active = false;
+        model.getChatOpen().removeListener(chatOpenListener);
         durationPopover.hidePopOver();
         if (walletSyncedListener != null)
             trade.wasWalletSyncedAndPolledProperty.removeListener(walletSyncedListener);
