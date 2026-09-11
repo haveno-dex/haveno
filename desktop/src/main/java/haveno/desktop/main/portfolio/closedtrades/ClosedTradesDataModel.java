@@ -35,6 +35,7 @@ import haveno.core.user.Preferences;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.desktop.common.model.ActivatableDataModel;
+import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -51,7 +52,8 @@ class ClosedTradesDataModel extends ActivatableDataModel {
     private final Preferences preferences;
     private final PriceFeedService priceFeedService;
     final AccountAgeWitnessService accountAgeWitnessService;
-    private final ObservableList<ClosedTradesListItem> list = FXCollections.observableArrayList();
+    private final ObservableList<ClosedTradesListItem> list = FXCollections.observableArrayList(item ->
+            item.getTradable() instanceof Trade trade ? new Observable[]{trade.payoutStateProperty()} : new Observable[0]);
     private final ListChangeListener<Tradable> tradesListChangeListener;
     private final TradeManager tradeManager;
 

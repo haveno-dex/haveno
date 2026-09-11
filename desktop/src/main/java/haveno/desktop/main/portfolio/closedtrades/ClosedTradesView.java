@@ -257,6 +257,9 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
         tableView.setItems(sortedList);
 
+        removeTradeColumn.visibleProperty().bind(Bindings.createBooleanBinding(() -> filteredList.stream()
+                .anyMatch(item -> item.getTradable() instanceof Trade trade && !trade.isPayoutConfirmed()), filteredList));
+
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
         filterBox.setPromptText(Res.get("shared.filter"));
         filterBox.activate();
@@ -306,6 +309,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     @Override
     protected void deactivate() {
         sortedList.comparatorProperty().unbind();
+        removeTradeColumn.visibleProperty().unbind();
         exportButton.setOnAction(null);
         summaryButton.setOnAction(null);
 
