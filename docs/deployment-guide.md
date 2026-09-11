@@ -220,7 +220,8 @@ For example, if upstream Haveno is at 1.3.0, a fork may increment the third digi
 Update your fork's version number in the following locations:
 
 - [Version.java](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/common/src/main/java/haveno/common/app/Version.java#L35): The `VERSION` constant.
-- [build.gradle](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/build.gradle#L619): The `version` attribute under `:desktop`.
+- [gradle/libs.versions.toml](../gradle/libs.versions.toml): The `haveno-desktop` version.
+- [SeedNodeMain.java](../seednode/src/main/java/haveno/seednode/SeedNodeMain.java): The `VERSION` constant.
 - [exchange.haveno.Haveno.metainfo.xml](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/desktop/package/linux/exchange.haveno.Haveno.metainfo.xml#L63): The `release` attribute.
 - [Info.plist](https://github.com/haveno-dex/haveno/blob/4eb98ffdd0a40cbe75ad2e8a376cacc815959bbc/desktop/package/macosx/Info.plist#L7): The `CFBundleVersion` and `CFBundleShortVersionString` attributes.
 
