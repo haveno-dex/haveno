@@ -76,6 +76,8 @@ public final class PagoMovilAccount extends PaymentAccount {
     }
 
     public void setMobileNr(String mobileNr) {
+        PagoMovilValidator validator = new PagoMovilValidator();
+        if (validator.validate(mobileNr).isValid) mobileNr = validator.getNormalizedPhoneNumber();
         ((PagoMovilAccountPayload) paymentAccountPayload).setMobileNr(mobileNr);
     }
 

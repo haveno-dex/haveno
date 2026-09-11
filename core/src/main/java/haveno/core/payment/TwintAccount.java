@@ -63,6 +63,8 @@ public final class TwintAccount extends PaymentAccount {
     }
 
     public void setMobileNr(String mobileNr) {
+        TwintValidator validator = new TwintValidator();
+        if (validator.validate(mobileNr).isValid) mobileNr = validator.getNormalizedPhoneNumber();
         ((TwintAccountPayload) paymentAccountPayload).setMobileNr(mobileNr);
     }
 

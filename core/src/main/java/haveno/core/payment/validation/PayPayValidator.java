@@ -28,7 +28,7 @@ public final class PayPayValidator extends InputValidator {
         if (!result.isValid) return result;
         // accept a Japanese mobile number (optional +81 prefix) or a PayPay ID
         String stripped = input.replaceAll("[\\s-]", "");
-        if (stripped.matches("0[789]0[0-9]{8}") || stripped.matches("\\+?81[789]0[0-9]{8}") || stripped.matches("[a-zA-Z0-9_]{3,15}"))
+        if (stripped.matches("0[789]0[0-9]{8}") || stripped.matches("\\+?81[789]0[0-9]{8}") || input.matches("[a-zA-Z0-9_]{3,15}"))
             return new ValidationResult(true);
         return new ValidationResult(false, Res.get("validation.accountNrFormat", "090-1234-5678 or paypay_id"));
     }
