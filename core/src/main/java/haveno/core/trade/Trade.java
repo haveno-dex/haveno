@@ -2208,23 +2208,28 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             return;
         }
 
-        // remove immediately if deposit not requested
+        // remove immediately if deposit not requested, else schedule retries below
         if (!isDepositRequested()) {
-            removeTradeOnError();
-            return;
+            if (removeTradeOnError()) return;
         }
 
         // remove immediately on deposit request nack if deposit txs verified unpublished, since they are only relayed on ack
         if (isDepositRequestFailed() && !(this instanceof ArbitratorTrade)) {
             try {
                 if (!hasPublishedDepositTx()) {
-                    removeTradeOnError();
-                    return;
+                    if (removeTradeOnError()) return;
+                } else {
+                    log.warn("Deposit tx published for {} {} despite deposit request nack, scheduling error handling", getClass().getSimpleName(), getShortId());
                 }
-                log.warn("Deposit tx published for {} {} despite deposit request nack, scheduling error handling", getClass().getSimpleName(), getShortId());
             } catch (Exception e) {
                 log.warn("Could not verify deposit txs unpublished for {} {} on deposit request nack, scheduling error handling: {}", getClass().getSimpleName(), getShortId(), e.getMessage());
             }
+        }
+
+        // wallet deletion can discover deposits while syncing
+        if (isDepositsPublished()) {
+            restoreDepositsPublishedTrade();
+            return;
         }
 
         // done if wallet already deleted
@@ -2277,7 +2282,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                             onShutDownStarted();
                             ThreadUtils.submitToPool(() -> shutDown()); // run off thread
                         } else {
-                            removeTradeOnError();
+                            if (!removeTradeOnError()) return;
                         }
                     } else if (!isPayoutPublished()) {
 
@@ -2351,16 +2356,21 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         processModel.getTradeManager().onMoveFailedTradeToPendingTrades(this);
     }
 
-    private void removeTradeOnError() {
+    private boolean removeTradeOnError() {
         synchronized (removeTradeOnErrorLock) {
 
             // skip if shutting down, superseded, or this instance is no longer tracked
-            if (isShutDownStarted || superseded || !processModel.getTradeManager().hasTradeInstance(this)) return;
+            if (isShutDownStarted || superseded || !processModel.getTradeManager().hasTradeInstance(this)) return true;
             log.warn("removeTradeOnError() for {} {}, state={}", getClass().getSimpleName(), getShortId(), getState());
 
-            // force close and re-open wallet in case stuck
+            // force close wallet in case stuck, then delete before releasing its reservations
             forceCloseWallet(false);
-            if (isDepositRequested()) getWallet();
+            deleteWallet();
+            if (isShutDownStarted || superseded || !processModel.getTradeManager().hasTradeInstance(this)) return true;
+            if (walletExists()) {
+                log.warn("Retaining {} {} after protocol error because its wallet could not be deleted", getClass().getSimpleName(), getShortId());
+                return false;
+            }
 
             // unreserve taker's key images
             if (this instanceof TakerTrade) {
@@ -2385,6 +2395,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (this instanceof MakerTrade && openOffer.isPresent()) {
                 processModel.getOpenOfferManager().removeOpenOfferIfSpent(openOffer.get());
             }
+            return true;
         }
     }
 
