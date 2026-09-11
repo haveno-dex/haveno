@@ -55,6 +55,7 @@ import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
@@ -219,6 +220,10 @@ public class OfferUtil {
 
         if (paymentAccount instanceof BlikAccount) {
             extraDataMap.put(BLIK_EXTRA_INFO, ((BlikAccount) paymentAccount).getExtraInfo());
+        }
+
+        if (PaymentMethod.ZELLE_ID.equals(paymentAccount.getPaymentMethod().getId())) {
+            extraDataMap.put(OfferPayload.ZELLE_ONE_DAY_TRADE_PERIOD, "1");
         }
 
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());
