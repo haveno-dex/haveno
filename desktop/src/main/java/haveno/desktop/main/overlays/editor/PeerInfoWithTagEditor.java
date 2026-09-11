@@ -22,7 +22,6 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.util.Tuple3;
 import haveno.common.util.Utilities;
 import haveno.core.alert.PrivateNotificationManager;
-import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.trade.Trade;
@@ -30,18 +29,11 @@ import haveno.core.user.Preferences;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.windows.SendPrivateNotificationWindow;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;
-import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
-import javafx.scene.Camera;
-import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -49,10 +41,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.transform.Rotate;
 import javafx.stage.Modality;
 import javafx.stage.Window;
-import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
@@ -273,62 +263,6 @@ public class PeerInfoWithTagEditor extends Overlay<PeerInfoWithTagEditor> {
                 save();
             }
         });
-    }
-
-    @Override
-    protected void animateHide(Runnable onFinishedHandler) {
-        if (GlobalSettings.getUseAnimations()) {
-            double duration = getDuration(300);
-            Interpolator interpolator = Interpolator.SPLINE(0.25, 0.1, 0.25, 1);
-
-            gridPane.setRotationAxis(Rotate.X_AXIS);
-            Camera camera = gridPane.getScene().getCamera();
-            gridPane.getScene().setCamera(new PerspectiveCamera());
-
-            Timeline timeline = new Timeline();
-            ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(gridPane.rotateProperty(), 0, interpolator),
-                    new KeyValue(gridPane.opacityProperty(), 1, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(gridPane.rotateProperty(), -90, interpolator),
-                    new KeyValue(gridPane.opacityProperty(), 0, interpolator)
-            ));
-            timeline.setOnFinished(event -> {
-                gridPane.setRotate(0);
-                gridPane.setRotationAxis(Rotate.Z_AXIS);
-                gridPane.getScene().setCamera(camera);
-                onFinishedHandler.run();
-            });
-            timeline.play();
-        } else {
-            onFinishedHandler.run();
-        }
-    }
-
-    @Override
-    protected void animateDisplay() {
-        if (GlobalSettings.getUseAnimations()) {
-            double startY = -160;
-            double duration = getDuration(400);
-            Interpolator interpolator = Interpolator.SPLINE(0.25, 0.1, 0.25, 1);
-            Timeline timeline = new Timeline();
-            ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(gridPane.opacityProperty(), 0, interpolator),
-                    new KeyValue(gridPane.translateYProperty(), startY, interpolator)
-            ));
-
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(gridPane.opacityProperty(), 1, interpolator),
-                    new KeyValue(gridPane.translateYProperty(), 0, interpolator)
-            ));
-
-            timeline.play();
-        } else {
-            gridPane.setOpacity(1); // undo the pre-show hide
-        }
     }
 
     @Override
