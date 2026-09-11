@@ -43,12 +43,8 @@ public enum Method {
     getxmrprimaryaddress,
     getxmrseed,
     getxmrtxs,
-    lockwallet,
     relayxmrtxs,
-    removewalletpassword,
     sendxmr,
-    setwalletpassword,
-    unlockwallet,
     // prices
     getmarketdepth,
     getxmrprice,

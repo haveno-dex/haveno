@@ -19,6 +19,7 @@ package haveno.cli.opts;
 
 
 import joptsimple.OptionSpec;
+import java.math.BigDecimal;
 
 import static haveno.cli.opts.OptLabel.OPT_CURRENCY_CODE;
 import static haveno.cli.opts.OptLabel.OPT_EXTRA_INFO;
@@ -68,17 +69,11 @@ public class EditOfferOptionParser extends OfferIdOptionParser implements Method
         if (options.has(helpOpt))
             return this;
 
-        boolean hasNoEditOpts = !options.has(fixedPriceOpt)
-                && !options.has(mktPriceMarginPctOpt)
-                && !options.has(triggerPriceOpt)
-                && !options.has(currencyCodeOpt)
-                && !options.has(paymentAccountIdOpt)
-                && !options.has(extraInfoOpt);
-        if (hasNoEditOpts)
-            throw new IllegalArgumentException("no edit details specified");
-
         if (options.has(fixedPriceOpt) && options.has(mktPriceMarginPctOpt))
             throw new IllegalArgumentException("cannot specify both a fixed price and a market price margin");
+
+        if (!options.has(fixedPriceOpt) && !options.has(mktPriceMarginPctOpt))
+            throw new IllegalArgumentException("specify fixed-price or market-price-margin; editing replaces pricing and offer terms");
 
         if (options.has(fixedPriceOpt) && options.valueOf(fixedPriceOpt).isEmpty())
             throw new IllegalArgumentException("no fixed price specified");
@@ -88,6 +83,27 @@ public class EditOfferOptionParser extends OfferIdOptionParser implements Method
                 throw new IllegalArgumentException("no market price margin specified");
             else
                 verifyStringIsValidDouble(options.valueOf(mktPriceMarginPctOpt));
+            if (!Double.isFinite(getMktPriceMarginPct()))
+                throw new IllegalArgumentException("market price margin must be finite");
+        }
+
+        if (!options.has(extraInfoOpt))
+            throw new IllegalArgumentException("specify extra-info; use an empty value to clear offer terms");
+
+        if (isUsingMktPriceMargin() && !options.has(triggerPriceOpt))
+            throw new IllegalArgumentException("specify trigger-price; use 0 to disable the trigger");
+
+        if (options.has(triggerPriceOpt)) {
+            BigDecimal triggerPrice;
+            try {
+                triggerPrice = new BigDecimal(getTriggerPrice());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("trigger price must be a non-negative number");
+            }
+            if (triggerPrice.signum() < 0)
+                throw new IllegalArgumentException("trigger price must be a non-negative number");
+            if (!isUsingMktPriceMargin() && triggerPrice.signum() != 0)
+                throw new IllegalArgumentException("cannot set a trigger price on a fixed price offer");
         }
 
         return this;

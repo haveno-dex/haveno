@@ -159,7 +159,9 @@ public abstract class AbstractCliTest {
                 ALICE_PORT_OPT,
                 "editoffer",
                 "--offer-id=" + offer.getId(),
-                "--market-price-margin=" + priceMargin
+                "--market-price-margin=" + priceMargin,
+                "--trigger-price=" + offer.getTriggerPrice(),
+                "--extra-info="
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
@@ -174,7 +176,9 @@ public abstract class AbstractCliTest {
                 ALICE_PORT_OPT,
                 "editoffer",
                 "--offer-id=" + offer.getId(),
-                "--trigger-price=" + triggerPrice
+                "--market-price-margin=" + offer.getMarketPriceMarginPct(),
+                "--trigger-price=" + triggerPrice,
+                "--extra-info="
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
@@ -192,7 +196,8 @@ public abstract class AbstractCliTest {
                 "editoffer",
                 "--offer-id=" + offer.getId(),
                 "--market-price-margin=" + priceMargin,
-                "--trigger-price=" + triggerPrice
+                "--trigger-price=" + triggerPrice,
+                "--extra-info="
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));
@@ -207,7 +212,8 @@ public abstract class AbstractCliTest {
                 ALICE_PORT_OPT,
                 "editoffer",
                 "--offer-id=" + offer.getId(),
-                "--fixed-price=" + fixedPrice
+                "--fixed-price=" + fixedPrice,
+                "--extra-info="
         };
         out.print(">>>>> haveno-cli ");
         stream(args).forEach(a -> out.print(a + " "));

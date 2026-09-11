@@ -69,17 +69,21 @@ import protobuf.Dispute;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.nio.channels.Channels;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import static haveno.cli.CurrencyFormat.formatMarketPrice;
 import static haveno.cli.CurrencyFormat.toPiconeros;
@@ -138,14 +142,12 @@ import static haveno.cli.Method.getxmrtxs;
 import static haveno.cli.Method.isaccountopen;
 import static haveno.cli.Method.isappinitialized;
 import static haveno.cli.Method.isxmrnodeonline;
-import static haveno.cli.Method.lockwallet;
 import static haveno.cli.Method.openaccount;
 import static haveno.cli.Method.opendispute;
 import static haveno.cli.Method.registerdisputeagent;
 import static haveno.cli.Method.registernotificationlistener;
 import static haveno.cli.Method.relayxmrtxs;
 import static haveno.cli.Method.removeconnection;
-import static haveno.cli.Method.removewalletpassword;
 import static haveno.cli.Method.resolvedispute;
 import static haveno.cli.Method.restoreaccount;
 import static haveno.cli.Method.sendchatmessage;
@@ -153,12 +155,10 @@ import static haveno.cli.Method.senddisputechatmessage;
 import static haveno.cli.Method.sendxmr;
 import static haveno.cli.Method.setautoswitch;
 import static haveno.cli.Method.setconnection;
-import static haveno.cli.Method.setwalletpassword;
 import static haveno.cli.Method.startxmrnode;
 import static haveno.cli.Method.stop;
 import static haveno.cli.Method.stopxmrnode;
 import static haveno.cli.Method.takeoffer;
-import static haveno.cli.Method.unlockwallet;
 import static haveno.cli.Method.unregisterdisputeagent;
 import static haveno.cli.Method.withdrawfunds;
 import static haveno.cli.opts.OptLabel.OPT_HELP;
@@ -180,6 +180,8 @@ import static java.lang.String.format;
 import static java.lang.System.err;
 import static java.lang.System.exit;
 import static java.lang.System.out;
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.TimeZone.getTimeZone;
 
 /**
@@ -346,13 +348,18 @@ public class CliMain {
                             ? format("haveno-account-backup_%d.zip", new Date().getTime())
                             : opts.getBackupFile();
                     Path path = Paths.get(backupFile);
-                    if (Files.exists(path))
-                        throw new IllegalStateException(format("could not overwrite existing file '%s'", backupFile));
-
-                    try (var outputStream = new FileOutputStream(path.toFile())) {
-                        var backupBytes = client.backupAccount();
-                        while (backupBytes.hasNext())
-                            outputStream.write(backupBytes.next().getZipBytes().toByteArray());
+                    try {
+                        FileAttribute<?>[] attributes = Files.getFileStore(path.toAbsolutePath().getParent())
+                                .supportsFileAttributeView("posix")
+                                ? new FileAttribute<?>[]{PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))}
+                                : new FileAttribute<?>[0];
+                        try (var outputStream = Channels.newOutputStream(Files.newByteChannel(path, Set.of(CREATE_NEW, WRITE), attributes))) {
+                            var backupBytes = client.backupAccount();
+                            while (backupBytes.hasNext())
+                                outputStream.write(backupBytes.next().getZipBytes().toByteArray());
+                        }
+                    } catch (FileAlreadyExistsException ex) {
+                        throw new IllegalStateException(format("could not overwrite existing file '%s'", backupFile), ex);
                     } catch (IOException ex) {
                         throw new IllegalStateException(format("could not write backup file '%s'", backupFile), ex);
                     }
@@ -371,6 +378,9 @@ public class CliMain {
                     } catch (IOException ex) {
                         throw new IllegalStateException(format("could not read %s", opts.getBackupFile()));
                     }
+                    if (zipBytes.length == 0)
+                        throw new IllegalArgumentException("backup file is empty");
+
                     // Upload the zip in chunks small enough to fit in a grpc message.
                     for (long offset = 0; offset < zipBytes.length; offset += RESTORE_ACCOUNT_CHUNK_SIZE) {
                         int chunkSize = (int) Math.min(RESTORE_ACCOUNT_CHUNK_SIZE, zipBytes.length - offset);
@@ -1188,10 +1198,11 @@ public class CliMain {
     }
 
     private static void printDisputes(List<Dispute> disputes) {
-        String rowFormat = "%-52s%-22s%-12s%-10s%-8s%n";
-        out.format(rowFormat, "Trade ID", "Created (UTC)", "State", "Opener", "Closed");
-        out.format(rowFormat, "--------", "-------------", "-----", "------", "------");
+        String rowFormat = "%-64s%-52s%-22s%-12s%-10s%-8s%n";
+        out.format(rowFormat, "Dispute ID", "Trade ID", "Created (UTC)", "State", "Opener", "Closed");
+        out.format(rowFormat, "----------", "--------", "-------------", "-----", "------", "------");
         disputes.forEach(d -> out.format(rowFormat,
+                d.getTradeId() + "_" + d.getTraderId(),
                 d.getTradeId(),
                 formatTimestamp(d.getOpeningDate()),
                 d.getState().name(),
@@ -1205,7 +1216,7 @@ public class CliMain {
                 .forEach(m -> out.printf("[%s] %s%s%n",
                         formatTimestamp(m.getDate()),
                         m.getIsSystemMessage() ? "(system) " : "",
-                        m.getMessage()));
+                        escapeTerminalControls(m.getMessage())));
     }
 
     private static void printTradeStatistics(List<protobuf.TradeStatistics3> tradeStatistics) {
@@ -1237,17 +1248,29 @@ public class CliMain {
         out.printf("[%s] %s %s %s%n",
                 formatTimestamp(notification.getTimestamp()),
                 notification.getType().name(),
-                notification.getTitle(),
-                notification.getMessage());
+                escapeTerminalControls(notification.getTitle()),
+                escapeTerminalControls(notification.getMessage()));
         if (notification.hasTrade())
             out.printf("        trade %s %s %s%n",
-                    notification.getTrade().getShortId(),
-                    notification.getTrade().getPhase(),
-                    notification.getTrade().getState());
+                    escapeTerminalControls(notification.getTrade().getShortId()),
+                    escapeTerminalControls(notification.getTrade().getPhase()),
+                    escapeTerminalControls(notification.getTrade().getState()));
         if (notification.hasChatMessage())
             out.printf("        chat message for trade %s: %s%n",
-                    notification.getChatMessage().getTradeId(),
-                    notification.getChatMessage().getMessage());
+                    escapeTerminalControls(notification.getChatMessage().getTradeId()),
+                    escapeTerminalControls(notification.getChatMessage().getMessage()));
+    }
+
+    private static String escapeTerminalControls(String text) {
+        StringBuilder escaped = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char character = text.charAt(i);
+            if (Character.isISOControl(character) && character != '\n' && character != '\t')
+                escaped.append(format("\\u%04x", (int) character));
+            else
+                escaped.append(character);
+        }
+        return escaped.toString();
     }
 
     private static File saveFileToDisk(String prefix,
@@ -1328,17 +1351,6 @@ public class CliMain {
             stream.println();
             stream.format(rowFormat, relayxmrtxs.name(), "--metadatas=<metadata[,metadata]>", "Relay previously created XMR transaction(s)");
             stream.println();
-            stream.format(rowFormat, lockwallet.name(), "", "Remove wallet password from memory, locking the wallet");
-            stream.println();
-            stream.format(rowFormat, unlockwallet.name(), "--wallet-password=<password> --timeout=<seconds>",
-                    "Store wallet password in memory for timeout seconds");
-            stream.println();
-            stream.format(rowFormat, setwalletpassword.name(), "--wallet-password=<password> \\",
-                    "Encrypt wallet with password, or set new password on encrypted wallet");
-            stream.format(rowFormat, "", "[--new-wallet-password=<new-password>]", "");
-            stream.println();
-            stream.format(rowFormat, removewalletpassword.name(), "--wallet-password=<password>", "Remove wallet password, decrypting the wallet");
-            stream.println();
             stream.format(rowFormat, getxmrprice.name(), "--currency-code=<currency-code>", "Get current market xmr price");
             stream.println();
             stream.format(rowFormat, getxmrprices.name(), "", "Get current market xmr prices for all currencies");
@@ -1356,12 +1368,11 @@ public class CliMain {
             stream.format(rowFormat, "", "[--reserve-exact-amount=<true|false>] \\", "");
             stream.format(rowFormat, "", "[--extra-info=<\"extra info\">]", "");
             stream.println();
-            stream.format(rowFormat, editoffer.name(), "--offer-id=<offer-id> \\", "Edit offer with id");
-            stream.format(rowFormat, "", "[--fixed-price=<price>] \\", "");
-            stream.format(rowFormat, "", "[--market-price-margin=<percent>] \\", "");
-            stream.format(rowFormat, "", "[--trigger-price=<price>] \\", "");
+            stream.format(rowFormat, editoffer.name(), "--offer-id=<offer-id> \\", "Replace offer pricing, trigger, and own terms");
+            stream.format(rowFormat, "", "--fixed-price=<price> | --market-price-margin=<percent> \\", "");
+            stream.format(rowFormat, "", "[--trigger-price=<price>] \\", "Required for market pricing; 0 disables");
             stream.format(rowFormat, "", "[--payment-account-id=<payment-account-id>] \\", "");
-            stream.format(rowFormat, "", "[--extra-info=<\"extra info\">]", "");
+            stream.format(rowFormat, "", "--extra-info=<\"offer terms\">", "");
             stream.println();
             stream.format(rowFormat, activateoffer.name(), "--offer-id=<offer-id>", "Activate a deactivated offer");
             stream.println();
