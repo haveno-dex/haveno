@@ -74,6 +74,15 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
     /////////////////////////////////////////////////////////////////////////////////////
 
     @Override
+    protected int doExecute() {
+        if (config.apiPassword == null || config.apiPassword.isBlank()) {
+            System.err.println("error: Cannot start the gRPC API with an empty apiPassword; set --apiPassword to a strong secret");
+            System.exit(EXIT_FAILURE);
+        }
+        return super.doExecute();
+    }
+
+    @Override
     protected void configUserThread() {
         final ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(this.getClass().getSimpleName())

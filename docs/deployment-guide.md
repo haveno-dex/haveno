@@ -170,6 +170,9 @@ For each arbitrator:
 
 The arbitrator is now registered and ready to accept requests for dispute resolution.
 
+Daemon instances require a non-empty API password. Set `HAVENO_API_PASSWORD` to a
+strong secret before running [run-arbitrator-daemon.sh](../scripts/deployment/run-arbitrator-daemon.sh).
+
 > [!note]
 > * Arbitrators must use a local Monero node with unrestricted RPC in order to submit and flush transactions from the pool.
 > * Arbitrators should remain online as much as possible in order to balance trades and avoid clients spending time trying to contact offline arbitrators. A VPS or dedicated machine running 24/7 is highly recommended.
