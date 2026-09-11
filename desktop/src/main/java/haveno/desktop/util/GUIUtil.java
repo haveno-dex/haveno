@@ -79,6 +79,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -130,6 +132,7 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
@@ -1023,23 +1026,69 @@ public class GUIUtil {
                             - Math.max(rootSceneWindow.getY(), bounds.getMinY());
                     return Math.max(0, width) * Math.max(0, height);
                 })).orElse(Screen.getPrimary()).getVisualBounds();
-        stage.setWidth(Math.min(Layout.CHAT_WINDOW_WIDTH, Math.min(rootScene.getWidth(), screenBounds.getWidth())));
-        stage.setHeight(Math.min(Layout.CHAT_WINDOW_HEIGHT, Math.min(rootScene.getHeight(), screenBounds.getHeight())));
-        stage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
-        stage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
+        double width = Math.min(Layout.CHAT_WINDOW_WIDTH, Math.min(rootScene.getWidth(), screenBounds.getWidth()));
+        double height = Math.min(Layout.CHAT_WINDOW_HEIGHT, Math.min(rootScene.getHeight(), screenBounds.getHeight()));
+        boolean linux = Utilities.isLinux();
+        // GTK needs a real resize after mapping before the opening minimum can be released
+        double openingWidth = linux ? width - 1 : width;
+        stage.setWidth(width);
+        stage.setHeight(height);
+        stage.setMinWidth(linux ? openingWidth : Layout.CHAT_WINDOW_MIN_WIDTH);
+        stage.setMinHeight(linux ? height : Layout.CHAT_WINDOW_MIN_HEIGHT);
         // set the native window background before the first frame is rendered
         stage.getScene().setFill(CssTheme.isDarkTheme() ? Color.BLACK : Color.WHITE);
-        stage.setOpacity(0);
-        stage.show();
 
         // center each new chat over the current application window and keep it on-screen
-        double x = Math.round(rootSceneWindow.getX() + rootScene.getX() + (rootScene.getWidth() - stage.getWidth()) / 2);
-        double y = Math.round(rootSceneWindow.getY() + rootScene.getY() + (rootScene.getHeight() - stage.getHeight()) / 2);
-        stage.setX(Math.max(screenBounds.getMinX(), Math.min(x, screenBounds.getMaxX() - stage.getWidth())));
-        stage.setY(Math.max(screenBounds.getMinY(), Math.min(y, screenBounds.getMaxY() - stage.getHeight())));
+        double x = Math.round(rootSceneWindow.getX() + rootScene.getX() + (rootScene.getWidth() - width) / 2);
+        double y = Math.round(rootSceneWindow.getY() + rootScene.getY() + (rootScene.getHeight() - height) / 2);
+        stage.setX(Math.max(screenBounds.getMinX(), Math.min(x, screenBounds.getMaxX() - width)));
+        stage.setY(Math.max(screenBounds.getMinY(), Math.min(y, screenBounds.getMaxY() - height)));
+        stage.show();
+        if (!linux) return;
 
-        // reveal after positioning to avoid flashing at the default position
-        UserThread.execute(() -> stage.setOpacity(1));
+        PauseTransition settleDelay = new PauseTransition(Duration.millis(300));
+        ChangeListener<Number> boundsListener = (observable, oldValue, newValue) -> settleDelay.playFromStart();
+        EventHandler<WindowEvent> hiddenHandler = new EventHandler<>() {
+            @Override
+            public void handle(WindowEvent event) {
+                settleDelay.stop();
+                stage.widthProperty().removeListener(boundsListener);
+                stage.heightProperty().removeListener(boundsListener);
+                stage.removeEventHandler(WindowEvent.WINDOW_HIDDEN, this);
+                stage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
+                stage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
+            }
+        };
+        settleDelay.setOnFinished(new EventHandler<>() {
+            private boolean openingSizeApplied;
+
+            @Override
+            public void handle(ActionEvent event) {
+                boolean restoreOpeningSize = !stage.isMaximized() && !stage.isFullScreen()
+                        && Math.abs(stage.getWidth() - width) <= 1 && Math.abs(stage.getHeight() - height) <= 1;
+                if (restoreOpeningSize && !openingSizeApplied) {
+                    openingSizeApplied = true;
+                    stage.setWidth(width);
+                    stage.setHeight(height);
+                    settleDelay.playFromStart();
+                    return;
+                }
+                stage.widthProperty().removeListener(boundsListener);
+                stage.heightProperty().removeListener(boundsListener);
+                stage.removeEventHandler(WindowEvent.WINDOW_HIDDEN, hiddenHandler);
+                stage.setMinWidth(Layout.CHAT_WINDOW_MIN_WIDTH);
+                stage.setMinHeight(Layout.CHAT_WINDOW_MIN_HEIGHT);
+                // leave any user resize or maximize in place
+                if (restoreOpeningSize) {
+                    stage.setWidth(width);
+                    stage.setHeight(height);
+                }
+            }
+        });
+        stage.widthProperty().addListener(boundsListener);
+        stage.heightProperty().addListener(boundsListener);
+        stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, hiddenHandler);
+        settleDelay.play();
     }
 
     public static StringConverter<PaymentAccount> getPaymentAccountsComboBoxStringConverter() {
