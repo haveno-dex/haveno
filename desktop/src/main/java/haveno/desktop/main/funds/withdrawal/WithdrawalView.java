@@ -464,11 +464,14 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         balanceFiatLabel.setVisible(fiat != null);
         balanceFiatLabel.setManaged(fiat != null);
 
-        // fiat input needs a market price; hide the toggle and fall back to XMR while there is none
+        // fiat input needs a market price; clear it if the preferred currency changed while away
         boolean hasPrice = marketPrice() != null;
         currencyToggle.setVisible(hasPrice);
         currencyToggle.setManaged(hasPrice);
-        if (!hasPrice && amountInFiat) setAmountCurrency(false);
+        TradeCurrency currency = preferences.getPreferredTradeCurrency();
+        if (amountInFiat && (!hasPrice || currency == null || !currency.getCode().equals(currencyToggle.getText()))) {
+            setAmountCurrency(false);
+        }
     }
 
     // show the amount in the other currency, or an invalid-input / over-balance error below the field
