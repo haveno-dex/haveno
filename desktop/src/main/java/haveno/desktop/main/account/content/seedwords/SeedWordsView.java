@@ -56,7 +56,6 @@ import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 import static haveno.desktop.util.FormBuilder.addTopLabelWithVBox;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -316,16 +315,11 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
             new Popup().warning(Res.get("seed.restore.height.invalid")).show();
             return;
         }
-        BigInteger balance = xmrWalletService.getBalance();
-        if (balance != null && balance.compareTo(BigInteger.ZERO) > 0) {
-            new Popup().warning(Res.get("seed.warn.walletNotEmpty.msg"))
-                    .actionButtonText(Res.get("seed.warn.walletNotEmpty.restore"))
-                    .onAction(() -> confirmRestoreHeight(restoreHeight, restoreDate))
-                    .closeButtonText(Res.get("seed.warn.walletNotEmpty.emptyWallet"))
-                    .show();
-        } else {
-            confirmRestoreHeight(restoreHeight, restoreDate);
-        }
+        new Popup().warning(Res.get("seed.restore.walletReplacement.warn"))
+                .actionButtonText(Res.get("seed.warn.walletNotEmpty.restore"))
+                .onAction(() -> confirmRestoreHeight(restoreHeight, restoreDate))
+                .closeButtonText(Res.get("shared.cancel"))
+                .show();
     }
 
     private void confirmRestoreHeight(Long restoreHeight, LocalDate restoreDate) {

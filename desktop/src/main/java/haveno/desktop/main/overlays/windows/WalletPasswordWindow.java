@@ -40,7 +40,6 @@ import static haveno.desktop.util.FormBuilder.addTextArea;
 import static haveno.desktop.util.FormBuilder.addTopLabelInputTextField;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.validation.JFXInputValidator;
-import java.math.BigInteger;
 import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
 import static javafx.beans.binding.Bindings.createBooleanBinding;
@@ -336,16 +335,11 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
             new Popup().warning(Res.get("seed.restore.height.invalid")).show();
             return;
         }
-        BigInteger balance = xmrWalletService.getBalance();
-        if (balance != null && balance.compareTo(BigInteger.ZERO) > 0) {
-            new Popup().warning(Res.get("seed.warn.walletNotEmpty.msg"))
-                    .actionButtonText(Res.get("seed.warn.walletNotEmpty.restore"))
-                    .onAction(() -> confirmRestoreHeight(restoreHeight, restoreDate))
-                    .closeButtonText(Res.get("seed.warn.walletNotEmpty.emptyWallet"))
-                    .show();
-        } else {
-            confirmRestoreHeight(restoreHeight, restoreDate);
-        }
+        new Popup().warning(Res.get("seed.restore.walletReplacement.warn"))
+                .actionButtonText(Res.get("seed.warn.walletNotEmpty.restore"))
+                .onAction(() -> confirmRestoreHeight(restoreHeight, restoreDate))
+                .closeButtonText(Res.get("shared.cancel"))
+                .show();
     }
 
     private void confirmRestoreHeight(Long restoreHeight, LocalDate restoreDate) {
