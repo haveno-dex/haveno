@@ -50,7 +50,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -206,6 +205,9 @@ public abstract class Overlay<T extends Overlay<T>> {
     private EventHandler<InputEvent> ownerInputFilter;
     private ChangeListener<Boolean> contentDemandListener;
     private double lastContentDemand;
+    private AnimationTimer displayTimer;
+    private final Timeline animation = new Timeline();
+    private boolean hiding;
 
     protected Timer centerTime;
     protected Type type = Type.Undefined;
@@ -269,14 +271,19 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void animateHide() {
+        if (hiding) return;
+        hiding = true;
+        if (displayTimer != null) {
+            displayTimer.stop();
+            displayTimer = null;
+        }
         animateHide(() -> {
-            if (isCentered()) numCenterOverlays--;
-            removeEffectFromBackground();
-
-            if (stage != null)
+            if (stage != null && stage.isShowing()) {
+                if (isCentered()) numCenterOverlays--;
+                removeEffectFromBackground();
                 stage.hide();
-            else
-                log.warn("Stage is null");
+            }
+            isDisplayed = false;
 
             removeListeners();
             cleanup();
@@ -300,7 +307,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
         if (owner == null)
             owner = MainView.getRootContainer();
-        Scene rootScene = owner.getScene();
+        Scene rootScene = owner != null ? owner.getScene() : null;
         if (rootScene != null) {
             if (stylesheetsListener != null)
                 rootScene.getStylesheets().removeListener(stylesheetsListener);
@@ -558,7 +565,9 @@ public abstract class Overlay<T extends Overlay<T>> {
             Scene rootScene = owner.getScene();
             if (rootScene != null) {
                 isDisplayed = true;
+                hiding = false;
                 UserThread.execute(() -> {
+                    if (hiding) return;
                     Scene scene = new Scene(getRootContainer());
                     scene.getStylesheets().setAll(rootScene.getStylesheets());
                     stylesheetsListener = change -> scene.getStylesheets().setAll(rootScene.getStylesheets());
@@ -579,7 +588,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                         event.consume();
                         doClose();
                     });
-                    getRootContainer().setOpacity(0); // hide until animateDisplay() to avoid a one-frame flash on show
+                    getRootContainer().setOpacity(1); // render the complete card while the native window is hidden
                     stage.setOpacity(0); // hide the native window too, else it can flash white before the first frame renders
                     stage.sizeToScene();
                     stage.show();
@@ -587,25 +596,6 @@ public abstract class Overlay<T extends Overlay<T>> {
 
                     // focus the message, not the headline copy icon, so screen readers announce it first
                     if (messageTextArea != null) messageTextArea.requestFocus();
-
-                    // the auto-sized message height settles over the first layout pulses as its text
-                    // re-wraps, so keep re-fitting the invisible stage to the content until stable
-                    Stage displayedStage = stage;
-                    new AnimationTimer() {
-                        private int frames;
-                        private double lastHeight;
-                        @Override
-                        public void handle(long now) {
-                            double height = displayedStage.getHeight();
-                            boolean stable = Math.abs(height - lastHeight) < 0.5;
-                            lastHeight = height;
-                            if (!stable) refitToContent();
-                            if (++frames > 1 && (stable || frames > 10)) {
-                                displayedStage.setOpacity(1);
-                                stop();
-                            }
-                        }
-                    }.start();
 
                     layout();
 
@@ -644,7 +634,49 @@ public abstract class Overlay<T extends Overlay<T>> {
                     };
                     getRootContainer().needsLayoutProperty().addListener(contentDemandListener);
 
-                    animateDisplay();
+                    // settle CSS and wrapping before rendering the entrance pose, then reveal it on the next pulse
+                    Stage displayedStage = stage;
+                    displayTimer = new AnimationTimer() {
+                        private int frames;
+                        private int stableFrames;
+                        private double lastWidth;
+                        private double lastHeight;
+                        private double lastDemand;
+                        private boolean prepared;
+
+                        @Override
+                        public void handle(long now) {
+                            if (hiding || stage != displayedStage || !displayedStage.isShowing()) {
+                                stop();
+                                return;
+                            }
+                            if (prepared) {
+                                stop();
+                                displayTimer = null;
+                                displayedStage.setOpacity(1);
+                                animateDisplay();
+                                return;
+                            }
+
+                            scene.getRoot().applyCss();
+                            scene.getRoot().layout();
+                            refitToContent();
+                            double width = displayedStage.getWidth();
+                            double height = displayedStage.getHeight();
+                            double demand = getRootContainer().prefHeight(getRootContainer().getWidth());
+                            boolean stable = Math.abs(width - lastWidth) < 0.5 &&
+                                    Math.abs(height - lastHeight) < 0.5 && Math.abs(demand - lastDemand) < 0.5;
+                            stableFrames = stable ? stableFrames + 1 : 0;
+                            lastWidth = width;
+                            lastHeight = height;
+                            lastDemand = demand;
+                            if (++frames >= 10 || stableFrames >= 2) {
+                                prepareDisplayAnimation();
+                                prepared = true;
+                            }
+                        }
+                    };
+                    displayTimer.start();
                 });
             }
         }
@@ -771,70 +803,89 @@ public abstract class Overlay<T extends Overlay<T>> {
         }
     }
 
-    protected void animateDisplay() {
-        // show at full opacity and animate only transforms; partially transparent content reads unevenly
-        getRootContainer().setOpacity(1);
+    private void prepareDisplayAnimation() {
         Region rootContainer = getDisplayContainer();
-        Interpolator interpolator = Interpolator.SPLINE(0, 0, 0.2, 1); // decelerate into place
-        double duration = getDuration(200);
-        Timeline timeline = new Timeline();
-        ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
-
-        if (type.animationType == AnimationType.SlideDownFromCenterTop) {
-            double startY = -rootContainer.getHeight();
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.translateYProperty(), startY, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    // capped cards have a flat top at the stage edge, so they settle at 0 instead of tucking the rounding away
-                    new KeyValue(rootContainer.translateYProperty(), capShell != null ? 0 : -50, interpolator)
-            ));
-        } else {
-            // warnings and errors settle down from above, all other popups settle up into place
-            double startScale = type.animationType == AnimationType.ScaleDownToCenter ? 1.04 : 0.96;
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.scaleXProperty(), startScale, interpolator),
-                    new KeyValue(rootContainer.scaleYProperty(), startScale, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
-                    new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
-            ));
+        boolean animate = getDuration(200) > 1;
+        double scale = animate ? (type.animationType == AnimationType.ScaleDownToCenter ? 1.02 : 0.98) : 1;
+        double translateX = 0;
+        double translateY = 0;
+        if (type.animationType == AnimationType.SlideFromRightTop) {
+            scale = 1;
+            translateX = animate ? 16 : 0;
+        } else if (type.animationType == AnimationType.SlideDownFromCenterTop) {
+            scale = 1;
+            translateY = (capShell != null ? 0 : -50) - (animate ? 8 : 0);
         }
+        rootContainer.setScaleX(scale);
+        rootContainer.setScaleY(scale);
+        rootContainer.setTranslateX(translateX);
+        rootContainer.setTranslateY(translateY);
+    }
 
-        timeline.play();
+    protected void animateDisplay() {
+        if (getDuration(200) <= 1) {
+            prepareDisplayAnimation();
+            return;
+        }
+        double translateY = type.animationType == AnimationType.SlideDownFromCenterTop && capShell == null ? -50 : 0;
+        playAnimation(0, translateY, 1, 1, getDuration(200), Interpolator.SPLINE(0, 0, 0.2, 1), null);
     }
 
     protected void animateHide(Runnable onFinishedHandler) {
-        Interpolator interpolator = Interpolator.SPLINE(0.4, 0, 1, 1); // accelerate away
-        double duration = getDuration(140);
-        Timeline timeline = new Timeline();
-        ObservableList<KeyFrame> keyFrames = timeline.getKeyFrames();
-
-        // animate only transforms; partially transparent content reads unevenly
-        Region rootContainer = getDisplayContainer();
-        if (type.animationType == AnimationType.SlideDownFromCenterTop) {
-            double endY = -rootContainer.getHeight();
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.translateYProperty(), capShell != null ? 0 : -10, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.translateYProperty(), endY, interpolator)
-            ));
-        } else {
-            double endScale = 0.96;
-            keyFrames.add(new KeyFrame(Duration.millis(0),
-                    new KeyValue(rootContainer.scaleXProperty(), 1, interpolator),
-                    new KeyValue(rootContainer.scaleYProperty(), 1, interpolator)
-            ));
-            keyFrames.add(new KeyFrame(Duration.millis(duration),
-                    new KeyValue(rootContainer.scaleXProperty(), endScale, interpolator),
-                    new KeyValue(rootContainer.scaleYProperty(), endScale, interpolator)
-            ));
+        if (stage == null || stage.getOpacity() == 0 || getDuration(140) <= 1) {
+            animation.stop();
+            onFinishedHandler.run();
+            return;
         }
 
-        timeline.setOnFinished(e -> onFinishedHandler.run());
-        timeline.play();
+        if (type.animationType == AnimationType.SlideFromRightTop) {
+            Region rootContainer = getDisplayContainer();
+            playAnimation(rootContainer.getTranslateX(), rootContainer.getTranslateY(), 1, 0, getDuration(180),
+                    Interpolator.SPLINE(0.4, 0, 0.2, 1), onFinishedHandler);
+            return;
+        }
+
+        double translateY = 0;
+        double scale = 0.98;
+        if (type.animationType == AnimationType.SlideDownFromCenterTop) {
+            scale = 1;
+            translateY = (capShell != null ? 0 : -50) - 8;
+        }
+        playAnimation(0, translateY, scale, 1, getDuration(140),
+                Interpolator.SPLINE(0.4, 0, 1, 1), onFinishedHandler);
+    }
+
+    private void playAnimation(double translateX, double translateY, double scale, double opacity, double duration,
+                               Interpolator interpolator, Runnable onFinishedHandler) {
+        // keep the content opaque and fade the native window as a whole, continuing from the current pose
+        Region rootContainer = getDisplayContainer();
+        double startX = rootContainer.getTranslateX();
+        double startY = rootContainer.getTranslateY();
+        double startScale = rootContainer.getScaleX();
+        double startOpacity = stage.getOpacity();
+        animation.stop();
+        rootContainer.setTranslateX(startX);
+        rootContainer.setTranslateY(startY);
+        rootContainer.setScaleX(startScale);
+        rootContainer.setScaleY(startScale);
+        stage.setOpacity(startOpacity);
+        animation.getKeyFrames().setAll(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(stage.opacityProperty(), startOpacity),
+                        new KeyValue(rootContainer.translateXProperty(), startX),
+                        new KeyValue(rootContainer.translateYProperty(), startY),
+                        new KeyValue(rootContainer.scaleXProperty(), startScale),
+                        new KeyValue(rootContainer.scaleYProperty(), startScale)),
+                new KeyFrame(Duration.millis(duration),
+                        new KeyValue(stage.opacityProperty(), opacity, interpolator),
+                        new KeyValue(rootContainer.translateXProperty(), translateX, interpolator),
+                        new KeyValue(rootContainer.translateYProperty(), translateY, interpolator),
+                        new KeyValue(rootContainer.scaleXProperty(), scale, interpolator),
+                        new KeyValue(rootContainer.scaleYProperty(), scale, interpolator)));
+        animation.setOnFinished(event -> {
+            if (onFinishedHandler != null) onFinishedHandler.run();
+        });
+        animation.play();
     }
 
     protected void layout() {

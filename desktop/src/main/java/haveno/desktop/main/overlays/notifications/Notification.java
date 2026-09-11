@@ -21,26 +21,18 @@ import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
-import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.FormBuilder;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Region;
 import javafx.stage.Modality;
 import javafx.stage.Window;
-import javafx.util.Duration;
 
 public class Notification extends Overlay<Notification> {
     private boolean hasBeenDisplayed;
     private boolean autoClose;
     private Timer autoCloseTimer;
-    private final Timeline animation = new Timeline();
     private static final int BORDER_PADDING = 10;
 
     public Notification() {
@@ -56,7 +48,8 @@ public class Notification extends Overlay<Notification> {
             autoCloseTimer = UserThread.runAfter(this::doClose, 6);
 
         UserThread.execute(() -> {
-            stage.addEventHandler(MouseEvent.MOUSE_PRESSED, (event) -> doClose());
+            if (stage != null && stage.isShowing())
+                stage.addEventHandler(MouseEvent.MOUSE_PRESSED, (event) -> doClose());
         });
     }
 
@@ -106,52 +99,12 @@ public class Notification extends Overlay<Notification> {
             autoCloseTimer = null;
         }
 
-        Region rootContainer = getDisplayContainer();
-        double startX = rootContainer.getTranslateX();
-        double startOpacity = rootContainer.getOpacity();
-        animation.stop();
-        rootContainer.setTranslateX(startX);
-        rootContainer.setOpacity(startOpacity);
-
-        if (NotificationCenter.useAnimations && useAnimation && GlobalSettings.getUseAnimations()) {
-            Interpolator interpolator = Interpolator.SPLINE(0.4, 0, 1, 1);
-            // continue from the current pose if dismissed during the entrance
-            animation.getKeyFrames().setAll(
-                    new KeyFrame(Duration.ZERO,
-                            new KeyValue(rootContainer.translateXProperty(), startX),
-                            new KeyValue(rootContainer.opacityProperty(), startOpacity)),
-                    new KeyFrame(Duration.millis(140),
-                            new KeyValue(rootContainer.translateXProperty(), 16, interpolator),
-                            new KeyValue(rootContainer.opacityProperty(), 0, interpolator)));
-            animation.setOnFinished(event -> onFinishedHandler.run());
-            animation.play();
-        } else {
-            onFinishedHandler.run();
-        }
+        super.animateHide(onFinishedHandler);
     }
 
     @Override
-    protected void animateDisplay() {
-        animation.stop();
-        animation.setOnFinished(null);
-        getRootContainer().setOpacity(1); // undo the pre-show hide
-        Region rootContainer = getDisplayContainer();
-        rootContainer.setTranslateX(0);
-        rootContainer.setOpacity(1);
-
-        if (NotificationCenter.useAnimations && useAnimation && GlobalSettings.getUseAnimations()) {
-            Interpolator interpolator = Interpolator.SPLINE(0, 0, 0.2, 1);
-            rootContainer.setTranslateX(16);
-            rootContainer.setOpacity(0);
-            animation.getKeyFrames().setAll(
-                    new KeyFrame(Duration.ZERO,
-                            new KeyValue(rootContainer.translateXProperty(), 16),
-                            new KeyValue(rootContainer.opacityProperty(), 0)),
-                    new KeyFrame(Duration.millis(200),
-                            new KeyValue(rootContainer.translateXProperty(), 0, interpolator),
-                            new KeyValue(rootContainer.opacityProperty(), 1, interpolator)));
-            animation.play();
-        }
+    protected double getDuration(double duration) {
+        return NotificationCenter.useAnimations ? super.getDuration(duration) : 1;
     }
 
 
