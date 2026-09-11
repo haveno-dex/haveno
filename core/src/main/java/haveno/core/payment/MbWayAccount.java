@@ -63,6 +63,8 @@ public final class MbWayAccount extends PaymentAccount {
     }
 
     public void setMobileNr(String mobileNr) {
+        MbWayValidator validator = new MbWayValidator();
+        if (validator.validate(mobileNr).isValid) mobileNr = validator.getNormalizedPhoneNumber();
         ((MbWayAccountPayload) paymentAccountPayload).setMobileNr(mobileNr);
     }
 

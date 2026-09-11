@@ -28,7 +28,7 @@ public final class FpsValidator extends InputValidator {
         if (!result.isValid) return result;
         // accept an FPS proxy: 8-digit mobile (optional +852 prefix), 7-9 digit FPS ID or an email address
         String stripped = input.replaceAll("[\\s-]", "");
-        if (stripped.matches("\\+?852[0-9]{8}") || stripped.matches("[0-9]{7,9}") || stripped.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+"))
+        if (stripped.matches("\\+?852[0-9]{8}") || stripped.matches("[0-9]{7,9}") || input.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+"))
             return new ValidationResult(true);
         return new ValidationResult(false, Res.get("validation.accountNrFormat", "91234567, +852 9123 4567, 1234567 or name@example.com"));
     }

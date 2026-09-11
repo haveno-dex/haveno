@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -43,12 +44,80 @@ import static org.mockito.Mockito.when;
 
 public class PaymentAccountsTest {
     @Test
+    public void testMobileAccountFormsUseTheDesktopWitnessIdentity() {
+        GlobalSettings.setLocale(Locale.US);
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
+        List<PaymentAccount> accounts = List.of(new MbWayAccount(), new TwintAccount(), new PagoMovilAccount());
+        List<String> inputs = List.of("912 345 678", "+41 79 123 45 67", "0412 123 4567");
+        List<String> normalized = List.of("+351912345678", "+41791234567", "+584121234567");
+        for (int i = 0; i < accounts.size(); i++) {
+            PaymentAccount account = accounts.get(i);
+            account.init();
+            account.setAccountName("mobile account");
+            PaymentAccountForm form = account.toForm();
+            PaymentAccountFormField mobileField = form.getFields().stream()
+                    .filter(field -> field.getId() == PaymentAccountFormField.FieldId.MOBILE_NR).findFirst().orElseThrow();
+            mobileField.setValue(inputs.get(i));
+            PaymentAccount fromInput = form.toPaymentAccount();
+            assertEquals(normalized.get(i), fromInput.toForm().getValue(PaymentAccountFormField.FieldId.MOBILE_NR));
+            mobileField.setValue(normalized.get(i));
+            PaymentAccount fromNormalized = form.toPaymentAccount();
+            assertArrayEquals(fromNormalized.getPaymentAccountPayload().getAgeWitnessInputData(),
+                    fromInput.getPaymentAccountPayload().getAgeWitnessInputData());
+            mobileField.setValue("not a phone");
+            PaymentAccount invalid = form.toPaymentAccount();
+            assertEquals("not a phone", invalid.toForm().getValue(PaymentAccountFormField.FieldId.MOBILE_NR));
+            assertThrows(IllegalArgumentException.class,
+                    () -> invalid.validateFormField(form, PaymentAccountFormField.FieldId.MOBILE_NR, "not a phone"));
+        }
+    }
+
+    @Test
     public void testAccountNumberValidationRequiresCountry() {
         NeftAccount account = new NeftAccount();
         account.init();
         IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, "12345678"));
         assertEquals("Country must be set before validating account number", error.getMessage());
+    }
+
+    @Test
+    public void testFpsAccountValidatesTheStoredIdentifier() {
+        GlobalSettings.setLocale(Locale.US);
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
+        FpsAccount account = new FpsAccount();
+        account.init();
+        account.setAccountNr("alice-test@example.com");
+        assertDoesNotThrow(() -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+        assertEquals("alice-test@example.com", account.getAccountNr());
+        account.setAccountNr("+852 9123-4567");
+        assertDoesNotThrow(() -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+        assertEquals("91234567", account.getAccountNr());
+        for (String value : List.of("ali ce@example.com", "alice@exam ple.com")) {
+            account.setAccountNr(value);
+            assertThrows(IllegalArgumentException.class, () -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+        }
+    }
+
+    @Test
+    public void testPayPayAccountValidatesTheStoredIdentifier() {
+        GlobalSettings.setLocale(Locale.US);
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
+        PayPayAccount account = new PayPayAccount();
+        account.init();
+        account.setAccountNr("paypay_id");
+        assertDoesNotThrow(() -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+        assertEquals("paypay_id", account.getAccountNr());
+        account.setAccountNr("+81 90-1234-5678");
+        assertDoesNotThrow(() -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+        assertEquals("09012345678", account.getAccountNr());
+        for (String value : List.of("paypay-id", "pay pay_id")) {
+            account.setAccountNr(value);
+            assertThrows(IllegalArgumentException.class, () -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+        }
     }
 
     @Test
