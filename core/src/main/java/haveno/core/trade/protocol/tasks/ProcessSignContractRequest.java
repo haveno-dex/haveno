@@ -66,6 +66,11 @@ public class ProcessSignContractRequest extends TradeTask {
           SignContractRequest request = (SignContractRequest) processModel.getTradeMessage();
           TradePeer sender = trade.getTradePeer(processModel.getTempTradePeerNodeAddress());
 
+          // Require agreement before saving peer data or signing a contract.
+          String multisigAddress = request.getMultisigAddress();
+          if (multisigAddress == null || multisigAddress.isBlank() || !multisigAddress.equals(processModel.getMultisigAddress()))
+              throw new IllegalArgumentException("Missing or mismatched multisig address in sign contract request for trade " + trade.getId());
+
           // validate peer's payout address
           String payoutAddress = request.getPayoutAddress();
           if (payoutAddress == null || payoutAddress.isBlank() || !MoneroUtils.isValidAddress(payoutAddress, XmrWalletService.getMoneroNetworkType())) throw new IllegalArgumentException("Invalid payout address in sign contract request for trade " + trade.getId());

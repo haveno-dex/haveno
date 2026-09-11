@@ -1,5 +1,8 @@
 package haveno.core.offer;
 
+import haveno.common.app.Capabilities;
+import haveno.common.app.Capability;
+import haveno.common.app.Version;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.CorruptedStorageFileHandler;
@@ -9,16 +12,20 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrKeyImagePoller;
+import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.BuyerAsMakerTrade;
+import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradableList;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.ProcessModelServiceProvider;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NetworkNotReadyException;
+import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.peers.PeerManager;
 import org.junit.jupiter.api.AfterEach;
@@ -27,6 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -40,9 +48,11 @@ import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static haveno.core.offer.OfferMaker.btcUsdOffer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -55,6 +65,67 @@ public class OpenOfferManagerTest {
     private PersistenceManager<TradableList<OpenOffer>> persistenceManager;
     private PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
     private CoreContext coreContext;
+
+    @Test
+    public void testProtocolUpgradeRebuildsOfferAndInvalidatesFundingAndSignature() throws Exception {
+        NodeAddress owner = new NodeAddress("owner", 1);
+        NodeAddress arbitrator = new NodeAddress("arbitrator", 2);
+        P2PService p2PService = mock(P2PService.class);
+        when(p2PService.getAddress()).thenReturn(owner);
+        XmrConnectionService connection = mock(XmrConnectionService.class, RETURNS_DEEP_STUBS);
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        when(wallet.getWalletLock()).thenReturn(new Object());
+        ClosedTradableManager closed = mock(ClosedTradableManager.class);
+        OpenOfferManager manager = new OpenOfferManager(coreContext, null, null, p2PService,
+                connection, null, wallet, null, null, closed, null, null, null, null, null,
+                mock(FilterManager.class), null, persistenceManager, signedOfferPersistenceManager, null);
+        List<String> keyImages = List.of("reserved-output");
+        double deposit = Restrictions.getMinSecurityDepositPct();
+        OfferPayload payload = new OfferPayload("old-offer", 0L, owner, null, OfferDirection.BUY,
+                100000L, 0.0, false, 100000L, 100000L, HavenoUtils.getMakerFeePct("USD", false),
+                HavenoUtils.getTakerFeePct("USD", false), HavenoUtils.PENALTY_FEE_PCT, deposit, deposit,
+                "XMR", "USD", "SEPA", "account", null, null, null, null, "1.8.0", 0L, 0L, 0L,
+                false, false, 0L, 0L, false, null,
+                Map.of(OfferPayload.CAPABILITIES, new Capabilities(Capability.MEDIATION, Capability.REFUND_AGENT).toStringList()),
+                3, arbitrator, new byte[]{1}, keyImages, "extra");
+        OpenOffer original = new OpenOffer(new Offer(payload), 42, true, "group");
+        original.deactivate(false);
+        original.setReserveTxHash("reserve-hash");
+        original.setReserveTxHex("reserve-hex");
+        original.setReserveTxKey("reserve-key");
+        original.setSplitOutputTxHash("split-hash");
+        original.setSplitOutputTxFee(9);
+        original.setScheduledTxHashes(List.of("scheduled-hash"));
+        original.setScheduledAmount("100000");
+        manager.getObservableList().add(original);
+
+        var update = OpenOfferManager.class.getDeclaredMethod("maybeUpdatePersistedOffers");
+        update.setAccessible(true);
+        update.invoke(manager);
+
+        assertEquals(1, manager.getOpenOffers().size());
+        OpenOffer updated = manager.getOpenOffers().get(0);
+        assertEquals(original.getId(), updated.getId());
+        assertEquals("group", updated.getGroupId());
+        assertEquals(42, updated.getTriggerPrice());
+        assertTrue(updated.isDeactivated());
+        assertTrue(updated.isReserveExactAmount());
+        assertEquals(Version.TRADE_PROTOCOL_VERSION, updated.getOffer().getProtocolVersion());
+        assertEquals(Version.VERSION, updated.getOffer().getOfferPayload().getVersionNr());
+        assertNull(updated.getOffer().getOfferPayload().getArbitratorSignature());
+        assertNull(updated.getOffer().getOfferPayload().getArbitratorSigner());
+        assertNull(updated.getOffer().getOfferPayload().getReserveTxKeyImages());
+        assertNull(updated.getReserveTxHash());
+        assertNull(updated.getReserveTxHex());
+        assertNull(updated.getReserveTxKey());
+        assertNull(updated.getSplitOutputTxHash());
+        assertEquals(0, updated.getSplitOutputTxFee());
+        assertNull(updated.getScheduledTxHashes());
+        assertNull(updated.getScheduledAmount());
+        assertTrue(original.isCanceled());
+        verify(wallet).thawOutputs(keyImages);
+        verify(closed).add(original);
+    }
 
     @BeforeEach
     public void setUp() throws Exception {
