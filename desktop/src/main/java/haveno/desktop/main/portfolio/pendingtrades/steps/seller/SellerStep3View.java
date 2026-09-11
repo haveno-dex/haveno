@@ -113,7 +113,7 @@ public class SellerStep3View extends TradeStepView {
             if (trade.isPaymentSent() && !trade.isPaymentReceived()) {
                 busyAnimation.stop();
                 setTradeStatus("");
-                showPopup();
+                maybeShowPaymentReminder();
             } else if (trade.isPaymentReceived()) {
                 if (trade.isCompleted()) {
                     if (!trade.isPayoutPublished()) log.warn("Payout is expected to be published for {} {} state {}", trade.getClass().getSimpleName(), trade.getId(), trade.getState());
@@ -401,7 +401,9 @@ public class SellerStep3View extends TradeStepView {
         }
     }
 
-    private void showPopup() {
+    @Override
+    protected void showPaymentReminder() {
+        if (!trade.isPaymentSent() || trade.isPaymentReceived() || trade.isPayoutPublished()) return;
         PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
         String key = "confirmPayment" + trade.getId();
         String message = "";

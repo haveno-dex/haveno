@@ -591,6 +591,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatView.scrollToBottom();
 
         chatPopupStage = new Stage();
+        model.getChatOpen().bind(chatPopupStage.showingProperty());
         chatPopupStage.setTitle(Res.get("tradeChat.chatWindowTitle", trade.getShortId()));
         Scene rootScene = MainView.getRootContainer().getScene();
 
@@ -967,7 +968,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                     }
 
                                     button.setOnAction(e -> {
-                                        tableView.getSelectionModel().select(this.getIndex());
+                                        tableView.getSelectionModel().select(newItem);
                                         openChat(trade);
                                     });
 
