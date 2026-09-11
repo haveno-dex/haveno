@@ -1501,6 +1501,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
     }
 
+    public List<Trade> getFailedTrades() {
+        return failedTradesManager.getObservableList();
+    }
+
     public List<Trade> getClosedTrades() {
         return closedTradableManager.getClosedTrades();
     }

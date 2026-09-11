@@ -60,6 +60,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.XmrNodeSettings;
+import haveno.proto.grpc.GetTradesRequest;
 import haveno.proto.grpc.NotificationMessage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -572,8 +573,8 @@ public class CoreApi {
         return coreTradesService.getTrade(tradeId);
     }
 
-    public List<Trade> getTrades() {
-        return coreTradesService.getTrades();
+    public List<Trade> getTrades(GetTradesRequest.Category category) {
+        return coreTradesService.getTrades(category);
     }
 
     public List<ChatMessage> getChatMessages(String tradeId) {
