@@ -122,6 +122,12 @@ class RequestDataHandler implements MessageListener {
     void requestData(NodeAddress nodeAddress, boolean isPreliminaryDataRequest) {
         peersNodeAddress = nodeAddress;
         if (!stopped) {
+            // Recheck candidates retained from an earlier request.
+            if (peerManager.isPeerUnavailable(nodeAddress)) {
+                cleanup();
+                listener.onFault("Peer is unavailable for data requests: " + nodeAddress, null);
+                return;
+            }
             GetDataRequest getDataRequest;
 
             if (isPreliminaryDataRequest)

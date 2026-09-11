@@ -232,6 +232,7 @@ public class PeerExchangeManager implements MessageListener, ConnectionListener,
 
                                 peerManager.handleConnectionFault(nodeAddress);
                                 handlerMap.remove(nodeAddress);
+                                remainingNodeAddresses.removeIf(peerManager::isPeerUnavailable);
                                 if (!remainingNodeAddresses.isEmpty()) {
                                     if (!peerManager.hasSufficientConnections()) {
                                         log.debug("There are remaining nodes available for requesting peers. " +
@@ -357,7 +358,7 @@ public class PeerExchangeManager implements MessageListener, ConnectionListener,
                 .filter(e -> !list.contains(e) &&
                         !peerManager.isSelf(e) &&
                         !peerManager.isConfirmed(e) &&
-                        !peerManager.isWrongNetworkPeer(e))
+                        !peerManager.isPeerUnavailable(e))
                 .collect(Collectors.toList());
     }
 

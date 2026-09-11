@@ -117,6 +117,16 @@ class PeerExchangeHandler implements MessageListener {
     private void sendGetPeersRequest(NodeAddress nodeAddress) {
         log.debug("sendGetPeersRequest to nodeAddress={}", nodeAddress);
         if (!stopped) {
+            // recheck after the delay, as another connection may have rejected this peer
+            if (peerManager.isPeerUnavailable(nodeAddress)) {
+                UserThread.execute(() -> {
+                    if (!stopped) {
+                        cleanup();
+                        listener.onFault("Peer is unavailable for peer exchange: " + nodeAddress, null);
+                    }
+                });
+                return;
+            }
             if (networkNode.getNodeAddress() != null) {
                 GetPeersRequest getPeersRequest = new GetPeersRequest(networkNode.getNodeAddress(),
                         nonce,

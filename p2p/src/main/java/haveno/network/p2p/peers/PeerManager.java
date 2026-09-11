@@ -19,6 +19,8 @@ package haveno.network.p2p.peers;
 
 import com.google.common.annotations.VisibleForTesting;
 import static com.google.common.base.Preconditions.checkArgument;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import haveno.common.ClockWatcher;
@@ -126,6 +128,11 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
     // Peers detected on a different P2P network; never dialed or re-added, bounded with eldest-first eviction
     private static final int MAX_WRONG_NETWORK_PEERS = 2000;
     private final Set<NodeAddress> wrongNetworkPeers = Collections.synchronizedSet(new LinkedHashSet<>());
+    // Peers evicted after repeated silent failures may be retried after the cooldown
+    private final Cache<NodeAddress, Boolean> failedPeers = CacheBuilder.newBuilder()
+            .maximumSize(2000)
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .build();
 
     private Timer checkMaxConnectionsTimer;
     private Timer recoveryGraceTimer;
@@ -259,15 +266,25 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
                 connection.getPeersNodeAddressOptional(), closeConnectionReason);
         handleConnectionFault(connection);
 
-        // score the persisted peer once per outbound dial: received bytes prove it usable, an unintended
-        // zero-byte close accrues a failure so unusable peers purge; inbound addresses are unverified
+        // score each outbound connection once; only a silent unintended close accrues a failure
+        // partial responses are not silent, and inbound addresses are unverified
         if (connection instanceof OutboundConnection && connection.tryAccountPeerFault()) {
+            boolean receivedData = connection.getStatistic().getReceivedBytes() > 0;
+            if (receivedData && connection.getRuleViolation() == null) {
+                connection.getPeersNodeAddressOptional().ifPresent(failedPeers::invalidate);
+            }
             connection.getPeersNodeAddressOptional().flatMap(this::findPersistedPeer).ifPresent(peer -> {
-                if (connection.getStatistic().getReceivedBytes() > 0) {
+                if (receivedData) {
                     peer.onConnection();
-                } else if (!closeConnectionReason.isIntended) {
+                } else if (!closeConnectionReason.isIntended && connection.getLastReadTimestamp() == 0) {
                     peer.onDisconnect();
-                    if (peer.tooManyFailedConnectionAttempts()) removePersistedPeer(peer.getNodeAddress());
+                    if (peer.tooManyFailedConnectionAttempts()) {
+                        if (!isSeedNode(peer.getNodeAddress())) {
+                            failedPeers.put(peer.getNodeAddress(), true);
+                            log.info("Pausing peer discovery to {} for one hour after repeated silent connection failures", peer.getNodeAddress());
+                        }
+                        removePersistedPeer(peer.getNodeAddress());
+                    }
                 }
             });
         }
@@ -358,6 +375,10 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
     public boolean isWrongNetworkPeer(NodeAddress nodeAddress) {
         return wrongNetworkPeers.contains(nodeAddress);
+    }
+
+    public boolean isPeerUnavailable(NodeAddress nodeAddress) {
+        return isWrongNetworkPeer(nodeAddress) || failedPeers.getIfPresent(nodeAddress) != null;
     }
 
     private void blocklistWrongNetworkPeer(NodeAddress nodeAddress) {
@@ -452,7 +473,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
 
         Set<Peer> peers = reportedPeersToAdd.stream()
                 .filter(peer -> !isSelf(peer.getNodeAddress()))
-                .filter(peer -> !wrongNetworkPeers.contains(peer.getNodeAddress()))
+                .filter(peer -> !isPeerUnavailable(peer.getNodeAddress()))
                 .collect(Collectors.toSet());
 
         printNewReportedPeers(peers);
@@ -486,6 +507,7 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
             latestLivePeers.clear();
             Set<Peer> recentPeers = peers.stream()
                     .filter(peer -> peer.getDateAsLong() > maxAge)
+                    .filter(peer -> !isPeerUnavailable(peer.getNodeAddress()))
                     .collect(Collectors.toSet());
             latestLivePeers.addAll(recentPeers);
 
@@ -912,6 +934,8 @@ public final class PeerManager implements ConnectionListener, PersistedDataHost 
         // networkNode.getConfirmedConnections includes:
         // filter(connection -> connection.getPeersNodeAddressOptional().isPresent())
         return networkNode.getConfirmedConnections().stream()
+                // A dial target is not live until it has sent a valid message
+                .filter(connection -> !connection.isStopped() && connection.getStatistic().getLastReceivedMessageTimestamp() > 0)
                 .map((Connection connection) -> {
                     Capabilities supportedCapabilities = new Capabilities(connection.getCapabilities());
                     // If we have a new connection the supportedCapabilities is empty.

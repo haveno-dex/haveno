@@ -417,6 +417,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                 peerManager.handleConnectionFault(nodeAddress);
                                 handlerMap.remove(nodeAddress);
 
+                                remainingNodeAddresses.removeIf(peerManager::isPeerUnavailable);
                                 if (!remainingNodeAddresses.isEmpty()) {
                                     log.debug("There are remaining nodes available for requesting data. " +
                                             "We will try requestDataFromPeers again.");
@@ -569,7 +570,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         return collection.stream()
                 .filter(e -> !list.contains(e) &&
                         !peerManager.isSelf(e) &&
-                        !peerManager.isWrongNetworkPeer(e))
+                        !peerManager.isPeerUnavailable(e))
                 .collect(Collectors.toList());
     }
 
