@@ -19,19 +19,59 @@ package haveno.core.payment;
 
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.api.model.PaymentAccountForm;
+import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.locale.CountryUtil;
+import haveno.core.locale.GlobalSettings;
+import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PaymentAccountsTest {
+    @Test
+    public void testAccountNumberValidationRequiresCountry() {
+        NeftAccount account = new NeftAccount();
+        account.init();
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, "12345678"));
+        assertEquals("Country must be set before validating account number", error.getMessage());
+    }
+
+    @Test
+    public void testBankAccountNumbersDoNotUseMobilePaymentRules() {
+        GlobalSettings.setLocale(Locale.US);
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
+        for (String countryCode : List.of("SG", "MY", "TR", "PK")) {
+            PaymentAccountForm form = new PaymentAccountForm(PaymentAccountForm.FormId.NATIONAL_BANK);
+            PaymentAccountFormField country = new PaymentAccountFormField(PaymentAccountFormField.FieldId.COUNTRY);
+            country.setValue(countryCode);
+            form.addField(country);
+            for (GeneralBankAccount account : List.of(new NationalBankAccount(), new SameBankAccount(), new SpecificBanksAccount())) {
+                account.init();
+                account.setCountry(CountryUtil.findCountryByCode(countryCode).orElseThrow());
+                assertDoesNotThrow(() -> account.validateFormField(form, PaymentAccountFormField.FieldId.ACCOUNT_NR, "12345678901234"));
+                assertThrows(IllegalArgumentException.class, () -> account.validateFormField(form, PaymentAccountFormField.FieldId.ACCOUNT_NR, ""));
+            }
+        }
+        assertThrows(IllegalArgumentException.class, () -> new PayNowAccount().validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, "12345678901234"));
+        assertThrows(IllegalArgumentException.class, () -> new DuitNowAccount().validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, "12345678901234"));
+    }
+
     @Test
     public void testGetOldestPaymentAccountForOfferWhenNoValidAccounts() {
         PaymentAccounts accounts = new PaymentAccounts(Collections.emptySet(), mock(AccountAgeWitnessService.class));

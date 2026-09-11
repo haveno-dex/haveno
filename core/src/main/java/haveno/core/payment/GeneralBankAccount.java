@@ -96,9 +96,11 @@ public abstract class GeneralBankAccount extends CountryBasedPaymentAccount impl
         case HOLDER_TAX_ID:
             if (useValidation && BankUtil.isHolderIdRequired(countryCode)) processValidationResult(new InputValidator().validate(value));
             break;
+        case ACCOUNT_NR:
+            if (useValidation) super.validateFormField(form, fieldId, value);
+            else processValidationResult(new InputValidator().validate(value));
+            break;
         default:
-            // ACCOUNT_NR is validated by CountryBasedPaymentAccount using the same AccountNrValidator,
-            // which falls back to a non-empty check for non-validation countries (as the desktop form does)
             super.validateFormField(form, fieldId, value);
         }
     }
