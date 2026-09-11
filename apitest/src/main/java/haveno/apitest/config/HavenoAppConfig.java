@@ -88,42 +88,37 @@ public enum HavenoAppConfig {
     private static final String LOGBACK_OPT =
             "-Dlogback.configurationFile=apitest/build/resources/main/logback.xml";
 
-    private static final String[] COMMON_JVM_OPTS = {
-            "-XX:+ExitOnOutOfMemoryError",
-            "-XX:+EnableDynamicAgentLoading",
-            "-Djava.net.preferIPv4Stack=true",
-            "-Dfile.encoding=UTF-8",
-            "-Dstdout.encoding=UTF-8",
-            "-Dstderr.encoding=UTF-8",
-    };
-
-    // GC flags
-    private static final String[] GC_JVM_OPTS = {};
+    // Constant strings are available while the enum values initialize.
+    private static final String COMMON_JVM_OPTS =
+            "-XX:+ExitOnOutOfMemoryError"
+            + " -XX:+EnableDynamicAgentLoading"
+            + " -Djava.net.preferIPv4Stack=true"
+            + " -Dfile.encoding=UTF-8"
+            + " -Dstdout.encoding=UTF-8"
+            + " -Dstderr.encoding=UTF-8";
 
     // Keep in sync with havenoJavaFxModuleOpens in build.gradle.
-    private static final String[] DESKTOP_MODULE_OPENS = {
-            "--add-modules=javafx.controls,javafx.fxml,javafx.swing",
-            "--add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED",
-            "--add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED",
-            "--add-opens=javafx.base/com.sun.javafx.binding=ALL-UNNAMED",
-            "--add-opens=javafx.base/com.sun.javafx.event=ALL-UNNAMED",
-            "--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED",
-            "--add-opens=javafx.graphics/com.sun.javafx.scene.text=ALL-UNNAMED",
-            "--add-opens=javafx.graphics/com.sun.javafx.css=ALL-UNNAMED",
-            "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
-            "--add-opens=java.base/java.lang=ALL-UNNAMED",
-            "--add-opens=java.base/java.util=ALL-UNNAMED",
-            "--add-opens=java.base/java.nio=ALL-UNNAMED",
-            "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-    };
+    private static final String DESKTOP_MODULE_OPENS =
+            "--add-modules=javafx.controls,javafx.fxml,javafx.swing"
+            + " --add-opens=javafx.controls/com.sun.javafx.scene.control.behavior=ALL-UNNAMED"
+            + " --add-opens=javafx.controls/com.sun.javafx.scene.control=ALL-UNNAMED"
+            + " --add-opens=javafx.base/com.sun.javafx.binding=ALL-UNNAMED"
+            + " --add-opens=javafx.base/com.sun.javafx.event=ALL-UNNAMED"
+            + " --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"
+            + " --add-opens=javafx.graphics/com.sun.javafx.scene.text=ALL-UNNAMED"
+            + " --add-opens=javafx.graphics/com.sun.javafx.css=ALL-UNNAMED"
+            + " --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
+            + " --add-opens=java.base/java.lang=ALL-UNNAMED"
+            + " --add-opens=java.base/java.util=ALL-UNNAMED"
+            + " --add-opens=java.base/java.nio=ALL-UNNAMED"
+            + " --add-opens=java.base/sun.nio.ch=ALL-UNNAMED";
 
     private static String spawnHeadlessOpts(String maxRam, String xms, String xmx) {
         return String.join(" ",
                 "-XX:MaxRAM=" + maxRam,
                 "-Xms" + xms,
                 "-Xmx" + xmx,
-                String.join(" ", GC_JVM_OPTS),
-                String.join(" ", COMMON_JVM_OPTS),
+                COMMON_JVM_OPTS,
                 "-Djava.awt.headless=true",
                 "-Xss1m",
                 LOGBACK_OPT);
@@ -134,10 +129,9 @@ public enum HavenoAppConfig {
                 "-XX:MaxRAM=" + maxRam,
                 "-Xms" + xms,
                 "-Xmx" + xmx,
-                String.join(" ", GC_JVM_OPTS),
-                String.join(" ", COMMON_JVM_OPTS),
+                COMMON_JVM_OPTS,
                 "-Xss1280k",
-                String.join(" ", DESKTOP_MODULE_OPENS),
+                DESKTOP_MODULE_OPENS,
                 LOGBACK_OPT);
     }
 
