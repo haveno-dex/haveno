@@ -190,6 +190,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
 
             if (messageStateSubscription != null) {
                 messageStateSubscription.unsubscribe();
+                messageStateSubscription = null;
                 paymentSentMessageStateProperty.set(MessageState.UNDEFINED);
             }
 
@@ -204,7 +205,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
                 payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> {
                     onPayoutStateChanged(state);
                 });
-                messageStateSubscription = EasyBind.subscribe(trade.getSeller().getPaymentSentMessageStateProperty(), this::onPaymentSentMessageStateChanged);
+                messageStateSubscription = EasyBind.subscribe(trade.getSeller().getPaymentSentMessageStateProperty(), state -> updatePaymentSentMessageState());
             }
         }
     }
@@ -219,8 +220,12 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         });
     }
 
-    private void onPaymentSentMessageStateChanged(MessageState messageState) {
-        paymentSentMessageStateProperty.set(messageState);
+    private void updatePaymentSentMessageState() {
+        UserThread.execute(() -> {
+            if (messageStateSubscription != null) {
+                paymentSentMessageStateProperty.set(trade.getSeller().getPaymentSentMessageStateProperty().get());
+            }
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
