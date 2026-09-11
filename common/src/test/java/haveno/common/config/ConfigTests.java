@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static haveno.common.config.Config.API_HIDDEN_SERVICE;
+import static haveno.common.config.Config.API_HIDDEN_SERVICE_BEFORE_LOGIN;
 import static haveno.common.config.Config.API_HIDDEN_SERVICE_PORT;
 import static haveno.common.config.Config.API_PASSWORD;
 import static haveno.common.config.Config.API_PORT;
@@ -284,6 +285,16 @@ public class ConfigTests {
         assertEquals(3201, config.apiHiddenServicePort);
         config = configWithOpts(opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "12345678"), opt(API_PORT, 3201), opt(API_HIDDEN_SERVICE_PORT, 2134));
         assertEquals(2134, config.apiHiddenServicePort);
+    }
+
+    @Test
+    public void whenApiHiddenServiceBeforeLoginIsSet_thenHiddenServiceMustBeEnabled() {
+        assertFalse(configWithOpts(opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "12345678")).apiHiddenServiceBeforeLogin);
+        assertTrue(configWithOpts(opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "12345678"),
+                opt(API_HIDDEN_SERVICE_BEFORE_LOGIN, true)).apiHiddenServiceBeforeLogin);
+        assertThrows(ConfigException.class, () -> configWithOpts(opt(API_HIDDEN_SERVICE_BEFORE_LOGIN, true)));
+        assertThrows(ConfigException.class, () -> configWithOpts(opt(API_HIDDEN_SERVICE, false),
+                opt(API_HIDDEN_SERVICE_BEFORE_LOGIN, true)));
     }
 
     @Test

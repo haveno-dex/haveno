@@ -163,6 +163,12 @@ Users are ***strongly*** encouraged to review both the [Official Tor Project's s
 #### Enable `torControlPort` in `torrc`
 In order for Haveno to use the `--torControlPort` option, it must be enabled and accessible. The most common way to do so is to edit the `torrc` fiel with a text editor to ensure that an entry for `ControlPort` followed by port number to listen on is present in the `torrc` file.
 
+With `--apiHiddenService=true`, an external Tor configured through `--torControlPort`
+can publish the API before account login, allowing remote unlock after a restart.
+Configure bridges in that external Tor; Haveno's encrypted bridge preferences do
+not configure it. See the [deployment guide](deployment-guide.md#add-arbitrators)
+for the bundled Tor alternative.
+
 #### [Authentication](https://spec.torproject.org/control-spec/implementation-notes.html#authentication)
 Per the [Tor Control Protocol - Implementation Notes](https://spec.torproject.org/control-spec/implementation-notes.html):
 

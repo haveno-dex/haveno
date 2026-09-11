@@ -17,9 +17,11 @@
 
 package haveno.network.p2p.network;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -30,6 +32,8 @@ import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
 import org.berndpruenster.netlayer.tor.Torrc;
+
+import kotlin.text.StringsKt;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -76,7 +80,6 @@ public class NewTor extends TorMode {
         // build map with torrc cli options
         LinkedHashMap<String, String> torrcOptionsCli = new LinkedHashMap<>();
         if (torrcOptions != null && !torrcOptions.isEmpty()) {
-            boolean parseError = false;
             for (String line : torrcOptions.split(",")) {
                 line = line.trim();
                 if (line.isEmpty()) continue;
@@ -84,12 +87,9 @@ public class NewTor extends TorMode {
                     String[] tmp = line.split("\\s", 2);
                     torrcOptionsCli.put(tmp[0].trim(), tmp[1].trim());
                 } else {
-                    log.error("Custom torrc override parse error ('{}'). Discarding all CLI overrides.", line);
-                    parseError = true;
-                    break; 
+                    throw new IOException("Invalid custom torrc option: " + line);
                 }
             }
-            if (parseError) torrcOptionsCli.clear();
         }
 
         // build map with all torrc overrides
@@ -98,15 +98,16 @@ public class NewTor extends TorMode {
 
         // build the final torrc object
         Torrc torrcOverride;
-        if (torrcFile != null && torrcFile.exists()) {
-            try (FileInputStream fis = new FileInputStream(torrcFile)) {
-                torrcOverride = new Torrc(fis, torrcOptionsOverride);
-            } catch (IOException e) {
-                log.error("Error reading custom torrc file ('{}'). Proceeding with defaults.", torrcFile.getAbsolutePath());
-                torrcOverride = new Torrc(torrcOptionsOverride);
+        if (torrcFile != null) {
+            byte[] torrcBytes = Files.readAllBytes(torrcFile.toPath());
+            // reject lines netlayer would silently ignore, so routing settings cannot be dropped
+            for (String line : new String(torrcBytes, StandardCharsets.UTF_8).lines().toList()) {
+                line = StringsKt.trim(line).toString();
+                if (!line.isEmpty() && !line.startsWith("#") && (line.length() <= 5 || !line.contains(" ")))
+                    throw new IOException("Unsupported torrc line in " + torrcFile + ": " + line);
             }
+            torrcOverride = new Torrc(new ByteArrayInputStream(torrcBytes), torrcOptionsOverride);
         } else {
-            // Falls here if torrcFile is null or doesn't exist
             torrcOverride = new Torrc(torrcOptionsOverride);
         }
 

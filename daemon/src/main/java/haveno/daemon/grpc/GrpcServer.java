@@ -134,15 +134,20 @@ public class GrpcServer {
         if (config.apiHiddenService) publishHiddenService();
     }
 
-    // publish before login so remote clients can open the account, else on the tor started after login with persisted settings applied (e.g. bridges)
+    // honor persisted bridge settings unless the operator explicitly allows pre-login tor startup
     private void publishHiddenService() {
         if (!(networkNode instanceof TorNetworkNodeNetlayer)) {
             log.error("Cannot publish api hidden service without Haveno's tor");
             return;
         }
-        if (!coreAccountService.isAccountOpen()) {
+        if (!coreAccountService.isAccountOpen() &&
+                (config.torControlPort != Config.UNSPECIFIED_PORT || config.apiHiddenServiceBeforeLogin)) {
+            if (config.torControlPort == Config.UNSPECIFIED_PORT)
+                log.warn("Publishing the API before login with {}; encrypted bridge preferences cannot be applied to this Tor session",
+                        config.torrcFile != null || !config.torrcOptions.isEmpty() ? "startup torrc configuration" : "default Tor settings");
             publishHiddenServiceWithRetry();
         } else {
+            log.info("Waiting for Tor startup with persisted settings before publishing the API hidden service");
             networkNode.addSetupListener(new SetupListener() {
                 @Override public void onTorNodeReady() { publishHiddenServiceWithRetry(); }
                 @Override public void onSetupFailed(Throwable throwable) { publishHiddenServiceWithRetry(); } // retry until tor is available

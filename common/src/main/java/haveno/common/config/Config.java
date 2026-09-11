@@ -117,6 +117,7 @@ public class Config {
     public static final String API_PASSWORD = "apiPassword";
     public static final String API_PORT = "apiPort";
     public static final String API_HIDDEN_SERVICE = "apiHiddenService";
+    public static final String API_HIDDEN_SERVICE_BEFORE_LOGIN = "apiHiddenServiceBeforeLogin";
     public static final String API_HIDDEN_SERVICE_PORT = "apiHiddenServicePort";
     public static final String PREVENT_PERIODIC_SHUTDOWN_AT_SEED_NODE = "preventPeriodicShutdownAtSeedNode";
     public static final String REPUBLISH_MAILBOX_ENTRIES = "republishMailboxEntries";
@@ -223,6 +224,7 @@ public class Config {
     public final String apiPassword;
     public final int apiPort;
     public final boolean apiHiddenService;
+    public final boolean apiHiddenServiceBeforeLogin;
     public final int apiHiddenServicePort;
     public final boolean preventPeriodicShutdownAtSeedNode;
     public final boolean republishMailboxEntries;
@@ -668,7 +670,15 @@ public class Config {
 
         ArgumentAcceptingOptionSpec<Boolean> apiHiddenServiceOpt =
                 parser.accepts(API_HIDDEN_SERVICE,
-                        "Publish the gRPC API as a Tor hidden service on Haveno's Tor, before the account is opened")
+                        "Publish the gRPC API as a Tor hidden service; bundled Tor waits for account login by default")
+                        .withRequiredArg()
+                        .ofType(boolean.class)
+                        .defaultsTo(false);
+
+        ArgumentAcceptingOptionSpec<Boolean> apiHiddenServiceBeforeLoginOpt =
+                parser.accepts(API_HIDDEN_SERVICE_BEFORE_LOGIN,
+                        "Allow the API hidden service before login using startup Tor configuration or defaults; " +
+                        "encrypted bridge preferences cannot be applied to that shared Tor session")
                         .withRequiredArg()
                         .ofType(boolean.class)
                         .defaultsTo(false);
@@ -847,6 +857,7 @@ public class Config {
             this.apiPassword = options.valueOf(apiPasswordOpt);
             this.apiPort = options.valueOf(apiPortOpt);
             this.apiHiddenService = options.valueOf(apiHiddenServiceOpt);
+            this.apiHiddenServiceBeforeLogin = options.valueOf(apiHiddenServiceBeforeLoginOpt);
             this.apiHiddenServicePort = options.has(apiHiddenServicePortOpt) ? options.valueOf(apiHiddenServicePortOpt) : apiPort;
             this.preventPeriodicShutdownAtSeedNode = options.valueOf(preventPeriodicShutdownAtSeedNodeOpt);
             this.republishMailboxEntries = options.valueOf(republishMailboxEntriesOpt);
@@ -862,6 +873,9 @@ public class Config {
                             ex.getCause().getMessage() :
                             ex.getMessage());
         }
+
+        if (apiHiddenServiceBeforeLogin && !apiHiddenService)
+            throw new ConfigException("The '%s' option requires '%s'", API_HIDDEN_SERVICE_BEFORE_LOGIN, API_HIDDEN_SERVICE);
 
         if (apiHiddenService) {
             if (useLocalhostForP2P || !hiddenServiceAddress.isEmpty())
