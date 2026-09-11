@@ -18,8 +18,34 @@
 package haveno.core.util.validation;
 
 import com.google.inject.Inject;
+import haveno.core.locale.Res;
+import haveno.core.monetary.CryptoMoney;
+
+import java.math.BigDecimal;
 
 public class AmountValidator8Decimals extends MonetaryValidator {
+    private final boolean requireExactAmount;
+
+    @Override
+    public ValidationResult validate(String input) {
+        ValidationResult result = super.validate(input);
+        if (!result.isValid || !requireExactAmount)
+            return result;
+
+        try {
+            BigDecimal amount = new BigDecimal(cleanInput(input));
+            if (amount.compareTo(BigDecimal.valueOf(getMinValue())) < 0)
+                return new ValidationResult(false, Res.get("validation.traditional.tooSmall"));
+            if (amount.compareTo(BigDecimal.valueOf(getMaxValue())) > 0)
+                return new ValidationResult(false, Res.get("validation.traditional.tooLarge"));
+            if (amount.stripTrailingZeros().scale() > CryptoMoney.SMALLEST_UNIT_EXPONENT)
+                return new ValidationResult(false, Res.get("validation.crypto.tooManyDecimals"));
+            return result;
+        } catch (NumberFormatException ex) {
+            return new ValidationResult(false, Res.get("validation.NaN"));
+        }
+    }
+
     @Override
     public double getMinValue() {
         return 0.00000001;
@@ -33,5 +59,10 @@ public class AmountValidator8Decimals extends MonetaryValidator {
 
     @Inject
     public AmountValidator8Decimals() {
+        this(true);
+    }
+
+    public AmountValidator8Decimals(boolean requireExactAmount) {
+        this.requireExactAmount = requireExactAmount;
     }
 }

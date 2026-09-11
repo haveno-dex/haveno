@@ -21,8 +21,10 @@ import haveno.common.config.Config;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.Country;
 import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
@@ -45,12 +47,17 @@ import haveno.core.util.validation.InputValidator;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.desktop.main.offer.MutableOfferViewModel;
+import haveno.desktop.main.offer.MutableOfferDataModel;
+import javafx.beans.value.ObservableValue;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -69,6 +76,7 @@ import static org.mockito.Mockito.when;
 public class CreateOfferViewModelTest {
 
     private CreateOfferViewModel model;
+    private CreateOfferDataModel dataModel;
     private final CoinFormatter coinFormatter = new ImmutableCoinFormatter(
             Config.baseCurrencyNetworkParameters().getMonetaryFormat());
 
@@ -114,7 +122,7 @@ public class CreateOfferViewModelTest {
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
         when(tradeStats.getObservableTradeStatisticsList()).thenReturn(FXCollections.observableArrayList());
 
-        CreateOfferDataModel dataModel = new CreateOfferDataModel(createOfferService,
+        dataModel = new CreateOfferDataModel(createOfferService,
             openOfferManager,
             offerUtil,
             xmrWalletService,
@@ -142,6 +150,71 @@ public class CreateOfferViewModelTest {
                 coinFormatter,
                 offerUtil);
         model.activate();
+    }
+
+    @Test
+    public void testErgoPricePrecisionErrorDoesNotRestoreAnOldPrice() throws Exception {
+        assertTrue(dataModel.initWithData(OfferDirection.BUY, CurrencyUtil.getTradeCurrency("ERG").orElseThrow(), false));
+        assertEquals("ERG", model.getTradeCurrency().getCode());
+        model.amount.set("0.1");
+        model.price.set("123.12345678");
+        long previousPrice = dataModel.getPrice().get().getValue();
+        assertFalse(model.isNextButtonDisabled.get());
+
+        model.price.set("123.123456789");
+        focusOut("Price");
+
+        assertEquals("123.123456789", model.price.get());
+        assertEquals(previousPrice, dataModel.getPrice().get().getValue());
+        assertFalse(validationResult("priceValidationResult").isValid);
+        assertEquals(Res.get("validation.crypto.tooManyDecimals"), validationResult("priceValidationResult").errorMessage);
+        assertTrue(model.isNextButtonDisabled.get());
+
+        model.price.set("124.12345678");
+        focusOut("Price");
+
+        assertEquals("124.12345678", model.price.get());
+        assertEquals(12412345678L, dataModel.getPrice().get().getValue());
+        assertTrue(validationResult("priceValidationResult").isValid);
+        assertFalse(model.isNextButtonDisabled.get());
+    }
+
+    @Test
+    public void testErgoVolumePrecisionErrorDoesNotRestoreAnOldAmount() throws Exception {
+        assertTrue(dataModel.initWithData(OfferDirection.BUY, CurrencyUtil.getTradeCurrency("ERG").orElseThrow(), false));
+        model.amount.set("0.1");
+        model.price.set("123.12345678");
+        assertFalse(model.isNextButtonDisabled.get());
+
+        model.volume.set("12.312345679");
+        focusOut("Volume");
+
+        assertEquals("12.312345679", model.volume.get());
+        assertFalse(validationResult("volumeValidationResult").isValid);
+        assertEquals(Res.get("validation.crypto.tooManyDecimals"), validationResult("volumeValidationResult").errorMessage);
+        assertTrue(model.isNextButtonDisabled.get());
+
+        model.volume.set("24.62469135");
+        focusOut("Volume");
+
+        assertEquals("24.62469135", model.volume.get());
+        Method getVolume = MutableOfferDataModel.class.getDeclaredMethod("getVolume");
+        getVolume.setAccessible(true);
+        assertEquals(2462469135L, ((Volume) ((ObservableValue<?>) getVolume.invoke(dataModel)).getValue()).getValue());
+        assertTrue(validationResult("volumeValidationResult").isValid);
+        assertFalse(model.isNextButtonDisabled.get());
+    }
+
+    private void focusOut(String fieldName) throws Exception {
+        Method method = MutableOfferViewModel.class.getDeclaredMethod("onFocusOut" + fieldName + "TextField", boolean.class, boolean.class);
+        method.setAccessible(true);
+        method.invoke(model, true, false);
+    }
+
+    private InputValidator.ValidationResult validationResult(String fieldName) throws Exception {
+        Field field = MutableOfferViewModel.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return (InputValidator.ValidationResult) ((ObservableValue<?>) field.get(model)).getValue();
     }
 
     @Test

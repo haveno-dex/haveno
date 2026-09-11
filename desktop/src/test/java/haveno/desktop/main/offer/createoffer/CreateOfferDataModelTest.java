@@ -1,6 +1,7 @@
 package haveno.desktop.main.offer.createoffer;
 
 import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
@@ -9,6 +10,7 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.ZelleAccount;
+import haveno.core.payment.CryptoCurrencyAccount;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.provider.price.PriceFeedService;
@@ -17,14 +19,19 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.desktop.main.offer.MutableOfferDataModel;
 import javafx.collections.FXCollections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
+import java.lang.reflect.Method;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -92,6 +99,27 @@ public class CreateOfferDataModelTest {
 
         model.initWithData(OfferDirection.BUY, new TraditionalCurrency("USD"), true);
         assertEquals("USD", model.getTradeCurrencyCode().get());
+    }
+
+    @Test
+    public void testErgoAccountSelectedOverPreferredBitcoinAccount() throws Exception {
+        CryptoCurrencyAccount ergo = new CryptoCurrencyAccount();
+        ergo.init();
+        ergo.setAccountName("Ergo wallet");
+        ergo.setSingleTradeCurrency(CurrencyUtil.getTradeCurrency("ERG").orElseThrow());
+        CryptoCurrencyAccount bitcoin = new CryptoCurrencyAccount();
+        bitcoin.init();
+        bitcoin.setAccountName("Bitcoin wallet");
+        bitcoin.setSingleTradeCurrency(CurrencyUtil.getTradeCurrency("BTC").orElseThrow());
+        when(user.getPaymentAccounts()).thenReturn(new HashSet<>(Set.of(bitcoin, ergo)));
+        when(preferences.getSelectedPaymentAccountForCreateOffer()).thenReturn(bitcoin);
+        when(user.findFirstPaymentAccountWithCurrency(ergo.getSingleTradeCurrency())).thenReturn(ergo);
+
+        assertTrue(model.initWithData(OfferDirection.BUY, ergo.getSingleTradeCurrency(), true));
+        assertEquals("ERG", model.getTradeCurrencyCode().get());
+        Method getAccount = MutableOfferDataModel.class.getDeclaredMethod("getPaymentAccount");
+        getAccount.setAccessible(true);
+        assertSame(ergo, getAccount.invoke(model));
     }
 
     @Test

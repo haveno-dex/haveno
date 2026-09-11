@@ -59,6 +59,17 @@ public class CurrencyUtilTest {
     }
 
     @Test
+    public void testErgoIsDiscoveredThroughAssetRegistry() {
+        AssetRegistry registry = new AssetRegistry();
+        assertEquals(1, registry.stream().filter(asset -> asset.getTickerSymbol().equals("ERG")).count());
+        Asset ergo = CurrencyUtil.findAsset(registry, "ERG", BaseCurrencyNetwork.XMR_MAINNET).orElseThrow();
+        assertEquals("Ergo", ergo.getName());
+        assertEquals("ERG", ergo.getTickerSymbol());
+        assertEquals("Ergo", CurrencyUtil.getTradeCurrency("ERG").orElseThrow().getName());
+        assertTrue(CurrencyUtil.getAllSortedCryptoCurrencies().stream().anyMatch(currency -> currency.getCode().equals("ERG")));
+    }
+
+    @Test
     public void testFindAsset() {
         MockAssetRegistry assetRegistry = new MockAssetRegistry();
 

@@ -64,6 +64,7 @@ import haveno.core.trade.HavenoUtils;
 
 import static haveno.core.payment.PaymentAccountUtil.isPaymentAccountValidForNewOffer;
 import haveno.core.user.User;
+import haveno.core.util.ParsingUtils;
 import haveno.core.util.PriceUtil;
 import static java.lang.String.format;
 import java.math.BigDecimal;
@@ -291,7 +292,16 @@ public class CoreOffersService {
         String upperCaseCurrencyCode = currencyCode.toUpperCase();
 
         // get price (default to source price)
-        Price price = useMarketBasedPrice ? null : priceAsString.isEmpty() ? sourceOffer.isUseMarketBasedPrice() ? null : sourceOffer.getPrice() : Price.parse(upperCaseCurrencyCode, priceAsString);
+        Price price = null;
+        if (!useMarketBasedPrice) {
+            if (priceAsString.isEmpty())
+                price = sourceOffer.isUseMarketBasedPrice() ? null : sourceOffer.getPrice();
+            else if (CurrencyUtil.isTraditionalCurrency(upperCaseCurrencyCode))
+                price = Price.parse(upperCaseCurrencyCode, priceAsString);
+            else
+                price = Price.valueOf(upperCaseCurrencyCode,
+                        priceStringToLong(ParsingUtils.convertCharsForNumber(priceAsString), upperCaseCurrencyCode));
+        }
         if (price == null) useMarketBasedPrice = true;
 
         // get extra info
@@ -529,7 +539,20 @@ public class CoreOffersService {
     }
 
     private long priceStringToLong(String priceAsString, String currencyCode) {
-        int precision = CurrencyUtil.isTraditionalCurrency(currencyCode) ? TraditionalMoney.SMALLEST_UNIT_EXPONENT : CryptoMoney.SMALLEST_UNIT_EXPONENT;
+        if (!CurrencyUtil.isTraditionalCurrency(currencyCode)) {
+            try {
+                BigDecimal price = new BigDecimal(priceAsString);
+                int precision = CryptoMoney.SMALLEST_UNIT_EXPONENT;
+                if (price.compareTo(BigDecimal.valueOf(Long.MIN_VALUE, precision)) < 0 ||
+                        price.compareTo(BigDecimal.valueOf(Long.MAX_VALUE, precision)) > 0)
+                    throw new IllegalArgumentException("Crypto price has too many decimals or is out of range");
+                return price.movePointRight(precision).longValueExact();
+            } catch (ArithmeticException e) {
+                throw new IllegalArgumentException("Crypto price has too many decimals or is out of range", e);
+            }
+        }
+
+        int precision = TraditionalMoney.SMALLEST_UNIT_EXPONENT;
         double priceAsDouble = new BigDecimal(priceAsString).doubleValue();
         double scaled = scaleUpByPowerOf10(priceAsDouble, precision);
         return roundDoubleToLong(scaled);
