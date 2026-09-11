@@ -102,9 +102,11 @@ public class CurrencyFormat {
             throw new IllegalArgumentException(format("'%s' is not a positive number", xmr));
 
         try {
-            return new BigDecimal(xmr).multiply(PICONEROS_DIVISOR).longValue();
+            return new BigDecimal(xmr).multiply(PICONEROS_DIVISOR).longValueExact();
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(format("'%s' is not a number", xmr));
+        } catch (ArithmeticException e) {
+            throw new IllegalArgumentException(format("'%s' cannot be represented as an XMR amount", xmr));
         }
     }
 }

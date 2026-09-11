@@ -1,6 +1,10 @@
 package haveno.cli.opts;
 
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static haveno.cli.Method.canceloffer;
 import static haveno.cli.Method.createcryptopaymentacct;
@@ -19,6 +23,7 @@ import static haveno.cli.opts.OptLabel.OPT_PAYMENT_ACCOUNT_ID;
 import static haveno.cli.opts.OptLabel.OPT_SECURITY_DEPOSIT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class OptionParsersTest {
@@ -245,4 +250,78 @@ public class OptionParsersTest {
         assertEquals(currencyCode, parser.getCurrencyCode());
         assertEquals(address, parser.getAddress());
     }
+
+    // xmr amount opt parser tests
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0.0000000000009", "18446744.073709551616", "9223372.036854775808", "-0.1", "1..5"})
+    public void testInvalidXmrAmountsShouldThrowException(String amount) {
+        var takeOffer = new TakeOfferOptionParser(new String[]{
+                PASSWORD_OPT, "takeoffer", "--offer-id=offer", "--payment-account-id=account", "--amount=" + amount
+        }).parse();
+        assertThrows(IllegalArgumentException.class, takeOffer::getAmount);
+
+        var resolveDispute = new ResolveDisputeOptionParser(new String[]{
+                PASSWORD_OPT, "resolvedispute", "--trade-id=trade", "--winner=buyer", "--custom-payout-amount=" + amount
+        }).parse();
+        assertThrows(IllegalArgumentException.class, resolveDispute::getCustomPayoutAmount);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0, 0", "0.000000000001, 1", "1.234567890123, 1234567890123", "9223372.036854775807, 9223372036854775807"})
+    public void testExactXmrAmounts(String amount, long expected) {
+        var takeOffer = new TakeOfferOptionParser(new String[]{
+                PASSWORD_OPT, "takeoffer", "--offer-id=offer", "--payment-account-id=account", "--amount=" + amount
+        }).parse();
+        assertEquals(expected, takeOffer.getAmount());
+
+        var resolveDispute = new ResolveDisputeOptionParser(new String[]{
+                PASSWORD_OPT, "resolvedispute", "--trade-id=trade", "--winner=buyer", "--custom-payout-amount=" + amount
+        }).parse();
+        assertEquals(expected, resolveDispute.getCustomPayoutAmount());
+    }
+
+    // editoffer replacement opt parser tests
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "--extra-info=terms",
+            "--fixed-price=150",
+            "--market-price-margin=1 --extra-info=terms",
+            "--fixed-price=150 --market-price-margin=1 --extra-info=terms --trigger-price=0",
+            "--fixed-price=150 --extra-info=terms --trigger-price=100",
+            "--market-price-margin=1 --extra-info=terms --trigger-price=",
+            "--market-price-margin=1 --extra-info=terms --trigger-price=NaN",
+            "--market-price-margin=1 --extra-info=terms --trigger-price=-1",
+            "--market-price-margin=NaN --extra-info=terms --trigger-price=0",
+            "--market-price-margin=Infinity --extra-info=terms --trigger-price=0"
+    })
+    public void testIncompleteOrInvalidOfferEditsAreRejected(String edits) {
+        String[] args = Stream.concat(Stream.of(PASSWORD_OPT, "editoffer", "--offer-id=offer"),
+                Stream.of(edits.split(" "))).toArray(String[]::new);
+        assertThrows(IllegalArgumentException.class, () -> new EditOfferOptionParser(args).parse());
+    }
+
+    @Test
+    public void testOfferEditsKeepExplicitReplacementValues() {
+        var market = new EditOfferOptionParser(new String[]{
+                PASSWORD_OPT, "editoffer", "--offer-id=offer", "--market-price-margin=1.5",
+                "--trigger-price=150", "--extra-info=Existing offer terms"
+        }).parse();
+        assertTrue(market.isUsingMktPriceMargin());
+        assertEquals(1.5, market.getMktPriceMarginPct());
+        assertEquals("150", market.getTriggerPrice());
+        assertEquals("Existing offer terms", market.getExtraInfo());
+
+        var fixed = new EditOfferOptionParser(new String[]{
+                PASSWORD_OPT, "editoffer", "--offer-id=offer", "--fixed-price=150", "--extra-info=", "--trigger-price=0"
+        }).parse();
+        assertEquals("150", fixed.getFixedPrice());
+        assertEquals("", fixed.getExtraInfo());
+        assertEquals("0", fixed.getTriggerPrice());
+
+        var help = new EditOfferOptionParser(new String[]{PASSWORD_OPT, "editoffer", "--help"}).parse();
+        assertTrue(help.isForHelp());
+    }
+
 }
