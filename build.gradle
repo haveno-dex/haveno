@@ -931,6 +931,8 @@ configure(project(':relay')) {
             exclude(module: 'httpclient')
             exclude(module: 'httpcore')
         }
+        implementation libs.httpclient5
+        implementation libs.httpcore5
         implementation libs.spark.core
         implementation libs.pushy
         implementation libs.commons.codec
