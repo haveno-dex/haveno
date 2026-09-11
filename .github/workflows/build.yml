@@ -164,21 +164,25 @@ jobs:
         run: |
             mkdir ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}
             mv daemon/build/libs/daemon-all.jar ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}/daemon-linux-${{ matrix.arch }}.jar
-            sha256sum ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}/daemon-linux-${{ matrix.arch }}.jar > ${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}/daemon-linux-${{ matrix.arch }}.jar.SHA-256
+            cd "${{ github.workspace }}/release-daemon-linux-${{ matrix.arch }}"
+            sha256sum daemon-linux-${{ matrix.arch }}.jar > daemon-linux-${{ matrix.arch }}.jar.SHA-256
         shell: bash
       - name: Move Daemon JAR for macOS
         if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'MacOS' }}
         run: |
             mkdir ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}
             mv daemon/build/libs/daemon-all.jar ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}/daemon-macos-${{ matrix.arch }}.jar
-            shasum -a 256 ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}/daemon-macos-${{ matrix.arch }}.jar > ${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}/daemon-macos-${{ matrix.arch }}.jar.SHA-256
+            cd "${{ github.workspace }}/release-daemon-macos-${{ matrix.arch }}"
+            shasum -a 256 daemon-macos-${{ matrix.arch }}.jar > daemon-macos-${{ matrix.arch }}.jar.SHA-256
         shell: bash
       - name: Move Daemon JAR on Windows
         if: ${{ env.ATTACH_INSTALLERS == 'true' && runner.os == 'Windows' }}
         run: |
           mkdir ${{ github.workspace }}/release-daemon-windows
           Move-Item -Path daemon\build\libs\daemon-all.jar -Destination ${{ github.workspace }}/release-daemon-windows/daemon-windows.jar
-          Get-FileHash ${{ github.workspace }}/release-daemon-windows/daemon-windows.jar -Algorithm SHA256 | ForEach-Object { $_.Hash } > ${{ github.workspace }}/release-daemon-windows/daemon-windows.jar.SHA-256
+          Set-Location "${{ github.workspace }}/release-daemon-windows"
+          $daemonHash = (Get-FileHash daemon-windows.jar -Algorithm SHA256).Hash
+          "$daemonHash *daemon-windows.jar`n" | Set-Content daemon-windows.jar.SHA-256 -Encoding ascii -NoNewline
         shell: powershell
 
       # Windows artifacts
