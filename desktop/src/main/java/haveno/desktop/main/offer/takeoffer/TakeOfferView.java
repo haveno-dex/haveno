@@ -934,10 +934,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         cancelButton1 = tuple.second;
         cancelButton1.setMaxWidth(200);
         cancelButton1.setDefaultButton(false);
-        cancelButton1.setOnAction(e -> {
-            model.dataModel.swapTradeToSavings();
-            close(false);
-        });
+        cancelButton1.setOnAction(e -> close(false));
     }
 
     private void nextStepCheckMakerTx() {
@@ -1090,15 +1087,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 new Popup().backgroundInfo(Res.get("takeOffer.alreadyFunded.askCancel"))
                         .closeButtonText(Res.get("shared.no"))
                         .actionButtonText(Res.get("shared.yesCancel"))
-                        .onAction(() -> {
-                            model.dataModel.swapTradeToSavings();
-                            close(false);
-                        })
+                        .onAction(() -> close(false))
                         .dontShowAgainId(key)
                         .show();
             } else {
                 close(false);
-                model.dataModel.swapTradeToSavings();
             }
         });
         cancelButton2.setDefaultButton(false);
