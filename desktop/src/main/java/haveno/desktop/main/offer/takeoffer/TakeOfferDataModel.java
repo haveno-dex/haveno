@@ -234,8 +234,7 @@ class TakeOfferDataModel extends OfferDataModel {
             offerBook.removeOffer(checkNotNull(offer));
         }
 
-        // reset address entries off thread
-        ThreadUtils.submitToPool(() -> xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId()));
+        swapTradeToSavings();
     }
 
     protected void updateBalances() {
@@ -467,9 +466,17 @@ class TakeOfferDataModel extends OfferDataModel {
         return HavenoUtils.multiply(this.amount.get(), offer.getTakerFeePct());
     }
 
+    // reset address entries off thread, since wallet address creation can hold the lock
     public void swapTradeToSavings() {
-        log.debug("swapTradeToSavings, offerId={}", offer.getId());
-        xmrWalletService.resetAddressEntriesForOpenOffer(offer.getId());
+        String offerId = offer.getId();
+        log.debug("swapTradeToSavings, offerId={}", offerId);
+        ThreadUtils.submitToPool(() -> {
+            try {
+                xmrWalletService.resetAddressEntriesForOpenOffer(offerId);
+            } catch (Exception e) {
+                log.warn("Error resetting address entries for offer {}: {}\n", offerId, e.getMessage(), e);
+            }
+        });
     }
 
   /*  private void setFeeFromFundingTx(Coin fee) {
