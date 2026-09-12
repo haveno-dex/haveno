@@ -429,8 +429,7 @@
 .list-view .list-cell:even {
     -fx-background-color: derive(-bs-background-color, 5%);
 }
-.list-view .list-cell:hover,
-.table-view .table-row-cell:filled .table-cell:hover {
+.list-view .list-cell:hover {
     -fx-background: -bs-combo-popup-hover;
     -fx-background-color: -bs-combo-popup-hover;
 }
