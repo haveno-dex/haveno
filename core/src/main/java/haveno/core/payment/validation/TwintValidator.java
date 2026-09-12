@@ -29,4 +29,11 @@ public final class TwintValidator extends PhoneNumberValidator {
     public ValidationResult validate(String input) {
         return super.validate(input);
     }
+
+    // Remove the national trunk '0' only from full-length numbers.
+    @Override
+    public String getNormalizedPhoneNumber() {
+        String normalized = super.getNormalizedPhoneNumber();
+        return normalized != null && normalized.matches("\\+410[1-9][0-9]{8}") ? "+41" + normalized.substring(4) : normalized;
+    }
 }

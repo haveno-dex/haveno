@@ -114,9 +114,6 @@ public class TwintForm extends PaymentMethodForm {
 
     @Override
     public void updateAllInputsValid() {
-        if (twintValidator.validate(twintAccount.getMobileNr()).isValid) {
-            twintAccount.setMobileNr(twintValidator.getNormalizedPhoneNumber());
-        }
         allInputsValid.set(isAccountNameValid()
                 && twintValidator.validate(twintAccount.getMobileNr()).isValid
                 && inputValidator.validate(twintAccount.getHolderName()).isValid
