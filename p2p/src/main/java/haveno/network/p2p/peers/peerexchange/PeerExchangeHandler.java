@@ -34,7 +34,6 @@ import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import haveno.network.p2p.peers.peerexchange.messages.GetPeersResponse;
 import haveno.network.utils.EventThrottler;
-import haveno.network.utils.EventThrottler.ThrottleResult;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -47,7 +46,6 @@ class PeerExchangeHandler implements MessageListener {
     // We want to keep timeout short here
     private static final long TIMEOUT = 90;
     private static final int DELAY_MS = 500;
-    private static EventThrottler warningThrottler = new EventThrottler(Connection.LOG_THROTTLE_INTERVAL_MS, TimeUnit.MILLISECONDS);
     private static EventThrottler failedGetPeersRequestThrottler = new EventThrottler(300000, TimeUnit.MILLISECONDS);
 
 
@@ -191,8 +189,10 @@ class PeerExchangeHandler implements MessageListener {
                     cleanup();
                     listener.onComplete();
                 } else {
-                    throttleWarn("Nonce not matching. That should never happen.\n" + 
-                            "\tWe drop that message. nonce=" + nonce + ", requestNonce=" + getPeersResponse.getRequestNonce() + ", peerNodeAddress=" + connection.getPeersNodeAddressOptional().orElseGet(null));
+                    log.debug("Ignoring GetPeersResponse with a non-matching nonce. " +
+                                    "This can happen when a response arrives after a request was canceled.\n\t" +
+                                    "nonce={}, requestNonce={}, peerNodeAddress={}",
+                            nonce, getPeersResponse.getRequestNonce(), connection.getPeersNodeAddressOptional().orElse(null));
                 }
             } else {
                 log.trace("We have stopped that handler already. We ignore that onMessage call.");
@@ -230,14 +230,6 @@ class PeerExchangeHandler implements MessageListener {
         if (delayTimer != null) {
             delayTimer.stop();
             delayTimer = null;
-        }
-    }
-
-    private void throttleWarn(String msg) {
-        ThrottleResult throttleResult = warningThrottler.onEvent();
-        if (!throttleResult.throttled) {
-            log.warn(msg);
-            if (throttleResult.throttledCount > 0) log.warn("We received {} throttled warnings since the last log entry" + (throttleResult.throttledCount >= Connection.POSSIBLE_DOS_THRESHOLD ? ". " + Connection.POSSIBLE_DOS_MESSAGE : ""), throttleResult.throttledCount);
         }
     }
 }
