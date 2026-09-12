@@ -484,7 +484,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         });
 
         havenoSetup.setTorAddressUpgradeHandler(() -> new Popup().information(Res.get("popup.info.torMigration.msg"))
-                .actionButtonTextWithGoTo("navigation.account.backup")
+                .actionButtonTextWithGoTo("account.menu.backup")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());
                     navigation.navigateTo(MainView.class, AccountView.class, BackupView.class);
