@@ -26,6 +26,8 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.TwintAccountPayload;
+import haveno.core.proto.CoreProtoResolver;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -70,6 +72,47 @@ public class PaymentAccountsTest {
             assertEquals("not a phone", invalid.toForm().getValue(PaymentAccountFormField.FieldId.MOBILE_NR));
             assertThrows(IllegalArgumentException.class,
                     () -> invalid.validateFormField(form, PaymentAccountFormField.FieldId.MOBILE_NR, "not a phone"));
+        }
+    }
+
+    @Test
+    public void testTwintAccountFormsNormalizeNationalNumbers() {
+        GlobalSettings.setLocale(Locale.US);
+        Res.setBaseCurrencyCode("XMR");
+        Res.setBaseCurrencyName("Monero");
+        TwintAccount account = new TwintAccount();
+        account.init();
+        account.setAccountName("twint account");
+        account.setHolderName("Alice");
+        account.setMobileNr("+41791234567");
+        PaymentAccountForm form = account.toForm();
+        PaymentAccountFormField mobileField = form.getFields().stream()
+                .filter(field -> field.getId() == PaymentAccountFormField.FieldId.MOBILE_NR).findFirst().orElseThrow();
+        for (String input : List.of("079 123 45 67", "079-123-45-67", "+41 (0)79 123 45 67", "+41 79 123 45 67", "+41791234567")) {
+            mobileField.setValue(input);
+            TwintAccount fromInput = (TwintAccount) form.toPaymentAccount();
+            assertEquals("+41791234567", fromInput.getMobileNr());
+            assertArrayEquals(account.getPaymentAccountPayload().getAgeWitnessInputData(),
+                    fromInput.getPaymentAccountPayload().getAgeWitnessInputData());
+            fromInput.setMobileNr(fromInput.getMobileNr());
+            assertEquals("+41791234567", fromInput.getMobileNr());
+        }
+    }
+
+    @Test
+    public void testTwintAccountPreservesStoredMobileNumbers() {
+        for (String input : List.of("079 123 45 67", "+410791234567", "+41791234567")) {
+            TwintAccount account = new TwintAccount();
+            account.init();
+            account.setAccountName("twint account");
+            account.setHolderName("Alice");
+            ((TwintAccountPayload) account.getPaymentAccountPayload()).setMobileNr(input);
+            protobuf.PaymentAccount proto = account.toProtoMessage();
+            TwintAccount restored = (TwintAccount) PaymentAccount.fromProto(proto, new CoreProtoResolver());
+            assertEquals(input, restored.getMobileNr());
+            assertEquals(proto, restored.toProtoMessage());
+            assertArrayEquals(account.getPaymentAccountPayload().getAgeWitnessInputData(),
+                    restored.getPaymentAccountPayload().getAgeWitnessInputData());
         }
     }
 
