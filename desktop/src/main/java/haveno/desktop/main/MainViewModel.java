@@ -280,18 +280,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         }
 
         UserThread.execute(() -> getShowAppScreen().set(true));
-
-        // show welcome window
-        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET || Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET) {
-            String key = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? "welcome.stagenet" : "welcome.mainnet";
-            if (DontShowAgainLookup.showAgain(key)) {
-                UserThread.runAfter(() -> {
-                    new WelcomeWindow()
-                            .dontShowAgainId(key)
-                            .show();
-                }, 1);
-            }
-        }
     }
 
 
@@ -301,6 +289,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     // After showAppScreen is set and splash screen is faded out
     void onSplashScreenRemoved() {
+        maybeShowWelcomeWindow();
         isSplashScreenRemoved.set(true);
 
         // Delay that as we want to know what is the current path of the navigation which is set
@@ -308,6 +297,17 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         notificationCenter.onAllServicesAndViewsInitialized();
 
         maybeShowPopupsFromQueue();
+    }
+
+    private void maybeShowWelcomeWindow() {
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET || Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET) {
+            String key = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? "welcome.stagenet" : "welcome.mainnet";
+            if (DontShowAgainLookup.showAgain(key)) {
+                new WelcomeWindow()
+                        .dontShowAgainId(key)
+                        .show();
+            }
+        }
     }
 
     void onOpenDownloadWindow() {
