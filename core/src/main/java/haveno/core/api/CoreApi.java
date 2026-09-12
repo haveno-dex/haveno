@@ -60,6 +60,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.xmr.XmrNodeSettings;
+import haveno.proto.grpc.GetTradesRequest;
 import haveno.proto.grpc.NotificationMessage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,6 +71,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroRpcConnection;
@@ -572,8 +574,8 @@ public class CoreApi {
         return coreTradesService.getTrade(tradeId);
     }
 
-    public List<Trade> getTrades() {
-        return coreTradesService.getTrades();
+    public List<Trade> getTrades(@Nullable GetTradesRequest.Category category) {
+        return coreTradesService.getTrades(category);
     }
 
     public List<ChatMessage> getChatMessages(String tradeId) {

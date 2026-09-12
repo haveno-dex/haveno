@@ -35,6 +35,7 @@ import java.util.List;
 
 import static haveno.proto.grpc.GetTradesRequest.Category.CLOSED;
 import static haveno.proto.grpc.GetTradesRequest.Category.FAILED;
+import static haveno.proto.grpc.GetTradesRequest.Category.OPEN;
 
 public class TradesServiceRequest {
 
@@ -75,6 +76,7 @@ public class TradesServiceRequest {
 
     public List<TradeInfo> getOpenTrades() {
         var request = GetTradesRequest.newBuilder()
+                .setCategory(OPEN)
                 .build();
         return grpcStubs.tradesService.getTrades(request).getTradesList();
     }
