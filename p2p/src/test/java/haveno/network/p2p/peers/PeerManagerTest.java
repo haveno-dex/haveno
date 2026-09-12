@@ -17,11 +17,14 @@
 
 package haveno.network.p2p.peers;
 
+import com.google.common.base.Ticker;
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.app.Capabilities;
 import haveno.network.p2p.MockNode;
+import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.CloseConnectionReason;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.InboundConnection;
@@ -29,17 +32,26 @@ import haveno.network.p2p.network.MessageListener;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.network.OutboundConnection;
 import haveno.network.p2p.network.PeerType;
+import haveno.network.p2p.network.RuleViolation;
 import haveno.network.p2p.network.Statistic;
+import haveno.network.p2p.peers.getdata.RequestDataManager;
 import haveno.network.p2p.peers.keepalive.KeepAliveManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
+import haveno.network.p2p.peers.peerexchange.Peer;
+import haveno.network.p2p.peers.peerexchange.PeerExchangeManager;
+import haveno.network.p2p.seed.SeedNodeRepository;
+import haveno.network.p2p.storage.P2PDataStorage;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.io.IOException;
@@ -52,6 +64,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -68,6 +81,7 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -87,6 +101,220 @@ public class PeerManagerTest {
     @AfterEach
     public void tearDown() {
         node.getPersistenceManager().shutdown();
+    }
+
+    @Test
+    public void testFailedPeerIsNotReintroducedByReports() {
+        NodeAddress address = new NodeAddress("failed.onion:9999");
+        PeerManager manager = node.getPeerManager();
+        for (int i = 0; i < 8; i++) {
+            manager.addToReportedPeers(Set.of(new Peer(address, null)), mock(Connection.class), new Capabilities());
+            assertEquals(i, manager.getPersistedPeers().iterator().next().getFailedConnectionAttempts());
+            OutboundConnection connection = outboundConnection(address, 0);
+            manager.onDisconnect(CloseConnectionReason.NO_PROTO_BUFFER_ENV, connection);
+            manager.onDisconnect(CloseConnectionReason.NO_PROTO_BUFFER_ENV, connection);
+            assertEquals(i == 7, manager.isPeerUnavailable(address));
+        }
+        assertTrue(manager.getPersistedPeers().isEmpty());
+        manager.addToReportedPeers(Set.of(new Peer(address, null)), mock(Connection.class), new Capabilities());
+
+        assertTrue(manager.getPersistedPeers().isEmpty());
+        assertTrue(manager.getReportedPeers().isEmpty());
+        assertFalse(manager.isWrongNetworkPeer(address));
+    }
+
+    @Test
+    public void testFailedPeerCooldownExpires() throws IOException {
+        AtomicLong now = new AtomicLong();
+        Ticker ticker = mock(Ticker.class);
+        when(ticker.read()).thenAnswer(invocation -> now.get());
+        try (MockedStatic<Ticker> tickerClass = mockStatic(Ticker.class)) {
+            tickerClass.when(Ticker::systemTicker).thenReturn(ticker);
+            node.getPeerManager().shutDown();
+            node.getPersistenceManager().shutdown();
+            node = new MockNode(2);
+            PeerManager manager = node.getPeerManager();
+            NodeAddress address = new NodeAddress("failed.onion:9999");
+            reportFailingPeer(manager, address);
+            OutboundConnection connection = outboundConnection(address, 0);
+            manager.onDisconnect(CloseConnectionReason.RESET, connection);
+            now.set(TimeUnit.MINUTES.toNanos(59));
+            manager.onDisconnect(CloseConnectionReason.RESET, connection);
+            assertTrue(manager.isPeerUnavailable(address));
+            now.set(TimeUnit.HOURS.toNanos(1));
+            assertFalse(manager.isPeerUnavailable(address));
+            manager.addToReportedPeers(Set.of(new Peer(address, null)), mock(Connection.class), new Capabilities());
+            assertEquals(1, manager.getPersistedPeers().size());
+        }
+    }
+
+    @Test
+    public void testInboundTrafficCannotClearCooldownButOutboundTrafficCan() {
+        PeerManager manager = node.getPeerManager();
+        NodeAddress address = new NodeAddress("failed.onion:9999");
+        reportFailingPeer(manager, address);
+        manager.onDisconnect(CloseConnectionReason.RESET, outboundConnection(address, 0));
+        InboundConnection inbound = mock(InboundConnection.class);
+        when(inbound.getPeersNodeAddressOptional()).thenReturn(Optional.of(address));
+        manager.onDisconnect(CloseConnectionReason.RESET, inbound);
+        assertTrue(manager.isPeerUnavailable(address));
+
+        manager.onDisconnect(CloseConnectionReason.RESET, outboundConnection(address, 1));
+        assertFalse(manager.isPeerUnavailable(address));
+    }
+
+    @Test
+    public void testIntendedClosesAndInboundFaultsDoNotSuppressPeers() {
+        PeerManager manager = node.getPeerManager();
+        NodeAddress address = new NodeAddress("peer.onion:9999");
+        reportFailingPeer(manager, address);
+        manager.onDisconnect(CloseConnectionReason.APP_SHUT_DOWN, outboundConnection(address, 0));
+        InboundConnection inbound = mock(InboundConnection.class);
+        when(inbound.getPeersNodeAddressOptional()).thenReturn(Optional.of(address));
+        when(inbound.getRuleViolation()).thenReturn(RuleViolation.WRONG_NETWORK_ID);
+        manager.onDisconnect(CloseConnectionReason.RULE_VIOLATION, inbound);
+
+        assertFalse(manager.isPeerUnavailable(address));
+        assertEquals(7, manager.getPersistedPeers().iterator().next().getFailedConnectionAttempts());
+    }
+
+    @Test
+    public void testSilentFailuresDoNotSuppressSeedNodes() {
+        PeerManager manager = spy(node.getPeerManager());
+        NodeAddress address = new NodeAddress("seed.onion:9999");
+        when(manager.isSeedNode(address)).thenReturn(true);
+        reportFailingPeer(manager, address);
+        manager.onDisconnect(CloseConnectionReason.RESET, outboundConnection(address, 0));
+
+        assertFalse(manager.isPeerUnavailable(address));
+        assertTrue(manager.getPersistedPeers().isEmpty());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = CloseConnectionReason.class, names = {"NO_PROTO_BUFFER_ENV", "SOCKET_TIMEOUT", "RESET"})
+    public void testPartialResponseDoesNotCountAsSilentFailure(CloseConnectionReason reason) {
+        PeerManager manager = node.getPeerManager();
+        NodeAddress address = new NodeAddress("peer.onion:9999");
+        reportFailingPeer(manager, address);
+        OutboundConnection connection = outboundConnection(address, 0);
+        when(connection.getLastReadTimestamp()).thenReturn(1L);
+
+        manager.onDisconnect(reason, connection);
+
+        assertFalse(manager.isPeerUnavailable(address));
+        assertEquals(7, manager.getPersistedPeers().iterator().next().getFailedConnectionAttempts());
+    }
+
+    @Test
+    public void testOfflineDialFailuresPreservePeerCandidates() {
+        PeerManager manager = node.getPeerManager();
+        NodeAddress address = new NodeAddress("peer.onion:9999");
+        reportFailingPeer(manager, address);
+        for (int i = 0; i < 20; i++) manager.handleConnectionFault(address);
+
+        assertFalse(manager.isPeerUnavailable(address));
+        assertEquals(7, manager.getPersistedPeers().iterator().next().getFailedConnectionAttempts());
+        assertEquals(1, manager.getReportedPeers().size());
+    }
+
+    @Test
+    public void testWrongNetworkPeerStaysBlockedAfterOutboundTraffic() {
+        PeerManager manager = node.getPeerManager();
+        NodeAddress address = new NodeAddress("wrong.onion:9999");
+        OutboundConnection connection = outboundConnection(address, 1);
+        when(connection.getRuleViolation()).thenReturn(RuleViolation.WRONG_NETWORK_ID);
+        manager.onDisconnect(CloseConnectionReason.RULE_VIOLATION, connection);
+        manager.onDisconnect(CloseConnectionReason.RESET, outboundConnection(address, 1));
+
+        assertTrue(manager.isPeerUnavailable(address));
+        assertTrue(manager.isWrongNetworkPeer(address));
+    }
+
+    @Test
+    public void testLivePeersRequireValidatedMessagesAndExcludeSuppressedPeers() {
+        PeerManager manager = node.getPeerManager();
+        NodeAddress address = new NodeAddress("peer.onion:9999");
+        OutboundConnection connection = outboundConnection(address, 0);
+        when(connection.getCapabilities()).thenReturn(new Capabilities());
+        when(node.getNetworkNode().getConfirmedConnections()).thenReturn(Set.of(connection));
+        assertTrue(manager.getLivePeers(null).isEmpty());
+
+        when(connection.getStatistic().getReceivedBytes()).thenReturn(1L);
+        assertTrue(manager.getLivePeers(null).isEmpty());
+        when(connection.getStatistic().getLastReceivedMessageTimestamp()).thenReturn(1L);
+        assertEquals(1, manager.getLivePeers(null).size());
+        reportFailingPeer(manager, address);
+        manager.onDisconnect(CloseConnectionReason.RESET, outboundConnection(address, 0));
+        assertTrue(manager.getLivePeers(null).isEmpty());
+    }
+
+    @Test
+    public void testDelayedPeerExchangeRechecksPeerEligibility() {
+        try (MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class);
+             MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                invocation.getArgument(0, Runnable.class).run();
+                return null;
+            });
+            NodeAddress address = new NodeAddress("peer.onion:9999");
+            when(node.getNetworkNode().getNodeAddress()).thenReturn(new NodeAddress("self.onion:9999"));
+            PeerExchangeManager exchange = new PeerExchangeManager(node.getNetworkNode(), mock(SeedNodeRepository.class), node.getPeerManager());
+            try {
+                exchange.requestReportedPeersFromSeedNodes(address);
+                ArgumentCaptor<Runnable> delayedSend = ArgumentCaptor.forClass(Runnable.class);
+                threadUtils.verify(() -> ThreadUtils.runAfterRandomDelay(delayedSend.capture(), anyLong(), anyLong(), any(TimeUnit.class)));
+                reportFailingPeer(node.getPeerManager(), address);
+                node.getPeerManager().onDisconnect(CloseConnectionReason.RESET, outboundConnection(address, 0));
+                delayedSend.getValue().run();
+
+                userThread.verify(() -> UserThread.execute(any(Runnable.class)));
+                verify(node.getNetworkNode(), never()).sendMessage(eq(address), any());
+            } finally {
+                exchange.shutDown();
+            }
+        }
+    }
+
+    @Test
+    public void testDelayedDataRequestRechecksPeerEligibility() {
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            NodeAddress address = new NodeAddress("peer.onion:9999");
+            when(node.getNetworkNode().nodeAddressProperty()).thenReturn(new SimpleObjectProperty<>());
+            SeedNodeRepository seeds = mock(SeedNodeRepository.class);
+            when(seeds.getSeedNodeAddresses()).thenReturn(List.of(address));
+            P2PDataStorage storage = mock(P2PDataStorage.class);
+            RequestDataManager requests = new RequestDataManager(node.getNetworkNode(), seeds, storage, node.getPeerManager());
+            requests.setListener(mock(RequestDataManager.Listener.class));
+            try {
+                requests.requestPreliminaryData();
+                ArgumentCaptor<Runnable> delayedSend = ArgumentCaptor.forClass(Runnable.class);
+                userThread.verify(() -> UserThread.runAfter(delayedSend.capture(), anyLong(), eq(TimeUnit.MILLISECONDS)));
+                reportFailingPeer(node.getPeerManager(), address);
+                node.getPeerManager().onDisconnect(CloseConnectionReason.RESET, outboundConnection(address, 0));
+                delayedSend.getValue().run();
+
+                verify(storage, never()).buildPreliminaryGetDataRequest(anyInt());
+                verify(node.getNetworkNode(), never()).sendMessage(eq(address), any());
+            } finally {
+                requests.shutDown();
+            }
+        }
+    }
+
+    private static void reportFailingPeer(PeerManager manager, NodeAddress address) {
+        Peer peer = new Peer(address, null);
+        peer.setFailedConnectionAttempts(7);
+        manager.addToReportedPeers(Set.of(peer), mock(Connection.class), new Capabilities());
+    }
+
+    private static OutboundConnection outboundConnection(NodeAddress address, long receivedBytes) {
+        OutboundConnection connection = mock(OutboundConnection.class);
+        when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(address));
+        Statistic statistic = mock(Statistic.class);
+        when(statistic.getReceivedBytes()).thenReturn(receivedBytes);
+        when(connection.getStatistic()).thenReturn(statistic);
+        when(connection.tryAccountPeerFault()).thenReturn(true, false);
+        return connection;
     }
 
     @Test
