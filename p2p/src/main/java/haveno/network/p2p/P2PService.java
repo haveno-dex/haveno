@@ -415,12 +415,12 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     @Override
     public void onConnection(Connection connection) {
-        numConnectedPeers.set(networkNode.getAllConnections().size());
+        UserThread.execute(() -> numConnectedPeers.set(networkNode.getAllConnections().size()));
     }
 
     @Override
     public void onDisconnect(CloseConnectionReason closeConnectionReason, Connection connection) {
-        numConnectedPeers.set(networkNode.getAllConnections().size());
+        UserThread.execute(() -> numConnectedPeers.set(networkNode.getAllConnections().size()));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
