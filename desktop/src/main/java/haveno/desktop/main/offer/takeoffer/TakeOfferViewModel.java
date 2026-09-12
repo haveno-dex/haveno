@@ -238,16 +238,13 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         takeOfferResultHandler = resultHandler;
         takeOfferRequested = true;
         showTransactionPublishedScreen.set(false);
-        dataModel.onTakeOffer(trade -> {
+        dataModel.onTakeOffer(trade -> UserThread.execute(() -> {
             this.trade = trade;
             takeOfferCompleted.set(true);
             trade.stateProperty().addListener(tradeStateListener);
             applyTradeState();
             applyTradeErrorMessage(trade.getErrorMessage());
-            takeOfferCompleted.set(true);
-        }, errMessage -> {
-            applyTradeErrorMessage(errMessage);
-        });
+        }), errMessage -> UserThread.execute(() -> applyTradeErrorMessage(errMessage)));
 
         updateButtonDisableState();
         updateSpinnerInfo();
@@ -477,12 +474,12 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                     }
                 }
             }
+            if (takeOfferResultHandler != null)
+                takeOfferResultHandler.run();
+
             this.errorMessage.set(errorMessage + appendMsg);
 
             updateSpinnerInfo();
-
-            if (takeOfferResultHandler != null)
-                takeOfferResultHandler.run();
         } else {
             this.errorMessage.set(null);
         }
