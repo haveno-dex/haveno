@@ -21,6 +21,7 @@ import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.desktop.components.ExternalHyperlink;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.PopupManager;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
@@ -63,8 +64,19 @@ public abstract class HeroInfoWindow<T extends HeroInfoWindow<T>> extends Overla
     }
 
     @Override
+    public String toString() {
+        // distinguish hero windows in popup deduplication, since their headline and message fields are unset
+        return getClass().getSimpleName() + ": " + super.toString();
+    }
+
+    @Override
     protected void onShow() {
-        display();
+        PopupManager.queueForDisplay(this);
+    }
+
+    @Override
+    protected void onHidden() {
+        PopupManager.onHidden(this);
     }
 
     // the lone close button is the primary action
