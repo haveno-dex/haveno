@@ -110,6 +110,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -165,7 +166,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final FilterManager filterManager;
     private final Broadcaster broadcaster;
     private final PersistenceManager<TradableList<OpenOffer>> persistenceManager;
-    private final Map<String, OpenOffer> offersToBeEdited = new HashMap<>();
+    private final Map<String, OpenOffer> offersToBeEdited = new ConcurrentHashMap<>();
     private final TradableList<OpenOffer> openOffers = new TradableList<>();
     private final SignedOfferList signedOffers = new SignedOfferList();
     private final PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
@@ -759,8 +760,33 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 log.info("Activating open offer: {}", openOffer.getId());
                 offerBookService.activateOffer(offer,
                         () -> {
-                            openOffer.setState(OpenOffer.State.AVAILABLE);
-                            applyTriggerState(openOffer);
+                            boolean removed;
+                            boolean removePublication = true;
+                            synchronized (openOffers.getList()) {
+                                OpenOffer currentOpenOffer = getOpenOffer(openOffer.getId()).orElse(null);
+                                removed = currentOpenOffer != openOffer ||
+                                        openOffer.isCanceled() || openOffer.getState() == OpenOffer.State.CLOSED;
+                                if (removed && currentOpenOffer != null && (currentOpenOffer.isAvailable() || currentOpenOffer.isReserved())) {
+                                    // a trigger-only edit can replace the offer without changing its network payload
+                                    removePublication = !Arrays.equals(currentOpenOffer.getOffer().getOfferPayload().getHash(), offer.getOfferPayload().getHash());
+                                }
+                                if (!removed && !openOffer.isReserved()) {
+                                    openOffer.setState(OpenOffer.State.AVAILABLE);
+                                    applyTriggerState(openOffer);
+                                }
+                            }
+                            if (removed) {
+                                // remove a publication that raced with cancellation or replacement
+                                String errorMessage = "The offer with ID " + openOffer.getId() + " was removed or replaced while activating.";
+                                if (removePublication) {
+                                    offerBookService.removeOffer(offer.getOfferPayload(),
+                                            () -> errorMessageHandler.handleErrorMessage(errorMessage),
+                                            removalError -> errorMessageHandler.handleErrorMessage(errorMessage + " Removing it from the offer book failed: " + removalError));
+                                } else {
+                                    errorMessageHandler.handleErrorMessage(errorMessage);
+                                }
+                                return;
+                            }
                             requestPersistence();
                             log.debug("activateOpenOffer, offerId={}", offer.getId());
                             resultHandler.handleResult();

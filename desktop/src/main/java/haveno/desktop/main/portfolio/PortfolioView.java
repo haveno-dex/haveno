@@ -40,11 +40,13 @@ import haveno.desktop.main.portfolio.failedtrades.FailedTradesView;
 import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import java.util.List;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.layout.StackPane;
 import javax.annotation.Nullable;
 
 @FxmlView
@@ -63,11 +65,13 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     private final Navigation navigation;
     private final FailedTradesManager failedTradesManager;
     private EditOfferView editOfferView;
+    private ReadOnlyBooleanProperty editOfferCanceling;
     private DuplicateOfferView duplicateOfferView;
     private CloneOfferView cloneOfferView;
     private boolean editOpenOfferViewOpen, cloneOpenOfferViewOpen;
     private OpenOffer openOffer;
     private OpenOffersView openOffersView;
+    private final StackPane openOffersContainer = new StackPane();
     private boolean tabListChangeListenerAdded = false;
 
     @Inject
@@ -93,6 +97,18 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {
+            if (oldValue != null && oldValue == editOpenOfferTab && editOfferView != null)
+                editOfferView.onTabSelected(false);
+            if (oldValue != null && oldValue == duplicateOfferTab)
+                duplicateOfferView.onTabSelected(false);
+            if (oldValue != null && oldValue == cloneOpenOfferTab)
+                cloneOfferView.onTabSelected(false);
+
+            // let the removal listener return directly to open offers without loading the neighboring tab
+            if (oldValue != null && oldValue == editOpenOfferTab && !root.getTabs().contains(oldValue)) return;
+            // navigation has already loaded the tab before selecting it
+            if (newValue == currentTab) return;
+
             if (newValue == openOffersTab)
                 navigation.navigateTo(MainView.class, PortfolioView.class, OpenOffersView.class);
             else if (newValue == pendingTradesTab)
@@ -108,13 +124,6 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
             } else if (newValue == cloneOpenOfferTab) {
                 navigation.navigateTo(MainView.class, PortfolioView.class, CloneOfferView.class);
             }
-
-            if (oldValue != null && oldValue == editOpenOfferTab)
-                editOfferView.onTabSelected(false);
-            if (oldValue != null && oldValue == duplicateOfferTab)
-                duplicateOfferView.onTabSelected(false);
-            if (oldValue != null && oldValue == cloneOpenOfferTab)
-                cloneOfferView.onTabSelected(false);
 
         };
 
@@ -133,6 +142,7 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     private void onEditOpenOfferRemoved() {
         editOpenOfferViewOpen = false;
         if (editOfferView != null) {
+            editOfferCanceling = editOfferView.cancelingProperty();
             editOfferView.onClose();
             editOfferView = null;
         }
@@ -205,6 +215,10 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
     }
 
     private void loadView(Class<? extends View> viewClass, @Nullable Object data) {
+        if (viewClass == EditOfferView.class && editOfferCanceling != null && editOfferCanceling.get()) {
+            navigation.navigateTo(MainView.class, PortfolioView.class, OpenOffersView.class);
+            return;
+        }
 
         // nullify current tab to trigger activate/deactivate
         if (currentTab != null) currentTab.setContent(null);
@@ -285,15 +299,19 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
             }
         }
 
-        currentTab.setContent(view.getRoot());
+        currentTab.setContent(view instanceof OpenOffersView ? openOffersContainer : view.getRoot());
         root.getSelectionModel().select(currentTab);
     }
 
     private void selectOpenOffersView(OpenOffersView view) {
         openOffersView = view;
         currentTab = openOffersTab;
+        openOffersContainer.getChildren().setAll(view.getRoot());
+        // the container separates the tab's content-disable updates from this cancellation guard
+        if (editOfferCanceling != null) view.getRoot().disableProperty().bind(editOfferCanceling);
 
         EditOpenOfferHandler editOpenOfferHandler = openOffer -> {
+            if (editOfferCanceling != null && editOfferCanceling.get()) return;
             if (!editOpenOfferViewOpen) {
                 editOpenOfferViewOpen = true;
                 PortfolioView.this.openOffer = openOffer;

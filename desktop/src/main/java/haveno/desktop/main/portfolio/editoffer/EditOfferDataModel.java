@@ -21,6 +21,8 @@ package haveno.desktop.main.portfolio.editoffer;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
+import haveno.common.ThreadUtils;
+import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
@@ -47,6 +49,8 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.offer.MutableOfferDataModel;
 import haveno.network.p2p.P2PService;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import lombok.Getter;
 import java.util.Optional;
 import java.util.Set;
@@ -56,6 +60,8 @@ class EditOfferDataModel extends MutableOfferDataModel {
     private final CorePersistenceProtoResolver corePersistenceProtoResolver;
     @Getter
     private OpenOffer openOffer;
+    @Getter
+    private final BooleanProperty canceling = new SimpleBooleanProperty();
     private OpenOffer.State initialState;
     private Offer editedOffer;
     private final CoreOffersService coreOffersService;
@@ -208,9 +214,21 @@ class EditOfferDataModel extends MutableOfferDataModel {
     }
 
     public void onCancelEditOffer(ErrorMessageHandler errorMessageHandler) {
-        if (openOffer != null)
-            openOfferManager.editOpenOfferCancel(openOffer, initialState, () -> {
-            }, errorMessageHandler);
+        if (openOffer == null || canceling.get()) return;
+        OpenOffer canceledOffer = openOffer;
+        OpenOffer.State originalState = initialState;
+        canceling.set(true);
+        ThreadUtils.execute(() -> {
+            try {
+                if (openOfferManager.getOpenOffer(canceledOffer.getId()).orElse(null) != canceledOffer) return;
+                openOfferManager.editOpenOfferCancel(canceledOffer, originalState, () -> {
+                }, errorMessage -> UserThread.execute(() -> errorMessageHandler.handleErrorMessage(errorMessage)));
+            } catch (Exception e) {
+                UserThread.execute(() -> errorMessageHandler.handleErrorMessage(e.getMessage()));
+            } finally {
+                UserThread.execute(() -> canceling.set(false));
+            }
+        }, EditOfferDataModel.class.getSimpleName());
     }
 
     public boolean hasConflictingClone() {
