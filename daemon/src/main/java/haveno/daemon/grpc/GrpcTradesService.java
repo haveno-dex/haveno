@@ -115,7 +115,7 @@ class GrpcTradesService extends TradesImplBase {
     public void getTrades(GetTradesRequest req,
                          StreamObserver<GetTradesReply> responseObserver) {
         try {
-            List<TradeInfo> trades = coreApi.getTrades(req.getCategory())
+            List<TradeInfo> trades = coreApi.getTrades(req.hasCategory() ? req.getCategory() : null)
                     .stream().map(TradeInfo::toTradeInfo)
                     .collect(Collectors.toList());
             var reply = GetTradesReply.newBuilder()

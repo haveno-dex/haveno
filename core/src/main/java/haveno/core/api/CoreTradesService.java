@@ -55,12 +55,14 @@ import haveno.core.trade.protocol.SellerProtocol;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinUtil;
 import haveno.core.xmr.wallet.BtcWalletService;
+import haveno.proto.grpc.GetTradesRequest;
 import static java.lang.String.format;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import haveno.proto.grpc.GetTradesRequest;
+import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -219,12 +221,17 @@ class CoreTradesService {
         return closedTradableManager.getTradeById(tradeId);
     }
 
-    List<Trade> getTrades(GetTradesRequest.Category category) {
+    List<Trade> getTrades(@Nullable GetTradesRequest.Category category) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();
 
-        return switch (category)
-        {
+        if (category == null) {
+            List<Trade> trades = new ArrayList<>(tradeManager.getOpenTrades());
+            trades.addAll(tradeManager.getClosedTrades());
+            return trades;
+        }
+
+        return switch (category) {
             case OPEN -> tradeManager.getOpenTrades();
             case CLOSED -> tradeManager.getClosedTrades();
             case FAILED -> tradeManager.getFailedTrades();

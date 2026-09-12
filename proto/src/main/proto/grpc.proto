@@ -839,13 +839,12 @@ message GetTradeReply {
 }
 
 message GetTradesRequest {
-    // Rpc method GetTrades parameter determining what category of trade list is is being requested.
     enum Category {
-        OPEN = 0;       // Get all currently open trades.
-        CLOSED = 1;     // Get all completed trades.
-        FAILED = 2;     // Get all failed trades.
+        OPEN = 0;
+        CLOSED = 1;
+        FAILED = 2;
     }
-    Category category = 1;
+    optional Category category = 1;
 }
 
 message GetTradesReply {
