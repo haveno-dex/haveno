@@ -28,6 +28,7 @@ import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
+import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -166,8 +167,14 @@ public abstract class TradeSubView extends VBox {
     protected abstract void addWizards();
 
     protected void onViewStateChanged(PendingTradesViewModel.State viewState) {
-        tradeStepInfo.setTrade(model.dataModel.getTrade());
+        Trade selectedTrade = model.dataModel.getTrade();
+        tradeStepInfo.setTrade(selectedTrade);
         completed = viewState == PendingTradesViewModel.BuyerState.STEP4 || viewState == PendingTradesViewModel.SellerState.STEP4;
+        boolean arbitrated = completed && selectedTrade != null && !selectedTrade.getDisputeState().isMediated() &&
+                selectedTrade.getDisputeState().isDisputed() && selectedTrade.getDisputeResult() != null;
+        steps.setVisible(!arbitrated);
+        steps.setManaged(!arbitrated);
+        pseudoClassStateChanged(PseudoClass.getPseudoClass("arbitrated"), arbitrated);
         updateChatAvailability();
     }
 
