@@ -625,31 +625,29 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     void onPlaceOffer(Offer offer, Runnable resultHandler) {
+        errorMessage.set(null);
+        createOfferInProgress = true;
+        createOfferCanceled = false;
+        updateButtonDisableState();
+        updateSpinnerInfo();
+
         ThreadUtils.execute(() -> {
-            errorMessage.set(null);
-            createOfferInProgress = true;
-            createOfferCanceled = false;
-
             dataModel.onPlaceOffer(offer, transaction -> {
-                createOfferInProgress = false;
-                resultHandler.run();
-                if (!createOfferCanceled) placeOfferCompleted.set(true);
-                errorMessage.set(null);
-            }, errMessage -> {
-                createOfferInProgress = false;
-                if (offer.getState() == Offer.State.OFFER_FEE_RESERVED) errorMessage.set(errMessage + Res.get("createOffer.errorInfo"));
-                else errorMessage.set(errMessage);
-
                 UserThread.execute(() -> {
+                    createOfferInProgress = false;
+                    resultHandler.run();
+                    if (!createOfferCanceled) placeOfferCompleted.set(true);
+                    errorMessage.set(null);
+                });
+            }, errMessage -> {
+                UserThread.execute(() -> {
+                    createOfferInProgress = false;
+                    if (offer.getState() == Offer.State.OFFER_FEE_RESERVED) errorMessage.set(errMessage + Res.get("createOffer.errorInfo"));
+                    else errorMessage.set(errMessage);
                     updateButtonDisableState();
                     updateSpinnerInfo();
                     resultHandler.run();
                 });
-            });
-
-            UserThread.execute(() -> {
-                updateButtonDisableState();
-                updateSpinnerInfo();
             });
         }, getClass().getSimpleName());
     }
