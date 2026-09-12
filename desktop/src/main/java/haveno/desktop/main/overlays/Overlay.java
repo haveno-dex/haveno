@@ -653,7 +653,6 @@ public abstract class Overlay<T extends Overlay<T>> {
                             if (prepared) {
                                 stop();
                                 displayTimer = null;
-                                displayedStage.setOpacity(1);
                                 animateDisplay();
                                 return;
                             }
@@ -805,7 +804,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     private void prepareDisplayAnimation() {
         Region rootContainer = getDisplayContainer();
-        boolean animate = getDuration(200) > 1;
+        boolean animate = getDuration(240) > 1;
         double scale = animate ? (type.animationType == AnimationType.ScaleDownToCenter ? 1.02 : 0.98) : 1;
         double translateX = 0;
         double translateY = 0;
@@ -823,16 +822,17 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void animateDisplay() {
-        if (getDuration(200) <= 1) {
+        if (getDuration(240) <= 1) {
             prepareDisplayAnimation();
+            stage.setOpacity(1);
             return;
         }
         double translateY = type.animationType == AnimationType.SlideDownFromCenterTop && capShell == null ? -50 : 0;
-        playAnimation(0, translateY, 1, 1, getDuration(200), Interpolator.SPLINE(0, 0, 0.2, 1), null);
+        playAnimation(0, translateY, 1, 1, getDuration(240), Interpolator.SPLINE(0.2, 0, 0.2, 1), null);
     }
 
     protected void animateHide(Runnable onFinishedHandler) {
-        if (stage == null || stage.getOpacity() == 0 || getDuration(140) <= 1) {
+        if (stage == null || stage.getOpacity() == 0 || getDuration(160) <= 1) {
             animation.stop();
             onFinishedHandler.run();
             return;
@@ -851,7 +851,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             scale = 1;
             translateY = (capShell != null ? 0 : -50) - 8;
         }
-        playAnimation(0, translateY, scale, 1, getDuration(140),
+        playAnimation(0, translateY, scale, 0, getDuration(160),
                 Interpolator.SPLINE(0.4, 0, 1, 1), onFinishedHandler);
     }
 
