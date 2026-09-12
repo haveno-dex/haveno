@@ -80,6 +80,9 @@
     -fx-border-width: 0 0 0 1;
     -fx-padding: 20 22 18;
 }
+.trade-detail-view:arbitrated .trade-sidebar {
+    -fx-background-radius: 0 9 9 0;
+}
 .trade-detail-view .trade-sidebar:compact {
     -fx-background-radius: 0 0 9 9;
     -fx-border-width: 1 0 0;
