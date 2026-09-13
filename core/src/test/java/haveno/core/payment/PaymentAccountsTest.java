@@ -26,6 +26,7 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.SwishAccountPayload;
 import haveno.core.payment.payload.TwintAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
 import org.junit.jupiter.api.Test;
@@ -50,9 +51,9 @@ public class PaymentAccountsTest {
         GlobalSettings.setLocale(Locale.US);
         Res.setBaseCurrencyCode("XMR");
         Res.setBaseCurrencyName("Monero");
-        List<PaymentAccount> accounts = List.of(new MbWayAccount(), new TwintAccount(), new PagoMovilAccount());
-        List<String> inputs = List.of("912 345 678", "+41 79 123 45 67", "0412 123 4567");
-        List<String> normalized = List.of("+351912345678", "+41791234567", "+584121234567");
+        List<PaymentAccount> accounts = List.of(new SwishAccount(), new MbWayAccount(), new TwintAccount(), new PagoMovilAccount());
+        List<String> inputs = List.of("070 123 45 67", "912 345 678", "+41 79 123 45 67", "0412 123 4567");
+        List<String> normalized = List.of("+46701234567", "+351912345678", "+41791234567", "+584121234567");
         for (int i = 0; i < accounts.size(); i++) {
             PaymentAccount account = accounts.get(i);
             account.init();
@@ -72,6 +73,23 @@ public class PaymentAccountsTest {
             assertEquals("not a phone", invalid.toForm().getValue(PaymentAccountFormField.FieldId.MOBILE_NR));
             assertThrows(IllegalArgumentException.class,
                     () -> invalid.validateFormField(form, PaymentAccountFormField.FieldId.MOBILE_NR, "not a phone"));
+        }
+    }
+
+    @Test
+    public void testSwishAccountPreservesStoredMobileNumbers() {
+        for (String input : List.of("070 123 45 67", "+460701234567", "+46701234567")) {
+            SwishAccount account = new SwishAccount();
+            account.init();
+            account.setAccountName("swish account");
+            account.setHolderName("Alice");
+            ((SwishAccountPayload) account.getPaymentAccountPayload()).setMobileNr(input);
+            protobuf.PaymentAccount proto = account.toProtoMessage();
+            SwishAccount restored = (SwishAccount) PaymentAccount.fromProto(proto, new CoreProtoResolver());
+            assertEquals(input, restored.getMobileNr());
+            assertEquals(proto, restored.toProtoMessage());
+            assertArrayEquals(account.getPaymentAccountPayload().getAgeWitnessInputData(),
+                    restored.getPaymentAccountPayload().getAgeWitnessInputData());
         }
     }
 

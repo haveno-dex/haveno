@@ -1,12 +1,16 @@
 package haveno.desktop.util.validation;
 
 import haveno.core.locale.Res;
+import haveno.core.payment.SwishAccount;
 import haveno.core.payment.TwintAccount;
+import haveno.core.payment.payload.SwishAccountPayload;
 import haveno.core.payment.payload.TwintAccountPayload;
 import haveno.core.payment.validation.PhoneNumberValidator;
+import haveno.core.payment.validation.SwishValidator;
 import haveno.core.payment.validation.TwintValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.InputValidator.ValidationResult;
+import haveno.desktop.components.paymentmethods.SwishForm;
 import haveno.desktop.components.paymentmethods.TwintForm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +30,44 @@ public class PhoneNumberValidatorTest {
     @BeforeEach
     public void setup() {
         Res.setup();
+    }
+
+    @Test
+    public void testSwishNumbers() {
+        validator = new SwishValidator();
+        for (String input : List.of("070 123 45 67", "070-123-45-67", "+46 (0)70 123 45 67", "+46 70 123 45 67", "+46701234567", "46701234567")) {
+            assertTrue(validator.validate(input).isValid);
+            assertEquals("+46701234567", validator.getNormalizedPhoneNumber());
+        }
+        for (String input : List.of("+46701234567", "+4600701234567")) {
+            assertTrue(validator.validate(input).isValid);
+            assertEquals(input, validator.getNormalizedPhoneNumber());
+            assertTrue(validator.validate(validator.getNormalizedPhoneNumber()).isValid);
+            assertEquals(input, validator.getNormalizedPhoneNumber());
+        }
+        assertFalse(validator.validate("not a phone").isValid);
+        assertNull(validator.getNormalizedPhoneNumber());
+        assertFalse(validator.validate(null).isValid);
+        assertNull(validator.getNormalizedPhoneNumber());
+    }
+
+    @Test
+    public void testSwishFormValidationPreservesStoredNumber() {
+        for (String input : List.of("070 123 45 67", "+460701234567")) {
+            SwishAccount account = new SwishAccount();
+            account.init();
+            account.setAccountName("swish account");
+            account.setHolderName("Alice");
+            ((SwishAccountPayload) account.getPaymentAccountPayload()).setMobileNr(input);
+            byte[] witnessInput = account.getPaymentAccountPayload().getAgeWitnessInputData();
+            // Validation does not require rendered controls.
+            SwishForm form = new SwishForm(account, null, new SwishValidator(), new InputValidator(), null, 0, null);
+            account.setAccountName("renamed account");
+            form.updateAllInputsValid();
+            assertTrue(form.allInputsValidProperty().get());
+            assertEquals(input, account.getMobileNr());
+            assertArrayEquals(witnessInput, account.getPaymentAccountPayload().getAgeWitnessInputData());
+        }
     }
 
     @Test

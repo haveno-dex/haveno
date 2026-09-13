@@ -114,9 +114,6 @@ public class SwishForm extends PaymentMethodForm {
 
     @Override
     public void updateAllInputsValid() {
-        if (swishValidator.validate(swishAccount.getMobileNr()).isValid) {
-            swishAccount.setMobileNr(swishValidator.getNormalizedPhoneNumber());
-        }
         allInputsValid.set(isAccountNameValid()
                 && swishValidator.validate(swishAccount.getMobileNr()).isValid
                 && inputValidator.validate(swishAccount.getHolderName()).isValid

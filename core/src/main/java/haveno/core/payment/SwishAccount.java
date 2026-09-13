@@ -72,6 +72,8 @@ public final class SwishAccount extends PaymentAccount {
     }
 
     public void setMobileNr(String mobileNr) {
+        SwishValidator validator = new SwishValidator();
+        if (validator.validate(mobileNr).isValid) mobileNr = validator.getNormalizedPhoneNumber();
         ((SwishAccountPayload) paymentAccountPayload).setMobileNr(mobileNr);
     }
 
