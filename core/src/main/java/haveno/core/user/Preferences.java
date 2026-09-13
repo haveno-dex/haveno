@@ -157,6 +157,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         Integer cssThemeFromSettings = readCssThemeFromSettings();
         if (cssThemeFromSettings != null) applyCssTheme(cssThemeFromSettings);
 
+        // restore the language before login, while the encrypted preferences are still unavailable
+        String userLanguageFromSettings = readUserLanguageFromSettings();
+        if (userLanguageFromSettings != null && !userLanguageFromSettings.isEmpty())
+            GlobalSettings.setLocale(new Locale(userLanguageFromSettings, GlobalSettings.getLocale().getCountry()));
+
         useAnimationsProperty.addListener((ov) -> {
             prefPayload.setUseAnimations(useAnimationsProperty.get());
             GlobalSettings.setUseAnimations(prefPayload.isUseAnimations());
@@ -232,7 +237,9 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     private void initNewPreferences() {
         prefPayload = new PreferencesPayload();
-        prefPayload.setUserLanguage(GlobalSettings.getLocale().getLanguage());
+        String userLanguageFromSettings = readUserLanguageFromSettings();
+        prefPayload.setUserLanguage(userLanguageFromSettings != null && !userLanguageFromSettings.isEmpty() ?
+                userLanguageFromSettings : GlobalSettings.getLocale().getLanguage());
         prefPayload.setUserCountry(CountryUtil.getDefaultCountry());
         GlobalSettings.setLocale(new Locale(prefPayload.getUserLanguage(), prefPayload.getUserCountry().code));
 
@@ -282,6 +289,9 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         int cssTheme = cssThemeFromSettings != null ? cssThemeFromSettings : prefPayload.getCssTheme();
         applyCssTheme(cssTheme);
         writeCssThemeToSettings(cssTheme);
+
+        // mirror the loaded language for the next login, including migration from existing preferences
+        writeUserLanguageToSettings(prefPayload.getUserLanguage());
 
 
         // if no valid Monero block explorer is set, select the 1st valid Monero block explorer
@@ -387,7 +397,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
-    // Css theme is kept in the unencrypted StartupSettings store so it can be applied before login
+    // UI settings are kept in the unencrypted StartupSettings store so they can be applied before login
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void applyCssTheme(int cssTheme) {
@@ -406,6 +416,18 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         if (config == null) return; // config is stubbed as null in some tests
         Cookie updates = new Cookie();
         updates.putAsBoolean(CookieKey.CSS_THEME, cssTheme == 1);
+        StartupSettings.write(config.appDataDir, updates);
+    }
+
+    private String readUserLanguageFromSettings() {
+        if (config == null) return null; // config is stubbed as null in some tests
+        return StartupSettings.read(config.appDataDir).get(CookieKey.USER_LANGUAGE);
+    }
+
+    private void writeUserLanguageToSettings(String userLanguage) {
+        if (config == null || userLanguage == null) return;
+        Cookie updates = new Cookie();
+        updates.put(CookieKey.USER_LANGUAGE, userLanguage);
         StartupSettings.write(config.appDataDir, updates);
     }
 
@@ -519,6 +541,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         prefPayload.setUserLanguage(userLanguageCode);
         if (prefPayload.getUserCountry() != null && prefPayload.getUserLanguage() != null)
             GlobalSettings.setLocale(new Locale(prefPayload.getUserLanguage(), prefPayload.getUserCountry().code));
+        writeUserLanguageToSettings(userLanguageCode);
         requestPersistence();
     }
 

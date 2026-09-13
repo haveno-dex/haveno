@@ -25,5 +25,6 @@ public enum CookieKey {
     STAGE_H,
     TRADE_STAT_CHART_USE_USD,
     CLEAN_TOR_DIR_AT_RESTART,
-    CSS_THEME
+    CSS_THEME,
+    USER_LANGUAGE
 }
