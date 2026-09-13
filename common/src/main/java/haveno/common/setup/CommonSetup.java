@@ -193,11 +193,11 @@ public class CommonSetup {
         Thread hook = new Thread(() -> {
             try {
                 shutdownHookRunning.set(true);
+                startShutdownWatchdog();
                 var countDownLatch = new CountDownLatch(1);
                 UserThread.execute(() ->
                         gracefulShutDownHandler.gracefulShutDown(countDownLatch::countDown));
-                //noinspection ResultOfMethodCallIgnored
-                countDownLatch.await(2, TimeUnit.MINUTES);
+                countDownLatch.await(); // the independent watchdog bounds the entire shutdown
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -206,9 +206,9 @@ public class CommonSetup {
         shutdownHook = hook;
     }
 
-    // Halts the process if graceful shutdown for application exit does not complete in time.
-    // Applies to UI requests and signals which do not trigger the JVM shutdown sequence.
-    public static void startShutdownWatchdog() {
+    // Bounds application exit even if native cleanup stops the JVM's own watchdog.
+    // In-process restarts do not arm either watchdog.
+    public static synchronized void startShutdownWatchdog() {
         if (!shutdownWatchdogStarted.compareAndSet(false, true)) {
             return;
         }
@@ -224,11 +224,19 @@ public class CommonSetup {
         }, "HavenoShutdownWatchdog");
         watchdog.setDaemon(true);
         watchdog.start();
+
+        try {
+            Process watchdogProcess = ShutdownWatchdog.start(TimeUnit.MINUTES.toMillis(SHUTDOWN_WATCHDOG_MINUTES));
+            log.info("External shutdown watchdog started, pid={}, timeout={} minutes", watchdogProcess.pid(), SHUTDOWN_WATCHDOG_MINUTES);
+        } catch (Exception e) {
+            log.error("Could not start external shutdown watchdog; only the Java watchdog is available", e);
+        }
     }
 
     // Terminates the process after an application-initiated graceful shutdown. Removes the shutdown hook first,
     // as re-running it waits on the UserThread while System.exit waits on the hook, which can deadlock.
     public static void exitAfter(int status, long delay, TimeUnit timeUnit) {
+        startShutdownWatchdog();
         if (!exitScheduled.compareAndSet(false, true)) {
             return;
         }

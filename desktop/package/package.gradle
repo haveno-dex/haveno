@@ -272,6 +272,8 @@ task packageInstallers {
 
                         // Options for creating the application image
                         " --input ${fatJarFolderPath}" +
+                        // Keep the java launcher for the independent shutdown watchdog
+                        " --jlink-options \"--strip-debug --no-man-pages --no-header-files\"" +
 
                         // Options for creating the application launcher
                         " --main-jar ${mainJarName}" +

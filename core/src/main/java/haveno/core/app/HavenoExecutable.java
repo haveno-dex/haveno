@@ -407,6 +407,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         runShutDownTask("TradeManager", () -> injector.getInstance(TradeManager.class).shutDown());
         runShutDownTask("BtcWalletService", () -> injector.getInstance(BtcWalletService.class).shutDown());
         runShutDownTask("XmrWalletService", () -> injector.getInstance(XmrWalletService.class).shutDown());
+        runShutDownTask("Native wallet closes", () -> injector.getInstance(XmrWalletService.class).awaitPendingWalletCloses());
         runShutDownTask("XmrConnectionService", () -> injector.getInstance(XmrConnectionService.class).shutDown());
         // wallets setup waits for termination before returning, so continue even if its cleanup fails
         runShutDownTask("WalletsSetup", () -> injector.getInstance(WalletsSetup.class).shutDown());

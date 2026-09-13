@@ -60,16 +60,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -122,6 +120,7 @@ public class XmrWalletService extends XmrWalletBase {
     public static final int MONERO_LOG_LEVEL = -1; // monero library log level, -1 to disable
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
+    private static final Set<PendingWalletClose> PENDING_WALLET_CLOSES = ConcurrentHashMap.newKeySet(); // retain pending closes across in-process restarts
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
@@ -174,7 +173,6 @@ public class XmrWalletService extends XmrWalletBase {
     private EventThrottler logPollErrorRateThrottler = new EventThrottler(HavenoUtils.LOG_POLL_ERROR_PERIOD_MS, TimeUnit.MILLISECONDS);
     private long lastPollTxsTimestamp; 
     private final Object pollLock = new Object();
-    private final Map<String, Future<?>> pendingWalletCloses = new ConcurrentHashMap<>(); // wallets force closing in background by path
     private Long cachedHeight;
     private BigInteger cachedBalance;
     private BigInteger cachedAvailableBalance = null;
@@ -190,6 +188,9 @@ public class XmrWalletService extends XmrWalletBase {
     private Timer walletHeightMonitorTimer;
     private static final Object requestConnectionSwitchSynchronousLock = new Object();
     private boolean isProcessingRequestConnectionSwitchSynchronous;
+
+    private record PendingWalletClose(String path, FutureTask<Void> task) {
+    }
 
     @SuppressWarnings("unused")
     @Inject
@@ -550,8 +551,23 @@ public class XmrWalletService extends XmrWalletBase {
         try {
             if (save && wallet instanceof MoneroWalletRpc) {
                 ((MoneroWalletRpc) wallet).stop(); // saves wallet and stops rpc server
-            } else {
+            } else if (wallet instanceof MoneroWalletRpc) {
                 wallet.close(save);
+            } else {
+                PendingWalletClose pendingClose = registerWalletClose(wallet, save, path);
+                try {
+                    pendingClose.task().run();
+                    pendingClose.task().get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new MoneroError(e);
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof RuntimeException cause) throw cause;
+                    if (e.getCause() instanceof Error cause) throw cause;
+                    throw new MoneroError(e.getCause());
+                } finally {
+                    PENDING_WALLET_CLOSES.remove(pendingClose);
+                }
             }
         } catch (MoneroError e) {
             err = e;
@@ -571,39 +587,80 @@ public class XmrWalletService extends XmrWalletBase {
             MONERO_WALLET_RPC_MANAGER.stopInstance((MoneroWalletRpc) wallet, path, true);
         } else {
 
-            // close natively in background with bounded wait, since closing can block draining a stalled network request
-            ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
-                Thread thread = new Thread(runnable, "force-close-wallet");
-                thread.setDaemon(true); // do not block application exit
-                return thread;
-            });
-            Future<?> closeTask = executor.submit(() -> wallet.close(false));
-            executor.shutdown();
-            if (path != null) pendingWalletCloses.put(path, closeTask);
+            PendingWalletClose pendingClose = registerWalletClose(wallet, false, path);
+            FutureTask<Void> closeTask = pendingClose.task();
+            Thread thread = new Thread(closeTask, "force-close-wallet");
+            thread.setDaemon(true);
             try {
+                thread.start();
                 closeTask.get(FORCE_CLOSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 log.warn("Timeout force closing wallet after {} ms, path={}, will finish closing in background", FORCE_CLOSE_TIMEOUT_MS, Utilities.redactSensitiveInfo(path));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Interrupted waiting for wallet to close, path={}", Utilities.redactSensitiveInfo(path));
             } catch (Exception e) {
                 log.warn("Error force closing wallet, path={}: {}", Utilities.redactSensitiveInfo(path), e.getMessage());
             } finally {
-                if (path != null && closeTask.isDone()) pendingWalletCloses.remove(path, closeTask); // keep entry if still closing so reopening awaits it
+                if (closeTask.isDone() || thread.getState() == Thread.State.NEW) PENDING_WALLET_CLOSES.remove(pendingClose);
             }
         }
+    }
+
+    private PendingWalletClose registerWalletClose(MoneroWallet wallet, boolean save, String path) {
+        // register before starting, including in-memory wallets, so shutdown can drain every native close
+        PendingWalletClose pendingClose = new PendingWalletClose(path, new FutureTask<>(() -> wallet.close(save), null));
+        PENDING_WALLET_CLOSES.add(pendingClose);
+        return pendingClose;
     }
 
     // reopening before a background close finishes fails on the wallet keys file lock, so await any pending close
     private void awaitPendingWalletClose(String path) {
         if (path == null) return;
-        Future<?> pendingClose = pendingWalletCloses.remove(path);
-        if (pendingClose == null || pendingClose.isDone()) return;
-        log.warn("Waiting for wallet to finish closing in background before opening, path={}", Utilities.redactSensitiveInfo(path));
-        long startTime = System.currentTimeMillis();
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(PENDING_CLOSE_TIMEOUT_MS);
+        for (PendingWalletClose pendingClose : PENDING_WALLET_CLOSES) {
+            if (!path.equals(pendingClose.path())) continue;
+            try {
+                awaitWalletClose(pendingClose, deadline);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new WalletUnavailableException("Interrupted waiting for native wallet to close", e);
+            } catch (TimeoutException e) {
+                throw new WalletUnavailableException("Native wallet did not close, path=" + Utilities.redactSensitiveInfo(path), e);
+            } catch (ExecutionException e) {
+                log.warn("Error closing native wallet, path={}: {}", Utilities.redactSensitiveInfo(path), e.getMessage());
+            }
+        }
+    }
+
+    // native thread pools must finish their work before JVM exit runs their static destructors
+    public void awaitPendingWalletCloses() {
+        if (PENDING_WALLET_CLOSES.isEmpty()) return;
+        log.info("Waiting for {} native wallet closes before shutting down connections", PENDING_WALLET_CLOSES.size());
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(SHUTDOWN_TIMEOUT_MS);
+        while (!PENDING_WALLET_CLOSES.isEmpty()) {
+            for (PendingWalletClose pendingClose : PENDING_WALLET_CLOSES) {
+                try {
+                    awaitWalletClose(pendingClose, deadline);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Interrupted waiting for native wallets to close");
+                    return;
+                } catch (TimeoutException e) {
+                    log.warn("Timed out waiting for {} native wallet closes; continuing shutdown", PENDING_WALLET_CLOSES.size());
+                    return;
+                } catch (ExecutionException e) {
+                    log.warn("Error closing native wallet, path={}: {}", Utilities.redactSensitiveInfo(pendingClose.path()), e.getMessage());
+                }
+            }
+        }
+    }
+
+    private void awaitWalletClose(PendingWalletClose pendingClose, long deadline) throws InterruptedException, ExecutionException, TimeoutException {
         try {
-            pendingClose.get(PENDING_CLOSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            log.info("Done waiting {} ms for wallet to close, path={}", System.currentTimeMillis() - startTime, Utilities.redactSensitiveInfo(path));
-        } catch (Exception e) {
-            log.warn("Error waiting for wallet to finish closing, path={}: {}", Utilities.redactSensitiveInfo(path), e.getMessage());
+            pendingClose.task().get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+        } finally {
+            if (pendingClose.task().isDone()) PENDING_WALLET_CLOSES.remove(pendingClose);
         }
     }
 
