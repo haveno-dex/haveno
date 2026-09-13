@@ -910,7 +910,7 @@ public class CreatePaymentAccountTest extends AbstractPaymentAccountTest {
         verifyUserPayloadHasPaymentAccountWithId(aliceClient, paymentAccount.getId());
         verifyAccountSingleTradeCurrency("SEK", paymentAccount);
         verifyCommonFormEntries(paymentAccount);
-        assertEquals(COMPLETED_FORM_MAP.get(PROPERTY_NAME_MOBILE_NR), paymentAccount.getMobileNr());
+        assertEquals("+46760600101", paymentAccount.getMobileNr());
         assertEquals(COMPLETED_FORM_MAP.get(PROPERTY_NAME_HOLDER_NAME), paymentAccount.getHolderName());
         assertEquals(COMPLETED_FORM_MAP.get(PROPERTY_NAME_SALT), paymentAccount.getSaltAsHex());
         print(paymentAccount);

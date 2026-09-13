@@ -37,4 +37,11 @@ public final class SwishValidator extends PhoneNumberValidator {
     public ValidationResult validate(String input) {
         return super.validate(input);
     }
+
+    // Remove the national trunk '0' only from full-length mobile numbers.
+    @Override
+    public String getNormalizedPhoneNumber() {
+        String normalized = super.getNormalizedPhoneNumber();
+        return normalized != null && normalized.matches("\\+4607[0-9]{8}") ? "+46" + normalized.substring(4) : normalized;
+    }
 }
