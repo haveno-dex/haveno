@@ -241,7 +241,18 @@ public class FileUtil {
             java.nio.file.Files.move(source.toPath(), target.toPath(),
                     StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (AtomicMoveNotSupportedException e) {
-            renameFile(source, target);
+            // A delete-before-rename fallback could lose the live file if the process stops mid-swap.
+            java.nio.file.Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        syncDirectory(target.getAbsoluteFile().getParentFile());
+    }
+
+    public static void syncDirectory(File directory) throws IOException {
+        // Windows does not support opening directories as FileChannels.
+        if (Utilities.isWindows()) return;
+        try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(directory.toPath(),
+                java.nio.file.StandardOpenOption.READ)) {
+            channel.force(true);
         }
     }
 

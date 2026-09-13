@@ -18,6 +18,7 @@
 package haveno.common.persistence;
 
 import haveno.common.Payload;
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
@@ -40,7 +41,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PersistenceManagerTest {
@@ -84,6 +86,7 @@ public class PersistenceManagerTest {
         if (persistenceManager != null) persistenceManager.shutdown();
         // Restore the shared static flag so we don't leak state into other tests in the same JVM.
         PersistenceManager.allServicesInitialized.set(false);
+        PersistenceManager.setReadFailureHandler(null);
         FileUtil.deleteDirectory(dir);
     }
 
@@ -116,7 +119,7 @@ public class PersistenceManagerTest {
         persistAndWait(data, "EncryptedStore");
 
         // Sanity: the on-disk file is actually present.
-        assertTrue(new File(dir, "EncryptedStore").length() > 0);
+        assertTrue(AuthenticatedEncryption.isEnvelope(java.nio.file.Files.readAllBytes(new File(dir, "EncryptedStore").toPath())));
 
         NavigationPath read = persistenceManager.getPersisted("EncryptedStore");
         assertEquals(data, read);
@@ -134,6 +137,39 @@ public class PersistenceManagerTest {
 
         NavigationPath read = persistenceManager.getPersisted("LegacyStore");
         assertEquals(data, read);
+        assertTrue(AuthenticatedEncryption.isEnvelope(java.nio.file.Files.readAllBytes(storageFile.toPath())));
+        assertEquals(data, persistenceManager.getPersisted("LegacyStore"));
+    }
+
+    @Test
+    public void testFailedMigrationDoesNotRejectValidRequiredData() throws Exception {
+        assertMigrationCanBeDeferred(false);
+    }
+
+    @Test
+    public void testFailedMigrationDoesNotQuarantineValidCache() throws Exception {
+        assertMigrationCanBeDeferred(true);
+    }
+
+    private void assertMigrationCanBeDeferred(boolean recoverable) throws Exception {
+        NavigationPath data = largeNavigationPath();
+        File file = new File(dir, "MigrationStore");
+        writeEncryptedFile(data.toProtoMessage().toByteArray(), keyRing.getSymmetricKey(), file);
+        byte[] original = java.nio.file.Files.readAllBytes(file.toPath());
+        File blockedBackup = new File(dir, "backup");
+        assertTrue(blockedBackup.createNewFile());
+        if (recoverable) persistenceManager.allowCorruptionRecovery();
+        persistenceManager.initialize(data, "MigrationStore", PersistenceManager.Source.PRIVATE);
+        assertEquals(data, persistenceManager.getPersisted("MigrationStore"));
+        assertArrayEquals(original, java.nio.file.Files.readAllBytes(file.toPath()));
+        assertFalse(new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER).exists());
+
+        assertTrue(blockedBackup.delete());
+        CountDownLatch written = new CountDownLatch(1);
+        persistenceManager.forcePersistNow(written::countDown, error -> org.junit.jupiter.api.Assertions.fail(error));
+        assertTrue(written.await(15, TimeUnit.SECONDS));
+        assertTrue(AuthenticatedEncryption.isEnvelope(java.nio.file.Files.readAllBytes(file.toPath())));
+        assertEquals(data, persistenceManager.getPersisted("MigrationStore"));
     }
 
     @Test
@@ -155,7 +191,7 @@ public class PersistenceManagerTest {
     }
 
     @Test
-    public void testCorruptEncryptedFileIsMovedToBackup() throws Exception {
+    public void testCorruptEncryptedFileIsPreservedAndCannotBeOverwritten() throws Exception {
         NavigationPath data = largeNavigationPath();
         persistAndWait(data, "CorruptStore");
 
@@ -166,10 +202,128 @@ public class PersistenceManagerTest {
         for (int i = 0; i < bytes.length; i++) bytes[i] ^= 0x5a;
         java.nio.file.Files.write(storageFile.toPath(), bytes);
 
-        NavigationPath read = persistenceManager.getPersisted("CorruptStore");
-        assertNull(read, "corrupt file must not return data");
-        assertFalse(storageFile.exists(), "corrupt file should be moved out of place");
-        assertTrue(new File(dir, "backup_of_corrupted_data/CorruptStore").exists(),
-                "corrupt file should be preserved in backup_of_corrupted_data");
+        assertThrows(IllegalStateException.class, () -> persistenceManager.getPersisted("CorruptStore"));
+        assertArrayEquals(bytes, java.nio.file.Files.readAllBytes(storageFile.toPath()));
+        CountDownLatch written = new CountDownLatch(1);
+        persistenceManager.persistNow(written::countDown);
+        assertTrue(written.await(15, TimeUnit.SECONDS));
+        assertArrayEquals(bytes, java.nio.file.Files.readAllBytes(storageFile.toPath()));
+        assertFalse(new File(dir, "backup_of_corrupted_data/CorruptStore").exists());
     }
+    @Test
+    public void testExplicitNetworkCacheRecoveryCompletesWithDefaults() throws Exception {
+        persistenceManager.allowCorruptionRecovery();
+        NavigationPath data = largeNavigationPath();
+        persistAndWait(data, "NetworkCache");
+        File file = new File(dir, "NetworkCache");
+        byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
+        bytes[bytes.length - 1] ^= 1;
+        java.nio.file.Files.write(file.toPath(), bytes);
+        CountDownLatch completed = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean recovered = new java.util.concurrent.atomic.AtomicBoolean();
+        PersistenceManager.setReadFailureHandler(error -> org.junit.jupiter.api.Assertions.fail(error));
+        persistenceManager.readPersisted(value -> org.junit.jupiter.api.Assertions.fail("Corrupt cache was returned"), () -> {
+            recovered.set(true);
+            completed.countDown();
+        });
+        assertTrue(completed.await(15, TimeUnit.SECONDS));
+        assertTrue(recovered.get());
+        assertFalse(file.exists());
+        assertArrayEquals(bytes, java.nio.file.Files.readAllBytes(new File(dir, "backup_of_corrupted_data/NetworkCache").toPath()));
+    }
+
+    @Test
+    public void testRequiredReadFailureNotifiesStartupAndDoesNotReturnDefaults() throws Exception {
+        NavigationPath data = largeNavigationPath();
+        persistAndWait(data, "RequiredStore");
+        File file = new File(dir, "RequiredStore");
+        byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
+        bytes[bytes.length - 1] ^= 1;
+        java.nio.file.Files.write(file.toPath(), bytes);
+        CountDownLatch failed = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean accepted = new java.util.concurrent.atomic.AtomicBoolean();
+        PersistenceManager.setReadFailureHandler(error -> failed.countDown());
+        persistenceManager.readPersisted(value -> accepted.set(true), () -> accepted.set(true));
+        assertTrue(failed.await(15, TimeUnit.SECONDS));
+        assertFalse(accepted.get());
+        assertArrayEquals(bytes, java.nio.file.Files.readAllBytes(file.toPath()));
+    }
+
+    @Test
+    public void testCallbackFailureIsReportedToStartup() throws Exception {
+        persistAndWait(largeNavigationPath(), "CallbackFailure");
+        CountDownLatch failed = new CountDownLatch(1);
+        PersistenceManager.setReadFailureHandler(error -> failed.countDown());
+        persistenceManager.readPersisted(value -> { throw new IllegalStateException("Credential migration failed"); },
+                () -> org.junit.jupiter.api.Assertions.fail("Store unexpectedly missing"));
+        assertTrue(failed.await(15, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testForcedWriteReportsDurabilityBeforeStartup() throws Exception {
+        NavigationPath data = largeNavigationPath();
+        persistenceManager.initialize(data, "StartupWrite", PersistenceManager.Source.PRIVATE);
+        PersistenceManager.allServicesInitialized.set(false);
+        CountDownLatch written = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<Throwable> error = new java.util.concurrent.atomic.AtomicReference<>();
+        persistenceManager.forcePersistNow(written::countDown, failure -> { error.set(failure); written.countDown(); });
+        assertTrue(written.await(15, TimeUnit.SECONDS));
+        org.junit.jupiter.api.Assertions.assertNull(error.get());
+        assertEquals(data, persistenceManager.getPersisted());
+    }
+
+    @Test
+    public void testForcedWriteFailureNeverReportsSuccess() throws Exception {
+        persistenceManager.initialize(largeNavigationPath(), "WriteFailure", PersistenceManager.Source.PRIVATE);
+        File target = new File(dir, "WriteFailure");
+        assertTrue(target.mkdir());
+        java.nio.file.Files.writeString(new File(target, "sentinel").toPath(), "preserve");
+        CountDownLatch failed = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean success = new java.util.concurrent.atomic.AtomicBoolean();
+        persistenceManager.forcePersistNow(() -> success.set(true), failure -> failed.countDown());
+        assertTrue(failed.await(15, TimeUnit.SECONDS));
+        assertFalse(success.get());
+        assertEquals("preserve", java.nio.file.Files.readString(new File(target, "sentinel").toPath()));
+    }
+
+    @Test
+    public void testPersistenceSchedulingDoesNotWaitForAnInFlightRead() throws Exception {
+        NavigationPath data = largeNavigationPath();
+        File file = new File(dir, "SlowRead");
+        java.nio.file.Files.write(file.toPath(), AuthenticatedEncryption.encrypt(data.toProtoMessage().toByteArray(),
+                keyRing.getSymmetricKey(), "store/SlowRead"));
+        CountDownLatch reading = new CountDownLatch(1);
+        CountDownLatch releaseRead = new CountDownLatch(1);
+        PersistenceProtoResolver slowResolver = new PersistenceProtoResolver() {
+            @Override
+            public PersistableEnvelope fromProto(protobuf.PersistableEnvelope proto) {
+                reading.countDown();
+                try {
+                    if (!releaseRead.await(15, TimeUnit.SECONDS)) throw new IllegalStateException("Read was not released");
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                return RESOLVER.fromProto(proto);
+            }
+            @Override public Payload fromProto(protobuf.PaymentAccountPayload proto) { return null; }
+            @Override public PersistablePayload fromProto(protobuf.PersistableNetworkPayload proto) { return null; }
+        };
+        persistenceManager = new PersistenceManager<>(dir, slowResolver, null, keyRing);
+        persistenceManager.initialize(data, "SlowRead", PersistenceManager.Source.PRIVATE);
+        java.util.concurrent.ExecutorService threads = java.util.concurrent.Executors.newFixedThreadPool(2);
+        CountDownLatch written = new CountDownLatch(1);
+        try {
+            var read = threads.submit(() -> persistenceManager.getPersisted());
+            assertTrue(reading.await(15, TimeUnit.SECONDS));
+            // Serialization/queueing must remain responsive while another operation owns the file.
+            threads.submit(() -> persistenceManager.persistNow(written::countDown)).get(5, TimeUnit.SECONDS);
+            releaseRead.countDown();
+            assertEquals(data, read.get(15, TimeUnit.SECONDS));
+            assertTrue(written.await(15, TimeUnit.SECONDS));
+        } finally {
+            releaseRead.countDown();
+            threads.shutdownNow();
+        }
+    }
+
 }

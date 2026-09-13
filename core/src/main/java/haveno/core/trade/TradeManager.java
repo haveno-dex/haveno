@@ -632,8 +632,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     // remove trades with duplicate uids from their stores, which can happen when a move between stores is interrupted
-    // by shutdown. keep the closed copy over pending over failed; error handling re-converges a kept pending copy on init
+    // by shutdown. newer reopen counts win; complete history breaks ties by closed over pending over failed
+    // incomplete history keeps stored copies and breaks ties by pending over failed over closed, which may be stale
     private void removeDuplicateTrades(List<Trade> trades) {
+        boolean historyIncomplete = closedTradableManager.isHistoryIncomplete();
         Map<String, Trade> tradesByUid = new HashMap<String, Trade>();
         for (Trade trade : new ArrayList<Trade>(trades)) {
             Trade other = tradesByUid.get(trade.getUid());
@@ -641,16 +643,22 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 tradesByUid.put(trade.getUid(), trade);
                 continue;
             }
-            Trade duplicate = getStorePriority(trade) > getStorePriority(other) ? other : trade;
+            int reopenOrder = Long.compare(trade.getReopenCount(), other.getReopenCount());
+            Trade duplicate = (reopenOrder != 0 ? reopenOrder > 0 : getStorePriority(trade) > getStorePriority(other)) ? other : trade;
             if (duplicate == other) tradesByUid.put(trade.getUid(), trade);
-            log.warn("Removing {} {} with duplicate uid from its store. That should never happen. uid={}", duplicate.getClass().getSimpleName(), duplicate.getId(), duplicate.getUid());
-            removeDuplicateTrade(duplicate);
+            if (historyIncomplete) {
+                log.warn("Deferring stored duplicate cleanup while closed-trade history is incomplete. Skipping initialization of {} {} with uid={}", duplicate.getClass().getSimpleName(), duplicate.getId(), duplicate.getUid());
+            } else {
+                log.warn("Removing {} {} with duplicate uid from its store. That should never happen. uid={}", duplicate.getClass().getSimpleName(), duplicate.getId(), duplicate.getUid());
+                removeDuplicateTrade(duplicate);
+            }
             trades.remove(duplicate);
         }
     }
 
     private int getStorePriority(Trade trade) {
-        if (closedTradableManager.getClosedTrades().contains(trade)) return 2;
+        // an unread pending tombstone can leave a stale closed copy of an active trade
+        if (closedTradableManager.getClosedTrades().contains(trade)) return closedTradableManager.isHistoryIncomplete() ? -1 : 2;
         if (failedTradesManager.getObservableList().contains(trade)) return 0;
         return 1; // pending
     }
@@ -693,9 +701,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
      * store, the rest to the pending store.
      */
     public void requestPersistence(Trade trade) {
-        if (closedTradableManager.getClosedTrades().contains(trade)) { // by instance, since a failed trade can share the id of a closed trade
-            closedTradableManager.persistClosedTrade(trade);
-        } else if (failedTradesManager.getObservableList().contains(trade)) {
+        if (closedTradableManager.persistClosedTrade(trade)) return;
+        if (failedTradesManager.getObservableList().contains(trade)) {
             failedTradesManager.requestPersistence();
         } else {
             requestPersistence();
@@ -703,8 +710,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     }
 
     public void persistNow(Trade trade, @Nullable Runnable completeHandler) {
-        if (closedTradableManager.getClosedTrades().contains(trade)) {
-            closedTradableManager.persistClosedTrade(trade); // durable (or queued for retry) on return
+        if (closedTradableManager.persistClosedTrade(trade)) { // durable (or queued for retry) on return
             if (completeHandler != null) completeHandler.run();
         } else {
             persistNow(completeHandler);
@@ -1136,12 +1142,14 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
-        if (trade.isCompleted()) throw new RuntimeException("Trade " + trade.getId() + " was already completed");
-        // Mark completed BEFORE adding: add() synchronously appends a snapshot to the closed log,
-        // so this persisted flag must already be set. Do not reorder.
-        trade.setCompleted(true);
-        closedTradableManager.add(trade);
-        removeTrade(trade);
+        synchronized (closedTradableManager.getPersistLock()) {
+            if (trade.isCompleted()) throw new RuntimeException("Trade " + trade.getId() + " was already completed");
+            // Mark completed BEFORE adding: add() synchronously appends a snapshot to the closed log,
+            // so this persisted flag must already be set. Do not reorder.
+            trade.setCompleted(true);
+            closedTradableManager.add(trade);
+            removeTrade(trade);
+        }
         xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
     }
@@ -1271,11 +1279,18 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     public void onMoveClosedTradeToPendingTrades(Trade trade) {
         log.warn("Moving {} {} from closed trades to pending trades", trade.getClass().getSimpleName(), trade.getShortId());
-        trade.setCompleted(false);
-        addTradeToPendingTrades(trade);
-        // tombstone the closed log only once the pending store is durable; the reverse order has
-        // a crash window where the trade exists in neither store
-        persistNow(() -> closedTradableManager.removeTrade(trade));
+        synchronized (closedTradableManager.getPersistLock()) {
+            trade.incrementReopenCount();
+            long reopenCount = trade.getReopenCount();
+            trade.setCompleted(false);
+            addTradeToPendingTrades(trade);
+            // tombstone only after a successful durable write, and never after a later close or reopen
+            persistenceManager.forcePersistNow(() -> {
+                synchronized (closedTradableManager.getPersistLock()) {
+                    if (!trade.isCompleted() && trade.getReopenCount() == reopenCount) closedTradableManager.removeTrade(trade);
+                }
+            }, error -> log.error("Could not persist reopened trade {}; retaining its closed history", trade.getId(), error));
+        }
     }
 
     private void removeFailedTrade(Trade trade) {

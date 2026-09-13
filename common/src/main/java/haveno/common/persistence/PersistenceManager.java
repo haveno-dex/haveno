@@ -26,6 +26,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
@@ -85,6 +86,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
 
     public static final Map<String, PersistenceManager<?>> ALL_PERSISTENCE_MANAGERS = new HashMap<>();
     private static boolean flushAtShutdownCalled;
+    private static volatile Consumer<Throwable> startupReadFailureHandler;
     public static final AtomicBoolean allServicesInitialized = new AtomicBoolean(false);
     // CipherInputStream pulls from the underlying stream in 512-byte chunks, so encrypted reads go
     // through a buffer of this size to keep syscalls proportional to the buffer, not the chunk.
@@ -115,6 +117,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
      */
     public static void reset() {
         ALL_PERSISTENCE_MANAGERS.clear();
+        startupReadFailureHandler = null;
         flushAtShutdownCalled = false;
         allServicesInitialized.set(false);
     }
@@ -230,6 +233,10 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     private final CorruptedStorageFileHandler corruptedStorageFileHandler;
     @Nullable
     private final KeyRing keyRing;
+    private volatile boolean encryptedReadFailed;
+    private final Object fileAccessLock = new Object();
+    private boolean corruptionRecoveryAllowed;
+    private Consumer<Throwable> readFailureHandler;
     private File storageFile;
     private T persistable;
     private String fileName;
@@ -260,6 +267,27 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    /** Only stores whose contents can be rebuilt may opt into quarantine-and-rebuild recovery. */
+    public void allowCorruptionRecovery() {
+        if (readCalled.get()) throw new IllegalStateException("Configure recovery before reading persistence");
+        corruptionRecoveryAllowed = true;
+    }
+
+    public static void setReadFailureHandler(Consumer<Throwable> handler) {
+        startupReadFailureHandler = handler;
+    }
+
+    public void onReadFailure(Throwable failure) {
+        encryptedReadFailed = true;
+        log.error("Persisted data could not be loaded; writes are disabled for {}", fileName, failure);
+        if (readFailureHandler != null) {
+            readFailureHandler.accept(failure);
+        } else {
+            com.google.common.base.Throwables.throwIfUnchecked(failure);
+            throw new IllegalStateException("Cannot load persisted data", failure);
+        }
+    }
 
     public void initialize(T persistable, Source source) {
         this.initialize(persistable, persistable.getDefaultStorageFileName(), source);
@@ -316,7 +344,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
      * Read persisted file in a thread.
      *
      * @param resultHandler Consumer of persisted data once it was read from disk.
-     * @param orElse        Called if no file exists or reading of file failed.
+     * @param orElse        Called if no file exists or a rebuildable store was quarantined.
      */
     public void readPersisted(Consumer<T> resultHandler, Runnable orElse) {
         readPersisted(checkNotNull(fileName), resultHandler, orElse);
@@ -328,7 +356,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
      *
      * @param fileName      File name of our persisted data.
      * @param resultHandler Consumer of persisted data once it was read from disk.
-     * @param orElse        Called if no file exists or reading of file failed.
+     * @param orElse        Called if no file exists or a rebuildable store was quarantined.
      */
     public void readPersisted(String fileName, Consumer<T> resultHandler, Runnable orElse) {
         if (flushAtShutdownCalled) {
@@ -336,17 +364,27 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             return;
         }
 
+        readFailureHandler = startupReadFailureHandler;
         new Thread(() -> {
-            T persisted = getPersisted(fileName);
-            if (persisted != null) {
-                UserThread.execute(() -> {
-                    resultHandler.accept(persisted);
-
-                    GcUtil.maybeReleaseMemory();
-                });
-            } else {
-                UserThread.execute(orElse);
+            final T persisted;
+            try {
+                persisted = getPersisted(fileName);
+            } catch (Throwable failure) {
+                onReadFailure(failure);
+                return;
             }
+            UserThread.execute(() -> {
+                try {
+                    if (persisted != null) {
+                        resultHandler.accept(persisted);
+                        GcUtil.maybeReleaseMemory();
+                    } else {
+                        orElse.run();
+                    }
+                } catch (Throwable failure) {
+                    onReadFailure(failure);
+                }
+            });
         }, "PersistenceManager-read-" + fileName).start();
     }
 
@@ -359,6 +397,13 @@ public class PersistenceManager<T extends PersistableEnvelope> {
 
     @Nullable
     public T getPersisted(String fileName) {
+        synchronized (fileAccessLock) {
+            return readPersistedFile(fileName);
+        }
+    }
+
+    @Nullable
+    private T readPersistedFile(String fileName) {
         if (flushAtShutdownCalled) {
             log.warn("We have started the shut down routine already. We ignore that getPersisted call.");
             return null;
@@ -388,6 +433,14 @@ public class PersistenceManager<T extends PersistableEnvelope> {
 
             //noinspection unchecked
             T persistableEnvelope = (T) persistenceProtoResolver.fromProto(proto);
+            if (keyRing != null && initCalled.get() && fileName.equals(this.fileName)) {
+                try {
+                    if (!isAuthenticatedStore(storageFile)) migrateEncryptedStore(storageFile, proto, keyRing.getSymmetricKey());
+                } catch (Exception e) {
+                    // A failed upgrade write does not invalidate the data we have already read.
+                    log.warn("Could not upgrade encryption of {}; using validated data and deferring migration", fileName, e);
+                }
+            }
             log.info("Reading {} completed in {} ms", fileName, System.currentTimeMillis() - ts);
             return persistableEnvelope;
         } catch (OutOfMemoryError e) {
@@ -396,6 +449,12 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             throw e;
         } catch (Throwable t) {
             log.error("Reading {} failed with {}.", fileName, t.getMessage(), t);
+            if (keyRing != null && !corruptionRecoveryAllowed && source != Source.NETWORK) {
+                encryptedReadFailed = true;
+                if (corruptedStorageFileHandler != null) corruptedStorageFileHandler.addFile(storageFile.getName());
+                throw new IllegalStateException("Cannot read private store " + fileName
+                        + "; original file preserved and writes disabled until restart", t);
+            }
             try {
                 // We keep a backup which might be used for recovery
                 FileUtil.removeAndBackupFile(dir, storageFile, fileName, FileUtil.CORRUPTED_BACKUP_FOLDER);
@@ -412,23 +471,64 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         return null;
     }
 
-    // Reads an encrypted store in two streaming passes so we never hold the whole decrypted payload in
-    // memory (which previously caused OutOfMemoryError on large stores such as ClosedTrades). Pass 1
-    // verifies the hmac and returns the payload length; pass 2 re-reads and parses only the verified
-    // payload bytes, re-checking the hmac over the bytes it actually parsed (the file could in theory
-    // change between the two opens, e.g. through an external backup/sync tool - pass 1's verification
-    // covered a different read). A file that is not a valid encrypted store (e.g. a legacy unencrypted
-    // one) makes pass 1 throw CryptoException, in which case we fall back to reading it without
-    // decryption. The raw FileInputStreams are buffered because CipherInputStream pulls from the
-    // underlying stream in 512-byte chunks - unbuffered, a large store costs ~2000 read syscalls per MB.
+    private static boolean isAuthenticatedStore(File file) throws IOException {
+        try (InputStream in = new BufferedInputStream(new FileInputStream(file), READ_BUFFER_SIZE)) {
+            return AuthenticatedEncryption.isEnvelope(in);
+        }
+    }
+
+    private void migrateEncryptedStore(File file, protobuf.PersistableEnvelope proto, SecretKey key) throws Exception {
+        File temp = java.nio.file.Files.createTempFile(dir.toPath(), file.getName() + ".migration.", ".tmp").toFile();
+        try {
+            try (FileOutputStream out = new FileOutputStream(temp)) {
+                AuthenticatedEncryption.encryptToStream(proto::writeTo, key, "store/" + file.getName(), out);
+                out.getFD().sync();
+            }
+            try (InputStream in = new BufferedInputStream(new FileInputStream(temp), READ_BUFFER_SIZE);
+                 InputStream decrypted = AuthenticatedEncryption.decryptStream(in, key, "store/" + file.getName())) {
+                decrypted.transferTo(java.io.OutputStream.nullOutputStream());
+            }
+            // Retain the old bytes for recovery; never migrate by serializing partially initialized services.
+            if (!FileUtil.rollingBackup(dir, file.getName(), source == null ? 10 : source.getNumMaxBackupFiles())) {
+                throw new IOException("Could not back up store before encryption migration");
+            }
+            java.nio.file.Files.move(temp.toPath(), file.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            FileUtil.syncDirectory(file.getAbsoluteFile().getParentFile());
+        } finally {
+            java.nio.file.Files.deleteIfExists(temp.toPath());
+        }
+    }
+
+    // Two passes authenticate before parsing and again before publishing. BC's GCM stream uses
+    // bounded memory, unlike SunJCE GCM decryption, which buffers the complete plaintext.
     private protobuf.PersistableEnvelope readEncrypted(File storageFile, SecretKey symmetricKey) throws Exception {
+        if (isAuthenticatedStore(storageFile)) {
+            String context = "store/" + storageFile.getName();
+            try (InputStream in = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE);
+                 InputStream decrypted = AuthenticatedEncryption.decryptStream(in, symmetricKey, context)) {
+                decrypted.transferTo(java.io.OutputStream.nullOutputStream());
+            }
+            try (InputStream in = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE);
+                 InputStream decrypted = AuthenticatedEncryption.decryptStream(in, symmetricKey, context)) {
+                CodedInputStream coded = CodedInputStream.newInstance(decrypted);
+                coded.setSizeLimit(Integer.MAX_VALUE);
+                protobuf.PersistableEnvelope proto = protobuf.PersistableEnvelope.parseFrom(coded);
+                decrypted.transferTo(java.io.OutputStream.nullOutputStream());
+                return proto;
+            }
+        }
+        // Pre-versioned stores can be encrypted ECB+HMAC or plaintext delimited protobuf.
         long payloadLength;
         try (InputStream verifyStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
             payloadLength = Encryption.verifyPayloadWithHmacStream(verifyStream, symmetricKey);
         } catch (CryptoException ce) {
             log.warn("Expected encrypted persisted file, attempting to getPersisted without decryption");
             try (InputStream rawStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
-                return protobuf.PersistableEnvelope.parseDelimitedFrom(rawStream);
+                protobuf.PersistableEnvelope proto = protobuf.PersistableEnvelope.parseDelimitedFrom(rawStream);
+                if (proto == null || proto.getMessageCase() == protobuf.PersistableEnvelope.MessageCase.MESSAGE_NOT_SET
+                        || rawStream.read() != -1) throw new IOException("Invalid legacy plaintext store");
+                return proto;
             }
         }
         try (InputStream parseStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE);
@@ -521,6 +621,18 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         persistNow(null, true);
     }
 
+    /** Reports success only after the forced write completes, including fsync and replacement. */
+    public synchronized void forcePersistNow(Runnable completeHandler, Consumer<Throwable> faultHandler) {
+        protobuf.PersistableEnvelope serialized = (protobuf.PersistableEnvelope) persistable.toPersistableMessage();
+        getWriteToDiskExecutor().execute(() -> {
+            boolean written = writeToDisk(serialized, null, true);
+            UserThread.execute(() -> {
+                if (written) completeHandler.run();
+                else faultHandler.accept(new IOException("Could not persist " + fileName));
+            });
+        });
+    }
+
     public void persistNow(@Nullable Runnable completeHandler) {
         persistNow(completeHandler, false);
     }
@@ -548,25 +660,37 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
     }
 
-    private void writeToDisk(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler, boolean force) {
+    private boolean writeToDisk(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler, boolean force) {
+        synchronized (fileAccessLock) {
+            return writeToDiskUnderLock(serialized, completeHandler, force);
+        }
+    }
+
+    private boolean writeToDiskUnderLock(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler, boolean force) {
+        if (encryptedReadFailed) {
+            log.error("Refusing to overwrite unreadable private store {}", fileName);
+            if (completeHandler != null) UserThread.execute(completeHandler);
+            return false;
+        }
         if (!allServicesInitialized.get() && !force) {
             log.warn("Application has not completed start up yet so we do not permit writing data to disk.");
             if (completeHandler != null) {
                 UserThread.execute(completeHandler);
             }
-            return;
+            return false;
         }
         if (keyRing != null && !keyRing.isUnlocked()) {
             log.warn("Account is not open, ignoring writeToDisk.");
             if (completeHandler != null) {
                 UserThread.execute(completeHandler);
             }
-            return;
+            return false;
         }
 
         long ts = System.currentTimeMillis();
         File tempFile = null;
         FileOutputStream fileOutputStream = null;
+        boolean written = false;
 
         try {
             // Before we write we backup existing file
@@ -584,12 +708,8 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             fileOutputStream = new FileOutputStream(tempFile);
 
             if (keyRing != null) {
-                // Stream the encryption directly to disk with constant memory: the proto is written
-                // through the hmac and the cipher in two passes, so neither a serialized byte[] nor
-                // an encrypted byte[] of the whole store is ever built. The array-building variants
-                // could throw OutOfMemoryError for large stores and silently leave the on-disk file
-                // frozen at the last successful write.
-                Encryption.encryptPayloadWithHmacToStream(serialized::writeTo, keyRing.getSymmetricKey(), fileOutputStream);
+                AuthenticatedEncryption.encryptToStream(serialized::writeTo, keyRing.getSymmetricKey(),
+                        "store/" + fileName, fileOutputStream);
             } else {
                 serialized.writeDelimitedTo(fileOutputStream);
             }
@@ -603,8 +723,9 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             // when rename temp file
             fileOutputStream.close();
 
-            FileUtil.renameFile(tempFile, storageFile);
+            FileUtil.atomicReplace(tempFile, storageFile);
             usedTempFilePath = tempFile.toPath();
+            written = true;
         } catch (Throwable t) {
             // If an error occurred, don't attempt to reuse this path again, in case temp file cleanup fails.
             usedTempFilePath = null;
@@ -635,6 +756,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
                 UserThread.execute(completeHandler);
             }
         }
+        return written;
     }
 
     private ExecutorService getWriteToDiskExecutor() {

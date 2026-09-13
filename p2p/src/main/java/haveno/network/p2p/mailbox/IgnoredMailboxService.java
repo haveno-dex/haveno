@@ -37,6 +37,7 @@ public class IgnoredMailboxService implements PersistedDataHost {
     @Inject
     public IgnoredMailboxService(PersistenceManager<IgnoredMailboxMap> persistenceManager) {
         this.persistenceManager = persistenceManager;
+        this.persistenceManager.allowCorruptionRecovery();
         this.persistenceManager.initialize(ignoredMailboxMap, PersistenceManager.Source.PRIVATE_LOW_PRIO);
     }
 

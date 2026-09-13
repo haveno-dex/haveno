@@ -28,16 +28,26 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 public class CorruptedStorageFileHandler {
     private final List<String> files = new ArrayList<>();
+    private final List<String> preservedFiles = new ArrayList<>();
 
     @Inject
     public CorruptedStorageFileHandler() {
     }
 
-    public void addFile(String fileName) {
+    public synchronized void addFile(String fileName) {
         files.add(fileName);
     }
 
-    public Optional<List<String>> getFiles() {
+    public synchronized void addPreservedFile(String fileName) {
+        files.removeIf(fileName::equals);
+        if (!preservedFiles.contains(fileName)) preservedFiles.add(fileName);
+    }
+
+    public synchronized Optional<List<String>> getPreservedFiles() {
+        return preservedFiles.isEmpty() ? Optional.empty() : Optional.of(new ArrayList<>(preservedFiles));
+    }
+
+    public synchronized Optional<List<String>> getFiles() {
         if (files.isEmpty()) {
             return Optional.empty();
         }
@@ -49,6 +59,6 @@ public class CorruptedStorageFileHandler {
             return Optional.empty();
         }
 
-        return Optional.of(files);
+        return Optional.of(new ArrayList<>(files));
     }
 }

@@ -20,6 +20,7 @@ package haveno.core.trade.protocol.tasks;
 
 import com.google.common.base.Charsets;
 import haveno.common.app.Version;
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.PubKeyRing;
@@ -109,7 +110,9 @@ public class ProcessSignContractRequest extends TradeTask {
               // encrypt payment account payload
               byte[] unencrypted = trade.getSelf().getPaymentAccountPayload().toProtoMessage().toByteArray();
               SecretKey sk = Encryption.getSecretKeyFromBytes(trade.getSelf().getPaymentAccountKey());
-              encryptedPaymentAccountPayload = Encryption.encrypt(unencrypted, sk);
+              encryptedPaymentAccountPayload = Version.NETWORK_ENCRYPTION_VERSION == 2
+                      ? AuthenticatedEncryption.encrypt(unencrypted, sk, "payment-account")
+                      : Encryption.encrypt(unencrypted, sk);
           }
 
           // create response with contract signature

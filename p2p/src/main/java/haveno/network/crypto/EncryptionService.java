@@ -19,6 +19,8 @@ package haveno.network.crypto;
 
 import com.google.inject.Inject;
 import com.google.protobuf.InvalidProtocolBufferException;
+import haveno.common.app.Version;
+import haveno.common.crypto.AuthenticatedEncryption;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
 import static haveno.common.crypto.Encryption.decryptSecretKey;
@@ -69,7 +71,10 @@ public class EncryptionService {
             throw new CryptoException("Signature verification failed.");
 
         try {
-            final byte[] bytes = Encryption.decryptPayloadWithHmac(sealedAndSigned.getEncryptedPayloadWithHmac(), secretKey);
+            byte[] encrypted = sealedAndSigned.getEncryptedPayloadWithHmac();
+            final byte[] bytes = AuthenticatedEncryption.isEnvelope(encrypted)
+                    ? AuthenticatedEncryption.decrypt(encrypted, secretKey, "p2p-message")
+                    : Encryption.decryptPayloadWithHmac(encrypted, secretKey);
             final protobuf.NetworkEnvelope envelope = protobuf.NetworkEnvelope.parseFrom(bytes);
             NetworkEnvelope decryptedPayload = networkProtoResolver.fromProto(envelope);
             return new DecryptedDataTuple(decryptedPayload, sealedAndSigned.getSigPublicKey());
@@ -89,10 +94,6 @@ public class EncryptionService {
                 decryptedDataTuple.getSigPublicKey());
     }
 
-    private static byte[] encryptPayloadWithHmac(NetworkEnvelope networkEnvelope, SecretKey secretKey) throws CryptoException {
-        return Encryption.encryptPayloadWithHmac(networkEnvelope.toProtoNetworkEnvelope().toByteArray(), secretKey);
-    }
-
     /**
      * @param payload             The data to encrypt.
      * @param signatureKeyPair    The key pair for signing.
@@ -103,6 +104,12 @@ public class EncryptionService {
     public static SealedAndSigned encryptHybridWithSignature(NetworkEnvelope payload, KeyPair signatureKeyPair,
                                                              PublicKey encryptionPublicKey)
             throws CryptoException {
+        return encryptHybridWithSignature(payload, signatureKeyPair, encryptionPublicKey, Version.NETWORK_ENCRYPTION_VERSION);
+    }
+
+    static SealedAndSigned encryptHybridWithSignature(NetworkEnvelope payload, KeyPair signatureKeyPair,
+                                                      PublicKey encryptionPublicKey, int version) throws CryptoException {
+        if (version != 1 && version != 2) throw new CryptoException("Unsupported network encryption version");
         // Create a symmetric key
         SecretKey secretKey = Encryption.generateSecretKey(256);
 
@@ -110,7 +117,10 @@ public class EncryptionService {
         byte[] encryptedSecretKey = Encryption.encryptSecretKey(secretKey, encryptionPublicKey);
 
         // Encrypt with sym key payload with appended hmac
-        byte[] encryptedPayloadWithHmac = encryptPayloadWithHmac(payload, secretKey);
+        byte[] bytes = payload.toProtoNetworkEnvelope().toByteArray();
+        byte[] encryptedPayloadWithHmac = version == 2
+                ? AuthenticatedEncryption.encrypt(bytes, secretKey, "p2p-message")
+                : Encryption.encryptPayloadWithHmac(bytes, secretKey);
 
         // sign hash of encryptedPayloadWithHmac
         byte[] hash = Hash.getSha256Hash(encryptedPayloadWithHmac);

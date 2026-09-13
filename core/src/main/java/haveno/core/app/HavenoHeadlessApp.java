@@ -94,6 +94,7 @@ public class HavenoHeadlessApp implements HeadlessApp {
                 lastVersion, Version.VERSION));
         havenoSetup.setTorAddressUpgradeHandler(() -> log.info("setTorAddressUpgradeHandler"));
         corruptedStorageFileHandler.getFiles().ifPresent(files -> log.warn("getCorruptedDatabaseFiles. files={}", files));
+        corruptedStorageFileHandler.getPreservedFiles().ifPresent(files -> log.warn("Closed-trade history is incomplete; files preserved for recovery: {}. Cleanup is deferred until recovery and restart.", files));
     }
 
     public void stop() {
