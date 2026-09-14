@@ -896,7 +896,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             Window window = rootScene.getWindow();
             double titleBarHeight = window.getHeight() - rootScene.getHeight();
             if (Utilities.isWindows())
-                titleBarHeight -= 9;
+                titleBarHeight = rootScene.getY();
             stage.setX(Math.round(window.getX() + (rootScene.getWidth() - stage.getWidth()) / 2));
 
             if (type.animationType == AnimationType.SlideDownFromCenterTop)
