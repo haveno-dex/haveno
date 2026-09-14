@@ -414,7 +414,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         model.getShowAppScreen().addListener((ov, oldValue, newValue) -> {
             if (newValue) {
-
+                // queue welcome before restoring a view that may also show a popup
+                model.maybeShowWelcomeWindow();
                 navigation.navigateToPreviousVisitedView();
 
                 // fade the shell's branding overlay out to reveal the app, then dispose the status listeners
