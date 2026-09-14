@@ -109,7 +109,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private List<String> ignoreTradersList = new ArrayList<>();
     private String directoryChooserPath;
 
-    private boolean useAnimations;
+    private boolean useAnimations = true;
     private int cssTheme;
     @Nullable
     private PaymentAccount selectedPaymentAccountForCreateOffer;
