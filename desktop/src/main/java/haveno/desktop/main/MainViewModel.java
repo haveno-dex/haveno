@@ -289,7 +289,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     // After showAppScreen is set and splash screen is faded out
     void onSplashScreenRemoved() {
-        maybeShowWelcomeWindow();
         isSplashScreenRemoved.set(true);
 
         // Delay that as we want to know what is the current path of the navigation which is set
@@ -299,7 +298,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         maybeShowPopupsFromQueue();
     }
 
-    private void maybeShowWelcomeWindow() {
+    void maybeShowWelcomeWindow() {
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET || Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_MAINNET) {
             String key = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_STAGENET ? "welcome.stagenet" : "welcome.mainnet";
             if (DontShowAgainLookup.showAgain(key)) {
