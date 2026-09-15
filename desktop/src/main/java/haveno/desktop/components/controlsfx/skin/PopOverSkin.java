@@ -227,7 +227,7 @@ public class PopOverSkin implements Skin<PopOver> {
         updatePath();
 
         final EventHandler<MouseEvent> mousePressedHandler = evt -> {
-            log.info("mousePressed:" + popOver.isDetachable() + "," + popOver.isDetached());
+            log.debug("mousePressed:" + popOver.isDetachable() + "," + popOver.isDetached());
             if (popOver.isDetachable() || popOver.isDetached()) {
                 tornOff = false;
 
@@ -239,7 +239,7 @@ public class PopOverSkin implements Skin<PopOver> {
         };
 
         final EventHandler<MouseEvent> mouseReleasedHandler = evt -> {
-            log.info("mouseReleased:tornOff" + tornOff + ", " + !getSkinnable().isDetached());
+            log.debug("mouseReleased:tornOff" + tornOff + ", " + !getSkinnable().isDetached());
             if (tornOff && !getSkinnable().isDetached()) {
                 tornOff = false;
                 getSkinnable().detach();
@@ -247,7 +247,7 @@ public class PopOverSkin implements Skin<PopOver> {
         };
 
         final EventHandler<MouseEvent> mouseDragHandler = evt -> {
-            log.info("mouseDrag:" + popOver.isDetachable() + "," + popOver.isDetached());
+            log.debug("mouseDrag:" + popOver.isDetachable() + "," + popOver.isDetached());
             if (popOver.isDetachable() || popOver.isDetached()) {
                 double deltaX = evt.getScreenX() - xOffset;
                 double deltaY = evt.getScreenY() - yOffset;
