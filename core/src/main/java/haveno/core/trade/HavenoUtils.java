@@ -734,6 +734,10 @@ public class HavenoUtils {
         playAudioFile("chime.wav");
     }
 
+    public static void playChatSound() {
+        playAudioFile("chat.wav");
+    }
+
     public static void playCashRegisterSound() {
         playAudioFile("cash_register.wav");
     }
