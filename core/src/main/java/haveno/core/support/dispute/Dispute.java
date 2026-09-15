@@ -454,11 +454,12 @@ public final class Dispute implements NetworkPayload, PersistablePayload {
     public void refreshAlertLevel(boolean senderFlag) {
         // if the dispute is "new" that is 1 alert that has to be propagated upstream
         // or if there are unread messages that is 1 alert that has to be propagated upstream
-        if (isNew() || unreadMessageCount(senderFlag) > 0) {
-            badgeCountProperty.setValue(1);
-        } else {
-            badgeCountProperty.setValue(0);
+        int count;
+        synchronized (chatMessages) {
+            count = isNew() || unreadMessageCount(senderFlag) > 0 ? 1 : 0;
         }
+        // notify after releasing the chat lock, since badge listeners can acquire the dispute-list lock
+        badgeCountProperty.setValue(count);
     }
 
     public long unreadMessageCount(boolean senderFlag) {

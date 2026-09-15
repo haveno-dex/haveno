@@ -24,7 +24,10 @@ import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.FormBuilder;
+import java.util.function.BooleanSupplier;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Modality;
 import javafx.stage.Window;
@@ -33,6 +36,7 @@ public class Notification extends Overlay<Notification> {
     private boolean hasBeenDisplayed;
     private boolean autoClose;
     private Timer autoCloseTimer;
+    private BooleanSupplier displayCondition = () -> true;
     private static final int BORDER_PADDING = 10;
 
     public Notification() {
@@ -42,6 +46,11 @@ public class Notification extends Overlay<Notification> {
     }
 
     void onReadyForDisplay() {
+        if (!displayCondition.getAsBoolean()) {
+            onDiscarded();
+            NotificationManager.onHidden(this);
+            return;
+        }
         super.display();
 
         if (autoClose && autoCloseTimer == null)
@@ -49,7 +58,14 @@ public class Notification extends Overlay<Notification> {
 
         UserThread.execute(() -> {
             if (stage != null && stage.isShowing())
-                stage.addEventHandler(MouseEvent.MOUSE_PRESSED, (event) -> doClose());
+                stage.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+                    // buttons need the release event to run their action before the notification closes
+                    for (Node node = event.getTarget() instanceof Node ? (Node) event.getTarget() : null;
+                         node != null; node = node.getParent()) {
+                        if (node instanceof ButtonBase) return;
+                    }
+                    doClose();
+                });
         });
     }
 
@@ -66,7 +82,12 @@ public class Notification extends Overlay<Notification> {
 
     @Override
     protected void onHidden() {
+        onDiscarded();
         NotificationManager.onHidden(this);
+    }
+
+    void onDiscarded() {
+        isHiddenProperty.set(true);
     }
 
     public Notification tradeHeadLine(String tradeId) {
@@ -89,6 +110,11 @@ public class Notification extends Overlay<Notification> {
 
     public Notification autoClose() {
         autoClose = true;
+        return this;
+    }
+
+    public Notification onlyShowIf(BooleanSupplier condition) {
+        displayCondition = condition;
         return this;
     }
 

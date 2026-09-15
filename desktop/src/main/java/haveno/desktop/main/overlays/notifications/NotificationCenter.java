@@ -22,12 +22,17 @@ import com.google.inject.Singleton;
 
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
+import haveno.common.util.Utilities;
 import haveno.core.api.NotificationListener;
 import haveno.core.locale.Res;
+import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeList;
+import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
+import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.BuyerTrade;
 import haveno.core.trade.MakerTrade;
 import haveno.core.trade.SellerTrade;
@@ -43,17 +48,24 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.support.SupportView;
 import haveno.desktop.main.support.dispute.DisputeView;
 import haveno.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
+import haveno.desktop.main.support.dispute.agent.mediation.MediatorView;
+import haveno.desktop.main.support.dispute.agent.refund.RefundAgentView;
 import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
 import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 import haveno.proto.grpc.NotificationMessage;
 import haveno.proto.grpc.NotificationMessage.NotificationType;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javax.annotation.Nullable;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -90,6 +102,11 @@ public class NotificationCenter {
 
     private final Map<String, Subscription> disputeStateSubscriptionsMap = new HashMap<>();
     private final Map<String, Subscription> tradePhaseSubscriptionsMap = new HashMap<>();
+    private final Set<ObservableList<ChatMessage>> openChats = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ObservableList<ChatMessage>> observedChats = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<ObservableList<ChatMessage>, Notification> chatNotifications = new IdentityHashMap<>();
+    private final Set<String> notifiedChatMessages = new HashSet<>();
+    private final ListChangeListener<ChatMessage> chatMessagesListener = change -> UserThread.execute(this::refreshChatState);
     @Nullable
     private String selectedTradeId;
 
@@ -114,6 +131,14 @@ public class NotificationCenter {
     }
 
     public void onAllServicesAndViewsInitialized() {
+        tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change ->
+                UserThread.execute(this::refreshChatState));
+        for (DisputeManager<? extends DisputeList<Dispute>> manager : getDisputeManagers()) {
+            manager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) change ->
+                    UserThread.execute(this::refreshChatState));
+        }
+        refreshChatState();
+
         tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> {
             change.next();
             if (change.wasRemoved()) {
@@ -164,13 +189,17 @@ public class NotificationCenter {
                 }
         );
 
-        // show popup for error notifications
+        // show popups for chat and error notifications
         tradeManager.getNotificationService().addListener(new NotificationListener() {
             @Override
             public void onMessage(@NonNull NotificationMessage message) {
-                if (message.getType() == NotificationType.ERROR) {
-                    new Popup().warning(message.getMessage()).show();
-                }
+                UserThread.execute(() -> {
+                    if (message.getType() == NotificationType.ERROR) {
+                        new Popup().warning(message.getMessage()).show();
+                    } else if (message.getType() == NotificationType.CHAT_MESSAGE) {
+                        onChatMessage(message.getChatMessage());
+                    }
+                });
             }
         });
     }
@@ -190,6 +219,133 @@ public class NotificationCenter {
 
     public void setSelectItemByTradeIdConsumer(Consumer<String> selectItemByTradeIdConsumer) {
         this.selectItemByTradeIdConsumer = selectItemByTradeIdConsumer;
+    }
+
+    public void onChatOpened(ObservableList<ChatMessage> messages) {
+        openChats.add(messages);
+        Notification notification = chatNotifications.remove(messages);
+        if (notification != null && notification.isDisplayed()) notification.hide();
+        refreshChatState();
+    }
+
+    public void onChatClosed(ObservableList<ChatMessage> messages) {
+        openChats.remove(messages);
+        refreshChatState();
+    }
+
+    private void navigateToTrade(Trade trade) {
+        navigation.navigateToWithData(trade, MainView.class, PortfolioView.class, PendingTradesView.class);
+    }
+
+    private void navigateToDispute(Dispute dispute, DisputeManager<? extends DisputeList<Dispute>> manager) {
+        boolean agent = manager.isAgent(dispute);
+        Class<? extends DisputeView> viewClass = manager == arbitrationManager ?
+                (agent ? ArbitratorView.class : ArbitrationClientView.class) : manager == mediationManager ?
+                (agent ? MediatorView.class : MediationClientView.class) :
+                (agent ? RefundAgentView.class : RefundClientView.class);
+        navigation.navigateToWithData(dispute, MainView.class, SupportView.class, viewClass);
+    }
+
+    private List<DisputeManager<? extends DisputeList<Dispute>>> getDisputeManagers() {
+        return List.of(arbitrationManager, mediationManager, refundManager);
+    }
+
+    private static <T> List<T> snapshot(ObservableList<T> list) {
+        synchronized (list) {
+            return new ArrayList<>(list);
+        }
+    }
+
+    private static boolean isUnreadChat(ChatMessage message, boolean senderFlag) {
+        return !message.isWasDisplayed() && !message.isSystemMessage() && message.isSenderIsTrader() == senderFlag;
+    }
+
+    private void refreshChatState() {
+        Set<ObservableList<ChatMessage>> currentChats = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Trade trade : snapshot(tradeManager.getObservableList())) {
+            observeChat(trade.getChatMessages(), currentChats);
+        }
+        for (DisputeManager<? extends DisputeList<Dispute>> manager : getDisputeManagers()) {
+            for (Dispute dispute : snapshot(manager.getDisputesAsObservableList())) {
+                observeChat(dispute.getChatMessages(), currentChats);
+                boolean agent = manager.isAgent(dispute);
+                dispute.refreshAlertLevel(agent);
+            }
+        }
+        observedChats.removeIf(messages -> {
+            if (currentChats.contains(messages)) return false;
+            synchronized (messages) {
+                messages.removeListener(chatMessagesListener);
+            }
+            return true;
+        });
+    }
+
+    private void observeChat(ObservableList<ChatMessage> messages, Set<ObservableList<ChatMessage>> currentChats) {
+        currentChats.add(messages);
+        if (observedChats.add(messages)) {
+            synchronized (messages) {
+                messages.addListener(chatMessagesListener);
+            }
+        }
+    }
+
+    private void onChatMessage(protobuf.ChatMessage incoming) {
+        if (incoming.getType() == protobuf.SupportType.TRADE) {
+            tradeManager.getOpenTrade(incoming.getTradeId()).ifPresent(trade -> {
+                if (!trade.isArbitrator()) {
+                    snapshot(trade.getChatMessages()).stream()
+                            .filter(message -> message.getUid().equals(incoming.getUid()))
+                            .filter(message -> isUnreadChat(message, trade.isMaker()))
+                            .findFirst().ifPresent(message -> notifyChatMessage(message, trade.getChatMessages(),
+                                    tradeManager::requestPersistence, () -> navigateToTrade(trade)));
+                }
+            });
+        } else {
+            DisputeManager<? extends DisputeList<Dispute>> manager = switch (incoming.getType()) {
+                case ARBITRATION -> arbitrationManager;
+                case MEDIATION -> mediationManager;
+                case REFUND -> refundManager;
+                default -> null;
+            };
+            if (manager != null) {
+                manager.findDispute(incoming.getTradeId(), incoming.getTraderId()).ifPresent(dispute ->
+                        snapshot(dispute.getChatMessages()).stream()
+                                .filter(message -> message.getUid().equals(incoming.getUid()))
+                                .filter(message -> isUnreadChat(message, manager.isAgent(dispute)))
+                                .findFirst().ifPresent(message -> notifyChatMessage(message, dispute.getChatMessages(),
+                                        manager::requestPersistence, () -> navigateToDispute(dispute, manager))));
+            }
+        }
+        refreshChatState();
+    }
+
+    private void notifyChatMessage(ChatMessage message, ObservableList<ChatMessage> messages,
+                                   Runnable persist, Runnable navigate) {
+        if (openChats.contains(messages)) {
+            message.setWasDisplayed(true);
+            persist.run();
+            return;
+        }
+        String key = message.getSupportType() + ":" + message.getTradeId() + ":" + message.getTraderId() + ":" + message.getUid();
+        if (!notifiedChatMessages.add(key)) return;
+        if (chatNotifications.containsKey(messages)) return;
+
+        boolean support = message.getSupportType() != SupportType.TRADE;
+        // a delayed hide can bring the main window over a newly opened chat
+        Notification notification = new Notification()
+                .useAnimation(false)
+                .headLine(Res.get(support ? "notification.chat.support" : "notification.chat.trade", Utilities.getShortId(message.getTradeId())))
+                .message(Res.get("notification.chat.message"))
+                .actionButtonText(Res.get(support ? "notification.chat.goToTicket" : "notification.chat.goToTrade"))
+                .onAction(navigate)
+                .onlyShowIf(() -> observedChats.contains(messages) && !message.isWasDisplayed() && !openChats.contains(messages));
+        chatNotifications.put(messages, notification);
+        notification.getIsHiddenProperty().addListener((observable, oldValue, hidden) -> {
+            if (hidden) chatNotifications.remove(messages, notification);
+        });
+        notification.show();
+        if (!notification.isHasBeenDisplayed()) chatNotifications.remove(messages, notification);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

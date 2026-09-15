@@ -30,9 +30,11 @@ public class NotificationManager {
 
     public static void queueForDisplay(Notification popup) {
         boolean result = popups.offer(popup);
-        if (!result)
+        if (!result) {
             log.warn("The capacity is full with popups in the queue.\n\t" +
                     "Not added new popup=" + popup);
+            popup.onDiscarded();
+        }
         displayNext();
     }
 

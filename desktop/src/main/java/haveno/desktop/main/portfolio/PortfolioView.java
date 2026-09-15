@@ -301,6 +301,9 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
 
         currentTab.setContent(view instanceof OpenOffersView ? openOffersContainer : view.getRoot());
         root.getSelectionModel().select(currentTab);
+        if (view instanceof PendingTradesView pendingTradesView && data instanceof Trade trade) {
+            pendingTradesView.selectTrade(trade);
+        }
     }
 
     private void selectOpenOffersView(OpenOffersView view) {
@@ -342,4 +345,3 @@ public class PortfolioView extends ActivatableView<TabPane, Void> {
         void onCloneOpenOffer(OpenOffer openOffer);
     }
 }
-

@@ -48,6 +48,7 @@ import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.PeerInfoIconTrading;
 import haveno.desktop.components.list.FilterBox;
 import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
@@ -140,6 +141,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private Subscription selectedTableItemSubscription;
     private Subscription selectedItemSubscription;
     private Stage chatPopupStage;
+    private final NotificationCenter notificationCenter;
     private ListChangeListener<PendingTradesListItem> tradesListChangeListener;
     private final Map<String, Long> newChatMessagesByTradeMap = new HashMap<>();
     private String tradeIdOfOpenChat;
@@ -161,6 +163,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     public PendingTradesView(PendingTradesViewModel model,
                              TradeDetailsWindow tradeDetailsWindow,
                              Navigation navigation,
+                             NotificationCenter notificationCenter,
                              KeyRing keyRing,
                              @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                              PrivateNotificationManager privateNotificationManager,
@@ -170,6 +173,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         super(model);
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.navigation = navigation;
+        this.notificationCenter = notificationCenter;
         this.keyRing = keyRing;
         this.formatter = formatter;
         this.privateNotificationManager = privateNotificationManager;
@@ -591,6 +595,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatView.scrollToBottom();
 
         chatPopupStage = new Stage();
+        chatPopupStage.setOnShowing(event -> notificationCenter.onChatOpened(trade.getChatMessages()));
         model.getChatOpen().bind(chatPopupStage.showingProperty());
         chatPopupStage.setTitle(Res.get("tradeChat.chatWindowTitle", trade.getShortId()));
         Scene rootScene = MainView.getRootContainer().getScene();
@@ -604,6 +609,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             // at close we set all as displayed. While open we ignore updates of the numNewMsg in the list icon.
             trade.getChatMessages().forEach(m -> m.setWasDisplayed(true));
             model.dataModel.getTradeManager().requestPersistence();
+            notificationCenter.onChatClosed(trade.getChatMessages());
             tradeIdOfOpenChat = null;
             if (selectedSubView != null) selectedSubView.setOpenChatTradeId(null);
 
@@ -654,12 +660,23 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateTableSelection() {
-        PendingTradesListItem selectedItemFromModel = model.dataModel.selectedItemProperty.get();
-        if (selectedItemFromModel != null) {
-            // Select and focus selectedItem from model
-            int index = tableView.getItems().indexOf(selectedItemFromModel);
-            UserThread.execute(() -> tableView.getSelectionModel().select(index));
-        }
+        // resolve the current selection after queued updates so an older row cannot replace the notification target
+        UserThread.execute(() -> {
+            PendingTradesListItem selectedItemFromModel = model.dataModel.selectedItemProperty.get();
+            if (selectedItemFromModel != null) {
+                tableView.getSelectionModel().select(tableView.getItems().indexOf(selectedItemFromModel));
+            }
+        });
+    }
+
+    public void selectTrade(Trade trade) {
+        filterBox.clear();
+        UserThread.execute(() -> tableView.getItems().stream()
+                .filter(item -> item.getTrade().getId().equals(trade.getId()))
+                .findFirst().ifPresent(item -> {
+                    tableView.getSelectionModel().select(item);
+                    tableView.scrollTo(item);
+                }));
     }
 
     private void onListChanged() {

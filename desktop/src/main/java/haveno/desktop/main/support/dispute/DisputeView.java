@@ -34,6 +34,7 @@
 
 package haveno.desktop.main.support.dispute;
 
+import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
@@ -69,6 +70,7 @@ import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.PeerInfoIconDispute;
 import haveno.desktop.components.PeerInfoIconMap;
+import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.ContractWindow;
 import haveno.desktop.main.overlays.windows.DisputeSummaryWindow;
@@ -171,6 +173,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     protected Dispute selectedDispute;
     @Nullable
     private String tradeIdToSelect;
+    @Nullable
+    private Integer traderIdToSelect;
 
     private Subscription selectedDisputeSubscription;
     protected FilteredList<Dispute> filteredList;
@@ -219,7 +223,11 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.arbitratorManager = arbitratorManager;
         this.useDevPrivilegeKeys = useDevPrivilegeKeys;
-        chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, this);
+    }
+
+    @Inject
+    void initializeChatPopup(NotificationCenter notificationCenter) {
+        chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, this, notificationCenter);
     }
 
     @Override
@@ -359,18 +367,28 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         sortedList.comparatorProperty().unbind();
         selectedDisputeSubscription.unsubscribe();
         tradeIdToSelect = null;
+        traderIdToSelect = null;
     }
 
     public void setTradeIdToSelect(@Nullable String tradeId) {
         tradeIdToSelect = tradeId;
+        traderIdToSelect = null;
+    }
+
+    public void setDisputeToSelect(Dispute dispute) {
+        tradeIdToSelect = dispute.getTradeId();
+        traderIdToSelect = dispute.getTraderId();
     }
 
     private void selectRequestedDispute() {
         String tradeId = tradeIdToSelect;
+        Integer traderId = traderIdToSelect;
         tradeIdToSelect = null;
+        traderIdToSelect = null;
         if (tradeId == null || root.getScene() == null) return;
         disputeManager.getDisputesAsObservableList().stream()
                 .filter(dispute -> dispute.getTradeId().equals(tradeId))
+                .filter(dispute -> traderId == null || dispute.getTraderId() == traderId)
                 .filter(dispute -> getFilterResult(dispute, "") != FilterResult.NO_MATCH)
                 .findFirst().ifPresent(dispute -> {
                     if (!sortedList.contains(dispute)) filterTextField.clear();
