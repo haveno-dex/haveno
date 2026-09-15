@@ -1075,7 +1075,9 @@ tree-table-view:focused {
 
 
 .jfx-badge > .nav-button,
-.jfx-badge > .nav-secondary-button {
+.jfx-badge > .nav-secondary-button,
+.nav-notification > .nav-button,
+.nav-notification > .nav-secondary-button {
     -fx-translate-y: 1;
 }
 
@@ -1086,6 +1088,26 @@ tree-table-view:focused {
     -fx-padding: 7 15;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
+}
+
+.nav-unread-dot,
+.tab-unread-dot {
+    -fx-fill: -bs-red;
+    -fx-stroke: -bs-rd-nav-deselected;
+    -fx-stroke-width: 1.5;
+}
+
+.tab-unread-dot {
+    -fx-stroke: -bs-color-gray-background;
+}
+
+.nav-primary .nav-unread-dot {
+    -fx-translate-x: 4;
+    -fx-translate-y: -4;
+}
+
+.nav-secondary .nav-unread-dot {
+    -fx-stroke: -bs-content-pane-bg-top;
 }
 
 .nav-button .text {
@@ -2616,6 +2638,11 @@ textfield */
     -fx-font-size: .95em;
     -fx-font-weight: normal;
     -fx-cursor: hand;
+}
+
+.jfx-tab-pane .headers-region .unread-trade-chat-tab .tab-container .tab-label {
+    -fx-content-display: right;
+    -fx-graphic-text-gap: 0;
 }
 
 /* heading label-tab sits flush with the content's left inset (no leading tab pad);

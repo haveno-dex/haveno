@@ -35,7 +35,9 @@ import javafx.stage.Window;
 public class Notification extends Overlay<Notification> {
     private boolean hasBeenDisplayed;
     private boolean autoClose;
+    private int autoCloseSeconds = 6;
     private Timer autoCloseTimer;
+    private long autoCloseGeneration;
     private BooleanSupplier displayCondition = () -> true;
     private static final int BORDER_PADDING = 10;
 
@@ -54,7 +56,7 @@ public class Notification extends Overlay<Notification> {
         super.display();
 
         if (autoClose && autoCloseTimer == null)
-            autoCloseTimer = UserThread.runAfter(this::doClose, 6);
+            startAutoCloseTimer();
 
         UserThread.execute(() -> {
             if (stage != null && stage.isShowing())
@@ -87,6 +89,7 @@ public class Notification extends Overlay<Notification> {
     }
 
     void onDiscarded() {
+        stopAutoCloseTimer();
         isHiddenProperty.set(true);
     }
 
@@ -109,7 +112,24 @@ public class Notification extends Overlay<Notification> {
 
 
     public Notification autoClose() {
+        return autoClose(6);
+    }
+
+    public Notification autoClose(int seconds) {
+        if (seconds <= 0) throw new IllegalArgumentException("Auto-close delay must be positive");
         autoClose = true;
+        autoCloseSeconds = seconds;
+        return this;
+    }
+
+    @Override
+    public Notification message(String message) {
+        super.message(message);
+        if (messageTextArea != null) messageTextArea.setText(truncatedMessage);
+        if (autoCloseTimer != null) {
+            stopAutoCloseTimer();
+            startAutoCloseTimer();
+        }
         return this;
     }
 
@@ -120,12 +140,37 @@ public class Notification extends Overlay<Notification> {
 
     @Override
     protected void animateHide(Runnable onFinishedHandler) {
+        stopAutoCloseTimer();
+        super.animateHide(onFinishedHandler);
+    }
+
+    private void startAutoCloseTimer() {
+        startAutoCloseTimer(autoCloseSeconds);
+    }
+
+    private void startAutoCloseTimer(int seconds) {
+        long generation = ++autoCloseGeneration;
+        autoCloseTimer = UserThread.runAfter(() -> {
+            // a stopped timer may already have queued its callback on the user thread
+            if (generation != autoCloseGeneration) return;
+            // hiding an owned stage raises its owner, so wait while another window has focus
+            Window ownerWindow = stage == null ? null : stage.getOwner();
+            if (stage != null && stage.isShowing() && !stage.isFocused() && ownerWindow != null &&
+                    !ownerWindow.isFocused() && Window.getWindows().stream()
+                    .anyMatch(window -> window != stage && window != ownerWindow && window.isFocused())) {
+                startAutoCloseTimer(1);
+            } else {
+                doClose();
+            }
+        }, seconds);
+    }
+
+    private void stopAutoCloseTimer() {
+        autoCloseGeneration++;
         if (autoCloseTimer != null) {
             autoCloseTimer.stop();
             autoCloseTimer = null;
         }
-
-        super.animateHide(onFinishedHandler);
     }
 
     @Override

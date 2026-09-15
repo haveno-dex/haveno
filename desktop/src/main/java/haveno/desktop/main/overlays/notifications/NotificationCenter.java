@@ -64,6 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javax.annotation.Nullable;
@@ -107,6 +109,7 @@ public class NotificationCenter {
     private final Map<ObservableList<ChatMessage>, Notification> chatNotifications = new IdentityHashMap<>();
     private final Set<String> notifiedChatMessages = new HashSet<>();
     private final ListChangeListener<ChatMessage> chatMessagesListener = change -> UserThread.execute(this::refreshChatState);
+    private final ReadOnlyBooleanWrapper unreadTradeChat = new ReadOnlyBooleanWrapper();
     @Nullable
     private String selectedTradeId;
 
@@ -208,6 +211,10 @@ public class NotificationCenter {
     // Setter/Getter
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public ReadOnlyBooleanProperty unreadTradeChatProperty() {
+        return unreadTradeChat.getReadOnlyProperty();
+    }
+
     @Nullable
     public String getSelectedTradeId() {
         return selectedTradeId;
@@ -223,8 +230,7 @@ public class NotificationCenter {
 
     public void onChatOpened(ObservableList<ChatMessage> messages) {
         openChats.add(messages);
-        Notification notification = chatNotifications.remove(messages);
-        if (notification != null && notification.isDisplayed()) notification.hide();
+        dismissChatNotification(messages);
         refreshChatState();
     }
 
@@ -234,7 +240,8 @@ public class NotificationCenter {
     }
 
     private void navigateToTrade(Trade trade) {
-        navigation.navigateToWithData(trade, MainView.class, PortfolioView.class, PendingTradesView.class);
+        navigation.navigateToWithData(new PendingTradesView.OpenChatRequest(trade),
+                MainView.class, PortfolioView.class, PendingTradesView.class);
     }
 
     private void navigateToDispute(Dispute dispute, DisputeManager<? extends DisputeList<Dispute>> manager) {
@@ -262,8 +269,14 @@ public class NotificationCenter {
 
     private void refreshChatState() {
         Set<ObservableList<ChatMessage>> currentChats = Collections.newSetFromMap(new IdentityHashMap<>());
+        boolean hasUnreadTradeChat = false;
         for (Trade trade : snapshot(tradeManager.getObservableList())) {
-            observeChat(trade.getChatMessages(), currentChats);
+            ObservableList<ChatMessage> messages = trade.getChatMessages();
+            observeChat(messages, currentChats);
+            if (!trade.isArbitrator() && !openChats.contains(messages) &&
+                    snapshot(messages).stream().anyMatch(message -> isUnreadChat(message, trade.isMaker()))) {
+                hasUnreadTradeChat = true;
+            }
         }
         for (DisputeManager<? extends DisputeList<Dispute>> manager : getDisputeManagers()) {
             for (Dispute dispute : snapshot(manager.getDisputesAsObservableList())) {
@@ -279,6 +292,15 @@ public class NotificationCenter {
             }
             return true;
         });
+        new ArrayList<>(chatNotifications.keySet()).stream()
+                .filter(messages -> !currentChats.contains(messages))
+                .forEach(this::dismissChatNotification);
+        unreadTradeChat.set(hasUnreadTradeChat);
+    }
+
+    private void dismissChatNotification(ObservableList<ChatMessage> messages) {
+        Notification notification = chatNotifications.remove(messages);
+        if (notification != null && notification.isDisplayed()) notification.hide();
     }
 
     private void observeChat(ObservableList<ChatMessage> messages, Set<ObservableList<ChatMessage>> currentChats) {
@@ -297,7 +319,7 @@ public class NotificationCenter {
                     snapshot(trade.getChatMessages()).stream()
                             .filter(message -> message.getUid().equals(incoming.getUid()))
                             .filter(message -> isUnreadChat(message, trade.isMaker()))
-                            .findFirst().ifPresent(message -> notifyChatMessage(message, trade.getChatMessages(),
+                            .findFirst().ifPresent(message -> notifyChatMessage(message, trade.getChatMessages(), trade.isMaker(),
                                     tradeManager::requestPersistence, () -> navigateToTrade(trade)));
                 }
             });
@@ -313,14 +335,14 @@ public class NotificationCenter {
                         snapshot(dispute.getChatMessages()).stream()
                                 .filter(message -> message.getUid().equals(incoming.getUid()))
                                 .filter(message -> isUnreadChat(message, manager.isAgent(dispute)))
-                                .findFirst().ifPresent(message -> notifyChatMessage(message, dispute.getChatMessages(),
+                                .findFirst().ifPresent(message -> notifyChatMessage(message, dispute.getChatMessages(), manager.isAgent(dispute),
                                         manager::requestPersistence, () -> navigateToDispute(dispute, manager))));
             }
         }
         refreshChatState();
     }
 
-    private void notifyChatMessage(ChatMessage message, ObservableList<ChatMessage> messages,
+    private void notifyChatMessage(ChatMessage message, ObservableList<ChatMessage> messages, boolean senderFlag,
                                    Runnable persist, Runnable navigate) {
         if (openChats.contains(messages)) {
             message.setWasDisplayed(true);
@@ -329,17 +351,26 @@ public class NotificationCenter {
         }
         String key = message.getSupportType() + ":" + message.getTradeId() + ":" + message.getTraderId() + ":" + message.getUid();
         if (!notifiedChatMessages.add(key)) return;
-        if (chatNotifications.containsKey(messages)) return;
+        long unread = snapshot(messages).stream().filter(chatMessage -> isUnreadChat(chatMessage, senderFlag)).count();
+        String text = unread == 1 ? Res.get("notification.chat.message") : Res.get("notification.chat.messages", unread);
+        Notification existing = chatNotifications.get(messages);
+        if (existing != null) {
+            existing.message(text);
+            return;
+        }
 
         boolean support = message.getSupportType() != SupportType.TRADE;
         // a delayed hide can bring the main window over a newly opened chat
-        Notification notification = new Notification()
+        Notification notification = new Notification();
+        notification
                 .useAnimation(false)
+                .autoClose(8)
                 .headLine(Res.get(support ? "notification.chat.support" : "notification.chat.trade", Utilities.getShortId(message.getTradeId())))
-                .message(Res.get("notification.chat.message"))
-                .actionButtonText(Res.get(support ? "notification.chat.goToTicket" : "notification.chat.goToTrade"))
+                .message(text)
+                .actionButtonText(Res.get(support ? "notification.chat.goToTicket" : "notification.chat.openChat"))
                 .onAction(navigate)
-                .onlyShowIf(() -> observedChats.contains(messages) && !message.isWasDisplayed() && !openChats.contains(messages));
+                .onlyShowIf(() -> chatNotifications.get(messages) == notification && observedChats.contains(messages) &&
+                        !openChats.contains(messages) && snapshot(messages).stream().anyMatch(chatMessage -> isUnreadChat(chatMessage, senderFlag)));
         chatNotifications.put(messages, notification);
         notification.getIsHiddenProperty().addListener((observable, oldValue, hidden) -> {
             if (hidden) chatNotifications.remove(messages, notification);

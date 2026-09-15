@@ -17,23 +17,25 @@
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
-import com.jfoenix.controls.JFXBadge;
 import haveno.core.locale.Res;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeWizardItem;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.css.PseudoClass;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.Subscription;
@@ -52,7 +54,9 @@ public abstract class TradeSubView extends VBox {
     private Runnable closeCallback;
     private Runnable stepChangedCallback;
     private ListChangeListener<ChatMessage> chatListener;
-    private JFXBadge chatBadge;
+    private AutoTooltipButton chatButton;
+    private StackPane chatButtonContainer;
+    private Label chatBadge;
     private String openChatTradeId;
     private Trade trade;
     private boolean active;
@@ -120,26 +124,34 @@ public abstract class TradeSubView extends VBox {
         VBox text = new VBox(5, title, detail);
         text.setMinWidth(0);
         HBox.setHgrow(text, Priority.ALWAYS);
-        AutoTooltipButton chat = new AutoTooltipButton(Res.get("portfolio.pending.support.button.getHelp"));
-        chat.getStyleClass().add("trade-chat-button");
-        chat.setGraphic(GlyphsDude.createIcon(MaterialDesignIcon.COMMENT_OUTLINE, "16"));
-        chat.getGraphic().getStyleClass().add("trade-chat-icon");
-        chat.setGraphicTextGap(10);
-        chat.setOnAction(event -> {
+        chatButton = new AutoTooltipButton(Res.get("portfolio.pending.support.button.getHelp"));
+        chatButton.getStyleClass().add("trade-chat-button");
+        chatButton.setGraphic(GlyphsDude.createIcon(MaterialDesignIcon.COMMENT_OUTLINE, "16"));
+        chatButton.getGraphic().getStyleClass().add("trade-chat-icon");
+        chatButton.setGraphicTextGap(10);
+        chatButton.setOnAction(event -> {
             if (!completed && !trade.isPayoutPublished() && chatCallback != null) chatCallback.onOpenChat(trade);
             updateChatBadge();
         });
-        chatBadge = new JFXBadge(chat, Pos.TOP_RIGHT);
-        chatBadge.setMinWidth(Region.USE_PREF_SIZE);
-        summary.getChildren().setAll(text, chatBadge);
+        chatBadge = new Label();
+        Accessibility.mute(chatBadge);
+        chatBadge.getStyleClass().add("trade-chat-count");
+        chatBadge.setMouseTransparent(true);
+        chatBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        chatBadge.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        StackPane.setAlignment(chatBadge, Pos.CENTER_RIGHT);
+        StackPane.setMargin(chatBadge, new Insets(0, 12, 0, 0));
+        chatButtonContainer = new StackPane(chatButton, chatBadge);
+        chatButtonContainer.setMinWidth(Region.USE_PREF_SIZE);
+        summary.getChildren().setAll(text, chatButtonContainer);
     }
 
     private void updateChatAvailability() {
-        if (chatBadge == null) return;
+        if (chatButtonContainer == null) return;
         boolean available = !completed && !trade.isPayoutPublished();
-        chatBadge.setVisible(available);
-        chatBadge.setManaged(available);
-        chatBadge.setDisable(!available);
+        chatButtonContainer.setVisible(available);
+        chatButtonContainer.setManaged(available);
+        chatButtonContainer.setDisable(!available);
     }
 
     void setOpenChatTradeId(String tradeId) {
@@ -154,9 +166,9 @@ public abstract class TradeSubView extends VBox {
             unread = trade.getChatMessages().stream().filter(message -> !message.isWasDisplayed() && !message.isSystemMessage()).count();
         }
         if (openChatTradeId != null && openChatTradeId.equals(trade.getId())) unread = 0;
-        chatBadge.setText(unread == 0 ? "" : Long.toString(unread));
-        chatBadge.setEnabled(unread > 0);
-        chatBadge.refreshBadge();
+        chatBadge.setText(unread > 99 ? "99+" : Long.toString(unread));
+        chatBadge.setVisible(unread > 0);
+        chatButton.setAccessibleHelp(unread > 0 ? Res.get("notification.chat.unreadTradeMessages") + ": " + unread : null);
     }
 
     void showItem(TradeWizardItem item) {

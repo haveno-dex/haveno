@@ -69,6 +69,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -145,6 +146,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private ListChangeListener<PendingTradesListItem> tradesListChangeListener;
     private final Map<String, Long> newChatMessagesByTradeMap = new HashMap<>();
     private String tradeIdOfOpenChat;
+    private long tradeSelectionRequest;
 
     private final Map<String, Button> buttonByTrade = new HashMap<>();
     private final Map<String, JFXBadge> badgeByTrade = new HashMap<>();
@@ -511,6 +513,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     // Chat
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public record OpenChatRequest(Trade trade) {
+    }
+
     private void updateNewChatMessagesByTradeMap() {
         synchronized (model.dataModel.list) {
             model.dataModel.list.forEach(t -> {
@@ -637,21 +642,20 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private void updateChatMessageCount(Trade trade, JFXBadge badge) {
         if (badge == null) return;
         UserThread.execute(() -> {
+            long num = 0;
             if (!trade.getId().equals(tradeIdOfOpenChat)) {
                 updateNewChatMessagesByTradeMap();
-                long num = newChatMessagesByTradeMap.get(trade.getId());
-                if (num > 0) {
-                    badge.setText(String.valueOf(num));
-                    badge.setEnabled(true);
-                } else {
-                    badge.setText("");
-                    badge.setEnabled(false);
-                }
-            } else {
-                badge.setText("");
-                badge.setEnabled(false);
+                num = newChatMessagesByTradeMap.get(trade.getId());
             }
+            badge.setText(num > 99 ? "99+" : num > 0 ? String.valueOf(num) : "");
+            badge.setEnabled(num > 0);
             badge.refreshBadge();
+            Button button = (Button) badge.getControl();
+            button.pseudoClassStateChanged(PseudoClass.getPseudoClass("unread"), num > 0);
+            String description = num > 0 ? Res.get(num == 1 ? "tradeChat.openChatWithUnreadMessage" :
+                    "tradeChat.openChatWithUnreadMessages", num) : Res.get("tradeChat.openChat");
+            button.getTooltip().setText(description);
+            Accessibility.setName(button, description);
         });
     }
 
@@ -670,13 +674,29 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     }
 
     public void selectTrade(Trade trade) {
+        selectTrade(trade, false);
+    }
+
+    public void selectTrade(Trade trade, boolean openChat) {
+        long request = ++tradeSelectionRequest;
         filterBox.clear();
-        UserThread.execute(() -> tableView.getItems().stream()
-                .filter(item -> item.getTrade().getId().equals(trade.getId()))
-                .findFirst().ifPresent(item -> {
-                    tableView.getSelectionModel().select(item);
-                    tableView.scrollTo(item);
-                }));
+        UserThread.execute(() -> {
+            if (request != tradeSelectionRequest) return;
+            tableView.getItems().stream()
+                    .filter(item -> item.getTrade().getId().equals(trade.getId()))
+                    .findFirst().ifPresent(item -> {
+                        tableView.getSelectionModel().select(item);
+                        tableView.scrollTo(item);
+                        if (openChat) {
+                            // let the queued model and table selection updates settle before opening the target chat
+                            UserThread.execute(() -> UserThread.execute(() -> {
+                                if (request == tradeSelectionRequest && root.getScene() != null &&
+                                        tableView.getSelectionModel().getSelectedItem() == item &&
+                                        item.equals(model.dataModel.selectedItemProperty.get())) openChat(item.getTrade());
+                            }));
+                        }
+                    });
+        });
     }
 
     private void onListChanged() {
@@ -969,6 +989,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                     Button button;
                                     if (!buttonByTrade.containsKey(id)) {
                                         button = FormBuilder.getIconButton(MaterialDesignIcon.COMMENT_MULTIPLE_OUTLINE);
+                                        button.getStyleClass().addAll("trade-row-chat-button", "a11y-focusable");
                                         buttonByTrade.put(id, button);
                                         button.setTooltip(new Tooltip(Res.get("tradeChat.openChat")));
                                     } else {
@@ -977,9 +998,17 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                                     JFXBadge badge;
                                     if (!badgeByTrade.containsKey(id)) {
-                                        badge = new JFXBadge(button);
+                                        badge = new JFXBadge(button) {
+                                            @Override
+                                            public void refreshBadge() {
+                                                super.refreshBadge();
+                                                lookupAll(".badge-pane .label").forEach(Accessibility::mute);
+                                            }
+                                        };
+                                        badge.getStyleClass().add("trade-row-chat-badge");
                                         badgeByTrade.put(id, badge);
                                         badge.setPosition(Pos.TOP_RIGHT);
+                                        Tooltip.install(badge, button.getTooltip());
                                     } else {
                                         badge = badgeByTrade.get(id);
                                     }

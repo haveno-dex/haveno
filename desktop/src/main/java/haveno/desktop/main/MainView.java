@@ -70,6 +70,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -109,6 +110,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.PopupWindow;
 import javafx.util.Duration;
@@ -201,8 +203,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         ToggleButton accountButton = new SecondaryNavButton(AccountView.class, Res.get("mainView.menu.account"), "image-account");
         ToggleButton settingsButton = new SecondaryNavButton(SettingsView.class, Res.get("mainView.menu.settings"), "image-settings");
 
-        JFXBadge portfolioButtonWithBadge = new JFXBadge(portfolioButton);
-        JFXBadge supportButtonWithBadge = new JFXBadge(supportButton);
+        StackPane portfolioButtonWithDot = createNotificationButton(portfolioButton, model.getUnreadTradeChat(),
+                Res.get("notification.chat.unreadTradeMessages"));
+        StackPane supportButtonWithDot = createNotificationButton(supportButton, model.getShowOpenSupportTicketsNotification(),
+                Res.get("notification.chat.unreadSupportTickets"));
         JFXBadge settingsButtonWithBadge = new JFXBadge(settingsButton);
 
         Locale locale = GlobalSettings.getLocale();
@@ -322,7 +326,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         HBox.setHgrow(rightSpacer, Priority.ALWAYS);
 
         HBox primaryNav = new HBox(getLogoPane(), marketButton, getNavigationSpacer(), buyButton, getNavigationSpacer(),
-                sellButton, getNavigationSpacer(), portfolioButtonWithBadge, getNavigationSpacer(), fundsButton, rightSpacer);
+                sellButton, getNavigationSpacer(), portfolioButtonWithDot, getNavigationSpacer(), fundsButton, rightSpacer);
 
         primaryNav.setAlignment(Pos.CENTER_LEFT);
         primaryNav.getStyleClass().add("nav-primary");
@@ -346,7 +350,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         }};
         navPane.setAlignment(Pos.CENTER);
 
-        HBox secondaryNav = new HBox(supportButtonWithBadge, accountButton, settingsButtonWithBadge);
+        HBox secondaryNav = new HBox(supportButtonWithDot, accountButton, settingsButtonWithBadge);
         secondaryNav.getStyleClass().add("nav-secondary");
         secondaryNav.setAlignment(Pos.CENTER_RIGHT);
         secondaryNav.setPickOnBounds(false);
@@ -381,8 +385,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         }};
         baseApplicationContainer.setBottom(createFooter());
 
-        setupBadge(portfolioButtonWithBadge, model.getNumPendingTrades(), model.getShowPendingTradesNotification());
-        setupBadge(supportButtonWithBadge, model.getNumOpenSupportTickets(), model.getShowOpenSupportTicketsNotification());
         setupBadge(settingsButtonWithBadge, new SimpleStringProperty(Res.get("shared.new")), new SimpleBooleanProperty(false));
         settingsButtonWithBadge.getStyleClass().add("new");
 
@@ -983,6 +985,41 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
             setMinHeight(30);
             setMaxHeight(30);
         }};
+    }
+
+    private static StackPane createNotificationButton(ToggleButton button, ReadOnlyBooleanProperty showNotification, String helpText) {
+        Circle dot = new Circle(4);
+        dot.getStyleClass().add("nav-unread-dot");
+        // keep the indicator outside layout so the pill and label never shift
+        dot.setManaged(false);
+        dot.setMouseTransparent(true);
+        dot.visibleProperty().bind(showNotification);
+        StackPane container = new StackPane(button, dot) {
+            @Override
+            protected void layoutChildren() {
+                super.layoutChildren();
+                button.layout();
+                Node label = button.lookup(".text");
+                if (label != null) {
+                    Bounds bounds = sceneToLocal(label.localToScene(label.getLayoutBounds()));
+                    dot.setCenterX(bounds.getMaxX() + 8);
+                    dot.setCenterY(bounds.getMinY());
+                }
+            }
+        };
+        container.getStyleClass().add("nav-notification");
+        container.setMinHeight(34);
+        container.setMaxHeight(34);
+
+        Tooltip tooltip = new Tooltip(helpText);
+        Runnable updateHelp = () -> {
+            button.setAccessibleHelp(showNotification.get() ? tooltip.getText() : null);
+            if (showNotification.get()) Tooltip.install(container, tooltip);
+            else Tooltip.uninstall(container, tooltip);
+        };
+        showNotification.addListener((observable, oldValue, newValue) -> updateHelp.run());
+        updateHelp.run();
+        return container;
     }
 
     private void setupBadge(JFXBadge buttonWithBadge, StringProperty badgeNumber, BooleanProperty badgeEnabled) {

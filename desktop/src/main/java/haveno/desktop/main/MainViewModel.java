@@ -44,7 +44,6 @@ import haveno.core.payment.CryptoCurrencyAccount;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.presentation.BalancePresentation;
 import haveno.core.presentation.SupportTicketsPresentation;
-import haveno.core.presentation.TradePresentation;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.HavenoUtils;
@@ -85,6 +84,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -112,7 +112,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     private final XmrConnectionService xmrConnectionService;
     private final User user;
     private final BalancePresentation balancePresentation;
-    private final TradePresentation tradePresentation;
     private final SupportTicketsPresentation supportTicketsPresentation;
     private final MarketPricePresentation marketPricePresentation;
     private final AccountPresentation accountPresentation;
@@ -158,7 +157,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          XmrWalletService xmrWalletService,
                          User user,
                          BalancePresentation balancePresentation,
-                         TradePresentation tradePresentation,
                          SupportTicketsPresentation supportTicketsPresentation,
                          MarketPricePresentation marketPricePresentation,
                          AccountPresentation accountPresentation,
@@ -181,7 +179,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         this.xmrConnectionService = xmrConnectionService;
         this.user = user;
         this.balancePresentation = balancePresentation;
-        this.tradePresentation = tradePresentation;
         this.supportTicketsPresentation = supportTicketsPresentation;
         this.marketPricePresentation = marketPricePresentation;
         this.accountPresentation = accountPresentation;
@@ -665,20 +662,12 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return havenoSetup.getNewVersionAvailableProperty();
     }
 
-    StringProperty getNumOpenSupportTickets() {
-        return supportTicketsPresentation.getNumOpenSupportTickets();
-    }
-
     BooleanProperty getShowOpenSupportTicketsNotification() {
         return supportTicketsPresentation.getShowOpenSupportTicketsNotification();
     }
 
-    BooleanProperty getShowPendingTradesNotification() {
-        return tradePresentation.getShowPendingTradesNotification();
-    }
-
-    StringProperty getNumPendingTrades() {
-        return tradePresentation.getNumPendingTrades();
+    ReadOnlyBooleanProperty getUnreadTradeChat() {
+        return notificationCenter.unreadTradeChatProperty();
     }
 
     StringProperty getAvailableBalance() {
