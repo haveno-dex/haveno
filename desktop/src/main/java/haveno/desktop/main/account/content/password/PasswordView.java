@@ -101,7 +101,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         Tuple4<Button, BusyAnimation, Label, HBox> tuple = addButtonBusyAnimationLabel(root, ++gridRow, 0, "", 10);
         pwButton = (AutoTooltipButton) tuple.first;
         BusyAnimation busyAnimation = tuple.second;
-        Label deriveStatusLabel = tuple.third;
+        Label statusLabel = tuple.third;
         pwButton.setDisable(true);
 
         setText();
@@ -110,7 +110,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
             if (!walletsManager.areWalletsEncrypted()) {
                 new Popup().backgroundInfo(Res.get("password.backupReminder"))
                         .actionButtonText(Res.get("password.setPassword"))
-                        .onAction(() -> onApplyPassword(busyAnimation, deriveStatusLabel))
+                        .onAction(() -> onApplyPassword(busyAnimation, statusLabel))
                         .secondaryActionButtonText(Res.get("password.makeBackup"))
                         .onSecondaryAction(() -> {
                             navigation.setReturnPath(navigation.getCurrentPath());
@@ -119,7 +119,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
                         .width(800)
                         .show();
             } else {
-                onApplyPassword(busyAnimation, deriveStatusLabel);
+                onApplyPassword(busyAnimation, statusLabel);
             }
         });
 
@@ -127,15 +127,16 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         addMultilineLabel(root, gridRow, Res.get("account.password.info"), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
     }
 
-    private void onApplyPassword(BusyAnimation busyAnimation, Label deriveStatusLabel) {
+    private void onApplyPassword(BusyAnimation busyAnimation, Label statusLabel) {
         String password = passwordField.getText();
         checkArgument(password.length() < 500, Res.get("password.tooLong"));
 
+        boolean removingPassword = walletsManager.areWalletsEncrypted();
         pwButton.setDisable(true);
-        deriveStatusLabel.setText(Res.get("password.deriveKey"));
+        statusLabel.setText(Res.get(removingPassword ? "password.removing" : "password.setting"));
         busyAnimation.play();
 
-        if (walletsManager.areWalletsEncrypted()) {
+        if (removingPassword) {
             try {
                 accountService.changePassword(password, null);
                 new Popup()
@@ -166,7 +167,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         setText();
         updatePasswordListeners();
 
-        deriveStatusLabel.setText("");
+        statusLabel.setText("");
         busyAnimation.stop();
     }
 
