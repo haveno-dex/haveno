@@ -96,53 +96,57 @@ public class ProcessInitMultisigRequest extends TradeTask {
           if (sender.getExchangedMultisigHex() == null) sender.setExchangedMultisigHex(request.getExchangedMultisigHex());
           else if (request.getExchangedMultisigHex() != null && !sender.getExchangedMultisigHex().equals(request.getExchangedMultisigHex())) throw new RuntimeException("Message's exchanged multisig differs from previous messages: " + request.getExchangedMultisigHex() + " versus " + sender.getExchangedMultisigHex());
 
-          // prepare multisig if applicable
           boolean updateParticipants = false;
-          if (trade.getSelf().getPreparedMultisigHex() == null) {
-            log.info("Preparing multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            multisigWallet = trade.createWallet();
-            trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());
-            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_PREPARED);
-            updateParticipants = true;
-          } else if (processModel.getMultisigAddress() == null) {
-            multisigWallet = trade.getWallet();
-          }
+          synchronized (trade.getWalletLock()) {
+            // prepare multisig if applicable
+            if (trade.getSelf().getPreparedMultisigHex() == null) {
+              log.info("Preparing multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
+              multisigWallet = trade.createWallet();
+              trade.getSelf().setPreparedMultisigHex(multisigWallet.prepareMultisig());
+              trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_PREPARED);
+              updateParticipants = true;
+            } else if (processModel.getMultisigAddress() == null) {
+              multisigWallet = trade.getWallet();
+            }
 
-          // make multisig if applicable
-          TradePeer[] peers = getMultisigPeers();
-          if (trade.getSelf().getMadeMultisigHex() == null && peers[0].getPreparedMultisigHex() != null && peers[1].getPreparedMultisigHex() != null) {
-            log.info("Making multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            String multisigHex = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, xmrWalletService.getWalletPassword()); // TODO (woodser): xmrWalletService.makeMultisig(tradeId, multisigHexes, threshold)?
-            trade.getSelf().setMadeMultisigHex(multisigHex);
-            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_MADE);
-            updateParticipants = true;
-          }
+            String walletPassword = multisigWallet == null ? null : xmrWalletService.getWalletPassword(trade.getWalletName());
 
-          // import made multisig keys if applicable
-          if (trade.getSelf().getExchangedMultisigHex() == null && peers[0].getMadeMultisigHex() != null && peers[1].getMadeMultisigHex() != null) {
-            log.info("Importing made multisig hex for {} {}", trade.getClass().getSimpleName(), trade.getId());
-            MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), xmrWalletService.getWalletPassword());
-            trade.getSelf().setExchangedMultisigHex(result.getMultisigHex());
-            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_EXCHANGED);
-            updateParticipants = true;
-          }
+            // make multisig if applicable
+            TradePeer[] peers = getMultisigPeers();
+            if (trade.getSelf().getMadeMultisigHex() == null && peers[0].getPreparedMultisigHex() != null && peers[1].getPreparedMultisigHex() != null) {
+              log.info("Making multisig wallet for {} {}", trade.getClass().getSimpleName(), trade.getId());
+              String multisigHex = multisigWallet.makeMultisig(Arrays.asList(peers[0].getPreparedMultisigHex(), peers[1].getPreparedMultisigHex()), 2, walletPassword); // TODO (woodser): xmrWalletService.makeMultisig(tradeId, multisigHexes, threshold)?
+              trade.getSelf().setMadeMultisigHex(multisigHex);
+              trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_MADE);
+              updateParticipants = true;
+            }
 
-          // import exchanged multisig keys if applicable
-          if (processModel.getMultisigAddress() == null && peers[0].getExchangedMultisigHex() != null && peers[1].getExchangedMultisigHex() != null) {
-            log.info("Importing exchanged multisig hex for trade {}", trade.getId());
-            MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), xmrWalletService.getWalletPassword());
+            // import made multisig keys if applicable
+            if (trade.getSelf().getExchangedMultisigHex() == null && peers[0].getMadeMultisigHex() != null && peers[1].getMadeMultisigHex() != null) {
+              log.info("Importing made multisig hex for {} {}", trade.getClass().getSimpleName(), trade.getId());
+              MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getMadeMultisigHex(), peers[1].getMadeMultisigHex()), walletPassword);
+              trade.getSelf().setExchangedMultisigHex(result.getMultisigHex());
+              trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_EXCHANGED);
+              updateParticipants = true;
+            }
 
-            // check multisig state
-            MoneroMultisigInfo multisigInfo = multisigWallet.getMultisigInfo();
-            if (!multisigInfo.isMultisig()) throw new RuntimeException("Multisig wallet is not multisig on completion");
-            if (!multisigInfo.isReady()) throw new RuntimeException("Multisig wallet is not ready on completion");
-            if (multisigInfo.getThreshold() != 2) throw new RuntimeException("Multisig wallet has unexpected threshold: " + multisigInfo.getThreshold());
-            if (multisigInfo.getNumParticipants() != 3) throw new RuntimeException("Multisig wallet has unexpected number of participants: " + multisigInfo.getNumParticipants());
+            // import exchanged multisig keys if applicable
+            if (processModel.getMultisigAddress() == null && peers[0].getExchangedMultisigHex() != null && peers[1].getExchangedMultisigHex() != null) {
+              log.info("Importing exchanged multisig hex for trade {}", trade.getId());
+              MoneroMultisigInitResult result = multisigWallet.exchangeMultisigKeys(Arrays.asList(peers[0].getExchangedMultisigHex(), peers[1].getExchangedMultisigHex()), walletPassword);
 
-            // set final address and save
-            processModel.setMultisigAddress(result.getAddress());
-            trade.saveWallet();
-            trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
+              // check multisig state
+              MoneroMultisigInfo multisigInfo = multisigWallet.getMultisigInfo();
+              if (!multisigInfo.isMultisig()) throw new RuntimeException("Multisig wallet is not multisig on completion");
+              if (!multisigInfo.isReady()) throw new RuntimeException("Multisig wallet is not ready on completion");
+              if (multisigInfo.getThreshold() != 2) throw new RuntimeException("Multisig wallet has unexpected threshold: " + multisigInfo.getThreshold());
+              if (multisigInfo.getNumParticipants() != 3) throw new RuntimeException("Multisig wallet has unexpected number of participants: " + multisigInfo.getNumParticipants());
+
+              // set final address and save
+              processModel.setMultisigAddress(result.getAddress());
+              trade.saveWallet();
+              trade.setStateIfValidTransitionTo(Trade.State.MULTISIG_COMPLETED);
+            }
           }
 
           // update multisig participants if new state to communicate

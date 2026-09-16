@@ -1049,7 +1049,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return walletHeight.get();
     }
 
-    private String getWalletName() {
+    public String getWalletName() {
         return MONERO_TRADE_WALLET_PREFIX + getShortId() + "_" + getShortUid();
     }
 
@@ -1124,10 +1124,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return errMsg.contains("Failed to parse hex") || errMsg.contains("Multisig info is for a different account");
     }
 
-    public void changeWalletPassword(String oldPassword, String newPassword) {
+    public void changeWalletPassword(String newPassword) {
         synchronized (walletLock) {
-            getWallet().changePassword(oldPassword, newPassword);
-            saveWallet();
+            if (!walletExists()) return;
+            try {
+                xmrWalletService.changeWalletPassword(getWalletName(), wallet, newPassword, TRUST_DAEMON);
+            } catch (Throwable e) {
+                // retain healthy handles when the service rejected the change before attempting a write
+                if (xmrWalletService.isPasswordRecoveryRequired()) wallet = null;
+                throw e;
+            }
         }
     }
 
@@ -1267,8 +1273,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     // retain a backup unless the payout is finalized, since the local state which justifies deletion could be wrong
                     if (!isPayoutFinalized()) {
                         log.info("Deleting wallet and retaining backup for {} {}", getClass().getSimpleName(), getId());
-                        if (!xmrWalletService.backupWallet(getWalletName())) throw new IllegalStateException("Refusing to delete wallet for " + getClass().getSimpleName() + " " + getId() + " because backing up the wallet failed");
-                        xmrWalletService.deleteWallet(getWalletName());
+                        xmrWalletService.deleteWalletAndRetainBackup(getWalletName());
                     } else {
                         log.info("Deleting wallet and backups for {} {}", getClass().getSimpleName(), getId());
                         xmrWalletService.deleteWallet(getWalletName());

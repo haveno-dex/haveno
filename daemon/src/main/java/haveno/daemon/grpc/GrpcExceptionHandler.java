@@ -53,6 +53,16 @@ class GrpcExceptionHandler {
         throw grpcStatusRuntimeException;
     }
 
+    // Account errors explain which password is active and how to recover; retain that outer message.
+    public synchronized void handleAccountException(Logger log, Throwable t, StreamObserver<?> responseObserver) {
+        log.error("", t);
+        var status = isExpectedException.test(t) ? mapGrpcErrorStatus(t, t.getMessage())
+                : mapGrpcErrorStatus(t, "unexpected error on server");
+        var error = new StatusRuntimeException(status);
+        responseObserver.onError(error);
+        throw error;
+    }
+
     public synchronized void handleExceptionAsWarning(Logger log,
                                          String calledMethod,
                                          Throwable t,

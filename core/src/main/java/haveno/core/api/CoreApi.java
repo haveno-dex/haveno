@@ -174,8 +174,8 @@ public class CoreApi {
         return appStartupState.isApplicationFullyInitialized();
     }
 
-    public void changePassword(String oldPassword, String newPassword) {
-        coreAccountService.changePassword(oldPassword, newPassword);
+    public List<String> changePassword(String oldPassword, String newPassword) {
+        return coreAccountService.changePassword(oldPassword, newPassword);
     }
 
     public void closeAccount() {

@@ -11,4 +11,5 @@ public class AccountServiceListener {
     public void onAccountRestored(Runnable onShutDown) {}
     public void onAccountDeleted(Runnable onShutDown) {}
     public void onPasswordChanged(String oldPassword, String newPassword) {}
+    public void onPasswordChangeFailed() {}
 }

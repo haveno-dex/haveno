@@ -261,6 +261,8 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             } catch (IncorrectPasswordException ipe) {
                 log.info("Account password protected, password required");
                 result.complete(false);
+            } catch (IllegalStateException e) {
+                result.completeExceptionally(e);
             }
         } else if (!config.passwordRequired) {
             log.info("Creating Haveno account with null password");
@@ -307,7 +309,10 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         hosts.forEach(host -> {
             host.readPersisted(() -> {
                 if (remaining.decrementAndGet() == 0) {
-                    UserThread.execute(completeHandler);
+                    UserThread.execute(() -> {
+                        accountService.onPersistedDataRead();
+                        completeHandler.run();
+                    });
                 }
             });
         });
@@ -346,6 +351,8 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     @Override
     public void gracefulShutDown(ResultHandler onShutdown, boolean systemExit) {
         if (systemExit) CommonSetup.startShutdownWatchdog();
+        CompletableFuture<Void> passwordChange = accountService == null ? CompletableFuture.completedFuture(null)
+                : accountService.onShutDownStarted();
         log.info("Starting graceful shut down of {}", getClass().getSimpleName());
 
         // consume shutdownCompletedHandler so it runs once even when repeated requests join
@@ -368,6 +375,19 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             return;
         }
 
+        if (passwordChange.isDone()) {
+            shutDownServices();
+        } else {
+            // keep wallets running until the change finishes, without blocking the user thread
+            log.info("Waiting for password change before shutting down services");
+            passwordChange.thenRunAsync(this::shutDownServices).exceptionally(error -> {
+                log.error("Failed to shut down services after password change", error);
+                return null;
+            });
+        }
+    }
+
+    private void shutDownServices() {
         if (injector == null) {
             log.info("Shut down called before injector was created");
             completeShutdown(EXIT_SUCCESS);
@@ -377,6 +397,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         try {
 
             // notify trade protocols and wallets to prepare for shut down before shutting down
+            injector.getInstance(CoreAccountService.class).onShutDownStarted();
             Set<Runnable> tasks = new HashSet<Runnable>();
             tasks.add(() -> injector.getInstance(TradeManager.class).onShutDownStarted());
             tasks.add(() -> injector.getInstance(XmrWalletService.class).onShutDownStarted());

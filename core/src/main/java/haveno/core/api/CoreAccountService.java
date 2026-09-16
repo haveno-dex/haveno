@@ -39,16 +39,21 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 /**
  * Manages the account state. A created account must have a password which encrypts
@@ -68,8 +73,16 @@ public class CoreAccountService {
     private final KeyRing keyRing;
 
     @Getter
-    private String password;
+    private volatile String password;
+    @Getter
+    private volatile boolean passwordRecoveryRequired;
+    public enum PasswordChangeTarget { WALLETS, CONNECTIONS }
+    private final Map<PasswordChangeTarget, BiConsumer<String, String>> passwordChangeHandlers = new EnumMap<>(PasswordChangeTarget.class);
+    private boolean persistedDataRead;
+    private volatile boolean isShutDownStarted;
+    private CompletableFuture<Void> passwordChangeCompletion = CompletableFuture.completedFuture(null);
     private List<AccountServiceListener> listeners = new ArrayList<AccountServiceListener>();
+    private List<String> passwordChangeRetainedBackups = List.of();
 
     // seed and restore height or date to import when the main wallet is first created, held in memory only
     @Getter
@@ -107,15 +120,16 @@ public class CoreAccountService {
     }
 
     public boolean accountExists() {
-        return keyStorage.allKeyFilesExist(); // public and private key pair indicate the existence of the account
+        return keyStorage.hasAccountFiles();
     }
 
     public boolean isAccountOpen() {
-        return keyRing.isUnlocked() && accountExists();
+        return keyRing.isUnlocked() && keyStorage.allKeyFilesExist();
     }
 
     public void checkAccountOpen() {
         checkState(isAccountOpen(), "Account not open");
+        checkPasswordRecovery();
     }
 
     private void checkNotRestarting() {
@@ -143,6 +157,7 @@ public class CoreAccountService {
         lockAccount();
         try {
             if (accountExists()) throw new IllegalStateException("Cannot create account if account already exists");
+            if ("".equals(password)) password = null;
             keyRing.generateKeys(password);
             this.password = password;
             synchronized (listeners) {
@@ -157,6 +172,10 @@ public class CoreAccountService {
         lockAccount();
         try {
             if (!accountExists()) throw new IllegalStateException("Cannot open account if account does not exist");
+            keyStorage.checkKeyFiles();
+            checkPasswordRecovery();
+            if ("".equals(password)) password = null;
+            if (keyRing.isUnlocked()) keyStorage.verifyPassword(keyRing.getSymmetricKey(), password);
             if (keyRing.unlockKeys(password, false)) {
                 this.password = password;
                 synchronized (listeners) {
@@ -170,26 +189,105 @@ public class CoreAccountService {
         }
     }
 
-    public void changePassword(String oldPassword, String newPassword) {
+    public List<String> changePassword(String oldPassword, String newPassword) {
         lockAccount();
+        CompletableFuture<Void> completion = null;
         try {
             if (!isAccountOpen()) throw new IllegalStateException("Cannot change password on unopened account");
+            checkPasswordRecovery();
+            List<BiConsumer<String, String>> handlers;
+            synchronized (this) {
+                if (isShutDownStarted || !persistedDataRead || passwordChangeHandlers.size() != PasswordChangeTarget.values().length) {
+                    throw new IllegalStateException("Wait until account services finish initializing and are not shutting down");
+                }
+                handlers = new ArrayList<>(passwordChangeHandlers.values());
+                completion = new CompletableFuture<>();
+                passwordChangeCompletion = completion;
+            }
             if ("".equals(oldPassword)) oldPassword = null; // normalize to null
+            if ("".equals(newPassword)) newPassword = null;
             if (!StringUtils.equals(this.password, oldPassword)) throw new IllegalStateException("Incorrect password");
             if (newPassword != null && newPassword.length() < 8) throw new IllegalStateException("Password must be at least 8 characters");
+            if (StringUtils.equals(oldPassword, newPassword)) return List.of();
+            passwordChangeRetainedBackups = List.of();
 
-            // change wallet passwords before committing new account password
-            // TODO: recover if wallet password change fails
-            synchronized (listeners) {
-                for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onPasswordChanged(oldPassword, newPassword);
+            // validate and serialize the replacement before changing any passwords
+            byte[] keyStore = keyStorage.preparePasswordChange(oldPassword, newPassword);
+            try {
+                for (BiConsumer<String, String> handler : handlers) handler.accept(oldPassword, newPassword);
+                keyStorage.commitPasswordChange(keyStore);
+                this.password = newPassword;
+            } catch (Throwable e) {
+                requirePasswordRecovery();
+                synchronized (listeners) {
+                    for (AccountServiceListener listener : new ArrayList<>(listeners)) {
+                        try {
+                            listener.onPasswordChangeFailed();
+                        } catch (Throwable notificationError) {
+                            if (e != notificationError) e.addSuppressed(notificationError);
+                        }
+                    }
+                }
+                if (e instanceof Error) throw (Error) e;
+                throw new IllegalStateException("Password change did not finish. Keep both passwords. Close Haveno and preserve the complete data directory; password recovery is required before continuing. Cause: "
+                        + ExceptionUtils.getRootCauseMessage(e), e);
             }
-
-            // commit new account password
-            keyStorage.saveKeyRing(keyRing, oldPassword, newPassword);
-            this.password = newPassword;
+            try {
+                Exception cleanupFailure = null;
+                synchronized (listeners) {
+                    for (AccountServiceListener listener : new ArrayList<>(listeners)) {
+                        try {
+                            listener.onPasswordChanged(oldPassword, newPassword);
+                        } catch (Exception e) {
+                            if (cleanupFailure == null) cleanupFailure = e;
+                            else if (cleanupFailure != e) cleanupFailure.addSuppressed(e);
+                        }
+                    }
+                }
+                try {
+                    keyStorage.finishPasswordChange(keyRing, newPassword, Arrays.asList(oldPassword, newPassword));
+                } catch (Exception e) {
+                    if (cleanupFailure == null) cleanupFailure = e;
+                    else if (cleanupFailure != e) cleanupFailure.addSuppressed(e);
+                }
+                if (cleanupFailure != null) throw cleanupFailure;
+            } catch (Exception e) {
+                throw new IllegalStateException("Password changed successfully, but backup cleanup failed. "
+                        + "Use the new password. Older backups may still be accessible with a previous or unset password. Cause: "
+                        + ExceptionUtils.getRootCauseMessage(e), e);
+            }
+            return passwordChangeRetainedBackups;
         } finally {
             accountLock.unlock();
+            // shutdown may proceed after success or failure, once all password-change work has finished
+            if (completion != null) completion.complete(null);
         }
+    }
+
+    public void onWalletBackupsRetained(List<String> backups) {
+        passwordChangeRetainedBackups = List.copyOf(backups);
+    }
+
+    public void requirePasswordRecovery() {
+        passwordRecoveryRequired = true;
+    }
+
+    public void checkPasswordRecovery() {
+        if (passwordRecoveryRequired) throw new IllegalStateException("Close Haveno and preserve the complete data directory. Keep both passwords; password recovery is required before continuing");
+    }
+
+    // startup callbacks run on the user thread and must not wait for account backups
+    public synchronized void addPasswordChangeHandler(PasswordChangeTarget target, BiConsumer<String, String> handler) {
+        passwordChangeHandlers.put(target, handler);
+    }
+
+    public synchronized void onPersistedDataRead() {
+        persistedDataRead = true;
+    }
+
+    public synchronized CompletableFuture<Void> onShutDownStarted() {
+        isShutDownStarted = true;
+        return passwordChangeCompletion;
     }
 
     public void verifyPassword(String password) throws IncorrectPasswordException {
@@ -211,13 +309,28 @@ public class CoreAccountService {
         }
     }
 
+    public void withAccountBackup(Runnable backup) {
+        lockAccount();
+        try {
+            checkBackupAllowed();
+            backup.run();
+        } finally {
+            accountLock.unlock();
+        }
+    }
+
+    private void checkBackupAllowed() {
+        if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
+        if (passwordRecoveryRequired) throw new IllegalStateException("Close Haveno and copy the complete data directory to preserve the interrupted password change.");
+    }
+
     // TODO: share common code with BackupView to backup
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
         new Thread(() -> { // off the user thread, which must not block on flushing, closing wallets and the transfer
             accountLock.lock(); // one backup at a time, since flushing, closing and reopening the account must not interleave
             try {
                 checkNotRestarting();
-                if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
+                checkBackupAllowed();
 
                 // flush all known persistence objects to disk before locking the keys: encrypted stores
                 // skip writes while the key ring is locked, which would silently back up stale files

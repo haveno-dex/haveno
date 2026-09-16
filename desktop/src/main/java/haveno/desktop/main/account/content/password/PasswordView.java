@@ -20,6 +20,7 @@ package haveno.desktop.main.account.content.password;
 import static com.google.common.base.Preconditions.checkArgument;
 import com.google.inject.Inject;
 import com.jfoenix.validation.RequiredFieldValidator;
+import haveno.common.UserThread;
 import haveno.common.util.Tuple4;
 import haveno.core.api.CoreAccountService;
 import haveno.core.locale.Res;
@@ -51,6 +52,7 @@ import javafx.scene.layout.HBox;
 public class PasswordView extends ActivatableView<GridPane, Void> {
 
     private final WalletsManager walletsManager;
+    private boolean changingPassword;
     private final PasswordValidator passwordValidator;
     private final Navigation navigation;
     private final CoreAccountService accountService;
@@ -128,6 +130,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     }
 
     private void onApplyPassword(BusyAnimation busyAnimation, Label statusLabel) {
+        if (changingPassword) return;
         String password = passwordField.getText();
         checkArgument(password.length() < 500, Res.get("password.tooLong"));
 
@@ -135,40 +138,36 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         pwButton.setDisable(true);
         statusLabel.setText(Res.get(removingPassword ? "password.removing" : "password.setting"));
         busyAnimation.play();
-
-        if (removingPassword) {
+        changingPassword = true;
+        passwordField.setDisable(true);
+        repeatedPasswordField.setDisable(true);
+        String oldPassword = removingPassword ? password : accountService.getPassword();
+        String newPassword = removingPassword ? null : password;
+        new Thread(() -> {
             try {
-                accountService.changePassword(password, null);
-                new Popup()
-                        .feedback(Res.get("password.walletDecrypted"))
-                        .show();
-                backupWalletAndResetFields();
-            } catch (Throwable t) {
-                pwButton.setDisable(false);
-                new Popup()
-                        .warning(Res.get("password.wrongPw"))
-                        .show();
-            }
-        } else {
-            try {
-                accountService.changePassword(accountService.getPassword(), password);
-                new Popup()
-                        .feedback(Res.get("password.walletEncrypted"))
-                        .show();
-                backupWalletAndResetFields();
-                walletsManager.clearBackup();
+                var retainedBackups = accountService.changePassword(oldPassword, newPassword);
+                UserThread.execute(() -> {
+                    String message = Res.get(removingPassword ? "password.walletDecrypted" : "password.walletEncrypted");
+                    if (!retainedBackups.isEmpty()) message += "\n\n" + Res.get("password.recovery.retainedBackups") + "\n" + String.join(", ", retainedBackups);
+                    new Popup().feedback(message).show();
+                    backupWalletAndResetFields();
+                });
             } catch (Throwable t) {
                 log.error("Error applying password: {}\n", t.getMessage(), t);
-                new Popup()
-                        .warning(Res.get("password.walletEncryptionFailed") + "\n\n" + t.getMessage())
-                        .show();
+                UserThread.execute(() -> new Popup().warning(t.getMessage()).show());
+            } finally {
+                UserThread.execute(() -> {
+                    changingPassword = false;
+                    passwordField.setDisable(accountService.isPasswordRecoveryRequired());
+                    repeatedPasswordField.setDisable(accountService.isPasswordRecoveryRequired());
+                    setText();
+                    updatePasswordListeners();
+                    validatePasswords();
+                    statusLabel.setText("");
+                    busyAnimation.stop();
+                });
             }
-        }
-        setText();
-        updatePasswordListeners();
-
-        statusLabel.setText("");
-        busyAnimation.stop();
+        }, "ChangeAccountPassword").start();
     }
 
     private void backupWalletAndResetFields() {
@@ -220,6 +219,10 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     }
 
     private void validatePasswords() {
+        if (changingPassword || accountService.isPasswordRecoveryRequired()) {
+            pwButton.setDisable(true);
+            return;
+        }
         passwordValidator.setPasswordsMatch(true);
 
         if (passwordField.validate()) {
@@ -241,4 +244,3 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         pwButton.setDisable(true);
     }
 }
-

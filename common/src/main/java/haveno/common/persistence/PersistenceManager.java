@@ -44,11 +44,14 @@ import java.io.FileOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -525,6 +528,16 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         persistNow(completeHandler, false);
     }
 
+    // Password changes must observe write failures and cannot wait for a callback on the user thread.
+    public void persistNowAndWait() {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+        synchronized (this) {
+            protobuf.PersistableEnvelope serialized = (protobuf.PersistableEnvelope) persistable.toPersistableMessage();
+            getWriteToDiskExecutor().execute(() -> writeToDisk(serialized, null, true, result));
+        }
+        result.join();
+    }
+
     private synchronized void persistNow(@Nullable Runnable completeHandler, boolean force) {
         long ts = System.currentTimeMillis();
         try {
@@ -549,6 +562,11 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     }
 
     private void writeToDisk(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler, boolean force) {
+        writeToDisk(serialized, completeHandler, force, null);
+    }
+
+    private void writeToDisk(protobuf.PersistableEnvelope serialized, @Nullable Runnable completeHandler, boolean force,
+                             @Nullable CompletableFuture<Void> result) {
         if (!allServicesInitialized.get() && !force) {
             log.warn("Application has not completed start up yet so we do not permit writing data to disk.");
             if (completeHandler != null) {
@@ -558,6 +576,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         }
         if (keyRing != null && !keyRing.isUnlocked()) {
             log.warn("Account is not open, ignoring writeToDisk.");
+            if (result != null) result.completeExceptionally(new IllegalStateException("Account is not open"));
             if (completeHandler != null) {
                 UserThread.execute(completeHandler);
             }
@@ -603,9 +622,14 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             // when rename temp file
             fileOutputStream.close();
 
-            FileUtil.renameFile(tempFile, storageFile);
+            if (result == null) FileUtil.renameFile(tempFile, storageFile);
+            else {
+                Files.move(tempFile.toPath(), storageFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                FileUtil.syncFileAndDirectory(storageFile.toPath());
+            }
             usedTempFilePath = tempFile.toPath();
         } catch (Throwable t) {
+            if (result != null) result.completeExceptionally(t);
             // If an error occurred, don't attempt to reuse this path again, in case temp file cleanup fails.
             usedTempFilePath = null;
             log.error("Error at saveToFile, storageFile={}", fileName, t);
@@ -634,6 +658,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
             if (completeHandler != null) {
                 UserThread.execute(completeHandler);
             }
+            if (result != null) result.complete(null);
         }
     }
 

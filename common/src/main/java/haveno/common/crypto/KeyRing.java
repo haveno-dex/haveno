@@ -93,11 +93,15 @@ public final class KeyRing {
      */
     public boolean unlockKeys(@Nullable String password, boolean generateKeys) throws IncorrectPasswordException {
         if (isUnlocked()) return true;
+        if (keyStorage.hasAccountFiles()) keyStorage.checkKeyFiles();
         if (keyStorage.allKeyFilesExist()) {
             symmetricKey = keyStorage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, password);
             signatureKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_SIGNATURE, symmetricKey);
             encryptionKeyPair = keyStorage.loadKeyPair(KeyStorage.KeyEntry.MSG_ENCRYPTION, symmetricKey);
-            if (signatureKeyPair != null && encryptionKeyPair != null) pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
+            if (signatureKeyPair != null && encryptionKeyPair != null) {
+                pubKeyRing = new PubKeyRing(signatureKeyPair.getPublic(), encryptionKeyPair.getPublic());
+                keyStorage.cleanupAfterUnlock(this, password);
+            }
         } else if (generateKeys) {
             generateKeys(password);
         }
@@ -111,6 +115,7 @@ public final class KeyRing {
      */
     public void generateKeys(String password) {
         if (isUnlocked()) throw new IllegalStateException("Current keyring must be closed to generate new keys");
+        if (keyStorage.hasAccountFiles()) throw new IllegalStateException("Cannot create keys over existing account files");
         symmetricKey = Encryption.generateSecretKey(256);
         signatureKeyPair = Sig.generateKeyPair();
         encryptionKeyPair = Encryption.generateKeyPair();

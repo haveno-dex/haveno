@@ -128,8 +128,8 @@ public class GrpcAccountService extends AccountImplBase {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
-            if (cause instanceof IncorrectPasswordException) cause = new IllegalStateException(cause);
-            exceptionHandler.handleException(log, cause, responseObserver);
+            if (cause instanceof IncorrectPasswordException) cause = new IllegalStateException(cause.getMessage(), cause);
+            exceptionHandler.handleAccountException(log, cause, responseObserver);
         }
     }
 
@@ -149,12 +149,12 @@ public class GrpcAccountService extends AccountImplBase {
     @Override
     public void changePassword(ChangePasswordRequest req, StreamObserver<ChangePasswordReply> responseObserver) {
         try {
-            coreApi.changePassword(req.getOldPassword(), req.getNewPassword());
-            var reply = ChangePasswordReply.newBuilder().build();
+            var retainedBackups = coreApi.changePassword(req.getOldPassword(), req.getNewPassword());
+            var reply = ChangePasswordReply.newBuilder().addAllRetainedWalletBackups(retainedBackups).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
-            exceptionHandler.handleException(log, cause, responseObserver);
+            exceptionHandler.handleAccountException(log, cause, responseObserver);
         }
     }
 
