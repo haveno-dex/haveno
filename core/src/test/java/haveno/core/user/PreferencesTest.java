@@ -31,12 +31,15 @@ import javafx.collections.ObservableList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -45,6 +48,7 @@ import static org.mockito.Mockito.when;
 public class PreferencesTest {
 
     private Preferences preferences;
+    private Config config;
     private PersistenceManager persistenceManager;
     private XmrNodes xmrNodes;
 
@@ -56,11 +60,71 @@ public class PreferencesTest {
         Res.setBaseCurrencyCode("XMR");
         Res.setBaseCurrencyName("Monero");
         persistenceManager = mock(PersistenceManager.class);
-        Config config = new Config();
+        config = new Config();
         preferences = new Preferences(
                 persistenceManager, config, null, null);
         xmrNodes = new XmrNodes();
         XmrLocalNode xmrLocalNode = new XmrLocalNode(config, preferences, xmrNodes);
+    }
+
+    @Test
+    public void testSoftwareRenderingPersistsForNextStartup() {
+        String currentRenderer = System.getProperty("prism.order");
+        assertFalse(preferences.isUseSoftwareRendering());
+        assertFalse(StartupSettings.read(config.appDataDir)
+                .getAsOptionalBoolean(CookieKey.USE_SOFTWARE_RENDERING).orElse(false));
+
+        preferences.setCssTheme(true);
+        assertTrue(preferences.setUseSoftwareRendering(true));
+        Preferences reloaded = new Preferences(persistenceManager, config, null, null);
+        assertTrue(reloaded.isUseSoftwareRendering());
+        assertTrue(StartupSettings.read(config.appDataDir)
+                .getAsOptionalBoolean(CookieKey.USE_SOFTWARE_RENDERING).orElse(false));
+        assertEquals(currentRenderer, System.getProperty("prism.order"));
+
+        preferences.setUserLanguage("de");
+        assertTrue(reloaded.isUseSoftwareRendering());
+        assertTrue(reloaded.setUseSoftwareRendering(false));
+        assertFalse(new Preferences(persistenceManager, config, null, null).isUseSoftwareRendering());
+        Cookie settings = StartupSettings.read(config.appDataDir);
+        assertTrue(settings.getAsOptionalBoolean(CookieKey.CSS_THEME).orElse(false));
+        assertEquals("de", settings.get(CookieKey.USER_LANGUAGE));
+        assertEquals(currentRenderer, System.getProperty("prism.order"));
+    }
+
+    @Test
+    public void testPreferencesIgnoresJvmPrismOrderOverride() {
+        String originalRenderer = System.getProperty("prism.order");
+        try {
+            for (String renderer : new String[]{"es2", "sw"}) {
+                System.setProperty("prism.order", renderer);
+
+                assertFalse(preferences.isUseSoftwareRendering());
+                assertTrue(preferences.setUseSoftwareRendering(true));
+                assertTrue(preferences.isUseSoftwareRendering());
+                assertTrue(new Preferences(persistenceManager, config, null, null).isUseSoftwareRendering());
+                assertEquals(renderer, System.getProperty("prism.order"));
+
+                assertTrue(preferences.setUseSoftwareRendering(false));
+                assertFalse(preferences.isUseSoftwareRendering());
+                assertFalse(new Preferences(persistenceManager, config, null, null).isUseSoftwareRendering());
+                assertEquals(renderer, System.getProperty("prism.order"));
+            }
+        } finally {
+            if (originalRenderer != null) {
+                System.setProperty("prism.order", originalRenderer);
+            } else {
+                System.clearProperty("prism.order");
+            }
+        }
+    }
+
+    @Test
+    public void testSoftwareRenderingReportsPersistenceFailure() throws IOException {
+        Files.createDirectory(config.appDataDir.toPath().resolve("startup_settings"));
+
+        assertFalse(preferences.setUseSoftwareRendering(true));
+        assertFalse(preferences.isUseSoftwareRendering());
     }
 
     @Test
