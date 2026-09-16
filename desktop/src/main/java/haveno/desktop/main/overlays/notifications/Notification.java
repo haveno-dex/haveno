@@ -25,7 +25,6 @@ import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.FormBuilder;
 import javafx.geometry.Insets;
-import javafx.scene.input.MouseEvent;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 
@@ -46,11 +45,6 @@ public class Notification extends Overlay<Notification> {
 
         if (autoClose && autoCloseTimer == null)
             autoCloseTimer = UserThread.runAfter(this::doClose, 6);
-
-        UserThread.execute(() -> {
-            if (stage != null && stage.isShowing())
-                stage.addEventHandler(MouseEvent.MOUSE_PRESSED, (event) -> doClose());
-        });
     }
 
     @Override
