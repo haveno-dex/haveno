@@ -61,8 +61,8 @@ public class StartupSettings {
         return Cookie.fromProto(map);
     }
 
-    /** Merges the given entries into the store and persists it. */
-    public static void write(File appDataDir, Cookie updates) {
+    /** Merges the given entries into the store and returns whether they were persisted. */
+    public static boolean write(File appDataDir, Cookie updates) {
         Cookie merged = read(appDataDir);
         merged.putAll(updates);
         Properties props = new Properties();
@@ -80,6 +80,7 @@ public class StartupSettings {
             } catch (AtomicMoveNotSupportedException e) {
                 Files.move(tmpFile, file, StandardCopyOption.REPLACE_EXISTING);
             }
+            return true;
         } catch (Exception e) {
             log.warn("Could not persist {}: {}", FILE_NAME, e.getMessage());
             try {
@@ -87,6 +88,7 @@ public class StartupSettings {
             } catch (Exception cleanupError) {
                 // best-effort cleanup; nothing else to do
             }
+            return false;
         }
     }
 }

@@ -116,7 +116,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private ComboBox<Country> userCountryComboBox;
     private AutocompleteComboBox<TradeCurrency> preferredTradeCurrencyComboBox;
 
-    private ToggleButton showOwnOffersInOfferBook, useAnimations, useDarkMode, sortMarketCurrenciesNumerically,
+    private ToggleButton showOwnOffersInOfferBook, useAnimations, useDarkMode, useSoftwareRendering, sortMarketCurrenciesNumerically,
             avoidStandbyMode, useSoundForNotifications, useNativeXmrWallet, useCustomFee, autoConfirmXmrToggle, hideNonAccountPaymentMethodsToggle, denyApiTakerToggle,
             notifyOnPreReleaseToggle;
     private int gridRow = 0;
@@ -561,12 +561,20 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     }
 
     private void initializeDisplayOptions() {
-        TitledGroupBg titledGroupBg = addTitledGroupBg(optionsGridPane, ++gridRow, 7, Res.get("setting.preferences.displayOptions"), Layout.GROUP_DISTANCE);
+        TitledGroupBg titledGroupBg = addTitledGroupBg(optionsGridPane, ++gridRow, 8, Res.get("setting.preferences.displayOptions"), Layout.GROUP_DISTANCE);
         GridPane.setColumnSpan(titledGroupBg, 1);
 
         showOwnOffersInOfferBook = addSlideToggleButton(optionsGridPane, gridRow, Res.get("setting.preferences.showOwnOffers"), Layout.FIRST_ROW_AND_GROUP_DISTANCE + 10);
         useAnimations = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.useAnimations"));
         useDarkMode = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.useDarkMode"));
+        useSoftwareRendering = new AutoTooltipSlideToggleButton();
+        useSoftwareRendering.setText(Res.get("setting.preferences.useSoftwareRendering"));
+        InfoAutoTooltipLabel useSoftwareRenderingInfo = new InfoAutoTooltipLabel("", FontAwesomeIcon.INFO_CIRCLE, ContentDisplay.RIGHT,
+                Res.get("setting.preferences.useSoftwareRendering.info"), 420);
+        HBox useSoftwareRenderingBox = new HBox(6, useSoftwareRendering, useSoftwareRenderingInfo);
+        useSoftwareRenderingBox.setAlignment(Pos.CENTER_LEFT);
+        GridPane.setRowIndex(useSoftwareRenderingBox, ++gridRow);
+        optionsGridPane.getChildren().add(useSoftwareRenderingBox);
         sortMarketCurrenciesNumerically = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.sortWithNumOffers"));
         hideNonAccountPaymentMethodsToggle = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.onlyShowPaymentMethodsFromAccount"));
         //denyApiTakerToggle = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.denyApiTaker")); // TODO: re-enable?
@@ -808,6 +816,24 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useAnimations.setSelected(preferences.isUseAnimations());
         useAnimations.setOnAction(e -> preferences.setUseAnimations(useAnimations.isSelected()));
 
+        useSoftwareRendering.setSelected(preferences.isUseSoftwareRendering());
+        useSoftwareRendering.setOnAction(e -> {
+            boolean selected = useSoftwareRendering.isSelected();
+            new Popup().information(Res.get("settings.net.needRestart"))
+                    .actionButtonText(Res.get("shared.applyAndShutDown"))
+                    .onAction(() -> {
+                        if (preferences.setUseSoftwareRendering(selected)) {
+                            UserThread.runAfter(HavenoApp.getShutDownHandler(), 500, TimeUnit.MILLISECONDS);
+                        } else {
+                            useSoftwareRendering.setSelected(preferences.isUseSoftwareRendering());
+                            new Popup().warning(Res.get("setting.preferences.useSoftwareRendering.saveFailed")).show();
+                        }
+                    })
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .onClose(() -> useSoftwareRendering.setSelected(preferences.isUseSoftwareRendering()))
+                    .show();
+        });
+
         useDarkMode.setSelected(preferences.getCssTheme() == 1);
         useDarkMode.setOnAction(e -> preferences.setCssTheme(useDarkMode.isSelected()));
         cssThemeListener = (observable, oldValue, newValue) -> useDarkMode.setSelected(newValue.intValue() == 1);
@@ -915,6 +941,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
     private void deactivateDisplayPreferences() {
         useAnimations.setOnAction(null);
+        useSoftwareRendering.setOnAction(null);
         useDarkMode.setOnAction(null);
         preferences.getCssThemeProperty().removeListener(cssThemeListener);
         sortMarketCurrenciesNumerically.setOnAction(null);
