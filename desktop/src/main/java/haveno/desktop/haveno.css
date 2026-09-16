@@ -1099,7 +1099,7 @@ tree-table-view:focused {
 .nav-unread-dot,
 .tab-unread-dot {
     -fx-fill: -bs-red;
-    -fx-stroke: -bs-rd-nav-deselected;
+    -fx-stroke: -bs-rd-nav-unread-dot-stroke;
     -fx-stroke-width: 1.5;
 }
 

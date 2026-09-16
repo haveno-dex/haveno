@@ -44,6 +44,7 @@
     -bs-rd-green-dark: #3EA34A;
     -bs-rd-nav-selected: -bs-color-primary;
     -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
+    -bs-rd-nav-unread-dot-stroke: -bs-rd-nav-deselected;
     -bs-rd-nav-secondary-selected: -fx-accent;
     -bs-rd-nav-secondary-deselected: -bs-rd-font-light;
     -bs-rd-nav-background: -bs-color-primary;
