@@ -34,12 +34,16 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 
 @Slf4j
 public class FileUtil {
@@ -49,15 +53,32 @@ public class FileUtil {
     public static final String CORRUPTED_BACKUP_FOLDER = "backup_of_corrupted_data";
 
     private static final String BACKUP_DIR = "backup";
-    
+
+    // Restricts a file or directory to owner-only access. No-op on non-POSIX filesystems.
+    public static void setOwnerOnlyPermissions(Path path) {
+        try {
+            if (!java.nio.file.Files.getFileStore(path).supportsFileAttributeView(PosixFileAttributeView.class))
+                return;
+            Set<PosixFilePermission> perms = java.nio.file.Files.isDirectory(path)
+                    ? PosixFilePermissions.fromString("rwx------")
+                    : PosixFilePermissions.fromString("rw-------");
+            java.nio.file.Files.setPosixFilePermissions(path, perms);
+        } catch (IOException e) {
+            log.warn("Could not restrict permissions on {}", path, e);
+        }
+    }
+
     // returns false if a backup copy could not be created, true otherwise (including when there is no file to back up)
     public static boolean rollingBackup(File dir, String fileName, int numMaxBackupFiles) {
         if (numMaxBackupFiles <= 0) return true;
         if (dir.exists()) {
             File backupDir = new File(Paths.get(dir.getAbsolutePath(), BACKUP_DIR).toString());
-            if (!backupDir.exists())
+            if (!backupDir.exists()) {
                 if (!backupDir.mkdir())
                     log.warn("make dir failed.\nBackupDir=" + backupDir.getAbsolutePath());
+                else
+                    setOwnerOnlyPermissions(backupDir.toPath());
+            }
 
             File origFile = new File(Paths.get(dir.getAbsolutePath(), fileName).toString());
             if (origFile.exists()) {
@@ -65,14 +86,18 @@ public class FileUtil {
                 if (dirName.contains("."))
                     dirName = dirName.replace(".", "_");
                 File backupFileDir = new File(Paths.get(backupDir.getAbsolutePath(), dirName).toString());
-                if (!backupFileDir.exists())
+                if (!backupFileDir.exists()) {
                     if (!backupFileDir.mkdir())
                         log.warn("make backupFileDir failed.\nBackupFileDir=" + backupFileDir.getAbsolutePath());
+                    else
+                        setOwnerOnlyPermissions(backupFileDir.toPath());
+                }
 
                 File backupFile = new File(Paths.get(backupFileDir.getAbsolutePath(), new Date().getTime() + "_" + fileName).toString());
 
                 try {
                     Files.copy(origFile, backupFile);
+                    setOwnerOnlyPermissions(backupFile.toPath());
 
                     pruneBackup(backupFileDir, numMaxBackupFiles);
                 } catch (IOException e) {
