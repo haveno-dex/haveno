@@ -18,11 +18,11 @@
 package haveno.asset.coins;
 
 import haveno.asset.Coin;
-import haveno.asset.EtherAddressValidator;
+import haveno.asset.EVMAddressValidator;
 
 public class Ether extends Coin {
 
     public Ether() {
-        super("Ether", "ETH", new EtherAddressValidator());
+        super("Ether", "ETH", new EVMAddressValidator());
     }
 }
