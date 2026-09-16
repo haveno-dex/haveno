@@ -400,6 +400,18 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     // UI settings are kept in the unencrypted StartupSettings store so they can be applied before login
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public boolean isUseSoftwareRendering() {
+        return config != null && StartupSettings.read(config.appDataDir)
+                .getAsOptionalBoolean(CookieKey.USE_SOFTWARE_RENDERING).orElse(false);
+    }
+
+    public boolean setUseSoftwareRendering(boolean useSoftwareRendering) {
+        if (config == null) return false;
+        Cookie updates = new Cookie();
+        updates.putAsBoolean(CookieKey.USE_SOFTWARE_RENDERING, useSoftwareRendering);
+        return StartupSettings.write(config.appDataDir, updates);
+    }
+
     private void applyCssTheme(int cssTheme) {
         prefPayload.setCssTheme(cssTheme);
         cssThemeProperty.set(cssTheme);
