@@ -1,0 +1,13 @@
+chat.wav
+========
+
+Source: Notification Sound 2 by deadrobotmusic
+Source sound: https://freesound.org/people/deadrobotmusic/sounds/750608/
+Source preview: https://cdn.freesound.org/previews/750/750608_11532701-hq.mp3
+
+The sound is dedicated to the public domain under the Creative Commons CC0 1.0
+Universal license:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The high-quality MP3 preview was attenuated by 12 dB and converted to a 16-bit,
+44.1 kHz stereo WAV.

@@ -73,7 +73,7 @@ public class CoreNotificationService {
     }
 
     public void sendChatNotification(ChatMessage chatMessage) {
-        HavenoUtils.playChimeSound();
+        HavenoUtils.playChatSound();
         sendNotification(NotificationMessage.newBuilder()
                 .setType(NotificationType.CHAT_MESSAGE)
                 .setTimestamp(System.currentTimeMillis())
