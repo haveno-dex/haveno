@@ -100,4 +100,8 @@ public class FilterBox extends HBox {
     public void setPromptText(String promptText) {
         textField.setPromptText(promptText);
     }
+
+    public void clear() {
+        textField.clear();
+    }
 }

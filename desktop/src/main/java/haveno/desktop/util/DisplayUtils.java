@@ -33,6 +33,11 @@ import java.util.Optional;
 @Slf4j
 public class DisplayUtils {
     private static final int SCALE = 3;
+    private static final int MAX_BADGE_COUNT = 99;
+
+    public static String formatBadgeCount(long count) {
+        return count > MAX_BADGE_COUNT ? MAX_BADGE_COUNT + "+" : Long.toString(count);
+    }
 
     public static String formatDateTime(Date date) {
         return FormattingUtils.formatDateTime(date, true);

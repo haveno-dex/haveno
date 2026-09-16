@@ -24,15 +24,25 @@ import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.util.FormBuilder;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import javafx.geometry.Insets;
 import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 
 public class Notification extends Overlay<Notification> {
+    private static final int AUTO_CLOSE_MILLIS = 6000;
+    private static final int BORDER_PADDING = 10;
+
     private boolean hasBeenDisplayed;
     private boolean autoClose;
+    private boolean displayReady;
+    private boolean closing;
+    private boolean suspended;
     private Timer autoCloseTimer;
-    private static final int BORDER_PADDING = 10;
+    private long autoCloseGeneration;
+    private BooleanSupplier displayCondition = () -> true;
 
     public Notification() {
         width = 413; // 320 visible bg because of insets
@@ -41,26 +51,60 @@ public class Notification extends Overlay<Notification> {
     }
 
     void onReadyForDisplay() {
-        super.display();
-
-        if (autoClose && autoCloseTimer == null)
-            autoCloseTimer = UserThread.runAfter(this::doClose, 6);
+        if (closing) return;
+        if (!displayCondition.getAsBoolean()) {
+            hide();
+            return;
+        }
+        if (suspended) {
+            suspended = false;
+            // rebuild the content because a previous display may have wrapped it in a scroll pane
+            rowIndex = -1;
+            createContent(false);
+        }
+        if (!isDisplayed) display();
+        if (!isDisplayed) hide();
+        else if (displayReady) startAutoCloseTimer();
     }
 
     @Override
     public void hide() {
-        if (gridPane != null)
-            animateHide();
+        if (closing) return;
+        closing = true;
+        if (isDisplayed) animateHide();
+        else onHidden();
+    }
+
+    void suspend() {
+        if (closing || suspended) return;
+        suspended = true;
+        displayReady = false;
+        pauseAutoCloseTimer();
+        animateHide();
     }
 
     @Override
     protected void onShow() {
-        NotificationManager.queueForDisplay(this);
+        if (!isDisplayed) {
+            closing = false;
+            suspended = false;
+            displayReady = false;
+            isHiddenProperty.set(false);
+        }
+        NotificationManager.show(this);
     }
 
     @Override
     protected void onHidden() {
+        if (closing) onDiscarded();
         NotificationManager.onHidden(this);
+    }
+
+    void onDiscarded() {
+        suspended = false;
+        pauseAutoCloseTimer();
+        closing = true;
+        isHiddenProperty.set(true);
     }
 
     public Notification tradeHeadLine(String tradeId) {
@@ -87,13 +131,75 @@ public class Notification extends Overlay<Notification> {
     }
 
     @Override
+    public Notification message(String message) {
+        super.message(message);
+        if (messageTextArea != null) messageTextArea.setText(truncatedMessage);
+        pauseAutoCloseTimer();
+        NotificationManager.onUpdated(this);
+        if (NotificationManager.isCurrent(this)) startAutoCloseTimer();
+        return this;
+    }
+
+    public Notification onlyShowIf(BooleanSupplier condition) {
+        displayCondition = condition;
+        return this;
+    }
+
+    @Override
     protected void animateHide(Runnable onFinishedHandler) {
+        pauseAutoCloseTimer();
+        super.animateHide(() -> runWithPreservedFocus(onFinishedHandler, null));
+    }
+
+    @Override
+    protected void animateDisplay() {
+        super.animateDisplay();
+        displayReady = true;
+        startAutoCloseTimer();
+    }
+
+    private void startAutoCloseTimer() {
+        if (!autoClose || !displayReady || closing || !NotificationManager.isCurrent(this) || autoCloseTimer != null) return;
+        long generation = ++autoCloseGeneration;
+        autoCloseTimer = UserThread.runAfter(() -> {
+            // a stopped timer may already have queued its callback on the user thread
+            if (generation != autoCloseGeneration || !NotificationManager.isCurrent(this)) return;
+            doClose();
+        }, AUTO_CLOSE_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    void pauseAutoCloseTimer() {
+        autoCloseGeneration++;
         if (autoCloseTimer != null) {
             autoCloseTimer.stop();
             autoCloseTimer = null;
         }
+    }
 
-        super.animateHide(onFinishedHandler);
+    boolean isClosing() {
+        return closing;
+    }
+
+    boolean ownsWindow(Window window) {
+        return stage == window;
+    }
+
+    private static void runWithPreservedFocus(Runnable action, Window excludedWindow) {
+        Stage focusedWindow = Window.getWindows().stream()
+                .filter(window -> window instanceof Stage && window != excludedWindow && window.isFocused() && !NotificationManager.isNotificationWindow(window))
+                .map(window -> (Stage) window)
+                .findFirst().orElse(null);
+        action.run();
+        // showing or hiding an owned stage can activate its owner on some window managers
+        if (focusedWindow != null) {
+            focusedWindow.toFront();
+            focusedWindow.requestFocus();
+        }
+    }
+
+    @Override
+    protected void showStage() {
+        runWithPreservedFocus(super::showStage, owner.getScene().getWindow());
     }
 
     @Override
@@ -137,6 +243,7 @@ public class Notification extends Overlay<Notification> {
 
     @Override
     protected void layout() {
+        if (stage == null || !stage.isShowing()) return;
         Window window = owner.getScene().getWindow();
         double titleBarHeight = window.getHeight() - owner.getScene().getHeight();
         double shadowInset = 44;

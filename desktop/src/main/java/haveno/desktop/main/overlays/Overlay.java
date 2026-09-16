@@ -208,6 +208,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     private AnimationTimer displayTimer;
     private final Timeline animation = new Timeline();
     private boolean hiding;
+    private long displayGeneration;
 
     protected Timer centerTime;
     protected Type type = Type.Undefined;
@@ -235,24 +236,28 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public void show(boolean showAgainChecked) {
         if (dontShowAgainId == null || DontShowAgainLookup.showAgain(dontShowAgainId)) {
-            createGridPane();
-            if (LanguageUtil.isDefaultLanguageRTL())
-                getRootContainer().setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
-
-            addHeadLine();
-
-            if (showBusyAnimation)
-                addBusyAnimation();
-
-            addMessage();
-            if (showReportErrorButtons)
-                addReportErrorButtons();
-
-            addButtons();
-            addDontShowAgainCheckBox(showAgainChecked);
-            applyStyles();
+            createContent(showAgainChecked);
             onShow();
         }
+    }
+
+    protected void createContent(boolean showAgainChecked) {
+        createGridPane();
+        if (LanguageUtil.isDefaultLanguageRTL())
+            getRootContainer().setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+
+        addHeadLine();
+
+        if (showBusyAnimation)
+            addBusyAnimation();
+
+        addMessage();
+        if (showReportErrorButtons)
+            addReportErrorButtons();
+
+        addButtons();
+        addDontShowAgainCheckBox(showAgainChecked);
+        applyStyles();
     }
 
     public void show() {
@@ -273,6 +278,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected void animateHide() {
         if (hiding) return;
         hiding = true;
+        displayGeneration++;
         if (displayTimer != null) {
             displayTimer.stop();
             displayTimer = null;
@@ -566,8 +572,10 @@ public abstract class Overlay<T extends Overlay<T>> {
             if (rootScene != null) {
                 isDisplayed = true;
                 hiding = false;
+                long generation = ++displayGeneration;
                 UserThread.execute(() -> {
-                    if (hiding) return;
+                    // ignore a display queued before this overlay was hidden and shown again
+                    if (hiding || generation != displayGeneration) return;
                     Scene scene = new Scene(getRootContainer());
                     scene.getStylesheets().setAll(rootScene.getStylesheets());
                     stylesheetsListener = change -> scene.getStylesheets().setAll(rootScene.getStylesheets());
@@ -591,7 +599,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                     getRootContainer().setOpacity(1); // render the complete card while the native window is hidden
                     stage.setOpacity(0); // hide the native window too, else it can flash white before the first frame renders
                     stage.sizeToScene();
-                    stage.show();
+                    showStage();
                     constrainToScreen(scene);
 
                     // focus the message, not the headline copy icon, so screen readers announce it first
@@ -681,6 +689,10 @@ public abstract class Overlay<T extends Overlay<T>> {
         }
     }
 
+    protected void showStage() {
+        stage.show();
+    }
+
     protected Region getRootContainer() {
         return gridPane;
     }
@@ -752,7 +764,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     // re-fit the stage to the content and the cap budget: engage the cap once the content outgrows
     // the budget, else track both so a capped popup resizes with its content and the owner window
-    private void refitToContent() {
+    protected void refitToContent() {
         if (capShell == null) {
             constrainToScreen(stage.getScene()); // no-op while the content still fits
         } else {
@@ -832,7 +844,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void animateHide(Runnable onFinishedHandler) {
-        if (stage == null || stage.getOpacity() == 0 || getDuration(160) <= 1) {
+        if (stage == null || !stage.isShowing() || stage.getOpacity() == 0 || getDuration(160) <= 1) {
             animation.stop();
             onFinishedHandler.run();
             return;

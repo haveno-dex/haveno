@@ -17,41 +17,48 @@
 
 package haveno.desktop.main.overlays.notifications;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.ArrayList;
+import java.util.List;
+import javafx.stage.Window;
 
 public class NotificationManager {
-    private static final Logger log = LoggerFactory.getLogger(NotificationManager.class);
-    private static final Queue<Notification> popups = new LinkedBlockingQueue<>(5);
-    private static Notification displayedPopup;
+    private static final List<Notification> notifications = new ArrayList<>();
+    private static Notification displayedNotification;
 
-    public static void queueForDisplay(Notification popup) {
-        boolean result = popups.offer(popup);
-        if (!result)
-            log.warn("The capacity is full with popups in the queue.\n\t" +
-                    "Not added new popup=" + popup);
+    public static void show(Notification popup) {
+        if (popup.isClosing() || notifications.contains(popup)) return;
+        notifications.add(0, popup);
         displayNext();
     }
 
+    static void onUpdated(Notification popup) {
+        if (popup.isClosing() || !notifications.remove(popup)) return;
+        notifications.add(0, popup);
+        displayNext();
+    }
+
+    static boolean isCurrent(Notification popup) {
+        return popup == displayedNotification;
+    }
+
+    static boolean isNotificationWindow(Window window) {
+        return notifications.stream().anyMatch(popup -> popup.ownsWindow(window));
+    }
+
     public static void onHidden(Notification popup) {
-        if (displayedPopup == null || displayedPopup == popup) {
-            displayedPopup = null;
-            displayNext();
-        } else {
-            log.warn("We got a isHidden called with a wrong popup.\n\t" +
-                    "popup (argument)=" + popup + "\n\tdisplayedPopup=" + displayedPopup);
-        }
+        if (popup.isClosing()) notifications.remove(popup);
+        if (isCurrent(popup)) displayedNotification = null;
+        displayNext();
     }
 
     private static void displayNext() {
-        if (displayedPopup == null) {
-            if (!popups.isEmpty()) {
-                displayedPopup = popups.poll();
-                displayedPopup.onReadyForDisplay();
-            }
+        Notification newest = notifications.isEmpty() ? null : notifications.get(0);
+        if (displayedNotification != null) {
+            // finish hiding the previous card before showing another notification
+            if (displayedNotification != newest) displayedNotification.suspend();
+        } else if (newest != null) {
+            displayedNotification = newest;
+            newest.onReadyForDisplay();
         }
     }
 }
