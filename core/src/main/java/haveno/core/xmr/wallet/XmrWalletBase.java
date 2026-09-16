@@ -187,7 +187,14 @@ public abstract class XmrWalletBase {
                 syncProgressError = null;
                 syncProgressTargetHeight = xmrConnectionService.getTargetHeight();
                 syncFromHeight = getSyncFromHeight();
-                lastReportedHeight = wallet.getHeight(); // seed so the initial update keeps the initial timeout until the height advances
+                // coordinate short RPC calls with password-change reopen without holding walletLock through sync
+                if (sourceWallet instanceof MoneroWalletRpc) {
+                    synchronized (sourceWallet) {
+                        lastReportedHeight = sourceWallet.getHeight(); // seed so the initial update keeps the initial timeout until the height advances
+                    }
+                } else {
+                    lastReportedHeight = sourceWallet.getHeight();
+                }
                 updateSyncProgress(lastReportedHeight, syncProgressTargetHeight);
 
                 // done if already synced
@@ -254,7 +261,9 @@ public abstract class XmrWalletBase {
                     // get height
                     long height;
                     try {
-                        height = wallet.getHeight(); // can get read timeout while syncing
+                        synchronized (sourceWallet) {
+                            height = sourceWallet.getHeight(); // can get read timeout while syncing
+                        }
                     } catch (Exception e) {
                         if (syncProgressError == null && wallet != null && !isShutDownStarted) {
                             log.warn("Error getting wallet height while syncing with progress: " + e.getMessage());
@@ -276,7 +285,10 @@ public abstract class XmrWalletBase {
                     // update target height after each update to prevent stalling on new blocks
                     syncProgressTargetHeight = xmrConnectionService.getTargetHeight();
                 });
-                wallet.startSyncing(xmrConnectionService.getRefreshPeriodMs());
+                long refreshPeriodMs = xmrConnectionService.getRefreshPeriodMs();
+                synchronized (sourceWallet) {
+                    sourceWallet.startSyncing(refreshPeriodMs);
+                }
                 syncProgressLooper.start(1000);
 
                 // save wallet when height advances so scanned blocks are kept if the wallet is force closed
@@ -419,7 +431,16 @@ public abstract class XmrWalletBase {
             if (System.currentTimeMillis() - lastSaveTimeMs < minSaveIntervalMs.get()) return;
             try {
                 long startTime = System.currentTimeMillis();
-                saveWalletNoSync(); // skip walletLock, which the syncing thread may hold; rpc serializes requests and native saves synchronize with sync chunks
+                MoneroWallet sourceWallet = wallet;
+                if (sourceWallet == null) return;
+                if (sourceWallet instanceof MoneroWalletRpc) {
+                    synchronized (sourceWallet) {
+                        if (wallet != sourceWallet) return;
+                        saveWalletNoSync(); // skip walletLock, which the syncing thread may hold
+                    }
+                } else {
+                    saveWalletNoSync(); // native saves synchronize with sync chunks
+                }
                 minSaveIntervalMs.set(wallet instanceof MoneroWalletFull ? SAVE_PROGRESS_NATIVE_INTERVAL_MS : (System.currentTimeMillis() - startTime) * SAVE_MAX_SYNC_TIME_FRACTION); // native save duration mostly awaits the current chunk, so back off a fixed interval; rpc backs off on slow saves to bound overhead
                 lastSaveHeight.set(height);
             } catch (Exception e) {
@@ -475,11 +496,18 @@ public abstract class XmrWalletBase {
         if (syncProgressError == null) wasWalletSynced = true; // this is redundant but conservative to set again
 
         // stop syncing and save wallet if elapsed time
-        if (wallet != null) { // can become null if interrupted by force close
+        MoneroWallet sourceWallet = wallet;
+        if (sourceWallet != null) { // can become null if interrupted by force close
 
             // TODO: skipping stop sync if unresponsive because wallet will hang. if unresponsive, wallet is assumed to be force restarted by caller, but that should be done internally here instead of externally?
             if (syncProgressError == null || !HavenoUtils.isUnresponsive(syncProgressError)) {
-                wallet.stopSyncing();
+                if (sourceWallet instanceof MoneroWalletRpc) {
+                    synchronized (sourceWallet) {
+                        sourceWallet.stopSyncing();
+                    }
+                } else {
+                    sourceWallet.stopSyncing();
+                }
                 saveWalletIfElapsedTime();
             }
         }

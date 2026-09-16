@@ -141,6 +141,7 @@ message ChangePasswordRequest {
 }
 
 message ChangePasswordReply {
+    repeated string retained_wallet_backups = 1;
 }
 
 message CloseAccountRequest {

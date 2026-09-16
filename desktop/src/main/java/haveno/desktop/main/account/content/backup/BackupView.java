@@ -24,6 +24,7 @@ import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
+import haveno.core.api.CoreAccountService;
 import haveno.core.api.XmrLocalNode;
 import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
@@ -42,6 +43,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import javafx.beans.value.ChangeListener;
@@ -56,6 +58,7 @@ public class BackupView extends ActivatableView<GridPane, Void> {
     private final File dataDir, logFile;
     private int gridRow = 0;
     private final Preferences preferences;
+    private final CoreAccountService accountService;
     private Button selectBackupDir, backupNow;
     private TextField backUpLocationTextField;
     private Button openDataDirButton, openLogsButton;
@@ -67,9 +70,10 @@ public class BackupView extends ActivatableView<GridPane, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    private BackupView(Preferences preferences, Config config) {
+    private BackupView(Preferences preferences, Config config, CoreAccountService accountService) {
         super();
         this.preferences = preferences;
+        this.accountService = accountService;
         dataDir = new File(config.appDataDir.getPath());
         logFile = new File(Paths.get(dataDir.getPath(), "haveno.log").toString());
     }
@@ -137,7 +141,7 @@ public class BackupView extends ActivatableView<GridPane, Void> {
                     .actionButtonText(Res.get("shared.applyAndShutDown"))
                     .onAction(() -> {
                         UserThread.runAfter(() -> {
-                            HavenoApp.setOnGracefulShutDownHandler(() -> doBackup());
+                            HavenoApp.setOnGracefulShutDownHandler(() -> doBackup(true));
                             HavenoApp.getShutDownHandler().run();
                         }, 500, TimeUnit.MILLISECONDS);
                     })
@@ -147,37 +151,55 @@ public class BackupView extends ActivatableView<GridPane, Void> {
                     })
                     .show();
             } else {
-                doBackup();
+                doBackup(false);
             }
         });
     }
 
-    private void doBackup() {
+    private void doBackup(boolean shutdownComplete) {
         log.info("Backing up data directory");
         String backupDirectory = preferences.getBackupDirectory();
-        if (backupDirectory != null && backupDirectory.length() > 0) {  // We need to flush data to disk
-            PersistenceManager.flushAllDataToDiskAtBackup(() -> {
-                try {
+        if (backupDirectory == null || backupDirectory.isEmpty()) return;
+        UserThread.execute(() -> backupNow.setDisable(true));
+        Runnable backup = () -> {
+            try {
+                accountService.withAccountBackup(() -> {
+                    try {
+                        if (!shutdownComplete) {
+                            CountDownLatch flushed = new CountDownLatch(1);
+                            PersistenceManager.flushAllDataToDiskAtBackup(flushed::countDown);
+                            if (!flushed.await(2, TimeUnit.MINUTES)) throw new IllegalStateException("Timed out flushing data before backup");
+                        }
 
-                    // copy data directory to backup directory
-                    String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
-                    String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
-                    File destinationFile = new File(destination);
-                    FileUtil.copyDirectory(dataDir, new File(destination));
+                        // copy data directory to backup directory
+                        String dateString = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
+                        String destination = Paths.get(backupDirectory, "haveno_backup_" + dateString).toString();
+                        File destinationFile = new File(destination);
+                        FileUtil.copyDirectory(dataDir, destinationFile);
 
-                    // delete monerod and monero-wallet-rpc binaries from backup so they're reinstalled with permissions
-                    File monerod = new File(destinationFile, XmrLocalNode.MONEROD_NAME);
-                    if (monerod.exists()) monerod.delete();
-                    File moneroWalletRpc = new File(destinationFile, XmrWalletService.MONERO_WALLET_RPC_NAME);
-                    if (moneroWalletRpc.exists()) moneroWalletRpc.delete();
-                    new Popup().feedback(Res.get("account.backup.success", destination)).show();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    log.error(e.getMessage());
-                    showWrongPathWarningAndReset(e);
-                }
-            });
-        }
+                        // delete monerod and monero-wallet-rpc binaries from backup so they're reinstalled with permissions
+                        File monerod = new File(destinationFile, XmrLocalNode.MONEROD_NAME);
+                        if (monerod.exists()) monerod.delete();
+                        File moneroWalletRpc = new File(destinationFile, XmrWalletService.MONERO_WALLET_RPC_NAME);
+                        if (moneroWalletRpc.exists()) moneroWalletRpc.delete();
+                        UserThread.execute(() -> new Popup().feedback(Res.get("account.backup.success", destination)).show());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("Backup interrupted", e);
+                    } catch (IOException e) {
+                        throw new IllegalStateException("Could not write backup: " + e.getMessage(), e);
+                    }
+                });
+            } catch (Exception e) {
+                log.error("Could not back up account", e);
+                UserThread.execute(() -> new Popup().warning(e.getMessage()).show());
+            } finally {
+                UserThread.execute(this::updateButtons);
+            }
+        };
+        // shutdown already flushed persistence and must wait for the copy before exiting
+        if (shutdownComplete) backup.run();
+        else new Thread(backup, "BackupAccount").start();
     }
 
     private void openFileOrShowWarning(Button button, File dataDir) {

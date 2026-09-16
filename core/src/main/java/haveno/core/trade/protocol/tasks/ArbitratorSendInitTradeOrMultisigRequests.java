@@ -28,7 +28,6 @@ import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
-import monero.wallet.MoneroWallet;
 
 import java.util.Date;
 import java.util.UUID;
@@ -121,12 +120,12 @@ public class ArbitratorSendInitTradeOrMultisigRequests extends TradeTask {
         if (processModel.getMaker().getReserveTxHash() == null) throw new RuntimeException("Arbitrator does not have maker's reserve tx after initializing trade");
         if (processModel.getTaker().getReserveTxHash() == null && !trade.hasBuyerAsTakerWithoutDeposit()) throw new RuntimeException("Arbitrator does not have taker's reserve tx after initializing trade");
 
-        // create wallet for multisig
-        MoneroWallet multisigWallet = trade.createWallet();
-
-        // prepare multisig
-        String preparedHex = multisigWallet.prepareMultisig();
-        trade.getSelf().setPreparedMultisigHex(preparedHex);
+        // create and prepare multisig wallet under the wallet lock so a password change cannot reopen it in between
+        String preparedHex;
+        synchronized (trade.getWalletLock()) {
+            preparedHex = trade.createWallet().prepareMultisig();
+            trade.getSelf().setPreparedMultisigHex(preparedHex);
+        }
 
         // set trade fee address
         String address = HavenoUtils.ARBITRATOR_ASSIGNS_TRADE_FEE_ADDRESS ? trade.getXmrWalletService().getBaseAddressEntry().getAddressString() : HavenoUtils.getGlobalTradeFeeAddress();

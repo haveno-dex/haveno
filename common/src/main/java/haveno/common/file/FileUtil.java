@@ -30,10 +30,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -264,6 +267,38 @@ public class FileUtil {
                     StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (AtomicMoveNotSupportedException e) {
             renameFile(source, target);
+        }
+    }
+
+    // Flush the replacement before touching the current file, then persist the rename.
+    public static void writeAtomically(Path target, byte[] bytes) throws IOException {
+        Path temp = java.nio.file.Files.createTempFile(target.toAbsolutePath().getParent(), "." + target.getFileName() + ".haveno-write-", ".tmp");
+        try {
+            try (FileChannel channel = FileChannel.open(temp, StandardOpenOption.WRITE)) {
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) channel.write(buffer);
+                channel.force(true);
+            }
+            java.nio.file.Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            syncFileAndDirectory(target);
+        } finally {
+            java.nio.file.Files.deleteIfExists(temp);
+        }
+    }
+
+    // Only use for files without a live native wallet lock; closing a descriptor can release POSIX locks.
+    public static void syncFileAndDirectory(Path path) throws IOException {
+        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.WRITE)) {
+            channel.force(true);
+        }
+        syncDirectory(path.toAbsolutePath().getParent());
+    }
+
+    public static void syncDirectory(Path path) throws IOException {
+        // Windows cannot open directory channels; flushing the renamed file also flushes its NTFS metadata.
+        if (Utilities.isWindows()) return;
+        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
+            channel.force(true);
         }
     }
 

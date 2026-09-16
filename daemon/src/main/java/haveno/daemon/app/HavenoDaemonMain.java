@@ -246,8 +246,12 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
                         System.out.printf("Passwords did not match\n");
                     }
                 }
-            } catch (Exception ex) {
+            } catch (InterruptedException | CancellationException ex) {
                 log.debug(ex.getMessage());
+                return false;
+            } catch (Exception ex) {
+                log.error("Account login failed: {}", ex.getMessage(), ex);
+                System.out.printf("Account login failed: %s%n", ex.getMessage());
                 return false;
             }
         }

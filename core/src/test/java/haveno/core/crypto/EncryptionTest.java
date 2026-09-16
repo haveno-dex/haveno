@@ -17,22 +17,106 @@
 
 package haveno.core.crypto;
 
+import com.google.protobuf.ByteString;
+import com.google.inject.Injector;
 import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
+import haveno.common.persistence.PersistenceManager;
+import haveno.common.setup.CommonSetup;
+import haveno.core.api.AccountServiceListener;
+import haveno.core.api.CoreAccountService;
+import haveno.core.api.XmrConnectionService;
+import haveno.core.app.HavenoExecutable;
+import haveno.core.offer.OpenOfferManager;
+import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.user.Preferences;
+import haveno.core.user.User;
+import haveno.core.xmr.model.EncryptedConnectionList;
+import haveno.core.xmr.model.XmrAddressEntryList;
+import haveno.core.xmr.setup.WalletsSetup;
+import haveno.core.xmr.setup.MoneroWalletRpcManager;
+import haveno.core.xmr.wallet.XmrWalletBase;
+import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.core.xmr.wallet.WalletPasswordChange;
+import monero.common.MoneroError;
+import monero.common.MoneroUtils;
+import monero.daemon.model.MoneroNetworkType;
+import monero.wallet.MoneroWalletFull;
+import monero.wallet.MoneroWalletRpc;
+import monero.wallet.model.MoneroWalletConfig;
+import org.junit.jupiter.api.Assumptions;
+import monero.common.MoneroRpcConnection;
+import monero.common.TaskLooper;
+import monero.wallet.MoneroWallet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 public class EncryptionTest {
     private KeyRing keyRing;
     private File dir;
+    private File walletDir;
+    private KeyStorage keyStorage;
+    private XmrWalletService previousWalletService;
+    private TradeManager previousTradeManager;
+    private final List<CoreAccountService> accounts = new ArrayList<>();
 
     @BeforeEach
     public void setup() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, CryptoException {
@@ -42,14 +126,1107 @@ public class EncryptionTest {
         dir.delete();
         //noinspection ResultOfMethodCallIgnored
         dir.mkdir();
-        KeyStorage keyStorage = new KeyStorage(dir);
+        previousWalletService = HavenoUtils.xmrWalletService;
+        previousTradeManager = HavenoUtils.tradeManager;
+        walletDir = Files.createDirectory(new File(dir, "wallet").toPath()).toFile();
+        keyStorage = new KeyStorage(dir);
         keyRing = new KeyRing(keyStorage, null, true);
     }
 
     @AfterEach
     public void tearDown() throws IOException {
+        accounts.forEach(CoreAccountService::onShutDownStarted);
+        HavenoUtils.xmrWalletService = previousWalletService;
+        HavenoUtils.tradeManager = previousTradeManager;
         FileUtil.deleteDirectory(dir);
     }
 
+    private CoreAccountService account(String password) throws Exception {
+        CoreAccountService account = new CoreAccountService(null, keyStorage, new KeyRing(keyStorage));
+        account.openAccount(password);
+        ready(account);
+        return account;
+    }
+
+    private void ready(CoreAccountService account) throws Exception {
+        accounts.add(account);
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS, (oldPassword, newPassword) -> {});
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS, (oldPassword, newPassword) -> {});
+        account.onPersistedDataRead();
+    }
+
+    @Test
+    public void testSetChangeAndRemovePassword() throws Exception {
+        CoreAccountService account = account(null);
+        List<String> seen = new ArrayList<>();
+        account.addListener(new AccountServiceListener() {
+            @Override
+            public void onPasswordChanged(String oldPassword, String newPassword) {
+                assertEquals(newPassword, account.getPassword());
+                seen.add(newPassword);
+            }
+        });
+        account.changePassword(null, "first-password");
+        assertEquals("first-password", account("first-password").getPassword());
+        account.changePassword("first-password", "second-password");
+        assertEquals("second-password", account("second-password").getPassword());
+        account.changePassword("second-password", "");
+        assertNull(account(null).getPassword());
+        assertEquals(Arrays.asList("first-password", "second-password", null), seen);
+    }
+
+    @Test
+    public void testInvalidPasswordsAreRejectedBeforeParticipants() throws Exception {
+        CoreAccountService account = account(null);
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        account.addListener(listener);
+        assertThrows(IllegalStateException.class, () -> account.changePassword("wrong-password", "new-password"));
+        assertThrows(IllegalStateException.class, () -> account.changePassword(null, "short"));
+        assertThrows(IllegalArgumentException.class, () -> account.changePassword(null, "password-\u00e9"));
+        verify(listener, never()).onPasswordChanged(any(), any());
+        assertNull(account(null).getPassword());
+    }
+
+    @Test
+    public void testReopeningAccountVerifiesPassword() throws Exception {
+        CoreAccountService account = account("");
+        assertThrows(IncorrectPasswordException.class, () -> account.openAccount("wrong-password"));
+        assertNull(account.getPassword());
+        account.closeAccount();
+        account.openAccount("");
+        assertNull(account.getPassword());
+    }
+
+    @Test
+    public void testFailedChangeRequiresOfflineRecoveryWithoutRollback() throws Exception {
+        CoreAccountService account = account(null);
+        AtomicReference<String> actual = new AtomicReference<>();
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS,
+                (oldPassword, newPassword) -> actual.set(newPassword));
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS,
+                (oldPassword, newPassword) -> { throw new IllegalStateException("injected failure"); });
+        IllegalStateException error = assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertTrue(error.getMessage().contains("password recovery"));
+        assertTrue(account.isPasswordRecoveryRequired());
+        assertEquals("new-password", actual.get());
+        assertNull(account.getPassword());
+        assertNull(account(null).getPassword());
+        assertThrows(IllegalStateException.class, account::checkPasswordRecovery);
+        assertThrows(IllegalStateException.class, () -> account.changePassword(null, "another-password"));
+        assertThrows(IllegalStateException.class, () -> account.withAccountBackup(() -> { throw new AssertionError("export ran"); }));
+        assertEquals("new-password", actual.get());
+    }
+
+    @Test
+    public void testCreatingAccountWithEmptyPasswordUsesUnsetPassword() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "empty-password").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        account.createAccount("");
+        ready(account);
+        assertNull(account.getPassword());
+        account.changePassword("", "new-password");
+        CoreAccountService restarted = new CoreAccountService(null, storage, new KeyRing(storage));
+        restarted.openAccount("new-password");
+        assertEquals("new-password", restarted.getPassword());
+    }
+
+    @Test
+    public void testLoginReportsRecoveryFailureThroughItsFuture() throws Exception {
+        CoreAccountService account = mock(CoreAccountService.class);
+        doReturn(true).when(account).accountExists();
+        IllegalStateException failure = new IllegalStateException("Account key cannot be loaded");
+        doThrow(failure).when(account).openAccount(null);
+        HavenoExecutable executable = mock(HavenoExecutable.class, CALLS_REAL_METHODS);
+        setField(HavenoExecutable.class, executable, "accountService", account);
+        Method login = HavenoExecutable.class.getDeclaredMethod("loginAccount");
+        login.setAccessible(true);
+        CompletableFuture<?> result = (CompletableFuture<?>) login.invoke(executable);
+        assertSame(failure, assertThrows(CompletionException.class, result::join).getCause());
+    }
+
+    @Test
+    public void testKeystoreCommitFailureRequiresRecovery() throws Exception {
+        KeyStorage failing = spy(keyStorage);
+        doThrow(new IllegalStateException("injected disk failure")).when(failing).commitPasswordChange(any());
+        CoreAccountService account = new CoreAccountService(null, failing, new KeyRing(keyStorage));
+        account.openAccount(null);
+        ready(account);
+        AtomicReference<String> walletPassword = new AtomicReference<>();
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS,
+                (oldPassword, newPassword) -> walletPassword.set(newPassword));
+        assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertEquals("new-password", walletPassword.get());
+        assertTrue(account.isPasswordRecoveryRequired());
+        assertNull(account(null).getPassword());
+    }
+
+    @Test
+    public void testBackupCleanupFailureLeavesNewPasswordUsable() throws Exception {
+        KeyStorage failing = spy(keyStorage);
+        doThrow(new IllegalStateException("backup is read-only")).when(failing).finishPasswordChange(any(), any(), any());
+        CoreAccountService account = new CoreAccountService(null, failing, new KeyRing(keyStorage));
+        account.openAccount(null);
+        ready(account);
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        account.addListener(listener);
+        IllegalStateException error = assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertTrue(error.getMessage().contains("Password changed successfully"));
+        assertFalse(account.isPasswordRecoveryRequired());
+        assertEquals("new-password", account.getPassword());
+        assertEquals("new-password", account("new-password").getPassword());
+        assertThrows(IncorrectPasswordException.class, () -> account(null));
+        verify(listener).onPasswordChanged(null, "new-password");
+        verify(listener, never()).onPasswordChangeFailed();
+    }
+
+    @Test
+    public void testAbsentWalletBackupsSurviveFailedAndSuccessfulChanges() throws Exception {
+        CoreAccountService account = account(null);
+        walletService(account);
+        Path backups = Files.createDirectories(walletDir.toPath().resolve("backup/backups_haveno_XMR_keys"));
+        Path oldWallet = Files.writeString(backups.resolve("old_haveno_XMR.keys"), "old wallet keys");
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS,
+                (oldPassword, newPassword) -> { throw new IllegalStateException("injected failure"); });
+        assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertTrue(Files.exists(oldWallet));
+
+        CoreAccountService restarted = account(null);
+        walletService(restarted);
+        Path abandoned = dir.toPath().resolve(".haveno-write-abandoned.tmp");
+        Files.copy(dir.toPath().resolve("sym.p12"), abandoned);
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        restarted.addListener(listener);
+        List<String> retained = restarted.changePassword(null, "new-password");
+        assertTrue(retained.contains("backups_haveno_XMR_keys"));
+        assertFalse(restarted.isPasswordRecoveryRequired());
+        assertTrue(Files.exists(oldWallet));
+        assertFalse(Files.exists(abandoned));
+        verify(listener).onPasswordChanged(null, "new-password");
+        assertEquals("new-password", account("new-password").getPassword());
+    }
+
+    @Test
+    public void testServicesMustBeReadyBeforePasswordWrites() throws Exception {
+        CoreAccountService account = account(null);
+        setField(CoreAccountService.class, account, "persistedDataRead", false);
+        assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertFalse(account.isPasswordRecoveryRequired());
+        account.onPersistedDataRead();
+        assertTrue(account.onShutDownStarted().isDone());
+        assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertFalse(account.isPasswordRecoveryRequired());
+    }
+
+    @Test
+    public void testStartupCallbacksDoNotWaitForAccountBackup() throws Exception {
+        CoreAccountService account = new CoreAccountService(null, keyStorage, new KeyRing(keyStorage));
+        account.openAccount(null);
+        accounts.add(account);
+        List<String> changed = new ArrayList<>();
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS,
+                (oldPassword, newPassword) -> changed.add("wallets"));
+        CountDownLatch backupStarted = new CountDownLatch(1);
+        CompletableFuture<Void> startup = CompletableFuture.runAsync(() -> {
+            try {
+                assertTrue(backupStarted.await(10, TimeUnit.SECONDS));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+            account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS,
+                    (oldPassword, newPassword) -> changed.add("connections"));
+            account.onPersistedDataRead();
+        });
+        try {
+            account.withAccountBackup(() -> {
+                backupStarted.countDown();
+                assertDoesNotThrow(() -> startup.get(10, TimeUnit.SECONDS));
+                assertTrue(changed.isEmpty());
+                assertNull(account.getPassword());
+            });
+        } finally {
+            backupStarted.countDown();
+            startup.get(10, TimeUnit.SECONDS);
+        }
+
+        account.changePassword(null, "new-password");
+        assertEquals(List.of("wallets", "connections"), changed);
+        assertEquals("new-password", account.getPassword());
+    }
+
+    @Test
+    public void testShutdownWaitsForWalletPasswordsAndBackupCleanup() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWallet mainWallet = mockWallet();
+        MoneroWallet tradeWallet = mockWallet();
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
+        Files.createFile(walletDir.toPath().resolve("trade.keys"));
+        setField(XmrWalletBase.class, service, "wallet", mainWallet);
+        Trade trade = mock(Trade.class);
+        doReturn("trade").when(trade).getWalletName();
+        doReturn(List.of(trade)).when(HavenoUtils.tradeManager).getAllTrades();
+        doAnswer(invocation -> {
+            service.changeWalletPassword("trade", tradeWallet, "new-password", true);
+            return null;
+        }).when(trade).changeWalletPassword(any());
+
+        CountDownLatch mainChanged = new CountDownLatch(1);
+        CountDownLatch resumeWallets = new CountDownLatch(1);
+        CountDownLatch cleanupStarted = new CountDownLatch(1);
+        CountDownLatch resumeCleanup = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            mainChanged.countDown();
+            assertTrue(resumeWallets.await(10, TimeUnit.SECONDS));
+            return null;
+        }).when(mainWallet).save();
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        doAnswer(invocation -> {
+            cleanupStarted.countDown();
+            assertTrue(resumeCleanup.await(10, TimeUnit.SECONDS));
+            return null;
+        }).when(listener).onPasswordChanged(any(), any());
+        account.addListener(listener);
+
+        Map<Class<?>, Object> services = new ConcurrentHashMap<>();
+        services.put(CoreAccountService.class, account);
+        services.put(XmrWalletService.class, service);
+        services.put(TradeManager.class, HavenoUtils.tradeManager);
+        Injector injector = mock(Injector.class);
+        doAnswer(invocation -> services.computeIfAbsent(invocation.getArgument(0), type -> mock(type)))
+                .when(injector).getInstance(any(Class.class));
+        OpenOfferManager offers = injector.getInstance(OpenOfferManager.class);
+        CountDownLatch shutdownStarted = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            shutdownStarted.countDown();
+            return null;
+        }).when(offers).shutDown(any());
+        HavenoExecutable executable = mock(HavenoExecutable.class,
+                withSettings().useConstructor("", "", "", "").defaultAnswer(CALLS_REAL_METHODS));
+        setField(HavenoExecutable.class, executable, "accountService", account);
+        setField(HavenoExecutable.class, executable, "injector", injector);
+        CountDownLatch callbacks = new CountDownLatch(2);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Thread changing = new Thread(() -> {
+            try {
+                account.changePassword(null, "new-password");
+            } catch (Throwable error) {
+                failure.set(error);
+            }
+        });
+        try {
+            changing.start();
+            assertTrue(mainChanged.await(10, TimeUnit.SECONDS));
+            executable.gracefulShutDown(callbacks::countDown, false);
+            executable.gracefulShutDown(callbacks::countDown, false);
+            assertTrue(executable.isShutDownStarted());
+            CompletableFuture<Void> completion = account.onShutDownStarted();
+            assertFalse(completion.isDone());
+            assertFalse(service.isShutDownStarted());
+            verify(offers, never()).shutDown(any());
+            verify(tradeWallet, never()).changePassword(any(), any());
+
+            resumeWallets.countDown();
+            assertTrue(cleanupStarted.await(10, TimeUnit.SECONDS));
+            assertFalse(completion.isDone());
+            assertFalse(service.isShutDownStarted());
+            resumeCleanup.countDown();
+            completion.get(10, TimeUnit.SECONDS);
+            assertTrue(shutdownStarted.await(10, TimeUnit.SECONDS));
+            assertTrue(service.isShutDownStarted());
+            assertEquals(2, callbacks.getCount());
+            Method complete = HavenoExecutable.class.getDeclaredMethod("notifyGracefulShutDownComplete");
+            complete.setAccessible(true);
+            complete.invoke(executable);
+            assertTrue(callbacks.await(10, TimeUnit.SECONDS));
+            AtomicInteger lateCallback = new AtomicInteger();
+            executable.gracefulShutDown(lateCallback::incrementAndGet, false);
+            assertEquals(1, lateCallback.get());
+            verify(offers, times(1)).shutDown(any());
+        } finally {
+            resumeWallets.countDown();
+            resumeCleanup.countDown();
+            changing.join(10000);
+        }
+        assertFalse(changing.isAlive());
+        assertNull(failure.get());
+        assertFalse(account.isPasswordRecoveryRequired());
+        verify(mainWallet).changePassword("password", "new-password");
+        verify(tradeWallet).changePassword("password", "new-password");
+        assertEquals("new-password", account("new-password").getPassword());
+        assertThrows(IllegalStateException.class, () -> account.changePassword("new-password", "another-password"));
+    }
+
+    @Test
+    public void testShutdownWatchdogCoversPendingPasswordChange() throws Exception {
+        for (boolean systemExit : List.of(false, true)) {
+            CompletableFuture<Void> passwordChange = new CompletableFuture<>();
+            CoreAccountService account = mock(CoreAccountService.class);
+            doReturn(passwordChange).when(account).onShutDownStarted();
+            HavenoExecutable executable = mock(HavenoExecutable.class,
+                    withSettings().useConstructor("", "", "", "").defaultAnswer(CALLS_REAL_METHODS));
+            setField(HavenoExecutable.class, executable, "accountService", account);
+            AtomicInteger callbacks = new AtomicInteger();
+            try (var setup = mockStatic(CommonSetup.class)) {
+                executable.gracefulShutDown(callbacks::incrementAndGet, systemExit);
+                setup.verify(CommonSetup::startShutdownWatchdog, times(systemExit ? 1 : 0));
+                assertTrue(executable.isShutDownStarted());
+                assertFalse(passwordChange.isDone());
+                assertEquals(0, callbacks.get());
+
+                executable.gracefulShutDown(callbacks::incrementAndGet, true);
+                setup.verify(CommonSetup::startShutdownWatchdog, times(systemExit ? 2 : 1));
+                setup.verifyNoMoreInteractions();
+                assertFalse(passwordChange.isDone());
+                assertEquals(0, callbacks.get());
+            }
+        }
+    }
+
+    @Test
+    public void testFailedPasswordChangeReleasesShutdown() throws Exception {
+        CoreAccountService account = account(null);
+        CountDownLatch changingWallets = new CountDownLatch(1);
+        CompletableFuture<Void> resume = new CompletableFuture<>();
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS, (oldPassword, newPassword) -> {
+            changingWallets.countDown();
+            resume.join();
+            throw new IllegalStateException("injected wallet failure");
+        });
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Thread changing = new Thread(() -> {
+            try {
+                account.changePassword(null, "new-password");
+            } catch (Throwable error) {
+                failure.set(error);
+            }
+        });
+        try {
+            changing.start();
+            assertTrue(changingWallets.await(10, TimeUnit.SECONDS));
+            CompletableFuture<Void> completion = account.onShutDownStarted();
+            assertSame(completion, account.onShutDownStarted());
+            assertFalse(completion.isDone());
+            resume.complete(null);
+            completion.get(10, TimeUnit.SECONDS);
+        } finally {
+            resume.complete(null);
+            changing.join(10000);
+        }
+        assertFalse(changing.isAlive());
+        assertTrue(failure.get() instanceof IllegalStateException);
+        assertTrue(failure.get().getMessage().contains("injected wallet failure"));
+        assertTrue(account.isPasswordRecoveryRequired());
+        assertNull(account(null).getPassword());
+    }
+
+    @Test
+    public void testCommitFailureAfterReplacementRequiresRecovery() throws Exception {
+        KeyStorage failing = spy(keyStorage);
+        doAnswer(invocation -> {
+            invocation.callRealMethod();
+            throw new IllegalStateException("injected failure after replacement");
+        }).when(failing).commitPasswordChange(any());
+        CoreAccountService account = new CoreAccountService(null, failing, new KeyRing(keyStorage));
+        account.openAccount(null);
+        ready(account);
+        AtomicReference<String> participant = new AtomicReference<>();
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS,
+                (oldPassword, newPassword) -> participant.set(newPassword));
+        IllegalStateException error = assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertTrue(error.getMessage().contains("Keep both passwords"));
+        assertNull(account.getPassword());
+        assertEquals("new-password", participant.get());
+        assertTrue(account.isPasswordRecoveryRequired());
+        assertThrows(IncorrectPasswordException.class, () -> account(null));
+        assertThrows(IllegalStateException.class, () -> account.changePassword(null, "another-password"));
+        assertEquals("new-password", account("new-password").getPassword());
+    }
+
+    @SuppressWarnings("unchecked")
+    private EncryptedConnectionList connectionList(CoreAccountService account, protobuf.EncryptedConnectionList persisted,
+                                                  PersistenceManager<EncryptedConnectionList> persistence) {
+        doAnswer(invocation -> {
+            if (persisted == null) ((Runnable) invocation.getArgument(1)).run();
+            else ((Consumer<EncryptedConnectionList>) invocation.getArgument(0)).accept(EncryptedConnectionList.fromProto(persisted));
+            return null;
+        }).when(persistence).readPersisted(any(), any());
+        EncryptedConnectionList list = new EncryptedConnectionList(persistence, account);
+        list.readPersisted(() -> {});
+        return list;
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testInvalidConnectionCredentialDoesNotPartiallyReplaceList() throws Exception {
+        CoreAccountService account = account(null);
+        PersistenceManager<EncryptedConnectionList> persistence = mock(PersistenceManager.class);
+        EncryptedConnectionList list = connectionList(account, null, persistence);
+        list.addConnection(new MoneroRpcConnection("http://localhost:18081", "user", "secret"));
+        protobuf.EncryptedConnectionList stored = ((protobuf.PersistableEnvelope) list.toProtoMessage()).getEncryptedConnectionList();
+        protobuf.EncryptedConnectionList corrupt = stored.toBuilder().addItems(stored.getItems(0).toBuilder()
+                .setUrl("http://localhost:18082").setEncryptedPassword(ByteString.copyFrom(new byte[1]))).build();
+        EncryptedConnectionList loaded = connectionList(account, corrupt, mock(PersistenceManager.class));
+        byte[] before = loaded.toProtoMessage().toByteArray();
+        assertThrows(IllegalStateException.class, () -> loaded.changePassword(null, "new-password"));
+        assertArrayEquals(before, loaded.toProtoMessage().toByteArray());
+    }
+
+    private MoneroWalletFull mockWallet() {
+        MoneroWalletFull wallet = mock(MoneroWalletFull.class);
+        doReturn(new byte[][] { new byte[] {1}, new byte[] {2} }).when(wallet).getData();
+        return wallet;
+    }
+
+    private XmrWalletService walletService(CoreAccountService account) throws Exception {
+        return walletService(account, mock(XmrConnectionService.class), walletDir);
+    }
+
+    private XmrWalletService walletService(CoreAccountService account, XmrConnectionService connections, File walletDir) throws Exception {
+        Constructor<XmrWalletService> constructor = XmrWalletService.class.getDeclaredConstructor(User.class, Preferences.class,
+                CoreAccountService.class, XmrConnectionService.class, WalletsSetup.class, XmrAddressEntryList.class, File.class, int.class);
+        constructor.setAccessible(true);
+        HavenoUtils.tradeManager = mock(TradeManager.class);
+        return constructor.newInstance(mock(User.class), mock(Preferences.class), account, connections,
+                mock(WalletsSetup.class), mock(XmrAddressEntryList.class), walletDir, 0);
+    }
+
+    @Test
+    public void testLiveWalletChangesWithoutReopening() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWallet wallet = mockWallet();
+        doAnswer(invocation -> {
+            if (!"password".equals(invocation.getArgument(0))) throw new MoneroError("Invalid original password.");
+            return null;
+        }).when(wallet).changePassword(anyString(), anyString());
+        service.changeWalletPassword("retained", wallet, "new-password", true);
+        verify(wallet).changePassword("password", "new-password");
+        verify(wallet).save();
+        verify(wallet, never()).close(anyBoolean());
+    }
+
+    @Test
+    public void testPasswordChangePreservesAbandonedCacheWrites() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWalletFull wallet = mockWallet();
+        setField(XmrWalletBase.class, service, "wallet", wallet);
+        Files.write(walletDir.toPath().resolve("haveno_XMR.keys"), new byte[] {1});
+        Files.write(walletDir.toPath().resolve("haveno_XMR"), new byte[] {2});
+        byte[] abandonedCache = {3, 4, 5};
+        Path cache = Files.write(walletDir.toPath().resolve(".haveno_XMR.haveno-write-abandoned.tmp"), abandonedCache);
+        Path unknown = Files.createDirectory(walletDir.toPath().resolve(".haveno_XMR.haveno-write-unknown.tmp"));
+        Files.write(unknown.resolve("retained"), abandonedCache);
+
+        List<String> retained = account.changePassword(null, "new-password");
+
+        assertFalse(account.isPasswordRecoveryRequired());
+        assertEquals("new-password", account("new-password").getPassword());
+        assertArrayEquals(abandonedCache, Files.readAllBytes(cache));
+        assertArrayEquals(abandonedCache, Files.readAllBytes(unknown.resolve("retained")));
+        assertTrue(retained.contains("wallet/" + cache.getFileName()));
+        assertTrue(retained.contains("wallet/" + unknown.getFileName()));
+        verify(wallet).changePassword("password", "new-password");
+        verify(wallet, never()).close(anyBoolean());
+    }
+
+    @Test
+    public void testNativePasswordChangePreservesMissingMultisigCacheBackup() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        Preferences preferences = mock(Preferences.class);
+        doReturn(true).when(preferences).isUseNativeXmrWallet();
+        setField(XmrWalletService.class, service, "preferences", preferences);
+        Path path = walletDir.toPath().resolve("orphan_trade");
+        MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("password").setNetworkType(XmrWalletService.getMoneroNetworkType()));
+        MoneroWalletFull peer = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPassword("password").setNetworkType(XmrWalletService.getMoneroNetworkType()));
+        try {
+            String prepared = wallet.prepareMultisig();
+            String peerPrepared = peer.prepareMultisig();
+            String made = wallet.makeMultisig(List.of(peerPrepared), 2, "password");
+            String peerMade = peer.makeMultisig(List.of(prepared), 2, "password");
+            wallet.exchangeMultisigKeys(List.of(peerMade), "password");
+            peer.exchangeMultisigKeys(List.of(made), "password");
+            assertTrue(wallet.getMultisigInfo().isReady());
+            wallet.setAttribute("recovery-marker", "preserve original cache");
+            wallet.save();
+        } finally {
+            wallet.close(false);
+            peer.close(false);
+        }
+        assertTrue(service.backupWallet("orphan_trade"));
+        File backup = FileUtil.getLatestBackupFile(walletDir, "orphan_trade");
+        byte[] cache = Files.readAllBytes(backup.toPath());
+        byte[] keys = Files.readAllBytes(path.resolveSibling("orphan_trade.keys"));
+        Files.delete(path);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertTrue(failure.getMessage().contains("cache"));
+        assertFalse(Files.exists(path));
+        assertArrayEquals(cache, Files.readAllBytes(backup.toPath()));
+        assertArrayEquals(keys, Files.readAllBytes(path.resolveSibling("orphan_trade.keys")));
+        assertNull(account(null).getPassword());
+    }
+
+    @Test
+    public void testRpcPasswordChangesPreserveTradeAndMainWalletTrust() throws Exception {
+        CoreAccountService account = account(null);
+        XmrConnectionService connections = mock(XmrConnectionService.class, CALLS_REAL_METHODS);
+        XmrWalletService service = walletService(account, connections, walletDir);
+        MoneroWalletRpc mainWallet = mock(MoneroWalletRpc.class);
+        MoneroWalletRpc tradeWallet = mock(MoneroWalletRpc.class);
+        Trade trade = mock(Trade.class, CALLS_REAL_METHODS);
+        setField(XmrWalletBase.class, service, "wallet", mainWallet);
+        setField(XmrWalletBase.class, trade, "walletLock", new Object());
+        setField(XmrWalletBase.class, trade, "wallet", tradeWallet);
+        setField(Trade.class, trade, "xmrWalletService", service);
+        doReturn("trade_wallet").when(trade).getWalletName();
+        doReturn(List.of(trade)).when(HavenoUtils.tradeManager).getAllTrades();
+        for (String name : List.of("haveno_XMR", "trade_wallet")) {
+            Files.write(walletDir.toPath().resolve(name), new byte[] {1});
+            Files.write(walletDir.toPath().resolve(name + ".keys"), new byte[] {2});
+        }
+
+        for (boolean local : List.of(false, true)) {
+            MoneroRpcConnection connection = new MoneroRpcConnection(local ? "http://127.0.0.1:18081" : "http://192.0.2.1:18081");
+            doReturn(connection).when(mainWallet).getDaemonConnection();
+            doReturn(connection).when(tradeWallet).getDaemonConnection();
+            clearInvocations(mainWallet, tradeWallet);
+            String oldPassword = account.getPassword();
+            String newPassword = oldPassword == null ? "new-password" : null;
+
+            account.changePassword(oldPassword, newPassword);
+
+            verify(mainWallet, times(2)).setDaemonConnection(eq(connection), eq(local), eq(null));
+            verify(tradeWallet, times(2)).setDaemonConnection(eq(connection), eq(true), eq(null));
+            for (MoneroWalletRpc wallet : List.of(mainWallet, tradeWallet)) {
+                verify(wallet, times(2)).close(false);
+                verify(wallet, times(2)).openWallet(any(MoneroWalletConfig.class));
+                verify(wallet).changePassword(WalletPasswordChange.normalizePassword(oldPassword), WalletPasswordChange.normalizePassword(newPassword));
+            }
+            assertFalse(account.isPasswordRecoveryRequired());
+        }
+    }
+
+    @Test
+    public void testRpcPasswordChangeKeepsPreparedMultisig() throws Exception {
+        Path binary = Path.of("src/main/resources/bin", XmrWalletService.MONERO_WALLET_RPC_NAME).toAbsolutePath();
+        Assumptions.assumeTrue(Files.isExecutable(binary));
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        XmrWalletService service = walletService(account(null));
+        MoneroWalletRpcManager manager = new MoneroWalletRpcManager();
+        MoneroWalletRpc rpc = manager.startInstance(List.of(binary.toString(), "--offline", "--rpc-bind-ip", "127.0.0.1",
+                "--rpc-login", "test:test", "--wallet-dir", walletDir.getAbsolutePath()));
+        List<MoneroWalletFull> peers = new ArrayList<>();
+        try {
+            rpc.createWallet(new MoneroWalletConfig().setPath("trade").setPassword("password"));
+            String prepared = rpc.prepareMultisig();
+            for (int i = 0; i < 2; i++) peers.add(MoneroWalletFull.createWallet(new MoneroWalletConfig().setPassword("peer").setNetworkType(MoneroNetworkType.MAINNET)));
+            List<String> preparedPeers = peers.stream().map(MoneroWalletFull::prepareMultisig).toList();
+
+            service.changeWalletPassword("trade", rpc, "new-password", false);
+
+            rpc.makeMultisig(preparedPeers, 2, "new-password");
+            List<String> madePeers = new ArrayList<>();
+            for (int i = 0; i < 2; i++) madePeers.add(peers.get(i).makeMultisig(List.of(prepared, preparedPeers.get(1 - i)), 2, "peer"));
+            rpc.exchangeMultisigKeys(madePeers, "new-password");
+            assertTrue(rpc.getMultisigInfo().isMultisig());
+        } finally {
+            peers.forEach(peer -> peer.close(false));
+            manager.stopInstance(rpc, null, true);
+        }
+    }
+
+    @Test
+    public void testUnknownWalletPasswordAndSaveFailureAreNotIgnored() throws Exception {
+        XmrWalletService service = walletService(account(null));
+        MoneroWallet wallet = mockWallet();
+        doThrow(new MoneroError("Invalid original password.")).when(wallet).changePassword(anyString(), anyString());
+        assertThrows(MoneroError.class, () -> service.changeWalletPassword("retained", wallet, "new-password", true));
+        verify(wallet, never()).save();
+        XmrWalletService failingService = walletService(account(null));
+        MoneroWallet failingSave = mockWallet();
+        MoneroError error = new MoneroError("disk full");
+        doThrow(error).when(failingSave).save();
+        assertSame(error, assertThrows(MoneroError.class, () -> failingService.changeWalletPassword("retained", failingSave, "new-password", true)));
+    }
+
+    @Test
+    public void testWalletPasswordsFollowEachWalletDuringChange() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWallet first = mockWallet();
+        MoneroWallet second = mockWallet();
+        doReturn("first").when(first).getPath();
+        doReturn("second").when(second).getPath();
+        Files.createFile(walletDir.toPath().resolve("first.keys"));
+        Files.createFile(walletDir.toPath().resolve("second.keys"));
+        Trade firstTrade = mock(Trade.class);
+        Trade secondTrade = mock(Trade.class);
+        doReturn("first").when(firstTrade).getWalletName();
+        doReturn("second").when(secondTrade).getWalletName();
+        doReturn(List.of(firstTrade, secondTrade)).when(HavenoUtils.tradeManager).getAllTrades();
+        doAnswer(invocation -> {
+            assertEquals("password", service.getWalletPassword("first"));
+            service.changeWalletPassword("first", first, "new-password", true);
+            return null;
+        }).when(firstTrade).changeWalletPassword(any());
+        doAnswer(invocation -> {
+            assertEquals("new-password", service.getWalletPassword("first"));
+            assertEquals("password", service.getWalletPassword("second"));
+            verify(second, never()).changePassword(any(), any());
+            service.changeWalletPassword("second", second, "new-password", true);
+            return null;
+        }).when(secondTrade).changeWalletPassword(any());
+        account.changePassword(null, "new-password");
+        assertEquals("new-password", service.getWalletPassword("first"));
+        assertEquals("new-password", service.getWalletPassword("second"));
+        verify(first).changePassword("password", "new-password");
+        verify(second).changePassword("password", "new-password");
+        verify(first, never()).close(anyBoolean());
+        verify(second, never()).close(anyBoolean());
+    }
+
+    @Test
+    public void testPasswordChangeSkipsWalletDeletedAfterSnapshot() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWallet mainWallet = mockWallet();
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
+        setField(XmrWalletBase.class, service, "wallet", mainWallet);
+        byte[] original = {1, 2, 3};
+        for (String suffix : List.of("", ".keys", ".address.txt")) Files.write(walletDir.toPath().resolve("trade" + suffix), original);
+        Trade trade = mock(Trade.class);
+        doReturn("trade").when(trade).getWalletName();
+        doReturn(List.of(trade)).when(HavenoUtils.tradeManager).getAllTrades();
+        doAnswer(invocation -> {
+            // protocol error cleanup deletes and unregisters the trade after the disk snapshot
+            CompletableFuture.runAsync(() -> service.deleteWalletAndRetainBackup("trade")).get(10, TimeUnit.SECONDS);
+            doReturn(List.of()).when(HavenoUtils.tradeManager).getAllTrades();
+            return null;
+        }).when(mainWallet).changePassword("password", "new-password");
+
+        List<String> retained = account.changePassword(null, "new-password");
+
+        assertFalse(service.walletExists("trade"));
+        assertFalse(account.isPasswordRecoveryRequired());
+        assertEquals("new-password", account("new-password").getPassword());
+        assertTrue(retained.contains("backups_trade_keys"));
+        File backup = FileUtil.getLatestBackupFile(walletDir, "trade.keys");
+        assertTrue(backup != null);
+        assertArrayEquals(original, Files.readAllBytes(backup.toPath()));
+        verify(mainWallet).changePassword("password", "new-password");
+    }
+
+    @Test
+    public void testPasswordChangeRejectsWalletWithMissingCacheAfterSnapshot() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWallet mainWallet = mockWallet();
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
+        setField(XmrWalletBase.class, service, "wallet", mainWallet);
+        Path keys = Files.write(walletDir.toPath().resolve("orphan.keys"), new byte[] {1, 2, 3});
+        Path cache = Files.write(walletDir.toPath().resolve("orphan"), new byte[] {4, 5, 6});
+        doAnswer(invocation -> {
+            Files.delete(cache);
+            return null;
+        }).when(mainWallet).changePassword("password", "new-password");
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+
+        assertTrue(failure.getMessage().contains("Wallet cache is missing for orphan"));
+        assertTrue(account.isPasswordRecoveryRequired());
+        assertNull(account(null).getPassword());
+        assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(keys));
+    }
+
+    @Test
+    public void testPasswordChangeAllowsBackgroundRefresh() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWallet wallet = mockWallet();
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
+        setField(XmrWalletBase.class, service, "wallet", wallet);
+        setField(XmrWalletBase.class, service, "backgroundRefreshWallet", wallet);
+        setField(XmrWalletBase.class, service, "backgroundRefreshLatch", new CountDownLatch(1));
+        account.changePassword(null, "new-password");
+        assertEquals("new-password", account("new-password").getPassword());
+        assertFalse(account.isPasswordRecoveryRequired());
+        verify(wallet).changePassword("password", "new-password");
+        verify(wallet).save();
+        verify(wallet, never()).close(anyBoolean());
+    }
+
+    @Test
+    public void testPasswordChangeWaitsForMainWalletReplacementBeforeSnapshot() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWallet restored = mockWallet();
+        doReturn(walletDir.toPath().resolve("haveno_XMR").toString()).when(restored).getPath();
+        doAnswer(invocation -> {
+            if (!"password".equals(invocation.getArgument(0))) throw new MoneroError("Invalid original password.");
+            return null;
+        }).when(restored).changePassword(anyString(), anyString());
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Thread changing = new Thread(() -> {
+            try {
+                account.changePassword(null, "new-password");
+            } catch (Throwable error) {
+                failure.set(error);
+            }
+        });
+        try {
+            synchronized (service.getWalletLock()) {
+                // restore has removed the old main wallet and is about to move the replacement into place
+                Path restoreKeys = Files.createFile(walletDir.toPath().resolve("haveno_XMR_restore.keys"));
+                changing.start();
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (changing.getState() != Thread.State.BLOCKED && changing.isAlive() && System.nanoTime() < deadline) {
+                    Thread.sleep(10);
+                }
+                assertEquals(Thread.State.BLOCKED, changing.getState());
+                Files.move(restoreKeys, walletDir.toPath().resolve("haveno_XMR.keys"));
+                setField(XmrWalletBase.class, service, "wallet", restored);
+            }
+        } finally {
+            changing.join(10000);
+        }
+        assertFalse(changing.isAlive());
+        assertNull(failure.get());
+        verify(restored).changePassword("password", "new-password");
+        verify(restored).save();
+        assertEquals("new-password", account("new-password").getPassword());
+    }
+
+    @Test
+    public void testStoppedTradeChangesRetainedWalletWithoutOpeningTrade() throws Exception {
+        Trade trade = mock(Trade.class, CALLS_REAL_METHODS);
+        setField(XmrWalletBase.class, trade, "walletLock", new Object());
+        setField(XmrWalletBase.class, trade, "isShutDownStarted", true);
+        XmrWalletService service = mock(XmrWalletService.class);
+        setField(Trade.class, trade, "xmrWalletService", service);
+        doReturn(true).when(trade).walletExists();
+        doReturn("trade").when(trade).getShortId();
+        doReturn("uid").when(trade).getShortUid();
+        trade.changeWalletPassword("new-password");
+        verify(service).changeWalletPassword(anyString(), eq(null), eq("new-password"), eq(true));
+        verify(trade, never()).getWallet();
+        assertTrue(trade.isShutDownStarted());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testPendingNativeCloseMustFinishSuccessfullyBeforeReopen() throws Exception {
+        XmrWalletService service = walletService(account(null));
+        Field field = XmrWalletService.class.getDeclaredField("pendingWalletCloses");
+        field.setAccessible(true);
+        Map<String, Future<?>> pending = (Map<String, Future<?>>) field.get(service);
+        Method wait = XmrWalletService.class.getDeclaredMethod("awaitPendingWalletClose", String.class);
+        wait.setAccessible(true);
+        Future<?> closing = mock(Future.class);
+        doThrow(new TimeoutException("still closing")).when(closing).get(anyLong(), any());
+        pending.put("wallet", closing);
+        assertThrows(InvocationTargetException.class, () -> wait.invoke(service, "wallet"));
+        assertSame(closing, pending.get("wallet"));
+        Future<?> failed = CompletableFuture.failedFuture(new MoneroError("native release failed"));
+        pending.put("wallet", failed);
+        assertThrows(InvocationTargetException.class, () -> wait.invoke(service, "wallet"));
+        assertSame(failed, pending.get("wallet"));
+        pending.put("wallet", CompletableFuture.completedFuture(null));
+        wait.invoke(service, "wallet");
+        assertFalse(pending.containsKey("wallet"));
+    }
+
+    @Test
+    public void testFailedMainWalletCloseRetainsHandleForForceClose() throws Exception {
+        XmrWalletService service = walletService(account(null));
+        MoneroWallet wallet = mockWallet();
+        setField(XmrWalletBase.class, service, "wallet", wallet);
+        doThrow(new MoneroError("close failed")).when(wallet).close(true);
+        Method close = XmrWalletService.class.getDeclaredMethod("closeMainWallet", boolean.class);
+        close.setAccessible(true);
+        assertEquals(false, close.invoke(service, false));
+        Field handle = XmrWalletBase.class.getDeclaredField("wallet");
+        handle.setAccessible(true);
+        assertSame(wallet, handle.get(service));
+        Method forceClose = XmrWalletService.class.getDeclaredMethod("forceCloseMainWallet");
+        forceClose.setAccessible(true);
+        forceClose.invoke(service);
+        verify(wallet).close(false);
+        assertNull(handle.get(service));
+    }
+
+    @Test
+    public void testFailedMainWalletPasswordChangeStopsPolling() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroWallet wallet = mockWallet();
+        TaskLooper poller = mock(TaskLooper.class);
+        setField(XmrWalletBase.class, service, "wallet", wallet);
+        setField(XmrWalletService.class, service, "pollLooper", poller);
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
+        doThrow(new MoneroError("disk full")).when(wallet).changePassword(anyString(), anyString());
+        assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        assertTrue(account.isPasswordRecoveryRequired());
+        verify(poller).stop();
+    }
+
+    @Test
+    public void testRestorePasswordFailureRetainsMainWalletForShutdown() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = spy(walletService(account));
+        MoneroWallet wallet = mockWallet();
+        setField(XmrWalletBase.class, service, "wallet", wallet);
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR_restore.keys"));
+        doAnswer(invocation -> {
+            account.requirePasswordRecovery();
+            throw new MoneroError("restore password change failed");
+        }).when(service).changeWalletPassword(eq("haveno_XMR_restore"), eq(null), any(), eq(false));
+        Method change = XmrWalletService.class.getDeclaredMethod("changeWalletPasswords", String.class, String.class);
+        change.setAccessible(true);
+        assertThrows(InvocationTargetException.class, () -> change.invoke(service, null, "new-password"));
+        verify(wallet).changePassword("password", "new-password");
+        verify(wallet).save();
+        verify(wallet, never()).close(anyBoolean());
+        assertTrue(account.isPasswordRecoveryRequired());
+        Method close = XmrWalletService.class.getDeclaredMethod("closeMainWallet", boolean.class);
+        close.setAccessible(true);
+        assertEquals(true, close.invoke(service, false));
+        verify(wallet).close(true);
+    }
+
+    @Test
+    public void testFailedDurabilityCheckPreservesOldKeyCopies() throws Exception {
+        Path keyDir = dir.toPath();
+        KeyStorage storage = keyStorage;
+        KeyRing ring = keyRing;
+        Path old = keyDir.resolve(".haveno-write-old.tmp");
+        Files.copy(keyDir.resolve("sym.p12"), old);
+        storage.commitPasswordChange(storage.preparePasswordChange(null, "new-password"));
+        try (var fileUtil = mockStatic(FileUtil.class, CALLS_REAL_METHODS)) {
+            fileUtil.when(() -> FileUtil.syncFileAndDirectory(keyDir.resolve("sym.p12")))
+                    .thenThrow(new IOException("injected flush failure"));
+            assertThrows(IllegalStateException.class, () -> storage.finishPasswordChange(ring, "new-password", Arrays.asList(null, "new-password")));
+        }
+        assertTrue(Files.exists(old));
+        assertFalse(FileUtil.getBackupFiles(keyDir.toFile(), "sym.p12").isEmpty());
+    }
+
+    @Test
+    public void testFatalPasswordChangeFailureBlocksOperationsAndNotifiesEveryListener() throws Exception {
+        CoreAccountService account = account(null);
+        OutOfMemoryError failure = new OutOfMemoryError("injected after wallet mutation");
+        AccountServiceListener broken = mock(AccountServiceListener.class);
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        doThrow(new IllegalStateException("injected listener failure")).when(broken).onPasswordChangeFailed();
+        account.addListener(broken);
+        account.addListener(listener);
+        account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS,
+                (oldPassword, newPassword) -> { throw failure; });
+        assertSame(failure, assertThrows(OutOfMemoryError.class, () -> account.changePassword(null, "new-password")));
+        assertTrue(account.isPasswordRecoveryRequired());
+        assertThrows(IllegalStateException.class, account::checkPasswordRecovery);
+        assertThrows(IllegalStateException.class, () -> account.withAccountBackup(() -> {}));
+        verify(listener).onPasswordChangeFailed();
+        assertEquals(1, failure.getSuppressed().length);
+        assertNull(account(null).getPassword());
+    }
+
+    @Test
+    public void testShutdownRejectionRetainsTradeWalletHandle() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        setField(XmrWalletBase.class, service, "isShutDownStarted", true);
+        Trade trade = mock(Trade.class, CALLS_REAL_METHODS);
+        MoneroWallet wallet = mockWallet();
+        setField(XmrWalletBase.class, trade, "walletLock", new Object());
+        setField(XmrWalletBase.class, trade, "wallet", wallet);
+        setField(Trade.class, trade, "xmrWalletService", service);
+        doReturn(true).when(trade).walletExists();
+        doReturn("trade").when(trade).getShortId();
+        doReturn("uid").when(trade).getShortUid();
+        assertThrows(IllegalStateException.class, () -> trade.changeWalletPassword("new-password"));
+        Field walletField = XmrWalletBase.class.getDeclaredField("wallet");
+        walletField.setAccessible(true);
+        assertSame(wallet, walletField.get(trade));
+        verify(wallet, never()).close(anyBoolean());
+        verify(wallet, never()).changePassword(anyString(), anyString());
+        assertFalse(account.isPasswordRecoveryRequired());
+    }
+
+    @Test
+    public void testWalletOpenFailurePreservesOriginalCache() throws Exception {
+        XmrConnectionService connections = mock(XmrConnectionService.class);
+        doReturn(new MoneroRpcConnection("http://127.0.0.1:18081")).when(connections).getConnection();
+        XmrWalletService service = walletService(account(null), connections, dir);
+        Path cache = dir.toPath().resolve("retained");
+        byte[] original = {1, 2, 3, 4};
+        Files.write(cache, original);
+        MoneroWalletFull emptyWallet = mockWallet();
+        Method open = XmrWalletService.class.getDeclaredMethod("openWalletFull", MoneroWalletConfig.class, boolean.class);
+        open.setAccessible(true);
+        try (var nativeWallets = mockStatic(MoneroWalletFull.class)) {
+            nativeWallets.when(() -> MoneroWalletFull.openWallet(any(MoneroWalletConfig.class))).thenAnswer(invocation -> {
+                if (Files.exists(cache)) throw new MoneroError("Failed to deserialize wallet cache");
+                return emptyWallet;
+            });
+            InvocationTargetException failure = assertThrows(InvocationTargetException.class, () -> open.invoke(service,
+                    new MoneroWalletConfig().setPath(cache.toString()).setPassword("password"), false));
+            assertTrue(failure.getCause().getMessage().contains("Failed to deserialize wallet cache"));
+            nativeWallets.verify(() -> MoneroWalletFull.openWallet(any(MoneroWalletConfig.class)));
+        }
+        assertArrayEquals(original, Files.readAllBytes(cache));
+        assertFalse(Files.exists(cache.resolveSibling("retained.backup")));
+    }
+
+    @Test
+    public void testBackupCleanupPreservesPreviousMainWallets() throws Exception {
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
+        Files.createFile(walletDir.toPath().resolve("active_trade.keys"));
+        Files.createFile(walletDir.toPath().resolve("active_trade"));
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR"));
+        Path backups = Files.createDirectory(walletDir.toPath().resolve("backup"));
+        Path main = Files.createDirectory(backups.resolve("backups_haveno_XMR_keys")).resolve("old_haveno_XMR.keys");
+        Path snapshot = Files.createDirectory(backups.resolve("password-change-old")).resolve("haveno_XMR.keys");
+        Path trade = Files.createDirectory(backups.resolve("backups_active_trade_keys")).resolve("old_active_trade.keys");
+        for (Path path : List.of(main, snapshot, trade)) Files.write(path, new byte[] {1, 2, 3});
+        Path sameWallet = Files.createDirectory(backups.resolve("password-change-same"));
+        Files.write(sameWallet.resolve("haveno_XMR.keys"), new byte[] {4, 5, 6});
+        Files.writeString(sameWallet.resolve(WalletPasswordChange.MAIN_WALLET_ADDRESS_FILE), "current-main-address");
+        Path unknown = Files.createDirectory(backups.resolve("password-change-unreadable"));
+        Files.write(unknown.resolve("haveno_XMR.keys"), new byte[] {7, 8, 9});
+        Files.write(unknown.resolve(WalletPasswordChange.MAIN_WALLET_ADDRESS_FILE), new byte[] {(byte) 0xc3, 0x28});
+        assertEquals(3, WalletPasswordChange.cleanupBackups(walletDir, null, "current-main-address").size());
+        assertArrayEquals(new byte[] {7, 8, 9}, Files.readAllBytes(unknown.resolve("haveno_XMR.keys")));
+        assertFalse(Files.exists(sameWallet));
+        assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(main));
+        assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(snapshot));
+        assertFalse(Files.exists(trade));
+    }
+
+    @Test
+    public void testCleanupCannotInterleaveWithRetainingADeletedTradeWallet() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = spy(walletService(account));
+        for (String suffix : List.of("", ".keys", ".address.txt")) Files.write(new File(walletDir, "trade" + suffix).toPath(), new byte[] {1, 2, 3});
+        CountDownLatch copied = new CountDownLatch(1);
+        CountDownLatch allowDelete = new CountDownLatch(1);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        doAnswer(invocation -> {
+            boolean success = (boolean) invocation.callRealMethod();
+            copied.countDown();
+            assertTrue(allowDelete.await(5, TimeUnit.SECONDS));
+            return success;
+        }).when(service).backupWallet("trade");
+        Field listeners = CoreAccountService.class.getDeclaredField("listeners");
+        listeners.setAccessible(true);
+        AccountServiceListener cleanup = (AccountServiceListener) ((List<?>) listeners.get(account)).get(0);
+        Thread deleting = new Thread(() -> {
+            try {
+                service.deleteWalletAndRetainBackup("trade");
+            } catch (Throwable error) {
+                failure.set(error);
+            }
+        });
+        Thread cleaning = new Thread(() -> {
+            try {
+                cleanup.onPasswordChanged(null, "new-password");
+            } catch (Throwable error) {
+                failure.set(error);
+            }
+        });
+        try {
+            deleting.start();
+            assertTrue(copied.await(5, TimeUnit.SECONDS));
+            cleaning.start();
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (cleaning.getState() != Thread.State.BLOCKED && cleaning.isAlive() && System.nanoTime() < deadline) Thread.sleep(10);
+            assertEquals(Thread.State.BLOCKED, cleaning.getState());
+        } finally {
+            allowDelete.countDown();
+            deleting.join(10000);
+            cleaning.join(10000);
+        }
+        assertFalse(deleting.isAlive());
+        assertFalse(cleaning.isAlive());
+        assertNull(failure.get());
+        assertFalse(new File(walletDir, "trade.keys").exists());
+        File backup = FileUtil.getLatestBackupFile(walletDir, "trade.keys");
+        assertTrue(backup != null);
+        assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(backup.toPath()));
+    }
+
+    @Test
+    public void testNativePasswordChangePreservesRecoveryCopiesOnSuccessAndFailure() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        for (boolean fail : List.of(false, true)) {
+            Path network = Files.createDirectories(dir.toPath().resolve(Boolean.toString(fail)).resolve("xmr_mainnet"));
+            Path wallets = Files.createDirectory(network.resolve("wallet"));
+            KeyStorage storage = new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile());
+            KeyRing ring = new KeyRing(storage, null, true);
+            CoreAccountService account = new CoreAccountService(null, storage, ring);
+            account.openAccount(null);
+            ready(account);
+            XmrWalletService service = walletService(account, mock(XmrConnectionService.class), wallets.toFile());
+            Path path = wallets.resolve("haveno_XMR");
+            MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                    .setPath(path.toString()).setPassword("password").setNetworkType(MoneroNetworkType.MAINNET));
+            String address = wallet.getPrimaryAddress();
+            try {
+                wallet.setAttribute("recovery-marker", "durable local state");
+                wallet.save();
+                MoneroWalletFull changing = wallet;
+                if (fail) {
+                    changing = mock(MoneroWalletFull.class, delegatesTo(wallet));
+                    doAnswer(invocation -> {
+                        wallet.changePassword(invocation.getArgument(0), invocation.getArgument(1));
+                        throw new MoneroError("injected failure after wallet rewrite");
+                    }).when(changing).changePassword(anyString(), anyString());
+                }
+                setField(XmrWalletBase.class, service, "wallet", changing);
+                Path superseded = Files.createDirectories(wallets.resolve("backup/superseded")).resolve("old-cache");
+                Files.write(superseded, new byte[] {1});
+                if (fail) {
+                    assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+                    assertTrue(account.isPasswordRecoveryRequired());
+                    assertTrue(wallet.isClosed());
+                    assertTrue(Files.exists(superseded));
+                } else {
+                    account.changePassword(null, "new-password");
+                    assertFalse(wallet.isClosed());
+                    assertTrue(Files.exists(superseded));
+                }
+            } finally {
+                wallet.close(false);
+            }
+            Path snapshot;
+            try (var files = Files.list(wallets.resolve("backup"))) {
+                snapshot = files.filter(file -> file.getFileName().toString().startsWith("password-change-")).findFirst().orElseThrow();
+            }
+            String target = fail ? null : "new-password";
+            MoneroWalletFull copy = MoneroWalletFull.openWalletData(target == null ? "password" : target, MoneroNetworkType.MAINNET,
+                    Files.readAllBytes(snapshot.resolve("haveno_XMR.keys")), Files.readAllBytes(snapshot.resolve("haveno_XMR")), null);
+            try {
+                assertEquals(address, copy.getPrimaryAddress());
+                assertEquals("durable local state", copy.getAttribute("recovery-marker"));
+            } finally {
+                copy.close(false);
+            }
+        }
+    }
+
+    private static void setField(Class<?> type, Object target, String name, Object value) throws Exception {
+        Field field = type.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
 
 }

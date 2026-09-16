@@ -29,8 +29,10 @@ import haveno.common.proto.persistable.PersistenceProtoResolver;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
@@ -41,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PersistenceManagerTest {
@@ -100,6 +103,27 @@ public class PersistenceManagerTest {
         persistenceManager.persistNow(latch::countDown);
         assertTrue(latch.await(15, TimeUnit.SECONDS), "write did not complete");
     }
+
+    @Test
+    public void testSynchronousPersistenceSavesBeforeStartup() {
+        PersistenceManager.allServicesInitialized.set(false);
+        NavigationPath data = new NavigationPath(List.of("password-recovery"));
+        persistenceManager.initialize(data, "password-store", PersistenceManager.Source.PRIVATE);
+        persistenceManager.persistNowAndWait();
+        assertEquals(data.toProtoMessage(), persistenceManager.getPersisted().toProtoMessage());
+    }
+
+    @Test
+    public void testSynchronousPersistenceReportsWriteFailure() throws Exception {
+        NavigationPath data = new NavigationPath(List.of("password-recovery"));
+        persistenceManager.initialize(data, "password-store", PersistenceManager.Source.PRIVATE);
+        File destination = new File(dir, "password-store");
+        assertTrue(destination.mkdir());
+        Files.writeString(new File(destination, "keep").toPath(), "existing data");
+        assertThrows(CompletionException.class, () -> persistenceManager.persistNowAndWait());
+        assertEquals("existing data", Files.readString(new File(destination, "keep").toPath()));
+    }
+
 
     // Writes encrypt(payload || hmac(payload)) to a file with constant memory through the same
     // production helper PersistenceManager uses, so the fixture format can never drift from the
