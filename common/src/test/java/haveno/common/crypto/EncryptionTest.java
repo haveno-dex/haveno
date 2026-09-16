@@ -26,6 +26,8 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.List;
+import java.util.UUID;
+import java.io.IOException;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -100,14 +102,14 @@ public class EncryptionTest {
         storage.commitPasswordChange(storage.preparePasswordChange("old-password", "new-password"));
         storage.finishPasswordChange(ring, "new-password", Arrays.asList("new-password", "old-password"));
         assertEquals(false, Files.exists(old));
-        assertArrayEquals(foreignBytes, Files.readAllBytes(foreignBackup));
-        assertTrue(Files.exists(backups.resolve("password-change_sym.p12")));
+        assertFalse(Files.exists(foreignBackup));
+        assertRetainedKeyCopy(storage, "new-password", foreignBackup.getFileName().toString(), foreignBytes);
         assertThrows(IncorrectPasswordException.class, () -> storage.verifyPassword(ring.getSymmetricKey(), null));
         storage.verifyPassword(ring.getSymmetricKey(), "new-password");
     }
 
     @Test
-    public void testUnlockRemovesAbandonedUnprotectedWrapperButPreservesForeignTemps() throws Exception {
+    public void testUnlockRemovesUnprotectedWrappersAndProtectsUnknownTemps() throws Exception {
         KeyStorage storage = new KeyStorage(keyDir.toFile());
         KeyRing ring = new KeyRing(storage, "current-password", true);
         Path abandoned = keyDir.resolve(".haveno-write-abandoned.tmp");
@@ -118,14 +120,53 @@ public class EncryptionTest {
         Files.copy(foreignDir.resolve("sym.p12"), foreign);
         byte[] foreignBytes = Files.readAllBytes(foreign);
         Path unreadable = keyDir.resolve(".haveno-write-truncated.tmp");
-        Files.write(unreadable, new byte[] {1, 2, 3});
+        byte[] complete = storage.preparePasswordChange("current-password", null);
+        byte[] truncated = Arrays.copyOf(complete, complete.length - 1);
+        Files.write(unreadable, truncated);
+        Path backupTemp = keyDir.resolve("backup/backups_sym_p12/.old_sym.p12.haveno-write-truncated.tmp");
+        Files.write(backupTemp, truncated);
 
         KeyRing reopened = new KeyRing(storage, "current-password", false);
         assertTrue(reopened.isUnlocked());
         assertEquals(ring.getSymmetricKey(), reopened.getSymmetricKey());
         assertFalse(Files.exists(abandoned));
-        assertArrayEquals(foreignBytes, Files.readAllBytes(foreign));
-        assertTrue(Files.exists(unreadable));
+        assertFalse(Files.exists(foreign));
+        assertFalse(Files.exists(unreadable));
+        assertFalse(Files.exists(backupTemp));
+        assertRetainedKeyCopy(storage, "current-password", foreign.getFileName().toString(), foreignBytes);
+        assertRetainedKeyCopy(storage, "current-password", unreadable.getFileName().toString(), truncated);
+        assertRetainedKeyCopy(storage, "current-password", backupTemp.getFileName().toString(), truncated);
+
+        Path retained = keyDir.resolve("backup/retained_sym_p12");
+        long count;
+        try (var files = Files.list(retained)) {
+            count = files.count();
+        }
+        Files.write(unreadable, truncated);
+        storage.finishPasswordChange(reopened, "current-password", Arrays.asList("current-password", null));
+        try (var files = Files.list(retained)) {
+            assertEquals(count, files.count());
+        }
+        storage.commitPasswordChange(storage.preparePasswordChange("current-password", "next-password"));
+        storage.finishPasswordChange(reopened, "next-password", List.of("current-password"));
+        assertRetainedKeyCopy(storage, "next-password", unreadable.getFileName().toString(), truncated);
+        assertThrows(IncorrectPasswordException.class,
+                () -> storage.exportRetainedAccountKeys("current-password", keyDir.resolve("wrong-password-export")));
+    }
+
+    @Test
+    public void testRecoveryRestoresMissingAndDamagedWrapperFromMatchingCopies() throws Exception {
+        KeyStorage storage = new KeyStorage(keyDir.toFile());
+        KeyRing original = new KeyRing(storage, "old-password", true);
+        Path temp = keyDir.resolve(".haveno-write-replacement.tmp");
+        Files.write(temp, storage.preparePasswordChange("old-password", "new-password"));
+        Files.delete(keyDir.resolve("sym.p12"));
+        storage.recoverAccountKey("new-password", Arrays.asList("new-password", "old-password", null));
+        assertEquals(original.getSymmetricKey(), new KeyRing(storage, "new-password", false).getSymmetricKey());
+        Files.write(keyDir.resolve("sym.p12"), new byte[] {0, 1, 2});
+        storage.recoverAccountKey("old-password", Arrays.asList("old-password", "new-password", null));
+        assertEquals(original.getSymmetricKey(), new KeyRing(storage, "old-password", false).getSymmetricKey());
+        assertThrows(IncorrectPasswordException.class, () -> storage.recoverAccountKey("wrong-password", List.of("old-password")));
     }
 
     @Test
@@ -158,9 +199,10 @@ public class EncryptionTest {
             Files.write(keys.resolve("sym.p12"), invalid);
             assertThrows(Exception.class, () -> new KeyRing(storage, "known-password", false));
             assertTrue(Files.exists(readable));
-            Files.write(keys.resolve("sym.p12"), Files.readAllBytes(readable));
+            storage.recoverAccountKey("known-password", List.of("known-password"));
             assertEquals(original.getSymmetricKey(), new KeyRing(storage, "known-password", false).getSymmetricKey());
-            assertArrayEquals(invalid, Files.readAllBytes(backups.resolve("0001_sym.p12")));
+            assertFalse(Files.exists(backups.resolve("0001_sym.p12")));
+            assertRetainedKeyCopy(storage, "known-password", "0001_sym.p12", invalid);
         }
     }
 
@@ -194,6 +236,29 @@ public class EncryptionTest {
         assertFalse(oldCopies.isEmpty());
         assertTrue(new KeyRing(storage, "new-password", false).isUnlocked());
         for (var copy : oldCopies) assertFalse(copy.exists());
+    }
+
+    @Test
+    public void testRecoveryRejectsForeignMasterKeysWithoutReplacingFiles() throws Exception {
+        KeyStorage storage = new KeyStorage(keyDir.toFile());
+        new KeyRing(storage, "old-password", true);
+        Path foreignDir = Files.createDirectory(keyDir.resolve("foreign"));
+        new KeyRing(new KeyStorage(foreignDir.toFile()), null, true);
+        Files.copy(foreignDir.resolve("sym.p12"), keyDir.resolve(".haveno-write-foreign.tmp"));
+        byte[] damaged = {0, 1, 2};
+        Files.write(keyDir.resolve("sym.p12"), damaged);
+        assertThrows(IOException.class, () -> storage.recoverAccountKey("new-password", Arrays.asList("new-password", null)));
+        assertArrayEquals(damaged, Files.readAllBytes(keyDir.resolve("sym.p12")));
+    }
+
+    private void assertRetainedKeyCopy(KeyStorage storage, String password, String name, byte[] expected) throws Exception {
+        Path exported = keyDir.resolve("export-" + UUID.randomUUID());
+        storage.exportRetainedAccountKeys(password, exported);
+        try (var files = Files.list(exported)) {
+            Path copy = files.filter(path -> path.getFileName().toString().endsWith("_" + name)).findFirst().orElseThrow();
+            assertArrayEquals(expected, Files.readAllBytes(copy));
+        }
+        assertThrows(IOException.class, () -> storage.exportRetainedAccountKeys(password, exported));
     }
 
     // Sizes around AES block (16) and stream chunk (64 KiB) boundaries, plus an empty payload.

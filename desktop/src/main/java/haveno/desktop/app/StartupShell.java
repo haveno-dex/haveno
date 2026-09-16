@@ -19,17 +19,23 @@ package haveno.desktop.app;
 
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
+import haveno.core.locale.Res;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.DarkModeToggle;
+import haveno.desktop.components.controlsfx.control.PopOver;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Transitions;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -54,6 +60,8 @@ public class StartupShell extends StackPane {
     private final StackPane overlay;
     private final StackPane contentSlot = new StackPane();
     private final ImageView logo = new ImageView();
+    private final Hyperlink help = new Hyperlink(Res.get("password.startup.help"));
+    private PopOver helpPopover;
     private final Preferences preferences;
     private final Transitions transitions;
     private boolean compactBranding;
@@ -86,9 +94,39 @@ public class StartupShell extends StackPane {
         DarkModeToggle themeToggle = new DarkModeToggle(preferences);
         themeToggle.setFitHeight(20);
 
-        // version (centered) and theme toggle (right) share one fixed bottom bar so they sit on the same line
-        StackPane bottomBar = new StackPane(versionLabel, themeToggle);
+        help.getStyleClass().add("no-underline");
+        help.setStyle("-fx-font-size: 0.9em;");
+        help.setVisible(false);
+        help.managedProperty().bind(help.visibleProperty());
+        help.disabledProperty().addListener((observable, oldValue, disabled) -> {
+            if (disabled) hideHelp();
+        });
+        help.setOnAction(event -> {
+            if (helpPopover.isShowing()) {
+                hideHelp();
+            } else {
+                helpPopover.show(help, -8);
+                // keep the help card and its shadow inside the application
+                Bounds bounds = localToScreen(getLayoutBounds());
+                helpPopover.setX(Math.max(bounds.getMinX() + 12,
+                        Math.min(helpPopover.getX(), bounds.getMaxX() - helpPopover.getWidth() - 12)));
+                helpPopover.setY(Math.max(bounds.getMinY() + 12,
+                        Math.min(helpPopover.getY(), bounds.getMaxY() - helpPopover.getHeight() - 12)));
+                helpPopover.getScene().getRoot().requestFocus();
+            }
+        });
+        help.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                help.fire();
+                event.consume();
+            }
+        });
+
+        // help (left), version (centered) and theme toggle (right) share a fixed bottom bar
+        StackPane bottomBar = new StackPane(help, versionLabel, themeToggle);
         bottomBar.setMaxHeight(Region.USE_PREF_SIZE);
+        StackPane.setAlignment(help, Pos.CENTER_LEFT);
+        StackPane.setMargin(help, new Insets(0, 0, 0, 12));
         StackPane.setAlignment(versionLabel, Pos.CENTER);
         StackPane.setAlignment(themeToggle, Pos.CENTER_RIGHT);
         StackPane.setMargin(themeToggle, new Insets(0, 12, 0, 0));
@@ -129,7 +167,39 @@ public class StartupShell extends StackPane {
 
     /** Swap startup content within the reserved space, allowing taller error messages to grow as needed. */
     public void setContent(Region content) {
+        hideHelp();
+        help.setVisible(false);
+        helpPopover = null;
         contentSlot.getChildren().setAll(content);
+    }
+
+    public void setHelpContent(Region content, Runnable onAutoHide) {
+        hideHelp();
+        helpPopover = new PopOver(content);
+        helpPopover.setDetachable(false);
+        helpPopover.setArrowLocation(PopOver.ArrowLocation.BOTTOM_LEFT);
+        helpPopover.setArrowSize(0);
+        helpPopover.setArrowIndent(0);
+        helpPopover.setAutoFix(false);
+        helpPopover.setAnimated(preferences.isUseAnimations());
+        helpPopover.setOnAutoHide(event -> onAutoHide.run());
+        helpPopover.getScene().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                hideHelp();
+                help.requestFocus();
+                event.consume();
+            }
+        });
+        help.setDisable(false);
+        help.setVisible(true);
+    }
+
+    public void setHelpDisabled(boolean disabled) {
+        help.setDisable(disabled);
+    }
+
+    public void hideHelp() {
+        if (helpPopover != null) helpPopover.hide();
     }
 
     // Switch between the slim landscape logo (compact, for tall content like the first-run wizard) and the full splash

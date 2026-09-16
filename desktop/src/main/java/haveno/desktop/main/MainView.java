@@ -31,6 +31,7 @@ import haveno.core.locale.Res;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
+import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.InitializableView;
@@ -87,6 +88,7 @@ import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ProgressBar;
@@ -769,7 +771,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         splashP2PNetworkBox.setPrefHeight(30);
         splashP2PNetworkBox.getChildren().addAll(splashP2PNetworkLabel, splashP2PNetworkBusyAnimation, splashP2PNetworkIcon, showTorNetworkSettingsButton);
 
-        vBox.getChildren().addAll(blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox);
+        Hyperlink recovery = new Hyperlink(Res.get("password.recovery.link"));
+        recovery.setWrapText(true);
+        recovery.visibleProperty().bind(model.getPasswordRecoveryRequired());
+        recovery.managedProperty().bind(recovery.visibleProperty());
+        recovery.setOnAction(event -> HavenoApp.getPasswordRecoveryHandler().run());
+        vBox.getChildren().addAll(blockchainSyncBox, xmrSyncIndicator, splashP2PNetworkBox, recovery);
         return vBox;
     }
 

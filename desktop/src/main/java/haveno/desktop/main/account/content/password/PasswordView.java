@@ -26,6 +26,7 @@ import haveno.core.api.CoreAccountService;
 import haveno.core.locale.Res;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.desktop.Navigation;
+import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipButton;
@@ -44,6 +45,7 @@ import haveno.desktop.util.Layout;
 import haveno.desktop.util.validation.PasswordValidator;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -60,6 +62,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     private PasswordTextField passwordField;
     private PasswordTextField repeatedPasswordField;
     private AutoTooltipButton pwButton;
+    private Hyperlink recoveryLink;
     private TitledGroupBg headline;
     private int gridRow = 0;
     private ChangeListener<Boolean> passwordFieldFocusChangeListener;
@@ -127,6 +130,10 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
 
         addTitledGroupBg(root, ++gridRow, 1, Res.get("shared.information"), Layout.GROUP_DISTANCE);
         addMultilineLabel(root, gridRow, Res.get("account.password.info"), Layout.FIRST_ROW_AND_GROUP_DISTANCE);
+        recoveryLink = new Hyperlink(Res.get("password.recovery.link"));
+        recoveryLink.setWrapText(true);
+        recoveryLink.setOnAction(event -> HavenoApp.getPasswordRecoveryHandler().run());
+        root.add(recoveryLink, 0, ++gridRow, 2, 1);
     }
 
     private void onApplyPassword(BusyAnimation busyAnimation, Label statusLabel) {
@@ -139,6 +146,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         statusLabel.setText(Res.get(removingPassword ? "password.removing" : "password.setting"));
         busyAnimation.play();
         changingPassword = true;
+        recoveryLink.setDisable(true);
         passwordField.setDisable(true);
         repeatedPasswordField.setDisable(true);
         String oldPassword = removingPassword ? password : accountService.getPassword();
@@ -154,10 +162,16 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
                 });
             } catch (Throwable t) {
                 log.error("Error applying password: {}\n", t.getMessage(), t);
-                UserThread.execute(() -> new Popup().warning(t.getMessage()).show());
+                UserThread.execute(() -> {
+                    Popup popup = new Popup().warning(t.getMessage());
+                    if (accountService.isPasswordRecoveryRequired()) popup.actionButtonText(Res.get("password.recovery.link"))
+                            .onAction(HavenoApp.getPasswordRecoveryHandler());
+                    popup.show();
+                });
             } finally {
                 UserThread.execute(() -> {
                     changingPassword = false;
+                    recoveryLink.setDisable(false);
                     passwordField.setDisable(accountService.isPasswordRecoveryRequired());
                     repeatedPasswordField.setDisable(accountService.isPasswordRecoveryRequired());
                     setText();
