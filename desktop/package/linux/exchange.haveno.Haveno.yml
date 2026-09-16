@@ -44,6 +44,7 @@ finish-args:
   - --env=PATH=/app/jre/bin:/usr/bin:$PATH
     # - --env=JAVA_HOME=/app/jre
   - --env=JAVA_HOME=/usr/lib/sdk/openjdk21/
+  - --env=JAVA_TOOL_OPTIONS=-Dprism.order=sw -Dprism.text=t2k -Dprism.lcdtext=false
   - --device=dri
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.freedesktop.secrets
