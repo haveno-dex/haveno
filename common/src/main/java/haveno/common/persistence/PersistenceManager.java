@@ -424,7 +424,7 @@ public class PersistenceManager<T extends PersistableEnvelope> {
     // one) makes pass 1 throw CryptoException, in which case we fall back to reading it without
     // decryption. The raw FileInputStreams are buffered because CipherInputStream pulls from the
     // underlying stream in 512-byte chunks - unbuffered, a large store costs ~2000 read syscalls per MB.
-    private protobuf.PersistableEnvelope readEncrypted(File storageFile, SecretKey symmetricKey) throws Exception {
+    public static protobuf.PersistableEnvelope readEncrypted(File storageFile, SecretKey symmetricKey) throws Exception {
         long payloadLength;
         try (InputStream verifyStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
             payloadLength = Encryption.verifyPayloadWithHmacStream(verifyStream, symmetricKey);

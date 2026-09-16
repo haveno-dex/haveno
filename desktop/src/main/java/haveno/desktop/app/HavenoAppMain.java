@@ -22,6 +22,7 @@ import haveno.common.app.AppModule;
 import haveno.common.app.DevEnv;
 import haveno.common.app.Version;
 import haveno.common.crypto.IncorrectPasswordException;
+import haveno.common.util.Utilities;
 import haveno.core.app.AvoidStandbyModeService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.locale.Res;
@@ -35,6 +36,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -55,6 +57,12 @@ public class HavenoAppMain extends HavenoExecutable {
         // realMain method:
         Thread.currentThread().setContextClassLoader(HavenoAppMain.class.getClassLoader());
 
+        // recovery must bypass normal account, wallet and persistence startup
+        if (args.length > 0 && PasswordRecoveryLauncher.OPTION.equals(args[0])) {
+            if (Utilities.isLinux()) System.setProperty("prism.lcdtext", "false");
+            Application.launch(PasswordRecoveryApp.class, Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
         new HavenoAppMain().execute(args);
     }
 

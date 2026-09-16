@@ -88,9 +88,11 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Separator;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
@@ -113,6 +115,8 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     private static Consumer<Application> appLaunchedHandler;
     @Getter
     private static Runnable shutDownHandler;
+    @Getter
+    private static Runnable passwordRecoveryHandler;
     @Setter
     private static Runnable onGracefulShutDownHandler;
 
@@ -132,9 +136,11 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     private Timer stageBoundsPersistenceTimer;
     // true if the window position was restored from saved bounds at startup (else we migrate the legacy cookie)
     private boolean restoredWindowBounds;
+    private boolean openingPasswordRecovery;
 
     public HavenoApp() {
         shutDownHandler = this::stop;
+        passwordRecoveryHandler = this::openPasswordRecovery;
     }
 
 
@@ -193,7 +199,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     public void showPasswordScreen(PasswordHandler passwordHandler, Runnable onQuit) {
         // preferences applies the persisted theme before login, so this screen uses the user's chosen theme
         startupShell = getOrCreateShell();
-        startupShell.setContent(createLoginContent(passwordHandler, onQuit));
+        showLoginContent(passwordHandler, onQuit);
         showStartupWindow();
     }
 
@@ -222,7 +228,10 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         message.setMaxWidth(StartupWizard.PAGE_WIDTH);
         Button quitButton = new AutoTooltipButton(Res.get("shared.shutDown"));
         quitButton.setOnAction(event -> onShutdown.run());
-        VBox content = new VBox(20, message, quitButton);
+        Hyperlink recovery = new Hyperlink(Res.get("password.recovery.link"));
+        recovery.setWrapText(true);
+        recovery.setOnAction(event -> openPasswordRecovery(error -> message.setText(text + "\n\n" + error)));
+        VBox content = new VBox(20, message, quitButton, recovery);
         content.setMaxWidth(StartupWizard.PAGE_WIDTH);
         startupShell = getOrCreateShell();
         startupShell.setContent(content);
@@ -422,7 +431,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     // the password prompt shown in the startup shell's content slot
-    private Region createLoginContent(PasswordHandler passwordHandler, Runnable onQuit) {
+    private void showLoginContent(PasswordHandler passwordHandler, Runnable onQuit) {
 
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText(Res.get("password.enterPassword"));
@@ -440,6 +449,8 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
 
         Label statusLabel = new AutoTooltipLabel();
         statusLabel.setMinHeight(24);
+        statusLabel.setWrapText(true);
+        statusLabel.setMaxWidth(StartupWizard.PAGE_WIDTH);
         statusLabel.setAlignment(Pos.CENTER);
 
         Consumer<String> showWorking = message -> {
@@ -467,6 +478,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             passwordField.setDisable(disabled);
             unlockButton.setDisable(disabled);
             quitButton.setDisable(disabled);
+            startupShell.setHelpDisabled(disabled);
         };
 
         boolean[] submitting = {false};
@@ -511,11 +523,68 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         VBox contentBox = new VBox(15, passwordField, buttonBox, statusLabel);
         contentBox.setAlignment(Pos.TOP_CENTER);
         VBox.setMargin(buttonBox, new Insets(15, 0, 0, 0));
+        startupShell.setContent(contentBox);
+
+        Label helpTitle = new AutoTooltipLabel(Res.get("password.startup.help.title"));
+        helpTitle.getStyleClass().add("default-text");
+        Label helpAdvice = new AutoTooltipLabel(Res.get("password.startup.help.advice"));
+        helpAdvice.setWrapText(true);
+        Label recoveryAdvice = new AutoTooltipLabel(Res.get("password.startup.help.recovery"));
+        recoveryAdvice.setWrapText(true);
+        Button recovery = new AutoTooltipButton(Res.get("password.recovery.open"));
+        recovery.setOnAction(event -> {
+            startupShell.hideHelp();
+            openPasswordRecovery(showError);
+        });
+        // consume enter so opening repair does not also reach the login controls
+        recovery.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                recovery.fire();
+                event.consume();
+            }
+        });
+        VBox helpContent = new VBox(10, helpTitle, helpAdvice, new Separator(), recoveryAdvice, recovery);
+        helpContent.getStyleClass().add("startup-help");
+        helpContent.setPadding(new Insets(15));
+        helpContent.setPrefWidth(320);
+        startupShell.setHelpContent(helpContent, passwordField::requestFocus);
 
         // focus the password field once the screen is rendered
         UserThread.execute(passwordField::requestFocus);
 
-        return contentBox;
+        // refocus when returning to the login window, until the login content is removed
+        ChangeListener<Boolean> windowFocusListener = (observable, oldValue, focused) -> {
+            if (focused) UserThread.execute(passwordField::requestFocus);
+        };
+        stage.focusedProperty().addListener(windowFocusListener);
+        contentBox.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene == null) stage.focusedProperty().removeListener(windowFocusListener);
+        });
+    }
+
+    private void openPasswordRecovery() {
+        openPasswordRecovery(error -> new Popup().warning(error).show());
+    }
+
+    private void openPasswordRecovery(Consumer<String> showError) {
+        if (openingPasswordRecovery || shutDownRequested) return;
+        CompletableFuture<Boolean> confirmation = mainView == null
+                ? CompletableFuture.completedFuture(true) : promptUserAtShutdown();
+        confirmation.thenAccept(confirmed -> {
+            if (!confirmed || openingPasswordRecovery || shutDownRequested) return;
+            openingPasswordRecovery = true;
+            scene.getRoot().setDisable(true);
+            PasswordRecoveryLauncher.start(injector.getInstance(Config.class).walletDir.toPath().getParent())
+                    .whenComplete((result, error) -> UserThread.execute(() -> {
+                        if (error == null) {
+                            stop();
+                        } else {
+                            openingPasswordRecovery = false;
+                            scene.getRoot().setDisable(false);
+                            showError.accept(Res.get("password.recovery.launchFailed"));
+                        }
+                    }));
+        });
     }
 
     private void configureStage(Scene scene) {

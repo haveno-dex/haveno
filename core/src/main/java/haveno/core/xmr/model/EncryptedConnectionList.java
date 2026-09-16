@@ -285,8 +285,8 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         persistenceManager.persistNowAndWait();
     }
 
-    // stage all entries before replacing any credentials
-    private void reconcilePasswords(List<String> passwords, String newPassword) {
+    // shared with the offline recovery tool; stage all entries before replacing any credentials
+    public void reconcilePasswords(List<String> passwords, String newPassword) {
         writeLock.lock();
         try {
             if (keyCrypterScrypt == null) throw new IllegalStateException("Connection list is not initialized");
@@ -320,7 +320,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
                 // try the other credential from the interrupted password change
             }
         }
-        throw new IllegalStateException("Could not decrypt stored connection credentials with the supplied passwords. Close Haveno, keep all passwords used during the failed change, and preserve the complete data directory");
+        throw new IllegalStateException("Could not decrypt stored connection credentials with the supplied passwords. Close Haveno and run the recovery tool with the passwords used during the failed change; see docs/password-recovery.md");
     }
 
     private SecretKey toSecretKey(String password) {

@@ -19,6 +19,7 @@ package haveno.core.crypto;
 
 import com.google.protobuf.ByteString;
 import com.google.inject.Injector;
+import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
@@ -36,6 +37,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
+import haveno.core.util.RecoverPassword;
 import haveno.core.xmr.model.EncryptedConnectionList;
 import haveno.core.xmr.model.XmrAddressEntryList;
 import haveno.core.xmr.setup.WalletsSetup;
@@ -43,12 +45,14 @@ import haveno.core.xmr.setup.MoneroWalletRpcManager;
 import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.core.xmr.wallet.WalletPasswordChange;
+import haveno.core.xmr.wallet.WalletPasswordRecovery;
 import monero.common.MoneroError;
 import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroNetworkType;
 import monero.wallet.MoneroWalletFull;
 import monero.wallet.MoneroWalletRpc;
 import monero.wallet.model.MoneroWalletConfig;
+import monero.wallet.model.MoneroMultisigInfo;
 import org.junit.jupiter.api.Assumptions;
 import monero.common.MoneroRpcConnection;
 import monero.common.TaskLooper;
@@ -63,12 +67,15 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -80,6 +87,7 @@ import java.util.Map;
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -102,6 +110,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -558,6 +567,24 @@ public class EncryptionTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    public void testConnectionCredentialsRecoverWithExplicitPasswordsAfterRestart() throws Exception {
+        CoreAccountService account = account(null);
+        EncryptedConnectionList list = connectionList(account, null, mock(PersistenceManager.class));
+        list.addConnection(new MoneroRpcConnection("http://localhost:18081", "user", "daemon-secret"));
+        list.addConnection(new MoneroRpcConnection("http://localhost:18082"));
+        list.changePassword(null, "new-password");
+        protobuf.EncryptedConnectionList stored = ((protobuf.PersistableEnvelope) list.toProtoMessage()).getEncryptedConnectionList();
+        EncryptedConnectionList recovered = connectionList(account(null), stored, mock(PersistenceManager.class));
+        assertTrue(assertThrows(IllegalStateException.class, recovered::getConnections).getMessage().contains("recovery tool"));
+        recovered.reconcilePasswords(Arrays.asList(null, "new-password"), null);
+        assertEquals("daemon-secret", recovered.getConnections().stream()
+                .filter(connection -> connection.getUri().endsWith("18081")).findFirst().orElseThrow().getPassword());
+        assertNull(recovered.getConnections().stream()
+                .filter(connection -> connection.getUri().endsWith("18082")).findFirst().orElseThrow().getPassword());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     public void testInvalidConnectionCredentialDoesNotPartiallyReplaceList() throws Exception {
         CoreAccountService account = account(null);
         PersistenceManager<EncryptedConnectionList> persistence = mock(PersistenceManager.class);
@@ -570,6 +597,149 @@ public class EncryptionTest {
         byte[] before = loaded.toProtoMessage().toByteArray();
         assertThrows(IllegalStateException.class, () -> loaded.changePassword(null, "new-password"));
         assertArrayEquals(before, loaded.toProtoMessage().toByteArray());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testWrongRecoveryCandidateDoesNotOverwriteConnectionCredentials() throws Exception {
+        CoreAccountService account = account(null);
+        EncryptedConnectionList list = connectionList(account, null, mock(PersistenceManager.class));
+        list.addConnection(new MoneroRpcConnection("http://localhost:18081", "user", "daemon-secret"));
+        list.changePassword(null, "unknown-password");
+        protobuf.EncryptedConnectionList stored = ((protobuf.PersistableEnvelope) list.toProtoMessage()).getEncryptedConnectionList();
+        EncryptedConnectionList recovered = EncryptedConnectionList.fromProto(stored);
+        assertThrows(IllegalStateException.class, () -> recovered.reconcilePasswords(Arrays.asList(null, "wrong-password"), null));
+        assertEquals(stored, ((protobuf.PersistableEnvelope) recovered.toProtoMessage()).getEncryptedConnectionList());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testOfflineRecoveryPreservesFilesUntilCredentialsCanBeReconciled() throws Exception {
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Files.createDirectory(network.resolve("wallet"));
+        Files.createDirectory(network.resolve("db"));
+        KeyStorage storage = new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile());
+        KeyRing ring = new KeyRing(storage, null, true);
+        CoreAccountService account = new CoreAccountService(null, storage, ring);
+        account.openAccount(null);
+        EncryptedConnectionList list = connectionList(account, null, mock(PersistenceManager.class));
+        list.addConnection(new MoneroRpcConnection("http://localhost:18081", "user", "daemon-secret"));
+        list.changePassword(null, "attempted-password");
+        Path connectionFile = network.resolve("db/EncryptedConnectionList");
+        byte[] encrypted = haveno.common.crypto.Encryption.encryptPayloadWithHmac(list.toProtoMessage().toByteArray(), ring.getSymmetricKey());
+        Files.write(connectionFile, encrypted);
+        byte[] wrapper = Files.readAllBytes(network.resolve("keys/sym.p12"));
+
+        assertThrows(IncorrectPasswordException.class, () -> RecoverPassword.recover(network, "wrong-password", "wrong-password", List.of("attempted-password"), null));
+        assertThrows(IllegalStateException.class, () -> RecoverPassword.recover(network, null, null, List.of("wrong-password"), null));
+        assertArrayEquals(encrypted, Files.readAllBytes(connectionFile));
+        assertArrayEquals(wrapper, Files.readAllBytes(network.resolve("keys/sym.p12")));
+
+        RecoverPassword.recover(network, null, null, List.of("attempted-password"), null);
+        assertArrayEquals(wrapper, Files.readAllBytes(network.resolve("keys/sym.p12")));
+        protobuf.PersistableEnvelope repaired = PersistenceManager.readEncrypted(connectionFile.toFile(), ring.getSymmetricKey());
+        EncryptedConnectionList reopened = connectionList(account, repaired.getEncryptedConnectionList(), mock(PersistenceManager.class));
+        assertEquals("daemon-secret", reopened.getConnections().get(0).getPassword());
+    }
+
+    @Test
+    public void testRecoveryRejectsPasswordMismatchBeforeChangingFiles() throws Exception {
+        for (boolean missing : List.of(false, true)) {
+            Path network = Files.createDirectories(dir.toPath().resolve(Boolean.toString(missing)).resolve("xmr_mainnet"));
+            Path keys = Files.createDirectory(network.resolve("keys"));
+            Path wallets = Files.createDirectory(network.resolve("wallet"));
+            KeyStorage storage = new KeyStorage(keys.toFile());
+            KeyRing ring = new KeyRing(storage, "known-password", true);
+            ring.lockKeys();
+            assertTrue(ring.unlockKeys("known-password", false));
+            ring.lockKeys();
+            if (missing) Files.delete(keys.resolve("sym.p12"));
+            else Files.write(keys.resolve("sym.p12"), new byte[] {1, 2, 3});
+            Files.write(wallets.resolve("haveno_XMR.keys"), new byte[] {4, 5});
+            Files.write(wallets.resolve("haveno_XMR"), new byte[] {6, 7});
+            Files.write(Files.createDirectory(network.resolve("db")).resolve("EncryptedConnectionList"), new byte[] {8, 9});
+            List<Path> paths;
+            try (var files = Files.walk(network)) {
+                paths = files.sorted().toList();
+            }
+            Map<Path, byte[]> contents = new HashMap<>();
+            for (Path path : paths) {
+                if (Files.isRegularFile(path)) contents.put(path, Files.readAllBytes(path));
+            }
+
+            for (String confirmation : Arrays.asList("known-password", null, "")) {
+                IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                        () -> RecoverPassword.recover(network, "known-passwrod", confirmation, List.of("known-password"), null));
+                assertTrue(failure.getMessage().contains("do not match"));
+            }
+            assertThrows(IllegalArgumentException.class,
+                    () -> RecoverPassword.recover(network, null, "known-password", List.of("known-password"), null));
+            try (var files = Files.walk(network)) {
+                assertEquals(paths, files.sorted().toList());
+            }
+            for (var entry : contents.entrySet()) assertArrayEquals(entry.getValue(), Files.readAllBytes(entry.getKey()));
+        }
+    }
+
+    @Test
+    public void testRecoveryRestoresAccountAndWalletWithConfirmedPassword() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        for (boolean missing : List.of(false, true)) {
+            for (String target : Arrays.asList("confirmed-password", null)) {
+                Path network = Files.createDirectories(dir.toPath().resolve(missing + "-" + target).resolve("xmr_mainnet"));
+                Path keys = Files.createDirectory(network.resolve("keys"));
+                Path wallets = Files.createDirectory(network.resolve("wallet"));
+                KeyStorage storage = new KeyStorage(keys.toFile());
+                KeyRing ring = new KeyRing(storage, "old-password", true);
+                ring.lockKeys();
+                assertTrue(ring.unlockKeys("old-password", false));
+                byte[] signature = Files.readAllBytes(keys.resolve("sig.key"));
+                byte[] encryption = Files.readAllBytes(keys.resolve("enc.key"));
+                Path path = wallets.resolve("haveno_XMR");
+                MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                        .setPath(path.toString()).setPassword("old-password").setNetworkType(MoneroNetworkType.MAINNET));
+                String address;
+                try {
+                    address = wallet.getPrimaryAddress();
+                    wallet.setAttribute("recovery-marker", "preserve local state");
+                } finally {
+                    wallet.close(true);
+                }
+                if (missing) Files.delete(keys.resolve("sym.p12"));
+                else Files.write(keys.resolve("sym.p12"), new byte[] {1, 2, 3});
+
+                RecoverPassword.recover(network, target, target == null ? "" : target, List.of("old-password"), null);
+
+                assertEquals(ring.getSymmetricKey(), storage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, target));
+                assertArrayEquals(signature, Files.readAllBytes(keys.resolve("sig.key")));
+                assertArrayEquals(encryption, Files.readAllBytes(keys.resolve("enc.key")));
+                MoneroWalletFull recovered = MoneroWalletFull.openWallet(path.toString(),
+                        WalletPasswordChange.normalizePassword(target), MoneroNetworkType.MAINNET);
+                try {
+                    assertEquals(address, recovered.getPrimaryAddress());
+                    assertEquals("preserve local state", recovered.getAttribute("recovery-marker"));
+                } finally {
+                    recovered.close(false);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testOfflineRecoveryAcceptsApplicationNetworkDirectories() throws Exception {
+        for (BaseCurrencyNetwork network : BaseCurrencyNetwork.values()) {
+            Path networkDir = Files.createDirectory(dir.toPath().resolve(network.name().toLowerCase(Locale.ROOT)));
+            Files.createDirectory(networkDir.resolve("wallet"));
+            KeyStorage storage = new KeyStorage(Files.createDirectory(networkDir.resolve("keys")).toFile());
+            KeyRing ring = new KeyRing(storage, null, true);
+            byte[] wrapper = Files.readAllBytes(networkDir.resolve("keys/sym.p12"));
+            ring.lockKeys();
+
+            RecoverPassword.recover(networkDir, null, null, List.of(), null);
+
+            assertArrayEquals(wrapper, Files.readAllBytes(networkDir.resolve("keys/sym.p12")));
+        }
     }
 
     private MoneroWalletFull mockWallet() {
@@ -1020,6 +1190,33 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testRetainedAccountKeyCopyMustBeWrittenAndVerifiedBeforeRemoval() throws Exception {
+        Path original = Files.write(dir.toPath().resolve(".sym.p12.haveno-write-truncated.tmp"), new byte[] {1, 2, 3});
+        for (boolean corrupt : List.of(false, true)) {
+            try (var files = mockStatic(FileUtil.class, CALLS_REAL_METHODS)) {
+                files.when(() -> FileUtil.writeAtomically(any(), any())).thenAnswer(invocation -> {
+                    Path target = invocation.getArgument(0);
+                    if (!target.getParent().getFileName().toString().equals("retained_sym_p12")) return invocation.callRealMethod();
+                    if (!corrupt) throw new IOException("injected retained-copy write failure");
+                    invocation.callRealMethod();
+                    Files.write(target, new byte[] {4, 5, 6});
+                    return null;
+                });
+                assertTrue(new KeyRing(keyStorage, null, false).isUnlocked());
+                assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(original));
+            }
+        }
+        keyStorage.finishPasswordChange(keyRing, null, Arrays.asList((String) null));
+        assertFalse(Files.exists(original));
+        Path exported = dir.toPath().resolve("exported-keys");
+        keyStorage.exportRetainedAccountKeys(null, exported);
+        try (var files = Files.list(exported)) {
+            Path copy = files.findFirst().orElseThrow();
+            assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(copy));
+        }
+    }
+
+    @Test
     public void testFatalPasswordChangeFailureBlocksOperationsAndNotifiesEveryListener() throws Exception {
         CoreAccountService account = account(null);
         OutOfMemoryError failure = new OutOfMemoryError("injected after wallet mutation");
@@ -1062,6 +1259,201 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testNativeRecoveryPreservesCacheAcrossSplitPasswords() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        Path network = new File(dir, "xmr_mainnet").toPath();
+        Files.createDirectories(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), "old-password", true);
+        Path path = network.resolve("wallet/haveno_XMR");
+        MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("old-password").setNetworkType(MoneroNetworkType.MAINNET));
+        String address = wallet.getPrimaryAddress();
+        byte[] cache;
+        try {
+            wallet.setAttribute("recovery-marker", "preserve original cache");
+            wallet.save();
+            cache = wallet.getData()[1];
+            wallet.changePassword("old-password", "new-password");
+            wallet.save();
+        } finally {
+            wallet.close(false);
+        }
+        Files.write(path, cache);
+        byte[] keys = Files.readAllBytes(path.resolveSibling("haveno_XMR.keys"));
+        assertThrows(IOException.class, () -> RecoverPassword.recover(network, "old-password", "old-password", List.of("unknown-password"), null));
+        assertArrayEquals(cache, Files.readAllBytes(path));
+        assertArrayEquals(keys, Files.readAllBytes(path.resolveSibling("haveno_XMR.keys")));
+        RecoverPassword.recover(network, "old-password", "old-password", List.of("new-password"), null);
+        MoneroWalletFull reopened = MoneroWalletFull.openWallet(path.toString(), "old-password", MoneroNetworkType.MAINNET);
+        try {
+            assertEquals(address, reopened.getPrimaryAddress());
+            assertEquals("preserve original cache", reopened.getAttribute("recovery-marker"));
+        } finally {
+            reopened.close(false);
+        }
+        RecoverPassword.recover(network, "old-password", "old-password", List.of("new-password"), null);
+    }
+
+    @Test
+    public void testRecoveryAuthenticatesAbandonedWalletKeys() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), "current-password", true);
+        Path path = wallets.resolve("haveno_XMR");
+        MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("current-password").setNetworkType(MoneroNetworkType.MAINNET));
+        byte[][] original;
+        byte[] unprotected;
+        byte[] oldCache;
+        String address;
+        try {
+            wallet.setAttribute("recovery-marker", "original cache");
+            original = wallet.getData();
+            address = wallet.getPrimaryAddress();
+            wallet.changePassword("current-password", "password");
+            byte[][] old = wallet.getData();
+            unprotected = old[0];
+            oldCache = old[1];
+        } finally {
+            wallet.close(false);
+        }
+        Files.write(path, oldCache);
+        Files.write(wallets.resolve("haveno_XMR.keys"), original[0]);
+        Path nativeTemp = Files.write(wallets.resolve("haveno_XMR.keys.new"), unprotected);
+        Path atomicTemp = Files.write(wallets.resolve(".haveno_XMR.keys.haveno-write-abandoned.tmp"), unprotected);
+        List<Path> duplicateCaches = List.of(wallets.resolve("haveno_XMR.new"), wallets.resolve("haveno_XMR.unportable"),
+                wallets.resolve(".haveno_XMR.haveno-write-abandoned.tmp"));
+        for (Path copy : duplicateCaches) Files.write(copy, oldCache);
+        assertTrue(RecoverPassword.recover(network, "current-password", "current-password", List.of(), null).isEmpty());
+        for (Path copy : duplicateCaches) assertFalse(Files.exists(copy));
+        assertFalse(Files.exists(wallets.resolve(".password-recovery")));
+        assertFalse(Files.exists(nativeTemp));
+        assertFalse(Files.exists(atomicTemp));
+        wallet = MoneroWalletFull.openWallet(path.toString(), "current-password", MoneroNetworkType.MAINNET);
+        try {
+            assertEquals(address, wallet.getPrimaryAddress());
+            assertEquals("original cache", wallet.getAttribute("recovery-marker"));
+        } finally {
+            wallet.close(false);
+        }
+
+        MoneroWalletFull foreign = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPassword("password").setNetworkType(MoneroNetworkType.MAINNET));
+        byte[] foreignKeys;
+        try {
+            foreignKeys = foreign.getData()[0];
+        } finally {
+            foreign.close(false);
+        }
+        Files.write(nativeTemp, foreignKeys);
+        Files.write(atomicTemp, new byte[] {1, 2, 3});
+        Path cacheTemp = Files.write(wallets.resolve("haveno_XMR.new"), original[1]);
+        Path unportable = Files.write(wallets.resolve("haveno_XMR.unportable"), oldCache);
+        Path atomicCache = Files.write(wallets.resolve(".haveno_XMR.haveno-write-abandoned.tmp"), new byte[] {7, 8, 9});
+        List<String> retained = RecoverPassword.recover(network, "current-password", "current-password", List.of(), null);
+        Path savedKeys = retainedWalletFile(network, retained, "haveno_XMR.keys.new");
+        Path savedAtomicKeys = retainedWalletFile(network, retained, ".haveno_XMR.keys.haveno-write-abandoned.tmp");
+        Path savedCache = retainedWalletFile(network, retained, "haveno_XMR.new");
+        assertFalse(Files.exists(nativeTemp));
+        assertFalse(Files.exists(atomicTemp));
+        assertFalse(Files.exists(cacheTemp));
+        assertFalse(Files.exists(unportable));
+        assertFalse(Files.exists(atomicCache));
+        assertArrayEquals(oldCache, Files.readAllBytes(retainedWalletFile(network, retained, "haveno_XMR.unportable")));
+        assertArrayEquals(new byte[] {7, 8, 9}, Files.readAllBytes(retainedWalletFile(network, retained, ".haveno_XMR.haveno-write-abandoned.tmp")));
+        assertArrayEquals(foreignKeys, Files.readAllBytes(savedKeys));
+        assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(savedAtomicKeys));
+        assertArrayEquals(original[1], Files.readAllBytes(savedCache));
+        wallet = MoneroWalletFull.openWallet(path.toString(), "current-password", MoneroNetworkType.MAINNET);
+        try {
+            wallet.changePassword("current-password", "next-password");
+            wallet.save();
+        } finally {
+            wallet.close(false);
+        }
+        assertArrayEquals(foreignKeys, Files.readAllBytes(savedKeys));
+        assertArrayEquals(original[1], Files.readAllBytes(savedCache));
+        assertTrue(RecoverPassword.recover(network, "current-password", "current-password", List.of("next-password"), null).containsAll(retained));
+    }
+
+    private static Path retainedWalletFile(Path network, List<String> retained, String name) {
+        String relative = retained.stream().filter(path -> path.endsWith("/" + name)).findFirst().orElseThrow();
+        assertTrue(relative.startsWith("wallet/backup/recovery-retained-"));
+        return network.resolve(relative);
+    }
+
+    @Test
+    public void testRecoveryKeepsTemporaryKeysUntilPrimaryIsDurable() throws Exception {
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+        Path keys = Files.write(wallets.resolve("haveno_XMR.keys"), new byte[] {1});
+        Path cache = Files.write(wallets.resolve("haveno_XMR"), new byte[] {2});
+        Path temp = Files.write(wallets.resolve("haveno_XMR.keys.new"), new byte[] {3});
+        Path unportable = Files.write(wallets.resolve("haveno_XMR.unportable"), new byte[] {2});
+        Path atomicCache = Files.write(wallets.resolve(".haveno_XMR.haveno-write-abandoned.tmp"), new byte[] {2});
+        MoneroWalletFull wallet = mockWallet();
+        doReturn(new MoneroMultisigInfo()).when(wallet).getMultisigInfo();
+        doReturn("current-address").when(wallet).getPrimaryAddress();
+        try (var utils = mockStatic(MoneroUtils.class); var nativeWallets = mockStatic(MoneroWalletFull.class);
+             var files = mockStatic(FileUtil.class, CALLS_REAL_METHODS)) {
+            utils.when(MoneroUtils::isNativeLibraryLoaded).thenReturn(true);
+            nativeWallets.when(() -> MoneroWalletFull.openWalletData(anyString(), any(), any(), any(), any())).thenReturn(wallet);
+            files.when(() -> FileUtil.writeAtomically(eq(keys), any())).thenThrow(new IOException("injected durability failure"));
+            assertThrows(IOException.class, () -> RecoverPassword.recover(network, null, null, List.of(), null));
+            assertArrayEquals(new byte[] {3}, Files.readAllBytes(temp));
+            assertArrayEquals(new byte[] {2}, Files.readAllBytes(unportable));
+            assertArrayEquals(new byte[] {2}, Files.readAllBytes(atomicCache));
+        }
+        MoneroWalletFull foreign = mockWallet();
+        doReturn("foreign-address").when(foreign).getPrimaryAddress();
+        try (var utils = mockStatic(MoneroUtils.class); var nativeWallets = mockStatic(MoneroWalletFull.class);
+             var files = mockStatic(FileUtil.class, CALLS_REAL_METHODS)) {
+            utils.when(MoneroUtils::isNativeLibraryLoaded).thenReturn(true);
+            nativeWallets.when(() -> MoneroWalletFull.openWalletData(anyString(), any(), any(), any(), any()))
+                    .thenAnswer(invocation -> Arrays.equals(new byte[] {3}, invocation.getArgument(2)) ? foreign : wallet);
+            files.when(() -> FileUtil.writeAtomically(any(), any())).thenAnswer(invocation -> {
+                Path target = invocation.getArgument(0);
+                if (target.getParent().getFileName().toString().startsWith("recovery-retained-")) {
+                    throw new IOException("injected retained-copy durability failure");
+                }
+                return invocation.callRealMethod();
+            });
+            assertThrows(IOException.class, () -> RecoverPassword.recover(network, null, null, List.of(), null));
+            assertArrayEquals(new byte[] {3}, Files.readAllBytes(temp));
+            try (var directories = Files.list(wallets.resolve("backup"))) {
+                assertFalse(directories.anyMatch(path -> path.getFileName().toString().startsWith("recovery-retained-")));
+            }
+            Path cacheTemp = Files.write(wallets.resolve("haveno_XMR.new"), new byte[] {4});
+            files.when(() -> FileUtil.writeAtomically(any(), any())).thenAnswer(invocation -> {
+                Path target = invocation.getArgument(0);
+                if (target.getParent().getFileName().toString().startsWith("recovery-retained-")
+                        && target.getFileName().equals(cacheTemp.getFileName())) {
+                    throw new IOException("injected second retained-copy durability failure");
+                }
+                return invocation.callRealMethod();
+            });
+            IOException failure = assertThrows(IOException.class, () -> RecoverPassword.recover(network, null, null, List.of(), null));
+            assertEquals("injected second retained-copy durability failure", failure.getMessage());
+            assertFalse(Files.exists(temp));
+            assertArrayEquals(new byte[] {4}, Files.readAllBytes(cacheTemp));
+            try (var directories = Files.list(wallets.resolve("backup"))) {
+                List<Path> retained = directories.filter(path -> path.getFileName().toString().startsWith("recovery-retained-")).toList();
+                assertEquals(1, retained.size());
+                assertArrayEquals(new byte[] {3}, Files.readAllBytes(retained.get(0).resolve(temp.getFileName())));
+            }
+        }
+        Files.write(temp, new byte[] {3});
+        Files.delete(keys);
+        assertThrows(IOException.class, () -> RecoverPassword.recover(network, null, null, List.of(), null));
+        assertArrayEquals(new byte[] {3}, Files.readAllBytes(temp));
+        assertTrue(Files.exists(cache));
+    }
+
+    @Test
     public void testWalletOpenFailurePreservesOriginalCache() throws Exception {
         XmrConnectionService connections = mock(XmrConnectionService.class);
         doReturn(new MoneroRpcConnection("http://127.0.0.1:18081")).when(connections).getConnection();
@@ -1087,6 +1479,196 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testRecoveryPreservesBackupsOfMissingWalletKeys() throws Exception {
+        for (String backup : List.of("password-change-completed", "backups_haveno_XMR_keys")) {
+            Path network = Files.createDirectories(dir.toPath().resolve(backup).resolve("xmr_mainnet"));
+            Files.createDirectory(network.resolve("wallet"));
+            new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+            Path copies = Files.createDirectories(network.resolve("wallet/backup").resolve(backup));
+            Path keys = copies.resolve(backup.startsWith("password-change") ? "haveno_XMR.keys" : "123_haveno_XMR.keys");
+            byte[] original = {1, 2, 3};
+            Files.write(keys, original);
+            IOException failure = assertThrows(IOException.class, () -> RecoverPassword.recover(network, null, null, List.of(), null));
+            assertTrue(failure.getMessage().contains("Wallet keys are missing"));
+            assertArrayEquals(original, Files.readAllBytes(keys));
+        }
+    }
+
+    @Test
+    public void testRecoveryRequiresExistingCacheBackupsBeforeRebuilding() throws Exception {
+        MoneroWalletFull wallet = mockWallet();
+        doReturn(new MoneroMultisigInfo()).when(wallet).getMultisigInfo();
+        doReturn("current-address").when(wallet).getPrimaryAddress();
+        try (var utils = mockStatic(MoneroUtils.class); var nativeWallets = mockStatic(MoneroWalletFull.class)) {
+            utils.when(MoneroUtils::isNativeLibraryLoaded).thenReturn(true);
+            nativeWallets.when(() -> MoneroWalletFull.openWalletData(anyString(), any(), any(), any(), any())).thenReturn(wallet);
+            for (String name : List.of("orphan_trade", "haveno_XMR")) {
+                Path network = Files.createDirectories(dir.toPath().resolve(name).resolve("xmr_mainnet"));
+                Path wallets = Files.createDirectory(network.resolve("wallet"));
+                new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+                Path keys = Files.write(wallets.resolve(name + ".keys"), new byte[] {1, 2, 3});
+                for (String temporary : List.of(name + ".new", name + ".unportable")) {
+                    Path copy = Files.write(wallets.resolve(temporary), new byte[] {4, 5, 6});
+                    IOException failure = assertThrows(IOException.class, () -> RecoverPassword.recover(network, null, null, List.of(), null));
+                    assertTrue(failure.getMessage().contains("temporary caches"));
+                    assertArrayEquals(new byte[] {4, 5, 6}, Files.readAllBytes(copy));
+                    assertFalse(Files.exists(wallets.resolve(name)));
+                    Files.delete(copy);
+                }
+                for (String backup : List.of("backups_" + name, "password-change-completed", "password-change-hashed", "password-change-cache-only")) {
+                    if (name.equals("haveno_XMR") && backup.startsWith("backups_")) continue;
+                    Path copies = Files.createDirectories(wallets.resolve("backup").resolve(backup));
+                    Path cache = copies.resolve(backup.startsWith("password-change") ? name : "123_" + name);
+                    byte[] original = {4, 5, 6};
+                    Files.write(cache, original);
+                    if (!backup.endsWith("cache-only")) {
+                        Files.write(copies.resolve(name + ".keys"), new byte[] {1, 2, 3});
+                        if (backup.endsWith("hashed")) Files.writeString(copies.resolve(WalletPasswordChange.MAIN_WALLET_ID_FILE), WalletPasswordChange.getMainWalletId("current-address"));
+                        else Files.writeString(copies.resolve(".main-wallet-address"), "current-address");
+                    }
+
+                    IOException failure = assertThrows(IOException.class, () -> RecoverPassword.recover(network, null, null, List.of(), null));
+                    assertTrue(failure.getMessage().contains("cache backup"));
+                    assertArrayEquals(original, Files.readAllBytes(cache));
+                    assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(keys));
+                    assertFalse(Files.exists(wallets.resolve(name)));
+                    FileUtil.deleteDirectory(copies.toFile());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testRecoveryRetriesAnInterruptedCacheRebuild() throws Exception {
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+        Path cache = wallets.resolve("haveno_XMR");
+        Path keys = Files.write(wallets.resolve("haveno_XMR.keys"), new byte[] {1});
+        Path temporary = wallets.resolve(".haveno_XMR.haveno-write-interrupted.tmp");
+        MoneroWalletFull wallet = mockWallet();
+        doReturn(new MoneroMultisigInfo()).when(wallet).getMultisigInfo();
+        doReturn("current-address").when(wallet).getPrimaryAddress();
+        try (var utils = mockStatic(MoneroUtils.class); var nativeWallets = mockStatic(MoneroWalletFull.class)) {
+            utils.when(MoneroUtils::isNativeLibraryLoaded).thenReturn(true);
+            nativeWallets.when(() -> MoneroWalletFull.openWalletData(anyString(), any(), any(), any(), any())).thenReturn(wallet);
+            try (var files = mockStatic(FileUtil.class, CALLS_REAL_METHODS)) {
+                files.when(() -> FileUtil.writeAtomically(eq(cache), any())).thenAnswer(invocation -> {
+                    Files.write(temporary, new byte[] {4});
+                    throw new IOException("injected crash during cache rebuild");
+                });
+                assertThrows(IOException.class, () -> RecoverPassword.recover(network, null, null, List.of(), null));
+            }
+            assertFalse(Files.exists(cache));
+            assertArrayEquals(new byte[] {1}, Files.readAllBytes(keys));
+            assertArrayEquals(new byte[] {4}, Files.readAllBytes(temporary));
+            List<String> retained = RecoverPassword.recover(network, null, null, List.of(), null);
+            assertEquals(1, retained.size());
+            assertFalse(Files.exists(temporary));
+            assertArrayEquals(new byte[] {4}, Files.readAllBytes(retainedWalletFile(network, retained, temporary.getFileName().toString())));
+            assertArrayEquals(new byte[] {2}, Files.readAllBytes(cache));
+            assertArrayEquals(new byte[] {1}, Files.readAllBytes(keys));
+            assertEquals(retained, RecoverPassword.recover(network, null, null, List.of(), null));
+        }
+    }
+
+    @Test
+    public void testRecoveryRebuildsCacheWithoutDiscardingOtherMainWallets() throws Exception {
+        MoneroWalletFull wallet = mockWallet();
+        doReturn(new MoneroMultisigInfo()).when(wallet).getMultisigInfo();
+        doReturn("current-address").when(wallet).getPrimaryAddress();
+        try (var utils = mockStatic(MoneroUtils.class); var nativeWallets = mockStatic(MoneroWalletFull.class)) {
+            utils.when(MoneroUtils::isNativeLibraryLoaded).thenReturn(true);
+            nativeWallets.when(() -> MoneroWalletFull.openWalletData(anyString(), any(), any(), any(), any())).thenAnswer(invocation -> {
+                byte[] cache = invocation.getArgument(3);
+                if (cache != null) throw new MoneroError("Cache belongs to a different wallet");
+                return wallet;
+            });
+            for (String name : List.of("orphan_trade", "haveno_XMR")) {
+                Path network = Files.createDirectories(dir.toPath().resolve(name).resolve("xmr_mainnet"));
+                Path wallets = Files.createDirectory(network.resolve("wallet"));
+                new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+                Files.write(wallets.resolve(name + ".keys"), new byte[] {1, 2, 3});
+                List<Path> backups = new ArrayList<>();
+                if (name.equals("haveno_XMR")) {
+                    for (String backup : List.of("backups_haveno_XMR", "password-change-other", "password-change-unknown")) {
+                        Path copies = Files.createDirectories(wallets.resolve("backup").resolve(backup));
+                        backups.add(Files.write(copies.resolve(name), new byte[] {1, 2, 3}));
+                        Files.write(copies.resolve(name + ".keys"), new byte[] {4, 5, 6});
+                        if (backup.endsWith("other")) Files.writeString(copies.resolve(".main-wallet-address"), "other-address");
+                    }
+                }
+
+                assertEquals(backups.size(), RecoverPassword.recover(network, null, null, List.of(), null).size());
+                for (Path backup : backups) assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(backup));
+                assertArrayEquals(new byte[] {2}, Files.readAllBytes(wallets.resolve(name)));
+                assertArrayEquals(new byte[] {1}, Files.readAllBytes(wallets.resolve(name + ".keys")));
+            }
+        }
+    }
+
+    @Test
+    public void testRecoveryKeepsBackupsOfAbsentTradeWallets() throws Exception {
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+        for (String name : List.of("password-change-old", "backups_trade_keys", "backups_trade")) {
+            Path backup = Files.createDirectories(wallets.resolve("backup").resolve(name));
+            Files.write(backup.resolve(name.equals("backups_trade") ? "123_trade" : "trade.keys"), new byte[] {1, 2, 3});
+        }
+        List<String> retained = RecoverPassword.recover(network, null, null, List.of(), null);
+        assertEquals(3, retained.size());
+        for (String name : retained) assertTrue(Files.isDirectory(wallets.resolve("backup").resolve(name)));
+    }
+
+    @Test
+    public void testRecoveryReportsOrphanTemporaryCaches() throws Exception {
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+        for (String name : List.of("orphan.new", "orphan.unportable", ".orphan.haveno-write-abandoned.tmp")) {
+            Files.write(wallets.resolve(name), new byte[] {1, 2, 3});
+        }
+        List<String> retained = RecoverPassword.recover(network, null, null, List.of(), null);
+        assertEquals(3, retained.size());
+        for (String name : retained) assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(network.resolve(name)));
+    }
+
+    @Test
+    public void testBackupCleanupPreservesIncompleteAndUnknownSnapshotFiles() throws Exception {
+        byte[] original = {1, 2, 3};
+        for (String name : List.of("haveno_XMR", "active_trade", "superseded_trade")) {
+            Files.write(walletDir.toPath().resolve(name), original);
+            Files.write(walletDir.toPath().resolve(name + ".keys"), original);
+        }
+        Map<String, String> copies = Map.of(
+                "main-cache-only", "haveno_XMR",
+                "main-keys-only", "haveno_XMR.keys",
+                "trade-cache-only", "active_trade",
+                "trade-keys-only", "active_trade.keys",
+                "absent-trade-cache", "absent_trade",
+                "unknown", "unrecognized-file",
+                "temporary", ".haveno_XMR.keys.haveno-write-interrupted.tmp");
+        Path backups = Files.createDirectory(walletDir.toPath().resolve("backup"));
+        for (Map.Entry<String, String> copy : copies.entrySet()) {
+            Path snapshot = Files.createDirectory(backups.resolve("password-change-" + copy.getKey()));
+            Files.write(snapshot.resolve(copy.getValue()), original);
+            Files.writeString(snapshot.resolve(WalletPasswordChange.MAIN_WALLET_ID_FILE), WalletPasswordChange.getMainWalletId("current-address"));
+            // a superseded wallet in the same snapshot must not cause its other files to be discarded
+            Files.write(snapshot.resolve("superseded_trade"), original);
+            Files.write(snapshot.resolve("superseded_trade.keys"), original);
+        }
+
+        List<String> retained = WalletPasswordChange.cleanupBackups(walletDir, null, "current-address");
+        assertEquals(copies.size(), retained.size());
+        for (Map.Entry<String, String> copy : copies.entrySet()) {
+            String name = "password-change-" + copy.getKey();
+            assertTrue(retained.contains(name));
+            assertArrayEquals(original, Files.readAllBytes(backups.resolve(name).resolve(copy.getValue())));
+        }
+    }
+
+    @Test
     public void testBackupCleanupPreservesPreviousMainWallets() throws Exception {
         Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
         Files.createFile(walletDir.toPath().resolve("active_trade.keys"));
@@ -1097,18 +1679,76 @@ public class EncryptionTest {
         Path snapshot = Files.createDirectory(backups.resolve("password-change-old")).resolve("haveno_XMR.keys");
         Path trade = Files.createDirectory(backups.resolve("backups_active_trade_keys")).resolve("old_active_trade.keys");
         for (Path path : List.of(main, snapshot, trade)) Files.write(path, new byte[] {1, 2, 3});
+        Files.write(snapshot.resolveSibling("haveno_XMR"), new byte[] {1, 2, 3});
         Path sameWallet = Files.createDirectory(backups.resolve("password-change-same"));
         Files.write(sameWallet.resolve("haveno_XMR.keys"), new byte[] {4, 5, 6});
-        Files.writeString(sameWallet.resolve(WalletPasswordChange.MAIN_WALLET_ADDRESS_FILE), "current-main-address");
+        Files.write(sameWallet.resolve("haveno_XMR"), new byte[] {4, 5, 6});
+        Files.writeString(sameWallet.resolve(".main-wallet-address"), "current-main-address");
         Path unknown = Files.createDirectory(backups.resolve("password-change-unreadable"));
         Files.write(unknown.resolve("haveno_XMR.keys"), new byte[] {7, 8, 9});
-        Files.write(unknown.resolve(WalletPasswordChange.MAIN_WALLET_ADDRESS_FILE), new byte[] {(byte) 0xc3, 0x28});
-        assertEquals(3, WalletPasswordChange.cleanupBackups(walletDir, null, "current-main-address").size());
+        Files.write(unknown.resolve("haveno_XMR"), new byte[] {7, 8, 9});
+        Files.write(unknown.resolve(".main-wallet-address"), new byte[] {(byte) 0xc3, 0x28});
+        Path sameHashedWallet = Files.createDirectory(backups.resolve("password-change-same-hashed"));
+        Files.write(sameHashedWallet.resolve("haveno_XMR.keys"), new byte[] {4, 5, 6});
+        Files.write(sameHashedWallet.resolve("haveno_XMR"), new byte[] {4, 5, 6});
+        String mainId = WalletPasswordChange.getMainWalletId("current-main-address");
+        assertEquals(64, mainId.length());
+        Files.writeString(sameHashedWallet.resolve(WalletPasswordChange.MAIN_WALLET_ID_FILE), mainId);
+        Path other = Files.createDirectory(backups.resolve("password-change-other-hashed"));
+        Files.write(other.resolve("haveno_XMR.keys"), new byte[] {7, 8, 9});
+        Files.write(other.resolve("haveno_XMR"), new byte[] {7, 8, 9});
+        Files.writeString(other.resolve(WalletPasswordChange.MAIN_WALLET_ID_FILE), WalletPasswordChange.getMainWalletId("other-address"));
+        Path malformed = Files.createDirectory(backups.resolve("password-change-malformed"));
+        Files.write(malformed.resolve("haveno_XMR.keys"), new byte[] {7, 8, 9});
+        Files.write(malformed.resolve("haveno_XMR"), new byte[] {7, 8, 9});
+        Files.writeString(malformed.resolve(WalletPasswordChange.MAIN_WALLET_ID_FILE), "invalid");
+        Files.writeString(malformed.resolve(".main-wallet-address"), "current-main-address");
+        assertNull(WalletPasswordChange.readMainWalletId(malformed));
+        Files.writeString(malformed.resolve(WalletPasswordChange.MAIN_WALLET_ID_FILE), WalletPasswordChange.getMainWalletId("different-address"));
+        assertNull(WalletPasswordChange.readMainWalletId(malformed));
+        assertEquals(5, WalletPasswordChange.cleanupBackups(walletDir, null, "current-main-address").size());
+        assertFalse(Files.exists(sameHashedWallet));
+        assertTrue(Files.exists(other));
+        assertTrue(Files.exists(malformed));
         assertArrayEquals(new byte[] {7, 8, 9}, Files.readAllBytes(unknown.resolve("haveno_XMR.keys")));
         assertFalse(Files.exists(sameWallet));
         assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(main));
         assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(snapshot));
         assertFalse(Files.exists(trade));
+        Path current = Files.createDirectory(backups.resolve("password-change-current"));
+        Files.writeString(current.resolve(WalletPasswordChange.MAIN_WALLET_ID_FILE), mainId);
+        Files.createDirectory(sameWallet);
+        Files.write(sameWallet.resolve("haveno_XMR.keys"), new byte[] {4, 5, 6});
+        Files.write(sameWallet.resolve("haveno_XMR"), new byte[] {4, 5, 6});
+        Files.writeString(sameWallet.resolve(".main-wallet-address"), "current-main-address");
+        WalletPasswordChange.cleanupBackups(walletDir, current.toFile(), null);
+        assertFalse(Files.exists(sameWallet));
+        assertTrue(Files.exists(current));
+    }
+
+    @Test
+    public void testRecoveryAllowsAnInterruptedMainWalletRestore() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+        Path path = wallets.resolve("haveno_XMR_restore");
+        MoneroWalletFull restored = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("password").setNetworkType(MoneroNetworkType.MAINNET));
+        String address = restored.getPrimaryAddress();
+        restored.close(true);
+        Path old = Files.createDirectories(wallets.resolve("backup/backups_haveno_XMR_keys")).resolve("old_haveno_XMR.keys");
+        Files.write(old, new byte[] {1, 2, 3});
+        assertTrue(RecoverPassword.recover(network, null, null, List.of(), null).contains("backups_haveno_XMR_keys"));
+        assertFalse(Files.exists(wallets.resolve("haveno_XMR.keys")));
+        assertArrayEquals(new byte[] {1, 2, 3}, Files.readAllBytes(old));
+        restored = MoneroWalletFull.openWallet(path.toString(), "password", MoneroNetworkType.MAINNET);
+        try {
+            assertEquals(address, restored.getPrimaryAddress());
+        } finally {
+            restored.close(false);
+        }
     }
 
     @Test
@@ -1164,6 +1804,188 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testRpcRecoveryRestartsAfterCacheProbeDies() throws Exception {
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), null, true);
+        byte[] keys = {1, 2}, cache = {3, 4}, repairedKeys = {5, 6}, repairedCache = {7, 8};
+        Files.write(wallets.resolve("haveno_XMR.keys"), keys);
+        Files.write(wallets.resolve("haveno_XMR"), cache);
+        Path unportable = Files.write(wallets.resolve("haveno_XMR.unportable"), cache);
+        Path binary = Files.createFile(dir.toPath().resolve("rpc"));
+        AtomicReference<Path> scratch = new AtomicReference<>();
+        AtomicInteger starts = new AtomicInteger();
+        MoneroWalletRpc first = mock(MoneroWalletRpc.class);
+        MoneroWalletRpc second = mock(MoneroWalletRpc.class);
+        Process dead = mock(Process.class);
+        doReturn(137).when(dead).exitValue();
+        doReturn(dead).when(first).getProcess();
+        for (MoneroWalletRpc rpc : List.of(first, second)) {
+            doReturn(new MoneroRpcConnection("http://127.0.0.1:1")).when(rpc).getRpcConnection();
+            MoneroMultisigInfo multisig = new MoneroMultisigInfo();
+            multisig.setIsMultisig(false);
+            doReturn(multisig).when(rpc).getMultisigInfo();
+            doAnswer(invocation -> {
+                Path copy = scratch.get().resolve("wallet");
+                if (Files.exists(copy) && Arrays.equals(cache, Files.readAllBytes(copy)) && rpc == first) {
+                    Files.write(scratch.get().resolve("wallet.keys"), new byte[] {0});
+                    throw new MoneroError("connection reset after cache probe terminated");
+                }
+                if (rpc == second && !Files.exists(copy)) assertArrayEquals(keys, Files.readAllBytes(scratch.get().resolve("wallet.keys")));
+                return rpc;
+            }).when(rpc).openWallet(any(MoneroWalletConfig.class));
+            doAnswer(invocation -> {
+                Files.write(scratch.get().resolve("wallet.keys"), repairedKeys);
+                Files.write(scratch.get().resolve("wallet"), repairedCache);
+                return null;
+            }).when(rpc).save();
+        }
+        try (var managers = mockConstruction(MoneroWalletRpcManager.class, (manager, context) -> {
+            doAnswer(invocation -> {
+                List<String> command = invocation.getArgument(0);
+                scratch.set(Path.of(command.get(command.indexOf("--wallet-dir") + 1)));
+                if (starts.incrementAndGet() == 1) return first;
+                verify(manager).stopInstance(first, null, true);
+                return second;
+            }).when(manager).startInstance(any());
+        })) {
+            assertTrue(RecoverPassword.recover(network, null, null, List.of("other-password"), binary).isEmpty());
+            assertEquals(2, starts.get());
+            verify(managers.constructed().get(0)).stopInstance(second, null, true);
+        }
+        assertArrayEquals(repairedKeys, Files.readAllBytes(wallets.resolve("haveno_XMR.keys")));
+        assertArrayEquals(repairedCache, Files.readAllBytes(wallets.resolve("haveno_XMR")));
+        assertFalse(Files.exists(wallets.resolve(".password-recovery")));
+        assertFalse(Files.exists(unportable));
+    }
+
+    @Test
+    public void testPasswordChangeProtectsMainWalletBackupsAndPreservesTheirState() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        MoneroNetworkType network = XmrWalletService.getMoneroNetworkType();
+        Path path = walletDir.toPath().resolve("haveno_XMR");
+        MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("password").setNetworkType(network));
+        try {
+            wallet.setAttribute("backup-marker", "historical cache state");
+            wallet.save();
+            // release the native keys-file lock before creating the backup
+            wallet.close(false);
+            assertTrue(service.backupWallet("haveno_XMR"));
+            wallet = MoneroWalletFull.openWallet(path.toString(), "password", network);
+            Path keys = FileUtil.getLatestBackupFile(walletDir, "haveno_XMR.keys").toPath();
+            Path cache = FileUtil.getLatestBackupFile(walletDir, "haveno_XMR").toPath();
+            // rolling keys and cache timestamps are independent
+            Path renamedCache = cache.resolveSibling("different-timestamp_haveno_XMR");
+            Files.move(cache, renamedCache);
+            wallet.setAttribute("backup-marker", "current cache state");
+            wallet.save();
+            setField(XmrWalletBase.class, service, "wallet", wallet);
+
+            byte[][] foreignData;
+            MoneroWalletFull foreign = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                    .setPassword("password").setNetworkType(network));
+            try {
+                foreignData = foreign.getData();
+            } finally {
+                foreign.close(false);
+            }
+            Path foreignKeys = Files.write(keys.resolveSibling("foreign_haveno_XMR.keys"), foreignData[0]);
+            Path foreignCache = Files.write(cache.resolveSibling("foreign_haveno_XMR"), foreignData[1]);
+
+            List<String> retained = account.changePassword(null, "new-password");
+
+            assertFalse(wallet.isClosed());
+            assertEquals("current cache state", wallet.getAttribute("backup-marker"));
+            assertArrayEquals(foreignData[0], Files.readAllBytes(foreignKeys));
+            assertArrayEquals(foreignData[1], Files.readAllBytes(foreignCache));
+            assertTrue(retained.contains("backups_haveno_XMR_keys"));
+            assertTrue(retained.contains("backups_haveno_XMR"));
+            byte[] protectedKeys = Files.readAllBytes(keys);
+            assertThrows(Exception.class, () -> MoneroWalletFull.openWalletData("password", network, protectedKeys, null, null));
+            MoneroWalletFull copy = MoneroWalletFull.openWalletData("new-password", network,
+                    protectedKeys, Files.readAllBytes(renamedCache), null);
+            try {
+                assertEquals(wallet.getPrimaryAddress(), copy.getPrimaryAddress());
+                assertEquals(wallet.getPrivateSpendKey(), copy.getPrivateSpendKey());
+                assertEquals("historical cache state", copy.getAttribute("backup-marker"));
+            } finally {
+                copy.close(false);
+            }
+
+            Files.delete(foreignKeys);
+            Files.delete(foreignCache);
+            assertTrue(account.changePassword("new-password", "next-password").isEmpty());
+        } finally {
+            if (!wallet.isClosed()) wallet.close(false);
+        }
+    }
+
+    @Test
+    public void testRecoveryProtectsMainWalletBackupsWithRpc() throws Exception {
+        Path binary = Path.of("src/main/resources/bin", XmrWalletService.MONERO_WALLET_RPC_NAME).toAbsolutePath();
+        Assumptions.assumeTrue(Files.isExecutable(binary));
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        new KeyRing(new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile()), "new-password", true);
+        Path path = wallets.resolve("haveno_XMR");
+        Path keys = Files.createDirectories(wallets.resolve("backup/backups_haveno_XMR_keys")).resolve("old_haveno_XMR.keys");
+        Path cache = Files.createDirectories(wallets.resolve("backup/backups_haveno_XMR")).resolve("other_haveno_XMR");
+        MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("password").setNetworkType(MoneroNetworkType.MAINNET));
+        try {
+            wallet.setAttribute("backup-marker", "historical RPC backup state");
+            byte[][] data = wallet.getData();
+            Files.write(keys, data[0]);
+            Files.write(cache, data[1]);
+            wallet.setAttribute("backup-marker", "current state");
+            wallet.changePassword("password", "new-password");
+            wallet.save();
+        } finally {
+            wallet.close(false);
+        }
+        assertTrue(RecoverPassword.recover(network, "new-password", "new-password", List.of(), binary).isEmpty());
+        MoneroWalletFull copy = MoneroWalletFull.openWalletData("new-password", MoneroNetworkType.MAINNET,
+                Files.readAllBytes(keys), Files.readAllBytes(cache), null);
+        try {
+            assertEquals("historical RPC backup state", copy.getAttribute("backup-marker"));
+        } finally {
+            copy.close(false);
+        }
+    }
+
+    @Test
+    public void testFailedWalletBackupReplacementPreservesTheOldCopy() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        Path keys = Files.createDirectories(walletDir.toPath().resolve("backup/backups_haveno_XMR_keys")).resolve("old.keys");
+        MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPassword("password").setNetworkType(MoneroNetworkType.MAINNET));
+        byte[] oldKeys;
+        Path current = walletDir.toPath().resolve("current.keys");
+        try {
+            oldKeys = wallet.getData()[0];
+            Files.write(keys, oldKeys);
+            wallet.changePassword("password", "new-password");
+            Files.write(current, wallet.getData()[0]);
+        } finally {
+            wallet.close(false);
+        }
+        try (WalletPasswordRecovery recovery = new WalletPasswordRecovery(walletDir.toPath(), MoneroNetworkType.MAINNET,
+                Arrays.asList("new-password", null), "new-password", null);
+             var files = mockStatic(FileUtil.class, CALLS_REAL_METHODS)) {
+            files.when(() -> FileUtil.writeAtomically(eq(keys), any())).thenThrow(new IOException("injected backup write failure"));
+            assertThrows(IOException.class, () -> recovery.rekeyMainWalletBackups(current));
+        }
+        assertArrayEquals(oldKeys, Files.readAllBytes(keys));
+    }
+
+    @Test
     public void testNativePasswordChangePreservesRecoveryCopiesOnSuccessAndFailure() throws Exception {
         MoneroUtils.tryLoadNativeLibrary();
         Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
@@ -1211,6 +2033,8 @@ public class EncryptionTest {
             try (var files = Files.list(wallets.resolve("backup"))) {
                 snapshot = files.filter(file -> file.getFileName().toString().startsWith("password-change-")).findFirst().orElseThrow();
             }
+            assertEquals(WalletPasswordChange.getMainWalletId(address), Files.readString(snapshot.resolve(WalletPasswordChange.MAIN_WALLET_ID_FILE)));
+            assertFalse(Files.exists(snapshot.resolve(".main-wallet-address")));
             String target = fail ? null : "new-password";
             MoneroWalletFull copy = MoneroWalletFull.openWalletData(target == null ? "password" : target, MoneroNetworkType.MAINNET,
                     Files.readAllBytes(snapshot.resolve("haveno_XMR.keys")), Files.readAllBytes(snapshot.resolve("haveno_XMR")), null);
@@ -1220,7 +2044,55 @@ public class EncryptionTest {
             } finally {
                 copy.close(false);
             }
+            Files.delete(wallets.resolve("haveno_XMR.keys"));
+            assertThrows(IOException.class, () -> RecoverPassword.recover(network, target, target, List.of("new-password"), null));
+            assertTrue(Files.exists(snapshot.resolve("haveno_XMR.keys")));
+            Files.copy(snapshot.resolve("haveno_XMR.keys"), wallets.resolve("haveno_XMR.keys"));
+            Files.copy(snapshot.resolve("haveno_XMR"), path, StandardCopyOption.REPLACE_EXISTING);
+            RecoverPassword.recover(network, target, target, List.of("new-password"), null);
+            MoneroWalletFull recovered = MoneroWalletFull.openWallet(path.toString(), target == null ? "password" : target, MoneroNetworkType.MAINNET);
+            try {
+                assertEquals(address, recovered.getPrimaryAddress());
+                assertEquals("durable local state", recovered.getAttribute("recovery-marker"));
+            } finally {
+                recovered.close(false);
+            }
         }
+    }
+
+    @Test
+    public void testRecoveryTriesLegacyEmptyPassword() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        Path network = Files.createDirectory(dir.toPath().resolve("xmr_mainnet"));
+        Path wallets = Files.createDirectory(network.resolve("wallet"));
+        Files.createDirectory(network.resolve("db"));
+        KeyStorage storage = new KeyStorage(Files.createDirectory(network.resolve("keys")).toFile());
+        KeyRing ring = new KeyRing(storage, null, true);
+        CoreAccountService account = new CoreAccountService(null, storage, ring);
+        account.openAccount(null);
+        // accounts created with an empty password before normalization used it literally
+        EncryptedConnectionList list = connectionList(account, null, mock(PersistenceManager.class));
+        list.addConnection(new MoneroRpcConnection("http://localhost:18081", "user", "daemon-secret"));
+        list.changePassword(null, "");
+        Path connectionFile = network.resolve("db/EncryptedConnectionList");
+        Files.write(connectionFile, haveno.common.crypto.Encryption.encryptPayloadWithHmac(list.toProtoMessage().toByteArray(), ring.getSymmetricKey()));
+        Path path = wallets.resolve("haveno_XMR");
+        MoneroWalletFull wallet = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("").setNetworkType(MoneroNetworkType.MAINNET));
+        String address = wallet.getPrimaryAddress();
+        wallet.close(true);
+
+        RecoverPassword.recover(network, null, null, List.of(), null);
+
+        MoneroWalletFull recovered = MoneroWalletFull.openWallet(path.toString(), "password", MoneroNetworkType.MAINNET);
+        try {
+            assertEquals(address, recovered.getPrimaryAddress());
+        } finally {
+            recovered.close(false);
+        }
+        protobuf.PersistableEnvelope repaired = PersistenceManager.readEncrypted(connectionFile.toFile(), ring.getSymmetricKey());
+        assertEquals("daemon-secret", connectionList(account, repaired.getEncryptedConnectionList(), mock(PersistenceManager.class)).getConnections().get(0).getPassword());
     }
 
     private static void setField(Class<?> type, Object target, String name, Object value) throws Exception {

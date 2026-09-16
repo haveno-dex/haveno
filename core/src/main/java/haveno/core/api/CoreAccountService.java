@@ -229,7 +229,7 @@ public class CoreAccountService {
                     }
                 }
                 if (e instanceof Error) throw (Error) e;
-                throw new IllegalStateException("Password change did not finish. Keep both passwords. Close Haveno and preserve the complete data directory; password recovery is required before continuing. Cause: "
+                throw new IllegalStateException("Password change did not finish. Keep both passwords. Close Haveno and use password recovery before continuing; see docs/password-recovery.md. Cause: "
                         + ExceptionUtils.getRootCauseMessage(e), e);
             }
             try {
@@ -273,7 +273,7 @@ public class CoreAccountService {
     }
 
     public void checkPasswordRecovery() {
-        if (passwordRecoveryRequired) throw new IllegalStateException("Close Haveno and preserve the complete data directory. Keep both passwords; password recovery is required before continuing");
+        if (passwordRecoveryRequired) throw new IllegalStateException("Close Haveno and use password recovery with both passwords before continuing; see docs/password-recovery.md");
     }
 
     // startup callbacks run on the user thread and must not wait for account backups
@@ -321,7 +321,7 @@ public class CoreAccountService {
 
     private void checkBackupAllowed() {
         if (!accountExists()) throw new IllegalStateException("Cannot backup non existing account");
-        if (passwordRecoveryRequired) throw new IllegalStateException("Close Haveno and copy the complete data directory to preserve the interrupted password change.");
+        if (passwordRecoveryRequired) throw new IllegalStateException("Close Haveno and copy the complete data directory before using password recovery.");
     }
 
     // TODO: share common code with BackupView to backup

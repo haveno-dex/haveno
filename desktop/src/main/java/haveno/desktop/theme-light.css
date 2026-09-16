@@ -181,6 +181,10 @@
     -fx-background-color: -bs-color-gray-3;
 }
 
+.startup-help .separator .line {
+    -fx-border-color: -bs-rd-separator;
+}
+
 #image-logo-splash {
     -fx-image: url("../../images/logo_splash_light_mode.png");
 }
