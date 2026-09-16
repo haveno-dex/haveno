@@ -378,19 +378,7 @@ public class HttpClientImpl implements HttpClient {
 
     @Nullable
     private Socks5Proxy getSocks5Proxy(Socks5ProxyProvider socks5ProxyProvider) {
-        if (socks5ProxyProvider == null) {
-            return null;
-        }
-
-        // We use the custom socks5ProxyHttp.
-        Socks5Proxy socks5Proxy = socks5ProxyProvider.getSocks5ProxyHttp();
-        if (socks5Proxy != null) {
-            return socks5Proxy;
-        }
-
-        // If not set we request socks5ProxyProvider.getSocks5Proxy()
-        // which delivers the btc proxy if set, otherwise the internal proxy.
-        return socks5ProxyProvider.getSocks5Proxy();
+        return socks5ProxyProvider == null ? null : socks5ProxyProvider.getSocks5ProxyForHttp();
     }
 
     private String convertInputStreamToString(InputStream inputStream) throws IOException {

@@ -847,6 +847,7 @@ configure(project(':desktop')) {
         implementation(libs.guice) {
             exclude(module: 'guava')
         }
+        implementation libs.jsocks
         testAnnotationProcessor libs.lombok
         testCompileOnly libs.lombok
         testImplementation libs.make.it.easy
