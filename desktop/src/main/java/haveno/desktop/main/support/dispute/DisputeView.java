@@ -34,6 +34,7 @@
 
 package haveno.desktop.main.support.dispute;
 
+import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
@@ -65,10 +66,12 @@ import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipTableColumn;
+import haveno.desktop.components.ButtonBadge;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.PeerInfoIconDispute;
 import haveno.desktop.components.PeerInfoIconMap;
+import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.ContractWindow;
 import haveno.desktop.main.overlays.windows.DisputeSummaryWindow;
@@ -80,6 +83,8 @@ import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -89,6 +94,7 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -100,6 +106,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
 import javafx.util.Duration;
@@ -171,6 +178,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     protected Dispute selectedDispute;
     @Nullable
     private String tradeIdToSelect;
+    @Nullable
+    private Integer traderIdToSelect;
 
     private Subscription selectedDisputeSubscription;
     protected FilteredList<Dispute> filteredList;
@@ -185,7 +194,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     private Map<String, ListChangeListener<ChatMessage>> listenerByDispute = new HashMap<>();
     private Map<String, Button> chatButtonByDispute = new HashMap<>();
     private Map<String, JFXBadge> chatBadgeByDispute = new HashMap<>();
-    private Map<String, JFXBadge> newBadgeByDispute = new HashMap<>();
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final PeerInfoIconMap avatarMap = new PeerInfoIconMap();
     protected DisputeChatPopup chatPopup;
@@ -219,7 +227,11 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.arbitratorManager = arbitratorManager;
         this.useDevPrivilegeKeys = useDevPrivilegeKeys;
-        chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, this);
+    }
+
+    @Inject
+    void initializeChatPopup(NotificationCenter notificationCenter) {
+        chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, this, notificationCenter);
     }
 
     @Override
@@ -359,18 +371,28 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         sortedList.comparatorProperty().unbind();
         selectedDisputeSubscription.unsubscribe();
         tradeIdToSelect = null;
+        traderIdToSelect = null;
     }
 
     public void setTradeIdToSelect(@Nullable String tradeId) {
         tradeIdToSelect = tradeId;
+        traderIdToSelect = null;
+    }
+
+    public void setDisputeToSelect(Dispute dispute) {
+        tradeIdToSelect = dispute.getTradeId();
+        traderIdToSelect = dispute.getTraderId();
     }
 
     private void selectRequestedDispute() {
         String tradeId = tradeIdToSelect;
+        Integer traderId = traderIdToSelect;
         tradeIdToSelect = null;
+        traderIdToSelect = null;
         if (tradeId == null || root.getScene() == null) return;
         disputeManager.getDisputesAsObservableList().stream()
                 .filter(dispute -> dispute.getTradeId().equals(tradeId))
+                .filter(dispute -> traderId == null || dispute.getTraderId() == traderId)
                 .filter(dispute -> getFilterResult(dispute, "") != FilterResult.NO_MATCH)
                 .findFirst().ifPresent(dispute -> {
                     if (!sortedList.contains(dispute)) filterTextField.clear();
@@ -993,19 +1015,12 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                 if (item != null && !empty) {
                                     Button button = getRegularIconButton(MaterialDesignIcon.INFORMATION_OUTLINE);
                                     Accessibility.setName(button, Res.get("shared.details"));
-                                    JFXBadge badge = new JFXBadge(new Label(""), Pos.BASELINE_RIGHT);
-                                    badge.setPosition(Pos.TOP_RIGHT);
-                                    badge.setVisible(item.isNew());
-                                    badge.setText("New");
-                                    badge.getStyleClass().add("new");
-                                    newBadgeByDispute.put(item.getId(), badge);
-                                    HBox hBox = new HBox(button, badge);
+                                    HBox hBox = new HBox(button);
                                     setGraphic(hBox);
                                     button.setOnAction(e -> {
                                         tableView.getSelectionModel().select(this.getIndex());
                                         onOpenContract(item);
                                         item.setDisputeSeen(senderFlag());
-                                        badge.setVisible(item.isNew());
                                     });
                                 } else {
                                     setGraphic(null);
@@ -1042,7 +1057,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                         tableView.getSelectionModel().select(this.getIndex());
                                         handleOnProcessDispute(item);
                                         item.setDisputeSeen(senderFlag());
-                                        newBadgeByDispute.get(item.getId()).setVisible(item.isNew());
                                     });
                                     HBox hBox = new HBox(button);
                                     hBox.setAlignment(Pos.CENTER);
@@ -1094,7 +1108,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                     }
                                     JFXBadge chatBadge;
                                     if (!chatBadgeByDispute.containsKey(id)) {
-                                        chatBadge = new JFXBadge(button);
+                                        chatBadge = new ButtonBadge(button);
                                         chatBadgeByDispute.put(id, chatBadge);
                                         chatBadge.setPosition(Pos.TOP_RIGHT);
                                     } else {
@@ -1163,7 +1177,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     private TableColumn<Dispute, Dispute> getTradeIdColumn() {
         TableColumn<Dispute, Dispute> column = new AutoTooltipTableColumn<>(Res.get("shared.tradeId")) {
             {
-                setMinWidth(50);
+                setMinWidth(100);
                 setPrefWidth(100);
             }
         };
@@ -1174,34 +1188,52 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                     public TableCell<Dispute, Dispute> call(TableColumn<Dispute, Dispute> column) {
                         return new TableCell<>() {
                             private HyperlinkWithIcon field;
+                            private BooleanBinding unreadUpdate;
+                            private final Circle dot = new Circle(3);
+
+                            {
+                                dot.getStyleClass().add("support-update-dot");
+                                Tooltip.install(dot, new Tooltip(Res.get("notification.support.unseenUpdate")));
+                            }
 
                             @Override
                             public void updateItem(final Dispute item, boolean empty) {
                                 super.updateItem(item, empty);
 
+                                if (field != null) field.setOnAction(null);
+                                field = null;
+                                dot.visibleProperty().unbind();
+                                accessibleHelpProperty().unbind();
+                                setAccessibleHelp(null);
+                                setAccessibleText(null);
+                                setText("");
+                                if (unreadUpdate != null) unreadUpdate.dispose();
+                                unreadUpdate = null;
                                 if (item != null && !empty) {
+                                    unreadUpdate = item.getBadgeCountProperty().greaterThan(0);
+                                    dot.visibleProperty().bind(unreadUpdate);
+                                    accessibleHelpProperty().bind(Bindings.when(unreadUpdate)
+                                            .then(Res.get("notification.support.unseenUpdate")).otherwise(""));
+                                    Node tradeId;
                                     Optional<Trade> tradeOptional = tradeManager.getOpenTrade(item.getTradeId());
                                     if (tradeOptional.isPresent()) {
                                         field = new HyperlinkWithIcon(item.getShortTradeId());
+                                        ((Label) field.getIcon()).setMinWidth(Label.USE_PREF_SIZE);
                                         Accessibility.setName(field, Accessibility.spellOut(item.getShortTradeId()));
                                         field.setMouseTransparent(false);
                                         field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                         field.setOnAction(event -> tradeDetailsWindow.show(tradeOptional.get()));
-                                        setGraphic(field);
-                                        setText("");
+                                        tradeId = field;
                                     } else {
-                                        setText(item.getShortTradeId());
+                                        tradeId = new AutoTooltipLabel(item.getShortTradeId());
                                         setAccessibleText(Accessibility.spellOut(item.getShortTradeId()));
-                                        setGraphic(null);
-                                        if (field != null)
-                                            field.setOnAction(null);
                                     }
+                                    HBox content = new HBox(6, tradeId, dot);
+                                    content.setAlignment(Pos.CENTER_LEFT);
+                                    content.setPadding(new Insets(0, 8, 0, 0));
+                                    setGraphic(content);
                                 } else {
                                     setGraphic(null);
-                                    setText("");
-                                    setAccessibleText(null);
-                                    if (field != null)
-                                        field.setOnAction(null);
                                 }
                             }
                         };
@@ -1481,8 +1513,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     private void openChat(Dispute dispute) {
         chatPopup.openChat(dispute, getConcreteDisputeChatSession(dispute), getCounterpartyName());
         dispute.setDisputeSeen(senderFlag());
-        JFXBadge newBadge = newBadgeByDispute.get(dispute.getId());
-        if (newBadge != null) newBadge.setVisible(dispute.isNew());
         updateChatMessageCount(dispute, chatBadgeByDispute.get(dispute.getId()));
     }
 
@@ -1500,8 +1530,9 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 return;
             }
 
-            if (canViewChatMessages(dispute) && dispute.unreadMessageCount(senderFlag()) > 0) {
-                chatBadge.setText(String.valueOf(dispute.unreadMessageCount(senderFlag())));
+            long unreadMessages = canViewChatMessages(dispute) ? dispute.unreadMessageCount(senderFlag(), false) : 0;
+            if (unreadMessages > 0) {
+                chatBadge.setText(String.valueOf(unreadMessages));
                 chatBadge.setEnabled(true);
             } else {
                 chatBadge.setText("");

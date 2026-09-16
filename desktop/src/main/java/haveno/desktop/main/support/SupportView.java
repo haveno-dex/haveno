@@ -41,6 +41,7 @@ import haveno.common.app.DevEnv;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.core.locale.Res;
+import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -320,8 +321,10 @@ public class SupportView extends ActivatableView<TabPane, Void> {
 
         if (currentTab != null) {
             // set the target before attaching the view triggers activation
-            if (view instanceof DisputeView disputeView)
-                disputeView.setTradeIdToSelect(data instanceof Trade ? ((Trade) data).getId() : null);
+            if (view instanceof DisputeView disputeView) {
+                if (data instanceof Dispute dispute) disputeView.setDisputeToSelect(dispute);
+                else disputeView.setTradeIdToSelect(data instanceof Trade ? ((Trade) data).getId() : null);
+            }
             currentTab.setContent(view.getRoot());
             root.getSelectionModel().select(currentTab);
         }

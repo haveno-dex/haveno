@@ -30,6 +30,48 @@
     -fx-padding: 3 8;
 }
 
+.trade-row-chat-button .glyph-icon {
+    -fx-fill: -bs-color-gray-6;
+}
+.trade-row-chat-button:hover .glyph-icon,
+.trade-row-chat-button:focus-visible .glyph-icon {
+    -fx-fill: -fx-accent;
+}
+
+.trade-row-chat-badge .badge-pane,
+.trade-detail-view .trade-chat-count {
+    -fx-background-color: -bs-red;
+    -fx-background-radius: 999;
+    -fx-min-width: 16;
+    -fx-pref-width: -1;
+    -fx-min-height: 16;
+    -fx-pref-height: 16;
+    -fx-max-height: 16;
+    -fx-padding: 0 3;
+    -fx-alignment: center;
+}
+.table-view .table-row-cell .table-cell .trade-row-chat-badge .badge-pane .label,
+.trade-detail-view .trade-chat-count {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -bs-white;
+}
+.trade-row-chat-badge .badge-pane {
+    -fx-border-color: -bs-color-background-row-even;
+    -fx-border-width: 1.5;
+    -fx-border-insets: -1.5;
+    -fx-border-radius: 999;
+}
+.table-row-cell:odd .trade-row-chat-badge .badge-pane {
+    -fx-border-color: -bs-color-background-row-odd;
+}
+.table-row-cell:filled:hover .trade-row-chat-badge .badge-pane {
+    -fx-border-color: -bs-color-background-row-hover;
+}
+.table-row-cell:filled:selected .trade-row-chat-badge .badge-pane {
+    -fx-border-color: -fx-selection-bar;
+}
+
 .trade-detail-view {
     -fx-padding: 18 16 12 0;
 }
@@ -360,7 +402,7 @@
     -fx-background-color: transparent;
     -fx-border-color: -bs-color-border-form-field;
     -fx-border-radius: 30;
-    -fx-padding: 10 18;
+    -fx-padding: 10 42;
 }
 
 .trade-detail-view .trade-chat-button .text {

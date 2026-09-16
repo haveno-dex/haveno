@@ -22,18 +22,19 @@ import com.google.inject.Singleton;
 
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
+import haveno.common.util.Utilities;
 import haveno.core.api.NotificationListener;
 import haveno.core.locale.Res;
+import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeList;
+import haveno.core.support.dispute.DisputeManager;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
-import haveno.core.trade.BuyerTrade;
-import haveno.core.trade.MakerTrade;
-import haveno.core.trade.SellerTrade;
+import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
-import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.MainView;
@@ -43,17 +44,31 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.support.SupportView;
 import haveno.desktop.main.support.dispute.DisputeView;
 import haveno.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
+import haveno.desktop.main.support.dispute.agent.mediation.MediatorView;
+import haveno.desktop.main.support.dispute.agent.refund.RefundAgentView;
 import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
 import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 import haveno.proto.grpc.NotificationMessage;
 import haveno.proto.grpc.NotificationMessage.NotificationType;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.Set;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+import javafx.collections.MapChangeListener;
+import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import javax.annotation.Nullable;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -68,9 +83,10 @@ public class NotificationCenter {
     // Static
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    private static final String NOTIFICATION_KEY_PREFIX = "NotificationCenter_";
+
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final static List<Notification> notifications = new ArrayList<>();
-    private Consumer<String> selectItemByTradeIdConsumer;
 
     static void add(Notification notification) {
         notifications.add(notification);
@@ -87,11 +103,23 @@ public class NotificationCenter {
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
     private final Navigation navigation;
+    private final Preferences preferences;
 
     private final Map<String, Subscription> disputeStateSubscriptionsMap = new HashMap<>();
     private final Map<String, Subscription> tradePhaseSubscriptionsMap = new HashMap<>();
+    private final Map<String, Subscription> tradePayoutSubscriptionsMap = new HashMap<>();
+    private final ObservableMap<String, String> unseenTradeUpdates = FXCollections.observableHashMap();
+    private final Map<String, Notification> tradeNotifications = new HashMap<>();
+    private final Set<String> notifiedTradeUpdates = new HashSet<>();
+    private final ReadOnlyBooleanWrapper unreadPortfolio = new ReadOnlyBooleanWrapper();
+    private final Set<ObservableList<ChatMessage>> openChats = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ObservableList<ChatMessage>> observedChats = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<ObservableList<ChatMessage>, Notification> chatNotifications = new IdentityHashMap<>();
+    private final Set<String> notifiedChatMessages = new HashSet<>();
+    private final ListChangeListener<ChatMessage> chatMessagesListener = change -> UserThread.execute(this::refreshChatState);
+    private final ReadOnlyBooleanWrapper unreadTradeChat = new ReadOnlyBooleanWrapper();
     @Nullable
-    private String selectedTradeId;
+    private String viewedTradeId;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialisation
@@ -109,68 +137,57 @@ public class NotificationCenter {
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
         this.navigation = navigation;
+        this.preferences = preferences;
+        unreadPortfolio.bind(unreadTradeChat.or(Bindings.isNotEmpty(unseenTradeUpdates)));
 
         EasyBind.subscribe(preferences.getUseAnimationsProperty(), useAnimations -> NotificationCenter.useAnimations = useAnimations);
     }
 
     public void onAllServicesAndViewsInitialized() {
-        tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> {
-            change.next();
-            if (change.wasRemoved()) {
-                change.getRemoved().forEach(trade -> {
-                    String tradeId = trade.getId();
-                    if (disputeStateSubscriptionsMap.containsKey(tradeId)) {
-                        disputeStateSubscriptionsMap.get(tradeId).unsubscribe();
-                        disputeStateSubscriptionsMap.remove(tradeId);
-                    }
+        tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change ->
+                UserThread.execute(this::refreshChatState));
+        for (DisputeManager<? extends DisputeList<Dispute>> manager : getDisputeManagers()) {
+            manager.getDisputesAsObservableList().addListener((ListChangeListener<Dispute>) change ->
+                    UserThread.execute(this::refreshChatState));
+        }
+        refreshChatState();
 
-                    if (tradePhaseSubscriptionsMap.containsKey(tradeId)) {
-                        tradePhaseSubscriptionsMap.get(tradeId).unsubscribe();
-                        tradePhaseSubscriptionsMap.remove(tradeId);
-                    }
+        tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change -> {
+            while (change.next()) {
+                List<Trade> removed = new ArrayList<>(change.getRemoved());
+                List<Trade> added = new ArrayList<>(change.getAddedSubList());
+                // capture new trades before queued subscription setup can observe a later phase
+                List<Trade> newTrades = added.stream().filter(trade -> !trade.isDepositsPublished()).toList();
+                UserThread.execute(() -> {
+                    removed.forEach(this::removeTradeSubscriptions);
+                    added.forEach(trade -> addTradeSubscriptions(trade, newTrades.contains(trade)));
                 });
             }
-            if (change.wasAdded()) {
-                change.getAddedSubList().forEach(trade -> {
-                    String tradeId = trade.getId();
-                    if (disputeStateSubscriptionsMap.containsKey(tradeId)) {
-                        log.debug("We have already an entry in disputeStateSubscriptionsMap.");
-                    } else {
-                        Subscription disputeStateSubscription = EasyBind.subscribe(trade.disputeStateProperty(),
-                                disputeState -> ThreadUtils.submitToPool(() -> onDisputeStateChanged(trade, disputeState)));
-                        disputeStateSubscriptionsMap.put(tradeId, disputeStateSubscription);
-                    }
-
-                    if (tradePhaseSubscriptionsMap.containsKey(tradeId)) {
-                        log.debug("We have already an entry in tradePhaseSubscriptionsMap.");
-                    } else {
-                        Subscription tradePhaseSubscription = EasyBind.subscribe(trade.statePhaseProperty(),
-                                phase -> onTradePhaseChanged(trade, phase));
-                        tradePhaseSubscriptionsMap.put(tradeId, tradePhaseSubscription);
-                    }
+        });
+        snapshot(tradeManager.getObservableList()).forEach(trade -> addTradeSubscriptions(trade, false));
+        preferences.getDontShowAgainMapAsObservable().addListener((MapChangeListener<String, Boolean>) change -> {
+            String key = change.getKey();
+            if (key.startsWith(NOTIFICATION_KEY_PREFIX)) {
+                boolean wasRemoved = change.wasRemoved();
+                UserThread.execute(() -> {
+                    // restore the cleared event's dot without suppressing newer milestones
+                    if (wasRemoved) notifiedTradeUpdates.add(key);
+                    snapshot(tradeManager.getObservableList()).forEach(trade -> refreshTradeNotification(trade, null));
                 });
             }
         });
 
-        tradeManager.getObservableList().forEach(trade -> {
-                    String tradeId = trade.getId();
-                    Subscription disputeStateSubscription = EasyBind.subscribe(trade.disputeStateProperty(),
-                            disputeState -> ThreadUtils.submitToPool(() -> onDisputeStateChanged(trade, disputeState)));
-                    disputeStateSubscriptionsMap.put(tradeId, disputeStateSubscription);
-
-                    Subscription tradePhaseSubscription = EasyBind.subscribe(trade.statePhaseProperty(),
-                            phase -> onTradePhaseChanged(trade, phase));
-                    tradePhaseSubscriptionsMap.put(tradeId, tradePhaseSubscription);
-                }
-        );
-
-        // show popup for error notifications
+        // show popups for chat and error notifications
         tradeManager.getNotificationService().addListener(new NotificationListener() {
             @Override
             public void onMessage(@NonNull NotificationMessage message) {
-                if (message.getType() == NotificationType.ERROR) {
-                    new Popup().warning(message.getMessage()).show();
-                }
+                UserThread.execute(() -> {
+                    if (message.getType() == NotificationType.ERROR) {
+                        new Popup().warning(message.getMessage()).show();
+                    } else if (message.getType() == NotificationType.CHAT_MESSAGE) {
+                        onChatMessage(message.getChatMessage());
+                    }
+                });
             }
         });
     }
@@ -179,70 +196,351 @@ public class NotificationCenter {
     // Setter/Getter
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    @Nullable
-    public String getSelectedTradeId() {
-        return selectedTradeId;
+    public ReadOnlyBooleanProperty unreadTradeChatProperty() {
+        return unreadTradeChat.getReadOnlyProperty();
     }
 
-    public void setSelectedTradeId(@Nullable String selectedTradeId) {
-        this.selectedTradeId = selectedTradeId;
+    public ReadOnlyBooleanProperty unreadPortfolioProperty() {
+        return unreadPortfolio.getReadOnlyProperty();
     }
 
-    public void setSelectItemByTradeIdConsumer(Consumer<String> selectItemByTradeIdConsumer) {
-        this.selectItemByTradeIdConsumer = selectItemByTradeIdConsumer;
+    public BooleanBinding unseenTradeUpdateProperty(String tradeId) {
+        return Bindings.createBooleanBinding(() -> unseenTradeUpdates.containsKey(tradeId), unseenTradeUpdates);
+    }
+
+    public void setViewedTradeId(@Nullable String viewedTradeId) {
+        this.viewedTradeId = viewedTradeId;
+        if (viewedTradeId != null) {
+            snapshot(tradeManager.getObservableList()).stream()
+                    .filter(trade -> trade.getId().equals(viewedTradeId))
+                    .findFirst().ifPresent(trade -> refreshTradeNotification(trade, null));
+        }
+    }
+
+    public void onChatOpened(ObservableList<ChatMessage> messages) {
+        openChats.add(messages);
+        dismissChatNotification(messages);
+        refreshChatState();
+    }
+
+    public void onChatClosed(ObservableList<ChatMessage> messages) {
+        openChats.remove(messages);
+        refreshChatState();
+    }
+
+    private void navigateToTrade(Trade trade) {
+        navigation.navigateToWithData(new PendingTradesView.OpenChatRequest(trade),
+                MainView.class, PortfolioView.class, PendingTradesView.class);
+    }
+
+    private void navigateToDispute(Dispute dispute, DisputeManager<? extends DisputeList<Dispute>> manager) {
+        boolean agent = manager.isAgent(dispute);
+        Class<? extends DisputeView> viewClass = manager == arbitrationManager ?
+                (agent ? ArbitratorView.class : ArbitrationClientView.class) : manager == mediationManager ?
+                (agent ? MediatorView.class : MediationClientView.class) :
+                (agent ? RefundAgentView.class : RefundClientView.class);
+        navigation.navigateToWithData(dispute, MainView.class, SupportView.class, viewClass);
+    }
+
+    private List<DisputeManager<? extends DisputeList<Dispute>>> getDisputeManagers() {
+        return List.of(arbitrationManager, mediationManager, refundManager);
+    }
+
+    private static <T> List<T> snapshot(ObservableList<T> list) {
+        synchronized (list) {
+            return new ArrayList<>(list);
+        }
+    }
+
+    private static boolean isUnreadChat(ChatMessage message, boolean senderFlag) {
+        return !message.isWasDisplayed() && !message.isSystemMessage() && message.isSenderIsTrader() == senderFlag;
+    }
+
+    private void refreshChatState() {
+        Set<ObservableList<ChatMessage>> currentChats = Collections.newSetFromMap(new IdentityHashMap<>());
+        boolean hasUnreadTradeChat = false;
+        for (Trade trade : snapshot(tradeManager.getObservableList())) {
+            ObservableList<ChatMessage> messages = trade.getChatMessages();
+            observeChat(messages, currentChats);
+            if (!trade.isArbitrator() && !openChats.contains(messages) &&
+                    snapshot(messages).stream().anyMatch(message -> isUnreadChat(message, trade.isMaker()))) {
+                hasUnreadTradeChat = true;
+            }
+        }
+        for (DisputeManager<? extends DisputeList<Dispute>> manager : getDisputeManagers()) {
+            for (Dispute dispute : snapshot(manager.getDisputesAsObservableList())) {
+                observeChat(dispute.getChatMessages(), currentChats);
+                boolean agent = manager.isAgent(dispute);
+                dispute.refreshAlertLevel(agent);
+            }
+        }
+        observedChats.removeIf(messages -> {
+            if (currentChats.contains(messages)) return false;
+            synchronized (messages) {
+                messages.removeListener(chatMessagesListener);
+            }
+            return true;
+        });
+        new ArrayList<>(chatNotifications.keySet()).stream()
+                .filter(messages -> !currentChats.contains(messages))
+                .forEach(this::dismissChatNotification);
+        unreadTradeChat.set(hasUnreadTradeChat);
+    }
+
+    private void dismissChatNotification(ObservableList<ChatMessage> messages) {
+        Notification notification = chatNotifications.remove(messages);
+        if (notification != null) notification.hide();
+    }
+
+    private void observeChat(ObservableList<ChatMessage> messages, Set<ObservableList<ChatMessage>> currentChats) {
+        currentChats.add(messages);
+        if (observedChats.add(messages)) {
+            synchronized (messages) {
+                messages.addListener(chatMessagesListener);
+            }
+        }
+    }
+
+    private void onChatMessage(protobuf.ChatMessage incoming) {
+        if (incoming.getType() == protobuf.SupportType.TRADE) {
+            tradeManager.getOpenTrade(incoming.getTradeId()).ifPresent(trade -> {
+                if (!trade.isArbitrator()) {
+                    snapshot(trade.getChatMessages()).stream()
+                            .filter(message -> message.getUid().equals(incoming.getUid()))
+                            .filter(message -> isUnreadChat(message, trade.isMaker()))
+                            .findFirst().ifPresent(message -> notifyChatMessage(message, trade.getChatMessages(), trade.isMaker(),
+                                    tradeManager::requestPersistence, () -> navigateToTrade(trade)));
+                }
+            });
+        } else {
+            DisputeManager<? extends DisputeList<Dispute>> manager = switch (incoming.getType()) {
+                case ARBITRATION -> arbitrationManager;
+                case MEDIATION -> mediationManager;
+                case REFUND -> refundManager;
+                default -> null;
+            };
+            if (manager != null) {
+                manager.findDispute(incoming.getTradeId(), incoming.getTraderId()).ifPresent(dispute ->
+                        snapshot(dispute.getChatMessages()).stream()
+                                .filter(message -> message.getUid().equals(incoming.getUid()))
+                                .filter(message -> isUnreadChat(message, manager.isAgent(dispute)))
+                                .findFirst().ifPresent(message -> notifyChatMessage(message, dispute.getChatMessages(), manager.isAgent(dispute),
+                                        manager::requestPersistence, () -> navigateToDispute(dispute, manager))));
+            }
+        }
+        refreshChatState();
+    }
+
+    private void notifyChatMessage(ChatMessage message, ObservableList<ChatMessage> messages, boolean senderFlag,
+                                   Runnable persist, Runnable navigate) {
+        if (openChats.contains(messages)) {
+            message.setWasDisplayed(true);
+            persist.run();
+            return;
+        }
+        String key = message.getSupportType() + ":" + message.getTradeId() + ":" + message.getTraderId() + ":" + message.getUid();
+        if (!notifiedChatMessages.add(key)) return;
+        long unread = snapshot(messages).stream().filter(chatMessage -> isUnreadChat(chatMessage, senderFlag)).count();
+        String text = unread == 1 ? Res.get("notification.chat.message") : Res.get("notification.chat.messages", unread);
+        Notification existing = chatNotifications.get(messages);
+        if (existing != null && !existing.isClosing()) {
+            existing.message(text);
+            return;
+        }
+
+        boolean support = message.getSupportType() != SupportType.TRADE;
+        Notification notification = new Notification();
+        notification
+                .autoClose()
+                .headLine(Res.get(support ? "notification.chat.support" : "notification.chat.trade", Utilities.getShortId(message.getTradeId())))
+                .message(text)
+                .actionButtonText(Res.get(support ? "notification.chat.goToTicket" : "notification.chat.openChat"))
+                .onAction(navigate)
+                .onlyShowIf(() -> chatNotifications.get(messages) == notification && observedChats.contains(messages) &&
+                        !openChats.contains(messages) && snapshot(messages).stream().anyMatch(chatMessage -> isUnreadChat(chatMessage, senderFlag)));
+        chatNotifications.put(messages, notification);
+        notification.getIsHiddenProperty().addListener((observable, oldValue, hidden) -> {
+            if (hidden) chatNotifications.remove(messages, notification);
+        });
+        notification.show();
+        if (!notification.isHasBeenDisplayed()) chatNotifications.remove(messages, notification);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void onTradePhaseChanged(Trade trade, Trade.Phase phase) {
-        String message = null;
-        if (trade.isPayoutPublished() && !trade.isCompleted()) {
+    private void addTradeSubscriptions(Trade trade, boolean notifyInitialState) {
+        String tradeId = trade.getId();
+        if (disputeStateSubscriptionsMap.containsKey(tradeId)) return;
+        disputeStateSubscriptionsMap.put(tradeId, EasyBind.subscribe(trade.disputeStateProperty(),
+                state -> ThreadUtils.submitToPool(() -> onDisputeStateChanged(trade, state))));
+        if (trade.isArbitrator()) {
+            tradePhaseSubscriptionsMap.put(tradeId, EasyBind.subscribe(trade.statePhaseProperty(),
+                    phase -> onArbitratorTradePhaseChanged(trade, phase)));
+            return;
+        }
+        ChangeListener<Trade.Phase> phaseListener = (observable, oldValue, newValue) -> onTradeStateChanged(trade, oldValue);
+        trade.statePhaseProperty().addListener(phaseListener);
+        tradePhaseSubscriptionsMap.put(tradeId, () -> trade.statePhaseProperty().removeListener(phaseListener));
+        ChangeListener<Trade.PayoutState> payoutListener = (observable, oldValue, newValue) -> onTradeStateChanged(trade, trade.getPhase());
+        trade.payoutStateProperty().addListener(payoutListener);
+        tradePayoutSubscriptionsMap.put(tradeId, () -> trade.payoutStateProperty().removeListener(payoutListener));
+        onTradeStateChanged(trade, notifyInitialState ? Trade.Phase.INIT : null);
+    }
+
+    private void removeTradeSubscriptions(Trade trade) {
+        String tradeId = trade.getId();
+        Subscription disputeSubscription = disputeStateSubscriptionsMap.remove(tradeId);
+        if (disputeSubscription != null) disputeSubscription.unsubscribe();
+        Subscription phaseSubscription = tradePhaseSubscriptionsMap.remove(tradeId);
+        if (phaseSubscription != null) phaseSubscription.unsubscribe();
+        Subscription payoutSubscription = tradePayoutSubscriptionsMap.remove(tradeId);
+        if (payoutSubscription != null) payoutSubscription.unsubscribe();
+        unseenTradeUpdates.remove(tradeId);
+        dismissTradeNotification(tradeId);
+    }
+
+    private boolean isTradeVisible(Trade trade) {
+        return trade.getId().equals(viewedTradeId) && navigation.getCurrentPath() != null &&
+                navigation.getCurrentPath().contains(PendingTradesView.class);
+    }
+
+    private String tradeNotificationKey(Trade trade, String event) {
+        return NOTIFICATION_KEY_PREFIX + event + trade.getId();
+    }
+
+    private void markTradeUpdatesSeen(Trade trade) {
+        for (Trade.Phase phase : List.of(Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_UNLOCKED,
+                Trade.Phase.DEPOSITS_FINALIZED, Trade.Phase.PAYMENT_SENT)) {
+            if (trade.getPhase().ordinal() >= phase.ordinal()) {
+                String key = tradeNotificationKey(trade, phase.name());
+                if (preferences.showAgain(key)) preferences.dontShowAgain(key, true);
+            }
+        }
+        if (trade.isPayoutPublished()) {
+            String key = tradeNotificationKey(trade, Trade.PayoutState.PAYOUT_PUBLISHED.name());
+            if (preferences.showAgain(key)) preferences.dontShowAgain(key, true);
+        }
+        unseenTradeUpdates.remove(trade.getId());
+        dismissTradeNotification(trade.getId());
+    }
+
+    private void dismissTradeNotification(String tradeId) {
+        Notification notification = tradeNotifications.remove(tradeId);
+        if (notification != null) notification.hide();
+    }
+
+    // previousPhase is the phase before a live transition, or null to refresh the dot without a popup
+    private void onTradeStateChanged(Trade trade, @Nullable Trade.Phase previousPhase) {
+        Trade.Phase phase = trade.getPhase();
+        boolean payoutPublished = trade.isPayoutPublished();
+        UserThread.execute(() -> {
+            refreshTradeNotification(trade, previousPhase);
+            // restored activity keeps its dot without replaying its popup
+            // phase changes cannot create a new milestone after payout publication
+            String key = unseenTradeUpdates.get(trade.getId());
+            if (previousPhase == null && key != null && trade.isPayoutPublished() == payoutPublished &&
+                    (payoutPublished || trade.getPhase() == phase))
+                notifiedTradeUpdates.add(key);
+        });
+    }
+
+    private void onArbitratorTradePhaseChanged(Trade trade, Trade.Phase phase) {
+        if (!trade.isPayoutPublished() || trade.isCompleted()) return;
+        String key = tradeNotificationKey(trade, phase.name());
+        UserThread.execute(() -> {
+            if (!preferences.showAgain(key)) return;
+            boolean navigateToTrades = navigation.getCurrentPath() != null &&
+                    !navigation.getCurrentPath().contains(PendingTradesView.class);
+            if (!navigateToTrades && (viewedTradeId == null || viewedTradeId.equals(trade.getId()))) return;
+
+            // phase-triggered arbitrator notices survive automatic removal from open trades
+            Notification notification = new Notification().tradeHeadLine(trade.getShortId())
+                    .message(Res.get("notification.trade.completed"))
+                    .onAction(() -> {
+                        preferences.dontShowAgain(key, true);
+                        navigation.navigateToWithData(trade, MainView.class, PortfolioView.class, PendingTradesView.class);
+                    })
+                    .onClose(() -> preferences.dontShowAgain(key, true));
+            if (navigateToTrades) notification.actionButtonTextWithGoTo("portfolio.tab.pendingTrades");
+            else notification.actionButtonText(Res.get("notification.trade.selectTrade"));
+            notification.show();
+        });
+    }
+
+    private void refreshTradeNotification(Trade trade, @Nullable Trade.Phase previousPhase) {
+        if (!snapshot(tradeManager.getObservableList()).contains(trade)) return;
+        String tradeId = trade.getId();
+        if (trade.isArbitrator() || trade.isCompleted() || !trade.isDepositsPublished()) {
+            unseenTradeUpdates.remove(tradeId);
+            dismissTradeNotification(tradeId);
+            return;
+        }
+        if (isTradeVisible(trade)) {
+            markTradeUpdatesSeen(trade);
+            return;
+        }
+
+        Trade.Phase phase = trade.getPhase();
+        // payment can precede finalization, and restored trades may not have confirmation counts yet
+        Long depositConfirmations = trade.isBuyer() && phase.ordinal() > Trade.Phase.DEPOSITS_FINALIZED.ordinal() ?
+                trade.getNumDepositConfirmations() : null;
+        boolean depositsFinalized = phase == Trade.Phase.DEPOSITS_FINALIZED ||
+                (depositConfirmations != null && depositConfirmations >= Trade.NUM_BLOCKS_DEPOSITS_FINALIZED);
+        String event = Trade.Phase.DEPOSITS_PUBLISHED.name();
+        String message = trade.isMaker() ? Res.get("notification.trade.accepted",
+                trade.isBuyer() ? Res.get("shared.seller") : Res.get("shared.buyer")) : null;
+        if (trade.isPayoutPublished()) {
+            event = Trade.PayoutState.PAYOUT_PUBLISHED.name();
             message = Res.get("notification.trade.completed");
-        } else {
-            if (trade instanceof MakerTrade &&
-                    phase.ordinal() == Trade.Phase.DEPOSITS_PUBLISHED.ordinal()) {
-                final String role = trade instanceof BuyerTrade ? Res.get("shared.seller") : Res.get("shared.buyer");
-                message = Res.get("notification.trade.accepted", role);
-            }
-
-            if (trade instanceof BuyerTrade) {
-                if (phase.ordinal() == Trade.Phase.DEPOSITS_UNLOCKED.ordinal())
-                    message = Res.get("notification.trade.unlocked");
-                else if (phase.ordinal() == Trade.Phase.DEPOSITS_FINALIZED.ordinal())
-                    message = Res.get("notification.trade.finalized", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED);
-            }
-            else if (trade instanceof SellerTrade && phase.ordinal() == Trade.Phase.PAYMENT_SENT.ordinal())
-                message = Res.get("notification.trade.paymentSent");
+        } else if (trade.isBuyer() && depositsFinalized) {
+            event = Trade.Phase.DEPOSITS_FINALIZED.name();
+            message = Res.get("notification.trade.finalized", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED);
+        } else if (trade.isBuyer() && phase.ordinal() >= Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
+            event = Trade.Phase.DEPOSITS_UNLOCKED.name();
+            message = Res.get("notification.trade.unlocked");
+        } else if (trade.isSeller() && phase.ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
+            event = Trade.Phase.PAYMENT_SENT.name();
+            message = Res.get("notification.trade.paymentSent");
         }
 
-        if (message != null) {
-            String key = "NotificationCenter_" + phase.name() + trade.getId();
-            if (DontShowAgainLookup.showAgain(key)) {
-                Notification notification = new Notification().tradeHeadLine(trade.getShortId()).message(message);
-                if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(PendingTradesView.class)) {
-                    notification.actionButtonTextWithGoTo("portfolio.tab.pendingTrades")
-                            .onAction(() -> {
-                                DontShowAgainLookup.dontShowAgain(key, true);
-                                navigation.navigateTo(MainView.class, PortfolioView.class, PendingTradesView.class);
-                                if (selectItemByTradeIdConsumer != null)
-                                    UserThread.runAfter(() -> selectItemByTradeIdConsumer.accept(trade.getId()), 1);
-                            })
-                            .onClose(() -> DontShowAgainLookup.dontShowAgain(key, true))
-                            .show();
-                } else if (selectedTradeId != null && !trade.getId().equals(selectedTradeId)) {
-                    notification.actionButtonText(Res.get("notification.trade.selectTrade"))
-                            .onAction(() -> {
-                                DontShowAgainLookup.dontShowAgain(key, true);
-                                if (selectItemByTradeIdConsumer != null)
-                                    selectItemByTradeIdConsumer.accept(trade.getId());
-                            })
-                            .onClose(() -> DontShowAgainLookup.dontShowAgain(key, true))
-                            .show();
-                }
-            }
+        String key = tradeNotificationKey(trade, event);
+        if (!key.equals(unseenTradeUpdates.get(tradeId))) dismissTradeNotification(tradeId);
+        // older versions recorded completion against the payment-received phase
+        boolean legacyCompletionSeen = trade.isPayoutPublished() &&
+                !preferences.showAgain(tradeNotificationKey(trade, Trade.Phase.PAYMENT_RECEIVED.name()));
+        if (!preferences.showAgain(key) || legacyCompletionSeen) {
+            unseenTradeUpdates.remove(tradeId);
+            dismissTradeNotification(tradeId);
+            return;
         }
+        unseenTradeUpdates.put(tradeId, key);
+        if (message == null || previousPhase == null) return;
+        if (!trade.isPayoutPublished() && !event.equals(phase.name())) {
+            // a milestone crossed live still notifies when the later phases carry no notice of their own
+            boolean derived = event.equals(Trade.Phase.DEPOSITS_FINALIZED.name()); // inferred from confirmations
+            if (derived || Trade.Phase.valueOf(event).ordinal() <= previousPhase.ordinal()) return;
+        }
+        if (!notifiedTradeUpdates.add(key)) return;
+
+        Notification notification = new Notification();
+        notification.useAnimation(false)
+                .tradeHeadLine(trade.getShortId())
+                .message(message)
+                .onAction(() -> navigation.navigateToWithData(trade,
+                        MainView.class, PortfolioView.class, PendingTradesView.class))
+                .onlyShowIf(() -> tradeNotifications.get(tradeId) == notification &&
+                        key.equals(unseenTradeUpdates.get(tradeId)) && !isTradeVisible(trade));
+        if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(PendingTradesView.class))
+            notification.actionButtonTextWithGoTo("portfolio.tab.pendingTrades");
+        else notification.actionButtonText(Res.get("notification.trade.selectTrade"));
+        tradeNotifications.put(tradeId, notification);
+        notification.getIsHiddenProperty().addListener((observable, oldValue, hidden) -> {
+            if (hidden) tradeNotifications.remove(tradeId, notification);
+        });
+        notification.show();
+        if (!notification.isHasBeenDisplayed()) tradeNotifications.remove(tradeId, notification);
     }
 
     private void onDisputeStateChanged(Trade trade, Trade.DisputeState disputeState) {
@@ -270,7 +568,8 @@ public class NotificationCenter {
                 goToSupport(trade, message, trade.isArbitrator() ? ArbitratorView.class : ArbitrationClientView.class);
             }
         } else if (refundManager.findDispute(trade.getId()).isPresent()) {
-            String disputeOrTicket = refundManager.findDispute(trade.getId()).get().isSupportTicket() ?
+            Dispute dispute = refundManager.findDispute(trade.getId()).get();
+            String disputeOrTicket = dispute.isSupportTicket() ?
                     Res.get("shared.supportTicket") :
                     Res.get("shared.dispute");
             switch (disputeState) {
@@ -295,7 +594,8 @@ public class NotificationCenter {
                 goToSupport(trade, message, RefundClientView.class);
             }
         } else if (mediationManager.findDispute(trade.getId()).isPresent()) {
-            String disputeOrTicket = mediationManager.findDispute(trade.getId()).get().isSupportTicket() ?
+            Dispute dispute = mediationManager.findDispute(trade.getId()).get();
+            String disputeOrTicket = dispute.isSupportTicket() ?
                     Res.get("shared.supportTicket") :
                     Res.get("shared.mediationCase");
             switch (disputeState) {
@@ -322,13 +622,16 @@ public class NotificationCenter {
     }
 
     private void goToSupport(Trade trade, String message, Class<? extends DisputeView> viewClass) {
-        Notification notification = new Notification().disputeHeadLine(trade.getShortId()).message(message);
-        if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(viewClass)) {
-            notification.actionButtonTextWithGoTo("mainView.menu.support")
-                    .onAction(() -> navigation.navigateTo(MainView.class, SupportView.class, viewClass))
-                    .show();
-        } else {
-            notification.show();
-        }
+        UserThread.execute(() -> {
+            Notification notification = new Notification()
+                    .disputeHeadLine(trade.getShortId()).message(message);
+            if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(viewClass)) {
+                notification.actionButtonTextWithGoTo("mainView.menu.support")
+                        .onAction(() -> navigation.navigateTo(MainView.class, SupportView.class, viewClass))
+                        .show();
+            } else {
+                notification.show();
+            }
+        });
     }
 }

@@ -280,6 +280,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     @Override
     protected void deactivate() {
+        hideWalletFundedNotification();
         removeBindings();
         removeSubscriptions();
         removeListeners();
@@ -416,6 +417,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             return;
         }
 
+        hideWalletFundedNotification();
         if (DevEnv.isDevMode()) {
             balanceSubscription.unsubscribe();
             model.onTakeOffer(() -> {
@@ -611,9 +613,14 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     }
 
     private void close(boolean removeOffer) {
+        hideWalletFundedNotification();
         model.dataModel.onClose(removeOffer);
         if (closeHandler != null)
             closeHandler.close();
+    }
+
+    private void hideWalletFundedNotification() {
+        if (walletFundedNotification != null) walletFundedNotification.hide();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -786,7 +793,8 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         };
         getShowWalletFundedNotificationListener = (observable, oldValue, newValue) -> {
             if (newValue) {
-                Notification walletFundedNotification = new Notification()
+                hideWalletFundedNotification();
+                walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
                         .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatXmr(model.dataModel.getTotalToPay().get(), true)))
                         .autoClose();

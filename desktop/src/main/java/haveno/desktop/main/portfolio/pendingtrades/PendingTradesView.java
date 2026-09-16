@@ -44,10 +44,12 @@ import haveno.desktop.Navigation;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.ButtonBadge;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.PeerInfoIconTrading;
 import haveno.desktop.components.list.FilterBox;
 import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
@@ -61,7 +63,9 @@ import haveno.network.p2p.NodeAddress;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
@@ -94,6 +98,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -140,9 +145,14 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private Subscription selectedTableItemSubscription;
     private Subscription selectedItemSubscription;
     private Stage chatPopupStage;
+    private final NotificationCenter notificationCenter;
     private ListChangeListener<PendingTradesListItem> tradesListChangeListener;
     private final Map<String, Long> newChatMessagesByTradeMap = new HashMap<>();
     private String tradeIdOfOpenChat;
+    private long tradeSelectionRequest;
+    private Trade tradeToSelect;
+    private boolean openChatOnSelection;
+    private boolean active;
 
     private final Map<String, Button> buttonByTrade = new HashMap<>();
     private final Map<String, JFXBadge> badgeByTrade = new HashMap<>();
@@ -161,6 +171,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     public PendingTradesView(PendingTradesViewModel model,
                              TradeDetailsWindow tradeDetailsWindow,
                              Navigation navigation,
+                             NotificationCenter notificationCenter,
                              KeyRing keyRing,
                              @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                              PrivateNotificationManager privateNotificationManager,
@@ -170,6 +181,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         super(model);
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.navigation = navigation;
+        this.notificationCenter = notificationCenter;
         this.keyRing = keyRing;
         this.formatter = formatter;
         this.privateNotificationManager = privateNotificationManager;
@@ -300,6 +312,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
     @Override
     protected void activate() {
+        active = true;
         ObservableList<PendingTradesListItem> list = model.dataModel.list;
         filteredList = new FilteredList<>(list);
         sortedList = new SortedList<>(filteredList);
@@ -321,6 +334,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         }
 
         selectedItemSubscription = EasyBind.subscribe(model.dataModel.selectedItemProperty, selectedItem -> {
+            notificationCenter.setViewedTradeId(null);
             if (selectedItem != null) {
                 if (selectedSubView != null)
                     selectedSubView.deactivate();
@@ -355,6 +369,15 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                 selectedSubView.activate();
                 selectedSubView.setOpenChatTradeId(tradeIdOfOpenChat);
             }
+            // wait for a notification's target selection and its trade details to settle
+            UserThread.execute(() -> UserThread.execute(() -> {
+                PendingTradesListItem tableItem = tableView.getSelectionModel().getSelectedItem();
+                // the details remain visible when a list rebuild clears the table selection
+                if (active && root.getScene() != null && Objects.equals(selectedItem, model.dataModel.selectedItemProperty.get()) &&
+                        (tableItem == null || Objects.equals(selectedItem, tableItem))) {
+                    notificationCenter.setViewedTradeId(selectedItem == null ? null : selectedItem.getTrade().getId());
+                }
+            }));
         });
 
         selectedTableItemSubscription = EasyBind.subscribe(tableView.getSelectionModel().selectedItemProperty(),
@@ -370,6 +393,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         list.addListener(tradesListChangeListener);
         updateNewChatMessagesByTradeMap();
         model.getMempoolStatus().addListener(getMempoolStatusListener);
+        selectRequestedTrade();
     }
 
     private void configureTableHeight() {
@@ -403,6 +427,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
     @Override
     protected void deactivate() {
+        active = false;
+        tradeSelectionRequest++;
+        tradeToSelect = null;
+        notificationCenter.setViewedTradeId(null);
         filterBox.deactivate();
         tradesCount.textProperty().unbind();
         sortedList.comparatorProperty().unbind();
@@ -507,6 +535,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     // Chat
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public record OpenChatRequest(Trade trade) {
+    }
+
     private void updateNewChatMessagesByTradeMap() {
         synchronized (model.dataModel.list) {
             model.dataModel.list.forEach(t -> {
@@ -516,6 +547,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                             trade.getChatMessages().stream()
                                     .filter(m -> !m.isWasDisplayed())
                                     .filter(m -> !m.isSystemMessage())
+                                    .filter(m -> m.isSenderIsTrader() == trade.isMaker())
                                     .count());
                 }
             });
@@ -591,6 +623,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatView.scrollToBottom();
 
         chatPopupStage = new Stage();
+        chatPopupStage.setOnShowing(event -> notificationCenter.onChatOpened(trade.getChatMessages()));
         model.getChatOpen().bind(chatPopupStage.showingProperty());
         chatPopupStage.setTitle(Res.get("tradeChat.chatWindowTitle", trade.getShortId()));
         Scene rootScene = MainView.getRootContainer().getScene();
@@ -604,6 +637,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             // at close we set all as displayed. While open we ignore updates of the numNewMsg in the list icon.
             trade.getChatMessages().forEach(m -> m.setWasDisplayed(true));
             model.dataModel.getTradeManager().requestPersistence();
+            notificationCenter.onChatClosed(trade.getChatMessages());
             tradeIdOfOpenChat = null;
             if (selectedSubView != null) selectedSubView.setOpenChatTradeId(null);
 
@@ -631,21 +665,19 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private void updateChatMessageCount(Trade trade, JFXBadge badge) {
         if (badge == null) return;
         UserThread.execute(() -> {
+            long num = 0;
             if (!trade.getId().equals(tradeIdOfOpenChat)) {
                 updateNewChatMessagesByTradeMap();
-                long num = newChatMessagesByTradeMap.get(trade.getId());
-                if (num > 0) {
-                    badge.setText(String.valueOf(num));
-                    badge.setEnabled(true);
-                } else {
-                    badge.setText("");
-                    badge.setEnabled(false);
-                }
-            } else {
-                badge.setText("");
-                badge.setEnabled(false);
+                num = newChatMessagesByTradeMap.get(trade.getId());
             }
+            badge.setText(num > 0 ? DisplayUtils.formatBadgeCount(num) : "");
+            badge.setEnabled(num > 0);
             badge.refreshBadge();
+            Button button = (Button) badge.getControl();
+            String description = num > 0 ? Res.get(num == 1 ? "tradeChat.openChatWithUnreadMessage" :
+                    "tradeChat.openChatWithUnreadMessages", num) : Res.get("tradeChat.openChat");
+            button.getTooltip().setText(description);
+            Accessibility.setName(button, description);
         });
     }
 
@@ -654,12 +686,53 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateTableSelection() {
-        PendingTradesListItem selectedItemFromModel = model.dataModel.selectedItemProperty.get();
-        if (selectedItemFromModel != null) {
-            // Select and focus selectedItem from model
-            int index = tableView.getItems().indexOf(selectedItemFromModel);
-            UserThread.execute(() -> tableView.getSelectionModel().select(index));
-        }
+        // resolve the current selection after queued updates so an older row cannot replace the notification target
+        UserThread.execute(() -> {
+            PendingTradesListItem selectedItemFromModel = model.dataModel.selectedItemProperty.get();
+            if (selectedItemFromModel != null) {
+                tableView.getSelectionModel().select(tableView.getItems().indexOf(selectedItemFromModel));
+            }
+        });
+    }
+
+    public void selectTrade(Trade trade) {
+        selectTrade(trade, false);
+    }
+
+    public void selectTrade(Trade trade, boolean openChat) {
+        tradeSelectionRequest++;
+        tradeToSelect = trade;
+        openChatOnSelection = openChat;
+        selectRequestedTrade();
+    }
+
+    private void selectRequestedTrade() {
+        // a tab's first activation can wait for its skin, so retain the target until the model refresh is queued
+        if (!active || tradeToSelect == null) return;
+        Trade trade = tradeToSelect;
+        boolean openChat = openChatOnSelection;
+        long request = tradeSelectionRequest;
+        tradeToSelect = null;
+        filterBox.clear();
+        UserThread.execute(() -> {
+            if (!active || request != tradeSelectionRequest) return;
+            tableView.getItems().stream()
+                    .filter(item -> item.getTrade().getId().equals(trade.getId()))
+                    .findFirst().ifPresent(item -> {
+                        tableView.getSelectionModel().select(item);
+                        tableView.scrollTo(item);
+                        if (openChat) {
+                            // let the queued model and table selection updates settle before opening the target chat
+                            UserThread.execute(() -> UserThread.execute(() -> {
+                                PendingTradesListItem tableItem = tableView.getSelectionModel().getSelectedItem();
+                                // a list rebuild can clear the table selection while the same trade details remain visible
+                                if (active && request == tradeSelectionRequest && root.getScene() != null &&
+                                        tableView.getItems().contains(item) && (tableItem == null || item.equals(tableItem)) &&
+                                        item.equals(model.dataModel.selectedItemProperty.get())) openChat(item.getTrade());
+                            }));
+                        }
+                    });
+        });
     }
 
     private void onListChanged() {
@@ -683,23 +756,37 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                         return new TableCell<>() {
                             private Trade trade;
                             private ChangeListener<Trade.State> listener;
+                            private BooleanBinding unseenUpdate;
+                            private final Circle dot = new Circle(3);
+
+                            {
+                                dot.getStyleClass().add("trade-update-dot");
+                                Tooltip.install(dot, new Tooltip(Res.get("notification.trade.unseenUpdate")));
+                            }
 
                             @Override
                             public void updateItem(final PendingTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
 
+                                if (trade != null && listener != null) trade.stateProperty().removeListener(listener);
+                                dot.visibleProperty().unbind();
+                                accessibleHelpProperty().unbind();
+                                setAccessibleHelp(null);
+                                if (unseenUpdate != null) unseenUpdate.dispose();
+                                trade = null;
+                                listener = null;
+                                unseenUpdate = null;
                                 if (item != null && !empty) {
                                     trade = item.getTrade();
+                                    unseenUpdate = notificationCenter.unseenTradeUpdateProperty(trade.getId());
+                                    dot.visibleProperty().bind(unseenUpdate);
+                                    accessibleHelpProperty().bind(Bindings.when(unseenUpdate)
+                                            .then(Res.get("notification.trade.unseenUpdate")).otherwise(""));
                                     listener = (observable, oldValue, newValue) -> UserThread.execute(() -> update());
                                     trade.stateProperty().addListener(listener);
                                     update();
                                 } else {
                                     setGraphic(null);
-                                    if (trade != null && listener != null) {
-                                        trade.stateProperty().removeListener(listener);
-                                        trade = null;
-                                        listener = null;
-                                    }
                                 }
                             }
 
@@ -719,11 +806,15 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                     }
                                 } else {
                                     field = new HyperlinkWithIcon(trade.getShortId());
+                                    ((Label) field.getIcon()).setMinWidth(Label.USE_PREF_SIZE);
                                     field.setOnAction(event -> tradeDetailsWindow.show(trade));
                                     field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                 }
                                 Accessibility.setName(field, Accessibility.spellOut(trade.getShortId()));
-                                setGraphic(field);
+                                HBox content = new HBox(6, field, dot);
+                                content.setAlignment(Pos.CENTER_LEFT);
+                                content.setPadding(new Insets(0, 8, 0, 0));
+                                setGraphic(content);
                             }
                         };
                     }
@@ -952,6 +1043,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                     Button button;
                                     if (!buttonByTrade.containsKey(id)) {
                                         button = FormBuilder.getIconButton(MaterialDesignIcon.COMMENT_MULTIPLE_OUTLINE);
+                                        button.getStyleClass().addAll("trade-row-chat-button", "a11y-focusable");
                                         buttonByTrade.put(id, button);
                                         button.setTooltip(new Tooltip(Res.get("tradeChat.openChat")));
                                     } else {
@@ -960,9 +1052,17 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                                     JFXBadge badge;
                                     if (!badgeByTrade.containsKey(id)) {
-                                        badge = new JFXBadge(button);
+                                        badge = new ButtonBadge(button) {
+                                            @Override
+                                            public void refreshBadge() {
+                                                super.refreshBadge();
+                                                lookupAll(".badge-pane .label").forEach(Accessibility::mute);
+                                            }
+                                        };
+                                        badge.getStyleClass().add("trade-row-chat-badge");
                                         badgeByTrade.put(id, badge);
                                         badge.setPosition(Pos.TOP_RIGHT);
+                                        Tooltip.install(badge, button.getTooltip());
                                     } else {
                                         badge = badgeByTrade.get(id);
                                     }

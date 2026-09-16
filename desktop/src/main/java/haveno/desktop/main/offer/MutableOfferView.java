@@ -173,6 +173,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private EventHandler<ActionEvent> currencyComboBoxSelectionHandler, paymentAccountsComboBoxSelectionHandler;
     private OfferView.CloseHandler closeHandler;
     private Popup fundingAddressPopup;
+    private Notification walletFundedNotification;
 
     protected int gridRow = 0;
     protected int nextButtonsGridRow; // grid row of the next buttons; reused by the edit and clone views for their action buttons
@@ -287,6 +288,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     @Override
     protected void deactivate() {
         if (isActivated) {
+            hideWalletFundedNotification();
             isActivated = false;
             removeBindings();
             removeListeners();
@@ -375,6 +377,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     private void onPlaceOffer() {
         if (model.getDataModel().canPlaceOffer()) {
+            hideWalletFundedNotification();
             Offer offer = model.createAndGetOffer();
             if (!DevEnv.isDevMode()) {
                 offerDetailsWindow.onPlaceOffer(() -> {
@@ -586,8 +589,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     @Override
     public void close() {
+        hideWalletFundedNotification();
         if (closeHandler != null)
             closeHandler.close();
+    }
+
+    private void hideWalletFundedNotification() {
+        if (walletFundedNotification != null) walletFundedNotification.hide();
     }
 
     protected Node getCancelButton() {
@@ -825,7 +833,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
         getShowWalletFundedNotificationListener = (observable, oldValue, newValue) -> {
             if (newValue) {
-                Notification walletFundedNotification = new Notification()
+                hideWalletFundedNotification();
+                walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
                         .notification(Res.get("notification.walletUpdate.msg", HavenoUtils.formatXmr(model.getDataModel().getTotalToPay().get(), true)))
                         .autoClose();

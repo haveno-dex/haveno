@@ -55,7 +55,6 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableDataModel;
 import haveno.desktop.main.MainView;
-import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
 import haveno.desktop.main.support.SupportView;
@@ -94,7 +93,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     private final AccountAgeWitnessService accountAgeWitnessService;
     public final Navigation navigation;
     public final WalletPasswordWindow walletPasswordWindow;
-    private final NotificationCenter notificationCenter;
     private final OfferUtil offerUtil;
     private final CoinFormatter btcFormatter;
 
@@ -109,7 +107,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     @Getter
     private final TraderChatManager traderChatManager;
     public final Preferences preferences;
-    private boolean activated;
     private ChangeListener<Trade.State> tradeStateChangeListener;
     private Trade selectedTrade;
     @Getter
@@ -138,7 +135,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                                   AccountAgeWitnessService accountAgeWitnessService,
                                   Navigation navigation,
                                   WalletPasswordWindow walletPasswordWindow,
-                                  NotificationCenter notificationCenter,
                                   OfferUtil offerUtil,
                                   CoreDisputesService disputesService,
                                   @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
@@ -154,31 +150,23 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
         this.walletPasswordWindow = walletPasswordWindow;
-        this.notificationCenter = notificationCenter;
         this.offerUtil = offerUtil;
         this.disputesService = disputesService;
         this.btcFormatter = formatter;
 
         tradesListChangeListener = change -> onListChanged();
-        notificationCenter.setSelectItemByTradeIdConsumer(this::selectItemByTradeId);
     }
 
     @Override
     protected void activate() {
         tradeManager.getObservableList().addListener(tradesListChangeListener);
         onListChanged();
-        if (selectedItemProperty.get() != null)
-            notificationCenter.setSelectedTradeId(selectedItemProperty.get().getTrade().getId());
-
-        activated = true;
     }
 
     @Override
     protected void deactivate() {
         for (Trade trade : hiddenTrades) trade.stateProperty().removeListener(hiddenStateChangeListener);
         tradeManager.getObservableList().removeListener(tradesListChangeListener);
-        notificationCenter.setSelectedTradeId(null);
-        activated = false;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -364,14 +352,6 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         }
     }
 
-    private void selectItemByTradeId(String tradeId) {
-        if (activated) {
-            synchronized (list) {
-                list.stream().filter(e -> e.getTrade().getId().equals(tradeId)).findAny().ifPresent(this::doSelectItem);
-            }
-        }
-    }
-
     private void doSelectItem(@Nullable PendingTradesListItem item) {
         UserThread.execute(() -> {
             if (selectedTrade != null)
@@ -384,14 +364,12 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     return;
                 }
 
-                String tradeId = selectedTrade.getId();
                 tradeStateChangeListener = (observable, oldValue, newValue) -> {
                     String makerDepositTxHash = selectedTrade.getMaker().getDepositTxHash();
                     String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
                     makerTxId.set(nullToEmptyString(makerDepositTxHash));
                     takerTxId.set(nullToEmptyString(takerDepositTxHash));
                     if (makerDepositTxHash != null || takerDepositTxHash != null) {
-                        notificationCenter.setSelectedTradeId(tradeId);
                         UserThread.execute(() -> selectedTrade.stateProperty().removeListener(tradeStateChangeListener));
                     }
                 };
@@ -408,12 +386,10 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                 String takerDepositTxHash = selectedTrade.getTaker().getDepositTxHash();
                 makerTxId.set(nullToEmptyString(makerDepositTxHash));
                 takerTxId.set(nullToEmptyString(takerDepositTxHash));
-                notificationCenter.setSelectedTradeId(tradeId);
             } else {
                 selectedTrade = null;
                 makerTxId.set("");
                 takerTxId.set("");
-                notificationCenter.setSelectedTradeId(null);
             }
             selectedItemProperty.set(item);
         });

@@ -19,6 +19,7 @@ package haveno.desktop.main.support.dispute;
 
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.main.MainView;
+import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
@@ -60,16 +61,19 @@ public class DisputeChatPopup {
     protected final CoinFormatter formatter;
     protected final Preferences preferences;
     private final ChatCallback chatCallback;
+    private final NotificationCenter notificationCenter;
     @Getter private Dispute selectedDispute;
 
     DisputeChatPopup(DisputeManager<? extends DisputeList<Dispute>> disputeManager,
                     CoinFormatter formatter,
                     Preferences preferences,
-                    ChatCallback chatCallback) {
+                    ChatCallback chatCallback,
+                    NotificationCenter notificationCenter) {
         this.disputeManager = disputeManager;
         this.formatter = formatter;
         this.preferences = preferences;
         this.chatCallback = chatCallback;
+        this.notificationCenter = notificationCenter;
     }
 
     public boolean isChatShown() {
@@ -117,6 +121,7 @@ public class DisputeChatPopup {
         chatView.activate();
         chatView.scrollToBottom();
         chatPopupStage = new Stage();
+        chatPopupStage.setOnShowing(event -> notificationCenter.onChatOpened(selectedDispute.getChatMessages()));
         chatPopupStage.setTitle(Res.get("disputeChat.chatWindowTitle", selectedDispute.getShortTradeId())
                 + " " + selectedDispute.getRoleString());
         Scene rootScene = MainView.getRootContainer().getScene();
@@ -129,6 +134,7 @@ public class DisputeChatPopup {
             // at close we set all as displayed. While open we ignore updates of the numNewMsg in the list icon.
             selectedDispute.getChatMessages().forEach(m -> m.setWasDisplayed(true));
             disputeManager.requestPersistence();
+            notificationCenter.onChatClosed(selectedDispute.getChatMessages());
             chatPopupStage = null;
         });
 
