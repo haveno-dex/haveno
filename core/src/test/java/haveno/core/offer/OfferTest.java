@@ -19,12 +19,41 @@ package haveno.core.offer;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class OfferTest {
+
+    @Test
+    public void testRejectsTradePriceWhoseMinimumPaymentRoundsToZero() {
+        OfferPayload payload = mock(OfferPayload.class);
+        when(payload.getBaseCurrencyCode()).thenReturn("XMR");
+        when(payload.getCounterCurrencyCode()).thenReturn("BTC");
+        when(payload.getPaymentMethodId()).thenReturn("BLOCK_CHAINS");
+        when(payload.getMinAmount()).thenReturn(100_000_000_000L);
+        when(payload.getPrice()).thenReturn(1L);
+        Offer offer = new Offer(payload);
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> offer.verifyTradePrice(1L));
+        assertEquals("Trade payment amount must not round to zero", error.getMessage());
+    }
+
+    @Test
+    public void testAcceptsTradePricePayingOneSmallestUnit() {
+        OfferPayload payload = mock(OfferPayload.class);
+        when(payload.getBaseCurrencyCode()).thenReturn("XMR");
+        when(payload.getCounterCurrencyCode()).thenReturn("BTC");
+        when(payload.getPaymentMethodId()).thenReturn("BLOCK_CHAINS");
+        when(payload.getMinAmount()).thenReturn(1_000_000_000_000L);
+        when(payload.getPrice()).thenReturn(1L);
+
+        assertDoesNotThrow(() -> new Offer(payload).verifyTradePrice(1L));
+    }
 
     @Test
     public void testHasNoRange() {

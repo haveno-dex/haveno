@@ -228,6 +228,10 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public void verifyTradePrice(long price, boolean refreshPriceOnFailure) throws TradePriceOutOfToleranceException,
             MarketPriceNotAvailableException, IllegalArgumentException {
+        checkArgument(price > 0, "tradePrice must be positive");
+        Price tradePrice = Price.valueOf(getCounterCurrencyCode(), price);
+        Volume minVolume = VolumeUtil.getAdjustedVolume(tradePrice.getVolumeByAmount(getMinAmount()), getPaymentMethodId());
+        checkArgument(minVolume.getValue() > 0, "Trade payment amount must not round to zero");
         if (!isUseMarketBasedPrice()) {
             checkArgument(price == getFixedPrice(),
                     "Takers price does not match offer price. " +
@@ -235,12 +239,9 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return;
         }
 
-        Price tradePrice = Price.valueOf(getCounterCurrencyCode(), price);
         Price offerPrice = getPrice();
         if (offerPrice == null)
             throw new MarketPriceNotAvailableException(MARKET_PRICE_NOT_AVAILABLE_MSG);
-
-        checkArgument(price > 0, "tradePrice must be positive");
 
         double relation = (double) price / (double) offerPrice.getValue();
         double deviation = Math.abs(1 - relation);
