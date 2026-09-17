@@ -501,16 +501,16 @@ public class ChatView extends AnchorPane {
                             visible = true;
                             icon = FontAwesomeIcon.CHECK_CIRCLE;
                             text = Res.get("support.acknowledged");
-                        } else if (message.storedInMailboxProperty().get()) {
-                            visible = true;
-                            icon = FontAwesomeIcon.ENVELOPE;
-                            text = Res.get("support.savedInMailbox");
                         } else if (message.ackErrorProperty().get() != null) {
                             visible = true;
                             icon = FontAwesomeIcon.EXCLAMATION_CIRCLE;
                             text = Res.get("support.error", message.ackErrorProperty().get());
                             statusIcon.getStyleClass().add("error-text");
                             statusInfoLabel.getStyleClass().add("error-text");
+                        } else if (message.storedInMailboxProperty().get()) {
+                            visible = true;
+                            icon = FontAwesomeIcon.ENVELOPE;
+                            text = Res.get("support.savedInMailbox");
                         } else if (message.arrivedProperty().get()) {
                             visible = true;
                             icon = FontAwesomeIcon.MAIL_REPLY;
