@@ -102,6 +102,7 @@ import haveno.network.p2p.peers.PeerManager;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -113,6 +114,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -345,19 +348,53 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     }
 
     public void removeAllOpenOffers(@Nullable Runnable completeHandler) {
-        removeOpenOffers(getObservableList(), completeHandler);
+        removeOpenOffers(completeHandler, errorMessage -> log.warn("Error removing open offers: " + errorMessage));
     }
 
-    private void removeOpenOffers(List<OpenOffer> openOffers, @Nullable Runnable completeHandler) {
-        List<OpenOffer> offers;
-        synchronized (openOffers) {
-            offers = new ArrayList<>(openOffers);
+    // wallet replacement requires network removal, while startup cleanup can remove offers locally
+    public void removeAllOpenOffers(@Nullable Runnable completeHandler, ErrorMessageHandler errorMessageHandler) {
+        if (!p2PService.isBootstrapped() && getOpenOffers().stream().anyMatch(openOffer ->
+                openOffer.isAvailable() || openOffer.isReserved() || openOffer.isCanceled())) {
+            errorMessageHandler.handleErrorMessage("Cannot remove published offers before the P2P network is ready");
+            return;
         }
+        removeOpenOffers(completeHandler, errorMessageHandler);
+    }
+
+    private void removeOpenOffers(@Nullable Runnable completeHandler, ErrorMessageHandler errorMessageHandler) {
+        List<OpenOffer> offers;
+        synchronized (openOffers.getList()) {
+            offers = new ArrayList<>(openOffers.getList());
+        }
+        if (offers.isEmpty()) {
+            if (completeHandler != null) completeHandler.run();
+            return;
+        }
+        AtomicInteger remaining = new AtomicInteger(offers.size());
+        List<String> failedOfferIds = Collections.synchronizedList(new ArrayList<>());
+        Runnable onRemoved = () -> {
+            if (remaining.decrementAndGet() != 0) return;
+            // allow queued removal broadcasts to propagate before replacing the wallet
+            UserThread.runAfter(() -> {
+                if (failedOfferIds.isEmpty()) {
+                    if (completeHandler != null) completeHandler.run();
+                } else {
+                    errorMessageHandler.handleErrorMessage("Offers that could not be removed: " + String.join(", ", failedOfferIds));
+                }
+            }, offers.size() * 200L + 500, TimeUnit.MILLISECONDS);
+        };
         // wallet replacement invalidates all offers, including those reserved for trades
-        offers.forEach(openOffer -> removeOpenOfferAux(openOffer, null, true, () -> {
-                }, errorMessage -> log.warn("Error removing open offer: " + errorMessage)));
-        if (completeHandler != null)
-            UserThread.runAfter(completeHandler, offers.size() * 200 + 500, TimeUnit.MILLISECONDS);
+        offers.forEach(openOffer -> {
+            AtomicBoolean completed = new AtomicBoolean();
+            removeOpenOfferAux(openOffer, null, true, () -> {
+                if (completed.compareAndSet(false, true)) onRemoved.run();
+            }, errorMessage -> {
+                if (!completed.compareAndSet(false, true)) return;
+                log.warn("Error removing open offer {}: {}", openOffer.getId(), errorMessage);
+                failedOfferIds.add(openOffer.getId());
+                onRemoved.run();
+            });
+        });
     }
 
 
@@ -679,27 +716,28 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                                            ErrorMessageHandler errorMessageHandler) {
         try {
             log.info("Canceling and removing open offer: {}", openOffer.getId());
+            Runnable cancelOffer = () -> {
+                try {
+                    doCancelOffer(openOffer);
+                } catch (Throwable t) {
+                    log.warn("Error canceling open offer " + openOffer.getId(), t);
+                    if (errorMessageHandler != null) errorMessageHandler.handleErrorMessage("Error canceling open offer " + openOffer.getId() + ": " + t.getMessage());
+                    return;
+                }
+                if (resultHandler != null) resultHandler.handleResult();
+            };
             if (!offersToBeEdited.containsKey(openOffer.getId())) {
                 if (wasOnOfferBook) {
                     offerBookService.removeOffer(openOffer.getOffer().getOfferPayload(),
-                            () -> {
-                                ThreadUtils.submitToPool(() -> { // TODO: this runs off thread and then shows popup when done. should show overlay spinner until done
-                                    doCancelOffer(openOffer);
-                                    if (resultHandler != null) resultHandler.handleResult();
-                                });
-                            },
+                            () -> ThreadUtils.submitToPool(cancelOffer),
                             errorMessageHandler);
                 } else {
-                    ThreadUtils.submitToPool(() -> {
-                        doCancelOffer(openOffer);
-                        if (resultHandler != null) resultHandler.handleResult();
-                    });
+                    ThreadUtils.submitToPool(cancelOffer);
                 }
             } else {
                 log.warn("Canceling offer {} which is currently in edit mode.", openOffer.getId());
                 offersToBeEdited.remove(openOffer.getId());
-                doCancelOffer(openOffer);
-                if (resultHandler != null) resultHandler.handleResult();
+                cancelOffer.run();
             }
             return true;
         } catch (Throwable t) {
@@ -828,7 +866,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private boolean isOnOfferBook(OpenOffer openOffer) {
         if (!p2PService.isBootstrapped()) return false;
-        return openOffer.isAvailable() || openOffer.isReserved();
+        // a failed removal can leave a canceled offer on the network
+        return openOffer.isAvailable() || openOffer.isReserved() || openOffer.isCanceled();
     }
 
     public void editOpenOfferStart(OpenOffer openOffer,

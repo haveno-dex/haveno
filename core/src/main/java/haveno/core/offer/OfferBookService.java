@@ -53,6 +53,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.util.JsonUtil;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.BootstrapListener;
+import haveno.network.p2p.NetworkNotReadyException;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
@@ -228,7 +229,13 @@ public class OfferBookService {
             return;
         }
 
-        boolean result = p2PService.addProtectedStorageEntry(offer.getOfferPayload());
+        boolean result;
+        try {
+            result = p2PService.addProtectedStorageEntry(offer.getOfferPayload());
+        } catch (NetworkNotReadyException e) {
+            errorMessageHandler.handleErrorMessage("Add offer failed: the P2P network is not bootstrapped yet");
+            return;
+        }
         if (result) {
             resultHandler.handleResult();
         } else {
@@ -244,7 +251,13 @@ public class OfferBookService {
             return;
         }
 
-        boolean result = p2PService.refreshTTL(offerPayload);
+        boolean result;
+        try {
+            result = p2PService.refreshTTL(offerPayload);
+        } catch (NetworkNotReadyException e) {
+            errorMessageHandler.handleErrorMessage("Refresh TTL failed: the P2P network is not bootstrapped yet");
+            return;
+        }
         if (result) {
             resultHandler.handleResult();
         } else {
@@ -253,8 +266,8 @@ public class OfferBookService {
     }
 
     public void activateOffer(Offer offer,
-                              @Nullable ResultHandler resultHandler,
-                              @Nullable ErrorMessageHandler errorMessageHandler) {
+                              ResultHandler resultHandler,
+                              ErrorMessageHandler errorMessageHandler) {
         addOffer(offer, resultHandler, errorMessageHandler);
     }
 
@@ -267,7 +280,15 @@ public class OfferBookService {
     public void removeOffer(OfferPayload offerPayload,
                             @Nullable ResultHandler resultHandler,
                             @Nullable ErrorMessageHandler errorMessageHandler) {
-        if (p2PService.removeData(offerPayload)) {
+        boolean removed;
+        try {
+            removed = p2PService.removeData(offerPayload);
+        } catch (NetworkNotReadyException e) {
+            if (errorMessageHandler != null)
+                errorMessageHandler.handleErrorMessage("Remove offer failed: the P2P network is not bootstrapped yet");
+            return;
+        }
+        if (removed) {
             if (resultHandler != null)
                 resultHandler.handleResult();
         } else {
@@ -289,7 +310,8 @@ public class OfferBookService {
     }
 
     public void removeOfferAtShutDown(OfferPayload offerPayload) {
-        removeOffer(offerPayload, null, null);
+        removeOffer(offerPayload, null, errorMessage ->
+                log.warn("Remove offer at shutdown failed, offerId={}, {}", offerPayload.getId(), errorMessage));
     }
 
     public boolean isBootstrapped() {
