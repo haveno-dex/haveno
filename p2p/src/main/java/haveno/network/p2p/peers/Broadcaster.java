@@ -50,6 +50,7 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
     private Timer timer;
     private boolean shutDownRequested;
     private boolean shutDownComplete;
+    private BroadcastHandler shutDownBroadcastHandler;
     private Runnable shutDownResultHandler;
     private final ListeningExecutorService executor;
     private final Object lock = new Object();
@@ -76,21 +77,15 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
 
     public void shutDown(Runnable resultHandler) {
         log.info("Broadcaster shutdown started");
-        try {
-            synchronized (lock) {
-                shutDownRequested = true;
-                shutDownResultHandler = resultHandler;
-                if (broadcastRequests.isEmpty()) {
-                    doShutDown();
-                } else {
-                    // We set delay of broadcasts and timeout to very low values,
-                    // so we can expect that we get onCompleted called very fast and trigger the
-                    // doShutDown from there.
-                    maybeBroadcastBundle();
-                }
+        synchronized (lock) {
+            shutDownRequested = true;
+            shutDownResultHandler = resultHandler;
+            if (broadcastRequests.isEmpty()) {
+                doShutDown();
+            } else {
+                // Keep the executor available until the shutdown bundle finishes its delayed sends.
+                maybeBroadcastBundle();
             }
-        } finally {
-            executor.shutdown();
         }
     }
 
@@ -117,6 +112,7 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
                     timer = null;
                 }
             } finally {
+                executor.shutdown();
                 shutDownResultHandler.run();
             }
         }
@@ -148,6 +144,7 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
             if (!broadcastRequests.isEmpty()) {
                 BroadcastHandler broadcastHandler = new BroadcastHandler(networkNode, peerManager, this);
                 broadcastHandlers.add(broadcastHandler);
+                if (shutDownRequested) shutDownBroadcastHandler = broadcastHandler;
                 broadcastHandler.broadcast(new ArrayList<>(broadcastRequests), shutDownRequested, executor);
                 broadcastRequests.clear();
 
@@ -167,7 +164,8 @@ public class Broadcaster implements BroadcastHandler.ResultHandler {
     public void onCompleted(BroadcastHandler broadcastHandler) {
         synchronized (lock) {
             broadcastHandlers.remove(broadcastHandler);
-            if (shutDownRequested) {
+            // An older broadcast can finish while the shutdown bundle is still waiting to send.
+            if (broadcastHandler == shutDownBroadcastHandler) {
                 doShutDown();
             }
         }

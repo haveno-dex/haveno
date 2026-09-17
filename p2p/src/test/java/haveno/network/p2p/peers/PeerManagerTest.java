@@ -18,6 +18,7 @@
 package haveno.network.p2p.peers;
 
 import com.google.common.base.Ticker;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
@@ -42,6 +43,7 @@ import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.peers.peerexchange.PeerExchangeManager;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.messages.BroadcastMessage;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import org.junit.jupiter.api.AfterEach;
@@ -64,7 +66,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -90,6 +94,57 @@ public class PeerManagerTest {
     private MockNode node;
     private int maxConnectionsPeer;
     private int maxConnectionsNonDirect;
+
+    @Test
+    public void testShutdownBroadcastWaitsForItsOwnDelayedSends() {
+        NetworkNode networkNode = mock(NetworkNode.class);
+        PeerManager peerManager = mock(PeerManager.class);
+        Connection connection = mock(Connection.class);
+        BroadcastMessage earlierMessage = mock(BroadcastMessage.class);
+        BroadcastMessage removalMessage = mock(BroadcastMessage.class);
+        SettableFuture<Connection> earlierSend = SettableFuture.create();
+        SettableFuture<Connection> removalSend = SettableFuture.create();
+        ArrayDeque<Runnable> sends = new ArrayDeque<>();
+        AtomicInteger completions = new AtomicInteger();
+        AtomicReference<ListeningExecutorService> executor = new AtomicReference<>();
+        when(networkNode.getConfirmedConnections()).thenReturn(Set.of(connection));
+        when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.empty());
+        when(connection.testCapability(any())).thenReturn(true);
+        when(networkNode.sendMessage(eq(connection), eq(earlierMessage), any(ListeningExecutorService.class)))
+                .thenReturn(earlierSend);
+        when(networkNode.sendMessage(eq(connection), eq(removalMessage), any(ListeningExecutorService.class)))
+                .thenAnswer(invocation -> {
+                    executor.set(invocation.getArgument(2));
+                    assertFalse(executor.get().isShutdown());
+                    return removalSend;
+                });
+        Broadcaster broadcaster = new Broadcaster(networkNode, peerManager, 1);
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.runAfter(any(Runnable.class), anyLong(), any(TimeUnit.class)))
+                    .thenReturn(mock(Timer.class));
+            userThread.when(() -> UserThread.runAfterRandomDelay(any(Runnable.class), anyLong(), anyLong(), any(TimeUnit.class)))
+                    .thenAnswer(invocation -> {
+                        sends.add(invocation.getArgument(0));
+                        return mock(Timer.class);
+                    });
+            broadcaster.broadcast(earlierMessage, null);
+            broadcaster.flush();
+            sends.remove().run();
+            broadcaster.broadcast(removalMessage, null);
+            broadcaster.shutDown(completions::incrementAndGet);
+            earlierSend.set(connection);
+            assertEquals(0, completions.get());
+            sends.remove().run();
+            verify(networkNode).sendMessage(eq(connection), eq(removalMessage), any(ListeningExecutorService.class));
+            removalSend.set(connection);
+            assertEquals(1, completions.get());
+            assertTrue(executor.get().isShutdown());
+            broadcaster.broadcast(removalMessage, null);
+            assertTrue(sends.isEmpty());
+        } finally {
+            broadcaster.shutDown(() -> { });
+        }
+    }
 
     @BeforeEach
     public void setUp() throws IOException {
