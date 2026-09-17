@@ -17,18 +17,73 @@
 
 package haveno.common.crypto;
 
+import haveno.common.file.FileUtil;
 import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Random;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class EncryptionTest {
 
     // Sizes around AES block (16) and stream chunk (64 KiB) boundaries, plus an empty payload.
     private static final int[] SIZES = {0, 1, 15, 16, 17, 1000, 65_535, 65_536, 65_537, 100_000, 5_000_000};
+
+    @Test
+    public void testKeyStorageRestrictsExistingKeysBeforeUnlock(@TempDir Path dir) throws Exception {
+        assumeTrue(Files.getFileStore(dir).supportsFileAttributeView(PosixFileAttributeView.class));
+        Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("rwxr-xr-x"));
+        for (KeyStorage.KeyEntry entry : KeyStorage.KeyEntry.values()) {
+            Path file = Files.writeString(dir.resolve(entry.getFileName()), "existing key");
+            Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rw-r--r--"));
+        }
+
+        new KeyStorage(dir.toFile());
+
+        assertEquals(PosixFilePermissions.fromString("rwx------"), Files.getPosixFilePermissions(dir));
+        for (KeyStorage.KeyEntry entry : KeyStorage.KeyEntry.values()) {
+            Path file = dir.resolve(entry.getFileName());
+            assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(file));
+            assertEquals("existing key", Files.readString(file));
+        }
+    }
+
+    @Test
+    public void testKeyStorageRoundTripAndPasswordChange(@TempDir Path dir) throws Exception {
+        KeyStorage storage = new KeyStorage(dir.toFile());
+        KeyRing keys = new KeyRing(storage, null, true);
+        assertTrue(keys.isUnlocked());
+
+        storage.saveKeyRing(keys, null, "password");
+        assertThrows(IncorrectPasswordException.class,
+                () -> storage.loadSecretKey(KeyStorage.KeyEntry.SYM_ENCRYPTION, "wrong"));
+        KeyRing loaded = new KeyRing(storage, "password", false);
+        assertTrue(loaded.isUnlocked());
+        assertArrayEquals(keys.getSymmetricKey().getEncoded(), loaded.getSymmetricKey().getEncoded());
+        assertArrayEquals(keys.getSignatureKeyPair().getPrivate().getEncoded(), loaded.getSignatureKeyPair().getPrivate().getEncoded());
+        assertArrayEquals(keys.getEncryptionKeyPair().getPrivate().getEncoded(), loaded.getEncryptionKeyPair().getPrivate().getEncoded());
+
+        FileUtil.deleteDirectory(dir.toFile());
+        storage.saveKeyRing(keys, null, null);
+        assertTrue(new KeyRing(storage, null, false).isUnlocked());
+        if (Files.getFileStore(dir).supportsFileAttributeView(PosixFileAttributeView.class)) {
+            assertEquals(PosixFilePermissions.fromString("rwx------"), Files.getPosixFilePermissions(dir));
+            for (KeyStorage.KeyEntry entry : KeyStorage.KeyEntry.values()) {
+                assertEquals(PosixFilePermissions.fromString("rw-------"),
+                        Files.getPosixFilePermissions(dir.resolve(entry.getFileName())));
+            }
+        }
+    }
 
     @Test
     public void testStreamWriteMatchesArrayAndRoundTrips() throws CryptoException {
