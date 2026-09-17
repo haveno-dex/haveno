@@ -1,5 +1,8 @@
 package haveno.core.offer;
 
+import haveno.common.ThreadUtils;
+import haveno.common.Timer;
+import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.CorruptedStorageFileHandler;
@@ -9,8 +12,10 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrKeyImagePoller;
+import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.BuyerAsMakerTrade;
+import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradableList;
 import haveno.core.trade.Trade;
@@ -24,10 +29,16 @@ import haveno.network.p2p.peers.PeerManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,9 +54,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -70,6 +85,147 @@ public class OpenOfferManagerTest {
     public void tearDown() {
         persistenceManager.shutdown();
         signedOfferPersistenceManager.shutdown();
+    }
+
+    @Test
+    public void testBulkRemovalReportsFailureAndRetriesCanceledOffer() {
+        P2PService p2PService = mock(P2PService.class);
+        when(p2PService.isBootstrapped()).thenReturn(true);
+        OfferBookService offerBookService = mock(OfferBookService.class);
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            OpenOfferManager manager = createOfferManager(p2PService, offerBookService, mock(XmrConnectionService.class));
+            OpenOffer offer = new OpenOffer(make(btcUsdOffer));
+            offer.setState(OpenOffer.State.AVAILABLE);
+            manager.getObservableList().add(offer);
+            Runnable success = mock(Runnable.class);
+            ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+            ArgumentCaptor<ErrorMessageHandler> removalFailure = ArgumentCaptor.forClass(ErrorMessageHandler.class);
+            ArgumentCaptor<Runnable> drain = ArgumentCaptor.forClass(Runnable.class);
+            userThread.when(() -> UserThread.runAfter(drain.capture(), anyLong(), eq(TimeUnit.MILLISECONDS)))
+                    .thenReturn(mock(Timer.class));
+
+            manager.removeAllOpenOffers(success, failure);
+            verify(offerBookService).removeOffer(eq(offer.getOffer().getOfferPayload()), any(), removalFailure.capture());
+            assertTrue(drain.getAllValues().isEmpty());
+            removalFailure.getValue().handleErrorMessage("Network unavailable");
+            drain.getValue().run();
+            verify(success, never()).run();
+            verify(failure).handleErrorMessage("Offers that could not be removed: " + offer.getId());
+            assertEquals(OpenOffer.State.CANCELED, offer.getState());
+            assertTrue(manager.getObservableList().contains(offer));
+
+            manager.removeAllOpenOffers(success, failure);
+            verify(offerBookService, times(2)).removeOffer(eq(offer.getOffer().getOfferPayload()), any(), any());
+            verify(success, never()).run();
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testBulkRemovalWaitsForLocalCancellation() {
+        P2PService p2PService = mock(P2PService.class);
+        when(p2PService.isBootstrapped()).thenReturn(true);
+        OfferBookService offerBookService = mock(OfferBookService.class);
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        when(walletService.getWalletLock()).thenReturn(new Object());
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        ArrayDeque<Runnable> cancellations = new ArrayDeque<>();
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class)) {
+            OpenOfferManager manager = createOfferManager(p2PService, offerBookService,
+                    mock(XmrConnectionService.class), walletService);
+            OpenOffer offer = new OpenOffer(make(btcUsdOffer));
+            offer.setState(OpenOffer.State.AVAILABLE);
+            manager.getObservableList().add(offer);
+            Runnable success = mock(Runnable.class);
+            ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+            ArgumentCaptor<ResultHandler> removed = ArgumentCaptor.forClass(ResultHandler.class);
+            ArgumentCaptor<Runnable> drain = ArgumentCaptor.forClass(Runnable.class);
+            userThread.when(() -> UserThread.runAfter(drain.capture(), anyLong(), eq(TimeUnit.MILLISECONDS)))
+                    .thenReturn(mock(Timer.class));
+            threadUtils.when(() -> ThreadUtils.submitToPool(any(Runnable.class))).thenAnswer(invocation -> {
+                cancellations.add(invocation.getArgument(0));
+                return CompletableFuture.completedFuture(null);
+            });
+
+            manager.removeAllOpenOffers(success, failure);
+            verify(offerBookService).removeOffer(any(), removed.capture(), any());
+            removed.getValue().handleResult();
+            assertTrue(drain.getAllValues().isEmpty());
+            verify(success, never()).run();
+            cancellations.remove().run();
+            assertTrue(manager.getObservableList().isEmpty());
+            drain.getValue().run();
+            verify(success).run();
+            verify(failure, never()).handleErrorMessage(anyString());
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testBulkRemovalRequiresNetworkOnlyBeforeWalletReplacement() {
+        OfferBookService offerBookService = mock(OfferBookService.class);
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        when(walletService.getWalletLock()).thenReturn(new Object());
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        ArrayDeque<Runnable> cancellations = new ArrayDeque<>();
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class)) {
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), offerBookService,
+                    mock(XmrConnectionService.class), walletService);
+            OpenOffer offer = new OpenOffer(make(btcUsdOffer));
+            offer.setState(OpenOffer.State.AVAILABLE);
+            manager.getObservableList().add(offer);
+            Runnable success = mock(Runnable.class);
+            ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+            ArgumentCaptor<Runnable> drain = ArgumentCaptor.forClass(Runnable.class);
+            userThread.when(() -> UserThread.runAfter(drain.capture(), anyLong(), eq(TimeUnit.MILLISECONDS)))
+                    .thenReturn(mock(Timer.class));
+            threadUtils.when(() -> ThreadUtils.submitToPool(any(Runnable.class))).thenAnswer(invocation -> {
+                cancellations.add(invocation.getArgument(0));
+                return CompletableFuture.completedFuture(null);
+            });
+
+            manager.removeAllOpenOffers(success, failure);
+            verify(failure).handleErrorMessage("Cannot remove published offers before the P2P network is ready");
+            verify(success, never()).run();
+            assertEquals(OpenOffer.State.AVAILABLE, offer.getState());
+            assertTrue(cancellations.isEmpty());
+
+            manager.removeAllOpenOffers(success);
+            cancellations.remove().run();
+            drain.getValue().run();
+            verify(success).run();
+            assertTrue(manager.getObservableList().isEmpty());
+            verify(offerBookService, never()).removeOffer(any(), any(), any());
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testOfferBookReportsNetworkNotReadyThroughHandlers(@TempDir Path storageDir) {
+        P2PService p2PService = mock(P2PService.class);
+        XmrConnectionService connectionService = mock(XmrConnectionService.class);
+        when(connectionService.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
+        OfferBookService service = new OfferBookService(p2PService, null, mock(FilterManager.class), connectionService,
+                storageDir.toFile(), false);
+        Offer offer = make(btcUsdOffer);
+        ResultHandler success = mock(ResultHandler.class);
+        ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+        when(p2PService.addProtectedStorageEntry(any())).thenThrow(new NetworkNotReadyException());
+        when(p2PService.refreshTTL(any())).thenThrow(new NetworkNotReadyException());
+        when(p2PService.removeData(any())).thenThrow(new NetworkNotReadyException());
+
+        service.addOffer(offer, success, failure);
+        service.refreshTTL(offer.getOfferPayload(), success, failure);
+        service.removeOffer(offer.getOfferPayload(), success, failure);
+        service.removeOfferAtShutDown(offer.getOfferPayload());
+        verify(success, never()).handleResult();
+        verify(failure, times(3)).handleErrorMessage(anyString());
     }
 
     @Test
@@ -627,7 +783,7 @@ public class OpenOfferManagerTest {
                 xmrWalletService,
                 null,
                 offerBookService,
-                null,
+                mock(ClosedTradableManager.class),
                 null,
                 null,
                 null,

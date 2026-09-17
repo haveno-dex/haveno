@@ -55,7 +55,8 @@ public class SharedPresentation {
                     new Popup().warning(Res.get("seed.restore.openOffers.warn"))
                             .actionButtonText(Res.get("shared.yes"))
                             .onAction(() -> openOfferManager.removeAllOpenOffers(() ->
-                                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate)))
+                                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate),
+                                    errorMessage -> new Popup().error(errorMessage).show()))
                             .show();
                 } else {
                     doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);
