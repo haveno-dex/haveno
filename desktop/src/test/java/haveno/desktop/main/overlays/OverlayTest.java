@@ -20,6 +20,8 @@ package haveno.desktop.main.overlays;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.crypto.PubKeyRingProvider;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.Res;
 import haveno.core.support.SupportType;
@@ -28,8 +30,11 @@ import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.support.traderchat.TraderChatManager;
+import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.WithDataModel;
@@ -43,8 +48,12 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesDataModel;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesListItem;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.proto.grpc.NotificationMessage;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -84,6 +93,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -93,6 +103,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -652,6 +663,106 @@ public class OverlayTest {
         protected void animateHide(Runnable onFinishedHandler) {
             if (deferHide) finishHide = () -> super.animateHide(onFinishedHandler);
             else super.animateHide(onFinishedHandler);
+        }
+    }
+
+    @Nested
+    class TraderChatAccess {
+        private final Trade trade = mock(Trade.class);
+        private final TradeManager tradeManager = mock(TradeManager.class);
+        private final P2PService p2PService = mock(P2PService.class);
+        private final MailboxMessageService mailboxMessageService = mock(MailboxMessageService.class);
+        private final PubKeyRingProvider pubKeyRingProvider = mock(PubKeyRingProvider.class);
+        private final ChatMessage message = mock(ChatMessage.class);
+        private TraderChatManager traderChatManager;
+
+        @BeforeEach
+        void setUp() {
+            when(message.getTradeId()).thenReturn("trade-id");
+            when(tradeManager.getOpenTrade("trade-id")).thenReturn(Optional.of(trade));
+            when(p2PService.getMailboxMessageService()).thenReturn(mailboxMessageService);
+            traderChatManager = new TraderChatManager(p2PService, null, null, null, tradeManager, pubKeyRingProvider);
+        }
+
+        @Test
+        void arbitratorCannotStoreOrSendTraderChat() {
+            when(trade.isArbitrator()).thenReturn(true);
+            Contract contract = mock(Contract.class);
+            when(trade.getContract()).thenReturn(contract);
+            assertThrows(IllegalArgumentException.class, () -> traderChatManager.addAndPersistChatMessage(message));
+            assertThrows(IllegalArgumentException.class, () -> traderChatManager.addSystemMsg(trade));
+            assertThrows(IllegalArgumentException.class, () -> traderChatManager.sendChatMessage(message));
+            assertThrows(IllegalArgumentException.class, () -> traderChatManager.getPeerPubKeyRing(message));
+            verify(trade, never()).getChatMessages();
+            verify(trade, never()).addAndPersistChatMessage(any());
+            verify(tradeManager, never()).requestPersistence();
+            verifyNoInteractions(contract);
+            verify(mailboxMessageService, never()).sendEncryptedMailboxMessage(any(), any(), any(), any());
+        }
+
+        @Test
+        void arbitratorDiscardsMisroutedTraderChatAfterVerifyingSender() {
+            DecryptedMessageWithPubKey decryptedMessage = mock(DecryptedMessageWithPubKey.class);
+            when(tradeManager.getTrade("trade-id")).thenReturn(trade);
+            when(trade.isArbitrator()).thenReturn(true);
+            when(message.getSupportType()).thenReturn(SupportType.TRADE);
+            when(trade.getVerifiedTradePeer(decryptedMessage)).thenReturn(mock(TradePeer.class));
+            traderChatManager.onSupportMessage(decryptedMessage, message);
+            verify(trade).getVerifiedTradePeer(decryptedMessage);
+            verify(mailboxMessageService).removeMailboxMsg(message);
+            verify(trade, never()).addAndPersistChatMessage(any());
+            verify(tradeManager, never()).requestPersistence();
+            verify(mailboxMessageService, never()).sendEncryptedMailboxMessage(any(), any(), any(), any());
+        }
+
+        @Test
+        void arbitratorRejectsUnverifiedSenderBeforeDiscardingTraderChat() {
+            DecryptedMessageWithPubKey decryptedMessage = mock(DecryptedMessageWithPubKey.class);
+            when(tradeManager.getTrade("trade-id")).thenReturn(trade);
+            when(trade.isArbitrator()).thenReturn(true);
+            when(message.getSupportType()).thenReturn(SupportType.TRADE);
+            traderChatManager.onSupportMessage(decryptedMessage, message);
+            verify(trade).getVerifiedTradePeer(decryptedMessage);
+            verify(mailboxMessageService, never()).removeMailboxMsg(any());
+            verify(trade, never()).addAndPersistChatMessage(any());
+        }
+
+        @Test
+        void traderCanStoreChat() {
+            ChatMessage rules = mock(ChatMessage.class);
+            when(rules.getUid()).thenReturn("rules");
+            when(message.getUid()).thenReturn("message");
+            when(trade.getChatMessages()).thenReturn(FXCollections.observableArrayList(rules));
+            traderChatManager.addAndPersistChatMessage(message);
+            verify(trade).addAndPersistChatMessage(message);
+            verify(tradeManager).requestPersistence();
+        }
+
+        @Test
+        void traderCanSendChatToTheirPeer() {
+            Contract contract = mock(Contract.class);
+            PubKeyRing myPubKeyRing = mock(PubKeyRing.class);
+            PubKeyRing peerPubKeyRing = mock(PubKeyRing.class);
+            NodeAddress peerAddress = new NodeAddress("peer.onion:9999");
+            when(trade.getContract()).thenReturn(contract);
+            when(pubKeyRingProvider.get()).thenReturn(myPubKeyRing);
+            when(contract.getPeersNodeAddress(myPubKeyRing)).thenReturn(peerAddress);
+            when(contract.getPeersPubKeyRing(myPubKeyRing)).thenReturn(peerPubKeyRing);
+            when(message.copy()).thenReturn(message);
+            traderChatManager.sendChatMessage(message);
+            verify(mailboxMessageService).sendEncryptedMailboxMessage(eq(peerAddress), eq(peerPubKeyRing), eq(message), any());
+        }
+
+        @Test
+        void arbitratorCannotOpenTraderChat() throws ReflectiveOperationException {
+            when(trade.isArbitrator()).thenReturn(true);
+            PendingTradesView view = mock(PendingTradesView.class, CALLS_REAL_METHODS);
+            var openChat = PendingTradesView.class.getDeclaredMethod("openChat", Trade.class);
+            openChat.setAccessible(true);
+            InvocationTargetException exception = assertThrows(InvocationTargetException.class, () -> openChat.invoke(view, trade));
+            assertTrue(exception.getCause() instanceof IllegalArgumentException);
+            assertEquals("Arbitrators cannot use trader chat", exception.getCause().getMessage());
+            verify(trade, never()).getChatMessages();
         }
     }
 
