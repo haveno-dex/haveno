@@ -324,8 +324,8 @@ public abstract class Overlay<T extends Overlay<T>> {
             if (window != null && positionListener != null) {
                 window.xProperty().removeListener(positionListener);
                 window.yProperty().removeListener(positionListener);
-                window.widthProperty().removeListener(positionListener);
-                window.heightProperty().removeListener(positionListener);
+                rootScene.widthProperty().removeListener(positionListener);
+                rootScene.heightProperty().removeListener(positionListener);
             }
         }
     }
@@ -621,7 +621,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                     // owner stage does not move the child stage, on Mac popups sometimes end up outside the app.
                     positionListener = (observable, oldValue, newValue) -> {
                         if (stage != null) {
-                            boolean resized = observable == window.widthProperty() || observable == window.heightProperty();
+                            boolean resized = observable == rootScene.widthProperty() || observable == rootScene.heightProperty();
                             if (resized) refitToContent(); else layout();
                             if (centerTime != null)
                                 centerTime.stop();
@@ -631,8 +631,9 @@ public abstract class Overlay<T extends Overlay<T>> {
                     };
                     window.xProperty().addListener(positionListener);
                     window.yProperty().addListener(positionListener);
-                    window.widthProperty().addListener(positionListener);
-                    window.heightProperty().addListener(positionListener);
+                    // Re-fit when the scene dimensions settle, which can happen after the window resize callback.
+                    rootScene.widthProperty().addListener(positionListener);
+                    rootScene.heightProperty().addListener(positionListener);
 
                     // content can settle taller after the initial fit (fonts, styled rows), so watch
                     // layout requests for the popup's lifetime and re-fit when its height demand changes
@@ -702,6 +703,10 @@ public abstract class Overlay<T extends Overlay<T>> {
         return gridPane;
     }
 
+    protected Insets getCardInsets() {
+        return new Insets(CARD_INSET);
+    }
+
     // the outermost visible popup node: the scroll shell when capped, else the content itself
     protected Region getDisplayContainer() {
         return capShell != null ? capShell : getRootContainer();
@@ -730,16 +735,17 @@ public abstract class Overlay<T extends Overlay<T>> {
         // along to keep their text styling, while the shell style flattens their insets and shadow
         capShell = new StackPane(scrollRoot);
         capShell.getStyleClass().add("popup-scroll-shell");
-        for (String style : new String[]{"popup-bg", "popup-bg-top", "popup-dropshadow"})
+        for (String style : new String[]{"popup-bg", "popup-bg-top", "notification-popup-bg", "popup-dropshadow"})
             if (rootContainer.getStyleClass().remove(style)) capShell.getStyleClass().add(style);
         rootContainer.setTranslateY(0); // clear the top-anchor settle offset if the cap engages mid-display
         // the card edge replaces the shadow margin, so drop it from the content's padding to keep the normal card-edge distance
         Insets padding = rootContainer.getPadding();
+        Insets cardInsets = getCardInsets();
         rootContainer.setPadding(new Insets(
-                Math.max(0, padding.getTop() - CARD_INSET),
-                Math.max(0, padding.getRight() - CARD_INSET),
-                Math.max(0, padding.getBottom() - CARD_INSET),
-                Math.max(0, padding.getLeft() - CARD_INSET)));
+                Math.max(0, padding.getTop() - cardInsets.getTop()),
+                Math.max(0, padding.getRight() - cardInsets.getRight()),
+                Math.max(0, padding.getBottom() - cardInsets.getBottom()),
+                Math.max(0, padding.getLeft() - cardInsets.getLeft())));
         // a slim transparent frame around the card leaves room for its shadow, so it still reads as a card;
         // inline style beats the .root background every scene root gets painted with
         StackPane shadowFrame = new StackPane(capShell);
@@ -747,7 +753,8 @@ public abstract class Overlay<T extends Overlay<T>> {
         shadowFrame.setStyle("-fx-background-color: transparent;");
         scene.setRoot(shadowFrame);
         scrollRoot.setContent(rootContainer);
-        capShell.setPrefSize(Math.min(stage.getWidth() - 2 * CARD_INSET, maxWidth), Math.min(stage.getHeight() - 2 * CARD_INSET, maxHeight));
+        capShell.setPrefSize(Math.min(stage.getWidth() - cardInsets.getLeft() - cardInsets.getRight(), maxWidth),
+                Math.min(stage.getHeight() - cardInsets.getTop() - cardInsets.getBottom(), maxHeight));
         stage.sizeToScene();
         cappedToScreen = true;
     }
@@ -774,7 +781,8 @@ public abstract class Overlay<T extends Overlay<T>> {
             constrainToScreen(stage.getScene()); // no-op while the content still fits
         } else {
             Region rootContainer = getRootContainer();
-            double cardWidth = Math.max(rootContainer.prefWidth(-1), rootContainer.minWidth(-1)) - 2 * CARD_INSET;
+            Insets cardInsets = getCardInsets();
+            double cardWidth = Math.max(rootContainer.prefWidth(-1), rootContainer.minWidth(-1)) - cardInsets.getLeft() - cardInsets.getRight();
             capShell.setPrefSize(Math.min(cardWidth, maxPopupWidth()),
                     Math.min(rootContainer.prefHeight(rootContainer.getWidth()), maxPopupHeight()));
         }
@@ -829,7 +837,8 @@ public abstract class Overlay<T extends Overlay<T>> {
         double translateY = 0;
         if (type.animationType == AnimationType.SlideFromRightTop) {
             scale = 1;
-            translateX = animate ? 16 : 0;
+            Insets cardInsets = getCardInsets();
+            translateX = animate ? Math.min(16, Math.min(cardInsets.getLeft(), cardInsets.getRight())) : 0;
         } else if (type.animationType == AnimationType.SlideDownFromCenterTop) {
             scale = 1;
             translateY = (capShell != null ? 0 : -50) - (animate ? 8 : 0);
