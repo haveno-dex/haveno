@@ -28,6 +28,17 @@ public class Popup extends Overlay<Popup> {
     }
 
     @Override
+    protected void setupInitialFocus() {
+        super.setupInitialFocus();
+        if (messageTextArea == null) {
+            if (actionButton != null && actionButton.isDefaultButton())
+                actionButton.requestFocus();
+            else if (closeButton != null && closeButton.isDefaultButton())
+                closeButton.requestFocus();
+        }
+    }
+
+    @Override
     protected void onShow() {
         PopupManager.queueForDisplay(this);
     }
