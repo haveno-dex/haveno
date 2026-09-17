@@ -17,23 +17,60 @@
 
 package haveno.desktop.util;
 
+import haveno.common.UserThread;
+import haveno.common.reactfx.FxTimer;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
+import haveno.desktop.common.UITimer;
+import javafx.application.Platform;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import java.math.BigInteger;
+import java.time.Duration;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
 public class GUIUtilTest {
+
+    @Test
+    public void testStoppedUITimerIgnoresCallbackBeforeFxStopRuns() {
+        for (boolean periodic : new boolean[]{false, true}) {
+            try (MockedStatic<Platform> platform = mockStatic(Platform.class);
+                 MockedStatic<FxTimer> fxTimers = mockStatic(FxTimer.class);
+                 MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+                FxTimer fxTimer = mock(FxTimer.class);
+                Runnable action = mock(Runnable.class);
+                ArgumentCaptor<Runnable> callback = ArgumentCaptor.forClass(Runnable.class);
+                platform.when(Platform::isFxApplicationThread).thenReturn(true);
+                if (periodic) fxTimers.when(() -> FxTimer.createPeriodic(any(Duration.class), callback.capture())).thenReturn(fxTimer);
+                else fxTimers.when(() -> FxTimer.create(any(Duration.class), callback.capture())).thenReturn(fxTimer);
+                UITimer timer = new UITimer();
+                if (periodic) timer.runPeriodically(Duration.ofSeconds(1), action);
+                else timer.runLater(Duration.ofSeconds(1), action);
+
+                platform.when(Platform::isFxApplicationThread).thenReturn(false);
+                timer.stop();
+                userThread.verify(() -> UserThread.execute(any(Runnable.class)));
+                verify(fxTimer, never()).stop();
+                callback.getValue().run();
+                verify(action, never()).run();
+            }
+        }
+    }
 
     @BeforeEach
     public void setup() {

@@ -39,7 +39,7 @@ public class UITimer implements Timer {
         executeDirectlyIfPossible(() -> {
             if (stopped) return;
             if (timer == null) {
-                timer = FxTimer.create(delay, runnable);
+                timer = FxTimer.create(delay, guarded(runnable));
                 timer.restart();
             } else {
                 log.warn("runLater called on an already running timer.");
@@ -53,7 +53,7 @@ public class UITimer implements Timer {
         executeDirectlyIfPossible(() -> {
             if (stopped) return;
             if (timer == null) {
-                timer = FxTimer.createPeriodic(interval, runnable);
+                timer = FxTimer.createPeriodic(interval, guarded(runnable));
                 timer.restart();
             } else {
                 log.warn("runPeriodically called on an already running timer.");
@@ -79,5 +79,11 @@ public class UITimer implements Timer {
         } else {
             UserThread.execute(runnable);
         }
+    }
+
+    private Runnable guarded(Runnable runnable) {
+        return () -> {
+            if (!stopped) runnable.run();
+        };
     }
 }
