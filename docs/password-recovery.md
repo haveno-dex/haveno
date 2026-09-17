@@ -8,7 +8,7 @@ Quitting during a password change waits for it to finish, subject to the usual f
 
 ## Recovery in the application
 
-On the login screen, choose **Help** in the bottom-left corner, then **Open password repair...**. You can also choose **Repair a password change...** under **Account > Wallet password**, after an account startup failure, or after a wallet password error during startup.
+On the login screen, choose **Help** in the bottom-left corner, then **Open password repair...**. You can also choose **Repair a password change...** under **Account > Account password**, after an account startup failure, or after a wallet password error during startup.
 
 Haveno closes and opens a separate recovery screen for the same profile. Wait for shutdown to finish, then use **Open directory** to make a complete copy of the application data folder before proceeding. Close any other Haveno or wallet applications using this data.
 
