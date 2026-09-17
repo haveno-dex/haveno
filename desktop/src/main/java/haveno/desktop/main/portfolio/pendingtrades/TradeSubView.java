@@ -130,6 +130,7 @@ public abstract class TradeSubView extends VBox {
         chatButton.setGraphic(GlyphsDude.createIcon(MaterialDesignIcon.COMMENT_OUTLINE, "16"));
         chatButton.getGraphic().getStyleClass().add("trade-chat-icon");
         chatButton.setGraphicTextGap(10);
+        chatButton.setDisable(trade.isArbitrator());
         chatButton.setOnAction(event -> {
             if (!completed && !trade.isPayoutPublished() && chatCallback != null) chatCallback.onOpenChat(trade);
             updateChatBadge();

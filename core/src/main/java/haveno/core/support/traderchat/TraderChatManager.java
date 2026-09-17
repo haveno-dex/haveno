@@ -42,6 +42,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import lombok.extern.slf4j.Slf4j;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 @Slf4j
 @Singleton
 public class TraderChatManager extends SupportManager {
@@ -86,6 +88,7 @@ public class TraderChatManager extends SupportManager {
     @Override
     public NodeAddress getPeerNodeAddress(ChatMessage message) {
         return tradeManager.getOpenTrade(message.getTradeId()).map(trade -> {
+            checkArgument(!trade.isArbitrator(), "Arbitrators cannot use trader chat");
             if (trade.getContract() != null) {
                 return trade.getContract().getPeersNodeAddress(pubKeyRingProvider.get());
             } else {
@@ -97,6 +100,7 @@ public class TraderChatManager extends SupportManager {
     @Override
     public PubKeyRing getPeerPubKeyRing(ChatMessage message) {
         return tradeManager.getOpenTrade(message.getTradeId()).map(trade -> {
+            checkArgument(!trade.isArbitrator(), "Arbitrators cannot use trader chat");
             if (trade.getContract() != null) {
                 return trade.getContract().getPeersPubKeyRing(pubKeyRingProvider.get());
             } else {
@@ -119,6 +123,7 @@ public class TraderChatManager extends SupportManager {
     @Override
     public void addAndPersistChatMessage(ChatMessage message) {
         tradeManager.getOpenTrade(message.getTradeId()).ifPresent(trade -> {
+            checkArgument(!trade.isArbitrator(), "Arbitrators cannot use trader chat");
             ObservableList<ChatMessage> chatMessages = trade.getChatMessages();
             if (chatMessages.stream().noneMatch(m -> m.getUid().equals(message.getUid()))) {
                 if (chatMessages.isEmpty()) {
@@ -170,6 +175,12 @@ public class TraderChatManager extends SupportManager {
                         message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
                 super.onSupportMessage(decryptedMessageWithPubKey, message);
                 if (message instanceof ChatMessage) {
+                    Trade trade = tradeManager.getTrade(message.getTradeId());
+                    if (trade != null && trade.isArbitrator()) {
+                        log.warn("Discarding trader chat message for arbitrator. TradeId = {}, uid = {}", message.getTradeId(), message.getUid());
+                        mailboxMessageService.removeMailboxMsg(message);
+                        return;
+                    }
                     handle((ChatMessage) message);
                 } else {
                     log.warn("Unsupported message at dispatchMessage. message={}", message);
@@ -181,6 +192,7 @@ public class TraderChatManager extends SupportManager {
     }
 
     public void addSystemMsg(Trade trade) {
+        checkArgument(!trade.isArbitrator(), "Arbitrators cannot use trader chat");
         // We need to use the trade date as otherwise our system msg would not be displayed first as the list is sorted
         // by date.
         ChatMessage chatMessage = new ChatMessage(

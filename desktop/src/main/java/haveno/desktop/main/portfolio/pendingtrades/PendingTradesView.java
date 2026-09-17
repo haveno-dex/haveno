@@ -555,6 +555,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     }
 
     private void openChat(Trade trade) {
+        if (trade.isArbitrator()) throw new IllegalArgumentException("Arbitrators cannot use trader chat");
         if (chatPopupStage != null)
             chatPopupStage.close();
 
@@ -1067,6 +1068,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                         badge = badgeByTrade.get(id);
                                     }
 
+                                    button.setDisable(trade.isArbitrator());
                                     button.setOnAction(e -> {
                                         tableView.getSelectionModel().select(newItem);
                                         openChat(trade);
