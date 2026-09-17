@@ -52,9 +52,6 @@ import static haveno.desktop.util.FormBuilder.addSeparator;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import haveno.desktop.util.Layout;
 import haveno.network.p2p.NodeAddress;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.value.ChangeListener;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -82,8 +79,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     private final BtcWalletService btcWalletService;
     private final AccountAgeWitnessService accountAgeWitnessService;
     private Trade trade;
-    private ChangeListener<Number> changeListener;
-    private TextArea textArea;
     private String buyersAccountAge;
     private String sellersAccountAge;
 
@@ -120,12 +115,6 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Protected
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    protected void cleanup() {
-        if (textArea != null)
-            textArea.scrollTopProperty().removeListener(changeListener);
-    }
 
     @Override
     protected void createGridPane() {
@@ -293,20 +282,12 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
 
         if (trade.hasFailed()) {
             addSeparator(gridPane, ++rowIndex);
-            textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("shared.errorMessage"), "", 0).second;
+            TextArea textArea = addConfirmationLabelTextArea(gridPane, ++rowIndex, Res.get("shared.errorMessage"), "", 0).second;
             textArea.setText(trade.getErrorMessage());
+            textArea.setMaxHeight(Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
             textArea.setEditable(false);
             //TODO paint red
-
-            IntegerProperty count = new SimpleIntegerProperty(20);
-            int rowHeight = 10;
-            textArea.prefHeightProperty().bindBidirectional(count);
-            changeListener = (ov, old, newVal) -> {
-                if (newVal.intValue() > rowHeight)
-                    count.setValue(count.get() + newVal.intValue() + 10);
-            };
-            textArea.scrollTopProperty().addListener(changeListener);
-            textArea.setScrollTop(30);
+            GUIUtil.adjustHeightAutomatically(textArea, Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT);
 
             addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradePhase"), trade.getPhase().name());
