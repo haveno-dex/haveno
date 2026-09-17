@@ -17,34 +17,83 @@
 
 package haveno.desktop.util;
 
+import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.reactfx.FxTimer;
+import haveno.core.app.TorSetup;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.desktop.common.UITimer;
+import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
+import haveno.network.p2p.network.NetworkNode;
 import javafx.application.Platform;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 
 public class GUIUtilTest {
+
+    @Test
+    public void testTorFilesAreKeptWhenShutdownFails() throws Exception {
+        NetworkNode node = mock(NetworkNode.class);
+        TorSetup torSetup = mock(TorSetup.class);
+        TorNetworkSettingsWindow window = new TorNetworkSettingsWindow(mock(Preferences.class), node, torSetup);
+        Runnable success = mock(Runnable.class);
+        ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+        ArgumentCaptor<ErrorMessageHandler> shutdownFailure = ArgumentCaptor.forClass(ErrorMessageHandler.class);
+        Method cleanTorDir = TorNetworkSettingsWindow.class.getDeclaredMethod("cleanTorDir", Runnable.class, ErrorMessageHandler.class);
+        cleanTorDir.setAccessible(true);
+        cleanTorDir.invoke(window, success, failure);
+        verify(node).shutDown(any(Runnable.class), shutdownFailure.capture());
+
+        shutdownFailure.getValue().handleErrorMessage("Tor shutdown is still in progress");
+        verifyNoInteractions(torSetup);
+        verify(success, never()).run();
+        verify(failure).handleErrorMessage(Res.get("torNetworkSettingWindow.deleteFiles.shutdownFailed"));
+    }
+
+    @Test
+    public void testTorFilesAreDeletedAfterSuccessfulShutdownAndGracePeriod() throws Exception {
+        NetworkNode node = mock(NetworkNode.class);
+        TorSetup torSetup = mock(TorSetup.class);
+        TorNetworkSettingsWindow window = new TorNetworkSettingsWindow(mock(Preferences.class), node, torSetup);
+        Runnable success = mock(Runnable.class);
+        ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+        ArgumentCaptor<Runnable> shutdownComplete = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> delayedCleanup = ArgumentCaptor.forClass(Runnable.class);
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.runAfter(delayedCleanup.capture(), eq(3L))).thenReturn(mock(Timer.class));
+            Method cleanTorDir = TorNetworkSettingsWindow.class.getDeclaredMethod("cleanTorDir", Runnable.class, ErrorMessageHandler.class);
+            cleanTorDir.setAccessible(true);
+            cleanTorDir.invoke(window, success, failure);
+            verify(node).shutDown(shutdownComplete.capture(), any(ErrorMessageHandler.class));
+            shutdownComplete.getValue().run();
+            verifyNoInteractions(torSetup);
+            delayedCleanup.getValue().run();
+            verify(torSetup).cleanupTorFiles(success, failure);
+        }
+    }
 
     @Test
     public void testStoppedUITimerIgnoresCallbackBeforeFxStopRuns() {

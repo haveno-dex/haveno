@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,24 +122,35 @@ class Server implements Runnable {
     }
 
     public void shutDown() {
+        shutDown(Runnable::run);
+    }
+
+    void shutDown(Executor socketShutdownExecutor) {
         log.info("Server shutdown started");
         if (isServerActive()) {
             serverThread.interrupt();
             connections.forEach(connection -> connection.shutDown(CloseConnectionReason.APP_SHUT_DOWN));
 
+            // Hidden-service socket close sends a synchronous Tor control request.
             try {
-                if (!serverSocket.isClosed()) {
-                    serverSocket.close();
-                }
-            } catch (SocketException e) {
-                log.debug("SocketException at shutdown might be expected " + e.getMessage());
-            } catch (IOException e) {
-                log.debug("Exception at shutdown. " + e.getMessage());
-            } finally {
-                log.debug("Server shutdown complete");
+                socketShutdownExecutor.execute(this::closeServerSocket);
+            } catch (RejectedExecutionException e) {
+                log.warn("Could not schedule the server socket close", e);
             }
         } else {
             log.warn("stopped already called ast shutdown");
+        }
+    }
+
+    private void closeServerSocket() {
+        try {
+            if (!serverSocket.isClosed()) serverSocket.close();
+        } catch (SocketException e) {
+            log.debug("SocketException at shutdown might be expected " + e.getMessage());
+        } catch (IOException e) {
+            log.debug("Exception at shutdown. " + e.getMessage());
+        } finally {
+            log.debug("Server shutdown complete");
         }
     }
 

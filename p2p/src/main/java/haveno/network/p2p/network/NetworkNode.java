@@ -22,6 +22,7 @@ import haveno.network.p2p.NodeAddress;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.Capabilities;
+import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
 import haveno.common.util.Utilities;
@@ -369,12 +370,17 @@ public abstract class NetworkNode implements MessageListener {
         });
     }
 
+    // Callers which require resources to be released can handle an incomplete shutdown separately.
+    public void shutDown(Runnable shutDownCompleteHandler, ErrorMessageHandler errorMessageHandler) {
+        shutDown(shutDownCompleteHandler);
+    }
+
     public void shutDown(Runnable shutDownCompleteHandler) {
         log.info("NetworkNode shutdown started");
         if (!isShutDownStarted) {
             isShutDownStarted = true;
             if (server != null) {
-                server.shutDown();
+                shutDownServer(server);
                 server = null;
             }
 
@@ -470,6 +476,10 @@ public abstract class NetworkNode implements MessageListener {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Protected
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    void shutDownServer(Server server) {
+        server.shutDown();
+    }
 
     void startServer(ServerSocket serverSocket) {
         ConnectionListener connectionListener = new ConnectionListener() {

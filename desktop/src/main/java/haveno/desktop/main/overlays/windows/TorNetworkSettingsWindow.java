@@ -21,6 +21,7 @@ package haveno.desktop.main.overlays.windows;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.UserThread;
+import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple4;
 import haveno.common.util.Utilities;
@@ -208,6 +209,13 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
                         .useShutDownButton()
                         .hideCloseButton()
                         .show();
+            }, errorMessage -> {
+                tuple.second.stop();
+                tuple.third.setText("");
+                new Popup().error(errorMessage)
+                        .useShutDownButton()
+                        .hideCloseButton()
+                        .show();
             });
         });
 
@@ -296,13 +304,16 @@ public class TorNetworkSettingsWindow extends Overlay<TorNetworkSettingsWindow> 
         });
     }
 
-    private void cleanTorDir(Runnable resultHandler) {
+    private void cleanTorDir(Runnable resultHandler, ErrorMessageHandler errorMessageHandler) {
         // We shut down Tor to be able to delete locked files (Windows locks files used by a process)
         networkNode.shutDown(() -> {
             // We give it a bit extra time to be sure that OS locks are removed
             UserThread.runAfter(() -> {
-                torSetup.cleanupTorFiles(resultHandler, errorMessage -> new Popup().error(errorMessage).show());
+                torSetup.cleanupTorFiles(resultHandler, errorMessageHandler);
             }, 3);
+        }, errorMessage -> {
+            log.warn("Cannot delete Tor files: {}", errorMessage);
+            errorMessageHandler.handleErrorMessage(Res.get("torNetworkSettingWindow.deleteFiles.shutdownFailed"));
         });
     }
 
