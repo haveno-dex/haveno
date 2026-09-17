@@ -33,6 +33,8 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.user.Preferences;
 import haveno.core.util.coin.CoinFormatter;
 
+import haveno.common.util.Utilities;
+
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -133,7 +135,7 @@ public class DisputeChatPopup {
         Scene scene = new Scene(pane);
         CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), false);
         scene.addEventHandler(KeyEvent.KEY_RELEASED, ev -> {
-            if (ev.getCode() == KeyCode.ESCAPE) {
+            if (ev.getCode() == KeyCode.ESCAPE || Utilities.isCtrlPressed(KeyCode.W, ev)) {
                 ev.consume();
                 chatPopupStage.hide();
             }

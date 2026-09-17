@@ -617,7 +617,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         Scene scene = new Scene(pane);
         CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), useDevModeHeader);
         scene.addEventHandler(KeyEvent.KEY_RELEASED, ev -> {
-            if (ev.getCode() == KeyCode.ESCAPE) {
+            if (ev.getCode() == KeyCode.ESCAPE || Utilities.isCtrlPressed(KeyCode.W, ev)) {
                 ev.consume();
                 chatPopupStage.hide();
             }
