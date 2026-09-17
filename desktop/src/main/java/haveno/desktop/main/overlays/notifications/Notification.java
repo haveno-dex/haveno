@@ -27,13 +27,16 @@ import haveno.desktop.util.FormBuilder;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
+import javafx.scene.Scene;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
 public class Notification extends Overlay<Notification> {
     private static final int AUTO_CLOSE_MILLIS = 6000;
-    private static final int BORDER_PADDING = 10;
+    private static final int CARD_INSET = 10;
+    private static final int SHADOW_INSET = 44;
 
     private boolean hasBeenDisplayed;
     private boolean autoClose;
@@ -45,7 +48,7 @@ public class Notification extends Overlay<Notification> {
     private BooleanSupplier displayCondition = () -> true;
 
     public Notification() {
-        width = 413; // 320 visible bg because of insets
+        width = 379; // 325 visible bg because of insets
         NotificationCenter.add(this);
         type = Type.Notification;
     }
@@ -209,9 +212,11 @@ public class Notification extends Overlay<Notification> {
 
 
     @Override
-    protected void createGridPane() {
-        super.createGridPane();
-        gridPane.setPadding(new Insets(62, 62, 62, 62));
+    protected Insets getCardInsets() {
+        // an RTL root is mirrored, so the trimmed side is the logical left
+        boolean rtl = gridPane.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
+        return new Insets(CARD_INSET, rtl ? SHADOW_INSET : CARD_INSET,
+                SHADOW_INSET, rtl ? CARD_INSET : SHADOW_INSET);
     }
 
     @Override
@@ -222,6 +227,9 @@ public class Notification extends Overlay<Notification> {
 
     @Override
     protected void applyStyles() {
+        Insets insets = getCardInsets();
+        gridPane.setPadding(new Insets(insets.getTop() + 18, insets.getRight() + 18,
+                insets.getBottom() + 18, insets.getLeft() + 18));
         gridPane.getStyleClass().add("notification-popup-bg");
         if (headLineLabel != null)
             headLineLabel.getStyleClass().add("notification-popup-headline");
@@ -244,11 +252,12 @@ public class Notification extends Overlay<Notification> {
     @Override
     protected void layout() {
         if (stage == null || !stage.isShowing()) return;
-        Window window = owner.getScene().getWindow();
-        double titleBarHeight = window.getHeight() - owner.getScene().getHeight();
-        double shadowInset = 44;
-        stage.setX(Math.round(window.getX() + window.getWidth() + shadowInset - stage.getWidth() - BORDER_PADDING));
-        stage.setY(Math.round(window.getY() + titleBarHeight - shadowInset + BORDER_PADDING));
+        Scene scene = owner.getScene();
+        Window window = scene.getWindow();
+        // the trimmed margins keep the card 10px from the corner without covering the title bar
+        double x = Math.max(0, scene.getWidth() - stage.getWidth());
+        stage.setX(Math.round(window.getX() + scene.getX() + x));
+        stage.setY(Math.round(window.getY() + scene.getY()));
     }
 
     @Override

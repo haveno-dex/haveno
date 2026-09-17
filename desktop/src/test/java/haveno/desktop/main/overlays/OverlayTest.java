@@ -23,6 +23,7 @@ import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
@@ -57,6 +58,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -70,6 +72,8 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.Scene;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
@@ -552,7 +556,7 @@ public class OverlayTest {
         }
 
         @Test
-        void notificationsKeepTheUpperRightPositionAfterOwnerMoves() {
+        void notificationsStayInsideTheOwnerSceneAfterMovingAndResizing() {
             TestNotification notification = new TestNotification();
             when(notification.ownerWindow.getX()).thenReturn(100.0);
             when(notification.ownerWindow.getY()).thenReturn(100.0);
@@ -560,14 +564,67 @@ public class OverlayTest {
             when(notification.ownerWindow.getHeight()).thenReturn(620.0);
             notification.show();
             notification.layoutNotification();
-            verify(notification.stage).setX(741.0);
-            verify(notification.stage).setY(86.0);
+            verify(notification.stage).setX(721.0);
+            verify(notification.stage).setY(120.0);
             when(notification.ownerWindow.getX()).thenReturn(150.0);
             when(notification.ownerWindow.getY()).thenReturn(120.0);
             when(notification.ownerWindow.getWidth()).thenReturn(1200.0);
+            when(notification.owner.getScene().getWidth()).thenReturn(1180.0);
             notification.layoutNotification();
-            verify(notification.stage).setX(971.0);
-            verify(notification.stage).setY(106.0);
+            verify(notification.stage).setX(951.0);
+            verify(notification.stage).setY(140.0);
+        }
+
+        @Test
+        void notificationsUseTheSceneOriginInsideWindowDecorations() {
+            TestNotification notification = new TestNotification();
+            when(notification.ownerWindow.getX()).thenReturn(-1200.0);
+            when(notification.ownerWindow.getY()).thenReturn(100.0);
+            when(notification.ownerWindow.getWidth()).thenReturn(1016.0);
+            when(notification.ownerWindow.getHeight()).thenReturn(636.0);
+            when(notification.owner.getScene().getX()).thenReturn(8.0);
+            when(notification.owner.getScene().getY()).thenReturn(28.0);
+            notification.show();
+            notification.layoutNotification();
+            verify(notification.stage).setX(-571.0);
+            verify(notification.stage).setY(128.0);
+        }
+
+        @Test
+        void notificationInsetsFollowTheDisplayedDirectionAfterLanguageChanges() {
+            TestNotification notification = new TestNotification();
+            notification.show();
+            Locale locale = GlobalSettings.getLocale();
+            try {
+                when(notification.gridPane.getEffectiveNodeOrientation()).thenReturn(NodeOrientation.LEFT_TO_RIGHT);
+                GlobalSettings.setLocale(Locale.forLanguageTag("ar"));
+                assertEquals(new Insets(10, 10, 44, 44), notification.cardInsets());
+                when(notification.gridPane.getEffectiveNodeOrientation()).thenReturn(NodeOrientation.RIGHT_TO_LEFT);
+                GlobalSettings.setLocale(Locale.US);
+                assertEquals(new Insets(10, 44, 44, 10), notification.cardInsets());
+            } finally {
+                GlobalSettings.setLocale(locale);
+            }
+        }
+
+        @Test
+        void cappedNotificationsStayAtTheOwnerSceneCorner() {
+            TestNotification notification = new TestNotification();
+            when(notification.ownerWindow.getX()).thenReturn(100.0);
+            when(notification.ownerWindow.getY()).thenReturn(100.0);
+            when(notification.owner.getScene().getWidth()).thenReturn(400.0);
+            when(notification.owner.getScene().getHeight()).thenReturn(250.0);
+            notification.show();
+            when(notification.stage.getWidth()).thenReturn(400.0);
+            when(notification.stage.getHeight()).thenReturn(250.0);
+            notification.layoutNotification();
+            verify(notification.stage).setX(100.0);
+            verify(notification.stage).setY(120.0);
+            when(notification.stage.getWidth()).thenReturn(395.0);
+            when(notification.stage.getHeight()).thenReturn(245.0);
+            notification.layoutNotification();
+            verify(notification.stage).setX(105.0);
+            verify(notification.stage, times(2)).setY(120.0);
         }
 
         private void resetQueue() throws ReflectiveOperationException {
@@ -597,6 +654,8 @@ public class OverlayTest {
             owner = mock(Pane.class);
             when(owner.getScene()).thenReturn(mock(Scene.class));
             when(owner.getScene().getWindow()).thenReturn(ownerWindow);
+            when(owner.getScene().getY()).thenReturn(20.0);
+            when(owner.getScene().getWidth()).thenReturn(1000.0);
             when(owner.getScene().getHeight()).thenReturn(600.0);
         }
 
@@ -622,7 +681,7 @@ public class OverlayTest {
                 windowShowing = true;
                 return null;
             }).when(stage).show();
-            when(stage.getWidth()).thenReturn(413.0);
+            when(stage.getWidth()).thenReturn(width);
             setModality();
             showStage();
         }
@@ -634,6 +693,10 @@ public class OverlayTest {
 
         private void layoutNotification() {
             layout();
+        }
+
+        private Insets cardInsets() {
+            return getCardInsets();
         }
 
         @Override

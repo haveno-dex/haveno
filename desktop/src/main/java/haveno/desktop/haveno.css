@@ -3525,6 +3525,16 @@ textfield */
     -fx-border-radius: 8;
 }
 
+/* trim the notification's top and right shadow margins at the app boundary */
+.notification-popup-bg {
+    -fx-background-insets: 10 10 44 44;
+}
+
+/* an RTL root is mirrored, so the trimmed side is the logical left */
+.notification-popup-bg:dir(rtl) {
+    -fx-background-insets: 10 44 44 10;
+}
+
 .popup-bg-top {
     -fx-font-size: 1.077em;
     -fx-text-fill: -bs-rd-font-dark;
@@ -3559,6 +3569,10 @@ textfield */
     -fx-background-insets: 0;
     -fx-background-radius: 8;
     -fx-effect: null;
+}
+
+.popup-scroll-shell.notification-popup-bg {
+    -fx-background-color: -bs-color-background-popup;
 }
 
 /* keep compact popup shadows inside their narrower transparent margins */
