@@ -70,6 +70,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.input.InputEvent;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -602,8 +603,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                     showStage();
                     constrainToScreen(scene);
 
-                    // focus the message, not the headline copy icon, so screen readers announce it first
-                    if (messageTextArea != null) messageTextArea.requestFocus();
+                    setupInitialFocus();
 
                     layout();
 
@@ -691,6 +691,11 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected void showStage() {
         stage.show();
+    }
+
+    protected void setupInitialFocus() {
+        // focus the message, not the headline copy icon, so screen readers announce it first
+        if (messageTextArea != null) messageTextArea.requestFocus();
     }
 
     protected Region getRootContainer() {
@@ -804,9 +809,11 @@ public abstract class Overlay<T extends Overlay<T>> {
 
 
     protected void setupKeyHandler(Scene scene) {
+        // let default buttons handle Enter, retaining dismissal for windows without one
         if (!hideCloseButton) {
             scene.setOnKeyPressed(e -> {
-                if (e.getCode() == KeyCode.ESCAPE || e.getCode() == KeyCode.ENTER) {
+                if (e.getCode() == KeyCode.ESCAPE || (e.getCode() == KeyCode.ENTER &&
+                        !scene.getAccelerators().containsKey(new KeyCodeCombination(KeyCode.ENTER)))) {
                     e.consume();
                     doClose();
                 }
@@ -1160,6 +1167,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             closeButton = new AutoTooltipButton(closeButtonText == null ? Res.get("shared.close") : closeButtonText);
             closeButton.getStyleClass().add("compact-button");
             closeButton.setOnAction(event -> doClose());
+            closeButton.setDefaultButton(disableActionButton);
             closeButton.setMinWidth(70);
             HBox.setHgrow(closeButton, Priority.SOMETIMES);
         }
