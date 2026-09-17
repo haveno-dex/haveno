@@ -4,7 +4,9 @@ import haveno.common.Timer;
 import haveno.network.p2p.NodeAddress;
 
 import haveno.common.UserThread;
+import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.common.util.SingleThreadExecutorUtils;
 
 import haveno.network.utils.Utils;
 import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
@@ -27,8 +29,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,9 +58,13 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     private final String hiddenServiceFlags;
     private final String hiddenServiceParams;
     private final String torControlHost;
-    private Timer shutDownTimeoutTimer;
+    private volatile Timer shutDownTimeoutTimer;
     private volatile boolean isShutDownStarted;
-    private boolean isShutDownComplete;
+    private volatile boolean isShutDownComplete;
+    private volatile boolean torShutDownFailed;
+    private final ExecutorService shutDownExecutor = SingleThreadExecutorUtils.getSingleThreadExecutor("ShutdownTor");
+    private final AtomicBoolean torShutDownStarted = new AtomicBoolean();
+    private final AtomicBoolean shutDownFinishing = new AtomicBoolean();
 
     public TorNetworkNodeNetlayer(int servicePort,
                                   NetworkProtoResolver networkProtoResolver,
@@ -82,7 +90,24 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
     }
 
     @Override
-    public void shutDown(@Nullable Runnable shutDownCompleteHandler) {
+    public synchronized void shutDown(@Nullable Runnable shutDownCompleteHandler, ErrorMessageHandler errorMessageHandler) {
+        if (isShutDownStarted && !isShutDownComplete) {
+            errorMessageHandler.handleErrorMessage("Tor shutdown is still in progress");
+            return;
+        }
+        shutDown(() -> {
+            if (!executor.isTerminated() || !shutDownExecutor.isTerminated()) {
+                errorMessageHandler.handleErrorMessage("Tor shutdown is still in progress");
+            } else if (torShutDownFailed) {
+                errorMessageHandler.handleErrorMessage("Tor shutdown failed");
+            } else if (shutDownCompleteHandler != null) {
+                shutDownCompleteHandler.run();
+            }
+        });
+    }
+
+    @Override
+    public synchronized void shutDown(@Nullable Runnable shutDownCompleteHandler) {
         log.info("TorNetworkNodeNetlayer shutdown started");
         if (isShutDownComplete) {
             log.info("TorNetworkNodeNetlayer shutdown already completed");
@@ -94,41 +119,79 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
             return;
         }
         isShutDownStarted = true;
-        synchronized (torLock) { } // wait for an in-flight publish, later ones are rejected by the flag
-
         shutDownTimeoutTimer = UserThread.runAfter(() -> {
             log.error("A timeout occurred at shutDown");
-            isShutDownComplete = true;
-            if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
-            executor.shutdownNow();
+            shutDownTor(shutDownCompleteHandler);
+            finishShutDown(shutDownCompleteHandler);
         }, SHUT_DOWN_TIMEOUT_SEC);
 
-        super.shutDown(() -> {
+        super.shutDown(() -> shutDownTor(shutDownCompleteHandler));
+    }
+
+    @Override
+    void shutDownServer(Server server) {
+        server.shutDown(shutDownExecutor);
+    }
+
+    private synchronized void shutDownTor(@Nullable Runnable shutDownCompleteHandler) {
+        if (!torShutDownStarted.compareAndSet(false, true)) return;
+        shutDownExecutor.execute(() -> {
             try {
-                Tor tor;
+                Tor currentTor;
                 synchronized (torLock) {
-                    tor = this.tor;
-                    this.tor = null;
+                    currentTor = tor;
+                    tor = null;
                 }
-                if (tor != null) {
-                    if (Tor.getDefault() == tor) Tor.setDefault(null);
-                    tor.shutdown();
-                    log.info("Tor shutdown completed");
+                try {
+                    // the socket may have been published without its ready callback starting a server
+                    if (hiddenServiceSocket != null && !hiddenServiceSocket.isClosed()) hiddenServiceSocket.close();
+                } finally {
+                    if (currentTor != null) {
+                        if (Tor.getDefault() == currentTor) Tor.setDefault(null);
+                        stopTor(currentTor);
+                        log.info("Tor shutdown completed");
+                    }
                 }
-                executor.shutdownNow();
-                shutDownTimeoutTimer.stop(); // the wait below is bounded on its own, so the timeout must not complete the shut down midway
-                if (!executor.awaitTermination(TOR_START_ABORT_TIMEOUT_SEC, TimeUnit.SECONDS)) // an aborted tor start deletes the tor dir files on its way out, which a restarted instance may be installing
-                    log.warn("Tor start did not abort within {} seconds", TOR_START_ABORT_TIMEOUT_SEC);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // shut down from the tor start thread itself
             } catch (Throwable e) {
                 log.error("Shutdown TorNetworkNodeNetlayer failed with exception", e);
             } finally {
-                shutDownTimeoutTimer.stop();
-                isShutDownComplete = true;
-                if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
+                finishShutDown(shutDownCompleteHandler);
             }
         });
+    }
+
+    private void stopTor(Tor tor) {
+        try {
+            tor.shutdown();
+        } catch (Throwable t) {
+            torShutDownFailed = true;
+            throw t;
+        }
+    }
+
+    private synchronized void finishShutDown(@Nullable Runnable shutDownCompleteHandler) {
+        if (!shutDownFinishing.compareAndSet(false, true)) return;
+        shutDownTimeoutTimer.stop();
+        executor.shutdownNow();
+        shutDownExecutor.shutdown();
+        // bound best-effort shutdown off the user thread; cleanup callers also require both executors to terminate
+        Thread completionThread = new Thread(() -> {
+            try {
+                if (!executor.awaitTermination(TOR_START_ABORT_TIMEOUT_SEC, TimeUnit.SECONDS))
+                    log.warn("Tor start did not abort within {} seconds", TOR_START_ABORT_TIMEOUT_SEC);
+                if (!shutDownExecutor.awaitTermination(TOR_START_ABORT_TIMEOUT_SEC, TimeUnit.SECONDS))
+                    log.warn("Tor shutdown did not complete within {} seconds", TOR_START_ABORT_TIMEOUT_SEC);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                UserThread.execute(() -> {
+                    isShutDownComplete = true;
+                    if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
+                });
+            }
+        }, "TorShutdownCompletion");
+        completionThread.setDaemon(true);
+        completionThread.start();
     }
 
     @Override
@@ -218,7 +281,7 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                 }
             }
             if (!accepted) {
-                started.shutdown();
+                stopTor(started);
                 throw new IllegalStateException("Shut down started while starting tor");
             }
         }
@@ -263,15 +326,22 @@ public class TorNetworkNodeNetlayer extends TorNetworkNode {
                 if (proxy != null) log.info("Tor SOCKS proxy ready on {}:{} (auto-assigned, loopback only)", torControlHost, proxy.getPort());
                 long ts = System.currentTimeMillis();
                 log.info("Starting tor hidden service with flags={}, params={}", hiddenServiceFlagsList, hiddenServiceParamsList);
-                hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort, tor, hiddenServiceFlagsList, hiddenServiceParamsList);
-                nodeAddressProperty.set(new NodeAddress(hiddenServiceSocket.getServiceName() + ":" + hiddenServiceSocket.getHiddenServicePort()));
-                UserThread.execute(() -> setupListeners.forEach(SetupListener::onTorNodeReady));
+                synchronized (torLock) {
+                    if (isShutDownStarted) throw new IllegalStateException("Shut down started while publishing hidden service");
+                    hiddenServiceSocket = new HiddenServiceSocket(localPort, torMode.getHiddenServiceDirectory(), servicePort, tor, hiddenServiceFlagsList, hiddenServiceParamsList);
+                }
+                UserThread.execute(() -> {
+                    if (isShutDownStarted) return;
+                    nodeAddressProperty.set(new NodeAddress(hiddenServiceSocket.getServiceName() + ":" + hiddenServiceSocket.getHiddenServicePort()));
+                    setupListeners.forEach(SetupListener::onTorNodeReady);
+                });
                 hiddenServiceSocket.addReadyListener(socket -> {
                     log.info("\n################################################################\n" +
                                     "Tor hidden service published after {} ms. Socket={}\n" +
                                     "################################################################",
                             System.currentTimeMillis() - ts, socket);
                     UserThread.execute(() -> {
+                        if (isShutDownStarted) return;
                         nodeAddressProperty.set(new NodeAddress(hiddenServiceSocket.getServiceName() + ":"
                                 + hiddenServiceSocket.getHiddenServicePort()));
                         startServer(socket);
