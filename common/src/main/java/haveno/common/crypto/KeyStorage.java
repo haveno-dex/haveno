@@ -102,6 +102,15 @@ public class KeyStorage {
     @Inject
     public KeyStorage(@Named(Config.KEY_STORAGE_DIR) File storageDir) {
         this.storageDir = checkDir(storageDir);
+        setStoragePermissions();
+    }
+
+    private void setStoragePermissions() {
+        FileUtil.setOwnerOnlyPermissions(storageDir.toPath());
+        for (KeyEntry keyEntry : KeyEntry.values()) {
+            Path path = storageDir.toPath().resolve(keyEntry.getFileName());
+            if (Files.exists(path)) FileUtil.setOwnerOnlyPermissions(path);
+        }
     }
 
     public boolean allKeyFilesExist() {
@@ -203,6 +212,11 @@ public class KeyStorage {
      * @param password Optional password
      */
     public void saveKeyRing(KeyRing keyRing, String oldPassword, String password) {
+        if (!storageDir.exists())
+            //noinspection ResultOfMethodCallIgnored
+            storageDir.mkdirs();
+        setStoragePermissions();
+
         SecretKey symmetric = keyRing.getSymmetricKey();
 
         // password protect the symmetric key
@@ -221,23 +235,15 @@ public class KeyStorage {
      * @param secretKey Secret key to encrypt the key pair
      */
     private void saveKey(PrivateKey key, String fileName, SecretKey secretKey) {
-        if (!storageDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            storageDir.mkdirs();
-        }
-        FileUtil.setOwnerOnlyPermissions(storageDir.toPath());
-
         PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(key.getEncoded());
         byte[] keyBytes = pkcs8EncodedKeySpec.getEncoded();
-        File keyFile = new File(storageDir, fileName);
-        try (FileOutputStream fos = new FileOutputStream(keyFile)) {
+        try (FileOutputStream fos = new FileOutputStream(storageDir + "/" + fileName)) {
+            FileUtil.setOwnerOnlyPermissions(storageDir.toPath().resolve(fileName));
             keyBytes = Encryption.encryptPayloadWithHmac(keyBytes, secretKey);
             fos.write(keyBytes);
         } catch (Exception e) {
             log.error("Could not save key " + fileName, e);
             throw new RuntimeException("Could not save key " + fileName, e);
-        } finally {
-            FileUtil.setOwnerOnlyPermissions(keyFile.toPath());
         }
     }
 
@@ -251,12 +257,6 @@ public class KeyStorage {
      * @param password    Optional password to encrypt the key store
      */
     private void saveKey(SecretKey key, String alias, String fileName, String oldPassword, String password) {
-        if (!storageDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            storageDir.mkdirs();
-        }
-        FileUtil.setOwnerOnlyPermissions(storageDir.toPath());
-
         // password must be ascii
         if (password != null && !password.matches("\\p{ASCII}*")) {
             throw new IllegalArgumentException("Password must be ASCII.");
@@ -264,13 +264,13 @@ public class KeyStorage {
 
         var oldPasswordChars = oldPassword == null ? new char[0] : oldPassword.toCharArray();
         var passwordChars = password == null ? new char[0] : password.toCharArray();
-        var path = Path.of(storageDir.toString(), fileName);
         try {
+            var path = storageDir + "/" + fileName;
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
 
             // load from existing file or initialize new
-            if (Files.exists(path)) {
-                try (FileInputStream fileInputStream = new FileInputStream(path.toFile())) {
+            if (Files.exists(Path.of(path))) {
+                try (FileInputStream fileInputStream = new FileInputStream(path)) {
                     keyStore.load(fileInputStream, oldPasswordChars);
                 }
             }
@@ -281,14 +281,13 @@ public class KeyStorage {
             // store in the keystore
             keyStore.setKeyEntry(alias, key, passwordChars, null);
 
-            try (FileOutputStream fileOutputStream = new FileOutputStream(path.toFile())) {
+            try (FileOutputStream fileOutputStream = new FileOutputStream(path)) {
+                FileUtil.setOwnerOnlyPermissions(Path.of(path));
                 // save the keystore
                 keyStore.store(fileOutputStream, passwordChars);
             }
         } catch (Exception e) {
             throw new RuntimeException("Could not save key " + alias, e);
-        } finally {
-            FileUtil.setOwnerOnlyPermissions(path);
         }
     }
 }
