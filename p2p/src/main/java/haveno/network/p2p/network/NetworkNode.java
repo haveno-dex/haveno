@@ -55,6 +55,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -380,11 +381,18 @@ public abstract class NetworkNode implements MessageListener {
             Set<Connection> allConnections = getAllConnections();
             int numConnections = allConnections.size();
 
+            // The timeout and the final connection close can both report completion.
+            AtomicBoolean completed = new AtomicBoolean();
+            Runnable completeOnce = () -> {
+                if (!completed.compareAndSet(false, true)) return;
+                connectionExecutor.shutdownNow();
+                sendMessageExecutor.shutdownNow();
+                if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
+            };
+
             if (numConnections == 0) {
                 log.info("Shutdown immediately because no connections are open.");
-                if (shutDownCompleteHandler != null) {
-                    shutDownCompleteHandler.run();
-                }
+                completeOnce.run();
                 return;
             }
 
@@ -392,10 +400,8 @@ public abstract class NetworkNode implements MessageListener {
 
             AtomicInteger shutdownCompleted = new AtomicInteger();
             Timer timeoutHandler = UserThread.runAfter(() -> {
-                if (shutDownCompleteHandler != null) {
-                    log.info("Shutdown completed due timeout");
-                    shutDownCompleteHandler.run();
-                }
+                log.info("Shutdown completed due timeout");
+                completeOnce.run();
             }, 1500, TimeUnit.MILLISECONDS);
 
             allConnections.forEach(c -> c.shutDown(CloseConnectionReason.APP_SHUT_DOWN,
@@ -405,11 +411,7 @@ public abstract class NetworkNode implements MessageListener {
                         if (shutdownCompleted.get() == numConnections) {
                             log.info("Shutdown completed with all connections closed");
                             timeoutHandler.stop();
-                            connectionExecutor.shutdownNow();
-                            sendMessageExecutor.shutdownNow();
-                            if (shutDownCompleteHandler != null) {
-                                shutDownCompleteHandler.run();
-                            }
+                            completeOnce.run();
                         }
                     }));
         }
