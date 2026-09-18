@@ -595,11 +595,20 @@ public abstract class TradeStepView extends VBox {
     protected Long getNumDepositConfirmations() {
         Long count = trade.getNumDepositConfirmations();
         if (count != null) return count;
+        MoneroTxWallet makerDepositTx = trade.getMakerDepositTx();
+        MoneroTxWallet takerDepositTx = trade.getTakerDepositTx();
+        if (makerDepositTx != null && Boolean.TRUE.equals(makerDepositTx.isFailed()) ||
+                takerDepositTx != null && Boolean.TRUE.equals(takerDepositTx.isFailed())) return null;
         // unconfirmed deposits have no block height, but their counts can already be known
-        Long makerCount = TradeDepositView.getNumConfirmations(trade.getMakerDepositTx());
-        if (trade.hasBuyerAsTakerWithoutDeposit()) return makerCount;
-        Long takerCount = TradeDepositView.getNumConfirmations(trade.getTakerDepositTx());
-        return makerCount == null || takerCount == null ? null : Math.min(makerCount, takerCount);
+        Long makerCount = TradeDepositView.getNumConfirmations(makerDepositTx);
+        Long takerCount = TradeDepositView.getNumConfirmations(takerDepositTx);
+        count = trade.hasBuyerAsTakerWithoutDeposit() ? makerCount :
+                makerCount == null || takerCount == null ? null : Math.min(makerCount, takerCount);
+        if (count != null) return count;
+        // initialization progress is not persisted, so restored trades keep an unknown count
+        if (trade.getInitProgress() > 0 && trade.getState() == Trade.State.ARBITRATOR_PUBLISHED_DEPOSIT_TXS &&
+                trade.isDepositsPublished() && !trade.hasFailed()) return 0L;
+        return null;
     }
 
     private void updateDeposit(TradeDepositView view, boolean maker) {
