@@ -266,21 +266,17 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     public void onAllConnectionsLost() {
         closeAllHandlers();
         stopRetryTimer();
-        stopped = true;
         restart();
     }
 
     @Override
     public void onNewConnectionAfterAllConnectionsLost() {
-        closeAllHandlers();
-        stopped = false;
         restart();
     }
 
     @Override
     public void onAwakeFromStandby() {
         closeAllHandlers();
-        stopped = false;
         // restart even if all connections were lost in standby; requesting data opens new connections
         restart();
     }
@@ -506,9 +502,9 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     }
 
     private void restart() {
-        if (retryTimer == null) {
+        if (!stopped && retryTimer == null) {
             retryTimer = UserThread.runAfter(() -> {
-                        stopped = false;
+                        if (stopped) return;
                         numRepeatedRequests = 0; // reset the repeat limit per sync cycle
                         numTotalRequests = 0;
                         attemptedNonSeedNodes.clear();
