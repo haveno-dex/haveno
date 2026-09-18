@@ -126,6 +126,7 @@ public class DisputeOpenedSenderValidationTest {
                 "makerPayoutAddress",
                 "takerPayoutAddress",
                 "makerDepositTxHash",
+                null,
                 null);
         return new Dispute(new Date().getTime(),
                 TRADE_ID,

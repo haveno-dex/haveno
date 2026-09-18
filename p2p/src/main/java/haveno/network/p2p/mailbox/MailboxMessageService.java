@@ -633,7 +633,8 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 log.error("Unexpected state: adding mailbox message that already exists.");
             }
         } catch (CryptoException e) {
-            log.error("Signing at getMailboxDataWithSignedSeqNr failed.");
+            log.error("Signing at getMailboxDataWithSignedSeqNr failed.", e);
+            sendMailboxMessageListener.onFault("Signing mailbox message failed: " + e.getMessage());
         }
     }
 

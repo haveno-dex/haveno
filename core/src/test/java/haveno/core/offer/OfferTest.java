@@ -17,14 +17,28 @@
 
 package haveno.core.offer;
 
+import haveno.common.app.Version;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class OfferTest {
+
+    @Test
+    public void testLegacyProtocolRejectedBeforeTradeChecks() {
+        OfferFilterService filter = new OfferFilterService(null, null, null, null, null);
+        OfferPayload payload = mock(OfferPayload.class);
+        when(payload.getProtocolVersion()).thenReturn(3);
+        Offer offer = new Offer(payload);
+
+        assertEquals(OfferFilterService.Result.HAS_NOT_SAME_PROTOCOL_VERSION, filter.canTakeOffer(offer, false));
+        when(payload.getProtocolVersion()).thenReturn(Version.TRADE_PROTOCOL_VERSION);
+        assertTrue(filter.hasSameProtocolVersion(offer));
+    }
 
     @Test
     public void testHasNoRange() {

@@ -151,65 +151,43 @@ public class ProtectedStorageEntry implements NetworkPayload, PersistablePayload
      * match the payload owner.
      */
     public boolean isValidForAddOperation() {
-        if (!this.isSignatureValid())
-            return false;
-
-        // TODO: The code currently supports MailboxStoragePayload objects inside ProtectedStorageEntry. Fix this.
-        if (protectedStoragePayload instanceof MailboxStoragePayload) {
-            MailboxStoragePayload mailboxStoragePayload = (MailboxStoragePayload) this.getProtectedStoragePayload();
-            return mailboxStoragePayload.getSenderPubKeyForAddOperation().equals(this.getOwnerPubKey());
-
-        } else {
-            boolean result = this.ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey());
-
-            if (!result) {
-                String res1 = this.toString();
-                String res2 = "null";
-                if (protectedStoragePayload.getOwnerPubKey() != null)
-                    res2 = Utilities.encodeToHex(protectedStoragePayload.getOwnerPubKey().getEncoded(), true);
-
-                log.warn("ProtectedStorageEntry::isValidForAddOperation() failed. Entry owner does not match Payload owner:\n" +
-                        "ProtectedStorageEntry={}\nPayloadOwner={}", res1, res2);
-            }
-
-            return result;
-        }
+        return !(protectedStoragePayload instanceof MailboxStoragePayload) &&
+                isSequenceNumberValid(true) &&
+                ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey()) &&
+                isSignatureValid();
     }
 
     /*
-     * Returns true if the Entry is valid for a remove operation. For non-mailbox Entrys, the entry owner must
-     * match the payload owner.
+     * Only the payload owner can remove a plain entry, using a remove-specific signature.
+     * Mailbox payloads require the receiver checks in ProtectedMailboxStorageEntry.
      */
     public boolean isValidForRemoveOperation() {
+        return !(protectedStoragePayload instanceof MailboxStoragePayload) &&
+                isSequenceNumberValid(false) &&
+                ownerPubKey.equals(protectedStoragePayload.getOwnerPubKey()) &&
+                isSignatureValid(P2PDataStorage.getRemoveHash(protectedStoragePayload, sequenceNumber));
+    }
 
-        // Same requirements as add()
-        boolean result = this.isValidForAddOperation();
-
-        if (!result) {
-            String res1 = this.toString();
-            String res2 = "null";
-            if (protectedStoragePayload.getOwnerPubKey() != null)
-                res2 = Utilities.encodeToHex(protectedStoragePayload.getOwnerPubKey().getEncoded(), true);
-
-            log.warn("ProtectedStorageEntry::isValidForRemoveOperation() failed. Entry owner does not match Payload owner:\n" +
-                    "ProtectedStorageEntry={}\nPayloadOwner={}", res1, res2);
-        }
-
-        return result;
+    protected boolean isSequenceNumberValid(boolean isAddOperation) {
+        // Reserve the final sequence number for removal, including receiver removal of mailbox entries.
+        return sequenceNumber >= 0 && (!isAddOperation || sequenceNumber < Integer.MAX_VALUE);
     }
 
     /*
      * Returns true if the signature for the Entry is valid for the payload, sequence number, and ownerPubKey
      */
     boolean isSignatureValid() {
-        try {
-            byte[] hashOfDataAndSeqNr = P2PDataStorage.get32ByteHash(
-                    new P2PDataStorage.DataAndSeqNrPair(this.protectedStoragePayload, this.sequenceNumber));
+        return isSignatureValid(P2PDataStorage.get32ByteHash(
+                new P2PDataStorage.DataAndSeqNrPair(protectedStoragePayload, sequenceNumber)));
+    }
 
-            boolean result = Sig.verify(this.ownerPubKey, hashOfDataAndSeqNr, this.signature);
+    private boolean isSignatureValid(byte[] hash) {
+        try {
+            boolean result = Sig.verify(ownerPubKey, hash, signature);
 
             if (!result)
-                log.warn("ProtectedStorageEntry::isSignatureValid() failed.\n{}}", this);
+                log.debug("Invalid storage signature for {} at sequence number {}",
+                        protectedStoragePayload.getClass().getSimpleName(), sequenceNumber);
 
             return result;
         } catch (CryptoException e) {

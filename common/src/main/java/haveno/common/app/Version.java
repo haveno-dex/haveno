@@ -131,7 +131,8 @@ public class Version {
     // Version = 1.0.19 -> TRADE_PROTOCOL_VERSION = 2
     // Version = 1.2.0 -> TRADE_PROTOCOL_VERSION = 3
     // Do not change trade fees and bump the version in the same release; separate them (bump first so offers re-sign, change fees later so they grandfather) to avoid cancelling all offers.
-    public static final int TRADE_PROTOCOL_VERSION = 3;
+    // Protocol 4 requires agreement on the multisig address before signing new contracts.
+    public static final int TRADE_PROTOCOL_VERSION = 4;
     private static String p2pMessageVersion;
 
     public static String getP2PMessageVersion() {

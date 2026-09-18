@@ -29,11 +29,13 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.bitcoinj.core.Utils;
 
 import javax.annotation.Nullable;
 import java.security.PublicKey;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -101,15 +103,20 @@ public final class Alert implements ProtectedStoragePayload, ExpirablePayload {
     public protobuf.StoragePayload toProtoMessage() {
         checkNotNull(ownerPubKeyBytes, "storagePublicKeyBytes must not be null");
         checkNotNull(signatureAsBase64, "signatureAsBase64 must not be null");
+        return protobuf.StoragePayload.newBuilder()
+                .setAlert(getUnsignedProtoBuilder(ownerPubKeyBytes).setSignatureAsBase64(signatureAsBase64))
+                .build();
+    }
+
+    private protobuf.Alert.Builder getUnsignedProtoBuilder(byte[] ownerPubKeyBytes) {
         protobuf.Alert.Builder builder = protobuf.Alert.newBuilder()
                 .setMessage(message)
                 .setIsUpdateInfo(isUpdateInfo)
                 .setIsPreReleaseInfo(isPreReleaseInfo)
                 .setVersion(version)
-                .setOwnerPubKeyBytes(ByteString.copyFrom(ownerPubKeyBytes))
-                .setSignatureAsBase64(signatureAsBase64);
+                .setOwnerPubKeyBytes(ByteString.copyFrom(ownerPubKeyBytes));
         Optional.ofNullable(getExtraDataMap()).ifPresent(builder::putAllExtraData);
-        return protobuf.StoragePayload.newBuilder().setAlert(builder).build();
+        return builder;
     }
 
     @Nullable
@@ -144,6 +151,14 @@ public final class Alert implements ProtectedStoragePayload, ExpirablePayload {
         this.ownerPubKey = ownerPubKey;
 
         ownerPubKeyBytes = Sig.getPublicKeyBytes(ownerPubKey);
+    }
+
+    public String getSignaturePayloadAsHex(byte[] ownerPubKeyBytes) {
+        protobuf.Alert.Builder builder = getUnsignedProtoBuilder(ownerPubKeyBytes);
+        // Sign all metadata and the storage owner, with a stable order for map entries.
+        if (extraDataMap != null)
+            builder.clearExtraData().putAllExtraData(new TreeMap<>(extraDataMap));
+        return Utils.HEX.encode(builder.build().toByteArray());
     }
 
     public boolean isNewVersion(Preferences preferences) {
