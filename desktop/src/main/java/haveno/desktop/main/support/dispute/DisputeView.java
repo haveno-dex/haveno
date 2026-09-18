@@ -197,6 +197,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final PeerInfoIconMap avatarMap = new PeerInfoIconMap();
     protected DisputeChatPopup chatPopup;
+    private NotificationCenter notificationCenter;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -231,6 +232,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
     @Inject
     void initializeChatPopup(NotificationCenter notificationCenter) {
+        this.notificationCenter = notificationCenter;
         chatPopup = new DisputeChatPopup(disputeManager, formatter, preferences, this, notificationCenter);
     }
 
@@ -1516,17 +1518,27 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         updateChatMessageCount(dispute, chatBadgeByDispute.get(dispute.getId()));
     }
 
+    @Override
+    public void onChatFocusChanged(Dispute dispute) {
+        updateChatMessageCount(dispute, chatBadgeByDispute.get(dispute.getId()));
+    }
+
     private void updateChatMessageCount(Dispute dispute, JFXBadge chatBadge) {
         UserThread.execute(() -> {
             if (chatBadge == null)
                 return;
-            // when the chat popup is active, we do not display new message count indicator for that item
-            if (chatPopup.isChatShown() && selectedDispute != null && dispute.getId().equals(selectedDispute.getId())) {
+            // suppress the count only while this conversation has focus
+            if (notificationCenter.isChatFocused(dispute.getChatMessages())) {
                 chatBadge.setText("");
                 chatBadge.setEnabled(false);
                 chatBadge.refreshBadge();
                 // have to UserThread.execute or the new message will be sent to peer as "read"
-                UserThread.execute(() -> dispute.setChatMessagesSeen(senderFlag()));
+                UserThread.execute(() -> {
+                    if (notificationCenter.isChatFocused(dispute.getChatMessages())) {
+                        dispute.setChatMessagesSeen(senderFlag());
+                        disputeManager.requestPersistence();
+                    }
+                });
                 return;
             }
 

@@ -563,6 +563,16 @@ public abstract class Overlay<T extends Overlay<T>> {
         UserThread.runAfter(MainView::blurLight, Transitions.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
     }
 
+    protected long startDisplay() {
+        isDisplayed = true;
+        hiding = false;
+        return ++displayGeneration;
+    }
+
+    protected boolean isDisplayStale(long generation) {
+        return hiding || generation != displayGeneration;
+    }
+
     public void display() {
         if (isDisplayed) return;
         if (owner == null)
@@ -571,13 +581,19 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (owner != null) {
             Scene rootScene = owner.getScene();
             if (rootScene != null) {
-                isDisplayed = true;
-                hiding = false;
-                long generation = ++displayGeneration;
+                long generation = startDisplay();
                 UserThread.execute(() -> {
                     // ignore a display queued before this overlay was hidden and shown again
-                    if (hiding || generation != displayGeneration) return;
+                    if (isDisplayStale(generation)) return;
+                    stage = new Stage();
+                    Window ownerWindow = rootScene.getWindow();
+                    // window name for screen readers, falling back to the app title
+                    String ownerTitle = ownerWindow instanceof Stage ? ((Stage) ownerWindow).getTitle() : null;
+                    stage.setTitle(headLine != null ? headLine : ownerTitle != null ? ownerTitle : "Haveno");
                     Scene scene = new Scene(getRootContainer());
+                    stage.setScene(scene);
+                    setModality();
+                    stage.initStyle(StageStyle.TRANSPARENT);
                     scene.getStylesheets().setAll(rootScene.getStylesheets());
                     stylesheetsListener = change -> scene.getStylesheets().setAll(rootScene.getStylesheets());
                     rootScene.getStylesheets().addListener(stylesheetsListener); // re-theme the overlay if the css theme changes (light/dark) while it is showing
@@ -585,14 +601,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
                     setupKeyHandler(scene);
 
-                    stage = new Stage();
                     Window window = rootScene.getWindow();
-                    // window name for screen readers, falling back to the app title
-                    String ownerTitle = window instanceof Stage ? ((Stage) window).getTitle() : null;
-                    stage.setTitle(headLine != null ? headLine : ownerTitle != null ? ownerTitle : "Haveno");
-                    stage.setScene(scene);
-                    setModality();
-                    stage.initStyle(StageStyle.TRANSPARENT);
                     stage.setOnCloseRequest(event -> {
                         event.consume();
                         doClose();
@@ -600,7 +609,11 @@ public abstract class Overlay<T extends Overlay<T>> {
                     getRootContainer().setOpacity(1); // render the complete card while the native window is hidden
                     stage.setOpacity(0); // hide the native window too, else it can flash white before the first frame renders
                     stage.sizeToScene();
-                    showStage();
+                    stage.show();
+                    if (!stage.isShowing()) {
+                        hide();
+                        return;
+                    }
                     constrainToScreen(scene);
 
                     setupInitialFocus();
@@ -644,7 +657,7 @@ public abstract class Overlay<T extends Overlay<T>> {
                     getRootContainer().needsLayoutProperty().addListener(contentDemandListener);
 
                     // settle CSS and wrapping before rendering the entrance pose, then reveal it on the next pulse
-                    Stage displayedStage = stage;
+                    Window displayedStage = stage;
                     displayTimer = new AnimationTimer() {
                         private int frames;
                         private int stableFrames;
@@ -690,8 +703,8 @@ public abstract class Overlay<T extends Overlay<T>> {
         }
     }
 
-    protected void showStage() {
-        stage.show();
+    protected void setSceneRoot(Scene scene, Parent root) {
+        scene.setRoot(root);
     }
 
     protected void setupInitialFocus() {
@@ -713,7 +726,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     // cap the stage to the app window, screen and max popup height, wrapping the content in a scroll pane so oversized popups scroll instead
-    private void constrainToScreen(Scene scene) {
+    protected void constrainToScreen(Scene scene) {
         cappedToScreen = false;
         capShell = null;
         double maxWidth = maxPopupWidth();
@@ -751,11 +764,11 @@ public abstract class Overlay<T extends Overlay<T>> {
         StackPane shadowFrame = new StackPane(capShell);
         shadowFrame.setPadding(new Insets(CAP_MARGIN));
         shadowFrame.setStyle("-fx-background-color: transparent;");
-        scene.setRoot(shadowFrame);
+        setSceneRoot(scene, shadowFrame);
         scrollRoot.setContent(rootContainer);
-        capShell.setPrefSize(Math.min(stage.getWidth() - cardInsets.getLeft() - cardInsets.getRight(), maxWidth),
-                Math.min(stage.getHeight() - cardInsets.getTop() - cardInsets.getBottom(), maxHeight));
-        stage.sizeToScene();
+        capShell.setPrefSize(Math.min(stageWidth - cardInsets.getLeft() - cardInsets.getRight(), maxWidth),
+                Math.min(stageHeight - cardInsets.getTop() - cardInsets.getBottom(), maxHeight));
+        if (stage != null) stage.sizeToScene();
         cappedToScreen = true;
     }
 
@@ -778,7 +791,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     // the budget, else track both so a capped popup resizes with its content and the owner window
     protected void refitToContent() {
         if (capShell == null) {
-            constrainToScreen(stage.getScene()); // no-op while the content still fits
+            constrainToScreen(stage != null ? stage.getScene() : null); // no-op while the content still fits
         } else {
             Region rootContainer = getRootContainer();
             Insets cardInsets = getCardInsets();
@@ -787,21 +800,23 @@ public abstract class Overlay<T extends Overlay<T>> {
                     Math.min(rootContainer.prefHeight(rootContainer.getWidth()), maxPopupHeight()));
         }
         // keep the display animation's transient root translate out of the stage size (sizeToScene adds it)
-        Parent sceneRoot = stage.getScene().getRoot();
-        double translateX = sceneRoot.getTranslateX();
-        double translateY = sceneRoot.getTranslateY();
-        sceneRoot.setTranslateX(0);
-        sceneRoot.setTranslateY(0);
-        stage.sizeToScene();
-        sceneRoot.setTranslateX(translateX);
-        sceneRoot.setTranslateY(translateY);
+        if (stage != null) {
+            Parent sceneRoot = stage.getScene().getRoot();
+            double translateX = sceneRoot.getTranslateX();
+            double translateY = sceneRoot.getTranslateY();
+            sceneRoot.setTranslateX(0);
+            sceneRoot.setTranslateY(0);
+            stage.sizeToScene();
+            sceneRoot.setTranslateX(translateX);
+            sceneRoot.setTranslateY(translateY);
+        }
         layout();
     }
 
     // re-fit only when the content's height demand actually changed, so refit-triggered
     // layout passes cannot re-schedule themselves forever
-    private void refitIfDemandChanged() {
-        if (stage == null || !stage.isShowing()) return;
+    protected void refitIfDemandChanged() {
+        if (!isDisplayed) return;
         Region rootContainer = getRootContainer();
         double demand = rootContainer.prefHeight(rootContainer.prefWidth(-1));
         if (Math.abs(demand - lastContentDemand) < 0.5) return;

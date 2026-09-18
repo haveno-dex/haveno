@@ -58,7 +58,7 @@ public abstract class TradeSubView extends VBox {
     private AutoTooltipButton chatButton;
     private StackPane chatButtonContainer;
     private Label chatBadge;
-    private String openChatTradeId;
+    private String focusedChatTradeId;
     private Trade trade;
     private boolean active;
     private boolean completed;
@@ -156,8 +156,8 @@ public abstract class TradeSubView extends VBox {
         chatButtonContainer.setDisable(!available);
     }
 
-    void setOpenChatTradeId(String tradeId) {
-        openChatTradeId = tradeId;
+    void setFocusedChatTradeId(String tradeId) {
+        focusedChatTradeId = tradeId;
         updateChatBadge();
     }
 
@@ -170,7 +170,7 @@ public abstract class TradeSubView extends VBox {
                     .filter(message -> message.isSenderIsTrader() == trade.isMaker())
                     .count();
         }
-        if (openChatTradeId != null && openChatTradeId.equals(trade.getId())) unread = 0;
+        if (focusedChatTradeId != null && focusedChatTradeId.equals(trade.getId())) unread = 0;
         chatBadge.setText(DisplayUtils.formatBadgeCount(unread));
         chatBadge.setVisible(unread > 0);
         chatButton.setAccessibleHelp(unread > 0 ? Res.get("notification.chat.unreadTradeMessages") + ": " + unread : null);

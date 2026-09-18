@@ -22,16 +22,31 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
+import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.beans.value.ChangeListener;
+import javafx.event.EventTarget;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.stage.Modality;
+import javafx.scene.control.ButtonBase;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.util.Duration;
 
 public class Notification extends Overlay<Notification> {
     private static final int AUTO_CLOSE_MILLIS = 6000;
@@ -43,6 +58,22 @@ public class Notification extends Overlay<Notification> {
     private boolean displayReady;
     private boolean closing;
     private boolean suspended;
+    protected StackPane notificationPane;
+    private Scene ownerScene;
+    private Window ownerWindow;
+    private final Timeline notificationAnimation = new Timeline();
+    private final ChangeListener<Number> sizeListener = (observable, oldValue, newValue) -> refitToContent();
+    private final ChangeListener<Boolean> demandListener = (observable, oldValue, needsLayout) -> {
+        if (needsLayout) UserThread.execute(this::refitIfDemandChanged);
+    };
+    private final ChangeListener<Boolean> showingListener = (observable, oldValue, showing) -> {
+        if (!showing) hide();
+    };
+    private final ChangeListener<Boolean> inputBlockedListener = (observable, oldValue, blocked) -> {
+        if (notificationPane != null) notificationPane.setVisible(!blocked);
+        if (blocked) pauseAutoCloseTimer();
+        else startAutoCloseTimer();
+    };
     private Timer autoCloseTimer;
     private long autoCloseGeneration;
     private BooleanSupplier displayCondition = () -> true;
@@ -151,18 +182,44 @@ public class Notification extends Overlay<Notification> {
     @Override
     protected void animateHide(Runnable onFinishedHandler) {
         pauseAutoCloseTimer();
-        super.animateHide(() -> runWithPreservedFocus(onFinishedHandler, null));
+        animateNotification(0, 180, onFinishedHandler);
     }
 
     @Override
     protected void animateDisplay() {
-        super.animateDisplay();
+        notificationPane.setOpacity(0);
+        getDisplayContainer().setTranslateX(getDuration(240) > 1 ? 10 : 0);
+        animateNotification(1, 240, null);
         displayReady = true;
         startAutoCloseTimer();
     }
 
+    private void animateNotification(double opacity, double duration, Runnable onFinishedHandler) {
+        notificationAnimation.stop();
+        if (notificationPane == null || (ownerWindow != null && !ownerWindow.isShowing()) || getDuration(duration) <= 1) {
+            if (notificationPane != null) {
+                notificationPane.setOpacity(opacity);
+                getDisplayContainer().setTranslateX(0);
+            }
+            if (onFinishedHandler != null) onFinishedHandler.run();
+            return;
+        }
+        notificationAnimation.getKeyFrames().setAll(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(notificationPane.opacityProperty(), notificationPane.getOpacity()),
+                        new KeyValue(getDisplayContainer().translateXProperty(), getDisplayContainer().getTranslateX())),
+                new KeyFrame(Duration.millis(getDuration(duration)),
+                        new KeyValue(notificationPane.opacityProperty(), opacity, Interpolator.EASE_BOTH),
+                        new KeyValue(getDisplayContainer().translateXProperty(), 0, Interpolator.EASE_BOTH)));
+        notificationAnimation.setOnFinished(event -> {
+            if (onFinishedHandler != null) onFinishedHandler.run();
+        });
+        notificationAnimation.play();
+    }
+
     private void startAutoCloseTimer() {
         if (!autoClose || !displayReady || closing || !NotificationManager.isCurrent(this) || autoCloseTimer != null) return;
+        if (owner != null && owner.isMouseTransparent()) return;
         long generation = ++autoCloseGeneration;
         autoCloseTimer = UserThread.runAfter(() -> {
             // a stopped timer may already have queued its callback on the user thread
@@ -183,26 +240,114 @@ public class Notification extends Overlay<Notification> {
         return closing;
     }
 
-    boolean ownsWindow(Window window) {
-        return stage == window;
-    }
-
-    private static void runWithPreservedFocus(Runnable action, Window excludedWindow) {
-        Stage focusedWindow = Window.getWindows().stream()
-                .filter(window -> window instanceof Stage && window != excludedWindow && window.isFocused() && !NotificationManager.isNotificationWindow(window))
-                .map(window -> (Stage) window)
-                .findFirst().orElse(null);
-        action.run();
-        // showing or hiding an owned stage can activate its owner on some window managers
-        if (focusedWindow != null) {
-            focusedWindow.toFront();
-            focusedWindow.requestFocus();
-        }
+    @Override
+    public void display() {
+        if (isDisplayed) return;
+        if (owner == null) owner = MainView.getRootContainer();
+        if (owner == null || owner.getScene() == null || owner.getScene().getWindow() == null ||
+                !owner.getScene().getWindow().isShowing()) return;
+        long generation = startDisplay();
+        UserThread.execute(() -> {
+            if (isDisplayStale(generation)) return;
+            ownerScene = owner.getScene();
+            if (ownerScene == null || ownerScene.getWindow() == null || !ownerScene.getWindow().isShowing()) {
+                hide();
+                return;
+            }
+            ownerWindow = ownerScene.getWindow();
+            // a scene-graph card cannot activate or reorder native windows
+            notificationPane = new StackPane(getRootContainer());
+            notificationPane.setMinSize(0, 0);
+            notificationPane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            notificationPane.setPickOnBounds(false);
+            // defer notifications while a dialog blurs and blocks the application content
+            notificationPane.setVisible(!owner.isMouseTransparent());
+            owner.mouseTransparentProperty().addListener(inputBlockedListener);
+            notificationPane.getProperties().put(Notification.class, true);
+            setupKeyHandler(ownerScene);
+            owner.getChildren().add(notificationPane);
+            notificationPane.applyCss();
+            notificationPane.autosize();
+            notificationPane.layout();
+            constrainToScreen(null);
+            if (!CssTheme.isDarkTheme()) getDisplayContainer().getStyleClass().add("popup-dropshadow");
+            layout();
+            ownerScene.widthProperty().addListener(sizeListener);
+            ownerScene.heightProperty().addListener(sizeListener);
+            ownerWindow.showingProperty().addListener(showingListener);
+            getRootContainer().needsLayoutProperty().addListener(demandListener);
+            animateDisplay();
+        });
     }
 
     @Override
-    protected void showStage() {
-        runWithPreservedFocus(super::showStage, owner.getScene().getWindow());
+    protected void setSceneRoot(Scene scene, Parent root) {
+        notificationPane.getChildren().setAll(root);
+    }
+
+    @Override
+    protected void setupKeyHandler(Scene scene) {
+        notificationPane.setOnKeyPressed(event -> {
+            if (!hideCloseButton && event.getCode() == KeyCode.ESCAPE) {
+                event.consume();
+                doClose();
+            } else if (event.getCode() == KeyCode.ENTER && !event.isAltDown() && !event.isControlDown() &&
+                    !event.isMetaDown() && !event.isShiftDown()) {
+                // on macOS a non-default button lets Enter reach the underlying scene's default action
+                event.consume();
+                if (event.getTarget() instanceof ButtonBase button) button.fire();
+                else if (actionButton != null && !actionButton.isDisabled()) actionButton.fire();
+                else if (!hideCloseButton) doClose();
+            }
+        });
+    }
+
+    static boolean isNotificationTarget(EventTarget target) {
+        while (target instanceof Node node) {
+            if (node.hasProperties() && node.getProperties().containsKey(Notification.class)) return true;
+            target = node.getParent();
+        }
+        return false;
+    }
+
+    @Override
+    protected void cleanup() {
+        notificationAnimation.stop();
+        owner.mouseTransparentProperty().removeListener(inputBlockedListener);
+        getRootContainer().needsLayoutProperty().removeListener(demandListener);
+        if (ownerScene != null) {
+            ownerScene.widthProperty().removeListener(sizeListener);
+            ownerScene.heightProperty().removeListener(sizeListener);
+            ownerScene = null;
+        }
+        if (ownerWindow != null) {
+            ownerWindow.showingProperty().removeListener(showingListener);
+            ownerWindow = null;
+        }
+        owner.getChildren().remove(notificationPane);
+        notificationPane = null;
+    }
+
+    @Override
+    public Notification onAction(Runnable actionHandler) {
+        return super.onAction(() -> {
+            focusOwner();
+            actionHandler.run();
+        });
+    }
+
+    @Override
+    public Notification onSecondaryAction(Runnable actionHandler) {
+        return super.onSecondaryAction(() -> {
+            focusOwner();
+            actionHandler.run();
+        });
+    }
+
+    private void focusOwner() {
+        Window window = owner.getScene().getWindow();
+        if (window instanceof Stage) ((Stage) window).toFront();
+        window.requestFocus();
     }
 
     @Override
@@ -223,6 +368,10 @@ public class Notification extends Overlay<Notification> {
     protected void addButtons() {
         buttonDistance = 10;
         super.addButtons();
+        // embedded notifications must not register Enter accelerators on the application's scene
+        if (actionButton != null) actionButton.setDefaultButton(false);
+        if (closeButton != null) closeButton.setDefaultButton(false);
+        if (messageTextArea != null) messageTextArea.setFocusTraversable(false);
     }
 
     @Override
@@ -244,20 +393,11 @@ public class Notification extends Overlay<Notification> {
     }
 
     @Override
-    protected void setModality() {
-        stage.initOwner(owner.getScene().getWindow());
-        stage.initModality(Modality.NONE);
-    }
-
-    @Override
     protected void layout() {
-        if (stage == null || !stage.isShowing()) return;
-        Scene scene = owner.getScene();
-        Window window = scene.getWindow();
-        // the trimmed margins keep the card 10px from the corner without covering the title bar
-        double x = Math.max(0, scene.getWidth() - stage.getWidth());
-        stage.setX(Math.round(window.getX() + scene.getX() + x));
-        stage.setY(Math.round(window.getY() + scene.getY()));
+        if (notificationPane == null) return;
+        // StackPane mirrors alignment in RTL; keep the card at the visual right edge
+        StackPane.setAlignment(notificationPane, owner.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT ?
+                Pos.TOP_LEFT : Pos.TOP_RIGHT);
     }
 
     @Override

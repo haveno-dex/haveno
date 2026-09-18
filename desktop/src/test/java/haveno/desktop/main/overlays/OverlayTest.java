@@ -68,15 +68,24 @@ import java.util.function.BooleanSupplier;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.junit.jupiter.api.AfterEach;
@@ -409,7 +418,7 @@ public class OverlayTest {
         }
 
         @Test
-        void suspendedNotificationIgnoresDisplayQueuedBeforeItsStageWasCreated() {
+        void suspendedNotificationIgnoresDisplayQueuedBeforeItsCardWasCreated() {
             List<Runnable> displays = new ArrayList<>();
             scheduler.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
                 displays.add(invocation.getArgument(0));
@@ -421,50 +430,124 @@ public class OverlayTest {
             TestNotification notice = new TestNotification();
             notice.show();
             displays.get(0).run();
-            assertNull(chat.stage);
+            assertNull(chat.pane());
             assertFalse(chat.isDisplayed());
             assertTrue(notice.isDisplayed());
             notice.hide();
             displays.get(0).run();
-            assertNull(chat.stage);
+            assertNull(chat.pane());
             assertTrue(timeouts.isEmpty());
             chat.finishDisplay();
             assertEquals(List.of(6000L), delays);
         }
 
         @Test
-        void showingNotificationDoesNotRestoreFocusToTheMainWindow() {
-            TestNotification chat = new TestNotification();
-            when(chat.ownerWindow.isFocused()).thenReturn(true);
-            try (MockedStatic<Window> windows = mockStatic(Window.class)) {
-                windows.when(Window::getWindows).thenReturn(FXCollections.observableArrayList(chat.ownerWindow));
-                chat.show();
-                verify(chat.stage).show();
-                verify(chat.ownerWindow, never()).toFront();
-                verify(chat.ownerWindow, never()).requestFocus();
+        void showingAndReplacingNotificationsNeverCreatesOrFocusesAWindow() {
+            TestNotification first = new TestNotification();
+            TestNotification next = new TestNotification();
+            try (MockedConstruction<Stage> stages = mockConstruction(Stage.class);
+                 MockedConstruction<Popup> popups = mockConstruction(Popup.class)) {
+                first.show();
+                StackPane original = first.pane();
+                next.show();
+                assertFalse(first.owner.getChildren().contains(original));
+                next.hide();
+                assertTrue(first.owner.getChildren().contains(first.pane()));
+                assertTrue(first.isDisplayed());
+                assertTrue(stages.constructed().isEmpty());
+                assertTrue(popups.constructed().isEmpty());
+                verify(first.ownerWindow, never()).toFront();
+                verify(first.ownerWindow, never()).requestFocus();
+                verify(next.ownerWindow, never()).requestFocus();
             }
         }
 
         @Test
-        void promotionAndRestorationPreserveFocusedDialog() {
-            TestNotification dispute = new TestNotification();
-            dispute.show();
-            TestNotification chat = new TestNotification();
-            Stage dialog = mock(Stage.class);
-            when(dialog.isFocused()).thenReturn(true);
-            try (MockedStatic<Window> windows = mockStatic(Window.class)) {
-                windows.when(Window::getWindows).thenReturn(FXCollections.observableArrayList(dialog));
-                chat.autoClose().show();
-                var order = inOrder(dispute.stage, chat.stage, dialog);
-                order.verify(dispute.stage).hide();
-                order.verify(chat.stage).show();
-                order.verify(dialog).toFront();
-                order.verify(dialog).requestFocus();
-                assertFalse(dispute.getIsHiddenProperty().get());
+        void embeddedNotificationWaitsForDialogsAndCleansUpWhenOwnerHides() {
+            List<Runnable> displays = new ArrayList<>();
+            scheduler.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                displays.add(invocation.getArgument(0));
+                return null;
+            });
+            TestNotification notification = new TestNotification();
+            notification.deferDisplay = true;
+            notification.ownerBlocked.set(true);
+            try (MockedConstruction<Stage> stages = mockConstruction(Stage.class);
+                 MockedConstruction<Popup> popups = mockConstruction(Popup.class);
+                 MockedConstruction<StackPane> panes = mockConstruction(StackPane.class, (pane, context) -> {
+                     when(pane.getProperties()).thenReturn(FXCollections.observableHashMap());
+                     when(pane.hasProperties()).thenReturn(true);
+                     when(pane.getChildren()).thenReturn(FXCollections.observableArrayList());
+                 })) {
+                notification.autoClose().show();
+                displays.remove(0).run();
+                StackPane pane = notification.pane();
+                assertTrue(notification.owner.getChildren().contains(pane));
+                assertEquals(Boolean.TRUE, pane.getProperties().get(Notification.class));
+                assertEquals(Pos.TOP_RIGHT, StackPane.getAlignment(pane));
+                assertNull(notification.stage);
+                assertTrue(stages.constructed().isEmpty());
+                assertTrue(popups.constructed().isEmpty());
+                verify(pane).setVisible(false);
+                assertTrue(timeouts.isEmpty());
+                notification.ownerBlocked.set(false);
+                verify(pane).setVisible(true);
+                assertEquals(List.of(6000L), delays);
+                notification.ownerBlocked.set(true);
                 timeouts.get(0).run();
-                assertTrue(chat.getIsHiddenProperty().get());
-                assertTrue(dispute.isDisplayed());
+                assertFalse(notification.getIsHiddenProperty().get());
+                notification.ownerBlocked.set(false);
+                assertEquals(List.of(6000L, 6000L), delays);
+                notification.ownerShowing.set(false);
+                assertTrue(notification.getIsHiddenProperty().get());
+                assertFalse(notification.owner.getChildren().contains(pane));
+                assertNull(notification.pane());
+                verify(notification.ownerWindow, never()).toFront();
+                verify(notification.ownerWindow, never()).requestFocus();
             }
+        }
+
+        @Test
+        void ownerClosingBeforeQueuedDisplayDoesNotLeaveAnInvisibleNotice() throws ReflectiveOperationException {
+            List<Runnable> displays = new ArrayList<>();
+            scheduler.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                displays.add(invocation.getArgument(0));
+                return null;
+            });
+            TestNotification notification = new TestNotification();
+            notification.deferDisplay = true;
+            notification.show();
+            notification.ownerShowing.set(false);
+            displays.remove(0).run();
+            assertTrue(notification.getIsHiddenProperty().get());
+            assertTrue(queue().isEmpty());
+            assertNull(notification.pane());
+        }
+
+        @Test
+        void onlyAnExplicitNotificationActionRaisesTheMainWindow() {
+            TestNotification notification = new TestNotification();
+            Runnable action = mock(Runnable.class);
+            notification.onAction(action).show();
+            verify(notification.ownerWindow, never()).requestFocus();
+            notification.runAction();
+            var order = inOrder(notification.ownerWindow, action);
+            order.verify(notification.ownerWindow).toFront();
+            order.verify(notification.ownerWindow).requestFocus();
+            order.verify(action).run();
+        }
+
+        @Test
+        void enterInsideNotificationIsConsumedBeforeItReachesMainContent() {
+            TestNotification notification = new TestNotification();
+            notification.show();
+            ArgumentCaptor<EventHandler<KeyEvent>> handler = ArgumentCaptor.forClass(EventHandler.class);
+            verify(notification.pane()).setOnKeyPressed(handler.capture());
+            KeyEvent enter = new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false);
+            handler.getValue().handle(enter);
+            assertTrue(enter.isConsumed());
+            assertTrue(notification.getIsHiddenProperty().get());
+            verify(notification.ownerWindow, never()).requestFocus();
         }
 
         @Test
@@ -486,108 +569,29 @@ public class OverlayTest {
         }
 
         @Test
-        void walletExpiresWhileSuccessDialogHasFocus() {
-            TestNotification wallet = new TestNotification();
-            wallet.autoClose().show();
-            Stage dialog = mock(Stage.class);
-            when(dialog.isFocused()).thenReturn(true);
-            try (MockedStatic<Window> windows = mockStatic(Window.class)) {
-                windows.when(Window::getWindows).thenReturn(FXCollections.observableArrayList(wallet.stage, wallet.ownerWindow, dialog));
-                timeouts.get(0).run();
-                assertTrue(wallet.getIsHiddenProperty().get());
-                assertEquals(List.of(6000L), delays);
-                var order = inOrder(wallet.stage, dialog);
-                order.verify(wallet.stage).hide();
-                order.verify(dialog).toFront();
-                order.verify(dialog).requestFocus();
-            }
-        }
-
-        @Test
-        void expiryPreservesTheDialogFocusedWhenHideAnimationFinishes() {
-            TestNotification chat = new TestNotification();
-            chat.deferHide = true;
-            chat.autoClose().show();
-            Stage firstDialog = mock(Stage.class);
-            Stage nextDialog = mock(Stage.class);
-            when(firstDialog.isFocused()).thenReturn(true);
-            try (MockedStatic<Window> windows = mockStatic(Window.class)) {
-                windows.when(Window::getWindows).thenReturn(FXCollections.observableArrayList(chat.stage, firstDialog, nextDialog));
-                timeouts.get(0).run();
-                when(firstDialog.isFocused()).thenReturn(false);
-                when(nextDialog.isFocused()).thenReturn(true);
-                chat.finishHide.run();
-                assertTrue(chat.getIsHiddenProperty().get());
-                verify(firstDialog, never()).requestFocus();
-                var order = inOrder(chat.stage, nextDialog);
-                order.verify(chat.stage).hide();
-                order.verify(nextDialog).toFront();
-                order.verify(nextDialog).requestFocus();
-            }
-        }
-
-        @Test
-        void expiryDoesNotWaitForFocusOnANonStageWindow() {
-            TestNotification chat = new TestNotification();
-            chat.autoClose().show();
-            Window popup = mock(Window.class);
-            when(popup.isFocused()).thenReturn(true);
-            try (MockedStatic<Window> windows = mockStatic(Window.class)) {
-                windows.when(Window::getWindows).thenReturn(FXCollections.observableArrayList(chat.stage, popup));
-                timeouts.get(0).run();
-                assertTrue(chat.getIsHiddenProperty().get());
-                assertEquals(List.of(6000L), delays);
-                verify(popup, never()).requestFocus();
-            }
-        }
-
-        @Test
-        void expiryDoesNotRestoreFocusToTheClosingNotification() {
-            TestNotification chat = new TestNotification();
-            chat.autoClose().show();
-            when(chat.stage.isFocused()).thenReturn(true);
-            try (MockedStatic<Window> windows = mockStatic(Window.class)) {
-                windows.when(Window::getWindows).thenReturn(FXCollections.observableArrayList(chat.stage));
-                timeouts.get(0).run();
-                assertTrue(chat.getIsHiddenProperty().get());
-                verify(chat.stage, never()).toFront();
-                verify(chat.stage, never()).requestFocus();
-            }
-        }
-
-        @Test
-        void notificationsStayInsideTheOwnerSceneAfterMovingAndResizing() {
+        void expiryRemovesOnlyTheNotificationCard() {
             TestNotification notification = new TestNotification();
-            when(notification.ownerWindow.getX()).thenReturn(100.0);
-            when(notification.ownerWindow.getY()).thenReturn(100.0);
-            when(notification.ownerWindow.getWidth()).thenReturn(1020.0);
-            when(notification.ownerWindow.getHeight()).thenReturn(620.0);
+            Node content = mock(Pane.class);
+            notification.owner.getChildren().add(content);
+            notification.autoClose().show();
+            StackPane pane = notification.pane();
+            timeouts.get(0).run();
+            assertTrue(notification.getIsHiddenProperty().get());
+            assertFalse(notification.owner.getChildren().contains(pane));
+            assertEquals(List.of(content), notification.owner.getChildren());
+            verify(notification.ownerWindow, never()).toFront();
+            verify(notification.ownerWindow, never()).requestFocus();
+        }
+
+        @Test
+        void notificationAlignmentKeepsTheCardAtTheVisualRightEdge() {
+            TestNotification notification = new TestNotification();
             notification.show();
             notification.layoutNotification();
-            verify(notification.stage).setX(721.0);
-            verify(notification.stage).setY(120.0);
-            when(notification.ownerWindow.getX()).thenReturn(150.0);
-            when(notification.ownerWindow.getY()).thenReturn(120.0);
-            when(notification.ownerWindow.getWidth()).thenReturn(1200.0);
-            when(notification.owner.getScene().getWidth()).thenReturn(1180.0);
+            assertEquals(Pos.TOP_RIGHT, StackPane.getAlignment(notification.pane()));
+            when(notification.owner.getEffectiveNodeOrientation()).thenReturn(NodeOrientation.RIGHT_TO_LEFT);
             notification.layoutNotification();
-            verify(notification.stage).setX(951.0);
-            verify(notification.stage).setY(140.0);
-        }
-
-        @Test
-        void notificationsUseTheSceneOriginInsideWindowDecorations() {
-            TestNotification notification = new TestNotification();
-            when(notification.ownerWindow.getX()).thenReturn(-1200.0);
-            when(notification.ownerWindow.getY()).thenReturn(100.0);
-            when(notification.ownerWindow.getWidth()).thenReturn(1016.0);
-            when(notification.ownerWindow.getHeight()).thenReturn(636.0);
-            when(notification.owner.getScene().getX()).thenReturn(8.0);
-            when(notification.owner.getScene().getY()).thenReturn(28.0);
-            notification.show();
-            notification.layoutNotification();
-            verify(notification.stage).setX(-571.0);
-            verify(notification.stage).setY(128.0);
+            assertEquals(Pos.TOP_LEFT, StackPane.getAlignment(notification.pane()));
         }
 
         @Test
@@ -605,26 +609,6 @@ public class OverlayTest {
             } finally {
                 GlobalSettings.setLocale(locale);
             }
-        }
-
-        @Test
-        void cappedNotificationsStayAtTheOwnerSceneCorner() {
-            TestNotification notification = new TestNotification();
-            when(notification.ownerWindow.getX()).thenReturn(100.0);
-            when(notification.ownerWindow.getY()).thenReturn(100.0);
-            when(notification.owner.getScene().getWidth()).thenReturn(400.0);
-            when(notification.owner.getScene().getHeight()).thenReturn(250.0);
-            notification.show();
-            when(notification.stage.getWidth()).thenReturn(400.0);
-            when(notification.stage.getHeight()).thenReturn(250.0);
-            notification.layoutNotification();
-            verify(notification.stage).setX(100.0);
-            verify(notification.stage).setY(120.0);
-            when(notification.stage.getWidth()).thenReturn(395.0);
-            when(notification.stage.getHeight()).thenReturn(245.0);
-            notification.layoutNotification();
-            verify(notification.stage).setX(105.0);
-            verify(notification.stage, times(2)).setY(120.0);
         }
 
         private void resetQueue() throws ReflectiveOperationException {
@@ -648,7 +632,8 @@ public class OverlayTest {
         private boolean deferDisplay;
         private boolean deferHide;
         private Runnable finishHide;
-        private boolean windowShowing;
+        private final SimpleBooleanProperty ownerShowing = new SimpleBooleanProperty(true);
+        private final SimpleBooleanProperty ownerBlocked = new SimpleBooleanProperty();
 
         private TestNotification() {
             owner = mock(Pane.class);
@@ -657,10 +642,18 @@ public class OverlayTest {
             when(owner.getScene().getY()).thenReturn(20.0);
             when(owner.getScene().getWidth()).thenReturn(1000.0);
             when(owner.getScene().getHeight()).thenReturn(600.0);
+            when(owner.getScene().widthProperty()).thenReturn(new SimpleDoubleProperty(1000));
+            when(owner.getScene().heightProperty()).thenReturn(new SimpleDoubleProperty(600));
+            when(owner.getChildren()).thenReturn(FXCollections.observableArrayList());
+            when(owner.getEffectiveNodeOrientation()).thenReturn(NodeOrientation.LEFT_TO_RIGHT);
+            when(owner.mouseTransparentProperty()).thenReturn(ownerBlocked);
+            when(owner.isMouseTransparent()).thenAnswer(invocation -> ownerBlocked.get());
+            when(ownerWindow.isShowing()).thenAnswer(invocation -> ownerShowing.get());
+            when(ownerWindow.showingProperty()).thenReturn(ownerShowing);
         }
 
         private void finishDisplay() {
-            createStage();
+            createPane();
             finishLayout();
         }
 
@@ -668,22 +661,24 @@ public class OverlayTest {
             animateDisplay();
         }
 
-        private void createStage() {
-            stage = mock(Stage.class);
-            when(stage.getOwner()).thenReturn(ownerWindow);
-            windowShowing = true;
-            when(stage.isShowing()).thenAnswer(invocation -> windowShowing);
-            doAnswer(invocation -> {
-                windowShowing = false;
-                return null;
-            }).when(stage).hide();
-            doAnswer(invocation -> {
-                windowShowing = true;
-                return null;
-            }).when(stage).show();
-            when(stage.getWidth()).thenReturn(width);
-            setModality();
-            showStage();
+        private void createPane() {
+            notificationPane = mock(StackPane.class);
+            when(notificationPane.getProperties()).thenReturn(FXCollections.observableHashMap());
+            when(notificationPane.hasProperties()).thenReturn(true);
+            owner.getChildren().add(notificationPane);
+            setupKeyHandler(owner.getScene());
+        }
+
+        private StackPane pane() {
+            return notificationPane;
+        }
+
+        private void runAction() {
+            actionHandlerOptional.orElseThrow().run();
+        }
+
+        @Override
+        protected void constrainToScreen(Scene scene) {
         }
 
         @Override
@@ -708,6 +703,8 @@ public class OverlayTest {
         @Override
         protected void createContent(boolean showAgainChecked) {
             gridPane = mock(GridPane.class);
+            when(gridPane.needsLayoutProperty()).thenReturn(new SimpleBooleanProperty());
+            when(gridPane.getStyleClass()).thenReturn(FXCollections.observableArrayList());
         }
 
         @Override
@@ -842,6 +839,10 @@ public class OverlayTest {
         private NotificationCenter notificationCenter;
         private Executor originalExecutor;
         private MockedStatic<ThreadUtils> backgroundTasks;
+        private MockedStatic<MainView> mainView;
+        private final SimpleBooleanProperty mainWindowFocused = new SimpleBooleanProperty(true);
+        private EventHandler<MouseEvent> mousePressedHandler;
+        private EventHandler<KeyEvent> keyPressedHandler;
         private int nextTradeId;
 
         @BeforeEach
@@ -855,6 +856,23 @@ public class OverlayTest {
                 ((Runnable) invocation.getArgument(0)).run();
                 return CompletableFuture.completedFuture(null);
             });
+            Window mainWindow = mock(Window.class);
+            when(mainWindow.focusedProperty()).thenReturn(mainWindowFocused);
+            when(mainWindow.isFocused()).thenAnswer(invocation -> mainWindowFocused.get());
+            Scene scene = mock(Scene.class);
+            when(scene.getWindow()).thenReturn(mainWindow);
+            doAnswer(invocation -> {
+                mousePressedHandler = invocation.getArgument(1);
+                return null;
+            }).when(scene).addEventFilter(eq(MouseEvent.MOUSE_PRESSED), any());
+            doAnswer(invocation -> {
+                keyPressedHandler = invocation.getArgument(1);
+                return null;
+            }).when(scene).addEventFilter(eq(KeyEvent.KEY_PRESSED), any());
+            StackPane root = mock(StackPane.class);
+            when(root.getScene()).thenReturn(scene);
+            mainView = mockStatic(MainView.class);
+            mainView.when(MainView::getRootContainer).thenReturn(root);
             MediationManager mediationManager = mock(MediationManager.class);
             RefundManager refundManager = mock(RefundManager.class);
             when(preferences.getUseAnimationsProperty()).thenReturn(new SimpleBooleanProperty());
@@ -876,6 +894,7 @@ public class OverlayTest {
         @AfterEach
         void tearDown() {
             if (backgroundTasks != null) backgroundTasks.close();
+            if (mainView != null) mainView.close();
             UserThread.setExecutor(originalExecutor);
         }
 
@@ -953,10 +972,10 @@ public class OverlayTest {
         }
 
         @Test
-        void suppressesMessagesInOpenChatAndPersistsTheirReadState() {
+        void suppressesMessagesInFocusedChatAndPersistsTheirReadState() {
             Trade trade = addTrade(false);
             notificationCenter.onAllServicesAndViewsInitialized();
-            notificationCenter.onChatOpened(trade.getChatMessages());
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), true, tradeManager::requestPersistence);
             ChatMessage message = message(trade, true);
             trade.getChatMessages().add(message);
             assertFalse(hasUnreadChat());
@@ -966,19 +985,68 @@ public class OverlayTest {
                             .setTradeId(trade.getId()).setUid(message.getUid())).build());
             assertTrue(message.isWasDisplayed());
             verify(tradeManager).requestPersistence();
-            notificationCenter.onChatClosed(trade.getChatMessages());
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, tradeManager::requestPersistence);
             assertFalse(hasUnreadChat());
             trade.getChatMessages().add(message(trade, true));
             assertTrue(hasUnreadChat());
         }
 
         @Test
-        void suppressesOnlyTheOpenConversation() {
+        void unfocusedTradeChatNotifiesUntilFocusReturns() {
+            Trade trade = addTrade(true);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), true, tradeManager::requestPersistence);
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, tradeManager::requestPersistence);
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                ChatMessage message = message(trade, true);
+                trade.getChatMessages().add(message);
+                sendMessage(message);
+                assertEquals(1, notifications.constructed().size());
+                assertTrue(hasUnreadChat());
+                assertFalse(message.isWasDisplayed());
+
+                // closing a background chat must not acknowledge unseen messages
+                notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, tradeManager::requestPersistence);
+                assertFalse(message.isWasDisplayed());
+                verify(tradeManager, never()).requestPersistence();
+                notificationCenter.onChatFocusChanged(trade.getChatMessages(), true, tradeManager::requestPersistence);
+                assertTrue(message.isWasDisplayed());
+                assertFalse(hasUnreadChat());
+                verify(tradeManager).requestPersistence();
+                verify(notifications.constructed().get(0)).hide();
+            }
+        }
+
+        @Test
+        void unfocusedSupportChatNotifiesUntilFocusReturns() {
+            notificationCenter.onAllServicesAndViewsInitialized();
+            for (boolean agent : List.of(false, true)) {
+                Dispute dispute = addDispute(addTrade(true), agent);
+                notificationCenter.onChatFocusChanged(dispute.getChatMessages(), true, arbitrationManager::requestPersistence);
+                notificationCenter.onChatFocusChanged(dispute.getChatMessages(), false, arbitrationManager::requestPersistence);
+                try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                    ChatMessage message = supportMessage(dispute, agent);
+                    dispute.getChatMessages().add(message);
+                    sendMessage(message);
+                    assertEquals(1, notifications.constructed().size());
+                    assertFalse(message.isWasDisplayed());
+                    assertEquals(1, dispute.unreadMessageCount(agent, false));
+                    notificationCenter.onChatFocusChanged(dispute.getChatMessages(), true, arbitrationManager::requestPersistence);
+                    assertTrue(message.isWasDisplayed());
+                    assertEquals(0, dispute.unreadMessageCount(agent, false));
+                    verify(notifications.constructed().get(0)).hide();
+                }
+            }
+            verify(arbitrationManager, times(2)).requestPersistence();
+        }
+
+        @Test
+        void suppressesOnlyTheFocusedConversation() {
             Trade openTrade = addTrade(true);
             Trade otherTrade = addTrade(false);
             Dispute dispute = addDispute(openTrade, false);
             notificationCenter.onAllServicesAndViewsInitialized();
-            notificationCenter.onChatOpened(openTrade.getChatMessages());
+            notificationCenter.onChatFocusChanged(openTrade.getChatMessages(), true, tradeManager::requestPersistence);
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 ChatMessage openMessage = message(openTrade, true);
                 openTrade.getChatMessages().add(openMessage);
@@ -996,8 +1064,8 @@ public class OverlayTest {
                 assertFalse(otherMessage.isWasDisplayed());
                 assertFalse(supportMessage.isWasDisplayed());
 
-                notificationCenter.onChatClosed(openTrade.getChatMessages());
-                notificationCenter.onChatOpened(dispute.getChatMessages());
+                notificationCenter.onChatFocusChanged(openTrade.getChatMessages(), false, tradeManager::requestPersistence);
+                notificationCenter.onChatFocusChanged(dispute.getChatMessages(), true, tradeManager::requestPersistence);
                 ChatMessage openSupportMessage = supportMessage(dispute, false);
                 dispute.getChatMessages().add(openSupportMessage);
                 sendMessage(openSupportMessage);
@@ -1111,7 +1179,7 @@ public class OverlayTest {
         }
 
         @Test
-        void invalidatesQueuedToastEvenIfNewMessagesArriveAfterChatCloses() {
+        void invalidatesQueuedToastEvenIfNewMessagesArriveAfterChatLosesFocus() {
             Trade trade = addTrade(true);
             notificationCenter.onAllServicesAndViewsInitialized();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
@@ -1124,9 +1192,9 @@ public class OverlayTest {
                 verify(queued).onlyShowIf(guard.capture());
                 assertTrue(guard.getValue().getAsBoolean());
                 first.setWasDisplayed(true);
-                notificationCenter.onChatOpened(trade.getChatMessages());
+                notificationCenter.onChatFocusChanged(trade.getChatMessages(), true, tradeManager::requestPersistence);
                 verify(queued).hide();
-                notificationCenter.onChatClosed(trade.getChatMessages());
+                notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, tradeManager::requestPersistence);
                 ChatMessage second = message(trade, true);
                 trade.getChatMessages().add(second);
                 sendMessage(second);
@@ -1136,7 +1204,7 @@ public class OverlayTest {
                 verify(current).onlyShowIf(currentGuard.capture());
                 queued.getIsHiddenProperty().set(true);
                 assertTrue(currentGuard.getValue().getAsBoolean());
-                notificationCenter.onChatOpened(trade.getChatMessages());
+                notificationCenter.onChatFocusChanged(trade.getChatMessages(), true, tradeManager::requestPersistence);
                 verify(current).hide();
                 assertFalse(currentGuard.getValue().getAsBoolean());
             }
@@ -1508,7 +1576,7 @@ public class OverlayTest {
         }
 
         @Test
-        void dismissalLeavesTradeUnseenAndActionNavigatesWithoutAcknowledging() {
+        void dismissalLeavesTradeUnseenAndActionAcknowledgesTheTrade() {
             notificationCenter.onAllServicesAndViewsInitialized();
             Trade trade = addTrade(true);
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
@@ -1522,8 +1590,8 @@ public class OverlayTest {
                 verify(notification).onAction(action.capture());
                 action.getValue().run();
                 verify(navigation).navigateToWithData(trade, MainView.class, PortfolioView.class, PendingTradesView.class);
-                assertTrue(seenUpdates.isEmpty());
-                assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                assertTrue(seenUpdates.get("NotificationCenter_DEPOSITS_PUBLISHED" + trade.getId()));
+                assertFalse(notificationCenter.unreadPortfolioProperty().get());
             }
         }
 
@@ -1562,6 +1630,148 @@ public class OverlayTest {
                 assertTrue(notifications.constructed().isEmpty());
                 assertTrue(seenUpdates.get("NotificationCenter_DEPOSITS_FINALIZED" + trade.getId()));
             }
+        }
+
+        @Test
+        void paymentSentNotifiesWhileSelectedTradesChatHasFocus() {
+            Trade trade = addTrade(false);
+            when(trade.isBuyer()).thenReturn(false);
+            when(trade.isSeller()).thenReturn(true);
+            setPhase(trade, Trade.Phase.DEPOSITS_FINALIZED);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            viewTrade(trade);
+            mainWindowFocused.set(false);
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), true, tradeManager::requestPersistence);
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                setPhase(trade, Trade.Phase.PAYMENT_SENT);
+                assertEquals(1, notifications.constructed().size());
+                Notification notification = notifications.constructed().get(0);
+                verify(notification).message(Res.get("notification.trade.paymentSent"));
+                ArgumentCaptor<BooleanSupplier> guard = ArgumentCaptor.forClass(BooleanSupplier.class);
+                verify(notification).onlyShowIf(guard.capture());
+                assertTrue(guard.getValue().getAsBoolean());
+                assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                assertFalse(seenUpdates.containsKey("NotificationCenter_PAYMENT_SENT" + trade.getId()));
+
+                notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, tradeManager::requestPersistence);
+                mainWindowFocused.set(true);
+                verify(notification, never()).hide();
+                assertTrue(guard.getValue().getAsBoolean());
+                assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                mousePressedHandler.handle(mock(MouseEvent.class));
+                assertFalse(notificationCenter.unreadPortfolioProperty().get());
+                assertTrue(seenUpdates.get("NotificationCenter_PAYMENT_SENT" + trade.getId()));
+                verify(notification).hide();
+                assertFalse(guard.getValue().getAsBoolean());
+            }
+        }
+
+        @Test
+        void notificationInputDoesNotAcknowledgeTheTradeBehindIt() {
+            Trade trade = addTrade(false);
+            when(trade.isBuyer()).thenReturn(false);
+            when(trade.isSeller()).thenReturn(true);
+            setPhase(trade, Trade.Phase.DEPOSITS_FINALIZED);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            viewTrade(trade);
+            mainWindowFocused.set(false);
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                setPhase(trade, Trade.Phase.PAYMENT_SENT);
+                Notification notification = notifications.constructed().get(0);
+                mainWindowFocused.set(true);
+                StackPane card = mock(StackPane.class);
+                ObservableMap<Object, Object> properties = FXCollections.observableHashMap();
+                properties.put(Notification.class, true);
+                when(card.getProperties()).thenReturn(properties);
+                when(card.hasProperties()).thenReturn(true);
+                Node button = mock(Pane.class);
+                when(button.getParent()).thenReturn(card);
+                MouseEvent click = mock(MouseEvent.class);
+                when(click.getTarget()).thenReturn(button);
+                KeyEvent key = mock(KeyEvent.class);
+                when(key.getTarget()).thenReturn(button);
+                mousePressedHandler.handle(click);
+                keyPressedHandler.handle(key);
+                verify(notification, never()).hide();
+                assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                assertFalse(seenUpdates.containsKey("NotificationCenter_PAYMENT_SENT" + trade.getId()));
+                mousePressedHandler.handle(mock(MouseEvent.class));
+                verify(notification).hide();
+                assertFalse(notificationCenter.unreadPortfolioProperty().get());
+            }
+        }
+
+        @Test
+        void regainingWindowFocusKeepsPaymentNotificationsOpen() {
+            Trade trade = addTrade(false);
+            when(trade.isBuyer()).thenReturn(false);
+            when(trade.isSeller()).thenReturn(true);
+            setPhase(trade, Trade.Phase.DEPOSITS_FINALIZED);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            viewTrade(trade);
+            mainWindowFocused.set(false);
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                setPhase(trade, Trade.Phase.PAYMENT_SENT);
+                Notification paymentSent = notifications.constructed().get(0);
+                mainWindowFocused.set(true);
+                verify(paymentSent, never()).hide();
+                assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                assertFalse(seenUpdates.containsKey("NotificationCenter_PAYMENT_SENT" + trade.getId()));
+
+                mainWindowFocused.set(false);
+                setPayout(trade, Trade.PayoutState.PAYOUT_PUBLISHED);
+                Notification paymentReceived = notifications.constructed().get(1);
+                mainWindowFocused.set(true);
+                verify(paymentReceived, never()).hide();
+                assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                assertFalse(seenUpdates.containsKey("NotificationCenter_PAYOUT_PUBLISHED" + trade.getId()));
+            }
+        }
+
+        @Test
+        void notificationActionAcknowledgesAnAlreadySelectedTradeWithoutWindowFocus() {
+            Trade trade = addTrade(false);
+            when(trade.isBuyer()).thenReturn(false);
+            when(trade.isSeller()).thenReturn(true);
+            setPhase(trade, Trade.Phase.DEPOSITS_FINALIZED);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            viewTrade(trade);
+            mainWindowFocused.set(false);
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                setPhase(trade, Trade.Phase.PAYMENT_SENT);
+                Notification notification = notifications.constructed().get(0);
+                ArgumentCaptor<Runnable> action = ArgumentCaptor.forClass(Runnable.class);
+                verify(notification).onAction(action.capture());
+                action.getValue().run();
+                verify(navigation).navigateToWithData(trade, MainView.class, PortfolioView.class, PendingTradesView.class);
+                verify(notification).hide();
+                assertFalse(notificationCenter.unreadPortfolioProperty().get());
+                assertTrue(seenUpdates.get("NotificationCenter_PAYMENT_SENT" + trade.getId()));
+            }
+        }
+
+        @Test
+        void queuedContentInputRechecksWindowFocusBeforeAcknowledging() {
+            Trade trade = addTrade(true);
+            setPhase(trade, Trade.Phase.DEPOSITS_PUBLISHED);
+            mainWindowFocused.set(false);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            viewTrade(trade);
+            assertTrue(notificationCenter.unreadPortfolioProperty().get());
+            assertTrue(seenUpdates.isEmpty());
+            List<Runnable> updates = new ArrayList<>();
+            UserThread.setExecutor(updates::add);
+            mainWindowFocused.set(true);
+            keyPressedHandler.handle(mock(KeyEvent.class));
+            mainWindowFocused.set(false);
+            UserThread.setExecutor(Runnable::run);
+            updates.forEach(Runnable::run);
+            assertTrue(notificationCenter.unreadPortfolioProperty().get());
+            assertTrue(seenUpdates.isEmpty());
+            mainWindowFocused.set(true);
+            assertTrue(notificationCenter.unreadPortfolioProperty().get());
+            keyPressedHandler.handle(mock(KeyEvent.class));
+            assertFalse(notificationCenter.unreadPortfolioProperty().get());
         }
 
         @Test
@@ -1988,8 +2198,8 @@ public class OverlayTest {
 
         private void markRead(Trade trade) {
             trade.getChatMessages().forEach(message -> message.setWasDisplayed(true));
-            notificationCenter.onChatOpened(trade.getChatMessages());
-            notificationCenter.onChatClosed(trade.getChatMessages());
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), true, tradeManager::requestPersistence);
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, tradeManager::requestPersistence);
         }
 
         private boolean hasUnreadChat() {

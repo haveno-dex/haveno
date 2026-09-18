@@ -69,6 +69,10 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import javafx.scene.Scene;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
+import javafx.stage.Window;
 import javax.annotation.Nullable;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -112,12 +116,13 @@ public class NotificationCenter {
     private final Map<String, Notification> tradeNotifications = new HashMap<>();
     private final Set<String> notifiedTradeUpdates = new HashSet<>();
     private final ReadOnlyBooleanWrapper unreadPortfolio = new ReadOnlyBooleanWrapper();
-    private final Set<ObservableList<ChatMessage>> openChats = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ObservableList<ChatMessage>> focusedChats = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<ObservableList<ChatMessage>> observedChats = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<ObservableList<ChatMessage>, Notification> chatNotifications = new IdentityHashMap<>();
     private final Set<String> notifiedChatMessages = new HashSet<>();
     private final ListChangeListener<ChatMessage> chatMessagesListener = change -> UserThread.execute(this::refreshChatState);
     private final ReadOnlyBooleanWrapper unreadTradeChat = new ReadOnlyBooleanWrapper();
+    private Window mainWindow;
     @Nullable
     private String viewedTradeId;
 
@@ -144,6 +149,15 @@ public class NotificationCenter {
     }
 
     public void onAllServicesAndViewsInitialized() {
+        Scene scene = MainView.getRootContainer().getScene();
+        mainWindow = scene.getWindow();
+        // acknowledge content interaction after selection and focus settle, not title-bar drags
+        scene.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(() -> setViewedTradeId(viewedTradeId));
+        });
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(() -> setViewedTradeId(viewedTradeId));
+        });
         tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change ->
                 UserThread.execute(this::refreshChatState));
         for (DisputeManager<? extends DisputeList<Dispute>> manager : getDisputeManagers()) {
@@ -217,15 +231,23 @@ public class NotificationCenter {
         }
     }
 
-    public void onChatOpened(ObservableList<ChatMessage> messages) {
-        openChats.add(messages);
-        dismissChatNotification(messages);
+    public void onChatFocusChanged(ObservableList<ChatMessage> messages, boolean focused, Runnable persist) {
+        if (focused) {
+            focusedChats.add(messages);
+            List<ChatMessage> unread = snapshot(messages).stream().filter(message -> !message.isWasDisplayed()).toList();
+            if (!unread.isEmpty()) {
+                unread.forEach(message -> message.setWasDisplayed(true));
+                persist.run();
+            }
+            dismissChatNotification(messages);
+        } else {
+            focusedChats.remove(messages);
+        }
         refreshChatState();
     }
 
-    public void onChatClosed(ObservableList<ChatMessage> messages) {
-        openChats.remove(messages);
-        refreshChatState();
+    public boolean isChatFocused(ObservableList<ChatMessage> messages) {
+        return focusedChats.contains(messages);
     }
 
     private void navigateToTrade(Trade trade) {
@@ -262,7 +284,7 @@ public class NotificationCenter {
         for (Trade trade : snapshot(tradeManager.getObservableList())) {
             ObservableList<ChatMessage> messages = trade.getChatMessages();
             observeChat(messages, currentChats);
-            if (!trade.isArbitrator() && !openChats.contains(messages) &&
+            if (!trade.isArbitrator() && !isChatFocused(messages) &&
                     snapshot(messages).stream().anyMatch(message -> isUnreadChat(message, trade.isMaker()))) {
                 hasUnreadTradeChat = true;
             }
@@ -333,7 +355,7 @@ public class NotificationCenter {
 
     private void notifyChatMessage(ChatMessage message, ObservableList<ChatMessage> messages, boolean senderFlag,
                                    Runnable persist, Runnable navigate) {
-        if (openChats.contains(messages)) {
+        if (isChatFocused(messages)) {
             message.setWasDisplayed(true);
             persist.run();
             return;
@@ -357,7 +379,7 @@ public class NotificationCenter {
                 .actionButtonText(Res.get(support ? "notification.chat.goToTicket" : "notification.chat.openChat"))
                 .onAction(navigate)
                 .onlyShowIf(() -> chatNotifications.get(messages) == notification && observedChats.contains(messages) &&
-                        !openChats.contains(messages) && snapshot(messages).stream().anyMatch(chatMessage -> isUnreadChat(chatMessage, senderFlag)));
+                        !isChatFocused(messages) && snapshot(messages).stream().anyMatch(chatMessage -> isUnreadChat(chatMessage, senderFlag)));
         chatNotifications.put(messages, notification);
         notification.getIsHiddenProperty().addListener((observable, oldValue, hidden) -> {
             if (hidden) chatNotifications.remove(messages, notification);
@@ -402,7 +424,7 @@ public class NotificationCenter {
     }
 
     private boolean isTradeVisible(Trade trade) {
-        return trade.getId().equals(viewedTradeId) && navigation.getCurrentPath() != null &&
+        return mainWindow != null && mainWindow.isFocused() && trade.getId().equals(viewedTradeId) && navigation.getCurrentPath() != null &&
                 navigation.getCurrentPath().contains(PendingTradesView.class);
     }
 
@@ -528,10 +550,12 @@ public class NotificationCenter {
         notification.useAnimation(false)
                 .tradeHeadLine(trade.getShortId())
                 .message(message)
-                .onAction(() -> navigation.navigateToWithData(trade,
-                        MainView.class, PortfolioView.class, PendingTradesView.class))
+                .onAction(() -> {
+                    navigation.navigateToWithData(trade, MainView.class, PortfolioView.class, PendingTradesView.class);
+                    markTradeUpdatesSeen(trade);
+                })
                 .onlyShowIf(() -> tradeNotifications.get(tradeId) == notification &&
-                        key.equals(unseenTradeUpdates.get(tradeId)) && !isTradeVisible(trade));
+                        key.equals(unseenTradeUpdates.get(tradeId)));
         if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(PendingTradesView.class))
             notification.actionButtonTextWithGoTo("portfolio.tab.pendingTrades");
         else notification.actionButtonText(Res.get("notification.trade.selectTrade"));
