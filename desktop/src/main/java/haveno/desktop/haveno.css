@@ -690,14 +690,14 @@ tree-table-view:focused {
 }
 
 .pill-toggle-thumb {
-    -fx-min-width: 14;
-    -fx-pref-width: 14;
-    -fx-max-width: 14;
-    -fx-min-height: 14;
-    -fx-pref-height: 14;
-    -fx-max-height: 14;
+    -fx-min-width: 16;
+    -fx-pref-width: 16;
+    -fx-max-width: 16;
+    -fx-min-height: 16;
+    -fx-pref-height: 16;
+    -fx-max-height: 16;
     -fx-background-color: white;
-    -fx-background-radius: 7;
+    -fx-background-radius: 8;
 }
 
 .pill-toggle-button:hover .pill-toggle-track {
