@@ -114,6 +114,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -138,6 +139,12 @@ import org.slf4j.LoggerFactory;
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
 
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
+
+    private static class AmbiguousPaymentException extends IllegalArgumentException {
+        private AmbiguousPaymentException(String message) {
+            super(message);
+        }
+    }
 
     private volatile boolean isShutDownStarted;
     private volatile boolean isShutDown;
@@ -165,6 +172,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final ClockWatcher clockWatcher;
 
     private final Map<String, TradeProtocol> tradeProtocolByUid = new HashMap<>();
+    private final List<Consumer<String>> ambiguousPaymentRejectedListeners = new CopyOnWriteArrayList<>();
     private final PersistenceManager<TradableList<Trade>> persistenceManager;
     private final TradableList<Trade> tradableList = new TradableList<>();
     @Getter
@@ -819,14 +827,22 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
 
             boolean tradeAdded = false;
+            boolean ambiguousPaymentRejected = false;
             try {
                 addMakerTrade(trade);
                 tradeAdded = true;
+            } catch (AmbiguousPaymentException e) {
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
+                ambiguousPaymentRejected = true;
             } catch (IllegalArgumentException e) {
                 sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
                 return;
             } finally {
                 if (!tradeAdded) openOfferManager.unreserveOpenOffer(openOffer);
+            }
+            if (ambiguousPaymentRejected) {
+                notifyAmbiguousPaymentRejected(offer.getId());
+                return;
             }
 
             // initialize only after the offer and payment amount have been claimed
@@ -1607,6 +1623,20 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         return failedTradesManager.getTradeById(tradeId);
     }
 
+    public void addAmbiguousPaymentRejectedListener(Consumer<String> listener) {
+        ambiguousPaymentRejectedListeners.add(listener);
+    }
+
+    private void notifyAmbiguousPaymentRejected(String offerId) {
+        ambiguousPaymentRejectedListeners.forEach(listener -> {
+            try {
+                listener.accept(offerId);
+            } catch (RuntimeException e) {
+                log.warn("Failed to notify ambiguous payment rejection listener for offer {}: {}", offerId, e.getMessage());
+            }
+        });
+    }
+
     private void addTrade(Trade trade) {
         synchronized (tradableList.getList()) {
             if (tradableList.add(trade)) {
@@ -1651,7 +1681,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 if (otherVolume != null && otherVolume.getValue() != volume.getValue()) continue;
                 log.warn("Rejecting ambiguous maker payment, tradeId={}, conflictingTradeId={}, paymentAmount={} {}",
                         trade.getId(), other.getId(), volume, volume.getCurrencyCode());
-                throw new IllegalArgumentException("This offer is temporarily unavailable for the selected amount. Please choose a different amount or try again later.");
+                throw new AmbiguousPaymentException("This offer is temporarily unavailable for the selected amount. Please choose a different amount or try again later.");
             }
             // Keep repricing atomic with admission, including the arbitrator's final price.
             trade.setPrice(price);
