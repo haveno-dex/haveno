@@ -102,6 +102,15 @@ public class KeyStorage {
     @Inject
     public KeyStorage(@Named(Config.KEY_STORAGE_DIR) File storageDir) {
         this.storageDir = checkDir(storageDir);
+        setStoragePermissions();
+    }
+
+    private void setStoragePermissions() {
+        FileUtil.setOwnerOnlyPermissions(storageDir.toPath());
+        for (KeyEntry keyEntry : KeyEntry.values()) {
+            Path path = storageDir.toPath().resolve(keyEntry.getFileName());
+            if (Files.exists(path)) FileUtil.setOwnerOnlyPermissions(path);
+        }
     }
 
     public boolean allKeyFilesExist() {
@@ -203,6 +212,11 @@ public class KeyStorage {
      * @param password Optional password
      */
     public void saveKeyRing(KeyRing keyRing, String oldPassword, String password) {
+        if (!storageDir.exists())
+            //noinspection ResultOfMethodCallIgnored
+            storageDir.mkdirs();
+        setStoragePermissions();
+
         SecretKey symmetric = keyRing.getSymmetricKey();
 
         // password protect the symmetric key
@@ -221,13 +235,10 @@ public class KeyStorage {
      * @param secretKey Secret key to encrypt the key pair
      */
     private void saveKey(PrivateKey key, String fileName, SecretKey secretKey) {
-        if (!storageDir.exists())
-            //noinspection ResultOfMethodCallIgnored
-            storageDir.mkdirs();
-
         PKCS8EncodedKeySpec pkcs8EncodedKeySpec = new PKCS8EncodedKeySpec(key.getEncoded());
         byte[] keyBytes = pkcs8EncodedKeySpec.getEncoded();
         try (FileOutputStream fos = new FileOutputStream(storageDir + "/" + fileName)) {
+            FileUtil.setOwnerOnlyPermissions(storageDir.toPath().resolve(fileName));
             keyBytes = Encryption.encryptPayloadWithHmac(keyBytes, secretKey);
             fos.write(keyBytes);
         } catch (Exception e) {
@@ -246,10 +257,6 @@ public class KeyStorage {
      * @param password    Optional password to encrypt the key store
      */
     private void saveKey(SecretKey key, String alias, String fileName, String oldPassword, String password) {
-        if (!storageDir.exists())
-            //noinspection ResultOfMethodCallIgnored
-            storageDir.mkdirs();
-
         // password must be ascii
         if (password != null && !password.matches("\\p{ASCII}*")) {
             throw new IllegalArgumentException("Password must be ASCII.");
@@ -275,6 +282,7 @@ public class KeyStorage {
             keyStore.setKeyEntry(alias, key, passwordChars, null);
 
             try (FileOutputStream fileOutputStream = new FileOutputStream(path)) {
+                FileUtil.setOwnerOnlyPermissions(Path.of(path));
                 // save the keystore
                 keyStore.store(fileOutputStream, passwordChars);
             }
