@@ -367,7 +367,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
             if (selectedSubView != null && selectedItem != null) {
                 selectedSubView.activate();
-                selectedSubView.setOpenChatTradeId(tradeIdOfOpenChat);
+                selectedSubView.setFocusedChatTradeId(chatPopupStage != null && chatPopupStage.isFocused() ? tradeIdOfOpenChat : null);
             }
             // wait for a notification's target selection and its trade details to settle
             UserThread.execute(() -> UserThread.execute(() -> {
@@ -564,10 +564,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             traderChatManager.addSystemMsg(trade);
         }
 
-        trade.getChatMessages().forEach(m -> m.setWasDisplayed(true));
-        model.dataModel.getTradeManager().requestPersistence();
         tradeIdOfOpenChat = trade.getId();
-        if (selectedSubView != null) selectedSubView.setOpenChatTradeId(tradeIdOfOpenChat);
 
         ChatView chatView = new ChatView(traderChatManager, Res.get("offerbook.trader"));
         chatView.setAllowAttachments(false);
@@ -624,7 +621,12 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatView.scrollToBottom();
 
         chatPopupStage = new Stage();
-        chatPopupStage.setOnShowing(event -> notificationCenter.onChatOpened(trade.getChatMessages()));
+        ChangeListener<Boolean> chatFocusListener = (observable, oldValue, focused) -> {
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), focused, traderChatManager::requestPersistence);
+            updateChatMessageCount(trade, badgeByTrade.get(trade.getId()));
+            if (selectedSubView != null) selectedSubView.setFocusedChatTradeId(focused ? trade.getId() : null);
+        };
+        chatPopupStage.focusedProperty().addListener(chatFocusListener);
         model.getChatOpen().bind(chatPopupStage.showingProperty());
         chatPopupStage.setTitle(Res.get("tradeChat.chatWindowTitle", trade.getShortId()));
         Scene rootScene = MainView.getRootContainer().getScene();
@@ -635,12 +637,11 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatPopupStage.setOnHiding(event -> {
             payoutStateSubscription.unsubscribe();
             chatView.deactivate();
-            // at close we set all as displayed. While open we ignore updates of the numNewMsg in the list icon.
-            trade.getChatMessages().forEach(m -> m.setWasDisplayed(true));
-            model.dataModel.getTradeManager().requestPersistence();
-            notificationCenter.onChatClosed(trade.getChatMessages());
+            chatPopupStage.focusedProperty().removeListener(chatFocusListener);
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, traderChatManager::requestPersistence);
+            updateChatMessageCount(trade, badgeByTrade.get(trade.getId()));
             tradeIdOfOpenChat = null;
-            if (selectedSubView != null) selectedSubView.setOpenChatTradeId(null);
+            if (selectedSubView != null) selectedSubView.setFocusedChatTradeId(null);
 
             trade.stateProperty().removeListener(tradeStateListener);
             trade.disputeStateProperty().removeListener(disputeStateListener);
@@ -667,7 +668,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         if (badge == null) return;
         UserThread.execute(() -> {
             long num = 0;
-            if (!trade.getId().equals(tradeIdOfOpenChat)) {
+            if (!notificationCenter.isChatFocused(trade.getChatMessages())) {
                 updateNewChatMessagesByTradeMap();
                 num = newChatMessagesByTradeMap.get(trade.getId());
             }

@@ -36,6 +36,7 @@ import haveno.core.util.coin.CoinFormatter;
 
 import haveno.common.util.Utilities;
 
+import javafx.beans.value.ChangeListener;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -54,6 +55,8 @@ import lombok.Getter;
 public class DisputeChatPopup {
     public interface ChatCallback {
         void onCloseDisputeFromChatWindow(Dispute dispute);
+
+        void onChatFocusChanged(Dispute dispute);
     }
 
     private Stage chatPopupStage;
@@ -89,8 +92,6 @@ public class DisputeChatPopup {
     public void openChat(Dispute selectedDispute, DisputeSession concreteDisputeSession, String counterpartyName) {
         closeChat();
         this.selectedDispute = selectedDispute;
-        selectedDispute.getChatMessages().forEach(m -> m.setWasDisplayed(true));
-        disputeManager.requestPersistence();
 
         ChatView chatView = new ChatView(disputeManager, counterpartyName);
         chatView.setAllowAttachments(true);
@@ -121,7 +122,11 @@ public class DisputeChatPopup {
         chatView.activate();
         chatView.scrollToBottom();
         chatPopupStage = new Stage();
-        chatPopupStage.setOnShowing(event -> notificationCenter.onChatOpened(selectedDispute.getChatMessages()));
+        ChangeListener<Boolean> chatFocusListener = (observable, oldValue, focused) -> {
+            notificationCenter.onChatFocusChanged(selectedDispute.getChatMessages(), focused, disputeManager::requestPersistence);
+            chatCallback.onChatFocusChanged(selectedDispute);
+        };
+        chatPopupStage.focusedProperty().addListener(chatFocusListener);
         chatPopupStage.setTitle(Res.get("disputeChat.chatWindowTitle", selectedDispute.getShortTradeId())
                 + " " + selectedDispute.getRoleString());
         Scene rootScene = MainView.getRootContainer().getScene();
@@ -131,10 +136,9 @@ public class DisputeChatPopup {
         chatPopupStage.initStyle(StageStyle.DECORATED);
         chatPopupStage.setOnHiding(event -> {
             chatView.deactivate();
-            // at close we set all as displayed. While open we ignore updates of the numNewMsg in the list icon.
-            selectedDispute.getChatMessages().forEach(m -> m.setWasDisplayed(true));
-            disputeManager.requestPersistence();
-            notificationCenter.onChatClosed(selectedDispute.getChatMessages());
+            chatPopupStage.focusedProperty().removeListener(chatFocusListener);
+            notificationCenter.onChatFocusChanged(selectedDispute.getChatMessages(), false, disputeManager::requestPersistence);
+            chatCallback.onChatFocusChanged(selectedDispute);
             chatPopupStage = null;
         });
 

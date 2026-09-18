@@ -19,7 +19,6 @@ package haveno.desktop.main.overlays.notifications;
 
 import java.util.ArrayList;
 import java.util.List;
-import javafx.stage.Window;
 
 public class NotificationManager {
     private static final List<Notification> notifications = new ArrayList<>();
@@ -39,10 +38,6 @@ public class NotificationManager {
 
     static boolean isCurrent(Notification popup) {
         return popup == displayedNotification;
-    }
-
-    static boolean isNotificationWindow(Window window) {
-        return notifications.stream().anyMatch(popup -> popup.ownsWindow(window));
     }
 
     public static void onHidden(Notification popup) {
