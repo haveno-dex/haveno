@@ -26,7 +26,9 @@ import haveno.core.app.AvoidStandbyModeService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.user.CookieKey;
 import haveno.core.user.Preferences;
+import haveno.core.user.StartupSettings;
 import haveno.core.xmr.nodes.XmrNodes;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
@@ -75,6 +77,13 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     protected void launchApplication() {
+        // select the renderer before JavaFX initializes, while encrypted preferences are still unavailable
+        if (System.getProperty("prism.order") == null &&
+                StartupSettings.read(config.appDataDir).getAsOptionalBoolean(CookieKey.USE_SOFTWARE_RENDERING).orElse(false)) {
+            System.setProperty("prism.order", "sw");
+        }
+        log.info("JavaFX rendering pipeline order: {}", System.getProperty("prism.order", "default"));
+
         HavenoApp.setAppLaunchedHandler(application -> {
             HavenoAppMain.this.application = (HavenoApp) application;
             // Map to user thread!
