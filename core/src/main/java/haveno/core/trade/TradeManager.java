@@ -114,6 +114,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -138,6 +139,12 @@ import org.slf4j.LoggerFactory;
 public class TradeManager implements PersistedDataHost, DecryptedDirectMessageListener {
 
     private static final Logger log = LoggerFactory.getLogger(TradeManager.class);
+
+    private static class AmbiguousPaymentException extends IllegalArgumentException {
+        private AmbiguousPaymentException(String message) {
+            super(message);
+        }
+    }
 
     private volatile boolean isShutDownStarted;
     private volatile boolean isShutDown;
@@ -165,6 +172,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     private final ClockWatcher clockWatcher;
 
     private final Map<String, TradeProtocol> tradeProtocolByUid = new HashMap<>();
+    private final List<Consumer<String>> ambiguousPaymentRejectedListeners = new CopyOnWriteArrayList<>();
     private final PersistenceManager<TradableList<Trade>> persistenceManager;
     private final TradableList<Trade> tradableList = new TradableList<>();
     @Getter
@@ -819,14 +827,22 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             }
 
             boolean tradeAdded = false;
+            boolean ambiguousPaymentRejected = false;
             try {
                 addMakerTrade(trade);
                 tradeAdded = true;
+            } catch (AmbiguousPaymentException e) {
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
+                ambiguousPaymentRejected = true;
             } catch (IllegalArgumentException e) {
                 sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, e.getMessage(), null);
                 return;
             } finally {
                 if (!tradeAdded) openOfferManager.unreserveOpenOffer(openOffer);
+            }
+            if (ambiguousPaymentRejected) {
+                notifyAmbiguousPaymentRejected(offer.getId());
+                return;
             }
 
             // initialize only after the offer and payment amount have been claimed
@@ -1607,6 +1623,20 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         return failedTradesManager.getTradeById(tradeId);
     }
 
+    public void addAmbiguousPaymentRejectedListener(Consumer<String> listener) {
+        ambiguousPaymentRejectedListeners.add(listener);
+    }
+
+    private void notifyAmbiguousPaymentRejected(String offerId) {
+        ambiguousPaymentRejectedListeners.forEach(listener -> {
+            try {
+                listener.accept(offerId);
+            } catch (RuntimeException e) {
+                log.warn("Failed to notify ambiguous payment rejection listener for offer {}: {}", offerId, e.getMessage());
+            }
+        });
+    }
+
     private void addTrade(Trade trade) {
         synchronized (tradableList.getList()) {
             if (tradableList.add(trade)) {
@@ -1631,31 +1661,45 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         synchronized (tradableList.getList()) {
             Volume volume = trade.getVolume(price);
             checkArgument(price > 0 && volume != null, "Cannot determine trade payment amount");
-            List<Trade> trades = new ArrayList<>(tradableList.getList());
-            trades.addAll(closedTradableManager.getClosedTrades());
-            ObservableList<Trade> failedTrades = failedTradesManager.getObservableList();
-            synchronized (failedTrades) {
-                // Retain failed deposits while cleanup is pending, deposits are published, or a wallet remains.
-                // Check wallet files without taking the wallet lock while holding the trade-list locks.
-                failedTrades.stream()
-                        .filter(Trade::isDepositRequested)
-                        .filter(t -> t.isProtocolErrorHandlingScheduled() || t.isDepositsPublished() || t.walletExistsNoSync())
-                        .forEach(trades::add);
-            }
-            for (Trade other : trades) {
-                if (other == trade || !other.isMaker() || other.isPayoutPublished()) continue;
-                if (other.getOffer().getDirection() != trade.getOffer().getDirection()) continue;
-                if (!other.getOffer().getCounterCurrencyCode().equals(trade.getOffer().getCounterCurrencyCode())) continue;
-                if (!other.getOffer().getOfferPayload().getMakerPaymentAccountId().equals(trade.getOffer().getOfferPayload().getMakerPaymentAccountId())) continue;
-                Volume otherVolume = other.getVolume();
-                if (otherVolume != null && otherVolume.getValue() != volume.getValue()) continue;
+            Trade other = findAmbiguousPaymentTrade(trade.getOffer(), volume, trade);
+            if (other != null) {
                 log.warn("Rejecting ambiguous maker payment, tradeId={}, conflictingTradeId={}, paymentAmount={} {}",
                         trade.getId(), other.getId(), volume, volume.getCurrencyCode());
-                throw new IllegalArgumentException("This offer is temporarily unavailable for the selected amount. Please choose a different amount or try again later.");
+                throw new AmbiguousPaymentException("This offer is temporarily unavailable for the selected amount. Please choose a different amount or try again later.");
             }
             // Keep repricing atomic with admission, including the arbitrator's final price.
             trade.setPrice(price);
         }
+    }
+
+    public boolean hasAmbiguousPayment(Offer offer, Volume volume) {
+        synchronized (tradableList.getList()) {
+            return findAmbiguousPaymentTrade(offer, volume, null) != null;
+        }
+    }
+
+    @Nullable
+    private Trade findAmbiguousPaymentTrade(Offer offer, Volume volume, Trade excludedTrade) {
+        List<Trade> trades = new ArrayList<>(tradableList.getList());
+        trades.addAll(closedTradableManager.getClosedTrades());
+        ObservableList<Trade> failedTrades = failedTradesManager.getObservableList();
+        synchronized (failedTrades) {
+            // Retain failed deposits while cleanup is pending, deposits are published, or a wallet remains.
+            // Check wallet files without taking the wallet lock while holding the trade-list locks.
+            failedTrades.stream()
+                    .filter(Trade::isDepositRequested)
+                    .filter(t -> t.isProtocolErrorHandlingScheduled() || t.isDepositsPublished() || t.walletExistsNoSync())
+                    .forEach(trades::add);
+        }
+        for (Trade other : trades) {
+            if (other == excludedTrade || !other.isMaker() || other.isPayoutPublished()) continue;
+            if (other.getOffer().getDirection() != offer.getDirection()) continue;
+            if (!other.getOffer().getCounterCurrencyCode().equals(offer.getCounterCurrencyCode())) continue;
+            if (!other.getOffer().getMakerPaymentAccountId().equals(offer.getMakerPaymentAccountId())) continue;
+            Volume otherVolume = other.getVolume();
+            if (otherVolume == null || otherVolume.getValue() == volume.getValue()) return other;
+        }
+        return null;
     }
 
     // TODO Remove once tradableList is refactored to a final field

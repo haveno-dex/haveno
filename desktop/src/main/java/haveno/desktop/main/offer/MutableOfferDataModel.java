@@ -34,6 +34,7 @@ import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferUtil;
+import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.PriceFeedService;
@@ -84,6 +85,10 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class MutableOfferDataModel extends OfferDataModel {
+    public enum PaymentAmountConflict {
+        NONE, TRADE, OFFER
+    }
+
     protected final CreateOfferService createOfferService;
     protected final OpenOfferManager openOfferManager;
     private final XmrWalletService xmrWalletService;
@@ -322,6 +327,22 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 null,
                 resultHandler,
                 errorMessageHandler);
+    }
+
+    public PaymentAmountConflict getPaymentAmountConflict(Offer offer, Volume paymentVolume) {
+        if (paymentVolume == null) return PaymentAmountConflict.NONE;
+        if (HavenoUtils.tradeManager.hasAmbiguousPayment(offer, paymentVolume)) return PaymentAmountConflict.TRADE;
+        for (OpenOffer openOffer : openOfferManager.getOpenOffers()) {
+            if (!openOffer.isPending() && !openOffer.isAvailable() && !openOffer.isReserved()) continue;
+            if (openOffer.getId().equals(offer.getId())) continue;
+            Offer other = openOffer.getOffer();
+            if (other.getDirection() != offer.getDirection()) continue;
+            if (!other.getCounterCurrencyCode().equals(offer.getCounterCurrencyCode())) continue;
+            if (!other.getMakerPaymentAccountId().equals(offer.getMakerPaymentAccountId())) continue;
+            Volume otherVolume = other.getVolume();
+            if (otherVolume != null && otherVolume.getValue() == paymentVolume.getValue()) return PaymentAmountConflict.OFFER;
+        }
+        return PaymentAmountConflict.NONE;
     }
 
     void onPaymentAccountSelected(PaymentAccount paymentAccount) {

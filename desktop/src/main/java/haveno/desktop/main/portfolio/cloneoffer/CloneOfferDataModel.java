@@ -168,7 +168,7 @@ class CloneOfferDataModel extends MutableOfferDataModel {
     }
 
     public void onCloneOffer(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        Offer clonedOffer = createClonedOffer();
+        Offer clonedOffer = createAndGetOffer();
         openOfferManager.placeOffer(clonedOffer,
                 false,
                 triggerPrice,
@@ -179,7 +179,8 @@ class CloneOfferDataModel extends MutableOfferDataModel {
                 errorMessageHandler);
     }
 
-    private Offer createClonedOffer() {
+    @Override
+    protected Offer createAndGetOffer() {
         return createOfferService.createClonedOffer(sourceOpenOffer.getOffer(),
                 tradeCurrencyCode.get(),
                 useMarketBasedPrice.get() ? null : price.get(),
@@ -190,7 +191,7 @@ class CloneOfferDataModel extends MutableOfferDataModel {
     }
 
     public boolean hasConflictingClone() {
-        Offer clonedOffer = createClonedOffer();
+        Offer clonedOffer = createAndGetOffer();
         return openOfferManager.hasConflictingClone(clonedOffer, sourceOpenOffer);
     }
 }
