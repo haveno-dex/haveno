@@ -1069,7 +1069,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                         badge = badgeByTrade.get(id);
                                     }
 
-                                    button.setDisable(trade.isArbitrator());
+                                    badge.setDisable(trade.isArbitrator());
                                     button.setOnAction(e -> {
                                         tableView.getSelectionModel().select(newItem);
                                         openChat(trade);

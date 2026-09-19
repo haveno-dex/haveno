@@ -44,7 +44,8 @@
     -fx-fill: -fx-accent;
 }
 
-.highlight:hover {
+.highlight:hover,
+.button-badge:hover .highlight {
     -fx-text-fill: -bs-text-color;
     -fx-fill: -bs-text-color;
 }

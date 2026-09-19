@@ -33,6 +33,7 @@
 .trade-row-chat-button .glyph-icon {
     -fx-fill: -bs-color-gray-6;
 }
+.trade-row-chat-badge:hover .trade-row-chat-button .glyph-icon,
 .trade-row-chat-button:hover .glyph-icon,
 .trade-row-chat-button:focus-visible .glyph-icon {
     -fx-fill: -fx-accent;
