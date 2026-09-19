@@ -354,11 +354,6 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             volumeInfoTextField.setContentForPrivacyPopOver(popOverLabel);
         }
 
-        if (offer.getPrice() == null)
-            new Popup().warning(Res.get("takeOffer.noPriceFeedAvailable"))
-                    .onClose(() -> close(false))
-                    .show();
-
         if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty()) {
             boolean noDeposit = offer.hasBuyerAsTakerWithoutDeposit();
 
