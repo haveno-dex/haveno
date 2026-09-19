@@ -2844,7 +2844,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     public long getMaxTradePeriod() {
-        return getOffer().getPaymentMethod().getMaxTradePeriod();
+        return getOffer().getMaxTradePeriod();
     }
 
     public Date getHalfTradePeriodDate() {
