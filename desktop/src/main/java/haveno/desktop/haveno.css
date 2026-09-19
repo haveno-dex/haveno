@@ -3421,6 +3421,11 @@ textfield */
  * Highlight buttons                                                                                                  *
  *                                                                                                                  *
  ********************************************************************************************************************/
+/* keep mouse focus from tinting highlight buttons after a popup closes */
+#buy-button-big, #buy-button, #sell-button-big, #sell-button {
+    -jfx-disable-visual-focus: true;
+}
+
 #buy-button-big {
     -fx-font-size: 1em;
     -fx-background-color: -bs-buy;
@@ -3433,7 +3438,7 @@ textfield */
 }
 
 #buy-button-big:hover, #buy-button:hover,
-#buy-button-big:focused, #buy-button:focused {
+#buy-button-big:focus-visible, #buy-button:focus-visible {
     -fx-background-color: derive(-bs-buy, -10%);
 }
 
@@ -3457,7 +3462,7 @@ textfield */
 }
 
 #sell-button-big:hover, #sell-button:hover,
-#sell-button-big:focused, #sell-button:focused {
+#sell-button-big:focus-visible, #sell-button:focus-visible {
     -fx-background-color: derive(-bs-sell, -10%);
 }
 
