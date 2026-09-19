@@ -249,7 +249,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
         addHeadLine();
 
-        if (showBusyAnimation)
+        if (showBusyAnimation && headLine == null)
             addBusyAnimation();
 
         addMessage();
@@ -1049,6 +1049,15 @@ public abstract class Overlay<T extends Overlay<T>> {
             HBox hBox = new HBox();
             hBox.setSpacing(7);
             headLineLabel = new AutoTooltipLabel(headLine);
+            headLineLabel.setWrapText(showBusyAnimation);
+            if (showBusyAnimation) {
+                BusyAnimation busyAnimation = new BusyAnimation();
+                busyAnimation.setMinSize(20, 20);
+                busyAnimation.setPrefSize(20, 20);
+                busyAnimation.setMaxSize(20, 20);
+                headLineLabel.setGraphic(busyAnimation);
+                headLineLabel.setGraphicTextGap(12);
+            }
             headlineIcon = new Label();
             headlineIcon.setManaged(false);
             headlineIcon.setVisible(false);
