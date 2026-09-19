@@ -36,6 +36,10 @@ import haveno.network.p2p.network.PeerType;
 import haveno.network.p2p.network.RuleViolation;
 import haveno.network.p2p.network.Statistic;
 import haveno.network.p2p.peers.getdata.RequestDataManager;
+import haveno.network.p2p.peers.getdata.messages.GetDataRequest;
+import haveno.network.p2p.peers.getdata.messages.GetDataResponse;
+import haveno.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
+import haveno.network.p2p.peers.getdata.messages.PreliminaryGetDataRequest;
 import haveno.network.p2p.peers.keepalive.KeepAliveManager;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
@@ -59,6 +63,7 @@ import org.mockito.MockedStatic;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -143,6 +148,69 @@ public class PeerManagerTest {
             assertTrue(sends.isEmpty());
         } finally {
             broadcaster.shutDown(() -> { });
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testLatePreliminaryResponseDoesNotCompleteUpdatedDataHandshake(boolean updatedRequestFails) {
+        NetworkNode networkNode = mock(NetworkNode.class);
+        when(networkNode.nodeAddressProperty()).thenReturn(new SimpleObjectProperty<>());
+        SeedNodeRepository seeds = mock(SeedNodeRepository.class);
+        when(seeds.getSeedNodeAddresses()).thenReturn(Set.of(new NodeAddress("seed1:1002"), new NodeAddress("seed2:1003")));
+        RequestDataManager.Listener listener = mock(RequestDataManager.Listener.class);
+        ArrayDeque<Runnable> scheduled = new ArrayDeque<>();
+        List<Runnable> responses = new ArrayList<>();
+        List<SettableFuture<Connection>> sends = new ArrayList<>();
+        List<MessageListener> messageListeners = new ArrayList<>();
+        doAnswer(invocation -> messageListeners.add(invocation.getArgument(0)))
+                .when(networkNode).addMessageListener(any(MessageListener.class));
+        doAnswer(invocation -> messageListeners.remove(invocation.getArgument(0)))
+                .when(networkNode).removeMessageListener(any(MessageListener.class));
+        when(networkNode.getNodeAddress()).thenReturn(new NodeAddress("local:9999"));
+        when(networkNode.sendMessage(any(NodeAddress.class), any(GetDataRequest.class))).thenAnswer(invocation -> {
+            NodeAddress peer = invocation.getArgument(0);
+            GetDataRequest request = invocation.getArgument(1);
+            Connection connection = mock(Connection.class);
+            when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(peer));
+            responses.add(() -> new ArrayList<>(messageListeners).forEach(messageListener -> messageListener.onMessage(
+                    new GetDataResponse(Set.of(), Set.of(), request.getNonce(), request instanceof GetUpdatedDataRequest, false), connection)));
+            SettableFuture<Connection> send = SettableFuture.create();
+            sends.add(send);
+            return send;
+        });
+        P2PDataStorage storage = mock(P2PDataStorage.class);
+        when(storage.buildPreliminaryGetDataRequest(anyInt())).thenAnswer(invocation ->
+                new PreliminaryGetDataRequest(invocation.getArgument(0), Set.of()));
+        when(storage.buildGetUpdatedDataRequest(any(NodeAddress.class), anyInt())).thenAnswer(invocation ->
+                new GetUpdatedDataRequest(invocation.getArgument(0), invocation.getArgument(1), Set.of()));
+
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.runAfter(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS)))
+                    .thenAnswer(invocation -> {
+                        scheduled.add(invocation.getArgument(0));
+                        return mock(Timer.class);
+                    });
+            RequestDataManager requests = new RequestDataManager(networkNode, seeds, storage, mock(PeerManager.class));
+            requests.setListener(listener);
+            requests.requestPreliminaryData();
+            scheduled.remove().run();
+            scheduled.remove().run();
+            assertEquals(2, responses.size());
+            responses.get(0).run();
+            scheduled.remove().run();
+            verify(listener).onPreliminaryDataReceived();
+
+            requests.requestUpdateData();
+            assertEquals(3, responses.size());
+            if (updatedRequestFails) sends.get(2).setException(new IOException("Seed disconnected"));
+            responses.get(1).run();
+            verify(listener, never()).onUpdatedDataReceived();
+
+            assertEquals(updatedRequestFails ? 4 : 3, responses.size());
+            responses.get(updatedRequestFails ? 3 : 2).run();
+            verify(listener).onUpdatedDataReceived();
+            requests.shutDown();
         }
     }
 

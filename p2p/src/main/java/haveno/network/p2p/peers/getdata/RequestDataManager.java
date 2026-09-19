@@ -347,6 +347,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private void requestData(NodeAddress nodeAddress, List<NodeAddress> remainingNodeAddresses) {
         if (!stopped) {
             if (!handlerMap.containsKey(nodeAddress)) {
+                boolean preliminaryRequest = isPreliminaryDataRequest;
                 RequestDataHandler requestDataHandler = new RequestDataHandler(networkNode, dataStorage, peerManager,
                         new RequestDataHandler.Listener() {
                             @Override
@@ -373,7 +374,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                 }
 
                                 // 2. Later we get a response from requestUpdatesData
-                                if (dataUpdateRequested) {
+                                if (dataUpdateRequested && !preliminaryRequest) {
                                     dataUpdateRequested = false;
                                     checkNotNull(listener).onUpdatedDataReceived();
                                 }
@@ -402,6 +403,12 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                             "Loading initial data from {} completed\n" +
                                             "#################################################################\n", nodeAddress);
                                     checkNotNull(listener).onDataReceived();
+                                }
+
+                                // A failed update can have exhausted failover while this preliminary request was busy.
+                                // Use the now-responsive peer to finish the address-bearing handshake.
+                                if (preliminaryRequest && dataUpdateRequested && handlerMap.isEmpty() && !wasTruncated) {
+                                    requestData(nodeAddress, remainingNodeAddresses);
                                 }
                             }
 
@@ -451,7 +458,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                 handlerMap.put(nodeAddress, requestDataHandler);
                 numRepeatedRequests++;
                 numTotalRequests++;
-                requestDataHandler.requestData(nodeAddress, isPreliminaryDataRequest);
+                requestDataHandler.requestData(nodeAddress, preliminaryRequest);
             } else {
                 RequestDataHandler existingHandler = handlerMap.get(nodeAddress);
                 if (existingHandler.isStale()) {

@@ -76,6 +76,7 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     protected final ObservableMap<NodeAddress, T> observableMap = FXCollections.observableHashMap();
     protected List<T> persistedAcceptedDisputeAgents;
     protected Timer republishTimer, retryRepublishTimer;
+    private BootstrapListener bootstrapListener;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -146,15 +147,22 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
 
         if (getRegisteredDisputeAgentFromUser() != null) {
             P2PService p2PService = disputeAgentService.getP2PService();
+            bootstrapListener = new BootstrapListener() {
+                @Override
+                public void onDataReceived() {
+                    startRepublishDisputeAgent();
+                }
+
+                @Override
+                public void onUpdatedDataReceived() {
+                    // Preliminary data can arrive before peers know our address and accept broadcasts.
+                    // Republish after the updated-data handshake, even if both startup attempts were too early.
+                    if (p2PService.isBootstrapped()) republish();
+                }
+            };
+            p2PService.addP2PServiceListener(bootstrapListener);
             if (p2PService.isBootstrapped())
                 startRepublishDisputeAgent();
-            else
-                p2PService.addP2PServiceListener(new BootstrapListener() {
-                    @Override
-                    public void onDataReceived() {
-                        startRepublishDisputeAgent();
-                    }
-                });
         }
 
         filterManager.filterProperty().addListener((observable, oldValue, newValue) -> updateMap());
@@ -163,6 +171,10 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     }
 
     public void shutDown() {
+        if (bootstrapListener != null) {
+            disputeAgentService.getP2PService().removeP2PServiceListener(bootstrapListener);
+            bootstrapListener = null;
+        }
         stopRepublishTimer();
         stopRetryRepublishTimer();
     }
@@ -214,7 +226,7 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
         observableMap.put(disputeAgent.getNodeAddress(), disputeAgent);
         disputeAgentService.addDisputeAgent(disputeAgent,
                 () -> {
-                    log.info("DisputeAgent successfully saved in P2P network");
+                    log.info("DisputeAgent added to local P2P storage for broadcast");
                     resultHandler.handleResult();
 
                     if (observableMap.size() > 0)
