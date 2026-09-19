@@ -20,6 +20,8 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradableList;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.failed.FailedTradesManager;
+import haveno.core.monetary.Volume;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import javafx.collections.FXCollections;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
@@ -49,6 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static haveno.core.offer.OfferMaker.btcUsdOffer;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -761,6 +765,97 @@ public class OpenOfferManagerTest {
                 HavenoUtils.tradeManager = originalTradeManager;
                 HavenoUtils.openOfferManager = originalOpenOfferManager;
             }
+        }
+    }
+
+    @Test
+    public void testPaymentWarningMatchesTradeAdmissionAndIgnoresRepricingSelf() {
+        ClosedTradableManager closedTrades = mock(ClosedTradableManager.class);
+        FailedTradesManager failedTrades = mock(FailedTradesManager.class);
+        when(failedTrades.getObservableList()).thenReturn(FXCollections.observableArrayList());
+        TradeManager originalTradeManager = HavenoUtils.tradeManager;
+        var originalNotificationService = HavenoUtils.notificationService;
+        try {
+            TradeManager manager = new TradeManager(null, null, null, null, null, null, null,
+                    closedTrades, failedTrades, mock(P2PService.class), null, null, null, null, null, null, null, null,
+                    mock(PersistenceManager.class), null);
+            Offer offer = mock(Offer.class);
+            when(offer.getDirection()).thenReturn(OfferDirection.BUY);
+            when(offer.getCounterCurrencyCode()).thenReturn("USD");
+            when(offer.getMakerPaymentAccountId()).thenReturn("account");
+            Volume volume = Volume.parse("30", "USD");
+            Trade other = mock(Trade.class);
+            when(other.getOffer()).thenReturn(offer);
+            when(other.isMaker()).thenReturn(true);
+            when(other.getVolume()).thenReturn(volume);
+            manager.getObservableList().add(other);
+            Trade candidate = mock(Trade.class);
+            when(candidate.isMaker()).thenReturn(true);
+            when(candidate.getOffer()).thenReturn(offer);
+            when(candidate.getVolume(1L)).thenReturn(volume);
+
+            assertTrue(manager.hasAmbiguousPayment(offer, volume));
+            assertThrows(IllegalArgumentException.class, () -> manager.setTradePrice(candidate, 1L));
+            verify(candidate, never()).setPrice(anyLong());
+            assertFalse(manager.hasAmbiguousPayment(offer, Volume.parse("31", "USD")));
+
+            when(other.isPayoutPublished()).thenReturn(true);
+            assertFalse(manager.hasAmbiguousPayment(offer, volume));
+            assertDoesNotThrow(() -> manager.setTradePrice(candidate, 1L));
+            when(other.isPayoutPublished()).thenReturn(false);
+            when(other.isMaker()).thenReturn(false);
+            assertFalse(manager.hasAmbiguousPayment(offer, volume));
+            when(other.isMaker()).thenReturn(true);
+            when(other.getVolume()).thenReturn(null);
+            assertTrue(manager.hasAmbiguousPayment(offer, volume));
+
+            manager.getObservableList().clear();
+            manager.getObservableList().add(candidate);
+            assertDoesNotThrow(() -> manager.setTradePrice(candidate, 1L));
+        } finally {
+            HavenoUtils.tradeManager = originalTradeManager;
+            HavenoUtils.notificationService = originalNotificationService;
+        }
+    }
+
+    @Test
+    public void testPaymentWarningRetainsUnresolvedClosedAndFailedTrades() {
+        ClosedTradableManager closedTrades = mock(ClosedTradableManager.class);
+        FailedTradesManager failedTrades = mock(FailedTradesManager.class);
+        when(failedTrades.getObservableList()).thenReturn(FXCollections.observableArrayList());
+        TradeManager originalTradeManager = HavenoUtils.tradeManager;
+        var originalNotificationService = HavenoUtils.notificationService;
+        try {
+            TradeManager manager = new TradeManager(null, null, null, null, null, null, null,
+                    closedTrades, failedTrades, mock(P2PService.class), null, null, null, null, null, null, null, null,
+                    mock(PersistenceManager.class), null);
+            Offer offer = mock(Offer.class);
+            when(offer.getDirection()).thenReturn(OfferDirection.BUY);
+            when(offer.getCounterCurrencyCode()).thenReturn("USD");
+            when(offer.getMakerPaymentAccountId()).thenReturn("account");
+            Volume volume = Volume.parse("30", "USD");
+            Trade other = mock(Trade.class);
+            when(other.getOffer()).thenReturn(offer);
+            when(other.isMaker()).thenReturn(true);
+            when(other.getVolume()).thenReturn(volume);
+            when(closedTrades.getClosedTrades()).thenReturn(List.of(other));
+            assertTrue(manager.hasAmbiguousPayment(offer, volume));
+
+            when(closedTrades.getClosedTrades()).thenReturn(List.of());
+            failedTrades.getObservableList().add(other);
+            assertFalse(manager.hasAmbiguousPayment(offer, volume));
+            when(other.isDepositRequested()).thenReturn(true);
+            assertFalse(manager.hasAmbiguousPayment(offer, volume));
+            when(other.isProtocolErrorHandlingScheduled()).thenReturn(true);
+            assertTrue(manager.hasAmbiguousPayment(offer, volume));
+            when(other.isProtocolErrorHandlingScheduled()).thenReturn(false);
+            when(other.isDepositsPublished()).thenReturn(true);
+            assertTrue(manager.hasAmbiguousPayment(offer, volume));
+            when(other.isPayoutPublished()).thenReturn(true);
+            assertFalse(manager.hasAmbiguousPayment(offer, volume));
+        } finally {
+            HavenoUtils.tradeManager = originalTradeManager;
+            HavenoUtils.notificationService = originalNotificationService;
         }
     }
 
