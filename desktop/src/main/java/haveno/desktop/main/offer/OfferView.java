@@ -40,6 +40,7 @@ import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.offer.offerbook.CryptoOfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
 import haveno.desktop.main.offer.takeoffer.TakeOfferView;
+import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import javafx.beans.value.ChangeListener;
@@ -344,6 +345,12 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                                    Tab marketOfferBookTab) {
 
         if (offer == null) {
+            return;
+        }
+
+        if (offer.getPrice() == null) {
+            navigation.navigateTo(MainView.class, this.getClass(), viewClass);
+            new Popup().warning(Res.get("takeOffer.noPriceFeedAvailable")).show();
             return;
         }
 
