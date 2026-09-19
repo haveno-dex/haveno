@@ -210,8 +210,8 @@ public class CloneOfferView extends MutableOfferView<CloneOfferViewModel> {
                     .onAction(this::doClone)
                     .closeButtonText(Res.get("shared.no"))
                     .show();
-        } else {
-            doClone();
+        } else if (model.isPriceInRange()) {
+            confirmPaymentAmount(this::doClone);
         }
     }
 

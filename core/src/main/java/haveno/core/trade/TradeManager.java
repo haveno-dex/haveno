@@ -1661,24 +1661,8 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         synchronized (tradableList.getList()) {
             Volume volume = trade.getVolume(price);
             checkArgument(price > 0 && volume != null, "Cannot determine trade payment amount");
-            List<Trade> trades = new ArrayList<>(tradableList.getList());
-            trades.addAll(closedTradableManager.getClosedTrades());
-            ObservableList<Trade> failedTrades = failedTradesManager.getObservableList();
-            synchronized (failedTrades) {
-                // Retain failed deposits while cleanup is pending, deposits are published, or a wallet remains.
-                // Check wallet files without taking the wallet lock while holding the trade-list locks.
-                failedTrades.stream()
-                        .filter(Trade::isDepositRequested)
-                        .filter(t -> t.isProtocolErrorHandlingScheduled() || t.isDepositsPublished() || t.walletExistsNoSync())
-                        .forEach(trades::add);
-            }
-            for (Trade other : trades) {
-                if (other == trade || !other.isMaker() || other.isPayoutPublished()) continue;
-                if (other.getOffer().getDirection() != trade.getOffer().getDirection()) continue;
-                if (!other.getOffer().getCounterCurrencyCode().equals(trade.getOffer().getCounterCurrencyCode())) continue;
-                if (!other.getOffer().getOfferPayload().getMakerPaymentAccountId().equals(trade.getOffer().getOfferPayload().getMakerPaymentAccountId())) continue;
-                Volume otherVolume = other.getVolume();
-                if (otherVolume != null && otherVolume.getValue() != volume.getValue()) continue;
+            Trade other = findAmbiguousPaymentTrade(trade.getOffer(), volume, trade);
+            if (other != null) {
                 log.warn("Rejecting ambiguous maker payment, tradeId={}, conflictingTradeId={}, paymentAmount={} {}",
                         trade.getId(), other.getId(), volume, volume.getCurrencyCode());
                 throw new AmbiguousPaymentException("This offer is temporarily unavailable for the selected amount. Please choose a different amount or try again later.");
@@ -1686,6 +1670,36 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             // Keep repricing atomic with admission, including the arbitrator's final price.
             trade.setPrice(price);
         }
+    }
+
+    public boolean hasAmbiguousPayment(Offer offer, Volume volume) {
+        synchronized (tradableList.getList()) {
+            return findAmbiguousPaymentTrade(offer, volume, null) != null;
+        }
+    }
+
+    @Nullable
+    private Trade findAmbiguousPaymentTrade(Offer offer, Volume volume, Trade excludedTrade) {
+        List<Trade> trades = new ArrayList<>(tradableList.getList());
+        trades.addAll(closedTradableManager.getClosedTrades());
+        ObservableList<Trade> failedTrades = failedTradesManager.getObservableList();
+        synchronized (failedTrades) {
+            // Retain failed deposits while cleanup is pending, deposits are published, or a wallet remains.
+            // Check wallet files without taking the wallet lock while holding the trade-list locks.
+            failedTrades.stream()
+                    .filter(Trade::isDepositRequested)
+                    .filter(t -> t.isProtocolErrorHandlingScheduled() || t.isDepositsPublished() || t.walletExistsNoSync())
+                    .forEach(trades::add);
+        }
+        for (Trade other : trades) {
+            if (other == excludedTrade || !other.isMaker() || other.isPayoutPublished()) continue;
+            if (other.getOffer().getDirection() != offer.getDirection()) continue;
+            if (!other.getOffer().getCounterCurrencyCode().equals(offer.getCounterCurrencyCode())) continue;
+            if (!other.getOffer().getMakerPaymentAccountId().equals(offer.getMakerPaymentAccountId())) continue;
+            Volume otherVolume = other.getVolume();
+            if (otherVolume == null || otherVolume.getValue() == volume.getValue()) return other;
+        }
+        return null;
     }
 
     // TODO Remove once tradableList is refactored to a final field

@@ -27,6 +27,7 @@ import haveno.common.util.Utilities;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.payment.FasterPaymentsAccount;
@@ -35,6 +36,7 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
+import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.ActivatableViewAndModel;
@@ -51,6 +53,7 @@ import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
+import haveno.desktop.main.offer.MutableOfferDataModel.PaymentAmountConflict;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.FundWalletInfoWindow;
@@ -174,6 +177,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
     private OfferView.CloseHandler closeHandler;
     private Popup fundingAddressPopup;
     private Notification walletFundedNotification;
+    private PaymentAmountConflict acknowledgedPaymentAmountConflict;
+    private Volume acknowledgedPaymentVolume;
 
     protected int gridRow = 0;
     protected int nextButtonsGridRow; // grid row of the next buttons; reused by the edit and clone views for their action buttons
@@ -321,6 +326,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                              boolean initAddressEntry,
                              OfferView.OfferActionHandler offerActionHandler) {
         this.offerActionHandler = offerActionHandler;
+        acknowledgedPaymentAmountConflict = null;
+        acknowledgedPaymentVolume = null;
 
         boolean result = model.initWithData(direction, tradeCurrency, initAddressEntry);
 
@@ -379,19 +386,58 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         if (model.getDataModel().canPlaceOffer()) {
             hideWalletFundedNotification();
             Offer offer = model.createAndGetOffer();
-            if (!DevEnv.isDevMode()) {
-                offerDetailsWindow.onPlaceOffer(() -> {
-                    model.onPlaceOffer(offer, offerDetailsWindow::hide);
-                }).show(offer);
-                offerDetailsWindow.onClose(() -> {
-                    model.onCancelOffer(null, null);
-                });
-            } else {
-                balanceSubscription.unsubscribe();
-                model.onPlaceOffer(offer, () -> {
-                });
-            }
+            confirmPaymentAmount(offer, () -> showOfferDetails(offer));
         }
+    }
+
+    private void showOfferDetails(Offer offer) {
+        if (!DevEnv.isDevMode()) {
+            offerDetailsWindow.onPlaceOffer(() -> {
+                model.onPlaceOffer(offer, offerDetailsWindow::hide);
+            }).show(offer);
+            offerDetailsWindow.onClose(() -> {
+                model.onCancelOffer(null, null);
+            });
+        } else {
+            balanceSubscription.unsubscribe();
+            model.onPlaceOffer(offer, () -> {
+            });
+        }
+    }
+
+    protected void confirmPaymentAmount(Runnable onConfirmed) {
+        Offer offer;
+        try {
+            offer = model.createAndGetOffer();
+        } catch (IllegalArgumentException e) {
+            new Popup().warning(e.getMessage()).show();
+            return;
+        }
+        confirmPaymentAmount(offer, onConfirmed);
+    }
+
+    private void confirmPaymentAmount(Offer offer, Runnable onConfirmed) {
+        Volume paymentVolume = offer.getVolume();
+        PaymentAmountConflict conflict = model.getDataModel().getPaymentAmountConflict(offer, paymentVolume);
+        if (conflict == PaymentAmountConflict.NONE ||
+                (model.showPayFundsScreenDisplayed.get() && conflict == acknowledgedPaymentAmountConflict &&
+                        paymentVolume.equals(acknowledgedPaymentVolume))) {
+            onConfirmed.run();
+            return;
+        }
+
+        String amount = VolumeUtil.formatVolumeWithCode(paymentVolume);
+        Popup popup = conflict == PaymentAmountConflict.TRADE
+                ? new Popup().warning(Res.get("createOffer.paymentAmountConflict.trade", amount))
+                : new Popup().information(Res.get("createOffer.paymentAmountConflict.offer", amount));
+        popup.actionButtonText(Res.get("createOffer.paymentAmountConflict.continue"))
+                .closeButtonText(Res.get("shared.cancel"))
+                .onAction(() -> {
+                    acknowledgedPaymentAmountConflict = conflict;
+                    acknowledgedPaymentVolume = paymentVolume;
+                    onConfirmed.run();
+                })
+                .show();
     }
 
     private void onShowPayFundsScreen() {
@@ -1274,12 +1320,12 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
                                     Res.get("offerbook.warning.newVersionAnnouncement")))
                             .closeButtonText(Res.get("shared.cancel"))
                             .actionButtonText(Res.get("shared.ok"))
-                            .onAction(this::onShowPayFundsScreen)
+                            .onAction(() -> confirmPaymentAmount(this::onShowPayFundsScreen))
                             .width(900)
                             .dontShowAgainId(key)
                             .show();
                 } else {
-                    onShowPayFundsScreen();
+                    confirmPaymentAmount(this::onShowPayFundsScreen);
                 }
             }
         });
