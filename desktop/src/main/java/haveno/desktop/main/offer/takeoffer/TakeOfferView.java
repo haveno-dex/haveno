@@ -439,7 +439,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             if (fundingAddressPopup != null) return; // already waiting
             fundingAddressPopup = new Popup();
             fundingAddressPopup.headLine(Res.get("shared.fundingAddress.headline"))
-                    .message(Res.get("shared.fundingAddress.msg"))
+                    .width(480)
                     .showBusyAnimation()
                     .closeButtonText(Res.get("shared.cancel"))
                     .onClose(() -> {
