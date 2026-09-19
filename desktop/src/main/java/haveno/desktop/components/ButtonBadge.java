@@ -29,6 +29,7 @@ public class ButtonBadge extends JFXBadge {
     public ButtonBadge(Button button) {
         super(button);
         this.button = button;
+        getStyleClass().add("button-badge");
         setCursor(Cursor.HAND);
     }
 
