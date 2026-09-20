@@ -3098,6 +3098,13 @@ textfield */
 }
 
 /* message-list-view*/
+#message-list-view .selectable-label,
+#message-list-view .selectable-label .scroll-pane,
+#message-list-view .selectable-label .scroll-pane .viewport,
+#message-list-view .selectable-label .content {
+    -fx-border-width: 0;
+}
+
 #message-list-view.list-view:focused > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
     -fx-background-color: transparent;
 }
