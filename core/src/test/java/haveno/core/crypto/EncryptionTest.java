@@ -60,6 +60,7 @@ import monero.wallet.MoneroWallet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 
 import java.io.File;
 import java.io.IOException;
@@ -81,6 +82,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.Map;
@@ -759,6 +763,159 @@ public class EncryptionTest {
         HavenoUtils.tradeManager = mock(TradeManager.class);
         return constructor.newInstance(mock(User.class), mock(Preferences.class), account, connections,
                 mock(WalletsSetup.class), mock(XmrAddressEntryList.class), walletDir, 0);
+    }
+
+    private XmrWalletService creatingWalletService(CoreAccountService account) throws Exception {
+        XmrConnectionService connections = mock(XmrConnectionService.class);
+        doReturn(true).when(connections).isConnected();
+        doReturn(new MoneroRpcConnection("http://127.0.0.1:18081")).when(connections).getConnection();
+        XmrWalletService service = walletService(account, connections, walletDir);
+        Preferences preferences = mock(Preferences.class);
+        doReturn(true).when(preferences).isUseNativeXmrWallet();
+        setField(XmrWalletService.class, service, "preferences", preferences);
+        return service;
+    }
+
+    private CompletableFuture<MoneroWallet> createWalletAsync(XmrWalletService service, String name, Answer<MoneroWalletFull> factory) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (var utils = mockStatic(MoneroUtils.class, CALLS_REAL_METHODS);
+                 var wallets = mockStatic(MoneroWalletFull.class)) {
+                utils.when(MoneroUtils::isNativeLibraryLoaded).thenReturn(true);
+                wallets.when(() -> MoneroWalletFull.createWallet(any(MoneroWalletConfig.class))).thenAnswer(factory);
+                return service.createWallet(name, false, true);
+            }
+        }, task -> new Thread(task).start());
+    }
+
+    private void awaitWalletLifecycleLock(XmrWalletService service, Thread thread) throws Exception {
+        Field field = XmrWalletService.class.getDeclaredField("walletLifecycleLock");
+        field.setAccessible(true);
+        ReentrantReadWriteLock lock = (ReentrantReadWriteLock) field.get(service);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!lock.hasQueuedThread(thread) && thread.isAlive() && System.nanoTime() < deadline) Thread.sleep(10);
+        assertTrue(lock.hasQueuedThread(thread));
+    }
+
+    @Test
+    public void testConcurrentWalletCreationsFinishBeforePasswordSnapshot() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = creatingWalletService(account);
+        CountDownLatch creating = new CountDownLatch(2);
+        CountDownLatch finishCreation = new CountDownLatch(1);
+        List<Trade> trades = new ArrayList<>();
+        List<MoneroWalletFull> wallets = new ArrayList<>();
+        List<CompletableFuture<MoneroWallet>> creations = new ArrayList<>();
+        for (String name : List.of("first", "second")) {
+            MoneroWalletFull wallet = mockWallet();
+            wallets.add(wallet);
+            doReturn(new MoneroRpcConnection("http://127.0.0.1:18081")).when(wallet).getDaemonConnection();
+            Trade trade = mock(Trade.class);
+            trades.add(trade);
+            doReturn(name).when(trade).getWalletName();
+            doAnswer(invocation -> {
+                service.changeWalletPassword(name, wallet, "new-password", true);
+                return null;
+            }).when(trade).changeWalletPassword("new-password");
+            creations.add(createWalletAsync(service, name, invocation -> {
+                MoneroWalletConfig config = invocation.getArgument(0);
+                assertEquals("password", config.getPassword());
+                creating.countDown();
+                assertTrue(finishCreation.await(10, TimeUnit.SECONDS));
+                Files.write(Path.of(config.getPath() + ".keys"), new byte[] {1});
+                Files.write(Path.of(config.getPath()), new byte[] {2});
+                return wallet;
+            }));
+        }
+        doReturn(trades).when(HavenoUtils.tradeManager).getAllTrades();
+        FutureTask<List<String>> change = new FutureTask<>(() -> account.changePassword(null, "new-password"));
+        Thread changing = new Thread(change);
+        try {
+            assertTrue(creating.await(5, TimeUnit.SECONDS));
+            // deleting another wallet can finish while both creations are still running
+            for (String suffix : List.of("", ".keys", ".address.txt")) Files.write(walletDir.toPath().resolve("deleted" + suffix), new byte[] {3});
+            CompletableFuture.runAsync(() -> service.deleteWalletAndRetainBackup("deleted")).get(5, TimeUnit.SECONDS);
+            assertFalse(service.walletExists("deleted"));
+            assertArrayEquals(new byte[] {3}, Files.readAllBytes(FileUtil.getLatestBackupFile(walletDir, "deleted.keys").toPath()));
+            changing.start();
+            awaitWalletLifecycleLock(service, changing);
+            assertEquals("password", service.getWalletPassword("first"));
+        } finally {
+            finishCreation.countDown();
+            for (CompletableFuture<MoneroWallet> creation : creations) creation.get(10, TimeUnit.SECONDS);
+            changing.join(10000);
+        }
+        change.get(10, TimeUnit.SECONDS);
+        for (MoneroWalletFull wallet : wallets) verify(wallet).changePassword("password", "new-password");
+        assertFalse(account.isPasswordRecoveryRequired());
+        assertEquals("new-password", account("new-password").getPassword());
+    }
+
+    @Test
+    public void testWalletCreatedDuringPasswordChangeFinishesBackupBeforeCleanup() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = creatingWalletService(account);
+        CountDownLatch changingWallets = new CountDownLatch(1);
+        CountDownLatch finishChange = new CountDownLatch(1);
+        Trade trade = mock(Trade.class);
+        doReturn("existing").when(trade).getWalletName();
+        doReturn(List.of(trade)).when(HavenoUtils.tradeManager).getAllTrades();
+        doAnswer(invocation -> {
+            changingWallets.countDown();
+            assertTrue(finishChange.await(10, TimeUnit.SECONDS));
+            return null;
+        }).when(trade).changeWalletPassword("new-password");
+        CountDownLatch backingUp = new CountDownLatch(1);
+        CountDownLatch finishBackup = new CountDownLatch(1);
+        MoneroWalletFull wallet = mockWallet();
+        doReturn(new MoneroRpcConnection("http://127.0.0.1:18081")).when(wallet).getDaemonConnection();
+        doAnswer(invocation -> {
+            backingUp.countDown();
+            assertTrue(finishBackup.await(10, TimeUnit.SECONDS));
+            return new byte[][] {new byte[] {1}, new byte[] {2}};
+        }).when(wallet).getData();
+        FutureTask<List<String>> change = new FutureTask<>(() -> account.changePassword(null, "new-password"));
+        Thread changing = new Thread(change);
+        CompletableFuture<MoneroWallet> creation = null;
+        try {
+            changing.start();
+            assertTrue(changingWallets.await(5, TimeUnit.SECONDS));
+            creation = createWalletAsync(service, "new-trade", invocation -> {
+                MoneroWalletConfig config = invocation.getArgument(0);
+                assertEquals("new-password", config.getPassword());
+                Files.write(Path.of(config.getPath() + ".keys"), new byte[] {1});
+                Files.write(Path.of(config.getPath()), new byte[] {2});
+                return wallet;
+            });
+            assertTrue(backingUp.await(5, TimeUnit.SECONDS));
+            finishChange.countDown();
+            awaitWalletLifecycleLock(service, changing);
+        } finally {
+            finishChange.countDown();
+            finishBackup.countDown();
+            if (creation != null) creation.get(10, TimeUnit.SECONDS);
+            changing.join(10000);
+        }
+        change.get(10, TimeUnit.SECONDS);
+        assertFalse(account.isPasswordRecoveryRequired());
+        assertEquals("new-password", service.getWalletPassword("new-trade"));
+        try (var backups = Files.list(walletDir.toPath().resolve("backup"))) {
+            Path backup = backups.filter(path -> path.getFileName().toString().startsWith("password-change-")).findFirst().orElseThrow();
+            assertArrayEquals(new byte[] {1}, Files.readAllBytes(backup.resolve("new-trade.keys")));
+            assertArrayEquals(new byte[] {2}, Files.readAllBytes(backup.resolve("new-trade")));
+        }
+    }
+
+    @Test
+    public void testFailedWalletCreationReleasesPasswordChangeLock() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService service = creatingWalletService(account);
+        CompletableFuture<MoneroWallet> creation = createWalletAsync(service, "failed", invocation -> {
+            throw new MoneroError("injected creation failure");
+        });
+        assertThrows(ExecutionException.class, () -> creation.get(10, TimeUnit.SECONDS));
+        CompletableFuture.supplyAsync(() -> account.changePassword(null, "new-password")).get(10, TimeUnit.SECONDS);
+        assertFalse(account.isPasswordRecoveryRequired());
+        assertEquals("new-password", account("new-password").getPassword());
     }
 
     @Test
@@ -1786,9 +1943,7 @@ public class EncryptionTest {
             deleting.start();
             assertTrue(copied.await(5, TimeUnit.SECONDS));
             cleaning.start();
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
-            while (cleaning.getState() != Thread.State.BLOCKED && cleaning.isAlive() && System.nanoTime() < deadline) Thread.sleep(10);
-            assertEquals(Thread.State.BLOCKED, cleaning.getState());
+            awaitWalletLifecycleLock(service, cleaning);
         } finally {
             allowDelete.countDown();
             deleting.join(10000);
