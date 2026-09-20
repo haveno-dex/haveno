@@ -997,6 +997,11 @@ tree-table-view:focused {
     -fx-background-color: linear-gradient(to right, transparent, -bs-hero-primary 35%, -bs-hero-primary 65%, transparent);
 }
 
+/* startup spinner standing in for the login form while the account opens */
+.login-progress {
+    -jfx-radius: 14;
+}
+
 /* Main UI */
 #base-content-container {
     -fx-background-color: -bs-color-gray-background;
