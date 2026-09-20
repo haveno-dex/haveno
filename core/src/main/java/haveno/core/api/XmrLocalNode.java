@@ -62,7 +62,7 @@ public class XmrLocalNode {
     }
 
     // instance fields
-    private MoneroDaemonRpc daemon;
+    private volatile MoneroDaemonRpc daemon;
     private final Config config;
     private final Preferences preferences;
     private final XmrNodes xmrNodes;
@@ -90,7 +90,6 @@ public class XmrLocalNode {
         this.config = config;
         this.preferences = preferences;
         this.xmrNodes = xmrNodes;
-        this.daemon = new MoneroDaemonRpc(getUri());
     }
 
     public void startPolling() {
@@ -111,6 +110,7 @@ public class XmrLocalNode {
         checkConnection();
 
         // determine if connection changed
+        MoneroDaemonRpc daemon = getDaemon();
         Boolean isOnline = daemon.getRpcConnection().isOnline();
         Boolean isAuthenticated = daemon.getRpcConnection().isAuthenticated();
         MoneroDaemonInfo lastInfo = XmrConnectionService.getCachedDaemonInfo(daemon.getRpcConnection());
@@ -174,7 +174,9 @@ public class XmrLocalNode {
     /**
      * Return the client of the local Monero node.
      */
-    public MoneroDaemonRpc getDaemon() {
+    public synchronized MoneroDaemonRpc getDaemon() {
+        // initialize the RPC transport on first use, rather than during service construction on the user thread
+        if (daemon == null) daemon = new MoneroDaemonRpc(getUri());
         return daemon;
     }
 
@@ -191,18 +193,18 @@ public class XmrLocalNode {
      */
     public boolean isDetected() {
         checkConnection();
-        return Boolean.TRUE.equals(daemon.getRpcConnection().isOnline());
+        return Boolean.TRUE.equals(getDaemon().getRpcConnection().isOnline());
     }
 
     /**
      * Check if connected to local Monero node.
      */
     public boolean isConnected() {
-        return Boolean.TRUE.equals(daemon.getRpcConnection().isConnected());
+        return Boolean.TRUE.equals(getDaemon().getRpcConnection().isConnected());
     }
 
     private void checkConnection() {
-        XmrConnectionService.checkConnection(daemon.getRpcConnection());
+        XmrConnectionService.checkConnection(getDaemon().getRpcConnection());
     }
 
     public XmrNodeSettings getNodeSettings() {
@@ -267,6 +269,7 @@ public class XmrLocalNode {
      */
     public void stop() {
         if (!isDetected()) throw new IllegalStateException("Local Monero node is not running");
+        MoneroDaemonRpc daemon = getDaemon();
         if (daemon.getProcess() == null || !daemon.getProcess().isAlive()) throw new IllegalStateException("Cannot stop local Monero node because we don't own its process"); // TODO (woodser): remove isAlive() check after monero-java 0.5.4 which nullifies internal process
         daemon.stopProcess();
         for (var listener : listeners) listener.onNodeStopped();

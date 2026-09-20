@@ -19,6 +19,7 @@ package haveno.core.crypto;
 
 import com.google.protobuf.ByteString;
 import com.google.inject.Injector;
+import haveno.common.UserThread;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.IncorrectPasswordException;
@@ -61,6 +62,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
+import org.bitcoinj.crypto.KeyCrypterScrypt;
+import org.bouncycastle.crypto.params.KeyParameter;
 
 import java.io.File;
 import java.io.IOException;
@@ -81,6 +84,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ExecutionException;
@@ -558,15 +564,77 @@ public class EncryptionTest {
 
     @SuppressWarnings("unchecked")
     private EncryptedConnectionList connectionList(CoreAccountService account, protobuf.EncryptedConnectionList persisted,
-                                                  PersistenceManager<EncryptedConnectionList> persistence) {
+                                                  PersistenceManager<EncryptedConnectionList> persistence) throws InterruptedException {
         doAnswer(invocation -> {
             if (persisted == null) ((Runnable) invocation.getArgument(1)).run();
             else ((Consumer<EncryptedConnectionList>) invocation.getArgument(0)).accept(EncryptedConnectionList.fromProto(persisted));
             return null;
         }).when(persistence).readPersisted(any(), any());
         EncryptedConnectionList list = new EncryptedConnectionList(persistence, account);
-        list.readPersisted(() -> {});
+        CountDownLatch initialized = new CountDownLatch(1);
+        list.readPersisted(initialized::countDown);
+        assertTrue(initialized.await(10, TimeUnit.SECONDS));
         return list;
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testConnectionKeyDerivationDoesNotBlockUserThread() throws Exception {
+        Executor previousExecutor = UserThread.getExecutor();
+        ExecutorService userExecutor = Executors.newSingleThreadExecutor();
+        UserThread.setExecutor(userExecutor);
+        try {
+            for (boolean fail : new boolean[] {false, true}) {
+                CoreAccountService account = mock(CoreAccountService.class);
+                doReturn("password").when(account).getPassword();
+                PersistenceManager<EncryptedConnectionList> persistence = mock(PersistenceManager.class);
+                EncryptedConnectionList persisted = EncryptedConnectionList.fromProto(protobuf.EncryptedConnectionList.newBuilder()
+                        .setSalt(ByteString.copyFrom(new byte[8])).build());
+                KeyCrypterScrypt crypter = mock(KeyCrypterScrypt.class);
+                CountDownLatch deriving = new CountDownLatch(1);
+                CountDownLatch resume = new CountDownLatch(1);
+                AtomicReference<Thread> derivationThread = new AtomicReference<>();
+                doAnswer(invocation -> {
+                    derivationThread.set(Thread.currentThread());
+                    deriving.countDown();
+                    assertTrue(resume.await(10, TimeUnit.SECONDS));
+                    if (fail) throw new IllegalStateException("injected derivation failure");
+                    return new KeyParameter(new byte[32]);
+                }).when(crypter).deriveKey(any());
+                setField(EncryptedConnectionList.class, persisted, "keyCrypterScrypt", crypter);
+                doAnswer(invocation -> {
+                    ((Consumer<EncryptedConnectionList>) invocation.getArgument(0)).accept(persisted);
+                    return null;
+                }).when(persistence).readPersisted(any(), any());
+                EncryptedConnectionList list = new EncryptedConnectionList(persistence, account);
+                CompletableFuture<Thread> initialized = new CompletableFuture<>();
+                AtomicInteger callbacks = new AtomicInteger();
+                try {
+                    UserThread.execute(() -> list.readPersisted(() -> {
+                        callbacks.incrementAndGet();
+                        initialized.complete(Thread.currentThread());
+                    }));
+                    assertTrue(deriving.await(10, TimeUnit.SECONDS));
+                    CompletableFuture<Thread> heartbeat = CompletableFuture.supplyAsync(() -> {
+                        assertTrue(list.getConnections().isEmpty());
+                        return Thread.currentThread();
+                    }, userExecutor);
+                    Thread userThread = heartbeat.get(10, TimeUnit.SECONDS);
+                    assertFalse(userThread == derivationThread.get());
+                    assertFalse(initialized.isDone());
+                    verify(account, never()).addPasswordChangeHandler(any(), any());
+                    resume.countDown();
+                    assertSame(userThread, initialized.get(10, TimeUnit.SECONDS));
+                    assertEquals(1, callbacks.get());
+                    verify(account, times(fail ? 0 : 1)).addPasswordChangeHandler(eq(CoreAccountService.PasswordChangeTarget.CONNECTIONS), any());
+                } finally {
+                    resume.countDown();
+                }
+            }
+        } finally {
+            UserThread.setExecutor(previousExecutor);
+            userExecutor.shutdownNow();
+        }
     }
 
     @Test

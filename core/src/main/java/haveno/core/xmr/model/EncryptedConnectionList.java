@@ -3,6 +3,7 @@ package haveno.core.xmr.model;
 import com.google.inject.Inject;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
+import haveno.common.UserThread;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.ScryptUtil;
@@ -19,11 +20,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 import lombok.NonNull;
 import monero.common.MoneroRpcConnection;
@@ -87,43 +90,37 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
 
     @Override
     public void readPersisted(Runnable completeHandler) {
-        persistenceManager.readPersisted(persistedEncryptedConnectionList -> {
-            boolean read = false;
-            writeLock.lock();
-            try {
-                initializeEncryption(persistedEncryptedConnectionList.keyCrypterScrypt);
-                items.clear();
-                items.putAll(persistedEncryptedConnectionList.items);
-                currentConnectionUrl = persistedEncryptedConnectionList.currentConnectionUrl;
-                refreshPeriod = persistedEncryptedConnectionList.refreshPeriod;
-                autoSwitch = persistedEncryptedConnectionList.autoSwitch;
-                read = true;
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                writeLock.unlock();
-            }
-            if (read) accountService.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS, this::changePassword);
-            completeHandler.run();
-        }, () -> {
-            boolean read = false;
-            writeLock.lock();
-            try {
-                initializeEncryption(ScryptUtil.getKeyCrypterScrypt());
-                read = true;
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                writeLock.unlock();
-            }
-            if (read) accountService.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS, this::changePassword);
-            completeHandler.run();
-        });
+        persistenceManager.readPersisted(persisted -> initializeEncryption(persisted, completeHandler),
+                () -> initializeEncryption(null, completeHandler));
     }
 
-    private void initializeEncryption(KeyCrypterScrypt keyCrypterScrypt) {
-        this.keyCrypterScrypt = keyCrypterScrypt;
-        encryptionKey = toSecretKey(accountService.getPassword());
+    private void initializeEncryption(@Nullable EncryptedConnectionList persisted, Runnable completeHandler) {
+        KeyCrypterScrypt crypter = persisted == null ? ScryptUtil.getKeyCrypterScrypt() : persisted.keyCrypterScrypt;
+        String password = accountService.getPassword();
+        // derive outside the user thread and the store lock, then publish before startup continues
+        CompletableFuture.supplyAsync(() -> toSecretKey(crypter, password),
+                task -> new Thread(task, "EncryptedConnectionList-init").start())
+                .whenComplete((key, error) -> UserThread.execute(() -> {
+                    writeLock.lock();
+                    try {
+                        keyCrypterScrypt = crypter;
+                        if (error == null) {
+                            encryptionKey = key;
+                            if (persisted != null) {
+                                items.clear();
+                                items.putAll(persisted.items);
+                                currentConnectionUrl = persisted.currentConnectionUrl;
+                                refreshPeriod = persisted.refreshPeriod;
+                                autoSwitch = persisted.autoSwitch;
+                            }
+                        }
+                    } finally {
+                        writeLock.unlock();
+                    }
+                    if (error == null) accountService.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS, this::changePassword);
+                    else error.printStackTrace();
+                    completeHandler.run();
+                }));
     }
 
     public List<MoneroRpcConnection> getConnections() {
@@ -290,10 +287,10 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         writeLock.lock();
         try {
             if (keyCrypterScrypt == null) throw new IllegalStateException("Connection list is not initialized");
-            SecretKey target = toSecretKey(newPassword);
+            SecretKey target = toSecretKey(keyCrypterScrypt, newPassword);
             List<SecretKey> candidates = new ArrayList<>();
             candidates.add(target);
-            for (String password : passwords) candidates.add(toSecretKey(password));
+            for (String password : passwords) candidates.add(toSecretKey(keyCrypterScrypt, password));
             candidates.add(encryptionKey);
             Map<String, EncryptedConnection> replacement = new HashMap<>();
             for (Map.Entry<String, EncryptedConnection> entry : items.entrySet()) {
@@ -323,7 +320,7 @@ public class EncryptedConnectionList implements PersistableEnvelope, PersistedDa
         throw new IllegalStateException("Could not decrypt stored connection credentials with the supplied passwords. Close Haveno and run the recovery tool with the passwords used during the failed change; see docs/password-recovery.md");
     }
 
-    private SecretKey toSecretKey(String password) {
+    private static SecretKey toSecretKey(KeyCrypterScrypt keyCrypterScrypt, String password) {
         if (password == null) return null;
         return Encryption.getSecretKeyFromBytes(keyCrypterScrypt.deriveKey(password).getKey());
     }
