@@ -78,6 +78,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javafx.beans.property.LongProperty;
@@ -134,7 +135,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     private static final int NUM_WALLET_BACKUPS = 3;
-    private final Object walletCreationLock = new Object();
+    private final ReentrantReadWriteLock walletLifecycleLock = new ReentrantReadWriteLock(true);
     private volatile PasswordChange passwordChange;
 
     private record PasswordChange(String oldPassword, String newPassword, Set<String> remaining, File backupDir) {}
@@ -231,7 +232,8 @@ public class XmrWalletService extends XmrWalletBase {
             @Override
             public void onPasswordChanged(String oldPassword, String newPassword) {
                 synchronized (walletLock) {
-                    synchronized (walletCreationLock) {
+                    walletLifecycleLock.writeLock().lock();
+                    try {
                         File currentBackup = passwordChange == null ? null : passwordChange.backupDir();
                         passwordChange = null;
                         try {
@@ -250,14 +252,19 @@ public class XmrWalletService extends XmrWalletBase {
                         } catch (IOException e) {
                             throw new IllegalStateException("Could not update wallet backups", e);
                         }
+                    } finally {
+                        walletLifecycleLock.writeLock().unlock();
                     }
                 }
             }
 
             @Override
             public void onPasswordChangeFailed() {
-                synchronized (walletCreationLock) {
+                walletLifecycleLock.writeLock().lock();
+                try {
                     passwordChange = null;
+                } finally {
+                    walletLifecycleLock.writeLock().unlock();
                 }
                 UserThread.execute(() -> passwordRecoveryRequired.set(true));
             }
@@ -375,7 +382,8 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     private MoneroWallet createWallet(String walletName, Integer walletRpcPort, boolean applyProxyUri, boolean trustDaemon) {
-        synchronized (walletCreationLock) {
+        walletLifecycleLock.readLock().lock();
+        try {
             log.info("{}.createWallet({})", getClass().getSimpleName(), walletName);
             if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
             MoneroWalletConfig config = getWalletConfig(walletName);
@@ -392,11 +400,14 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
             return created;
+        } finally {
+            walletLifecycleLock.readLock().unlock();
         }
     }
 
     private MoneroWallet createWalletFromSeed(String walletName, Integer walletRpcPort, boolean applyProxyUri, boolean trustDaemon, String seed, long restoreHeight) {
-        synchronized (walletCreationLock) {
+        walletLifecycleLock.readLock().lock();
+        try {
             log.info("{}.createWalletFromSeed({}, {})", getClass().getSimpleName(), walletName, restoreHeight);
             if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
             if (!isSeedValid(seed)) throw new IllegalArgumentException("Invalid wallet seed");
@@ -414,6 +425,8 @@ public class XmrWalletService extends XmrWalletBase {
                 }
             }
             return created;
+        } finally {
+            walletLifecycleLock.readLock().unlock();
         }
     }
 
@@ -692,7 +705,8 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public void deleteWallet(String walletName) {
-        synchronized (walletCreationLock) {
+        walletLifecycleLock.readLock().lock();
+        try {
             assertNotPath(walletName);
             log.info("{}.deleteWallet({})", getClass().getSimpleName(), walletName);
             if (!walletExists(walletName)) throw new RuntimeException("Wallet does not exist at path: " + walletName);
@@ -701,11 +715,14 @@ public class XmrWalletService extends XmrWalletBase {
             if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet cache file: " + redactedPath);
             if (!new File(path + KEYS_FILE_POSTFIX).delete()) throw new RuntimeException("Failed to delete wallet keys file: " + redactedPath + KEYS_FILE_POSTFIX);
             if (!new File(path + ADDRESS_FILE_POSTFIX).delete() && !Config.baseCurrencyNetwork().isMainnet()) throw new RuntimeException("Failed to delete wallet address file: " + redactedPath + ADDRESS_FILE_POSTFIX); // mainnet does not have address file by default
+        } finally {
+            walletLifecycleLock.readLock().unlock();
         }
     }
 
     public void deleteWalletAndRetainBackup(String walletName) {
-        synchronized (walletCreationLock) {
+        walletLifecycleLock.readLock().lock();
+        try {
             assertNotPath(walletName);
             awaitPendingWalletClose(new File(walletDir, walletName).getPath());
             if (!backupWallet(walletName)) throw new IllegalStateException("Could not back up wallet " + walletName);
@@ -720,6 +737,8 @@ public class XmrWalletService extends XmrWalletBase {
                 throw new IllegalStateException("Could not flush wallet backup for " + walletName, e);
             }
             deleteWallet(walletName);
+        } finally {
+            walletLifecycleLock.readLock().unlock();
         }
     }
 
@@ -2155,7 +2174,8 @@ public class XmrWalletService extends XmrWalletBase {
     private void changeWalletPasswords(String oldPassword, String newPassword) {
         Set<String> remaining = new HashSet<>();
         synchronized (walletLock) {
-            synchronized (walletCreationLock) {
+            walletLifecycleLock.writeLock().lock();
+            try {
                 // finish wallet creations and main-wallet replacement before taking the disk snapshot
                 File[] files = walletDir.listFiles((dir, name) -> name.endsWith(KEYS_FILE_POSTFIX));
                 if (files == null) throw new IllegalStateException("Cannot enumerate wallet keys for password change");
@@ -2164,6 +2184,8 @@ public class XmrWalletService extends XmrWalletBase {
                 pending.addAll(remaining);
                 passwordChange = new PasswordChange(normalizeWalletPassword(oldPassword), normalizeWalletPassword(newPassword), pending,
                         new File(walletDir, "backup/password-change-" + UUID.randomUUID()));
+            } finally {
+                walletLifecycleLock.writeLock().unlock();
             }
             remaining.remove(MONERO_WALLET_NAME);
             remaining.remove(MONERO_WALLET_NAME + "_restore"); // owned by the main wallet lock
@@ -2188,10 +2210,13 @@ public class XmrWalletService extends XmrWalletBase {
             trade.changeWalletPassword(newPassword);
         }
         for (String walletName : remaining) {
-            synchronized (walletCreationLock) {
+            walletLifecycleLock.writeLock().lock();
+            try {
                 // a trade can delete its wallet and unregister after the disk snapshot
                 if (!walletExists(walletName) && !new File(walletDir, walletName).exists()) continue;
                 changeWalletPassword(walletName, null, newPassword, false);
+            } finally {
+                walletLifecycleLock.writeLock().unlock();
             }
         }
         log.info("Done changing all wallet passwords");
