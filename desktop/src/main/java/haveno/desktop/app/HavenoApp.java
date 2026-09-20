@@ -56,6 +56,7 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
+import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.debug.DebugView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -91,7 +92,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
-import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -204,17 +204,22 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     public void showLoginProgress() {
-        Label message = new AutoTooltipLabel(Res.get("password.startup.opening"));
-        message.setPrefHeight(30);
-        message.setAlignment(Pos.CENTER);
-        ProgressBar progress = new ProgressBar();
-        progress.setPrefWidth(305);
-        progress.getStyleClass().add("splash-progress");
-        VBox content = new VBox(10, message, progress);
-        content.setAlignment(Pos.TOP_CENTER);
         startupShell = getOrCreateShell();
-        startupShell.setContent(content);
+        startupShell.setContent(createLoginProgress());
         showStartupWindow();
+    }
+
+    // spinner standing in for the login form while the account opens, on the row the startup status's
+    // connection line then takes over so the swap reads as a replacement
+    private static Region createLoginProgress() {
+        BusyAnimation spinner = new BusyAnimation();
+        spinner.getStyleClass().add("login-progress");
+        spinner.setAccessibleText(Res.get("password.startup.opening"));
+        HBox row = new HBox(spinner);
+        row.setAlignment(Pos.CENTER);
+        row.setPrefHeight(30);
+        row.setMaxHeight(Region.USE_PREF_SIZE); // keep the row at the top of the shell's stretching slot
+        return row;
     }
 
     public void showLoginFailure(Throwable failure, Runnable onShutdown) {
@@ -481,22 +486,31 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             startupShell.setHelpDisabled(disabled);
         };
 
+        HBox buttonBox = new HBox(10, unlockButton, quitButton);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        VBox contentBox = new VBox(15, passwordField, buttonBox, statusLabel);
+        contentBox.setAlignment(Pos.TOP_CENTER);
+        VBox.setMargin(buttonBox, new Insets(15, 0, 0, 0));
+
+        Region progress = createLoginProgress();
         boolean[] submitting = {false};
         Runnable submitHandler = () -> {
             if (submitting[0]) return;
             submitting[0] = true;
 
-            // keep progress visible while the account keys are unlocked
-            setControlsDisabled.accept(true);
-            showWorking.accept(Res.get("password.startup.opening"));
+            // stand in for the form with the spinner while the account keys are unlocked
+            startupShell.setHelpDisabled(true);
+            contentBox.getChildren().setAll(progress);
 
             passwordHandler.onPasswordEntered(passwordField.getText(), errorMessage -> UserThread.execute(() -> {
-                if (errorMessage == null) return; // accepted; keep the working state until the main view loads
+                if (errorMessage == null) return; // accepted; keep the spinner until the main view loads
 
-                // wrong password: reset the screen and show the error
+                // wrong password: restore the form and show the error
                 submitting[0] = false;
+                contentBox.getChildren().setAll(passwordField, buttonBox, statusLabel);
                 showError.accept(errorMessage);
-                setControlsDisabled.accept(false);
+                startupShell.setHelpDisabled(false);
                 passwordField.clear();
                 passwordField.requestFocus();
             }));
@@ -517,12 +531,6 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             }
         });
 
-        HBox buttonBox = new HBox(10, unlockButton, quitButton);
-        buttonBox.setAlignment(Pos.CENTER);
-
-        VBox contentBox = new VBox(15, passwordField, buttonBox, statusLabel);
-        contentBox.setAlignment(Pos.TOP_CENTER);
-        VBox.setMargin(buttonBox, new Insets(15, 0, 0, 0));
         startupShell.setContent(contentBox);
 
         Label helpTitle = new AutoTooltipLabel(Res.get("password.startup.help.title"));
