@@ -92,13 +92,6 @@ public class NotificationCenter {
 
     private static final String NOTIFICATION_KEY_PREFIX = "NotificationCenter_";
 
-    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-    private final static List<Notification> notifications = new ArrayList<>();
-
-    static void add(Notification notification) {
-        notifications.add(notification);
-    }
-
     static boolean useAnimations;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
