@@ -127,10 +127,8 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
-import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
@@ -991,26 +989,6 @@ public class GUIUtil {
         } catch (Throwable t) {
             new Popup().error(Res.get("settings.net.rescanOutputsFailed", t)).show();
         }
-    }
-
-    public static void showSelectableTextModal(String title, String text) {
-        TextArea textArea = new TextArea();
-        textArea.setText(text);
-        textArea.setEditable(false);
-        textArea.setWrapText(true);
-        textArea.setPrefSize(800, 600);
-        textArea.getStyleClass().add("window-text-area");
-
-        Scene scene = new Scene(textArea);
-        CssTheme.loadSceneStyles(scene, CssTheme.getCurrentTheme(), false);
-        Stage stage = new Stage();
-        if (null != title) {
-            stage.setTitle(title);
-        }
-        stage.setScene(scene);
-        stage.initModality(Modality.NONE);
-        stage.initStyle(StageStyle.UTILITY);
-        stage.show();
     }
 
     public static void showCenteredChatWindow(Stage stage, Scene rootScene) {
