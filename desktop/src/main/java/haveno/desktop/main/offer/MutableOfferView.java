@@ -311,14 +311,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
 
     @Override
     public void onTabSelected(boolean isSelected) {
+        model.getDataModel().onTabSelected(isSelected);
         if (isSelected) {
-            doActivate();
+            // wait for scene attachment to activate the model before initializing the controls
+            if (root.getScene() != null) doActivate();
         } else {
             deactivate();
         }
-
-        isActivated = isSelected;
-        model.getDataModel().onTabSelected(isSelected);
     }
 
     public void initWithData(OfferDirection direction,
