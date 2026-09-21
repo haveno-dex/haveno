@@ -1790,10 +1790,13 @@ public class XmrWalletService extends XmrWalletBase {
             walletHeightMonitorTimer = UserThread.runPeriodically(() -> {
                 ThreadUtils.execute(() -> {
                     try {
-                        if (System.currentTimeMillis() - lastWalletHeightMonitorUpdate >= WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
-                            log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", (double) WALLET_HEIGHT_MONITOR_PERIOD_SEC / (double) 60);
-                            requestConnectionSwitchSynchronous(null);
-                            lastWalletHeightMonitorUpdate = System.currentTimeMillis();
+                        synchronized (requestConnectionSwitchSynchronousLock) {
+                            if (isSyncing()) return; // active sync already has its own timeout
+                            if (System.currentTimeMillis() - lastWalletHeightMonitorUpdate >= WALLET_HEIGHT_MONITOR_PERIOD_SEC * 1000) {
+                                log.warn("Requesting connection change because main wallet height has not updated in over {} minutes", (double) WALLET_HEIGHT_MONITOR_PERIOD_SEC / (double) 60);
+                                xmrConnectionService.requestConnectionSwitch(null, this); // preserve normal listener handling instead of suppressing it
+                                lastWalletHeightMonitorUpdate = System.currentTimeMillis();
+                            }
                         }
                     } catch (Throwable t) {
                         log.warn("Error in wallet height monitor: {}\n", t.getMessage(), t);
