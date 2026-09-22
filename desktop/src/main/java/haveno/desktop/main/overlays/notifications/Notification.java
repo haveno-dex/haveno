@@ -80,7 +80,6 @@ public class Notification extends Overlay<Notification> {
 
     public Notification() {
         width = 379; // 325 visible bg because of insets
-        NotificationCenter.add(this);
         type = Type.Notification;
     }
 
