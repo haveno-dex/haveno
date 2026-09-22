@@ -18,6 +18,7 @@
 package haveno.common.setup;
 
 import ch.qos.logback.classic.Level;
+import com.sun.management.HotSpotDiagnosticMXBean;
 import haveno.common.UserThread;
 import haveno.common.app.AsciiLogo;
 import haveno.common.app.DevEnv;
@@ -31,6 +32,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bitcoinj.store.BlockStoreException;
 import sun.misc.Signal;
 
+import java.lang.management.ManagementFactory;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -65,6 +67,7 @@ public class CommonSetup {
 
     public static void setup(Config config, GracefulShutDownHandler gracefulShutDownHandler) {
         setupLog(config);
+        setupHeapDump(config);
         AsciiLogo.showAsciiLogo();
         Version.setBaseCryptoNetworkId(config.baseCurrencyNetwork.ordinal());
         Version.printVersion();
@@ -168,6 +171,23 @@ public class CommonSetup {
         Log.setup(logPath);
         Utilities.printSysInfo();
         Log.setLevel(Level.toLevel(config.logLevel));
+    }
+
+    static void setupHeapDump(Config config) {
+        if (!config.dumpHeapOnOutOfMemoryError) return;
+
+        try {
+            String dumpPath = config.appDataDir.toPath().resolve("haveno-" + ProcessHandle.current().pid() +
+                    "-" + System.currentTimeMillis() + ".hprof").toAbsolutePath().toString();
+            HotSpotDiagnosticMXBean diagnostics = ManagementFactory.getPlatformMXBean(HotSpotDiagnosticMXBean.class);
+            // configure the JVM before loading application data; ExitOnOutOfMemoryError bypasses shutdown hooks
+            diagnostics.setVMOption("HeapDumpPath", dumpPath);
+            diagnostics.setVMOption("HeapDumpOnOutOfMemoryError", "true");
+            log.warn("Heap dump on out-of-memory enabled: {}. Dumps may contain wallet keys, passwords and other " +
+                    "private data, and require substantial disk space. Do not share them publicly.", dumpPath);
+        } catch (RuntimeException e) {
+            log.warn("Could not enable heap dump on out-of-memory", e);
+        }
     }
 
     protected static void setSystemProperties() {
