@@ -18,6 +18,7 @@
 package haveno.common.persistence;
 
 import haveno.common.Payload;
+import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
@@ -31,15 +32,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -158,6 +162,31 @@ public class PersistenceManagerTest {
 
         NavigationPath read = persistenceManager.getPersisted("LegacyStore");
         assertEquals(data, read);
+    }
+
+    @Test
+    public void testWrongKeyRetainsDecryptionErrorAndRecoverableFile() throws Exception {
+        byte[] originalKeyBytes = new byte[32];
+        byte[] wrongKeyBytes = new byte[32];
+        Arrays.fill(originalKeyBytes, (byte) 1);
+        Arrays.fill(wrongKeyBytes, (byte) 2);
+        SecretKey originalKey = new SecretKeySpec(originalKeyBytes, "AES");
+        SecretKey wrongKey = new SecretKeySpec(wrongKeyBytes, "AES");
+        protobuf.PersistableEnvelope expected = (protobuf.PersistableEnvelope)
+                new NavigationPath(List.of("synthetic-history-record")).toProtoMessage();
+        File storageFile = new File(dir, "WrongKeyStore");
+        writeEncryptedFile(expected.toByteArray(), originalKey, storageFile);
+        byte[] originalBytes = Files.readAllBytes(storageFile.toPath());
+
+        IOException failure = assertThrows(IOException.class, () -> PersistenceManager.readEncrypted(storageFile, wrongKey));
+        assertEquals(1, failure.getSuppressed().length);
+        assertTrue(failure.getSuppressed()[0] instanceof CryptoException);
+
+        assertNull(persistenceManager.getPersisted("WrongKeyStore"));
+        assertFalse(storageFile.exists());
+        File backup = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER + "/WrongKeyStore");
+        assertArrayEquals(originalBytes, Files.readAllBytes(backup.toPath()));
+        assertEquals(expected, PersistenceManager.readEncrypted(backup, originalKey));
     }
 
     @Test

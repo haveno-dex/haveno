@@ -11,12 +11,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static java.nio.file.Files.createTempDirectory;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -91,6 +94,42 @@ public class FileUtilTest {
 
             assertEquals("secret", Files.readString(file));
         }
+    }
+
+    @Test
+    public void removeAndBackupFilePreservesEveryFailedRead(@TempDir Path dir) throws IOException {
+        Path source = dir.resolve("ClosedTrades");
+        Path backupDir = dir.resolve(FileUtil.CORRUPTED_BACKUP_FOLDER);
+        List<String> versions = List.of("first", "second", "third");
+        for (String version : versions) {
+            Files.writeString(source, version);
+
+            FileUtil.removeAndBackupFile(dir.toFile(), source.toFile(), "ClosedTrades", FileUtil.CORRUPTED_BACKUP_FOLDER);
+
+            assertFalse(Files.exists(source));
+            assertEquals("first", Files.readString(backupDir.resolve("ClosedTrades")));
+        }
+        try (Stream<Path> backups = Files.list(backupDir)) {
+            List<Path> files = backups.toList();
+            assertEquals(versions.size(), files.size());
+            List<String> contents = new ArrayList<>();
+            for (Path file : files) {
+                contents.add(Files.readString(file));
+            }
+            assertEquals(versions, contents.stream().sorted().toList());
+        }
+    }
+
+    @Test
+    public void removeAndBackupFilePreservesSourceWhenBackupFails(@TempDir Path dir) throws IOException {
+        Path source = Files.writeString(dir.resolve("ClosedTrades"), "history");
+        Path blocker = Files.writeString(dir.resolve(FileUtil.CORRUPTED_BACKUP_FOLDER), "keep");
+
+        assertThrows(IOException.class, () -> FileUtil.removeAndBackupFile(dir.toFile(), source.toFile(),
+                "ClosedTrades", FileUtil.CORRUPTED_BACKUP_FOLDER));
+
+        assertEquals("history", Files.readString(source));
+        assertEquals("keep", Files.readString(blocker));
     }
 
     @Test

@@ -429,9 +429,13 @@ public class PersistenceManager<T extends PersistableEnvelope> {
         try (InputStream verifyStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
             payloadLength = Encryption.verifyPayloadWithHmacStream(verifyStream, symmetricKey);
         } catch (CryptoException ce) {
-            log.warn("Expected encrypted persisted file, attempting to getPersisted without decryption");
+            log.warn("Could not decrypt persisted file {} ({}), attempting to read it without decryption",
+                    storageFile.getName(), ce.toString());
             try (InputStream rawStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE)) {
                 return protobuf.PersistableEnvelope.parseDelimitedFrom(rawStream);
+            } catch (IOException e) {
+                e.addSuppressed(ce);
+                throw e;
             }
         }
         try (InputStream parseStream = new BufferedInputStream(new FileInputStream(storageFile), READ_BUFFER_SIZE);

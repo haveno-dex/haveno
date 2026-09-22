@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -46,6 +47,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
+import java.util.UUID;
 
 @Slf4j
 public class FileUtil {
@@ -335,9 +337,15 @@ public class FileUtil {
             log.warn("make dir failed");
         }
 
-        File corruptedFile = new File(Paths.get(dbDir.getAbsolutePath(), backupFolderName, fileName).toString());
+        File corruptedFile = new File(corruptedBackupDir, fileName);
         if (storageFile.exists()) {
-            renameFile(storageFile, corruptedFile);
+            // Keep the first backup at its original path for existing recovery tools.
+            try {
+                java.nio.file.Files.move(storageFile.toPath(), corruptedFile.toPath());
+            } catch (FileAlreadyExistsException e) {
+                File additionalBackup = new File(corruptedBackupDir, fileName + "." + UUID.randomUUID());
+                java.nio.file.Files.move(storageFile.toPath(), additionalBackup.toPath());
+            }
         }
     }
 
