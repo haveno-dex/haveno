@@ -57,6 +57,7 @@ public class Config {
     public static final String APP_DATA_DIR = "appDataDir";
     public static final String CONFIG_FILE = "configFile";
     public static final String MAX_MEMORY = "maxMemory";
+    public static final String DUMP_HEAP_ON_OUT_OF_MEMORY_ERROR = "dumpHeapOnOutOfMemoryError";
     public static final String LOG_LEVEL = "logLevel";
     public static final String BANNED_XMR_NODES = "bannedXmrNodes";
     public static final String BANNED_PRICE_RELAY_NODES = "bannedPriceRelayNodes";
@@ -168,6 +169,7 @@ public class Config {
     public final int nodePort;
     public final String  hiddenServiceAddress;
     public final int maxMemory;
+    public final boolean dumpHeapOnOutOfMemoryError;
     public final String logLevel;
     public final List<String> bannedXmrNodes;
     public final List<String> bannedPriceRelayNodes;
@@ -341,6 +343,14 @@ public class Config {
                         .ofType(String.class)
                         .describedAs("OFF|ALL|ERROR|WARN|INFO|DEBUG|TRACE")
                         .defaultsTo(Level.INFO.levelStr);
+
+        ArgumentAcceptingOptionSpec<Boolean> dumpHeapOnOutOfMemoryErrorOpt =
+                parser.accepts(DUMP_HEAP_ON_OUT_OF_MEMORY_ERROR,
+                        "Dump the Java heap to the application data directory on out-of-memory errors " +
+                                "(may contain sensitive data and require substantial disk space)")
+                        .withRequiredArg()
+                        .ofType(Boolean.class)
+                        .defaultsTo(false);
 
         ArgumentAcceptingOptionSpec<String> bannedXmrNodesOpt =
                 parser.accepts(BANNED_XMR_NODES, "List Bitcoin nodes to ban")
@@ -799,6 +809,7 @@ public class Config {
             this.hiddenServiceAddress = options.valueOf(hiddenServiceAddressOpt);
             this.walletRpcBindPort = options.valueOf(walletRpcBindPortOpt);
             this.maxMemory = options.valueOf(maxMemoryOpt);
+            this.dumpHeapOnOutOfMemoryError = options.valueOf(dumpHeapOnOutOfMemoryErrorOpt);
             this.logLevel = options.valueOf(logLevelOpt);
             this.bannedXmrNodes = options.valuesOf(bannedXmrNodesOpt);
             this.bannedPriceRelayNodes = options.valuesOf(bannedPriceRelayNodesOpt);

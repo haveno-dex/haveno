@@ -2,6 +2,24 @@
 
 This document is a guide for Haveno users.
 
+## Diagnosing Out-of-Memory Shutdowns
+
+If Haveno repeatedly shuts down due to a Java out-of-memory error, you can enable a heap dump to help investigate the cause. Add this line to `haveno.properties` in your [application data directory](installing.md#run-haveno), then restart Haveno:
+
+```properties
+dumpHeapOnOutOfMemoryError=true
+```
+
+Alternatively, launch Haveno with `--dumpHeapOnOutOfMemoryError=true`. Command-line settings take precedence over `haveno.properties`.
+
+This option is disabled by default. When enabled, the JVM attempts to write `haveno-<pid>-<timestamp>.hprof` in the application data directory before exiting on a Java heap out-of-memory error. The destination is also logged at startup. It does not create a dump on normal exit or when the operating system kills the process, and does not capture the memory of separate Monero processes or native wallet allocations.
+
+Heap dumps can contain wallet keys, passwords, trade details and other private data. Do not upload them to public issues or share them without understanding the sensitive information they contain. They can require disk space comparable to the Java heap and delay shutdown while being written. Keep enough free disk space and delete dumps after diagnosis; Haveno does not remove them automatically.
+
+Account backups include heap dumps left in the application data directory, including their unencrypted sensitive contents. Delete the dumps or move them to a secure location outside that directory before creating a backup.
+
+Remove the setting or set it to `false`, then restart Haveno to stop enabling dumps. This option leaves any manually configured JVM heap-dump flags unchanged when disabled.
+
 ## Running a Local Monero Node
 
 For the best experience using Haveno, it is highly recommended to run your own local Monero node to improve security and responsiveness.
