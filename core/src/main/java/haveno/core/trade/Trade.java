@@ -875,11 +875,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     }
                     return;
                 }
-                ThreadUtils.execute(() -> {
-                    if (isIdling() && !isPayoutFinalized()) {
-                        closeWallet();
-                    }
-                }, getId());
+                maybeCloseIdlingWallet();
             }, KEEP_ALIVE_PERIOD_MINS * 60);
         }
     }
@@ -999,7 +995,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (isShutDownStarted) throw new RuntimeException("Cannot open wallet for " + getClass().getSimpleName() + " " + getId() + " because shut down is started");
 
             // log opening wallet
-            String startOpenLogMsg = "Opening wallet for " + getClass().getSimpleName() + " " + getId();
+            String startOpenLogMsg = "Opening wallet for " + getClass().getSimpleName() + " " + getId() + ", uid=" + getUid() + ", " + getWalletLogInfo(wallet, getWalletName());
             boolean logInfoLevel = logWalletFunctionsAtInfoLevel();
             if (logInfoLevel) log.info(startOpenLogMsg);
             else log.debug(startOpenLogMsg);
@@ -1011,7 +1007,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             maybeBackupWallet();
 
             // log done opening wallet
-            String doneOpenLogMsg = "Done opening wallet for " + getClass().getSimpleName() + " " + getId();
+            String doneOpenLogMsg = "Done opening wallet for " + getClass().getSimpleName() + " " + getId() + ", uid=" + getUid() + ", " + getWalletLogInfo(wallet, getWalletName());
             if (logInfoLevel) log.info(doneOpenLogMsg);
             else log.debug(doneOpenLogMsg);
 
@@ -1025,10 +1021,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private void maybeBackupWallet() {
         if (isArbitrator()) return; // arbitrator does not create backup of trade wallets
         synchronized (walletLock) {
-            if (Utilities.isWindows() && isWalletOpen()) {
+            if (Utilities.isWindows() && wallet instanceof MoneroWalletRpc) {
+                try {
+                    xmrWalletService.backupWalletRpcInPlace((MoneroWalletRpc) wallet, getWalletName(), TRUST_DAEMON, this::isShutDownStarted);
+                } catch (RuntimeException e) {
+                    wallet = null; // do not reuse a handle after the backup or reopen failed
+                    throw e;
+                }
+            } else if (Utilities.isWindows() && isWalletOpen()) {
                 boolean logInfoLevel = logWalletFunctionsAtInfoLevel();
                 if (logInfoLevel) log.info("Closing wallet for {} {} to create a backup on Windows", getClass().getSimpleName(), getShortId());
-                closeWallet();
+                closeWallet("backup");
                 doBackupWallet();
                 if (isShutDownStarted) throw new IllegalStateException("Cannot reopen wallet for " + getClass().getSimpleName() + " " + getId() + " after backup because shut down is started");
                 if (logInfoLevel) log.info("Reopening wallet for {} {} after backup on Windows", getClass().getSimpleName(), getShortId());
@@ -1172,10 +1175,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         }
     }
 
-    private void closeWallet() {
+    private void closeWallet(String reason) {
         synchronized (walletLock) {
             if (wallet == null) return; // already closed
-            String closeLogMsg = "Closing wallet for " + getClass().getSimpleName() + " " + getId();
+            String closeLogMsg = "Closing wallet for " + getClass().getSimpleName() + " " + getId() + ", uid=" + getUid() + ", " + getWalletLogInfo(wallet, getWalletName()) + ", reason=" + reason;
             boolean logInfoLevel = logWalletFunctionsAtInfoLevel();
             if (logInfoLevel) log.info(closeLogMsg);
             else log.debug(closeLogMsg);
@@ -1187,18 +1190,14 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private void restartWallet() {
         synchronized (walletLock) {
-            closeWallet();
+            closeWallet("proxy changed");
             getWallet();
         }
     }
 
-    private void forceCloseWallet() {
-        forceCloseWallet(true);
-    }
-
-    private void forceCloseWallet(boolean logWarningLevel) {
+    private void forceCloseWallet(boolean logWarningLevel, String reason) {
         if (wallet != null) {
-            String logMsg = "Force closing wallet for " + getClass().getSimpleName() + " " + getId();
+            String logMsg = "Force closing wallet for " + getClass().getSimpleName() + " " + getId() + ", uid=" + getUid() + ", " + getWalletLogInfo(wallet, getWalletName()) + ", reason=" + reason;
             if (logWarningLevel) log.warn(logMsg);
             else log.info(logMsg);
             MoneroWallet walletRef = wallet;
@@ -1212,7 +1211,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     private void forceRestartTradeWallet() {
-        forceCloseWallet();
+        forceCloseWallet(true, "wallet recovery");
         getWallet();
     }
 
@@ -1223,7 +1222,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 // retain wallet after payout is finalized until it reaches the deletion threshold, then it is deleted by a periodic sweep
                 if (shouldRetainWallet()) {
                     log.info("Retaining trade wallet for {} {} until finalized payout reaches {} blocks", getClass().getSimpleName(), getId(), NUM_BLOCKS_PAYOUT_DELETED);
-                    forceCloseWallet(false);
+                    forceCloseWallet(false, "payout finalized");
                     return;
                 }
 
@@ -1268,7 +1267,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     }
 
                     // force close wallet without warning
-                    forceCloseWallet(false);
+                    forceCloseWallet(false, "wallet deletion");
 
                     // retain a backup unless the payout is finalized, since the local state which justifies deletion could be wrong
                     if (!isPayoutFinalized()) {
@@ -2167,10 +2166,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
             // close trade wallet, force close if syncing
             stopPolling();
-            if (isSyncing()) forceCloseWallet(false);
+            if (isSyncing()) forceCloseWallet(false, "shutdown while syncing");
             else {
                 try {
-                    closeWallet();
+                    closeWallet("shutdown");
                 } catch (Exception e) {
                     // warning will be logged for main wallet, so skip logging here
                     //log.warn("Error closing monero-wallet-rpc subprocess for {} {}: {}. Was Haveno stopped manually with ctrl+c?", getClass().getSimpleName(), getId(), e.getMessage());
@@ -2185,7 +2184,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             log.warn("Error shutting down {} {}: {}\n", getClass().getSimpleName(), getId(), e.getMessage(), e);
 
             // force close wallet
-            forceCloseWallet();
+            forceCloseWallet(true, "shutdown timeout");
         }
 
         // de-initialize
@@ -2369,7 +2368,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             log.warn("removeTradeOnError() for {} {}, state={}", getClass().getSimpleName(), getShortId(), getState());
 
             // force close wallet in case stuck, then delete before releasing its reservations
-            forceCloseWallet(false);
+            forceCloseWallet(false, "protocol error");
             deleteWallet();
             if (isShutDownStarted || superseded || !processModel.getTradeManager().hasTradeInstance(this)) return true;
             if (walletExists()) {
@@ -3414,30 +3413,42 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private void pollWallet() {
         synchronized (pollLock) {
-            if (pollInProgress) {
-                maybeCloseIdlingWallet();
-                return;
-            }
+            if (pollInProgress) return;
+            pollInProgress = true;
         }
-        doPollWallet();
-        maybeCloseIdlingWallet();
+        try {
+            doPollWallet();
+        } finally {
+            synchronized (pollLock) {
+                pollInProgress = false;
+            }
+            maybeCloseIdlingWallet();
+        }
     }
 
     private void maybeCloseIdlingWallet() {
-        if (isShutDownStarted) return;
-        
+        if (isShutDownStarted || !isArbitrator() || !isIdling() || isPayoutFinalized()) return;
+        MoneroWallet sourceWallet = wallet;
+        if (sourceWallet == null) return;
+
         // close arbitrator trade wallet while idling
-        if (isArbitrator()) {
-            ThreadUtils.execute(() -> {
-                if (isIdling() && !isPayoutFinalized()) {
-                    try {
-                        closeWallet();
-                    } catch (Exception e) {
-                        log.warn("Error closing wallet for idling {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage(), e);
+        ThreadUtils.execute(() -> {
+            synchronized (walletLock) {
+                synchronized (pollLock) {
+                    if (isShutDownStarted || wallet != sourceWallet || pollInProgress || !isIdling() || isPayoutFinalized()) return;
+                    pollInProgress = true; // reserve polling without holding pollLock through RPC calls
+                }
+                try {
+                    closeWallet("idle");
+                } catch (Exception e) {
+                    log.warn("Error closing wallet for idling {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage(), e);
+                } finally {
+                    synchronized (pollLock) {
+                        pollInProgress = false;
                     }
                 }
-            }, getId());
-        }
+            }
+        }, getId());
     }
 
     private void doPollWallet() {
@@ -3672,7 +3683,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 if (pollWallet) doPollWallet(false, false);
             } catch (Exception e) {
                 if (isShutDownStarted) {
-                    forceCloseWallet(false);
+                    forceCloseWallet(false, "shutdown");
                     throw e;
                 }
                 if (wallet == null) throw e;
@@ -3870,7 +3881,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             boolean doRestartPolling = restartPolling && isPolling();
             if (doRestartPolling) stopPolling();
             try {
-                if (HavenoUtils.isUnresponsive(t) || restartWallet) forceCloseWallet(false); // wallet can be stuck a while
+                if (HavenoUtils.isUnresponsive(t) || restartWallet) forceCloseWallet(false, restartWallet ? "frequent disconnections" : "wallet unresponsive"); // wallet can be stuck a while
                 if (requestConnectionSwitch) requestConnectionSwitchSynchronous(sourceConnection);
                 getWallet(); // re-open wallet if necessary
             } finally {
