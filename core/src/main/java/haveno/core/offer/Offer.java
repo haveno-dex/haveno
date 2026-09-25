@@ -73,7 +73,9 @@ public class Offer implements NetworkPayload, PersistablePayload {
     private final static double PRICE_TOLERANCE = 0.005;
 
     public static final String TRADE_PRICE_OUT_OF_TOLERANCE_MSG = "Trade price is too far away from our calculated offer price based on the market price.";
+    // Keep this wording stable because peers match it to preserve offers.
     public static final String MARKET_PRICE_NOT_AVAILABLE_MSG = "Market price required for calculating trade price is not available.";
+    public static final String PRICE_NOT_AVAILABLE_MSG = "The offer price is currently unavailable.";
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
