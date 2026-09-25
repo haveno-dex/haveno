@@ -1270,14 +1270,14 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                     accessibleHelpProperty().bind(Bindings.when(unreadUpdate)
                                             .then(Res.get("notification.support.unseenUpdate")).otherwise(""));
                                     Node tradeId;
-                                    Optional<Trade> tradeOptional = tradeManager.getOpenTrade(item.getTradeId());
-                                    if (tradeOptional.isPresent()) {
+                                    Trade trade = tradeManager.getTrade(item.getTradeId());
+                                    if (trade != null) {
                                         field = new HyperlinkWithIcon(item.getShortTradeId());
                                         ((Label) field.getIcon()).setMinWidth(Label.USE_PREF_SIZE);
                                         Accessibility.setName(field, Accessibility.spellOut(item.getShortTradeId()));
                                         field.setMouseTransparent(false);
                                         field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
-                                        field.setOnAction(event -> tradeDetailsWindow.show(tradeOptional.get()));
+                                        field.setOnAction(event -> tradeDetailsWindow.show(trade));
                                         tradeId = field;
                                     } else {
                                         tradeId = new AutoTooltipLabel(item.getShortTradeId());
