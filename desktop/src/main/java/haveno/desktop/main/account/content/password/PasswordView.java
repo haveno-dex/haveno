@@ -20,6 +20,7 @@ package haveno.desktop.main.account.content.password;
 import static com.google.common.base.Preconditions.checkArgument;
 import com.google.inject.Inject;
 import com.jfoenix.validation.RequiredFieldValidator;
+import com.jfoenix.validation.base.ValidatorBase;
 import haveno.common.UserThread;
 import haveno.common.util.Tuple4;
 import haveno.core.api.CoreAccountService;
@@ -47,6 +48,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Button;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 
@@ -56,6 +58,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     private final WalletsManager walletsManager;
     private boolean changingPassword;
     private final PasswordValidator passwordValidator;
+    private final PasswordValidator repeatedPasswordValidator = new PasswordValidator();
     private final Navigation navigation;
     private final CoreAccountService accountService;
 
@@ -65,9 +68,8 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     private Hyperlink recoveryLink;
     private TitledGroupBg headline;
     private int gridRow = 0;
-    private ChangeListener<Boolean> passwordFieldFocusChangeListener;
-    private ChangeListener<String> passwordFieldTextChangeListener;
-    private ChangeListener<String> repeatedPasswordFieldChangeListener;
+    private ChangeListener<String> passwordFieldsTextChangeListener;
+    private ChangeListener<Boolean> repeatedPasswordFieldFocusChangeListener;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -88,19 +90,26 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         passwordField = addPasswordTextField(root, gridRow, Res.get("password.enterPassword"), Layout.TWICE_FIRST_ROW_DISTANCE);
         final RequiredFieldValidator requiredFieldValidator = new RequiredFieldValidator();
         passwordField.getValidators().addAll(requiredFieldValidator, passwordValidator);
-        passwordFieldFocusChangeListener = (observable, oldValue, newValue) -> {
-            if (!newValue) validatePasswords();
-        };
-
-        passwordFieldTextChangeListener = (observable, oldvalue, newValue) -> {
-            if (oldvalue != newValue) validatePasswords();
-        };
-
         repeatedPasswordField = addPasswordTextField(root, ++gridRow, Res.get("password.confirmPassword"));
         requiredFieldValidator.setMessage(Res.get("validation.empty"));
-        repeatedPasswordField.getValidators().addAll(requiredFieldValidator, passwordValidator);
-        repeatedPasswordFieldChangeListener = (observable, oldValue, newValue) -> {
-            if (oldValue != newValue) validatePasswords();
+        repeatedPasswordField.getValidators().addAll(requiredFieldValidator, repeatedPasswordValidator);
+        passwordFieldsTextChangeListener = (observable, oldValue, newValue) -> {
+            // clear errors while the user edits either password
+            resetPasswordValidation(passwordField);
+            resetPasswordValidation(repeatedPasswordField);
+            updatePasswordButton();
+        };
+        repeatedPasswordFieldFocusChangeListener = (observable, oldValue, newValue) -> {
+            // window focus loss keeps the confirmation as the scene's focus owner
+            if (!newValue && repeatedPasswordField.getScene() != null
+                    && repeatedPasswordField.getScene().getFocusOwner() != repeatedPasswordField
+                    && !changingPassword && !accountService.isPasswordRecoveryRequired()
+                    && !walletsManager.areWalletsEncrypted()
+                    && !passwordField.getText().isBlank() && !repeatedPasswordField.getText().isBlank()
+                    && !passwordField.getText().equals(repeatedPasswordField.getText())) {
+                repeatedPasswordValidator.setPasswordsMatch(false);
+                repeatedPasswordField.validate();
+            }
         };
 
         Tuple4<Button, BusyAnimation, Label, HBox> tuple = addButtonBusyAnimationLabel(root, ++gridRow, 0, "", 10);
@@ -112,6 +121,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         setText();
 
         pwButton.setOnAction(e -> {
+            if (!validatePasswords()) return;
             if (!walletsManager.areWalletsEncrypted()) {
                 new Popup().backgroundInfo(Res.get("password.backupReminder"))
                         .actionButtonText(Res.get("password.setPassword"))
@@ -137,7 +147,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     }
 
     private void onApplyPassword(BusyAnimation busyAnimation, Label statusLabel) {
-        if (changingPassword) return;
+        if (!validatePasswords()) return;
         String password = passwordField.getText();
         checkArgument(password.length() < 500, Res.get("password.tooLong"));
 
@@ -175,8 +185,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
                     passwordField.setDisable(accountService.isPasswordRecoveryRequired());
                     repeatedPasswordField.setDisable(accountService.isPasswordRecoveryRequired());
                     setText();
-                    updatePasswordListeners();
-                    validatePasswords();
+                    updatePasswordButton();
                     statusLabel.setText("");
                     busyAnimation.stop();
                 });
@@ -208,53 +217,48 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
 
     @Override
     protected void activate() {
-        updatePasswordListeners();
-
-        repeatedPasswordField.textProperty().addListener(repeatedPasswordFieldChangeListener);
-    }
-
-    private void updatePasswordListeners() {
-        passwordField.focusedProperty().removeListener(passwordFieldFocusChangeListener);
-        passwordField.textProperty().removeListener(passwordFieldTextChangeListener);
-
-        if (walletsManager.areWalletsEncrypted()) {
-            passwordField.textProperty().addListener(passwordFieldTextChangeListener);
-        } else {
-            passwordField.focusedProperty().addListener(passwordFieldFocusChangeListener);
-        }
+        passwordField.textProperty().addListener(passwordFieldsTextChangeListener);
+        repeatedPasswordField.textProperty().addListener(passwordFieldsTextChangeListener);
+        repeatedPasswordField.focusedProperty().addListener(repeatedPasswordFieldFocusChangeListener);
+        updatePasswordButton();
     }
 
     @Override
     protected void deactivate() {
-        passwordField.focusedProperty().removeListener(passwordFieldFocusChangeListener);
-        passwordField.textProperty().removeListener(passwordFieldTextChangeListener);
-        repeatedPasswordField.textProperty().removeListener(repeatedPasswordFieldChangeListener);
-
+        passwordField.textProperty().removeListener(passwordFieldsTextChangeListener);
+        repeatedPasswordField.textProperty().removeListener(passwordFieldsTextChangeListener);
+        repeatedPasswordField.focusedProperty().removeListener(repeatedPasswordFieldFocusChangeListener);
     }
 
-    private void validatePasswords() {
-        if (changingPassword || accountService.isPasswordRecoveryRequired()) {
-            pwButton.setDisable(true);
-            return;
-        }
-        passwordValidator.setPasswordsMatch(true);
+    private void updatePasswordButton() {
+        pwButton.setDisable(changingPassword || accountService.isPasswordRecoveryRequired()
+                || passwordField.getText().isEmpty()
+                || (!walletsManager.areWalletsEncrypted() && repeatedPasswordField.getText().isEmpty()));
+    }
 
-        if (passwordField.validate()) {
-            if (walletsManager.areWalletsEncrypted()) {
-                pwButton.setDisable(false);
-                return;
-            } else {
-                if (repeatedPasswordField.validate()) {
-                    if (passwordField.getText().equals(repeatedPasswordField.getText())) {
-                        pwButton.setDisable(false);
-                        return;
-                    } else {
-                        passwordValidator.setPasswordsMatch(false);
-                        repeatedPasswordField.validate();
-                    }
-                }
-            }
+    private void resetPasswordValidation(PasswordTextField field) {
+        field.resetValidation();
+        // resetValidation leaves the error tooltip installed
+        Tooltip tooltip = field.getTooltip();
+        if (tooltip != null && tooltip.getStyleClass().contains(ValidatorBase.ERROR_TOOLTIP_STYLE_CLASS)) {
+            tooltip.hide();
+            field.setTooltip(null);
         }
-        pwButton.setDisable(true);
+    }
+
+    private boolean validatePasswords() {
+        if (changingPassword || accountService.isPasswordRecoveryRequired()) return false;
+        if (!passwordField.validate()) {
+            passwordField.requestFocus();
+            return false;
+        }
+        if (walletsManager.areWalletsEncrypted()) return true;
+
+        repeatedPasswordValidator.setPasswordsMatch(passwordField.getText().equals(repeatedPasswordField.getText()));
+        if (!repeatedPasswordField.validate()) {
+            repeatedPasswordField.requestFocus();
+            return false;
+        }
+        return true;
     }
 }

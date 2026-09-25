@@ -58,7 +58,10 @@ public class JFXTextFieldSkinHavenoStyle<T extends TextField & IFXLabelFloatCont
         getChildren().addAll(linesWrapper.line, linesWrapper.focusedLine, linesWrapper.promptContainer, errorContainer);
 
         registerChangeListener(textField.disableProperty(), obs -> linesWrapper.updateDisabled());
-        registerChangeListener(textField.focusColorProperty(), obs -> linesWrapper.updateFocusColor());
+        registerChangeListener(textField.focusColorProperty(), obs -> {
+            linesWrapper.updateFocusColor();
+            linesWrapper.invalid(); // refresh the floating label when validation changes its color
+        });
         registerChangeListener(textField.unFocusColorProperty(), obs -> linesWrapper.updateUnfocusColor());
         registerChangeListener(textField.disableAnimationProperty(), obs -> errorContainer.updateClip());
     }
