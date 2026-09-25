@@ -87,7 +87,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -1319,23 +1318,46 @@ public class EncryptionTest {
     @SuppressWarnings("unchecked")
     public void testPendingNativeCloseMustFinishSuccessfullyBeforeReopen() throws Exception {
         XmrWalletService service = walletService(account(null));
-        Field field = XmrWalletService.class.getDeclaredField("pendingWalletCloses");
+        Field field = XmrWalletService.class.getDeclaredField("PENDING_WALLET_CLOSES");
         field.setAccessible(true);
-        Map<String, Future<?>> pending = (Map<String, Future<?>>) field.get(service);
+        Map<MoneroWallet, ?> pending = (Map<MoneroWallet, ?>) field.get(null);
         Method wait = XmrWalletService.class.getDeclaredMethod("awaitPendingWalletClose", String.class);
         wait.setAccessible(true);
-        Future<?> closing = mock(Future.class);
-        doThrow(new TimeoutException("still closing")).when(closing).get(anyLong(), any());
-        pending.put("wallet", closing);
-        assertThrows(InvocationTargetException.class, () -> wait.invoke(service, "wallet"));
-        assertSame(closing, pending.get("wallet"));
-        Future<?> failed = CompletableFuture.failedFuture(new MoneroError("native release failed"));
-        pending.put("wallet", failed);
-        assertThrows(InvocationTargetException.class, () -> wait.invoke(service, "wallet"));
-        assertSame(failed, pending.get("wallet"));
-        pending.put("wallet", CompletableFuture.completedFuture(null));
-        wait.invoke(service, "wallet");
-        assertFalse(pending.containsKey("wallet"));
+        MoneroWallet wallet = mockWallet();
+        doReturn("wallet").when(wallet).getPath();
+        MoneroError failure = new MoneroError("native release failed");
+        doThrow(failure).when(wallet).close(anyBoolean());
+        try {
+            assertSame(failure, assertThrows(MoneroError.class, () -> service.closeWallet(wallet, true)));
+            Object close = pending.get(wallet);
+            Field task = close.getClass().getDeclaredField("task");
+            task.setAccessible(true);
+            Object failed = task.get(close);
+            FutureTask<Void> closing = mock(FutureTask.class);
+            TimeoutException timeout = new TimeoutException("still closing");
+            doThrow(timeout).when(closing).get(anyLong(), any());
+            task.set(close, closing);
+            InvocationTargetException blocked = assertThrows(InvocationTargetException.class, () -> wait.invoke(service, "wallet"));
+            assertTrue(blocked.getCause() instanceof IllegalStateException);
+            assertSame(timeout, blocked.getCause().getCause());
+            assertSame(close, pending.get(wallet));
+            verify(wallet, never()).close(false);
+
+            task.set(close, failed);
+            blocked = assertThrows(InvocationTargetException.class, () -> wait.invoke(service, "wallet"));
+            assertTrue(blocked.getCause() instanceof IllegalStateException);
+            assertSame(failure, blocked.getCause().getCause().getCause());
+            assertTrue(pending.containsKey(wallet));
+            verify(wallet).close(false);
+
+            doAnswer(invocation -> null).when(wallet).close(false);
+            wait.invoke(service, "wallet");
+            assertFalse(pending.containsKey(wallet));
+            verify(wallet).close(true);
+            verify(wallet, times(2)).close(false);
+        } finally {
+            pending.remove(wallet);
+        }
     }
 
     @Test
