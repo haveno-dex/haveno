@@ -123,6 +123,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -134,6 +135,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         NO_MATCH("No Match"),
         NO_FILTER("No filter text"),
         OPEN_DISPUTES("Open disputes"),
+        CLOSED_DISPUTES("Closed disputes"),
+        UNREAD_MESSAGES("Unread messages"),
         TRADE_ID("Trade ID"),
         OPENING_DATE("Opening date"),
         BUYER_NODE_ADDRESS("Buyer node address"),
@@ -185,6 +188,15 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     protected FilteredList<Dispute> filteredList;
     protected InputTextField filterTextField;
     private ChangeListener<String> filterTextFieldListener;
+    private final AtomicBoolean filterRefreshPending = new AtomicBoolean();
+    private final ChangeListener<Object> filterDisputeListener = (observable, oldValue, newValue) -> refreshFilteredList();
+    private final ListChangeListener<ChatMessage> filterChatMessagesListener = change -> refreshFilteredList();
+    private final ListChangeListener<Dispute> filterDisputesListener = change -> {
+        while (change.next()) {
+            removeFilterListeners(change.getRemoved());
+            addFilterListeners(change.getAddedSubList());
+        }
+    };
     protected AutoTooltipButton sigCheckButton, reOpenButton, closeButton, sendPrivateNotificationButton, reportButton, fullReportButton;
     private final Map<String, ListChangeListener<ChatMessage>> disputeChatMessagesListeners = new HashMap<>();
     @Nullable
@@ -336,6 +348,8 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
         ObservableList<Dispute> disputesAsObservableList = disputeManager.getDisputesAsObservableList();
         filteredList = new FilteredList<>(disputesAsObservableList);
+        addFilterListeners(disputesAsObservableList);
+        disputesAsObservableList.addListener(filterDisputesListener);
         applyFilteredListPredicate(filterTextField.getText());
 
         sortedList = new SortedList<>(filteredList);
@@ -372,6 +386,10 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         filterTextField.textProperty().removeListener(filterTextFieldListener);
         sortedList.comparatorProperty().unbind();
         selectedDisputeSubscription.unsubscribe();
+        ObservableList<Dispute> disputesAsObservableList = disputeManager.getDisputesAsObservableList();
+        disputesAsObservableList.removeListener(filterDisputesListener);
+        removeFilterListeners(disputesAsObservableList);
+        filteredList = null;
         tradeIdToSelect = null;
         traderIdToSelect = null;
     }
@@ -460,12 +478,16 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
             return filterResult.get() != FilterResult.NO_MATCH;
         });
 
-        if (filterResult.get() == FilterResult.NO_MATCH) {
+        if (filterString.trim().equalsIgnoreCase("open")) {
+            filterTextField.getTooltip().setText("Show all open disputes. Use 'closed' for closed disputes or 'unread' for unread messages.");
+        } else if (filterString.trim().equalsIgnoreCase("closed")) {
+            filterTextField.getTooltip().setText("Show all closed disputes");
+        } else if (filterString.trim().equalsIgnoreCase("unread")) {
+            filterTextField.getTooltip().setText("Show open or closed disputes with unread chat or system messages");
+        } else if (filterResult.get() == FilterResult.NO_MATCH) {
             filterTextField.getTooltip().setText("No matches found");
         } else if (filterResult.get() == FilterResult.NO_FILTER) {
             filterTextField.getTooltip().setText("No filter applied");
-        } else if (filterResult.get() == FilterResult.OPEN_DISPUTES) {
-            filterTextField.getTooltip().setText("Show all open disputes");
         } else {
             filterTextField.getTooltip().setText("Data matching filter string: " + filterResult.get().getDisplayString());
         }
@@ -474,15 +496,22 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     }
 
     protected FilterResult getFilterResult(Dispute dispute, String filterTerm) {
-        String filter = filterTerm.toLowerCase();
+        String filter = filterTerm.trim().toLowerCase();
         if (filter.isEmpty()) {
             return FilterResult.NO_FILTER;
         }
 
-        // For open filter we do not want to continue further as json data would cause a match
-        if (filter.equalsIgnoreCase("open")) {
-            return !dispute.isClosed() || dispute.unreadMessageCount(senderFlag()) > 0 ?
-                    FilterResult.OPEN_DISPUTES : FilterResult.NO_MATCH;
+        // Handle ticket filters before searching text that could also contain these words
+        if (filter.equals("open")) {
+            return !dispute.isClosed() ? FilterResult.OPEN_DISPUTES : FilterResult.NO_MATCH;
+        }
+        if (filter.equals("closed")) {
+            return dispute.isClosed() ? FilterResult.CLOSED_DISPUTES : FilterResult.NO_MATCH;
+        }
+        if (filter.equals("unread")) {
+            synchronized (dispute.getChatMessages()) {
+                return dispute.unreadMessageCount(senderFlag()) > 0 ? FilterResult.UNREAD_MESSAGES : FilterResult.NO_MATCH;
+            }
         }
 
         if (dispute.getTradeId().toLowerCase().contains(filter)) {
@@ -596,6 +625,30 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private void refreshFilteredList() {
+        if (!filterRefreshPending.compareAndSet(false, true)) return;
+        UserThread.execute(() -> {
+            filterRefreshPending.set(false);
+            if (filteredList != null) applyFilteredListPredicate(filterTextField.getText());
+        });
+    }
+
+    private void addFilterListeners(List<? extends Dispute> disputes) {
+        disputes.forEach(dispute -> {
+            dispute.isClosedProperty().addListener(filterDisputeListener);
+            dispute.getBadgeCountProperty().addListener(filterDisputeListener);
+            dispute.getChatMessages().addListener(filterChatMessagesListener);
+        });
+    }
+
+    private void removeFilterListeners(List<? extends Dispute> disputes) {
+        disputes.forEach(dispute -> {
+            dispute.isClosedProperty().removeListener(filterDisputeListener);
+            dispute.getBadgeCountProperty().removeListener(filterDisputeListener);
+            dispute.getChatMessages().removeListener(filterChatMessagesListener);
+        });
+    }
 
     // Reopen feature is only use in mediation from both mediator and traders
     private void onDisputesAdded(List<? extends Dispute> addedDisputes) {
@@ -1492,12 +1545,12 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     }
 
     private String getDisputeStateText(Dispute dispute) {
+        if (dispute.isClosed()) return Res.get("support.closed");
         Trade trade = tradeManager.getTrade(dispute.getTradeId());
         if (trade == null) {
-            log.warn("Dispute's trade is null for trade {}, defaulting to dispute state text 'closed'", dispute.getTradeId());
-            return Res.get("support.closed");
+            log.warn("Dispute's trade is null for trade {}, defaulting to dispute state text 'open'", dispute.getTradeId());
+            return Res.get("support.open");
         }
-        if (dispute.isClosed()) return Res.get("support.closed");
         switch (trade.getDisputeState()) {
             case NO_DISPUTE:
                 return Res.get("shared.pending");
@@ -1505,8 +1558,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 return Res.get("support.preparing");
             case DISPUTE_REQUESTED:
                 return Res.get("support.requested");
-            case DISPUTE_CLOSED:
-                return Res.get("support.closed");
             default:
                 return Res.get("support.open");
         }
