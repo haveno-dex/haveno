@@ -19,6 +19,8 @@ package haveno.desktop.main.overlays.popups;
 
 import haveno.common.UserThread;
 import haveno.desktop.main.overlays.Overlay;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +31,13 @@ import java.util.concurrent.TimeUnit;
 public class PopupManager {
     private static final Logger log = LoggerFactory.getLogger(PopupManager.class);
     private static final Queue<Overlay<?>> popups = new LinkedBlockingQueue<>(5);
+    private static final ReadOnlyBooleanWrapper hasPendingPopups = new ReadOnlyBooleanWrapper();
 
     private static Overlay<?> displayedPopup;
+
+    public static ReadOnlyBooleanProperty hasPendingPopupsProperty() {
+        return hasPendingPopups.getReadOnlyProperty();
+    }
 
     public static void queueForDisplay(Overlay<?> popup) {
         if (hasDuplicatePopup(popup)) {
@@ -59,6 +66,8 @@ public class PopupManager {
     }
 
     private static void displayNext() {
+        // keep notifications deferred through the gap between queued popups
+        hasPendingPopups.set(displayedPopup != null || !popups.isEmpty());
         if (displayedPopup == null) {
             if (!popups.isEmpty()) {
                 displayedPopup = popups.poll();
