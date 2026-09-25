@@ -17,17 +17,65 @@
 
 package haveno.core.offer;
 
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class OfferTest {
+
+    @Test
+    public void testMarketPriceMarginBoundsRequirePositivePrice() {
+        assertTrue(OfferRestrictions.isValidMarketPriceMargin(OfferDirection.BUY, -1));
+        assertFalse(OfferRestrictions.isValidMarketPriceMargin(OfferDirection.BUY, 1));
+        assertTrue(OfferRestrictions.isValidMarketPriceMargin(OfferDirection.SELL, 1));
+        assertFalse(OfferRestrictions.isValidMarketPriceMargin(OfferDirection.SELL, -1));
+        assertFalse(OfferRestrictions.isValidMarketPriceMargin(null, 0));
+
+        for (OfferDirection direction : OfferDirection.values()) {
+            for (double margin : new double[]{-0.9999, -0.5, 0, 0.5, 0.9999}) {
+                assertTrue(OfferRestrictions.isValidMarketPriceMargin(direction, margin));
+            }
+            for (double margin : new double[]{-1.0001, 1.0001, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}) {
+                assertFalse(OfferRestrictions.isValidMarketPriceMargin(direction, margin));
+            }
+        }
+    }
+
+    @Test
+    public void testFullMarketPriceDeviationDoublesPrice() {
+        assertEquals(200, marketOffer(OfferDirection.BUY, -1, 100).getPrice().getDoubleValue());
+        assertEquals(200, marketOffer(OfferDirection.SELL, 1, 100).getPrice().getDoubleValue());
+    }
+
+    @Test
+    public void testDiscountedPriceRoundingToZeroIsUnavailable() {
+        assertNull(marketOffer(OfferDirection.BUY, 0.9999, 0.00000001).getPrice());
+        assertNull(marketOffer(OfferDirection.SELL, -0.9999, 0.00000001).getPrice());
+        assertEquals(0.00000001, marketOffer(OfferDirection.BUY, 0.9999, 0.0001).getPrice().getDoubleValue());
+    }
+
+    private Offer marketOffer(OfferDirection direction, double margin, double marketPrice) {
+        OfferPayload payload = mock(OfferPayload.class);
+        when(payload.getBaseCurrencyCode()).thenReturn("XMR");
+        when(payload.getCounterCurrencyCode()).thenReturn("USD");
+        when(payload.getDirection()).thenReturn(direction);
+        when(payload.isUseMarketBasedPrice()).thenReturn(true);
+        when(payload.getMarketPriceMarginPct()).thenReturn(margin);
+        PriceFeedService priceFeedService = mock(PriceFeedService.class);
+        when(priceFeedService.getMarketPrice("USD")).thenReturn(new MarketPrice("USD", marketPrice, System.currentTimeMillis(), true));
+        Offer offer = new Offer(payload);
+        offer.setPriceFeedService(priceFeedService);
+        return offer;
+    }
 
     @Test
     public void testRejectsTradePriceWhoseMinimumPaymentRoundsToZero() {

@@ -37,6 +37,12 @@ public class OfferRestrictions {
         return new Date().after(REQUIRE_TOR_NODE_ADDRESS_V3_DATE) && Config.baseCurrencyNetwork().isMainnet();
     }
 
+    public static boolean isValidMarketPriceMargin(OfferDirection direction, double margin) {
+        if (direction == OfferDirection.BUY) return margin >= -1 && margin < 1;
+        if (direction == OfferDirection.SELL) return margin > -1 && margin <= 1;
+        return false;
+    }
+
     public static BigInteger TOLERATED_SMALL_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(3);
 
     static boolean hasOfferMandatoryCapability(Offer offer, Capability mandatoryCapability) {
