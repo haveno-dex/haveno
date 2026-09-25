@@ -24,6 +24,7 @@ import haveno.common.app.DevEnv;
 import haveno.core.locale.Res;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
+import haveno.desktop.main.overlays.popups.PopupManager;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import java.util.concurrent.TimeUnit;
@@ -69,11 +70,7 @@ public class Notification extends Overlay<Notification> {
     private final ChangeListener<Boolean> showingListener = (observable, oldValue, showing) -> {
         if (!showing) hide();
     };
-    private final ChangeListener<Boolean> inputBlockedListener = (observable, oldValue, blocked) -> {
-        if (notificationPane != null) notificationPane.setVisible(!blocked);
-        if (blocked) pauseAutoCloseTimer();
-        else startAutoCloseTimer();
-    };
+    private final ChangeListener<Boolean> displayBlockedListener = (observable, oldValue, blocked) -> updateVisibility();
     private Timer autoCloseTimer;
     private long autoCloseGeneration;
     private BooleanSupplier displayCondition = () -> true;
@@ -216,9 +213,20 @@ public class Notification extends Overlay<Notification> {
         notificationAnimation.play();
     }
 
+    private boolean isDisplayBlocked() {
+        return PopupManager.hasPendingPopupsProperty().get() || (owner != null && owner.isMouseTransparent());
+    }
+
+    private void updateVisibility() {
+        boolean blocked = isDisplayBlocked();
+        if (notificationPane != null) notificationPane.setVisible(!blocked);
+        if (blocked) pauseAutoCloseTimer();
+        else startAutoCloseTimer();
+    }
+
     private void startAutoCloseTimer() {
         if (!autoClose || !displayReady || closing || !NotificationManager.isCurrent(this) || autoCloseTimer != null) return;
-        if (owner != null && owner.isMouseTransparent()) return;
+        if (isDisplayBlocked()) return;
         long generation = ++autoCloseGeneration;
         autoCloseTimer = UserThread.runAfter(() -> {
             // a stopped timer may already have queued its callback on the user thread
@@ -259,9 +267,10 @@ public class Notification extends Overlay<Notification> {
             notificationPane.setMinSize(0, 0);
             notificationPane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             notificationPane.setPickOnBounds(false);
-            // defer notifications while a dialog blurs and blocks the application content
-            notificationPane.setVisible(!owner.isMouseTransparent());
-            owner.mouseTransparentProperty().addListener(inputBlockedListener);
+            // defer notifications until all queued popups and other blocking dialogs have closed
+            updateVisibility();
+            owner.mouseTransparentProperty().addListener(displayBlockedListener);
+            PopupManager.hasPendingPopupsProperty().addListener(displayBlockedListener);
             notificationPane.getProperties().put(Notification.class, true);
             setupKeyHandler(ownerScene);
             owner.getChildren().add(notificationPane);
@@ -312,7 +321,8 @@ public class Notification extends Overlay<Notification> {
     @Override
     protected void cleanup() {
         notificationAnimation.stop();
-        owner.mouseTransparentProperty().removeListener(inputBlockedListener);
+        owner.mouseTransparentProperty().removeListener(displayBlockedListener);
+        PopupManager.hasPendingPopupsProperty().removeListener(displayBlockedListener);
         getRootContainer().needsLayoutProperty().removeListener(demandListener);
         if (ownerScene != null) {
             ownerScene.widthProperty().removeListener(sizeListener);
