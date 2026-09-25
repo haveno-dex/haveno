@@ -25,6 +25,8 @@ import lombok.Getter;
 import org.slf4j.Logger;
 import protobuf.AvailabilityResult;
 
+import java.util.regex.Pattern;
+
 import static haveno.proto.grpc.TradesGrpc.getTakeOfferMethod;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
@@ -121,7 +123,8 @@ public class GrpcErrorMessageHandler implements ErrorMessageHandler {
 
     private AvailabilityResult getAvailabilityResult(String errorMessage) {
         return stream(AvailabilityResult.values())
-                .filter((e) -> errorMessage.toUpperCase().contains(e.name()))
+                .filter(e -> e != AvailabilityResult.AVAILABLE)
+                .filter(e -> Pattern.compile("\\b" + e.name() + "\\b").matcher(errorMessage).find())
                 .findFirst().orElseThrow(() ->
                         new IllegalArgumentException(
                                 format("Could not find an AvailabilityResult in error message:%n%s", errorMessage)));
