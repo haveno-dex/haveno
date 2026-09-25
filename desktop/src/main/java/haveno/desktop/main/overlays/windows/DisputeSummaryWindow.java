@@ -52,6 +52,7 @@ import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.Layout;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -584,7 +585,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                 Res.get("disputeSummaryWindow.close.button"),
                 Res.get("shared.cancel"), 15, true);
         Button closeTicketButton = tuple.first;
-        closeTicketButton.disableProperty().bind(Bindings.createBooleanBinding(
+        BooleanBinding closeButtonDisabled = Bindings.createBooleanBinding(
                 () -> tradeAmountToggleGroup.getSelectedToggle() == null
                         || summaryNotesTextArea.getText() == null
                         || summaryNotesTextArea.getText().length() == 0
@@ -593,13 +594,19 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
             tradeAmountToggleGroup.selectedToggleProperty(),
             summaryNotesTextArea.textProperty(),
             buyerPayoutAmountInputTextField.textProperty(),
-            sellerPayoutAmountInputTextField.textProperty()));
+            sellerPayoutAmountInputTextField.textProperty());
+        closeTicketButton.disableProperty().bind(closeButtonDisabled);
 
         Button cancelButton = tuple.second;
 
         closeTicketButton.setOnAction(e -> {
             closeTicketButton.disableProperty().unbind();
             closeTicketButton.setDisable(true);
+            ResultHandler cancelHandler = () -> {
+                closeButtonDisabled.invalidate();
+                closeTicketButton.disableProperty().bind(closeButtonDisabled);
+                cancelButton.setDisable(false);
+            };
             if (dispute.getSupportType() == SupportType.ARBITRATION &&
                     peersDisputeOptional.isPresent() &&
                     !peersDisputeOptional.get().isClosed() &&
@@ -613,18 +620,14 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
                     showPayoutTxConfirmation(contract,
                             payoutTx,
                             () -> doClose(closeTicketButton, cancelButton),
-                            () -> {
-                                closeTicketButton.setDisable(false);
-                                cancelButton.setDisable(false);
-                            });
+                            cancelHandler);
                 } catch (Exception ex) {
                     if (trade.isPayoutPublished()) {
                         doClose(closeTicketButton, cancelButton);
                     } else {
                         log.error("Error creating dispute payout tx for dispute: " + ex.getMessage(), ex);
                         new Popup().error(ex.getMessage()).show();
-                        closeTicketButton.setDisable(false);
-                        cancelButton.setDisable(false);
+                        cancelHandler.handleResult();
                     }
                 }
             } else {
