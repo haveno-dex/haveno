@@ -204,6 +204,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
                         CryptoMoney.SMALLEST_UNIT_EXPONENT;
                 double scaled = MathUtils.scaleUpByPowerOf10(targetPriceAsDouble, precision);
                 final long roundedToLong = MathUtils.roundDoubleToLong(scaled);
+                if (roundedToLong <= 0) return null;
                 return Price.valueOf(counterCurrencyCode, roundedToLong);
             } catch (Exception e) {
                 log.error("Exception at getPrice / parseToFiat: " + e + "\n" +
