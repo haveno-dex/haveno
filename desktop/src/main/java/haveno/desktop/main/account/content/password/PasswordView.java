@@ -156,7 +156,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
                 var retainedBackups = accountService.changePassword(oldPassword, newPassword);
                 UserThread.execute(() -> {
                     String message = Res.get(removingPassword ? "password.walletDecrypted" : "password.walletEncrypted");
-                    if (!retainedBackups.isEmpty()) message += "\n\n" + Res.get("password.recovery.retainedBackups") + "\n" + String.join(", ", retainedBackups);
+                    if (!retainedBackups.isEmpty()) message += "\n\n" + Res.get("password.retainedWalletFiles");
                     new Popup().feedback(message).show();
                     backupWalletAndResetFields();
                 });
