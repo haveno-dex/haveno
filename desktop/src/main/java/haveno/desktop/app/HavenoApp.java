@@ -198,16 +198,6 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         showStartupWindow();
     }
 
-    // keep password feedback on the same row as the subsequent connection status
-    private static Region createLoginProgress() {
-        Label status = new AutoTooltipLabel(Res.get("password.startup.opening"));
-        HBox row = new HBox(status);
-        row.setAlignment(Pos.CENTER);
-        row.setPrefHeight(30);
-        row.setMaxHeight(Region.USE_PREF_SIZE); // keep the row at the top of the shell's stretching slot
-        return row;
-    }
-
     public void showLoginFailure(Throwable failure, Runnable onShutdown) {
         showStartupFailure(Res.get("password.startup.failed",
                 Objects.requireNonNullElse(failure.getMessage(), failure.toString())), onShutdown);
@@ -472,31 +462,22 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             startupShell.setHelpDisabled(disabled);
         };
 
-        HBox buttonBox = new HBox(10, unlockButton, quitButton);
-        buttonBox.setAlignment(Pos.CENTER);
-
-        VBox contentBox = new VBox(15, passwordField, buttonBox, statusLabel);
-        contentBox.setAlignment(Pos.TOP_CENTER);
-        VBox.setMargin(buttonBox, new Insets(15, 0, 0, 0));
-
-        Region progress = createLoginProgress();
         boolean[] submitting = {false};
         Runnable submitHandler = () -> {
             if (submitting[0]) return;
             submitting[0] = true;
 
-            // stand in for the form with status text while the account keys are unlocked
-            startupShell.setHelpDisabled(true);
-            contentBox.getChildren().setAll(progress);
+            // keep progress visible while the account keys are unlocked
+            setControlsDisabled.accept(true);
+            showWorking.accept(Res.get("password.startup.opening"));
 
             passwordHandler.onPasswordEntered(passwordField.getText(), errorMessage -> UserThread.execute(() -> {
-                if (errorMessage == null) return; // accepted; keep the status text until the main view loads
+                if (errorMessage == null) return; // accepted; keep the working state until the main view loads
 
-                // wrong password: restore the form and show the error
+                // wrong password: reset the screen and show the error
                 submitting[0] = false;
-                contentBox.getChildren().setAll(passwordField, buttonBox, statusLabel);
                 showError.accept(errorMessage);
-                startupShell.setHelpDisabled(false);
+                setControlsDisabled.accept(false);
                 passwordField.clear();
                 passwordField.requestFocus();
             }));
@@ -517,6 +498,12 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             }
         });
 
+        HBox buttonBox = new HBox(10, unlockButton, quitButton);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        VBox contentBox = new VBox(15, passwordField, buttonBox, statusLabel);
+        contentBox.setAlignment(Pos.TOP_CENTER);
+        VBox.setMargin(buttonBox, new Insets(15, 0, 0, 0));
         startupShell.setContent(contentBox);
 
         Label helpTitle = new AutoTooltipLabel(Res.get("password.startup.help.title"));
