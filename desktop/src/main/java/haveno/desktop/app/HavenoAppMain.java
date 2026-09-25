@@ -184,7 +184,6 @@ public class HavenoAppMain extends HavenoExecutable {
 
         CompletableFuture<Boolean> loginResult = new CompletableFuture<>();
         Platform.setImplicitExit(false);
-        application.showLoginProgress();
         // account keys must be unlocked before persistence is read
         CompletableFuture.supplyAsync(() -> super.loginAccount().join(),
                 task -> new Thread(task, "AccountLogin").start()).whenComplete((opened, failure) -> UserThread.execute(() -> {

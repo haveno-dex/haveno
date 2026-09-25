@@ -56,7 +56,6 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.debug.DebugView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -169,16 +168,12 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             mainView = loadMainView(injector);
             mainView.setOnApplicationStartedHandler(onApplicationStartedHandler);
 
-            // build and show the window if no password screen
-            if (scene == null) {
-                startupShell = getOrCreateShell();
-                showStartupWindow();
-            }
-
+            startupShell = getOrCreateShell();
             startupShell.setAppContent(mainView.getRoot());
             startupShell.setContent(mainView.getStartupStatusContent());
             startupShell.setCompactBranding(false); // restore the full splash logo if the startup wizard was shown
             mainView.setStartupOverlayFader(startupShell::fadeOutOverlay);
+            showStartupWindow(); // show the full startup status on the first frame when there was no password screen
 
             // now unlocked: capture the current position (or migrate legacy bounds) and track future moves
             finalizeWindowBounds(injector.getInstance(User.class));
@@ -203,19 +198,10 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         showStartupWindow();
     }
 
-    public void showLoginProgress() {
-        startupShell = getOrCreateShell();
-        startupShell.setContent(createLoginProgress());
-        showStartupWindow();
-    }
-
-    // spinner standing in for the login form while the account opens, on the row the startup status's
-    // connection line then takes over so the swap reads as a replacement
+    // keep password feedback on the same row as the subsequent connection status
     private static Region createLoginProgress() {
-        BusyAnimation spinner = new BusyAnimation();
-        spinner.getStyleClass().add("login-progress");
-        spinner.setAccessibleText(Res.get("password.startup.opening"));
-        HBox row = new HBox(spinner);
+        Label status = new AutoTooltipLabel(Res.get("password.startup.opening"));
+        HBox row = new HBox(status);
         row.setAlignment(Pos.CENTER);
         row.setPrefHeight(30);
         row.setMaxHeight(Region.USE_PREF_SIZE); // keep the row at the top of the shell's stretching slot
@@ -499,12 +485,12 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             if (submitting[0]) return;
             submitting[0] = true;
 
-            // stand in for the form with the spinner while the account keys are unlocked
+            // stand in for the form with status text while the account keys are unlocked
             startupShell.setHelpDisabled(true);
             contentBox.getChildren().setAll(progress);
 
             passwordHandler.onPasswordEntered(passwordField.getText(), errorMessage -> UserThread.execute(() -> {
-                if (errorMessage == null) return; // accepted; keep the spinner until the main view loads
+                if (errorMessage == null) return; // accepted; keep the status text until the main view loads
 
                 // wrong password: restore the form and show the error
                 submitting[0] = false;
