@@ -110,6 +110,7 @@ public class CreateOfferViewModelTest {
         when(securityDepositValidator.validate(any())).thenReturn(new InputValidator.ValidationResult(false));
         when(accountAgeWitnessService.getMyTradeLimit(any(), any(), any(), anyBoolean())).thenReturn(100000000L);
         when(preferences.getUserCountry()).thenReturn(new Country("ES", "Spain", null));
+        when(preferences.getMaxPriceDistanceInPercent()).thenReturn(1.0);
         when(offerUtil.getMaxTradeLimitForRelease(any(), anyString(), any(), anyBoolean())).thenReturn(HavenoUtils.xmrToAtomicUnits(10));
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
         when(tradeStats.getObservableTradeStatisticsList()).thenReturn(FXCollections.observableArrayList());
@@ -219,6 +220,22 @@ public class CreateOfferViewModelTest {
 
         assertEquals("0.50", model.amount.get());
         assertEquals("0.50", model.minAmount.get());
+    }
+
+    @Test
+    public void testFullMarketPriceDeviationKeepsPricePositive() {
+        model.amount.set("0.1");
+        model.onFocusOutPriceAsPercentageTextField(false, true);
+        model.marketPriceMargin.set("-100");
+        assertEquals(-1, model.getDataModel().getMarketPriceMarginPct());
+        assertEquals(25368.09, Double.parseDouble(model.price.get()));
+        assertTrue(model.isPriceInRange());
+
+        model.marketPriceMargin.set("100");
+        assertEquals(-1, model.getDataModel().getMarketPriceMarginPct());
+        assertFalse(model.isPriceInRange());
+        model.onFocusOutPriceAsPercentageTextField(true, false);
+        assertEquals("-100.00", model.marketPriceMargin.get());
     }
 
     @Test

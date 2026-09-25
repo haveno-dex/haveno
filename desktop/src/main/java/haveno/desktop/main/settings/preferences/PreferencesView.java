@@ -268,7 +268,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         deviationListener = (observable, oldValue, newValue) -> {
             try {
                 double value = ParsingUtils.parsePercentStringToDouble(newValue);
-                final double maxDeviation = 0.5;
+                final double maxDeviation = 1.0;
                 if (value <= maxDeviation) {
                     preferences.setMaxPriceDistanceInPercent(value);
                 } else {

@@ -451,8 +451,8 @@ public class OfferBookService {
 
         // validate market price margin
         double marketPriceMarginPct = offerPayload.getMarketPriceMarginPct();
-        if (marketPriceMarginPct <= -1 || marketPriceMarginPct >= 1) {
-            throw new IllegalArgumentException("Market price margin must be greater than -100% and less than 100% but was " + (marketPriceMarginPct * 100) + "% with offerId=" + offerPayload.getId());
+        if (!OfferRestrictions.isValidMarketPriceMargin(offerPayload.getDirection(), marketPriceMarginPct)) {
+            throw new IllegalArgumentException("Market price margin must be within 100% and keep the price positive but was " + (marketPriceMarginPct * 100) + "% with offerId=" + offerPayload.getId());
         }
 
         // validate fixed price is positive (market based offers have no fixed price)

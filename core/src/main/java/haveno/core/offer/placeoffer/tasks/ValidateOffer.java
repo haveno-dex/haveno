@@ -22,6 +22,7 @@ import haveno.common.taskrunner.TaskRunner;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OfferRestrictions;
 import haveno.core.offer.placeoffer.PlaceOfferModel;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.trade.HavenoUtils;
@@ -138,8 +139,8 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         if (!offer.isUseMarketBasedPrice()) checkArgument(offer.getPrice().isPositive(),
                 "Price must be positive unless using market based price. price=" + offer.getPrice().toFriendlyString());
 
-        checkArgument(offer.getOfferPayload().getMarketPriceMarginPct() > -1 && offer.getOfferPayload().getMarketPriceMarginPct() < 1,
-                "Market price margin must be greater than -100% and less than 100% but was " + (offer.getOfferPayload().getMarketPriceMarginPct() * 100) + "%");
+        checkArgument(OfferRestrictions.isValidMarketPriceMargin(offer.getDirection(), offer.getMarketPriceMarginPct()),
+                "Market price margin must be within 100% and keep the price positive but was " + (offer.getMarketPriceMarginPct() * 100) + "%");
 
         checkArgument(offer.getDate().getTime() > 0,
                 "Date must not be 0. date=" + offer.getDate().toString());
