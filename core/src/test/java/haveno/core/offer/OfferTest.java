@@ -17,8 +17,15 @@
 
 package haveno.core.offer;
 
+import haveno.common.crypto.PubKeyRing;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.offer.placeoffer.tasks.ValidateOffer;
+import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.TradeManager;
+import haveno.core.user.User;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -75,6 +82,57 @@ public class OfferTest {
         Offer offer = new Offer(payload);
         offer.setPriceFeedService(priceFeedService);
         return offer;
+    }
+
+    @Test
+    public void testPlacementRequiresPositiveMinimumPaymentOnlyWhenPriceRequired() {
+        OfferPayload payload = mock(OfferPayload.class);
+        when(payload.getId()).thenReturn("offer");
+        when(payload.getBaseCurrencyCode()).thenReturn("XMR");
+        when(payload.getCounterCurrencyCode()).thenReturn("BTC");
+        when(payload.getPaymentMethodId()).thenReturn("BLOCK_CHAINS");
+        when(payload.getDirection()).thenReturn(OfferDirection.SELL);
+        when(payload.getMakerPaymentAccountId()).thenReturn("account");
+        when(payload.getMinAmount()).thenReturn(100_000_000_000L);
+        when(payload.getAmount()).thenReturn(1_000_000_000_000L);
+        when(payload.getMaxTradeLimit()).thenReturn(1_000_000_000_000L);
+        when(payload.getPrice()).thenReturn(1L);
+        when(payload.getBuyerSecurityDepositPct()).thenReturn(0.15);
+        when(payload.getSellerSecurityDepositPct()).thenReturn(0.15);
+        when(payload.getDate()).thenReturn(System.currentTimeMillis());
+        when(payload.getPubKeyRing()).thenReturn(mock(PubKeyRing.class));
+        when(payload.getVersionNr()).thenReturn("1.0.0");
+        when(payload.getMaxTradePeriod()).thenReturn(1L);
+        Offer offer = new Offer(payload);
+        PaymentAccount paymentAccount = mock(PaymentAccount.class);
+        User user = mock(User.class);
+        when(user.getPaymentAccount("account")).thenReturn(paymentAccount);
+        AccountAgeWitnessService accountAgeWitnessService = mock(AccountAgeWitnessService.class);
+        when(accountAgeWitnessService.getMyTradeLimit(paymentAccount, "BTC", OfferDirection.SELL, false)).thenReturn(1_000_000_000_000L);
+        TradeManager originalTradeManager = HavenoUtils.tradeManager;
+        HavenoUtils.tradeManager = mock(TradeManager.class);
+        try {
+            IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                    () -> ValidateOffer.validateOffer(offer, accountAgeWitnessService, user));
+            assertEquals("Minimum payment amount must be positive at the current price", error.getMessage());
+            assertDoesNotThrow(() -> ValidateOffer.validateOffer(offer, accountAgeWitnessService, user, false));
+
+            when(payload.getMinAmount()).thenReturn(999_950_000_000L);
+            assertEquals(1, offer.getMinVolume().getValue());
+            assertThrows(IllegalArgumentException.class, () -> offer.verifyTradePrice(1L));
+            assertThrows(IllegalArgumentException.class,
+                    () -> ValidateOffer.validateOffer(offer, accountAgeWitnessService, user));
+
+            when(payload.getMinAmount()).thenReturn(1_000_000_000_000L);
+            assertDoesNotThrow(() -> ValidateOffer.validateOffer(offer, accountAgeWitnessService, user));
+
+            when(payload.isUseMarketBasedPrice()).thenReturn(true);
+            offer.setPriceFeedService(mock(PriceFeedService.class));
+            assertNull(offer.getPrice());
+            assertDoesNotThrow(() -> ValidateOffer.validateOffer(offer, accountAgeWitnessService, user, false));
+        } finally {
+            HavenoUtils.tradeManager = originalTradeManager;
+        }
     }
 
     @Test
