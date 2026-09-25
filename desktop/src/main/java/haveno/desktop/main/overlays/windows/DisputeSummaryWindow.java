@@ -234,6 +234,9 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
 
         setReasonRadioButtonState();
 
+        // listen after loading the stored ruling so selecting its payout option does not recalculate it
+        tradeAmountToggleGroup.selectedToggleProperty().addListener(tradeAmountToggleGroupListener);
+
         addSummaryNotes();
         addButtons(contract);
     }
@@ -339,7 +342,6 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         customRadioButton.setToggleGroup(tradeAmountToggleGroup);
 
         tradeAmountToggleGroupListener = (observable, oldValue, newValue) -> applyPayoutAmounts(newValue);
-        tradeAmountToggleGroup.selectedToggleProperty().addListener(tradeAmountToggleGroupListener);
 
         buyerPayoutAmountListener = (observable, oldValue, newValue) -> applyCustomAmounts(buyerPayoutAmountInputTextField, oldValue, newValue);
         sellerPayoutAmountListener = (observable, oldValue, newValue) -> applyCustomAmounts(sellerPayoutAmountInputTextField, oldValue, newValue);
@@ -370,6 +372,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
         BigInteger buyerAmount = HavenoUtils.parseXmrOrElse(buyerPayoutAmountInputTextField.getText(), null);
         BigInteger sellerAmount = HavenoUtils.parseXmrOrElse(sellerPayoutAmountInputTextField.getText(), null);
         if (buyerAmount == null || sellerAmount == null || buyerAmount.signum() < 0 || sellerAmount.signum() < 0) return false;
+        if (trade.isPayoutPublished()) return true; // the stored ruling can spend less than the expected deposits
         Contract contract = dispute.getContract();
         BigInteger tradeAmount = contract.getTradeAmount();
         BigInteger expected = tradeAmount
@@ -382,7 +385,7 @@ public class DisputeSummaryWindow extends Overlay<DisputeSummaryWindow> {
     private void applyCustomAmounts(InputTextField inputTextField, boolean oldFocusValue, boolean newFocusValue) {
         // We only apply adjustments at focus out, otherwise we cannot enter certain values if we update at each
         // keystroke.
-        if (!oldFocusValue || newFocusValue) {
+        if (!oldFocusValue || newFocusValue || trade.isPayoutPublished()) {
             return;
         }
 
