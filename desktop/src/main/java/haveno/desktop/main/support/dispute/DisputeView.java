@@ -1273,7 +1273,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                     Trade trade = tradeManager.getTrade(item.getTradeId());
                                     if (trade != null) {
                                         field = new HyperlinkWithIcon(item.getShortTradeId());
-                                        ((Label) field.getIcon()).setMinWidth(Label.USE_PREF_SIZE);
+                                        field.hideIcon();
                                         Accessibility.setName(field, Accessibility.spellOut(item.getShortTradeId()));
                                         field.setMouseTransparent(false);
                                         field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));

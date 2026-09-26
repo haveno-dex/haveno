@@ -19,7 +19,6 @@ package haveno.desktop.main.funds.transactions;
 
 import com.google.inject.Inject;
 import java.util.function.Function;
-import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.core.api.XmrConnectionService;
@@ -372,7 +371,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
                                 if (item != null && !empty) {
                                     if (item.getDetailsAvailable()) {
-                                        hyperlinkWithIcon = new HyperlinkWithIcon(item.getDetails(), FontAwesomeIcon.INFO_CIRCLE);
+                                        hyperlinkWithIcon = new HyperlinkWithIcon(item.getDetails());
+                                        hyperlinkWithIcon.hideIcon();
                                         hyperlinkWithIcon.setOnAction(event -> openDetailPopup(item));
                                         hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                         setGraphic(hyperlinkWithIcon);
@@ -443,7 +443,8 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                 //noinspection Duplicates
                                 if (item != null && !empty) {
                                     String transactionId = item.getTxId();
-                                    hyperlinkWithIcon = new HyperlinkWithIcon(transactionId, FontAwesomeIcon.INFO_CIRCLE);
+                                    hyperlinkWithIcon = new HyperlinkWithIcon(transactionId);
+                                    hyperlinkWithIcon.hideIcon();
                                     hyperlinkWithIcon.setOnAction(event -> openTxDetailPopup(item));
                                     hyperlinkWithIcon.setTooltip(new Tooltip(Res.get("txDetailsWindow.headline")));
                                     setGraphic(hyperlinkWithIcon);

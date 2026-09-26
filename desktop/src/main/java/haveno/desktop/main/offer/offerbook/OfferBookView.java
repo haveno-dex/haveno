@@ -1078,6 +1078,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         setGraphic(new AutoTooltipLabel(model.getPaymentMethod(item)));
                                     } else {
                                         field = new HyperlinkWithIcon(model.getPaymentMethod(item));
+                                        field.hideIcon();
                                         field.setOnAction(event -> {
                                             offerDetailsWindow.show(offer);
                                         });
