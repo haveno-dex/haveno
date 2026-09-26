@@ -36,6 +36,16 @@
     -fx-text-fill: ladder(-bs-background-color, -bs-yellow 49%, #b45309 50%);
 }
 
+/* keep mouse focus from highlighting trade actions after a popup closes */
+.table-view .hidden-icon-button {
+    -fx-background-color: transparent;
+    -jfx-disable-visual-focus: true;
+}
+.table-view .hidden-icon-button:hover,
+.table-view .hidden-icon-button:focus-visible {
+    -fx-background-color: derive(-bs-color-gray-2, -10%);
+}
+
 .trade-detail-view {
     -fx-padding: 18 16 12 0;
 }
