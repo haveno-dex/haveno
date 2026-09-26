@@ -1061,6 +1061,57 @@ tree-table-view:focused {
     -fx-padding: 0 3 0 0;
 }
 
+.portfolio-header,
+.funds-header,
+.support-header {
+    -fx-background-color: -bs-color-gray-background;
+    -fx-border-color: transparent transparent -bs-rd-tab-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.portfolio-header .jfx-tab-pane .tab-header-background,
+.funds-header .jfx-tab-pane .tab-header-background,
+.support-header .jfx-tab-pane .tab-header-background {
+    -fx-border-width: 0;
+}
+
+.portfolio-header .jfx-tab-pane .tab-header-area .tab-down-button,
+.funds-header .jfx-tab-pane .tab-header-area .tab-down-button,
+.support-header .jfx-tab-pane .tab-header-area .tab-down-button {
+    -fx-background-color: -bs-rd-font-light;
+}
+
+.portfolio-header-controls,
+.funds-header-controls,
+.support-header-controls {
+    -fx-padding: 0 0 0 15;
+}
+
+.portfolio-header-controls .jfx-text-field,
+.funds-header-controls .jfx-text-field,
+.support-header-controls .jfx-text-field {
+    -fx-padding: 5 12;
+}
+
+.portfolio-header-separator,
+.funds-header-separator,
+.support-header-separator {
+    -fx-padding: 0 12;
+}
+
+.portfolio-header .pending-trades-count {
+    -fx-font-size: 11px;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+    -fx-background-color: -bs-color-background-form-field;
+    -fx-background-radius: 9;
+    -fx-border-color: -bs-color-gray-2;
+    -fx-border-radius: 9;
+    -fx-min-width: 20;
+    -fx-alignment: center;
+    -fx-padding: 0 6;
+}
+
 .nav-separator {
     -fx-max-width: 1;
     -fx-min-width: 1;

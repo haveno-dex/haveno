@@ -71,13 +71,32 @@ import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableNumberValue;
 import javafx.collections.MapChangeListener;
+import javafx.event.EventHandler;
+import javafx.fxml.FXML;
+import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 import javax.annotation.Nullable;
 
 @FxmlView
-public class SupportView extends ActivatableView<TabPane, Void> {
+public class SupportView extends ActivatableView<VBox, Void> {
+
+    @FXML
+    TabPane tabPane;
+    @FXML
+    StackPane headerControls, content;
+    @FXML
+    Region navigationSpacer;
+    @FXML
+    Separator headerSeparator;
 
     private Tab tradersMediationDisputesTab, tradersRefundDisputesTab;
     @Nullable
@@ -128,18 +147,18 @@ public class SupportView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
-        Accessibility.fixTabs(root);
+        Accessibility.fixTabs(tabPane);
         tradersMediationDisputesTab = new Tab();
         tradersMediationDisputesTab.setClosable(false);
-        //root.getTabs().add(tradersMediationDisputesTab); // hidden since mediation and refunds are not used in haveno
+        //tabPane.getTabs().add(tradersMediationDisputesTab); // hidden since mediation and refunds are not used in haveno
 
         tradersRefundDisputesTab = new Tab();
         tradersRefundDisputesTab.setClosable(false);
-        //root.getTabs().add(tradersRefundDisputesTab);
+        //tabPane.getTabs().add(tradersRefundDisputesTab);
 
         tradersArbitrationDisputesTab = new Tab();
         tradersArbitrationDisputesTab.setClosable(false);
-        root.getTabs().add(tradersArbitrationDisputesTab);
+        tabPane.getTabs().add(tradersArbitrationDisputesTab);
 
         // Has to be called before loadView
         updateAgentTabs();
@@ -147,6 +166,27 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         tradersMediationDisputesTab.setText(Res.get("support.tab.mediation.support"));
         tradersRefundDisputesTab.setText(Res.get("support.tab.refund.support"));
         tradersArbitrationDisputesTab.setText(Res.get("support.tab.arbitration.support"));
+
+        // preserve the tab content's clipping when a view exceeds the available space
+        Rectangle contentClip = new Rectangle();
+        contentClip.widthProperty().bind(content.widthProperty());
+        contentClip.heightProperty().bind(content.heightProperty());
+        content.setClip(contentClip);
+        // retain tab shortcuts from controls hosted outside the tab pane
+        EventHandler<KeyEvent> tabNavigationHandler = event -> {
+            if (event.isControlDown() && !event.isAltDown() && !event.isMetaDown() &&
+                    (event.getCode() == KeyCode.TAB || (!event.isShiftDown() &&
+                            (event.getCode() == KeyCode.PAGE_UP || event.getCode() == KeyCode.PAGE_DOWN)))) {
+                tabPane.fireEvent(event.copyFor(tabPane, tabPane));
+                event.consume();
+            }
+        };
+        content.addEventHandler(KeyEvent.KEY_PRESSED, tabNavigationHandler);
+        headerControls.addEventHandler(KeyEvent.KEY_PRESSED, tabNavigationHandler);
+        headerControls.setVisible(false);
+        headerControls.managedProperty().bind(headerControls.visibleProperty());
+        headerSeparator.visibleProperty().bind(headerControls.visibleProperty());
+        headerSeparator.managedProperty().bind(headerControls.visibleProperty());
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1)
@@ -179,6 +219,10 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         refundAgentMapChangeListener = change -> updateAgentTabs();
     }
 
+    public void reserveNavigationWidth(ObservableNumberValue width) {
+        navigationSpacer.prefWidthProperty().bind(width);
+    }
+
     private void updateAgentTabs() {
         PubKeyRing myPubKeyRing = keyRing.getPubKeyRing();
 
@@ -193,12 +237,12 @@ public class SupportView extends ActivatableView<TabPane, Void> {
             if (arbitratorTab == null) {
                 arbitratorTab = new Tab();
                 arbitratorTab.setClosable(false);
-                root.getTabs().add(arbitratorTab);
+                tabPane.getTabs().add(arbitratorTab);
             }
             if (signedOfferTab == null) {
                 signedOfferTab = new Tab();
                 signedOfferTab.setClosable(false);
-                root.getTabs().add(signedOfferTab);
+                tabPane.getTabs().add(signedOfferTab);
             }
         }
 
@@ -211,7 +255,7 @@ public class SupportView extends ActivatableView<TabPane, Void> {
             if (isActiveMediator || hasDisputesAsMediator) {
                 mediatorTab = new Tab();
                 mediatorTab.setClosable(false);
-                root.getTabs().add(mediatorTab);
+                tabPane.getTabs().add(mediatorTab);
             }
         }
 
@@ -224,7 +268,7 @@ public class SupportView extends ActivatableView<TabPane, Void> {
             if (isActiveRefundAgent || hasDisputesAsRefundAgent) {
                 refundAgentTab = new Tab();
                 refundAgentTab.setClosable(false);
-                root.getTabs().add(refundAgentTab);
+                tabPane.getTabs().add(refundAgentTab);
             }
         }
 
@@ -256,14 +300,14 @@ public class SupportView extends ActivatableView<TabPane, Void> {
 
         updateAgentTabs();
 
-        root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
+        tabPane.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
         navigation.addListener(navigationListener);
 
-        if (root.getSelectionModel().getSelectedItem() == tradersMediationDisputesTab) {
+        if (tabPane.getSelectionModel().getSelectedItem() == tradersMediationDisputesTab) {
             navigation.navigateTo(MainView.class, SupportView.class, MediationClientView.class);
-        } else if (root.getSelectionModel().getSelectedItem() == tradersArbitrationDisputesTab) {
+        } else if (tabPane.getSelectionModel().getSelectedItem() == tradersArbitrationDisputesTab) {
             navigation.navigateTo(MainView.class, SupportView.class, ArbitrationClientView.class);
-        } else if (root.getSelectionModel().getSelectedItem() == tradersRefundDisputesTab) {
+        } else if (tabPane.getSelectionModel().getSelectedItem() == tradersRefundDisputesTab) {
             navigation.navigateTo(MainView.class, SupportView.class, RefundClientView.class);
         } else if (arbitratorTab != null) {
             navigation.navigateTo(MainView.class, SupportView.class, ArbitratorView.class);
@@ -288,16 +332,16 @@ public class SupportView extends ActivatableView<TabPane, Void> {
         arbitratorManager.getObservableMap().removeListener(arbitratorMapChangeListener);
         mediatorManager.getObservableMap().removeListener(mediatorMapChangeListener);
         refundAgentManager.getObservableMap().removeListener(refundAgentMapChangeListener);
-        root.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
+        tabPane.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
         navigation.removeListener(navigationListener);
-        if (currentTab != null) currentTab.setContent(null);
+        if (currentTab != null) content.getChildren().clear();
         currentTab = null;
     }
 
     private void loadView(Class<? extends View> viewClass, @Nullable Object data) {
         // we want to get activate/deactivate called, so we remove the old view on tab change
         if (currentTab != null)
-            currentTab.setContent(null);
+            content.getChildren().clear();
 
         View view = viewLoader.load(viewClass);
 
@@ -325,8 +369,13 @@ public class SupportView extends ActivatableView<TabPane, Void> {
                 if (data instanceof Dispute dispute) disputeView.setDisputeToSelect(dispute);
                 else disputeView.setTradeIdToSelect(data instanceof Trade ? ((Trade) data).getId() : null);
             }
-            currentTab.setContent(view.getRoot());
-            root.getSelectionModel().select(currentTab);
+            Region controls = view instanceof DisputeView disputeView ? disputeView.getHeaderControls() : null;
+            if (controls == null) headerControls.getChildren().clear();
+            else if (!headerControls.getChildren().contains(controls)) headerControls.getChildren().setAll(controls);
+            headerControls.setVisible(controls != null);
+
+            content.getChildren().setAll(view.getRoot());
+            tabPane.getSelectionModel().select(currentTab);
         }
     }
 }

@@ -98,6 +98,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
@@ -127,8 +128,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private final Preferences preferences;
     @FXML
     FilterBox filterBox;
-    @FXML
-    Label tradesTitle, tradesCount;
     @FXML
     TableView<PendingTradesListItem> tableView;
     @FXML
@@ -196,7 +195,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @Override
     public void initialize() {
         root.getStylesheets().add(PendingTradesView.class.getResource("trade-view.css").toExternalForm());
-        tradesTitle.setText(Res.get("portfolio.tab.pendingTrades"));
         filterBox.setInputFillWidth(0);
         GUIUtil.applyTableStyle(tableView);
 
@@ -331,6 +329,10 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         };
     }
 
+    public Region getHeaderControls() {
+        return filterBox;
+    }
+
     @Override
     protected void activate() {
         active = true;
@@ -344,7 +346,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         configureTableHeight();
 
-        tradesCount.textProperty().bind(Bindings.size(list).asString());
         filterBox.initialize(filteredList, tableView); // here because filteredList is instantiated here
         filterBox.setPromptText(Res.get("shared.filter"));
         filterBox.activate();
@@ -368,10 +369,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
                     //selectedSubView.setMinHeight(460);
                     //VBox.setVgrow(selectedSubView, Priority.SOMETIMES);
-                    if (root.getChildren().size() == 2)
-                        root.getChildren().add(scrollView);
-                    else if (root.getChildren().size() == 3)
-                        root.getChildren().set(2, scrollView);
                     scrollView.setContent(selectedSubView);
                     // create and register a callback so we can be notified when the subview
                     // wants to open the chat window
@@ -454,7 +451,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         tradeToSelect = null;
         notificationCenter.setViewedTradeId(null);
         filterBox.deactivate();
-        tradesCount.textProperty().unbind();
         sortedList.comparatorProperty().unbind();
         selectedItemSubscription.unsubscribe();
         selectedTableItemSubscription.unsubscribe();

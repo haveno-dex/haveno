@@ -145,6 +145,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     @Override
     public void initialize() {
         GUIUtil.applyTableStyle(tableView);
+        filterBox.setInputFillWidth(0);
         filterBox.initialize(filteredList, tableView);
         filterBox.setPromptText(Res.get("shared.filter"));
 
@@ -203,6 +204,10 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         loadErrorLabel.managedProperty().bind(loadErrorLabel.visibleProperty());
         exportButton.updateText(Res.get("shared.exportCSV"));
         exportButton.setDisable(true);
+    }
+
+    public Region getHeaderControls() {
+        return filterBox;
     }
 
     @Override

@@ -33,7 +33,9 @@
         <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
     </padding>
 
-    <FilterBox fx:id="filterBox" />
+    <fx:define>
+        <FilterBox fx:id="filterBox" minWidth="160" prefWidth="220" maxWidth="220"/>
+    </fx:define>
     <!-- scroll pane provides a horizontal bar when the window is narrower than the table's min width -->
     <ScrollPane fx:id="tableScrollPane" fitToWidth="true" fitToHeight="true" vbarPolicy="NEVER"
                 focusTraversable="false" styleClass="table-scroll-pane" VBox.vgrow="ALWAYS">

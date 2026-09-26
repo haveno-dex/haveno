@@ -61,7 +61,6 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -73,7 +72,6 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -121,11 +119,9 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
             removeItemColumn, editItemColumn, triggerPriceColumn, triggerIconColumn, paymentMethodColumn, duplicateItemColumn,
             cloneItemColumn;
     @FXML
-    HBox searchBox;
+    HBox headerControls;
     @FXML
     InputTextField filterTextField;
-    @FXML
-    Pane searchBoxSpacer;
     @FXML
     Label numItems;
     @FXML
@@ -240,14 +236,12 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                     return row;
                 });
 
+        headerControls.disableProperty().bind(root.disabledProperty());
         filterTextField.setPromptText(Res.get("shared.filter"));
         filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
-        searchBox.setSpacing(5);
-        HBox.setHgrow(searchBoxSpacer, Priority.ALWAYS);
-
-        searchBox.setAlignment(Pos.CENTER_LEFT);
-        HBox.setMargin(selectToggleButton, new Insets(0, 60, 0, 0));
-        selectToggleButton.setText(Res.get("shared.enabled"));
+        selectToggleButton.textProperty().bind(Bindings.when(filterTextField.textProperty().isEmpty())
+                .then(Res.get("openOffer.allOffers"))
+                .otherwise(Res.get("openOffer.filteredOffers")));
         selectToggleButton.setDisable(true);
 
         numItems.setId("num-offers");
@@ -265,6 +259,10 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                 GUIUtil.updateFilterPlaceholder(tableView, filteredList, filterTextField.getText());
             }
         };
+    }
+
+    public Region getHeaderControls() {
+        return headerControls;
     }
 
     @Override

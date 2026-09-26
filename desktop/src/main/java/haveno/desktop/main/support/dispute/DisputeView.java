@@ -103,8 +103,8 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
@@ -202,6 +202,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     @Nullable
     private ListChangeListener<Dispute> disputesListener; // Only set in mediation cases
     protected Label alertIconLabel;
+    private HBox headerControls;
     protected TableColumn<Dispute, Dispute> stateColumn;
     private Map<String, ListChangeListener<ChatMessage>> listenerByDispute = new HashMap<>();
     private Map<String, Button> chatButtonByDispute = new HashMap<>();
@@ -257,12 +258,13 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         tooltip.setShowDuration(Duration.seconds(10));
         filterTextField.setTooltip(tooltip);
         filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
-        HBox.setHgrow(filterTextField, Priority.ALWAYS);
+        filterTextField.setMinWidth(80);
+        filterTextField.setPrefWidth(220);
+        filterTextField.setMaxWidth(220);
 
         alertIconLabel = new Label();
         Text icon = getIconForLabel(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE, "2em", alertIconLabel);
         icon.getStyleClass().add("alert-icon");
-        HBox.setMargin(alertIconLabel, new Insets(4, 0, 0, 10));
         alertIconLabel.setMouseTransparent(false);
         alertIconLabel.setVisible(false);
         alertIconLabel.setManaged(false);
@@ -311,35 +313,36 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         });
 
         sigCheckButton = new AutoTooltipButton(Res.get("support.sigCheck.button"));
+        sigCheckButton.getStyleClass().add("compact-button");
+        sigCheckButton.setMinWidth(Region.USE_PREF_SIZE);
         HBox.setHgrow(sigCheckButton, Priority.NEVER);
         sigCheckButton.setOnAction(e -> {
             new VerifyDisputeResultSignatureWindow(arbitratorManager).show();
         });
 
-        Pane spacer = new Pane();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        headerControls = new HBox(16, sigCheckButton, alertIconLabel, filterTextField);
+        headerControls.setAlignment(Pos.CENTER_LEFT);
 
-        HBox filterBox = new HBox();
-        filterBox.setSpacing(5);
-        filterBox.getChildren().addAll(filterTextField,
-                alertIconLabel,
-                spacer,
-                reOpenButton,
-                closeButton,
-                sendPrivateNotificationButton,
-                reportButton,
-                fullReportButton,
-                sigCheckButton);
-        VBox.setVgrow(filterBox, Priority.NEVER);
+        HBox actionBox = new HBox(5, reOpenButton, closeButton, sendPrivateNotificationButton, reportButton, fullReportButton);
+        actionBox.setAlignment(Pos.CENTER_RIGHT);
+        actionBox.visibleProperty().bind(reOpenButton.visibleProperty().or(closeButton.visibleProperty())
+                .or(sendPrivateNotificationButton.visibleProperty()).or(reportButton.visibleProperty())
+                .or(fullReportButton.visibleProperty()));
+        actionBox.managedProperty().bind(actionBox.visibleProperty());
+        VBox.setVgrow(actionBox, Priority.NEVER);
 
         tableView = new TableView<>();
         GUIUtil.applyTableStyle(tableView);
         VBox.setVgrow(tableView, Priority.SOMETIMES);
         tableView.setMinHeight(150);
 
-        root.getChildren().addAll(filterBox, tableView);
+        root.getChildren().addAll(tableView, actionBox);
 
         setupTable();
+    }
+
+    public Region getHeaderControls() {
+        return headerControls;
     }
 
     @Override

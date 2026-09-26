@@ -105,6 +105,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
 
     @Override
     public void initialize() {
+        filterBox.setInputFillWidth(0);
         GUIUtil.applyTableStyle(tableView);
 
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
@@ -165,6 +166,10 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         HBox.setHgrow(footerSpacer, Priority.ALWAYS);
         HBox.setMargin(exportButton, new Insets(0, 10, 0, 0));
         exportButton.updateText(Res.get("shared.exportCSV"));
+    }
+
+    public Region getHeaderControls() {
+        return filterBox;
     }
 
     @Override

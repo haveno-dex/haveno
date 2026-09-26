@@ -35,7 +35,9 @@
         <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
     </padding>
 
-    <FilterBox fx:id="filterBox" />
+    <fx:define>
+        <FilterBox fx:id="filterBox" minWidth="160" prefWidth="220" maxWidth="220"/>
+    </fx:define>
     <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="tradeIdColumn" minWidth="120" maxWidth="120"/>

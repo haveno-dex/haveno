@@ -282,7 +282,10 @@
     -jfx-rippler-fill: none;
 }
 
-.jfx-tab-pane .viewport {
+.jfx-tab-pane .viewport,
+.portfolio-content .viewport,
+.funds-content .viewport,
+.support-content .viewport {
     -fx-background-color: -bs-viewport-background;
 }
 

@@ -159,6 +159,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
     @Override
     public void initialize() {
+        filterBox.setInputFillWidth(0);
         GUIUtil.applyTableStyle(tableView);
 
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
@@ -246,6 +247,10 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         HBox.setMargin(exportButton, new Insets(0, 10, 0, 0));
         exportButton.updateText(Res.get("shared.exportCSV"));
         summaryButton.updateText(Res.get("shared.summary"));
+    }
+
+    public Region getHeaderControls() {
+        return filterBox;
     }
 
     @Override
