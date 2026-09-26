@@ -1875,7 +1875,6 @@ textfield */
 }
 
 .hyperlink:hover,
-.hyperlink:visited,
 .hyperlink:hover:visited {
     -fx-underline: false;
 }
@@ -2127,7 +2126,6 @@ textfield */
 }
 
 .table-view .table-row-cell .hyperlink:hover,
-.table-view .table-row-cell .hyperlink:visited,
 .table-view .table-row-cell .hyperlink:hover:visited {
     -fx-underline: false;
     -fx-border-style: none;
