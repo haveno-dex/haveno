@@ -150,8 +150,8 @@ public class ValidateOffer extends Task<PlaceOfferModel> {
         checkNotNull(offer.getPubKeyRing(), "pubKeyRing is null");
         checkNotNull(offer.getMinAmount(), "MinAmount is null");
         checkNotNull(offer.getVersionNr(), "VersionNr is null");
-        checkArgument(offer.getMaxTradePeriod() > 0,
-                "maxTradePeriod must be positive. maxTradePeriod=" + offer.getMaxTradePeriod());
+        checkArgument(offer.getOfferPayload().getMaxTradePeriod() > 0,
+                "maxTradePeriod must be positive. maxTradePeriod=" + offer.getOfferPayload().getMaxTradePeriod());
         // TODO check upper and lower bounds for fiat
         // TODO check rest of new parameters
     }
