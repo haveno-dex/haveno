@@ -61,7 +61,9 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -71,6 +73,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -220,6 +223,15 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         tableView.setRowFactory(
                 tableView -> {
                     final TableRow<OpenOfferListItem> row = new TableRow<>();
+                    row.setOnMouseClicked(event -> {
+                        if (event.getButton() != MouseButton.PRIMARY || event.getClickCount() != 2 || row.isEmpty()) return;
+                        for (Node node = (Node) event.getTarget(); node != null && node != row; node = node.getParent()) {
+                            // row actions keep their own behavior
+                            if (node instanceof ButtonBase) return;
+                        }
+                        offerDetailsWindow.show(row.getItem().getOffer());
+                        event.consume();
+                    });
                     final ContextMenu rowMenu = new ContextMenu();
 
                     MenuItem duplicateOfferMenuItem = new MenuItem(Res.get("portfolio.context.offerLikeThis"));

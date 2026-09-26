@@ -62,6 +62,7 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -71,6 +72,7 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -230,6 +232,15 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         tableView.setRowFactory(
                 tableView -> {
                     TableRow<ClosedTradesListItem> row = new TableRow<>();
+                    row.setOnMouseClicked(event -> {
+                        if (event.getButton() != MouseButton.PRIMARY || event.getClickCount() != 2 || row.isEmpty()) return;
+                        for (Node node = (Node) event.getTarget(); node != null && node != row; node = node.getParent()) {
+                            // row actions keep their own behavior
+                            if (node instanceof ButtonBase || node instanceof PeerInfoIconTrading) return;
+                        }
+                        showDetails(row.getItem().getTradable());
+                        event.consume();
+                    });
                     ContextMenu rowMenu = new ContextMenu();
                     MenuItem duplicateItem = new MenuItem(Res.get("portfolio.context.offerLikeThis"));
                     duplicateItem.setOnAction((ActionEvent event) -> onDuplicateOffer(row.getItem().getTradable().getOffer()));
@@ -341,6 +352,14 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         sellerSecurityDepositColumn.setVisible(width > 1500);
     }
 
+    private void showDetails(Tradable tradable) {
+        if (tradable instanceof Trade) {
+            tradeDetailsWindow.show((Trade) tradable);
+        } else if (tradable instanceof OpenOffer) {
+            offerDetailsWindow.show(tradable.getOffer());
+        }
+    }
+
     private void setTradeIdColumnCellFactory() {
         tradeIdColumn.setCellValueFactory((offerListItem) -> new ReadOnlyObjectWrapper<>(offerListItem.getValue()));
         tradeIdColumn.setCellFactory(
@@ -357,15 +376,9 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     field = new HyperlinkWithIcon(item.getTradeId());
+                                    field.hideIcon();
                                     Accessibility.setName(field, Accessibility.spellOut(item.getTradeId()));
-                                    field.setOnAction(event -> {
-                                        Tradable tradable = item.getTradable();
-                                        if (tradable instanceof Trade) {
-                                            tradeDetailsWindow.show((Trade) tradable);
-                                        } else if (tradable instanceof OpenOffer) {
-                                            offerDetailsWindow.show(tradable.getOffer());
-                                        }
-                                    });
+                                    field.setOnAction(event -> showDetails(item.getTradable()));
                                     field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                     setGraphic(field);
                                 } else {
