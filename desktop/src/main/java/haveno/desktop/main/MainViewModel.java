@@ -77,6 +77,7 @@ import haveno.desktop.main.presentation.SettingsPresentation;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
+import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import javafx.beans.binding.Bindings;
@@ -128,6 +129,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
     @Getter
     private final PriceFeedService priceFeedService;
     private final Config config;
+    private final Socks5ProxyProvider socks5ProxyProvider;
     private final AccountAgeWitnessService accountAgeWitnessService;
     @Getter
     private final TorNetworkSettingsWindow torNetworkSettingsWindow;
@@ -173,6 +175,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                          TacWindow tacWindow,
                          PriceFeedService priceFeedService,
                          Config config,
+                         Socks5ProxyProvider socks5ProxyProvider,
                          AccountAgeWitnessService accountAgeWitnessService,
                          TorNetworkSettingsWindow torNetworkSettingsWindow,
                          CorruptedStorageFileHandler corruptedStorageFileHandler,
@@ -196,6 +199,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         this.tacWindow = tacWindow;
         this.priceFeedService = priceFeedService;
         this.config = config;
+        this.socks5ProxyProvider = socks5ProxyProvider;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.torNetworkSettingsWindow = torNetworkSettingsWindow;
         this.corruptedStorageFileHandler = corruptedStorageFileHandler;
@@ -419,7 +423,7 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                 .show());
         tradeManager.setLockedUpFundsHandler(msg -> new Popup().width(850).warning(msg).show());
 
-        havenoSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config)
+        havenoSetup.setDisplayUpdateHandler((alert, key) -> new DisplayUpdateDownloadWindow(alert, config, socks5ProxyProvider)
                 .actionButtonText(Res.get("displayUpdateDownloadWindow.button.downloadLater"))
                 .onAction(() -> {
                     preferences.dontShowAgain(key, false); // update later

@@ -19,6 +19,7 @@ package haveno.desktop.main.overlays.windows.downloadupdate;
 
 import com.google.common.collect.Lists;
 import haveno.common.util.Utilities;
+import haveno.network.Socks5ProxyProvider;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ import org.bouncycastle.openpgp.operator.bc.BcPGPContentVerifierBuilderProvider;
 import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -69,7 +71,7 @@ public class HavenoInstaller {
         return Utilities.isOSX() || Utilities.isWindows() || Utilities.isDebianLinux() || Utilities.isRedHatLinux();
     }
 
-    public Optional<DownloadTask> download(String version) {
+    public Optional<DownloadTask> download(String version, @Nullable Socks5ProxyProvider socks5ProxyProvider) {
         String partialUrl = DOWNLOAD_HOST_URL + "v" + version + "/";
 
         // Get installer filename on all platforms
@@ -92,7 +94,7 @@ public class HavenoInstaller {
         allFiles.addAll(sigFileDescriptors);
 
         // Download keys, sigs and Installer
-        return getDownloadTask(allFiles);
+        return getDownloadTask(allFiles, socks5ProxyProvider);
     }
 
     public VerifyTask verify(List<FileDescriptor> fileDescriptors) {
@@ -102,9 +104,9 @@ public class HavenoInstaller {
         return verifyTask;
     }
 
-    private Optional<DownloadTask> getDownloadTask(List<FileDescriptor> fileDescriptors) {
+    private Optional<DownloadTask> getDownloadTask(List<FileDescriptor> fileDescriptors, @Nullable Socks5ProxyProvider socks5ProxyProvider) {
         try {
-            return Optional.of(downloadFiles(fileDescriptors, Utilities.getDownloadOfHomeDir()));
+            return Optional.of(downloadFiles(fileDescriptors, Utilities.getDownloadOfHomeDir(), socks5ProxyProvider));
         } catch (IOException exception) {
             return Optional.empty();
         }
@@ -118,10 +120,10 @@ public class HavenoInstaller {
      * @return The task handling the download
      * @throws IOException
      */
-    private static DownloadTask downloadFiles(List<FileDescriptor> fileDescriptors, String saveDir) throws IOException {
+    private static DownloadTask downloadFiles(List<FileDescriptor> fileDescriptors, String saveDir, @Nullable Socks5ProxyProvider socks5ProxyProvider) throws IOException {
         if (saveDir == null)
             saveDir = Utilities.getDownloadOfHomeDir();
-        DownloadTask task = new DownloadTask(fileDescriptors, saveDir);
+        DownloadTask task = new DownloadTask(fileDescriptors, saveDir, socks5ProxyProvider);
         new Thread(task, "HavenoInstaller DownloadTask").start();
         // TODO: check for problems when creating task
         return task;
