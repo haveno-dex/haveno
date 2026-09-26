@@ -28,6 +28,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 public class TradeWizardItem extends HBox {
@@ -56,6 +57,7 @@ public class TradeWizardItem extends HBox {
         caption.setWrapText(true);
         VBox text = new VBox(3, heading, caption);
         text.setMinWidth(0);
+        HBox.setHgrow(text, Priority.ALWAYS);
         getChildren().addAll(circle, text);
         getStyleClass().add("trade-step");
         setAlignment(Pos.CENTER_LEFT);
@@ -72,10 +74,9 @@ public class TradeWizardItem extends HBox {
 
     public void addConnector() {
         Separator connector = new Separator(Orientation.HORIZONTAL);
-        connector.setMinWidth(12);
-        connector.setPrefWidth(12);
-        connector.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(connector, Priority.ALWAYS);
+        connector.setMinWidth(Region.USE_PREF_SIZE);
+        connector.setPrefWidth(32);
+        connector.setMaxWidth(Region.USE_PREF_SIZE);
         getChildren().add(connector);
     }
 

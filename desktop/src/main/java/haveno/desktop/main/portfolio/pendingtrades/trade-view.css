@@ -30,6 +30,21 @@
     -fx-padding: 3 8;
 }
 
+.table-cell.pending-trades-number-column {
+    -fx-alignment: center-right;
+    -fx-padding: 6 12 4 0;
+}
+.table-cell.pending-trades-number-column.first-column {
+    -fx-padding: 6 12 4 15;
+}
+.column-header.pending-trades-number-column > .label {
+    -fx-alignment: center-right;
+    -fx-padding: 6 12 6 0;
+}
+.column-header.pending-trades-number-column.last-column > .label {
+    -fx-padding: 6 0 6 0;
+}
+
 .trade-row-chat-button .glyph-icon {
     -fx-fill: -bs-color-gray-6;
 }
