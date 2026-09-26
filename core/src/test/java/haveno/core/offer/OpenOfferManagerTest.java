@@ -444,7 +444,7 @@ public class OpenOfferManagerTest {
             return null;
         }).when(offerBookService).removeOffer(any(OfferPayload.class), any(ResultHandler.class), any(ErrorMessageHandler.class));
 
-        try {
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
             HavenoUtils.tradeManager = tradeManager;
             OpenOfferManager manager = new OpenOfferManager(coreContext,
                     null,
@@ -476,7 +476,14 @@ public class OpenOfferManagerTest {
             assertTrue(cancelRejected.get());
             assertEquals(initialState, openOffer.getState());
 
-            manager.removeAllOpenOffers(null);
+            ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+            ArgumentCaptor<Runnable> drain = ArgumentCaptor.forClass(Runnable.class);
+            userThread.when(() -> UserThread.runAfter(drain.capture(), anyLong(), eq(TimeUnit.MILLISECONDS)))
+                    .thenReturn(mock(Timer.class));
+
+            manager.removeAllOpenOffers(null, failure);
+            drain.getValue().run();
+            verify(failure).handleErrorMessage("Offers that could not be removed: " + openOffer.getId());
             assertEquals(OpenOffer.State.CANCELED, openOffer.getState());
             verify(offerBookService).removeOffer(any(OfferPayload.class), any(ResultHandler.class), any(ErrorMessageHandler.class));
 
