@@ -486,6 +486,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         vBox.setPickOnBounds(true);
         vBox.setOnMouseClicked(e -> onClick.run());
         Accessibility.asButton(vBox, text);
+        // show the tooltip over the entire box, including its padding and caption
+        balanceDisplay.tooltipProperty().addListener((observable, oldValue, newValue) -> {
+            Tooltip.uninstall(vBox, oldValue);
+            Tooltip.uninstall(balanceDisplay, newValue);
+            if (newValue != null) Tooltip.install(vBox, newValue);
+        });
         return new Tuple2<>(balanceDisplay, vBox);
     }
 
