@@ -49,8 +49,6 @@ import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.text.DateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
@@ -114,7 +112,6 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     private Subscription messageStateSubscription;
     @Getter
     protected final IntegerProperty mempoolStatus = new SimpleIntegerProperty();
-    private transient Map<String, Boolean> showPaymentDetailsEarly = new HashMap<String, Boolean>();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -286,11 +283,11 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     public boolean getShowPaymentDetailsEarly() {
-        return !HavenoUtils.RECOMMEND_CONFIRMATIONS_BEFORE_SENDING_PAYMENT || showPaymentDetailsEarly.getOrDefault(dataModel.getTrade().getId(), false);
+        return !HavenoUtils.RECOMMEND_CONFIRMATIONS_BEFORE_SENDING_PAYMENT || dataModel.showPaymentDetailsEarly.getOrDefault(dataModel.getTrade().getId(), false);
     }
 
     public void setShowPaymentDetailsEarly(boolean show) {
-        showPaymentDetailsEarly.put(dataModel.getTrade().getId(), show);
+        dataModel.showPaymentDetailsEarly.put(dataModel.getTrade().getId(), show);
     }
 
     String getMyRole(PendingTradesListItem item) {

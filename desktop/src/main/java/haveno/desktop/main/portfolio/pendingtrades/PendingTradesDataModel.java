@@ -68,6 +68,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javafx.beans.Observable;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -76,6 +77,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import org.bitcoinj.core.Coin;
@@ -96,7 +98,9 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     private final OfferUtil offerUtil;
     private final CoinFormatter btcFormatter;
 
-    final ObservableList<PendingTradesListItem> list = FXCollections.observableArrayList();
+    final ObservableMap<String, Boolean> showPaymentDetailsEarly = FXCollections.observableHashMap();
+    final ObservableList<PendingTradesListItem> list = FXCollections.observableArrayList(
+            item -> new Observable[]{item.getTradeStatus()});
     private final ListChangeListener<Trade> tradesListChangeListener;
     private boolean isMaker;
 
@@ -325,7 +329,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
                     list.clear();
                     list.addAll(tradeManager.getObservableList().stream()
                             .filter(trade -> isTradeShown(trade))
-                            .map(trade -> new PendingTradesListItem(trade, btcFormatter))
+                            .map(trade -> new PendingTradesListItem(trade, btcFormatter, showPaymentDetailsEarly))
                             .collect(Collectors.toList()));
 
                     // we sort by date, earliest first

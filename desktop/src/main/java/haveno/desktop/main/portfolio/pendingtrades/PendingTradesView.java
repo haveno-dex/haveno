@@ -27,6 +27,7 @@ import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
 import haveno.common.util.Utilities;
 import haveno.core.alert.PrivateNotificationManager;
+import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.OfferPayload;
 import haveno.core.support.dispute.mediation.MediationResultState;
@@ -134,6 +135,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     TableColumn<PendingTradesListItem, PendingTradesListItem> priceColumn, volumeColumn, amountColumn, avatarColumn,
             marketColumn, roleColumn, paymentMethodColumn, tradeIdColumn, dateColumn, chatColumn, moveTradeToFailedColumn;
     @FXML
+    TableColumn<PendingTradesListItem, PendingTradesListItem.TradeStatus> statusColumn;
+    @FXML
     ScrollPane scrollView;
     @FXML
     ScrollPane tableScrollPane;
@@ -202,6 +205,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         volumeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amount")));
         marketColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.market")));
         roleColumn.setGraphic(new AutoTooltipLabel(Res.get("portfolio.pending.role")));
+        statusColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.state")));
         dateColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.dateTime")));
         tradeIdColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.tradeId")));
         paymentMethodColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.paymentMethod")));
@@ -217,6 +221,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         setPaymentMethodColumnCellFactory();
         setMarketColumnCellFactory();
         setRoleColumnCellFactory();
+        setStatusColumnCellFactory();
         setAvatarColumnCellFactory();
         setChatColumnCellFactory();
         setRemoveTradeColumnCellFactory();
@@ -243,7 +248,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                 Comparator.nullsFirst(Comparator.naturalOrder())));
 
         marketColumn.setComparator(Comparator.comparing(PendingTradesListItem::getMarketDescription));
-        roleColumn.setComparator(Comparator.comparing(model::getMyRole));
+        roleColumn.setComparator(Comparator.comparing((PendingTradesListItem item) -> item.getTrade().isArbitrator())
+                .thenComparing(item -> !item.getTrade().isBuyer())
+                .thenComparing(item -> !item.getTrade().isMaker()));
         avatarColumn.setComparator(Comparator.comparing(
                 o -> model.getNumPastTrades(o.getTrade()),
                 Comparator.nullsFirst(Comparator.naturalOrder())
@@ -298,7 +305,21 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             }
         };
 
-        tradesListChangeListener = c -> onListChanged();
+        tradesListChangeListener = c -> {
+            boolean itemsChanged = false;
+            while (c.next()) {
+                if (c.wasUpdated()) {
+                    PendingTradesListItem selectedItem = tableView.getSelectionModel().getSelectedItem();
+                    if (selectedItem != null && filteredList.getPredicate() != null && !filteredList.getPredicate().test(selectedItem)) {
+                        // keep the details on this trade when its status no longer matches the filter
+                        tableView.getSelectionModel().clearSelection();
+                    }
+                } else {
+                    itemsChanged = true;
+                }
+            }
+            if (itemsChanged) onListChanged();
+        };
 
         getMempoolStatusListener = (observable, oldValue, newValue) -> {
             // -1 status is unknown
@@ -314,6 +335,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     protected void activate() {
         active = true;
         ObservableList<PendingTradesListItem> list = model.dataModel.list;
+        // clear a filtered-out selection before the table can select a neighboring trade
+        list.addListener(tradesListChangeListener);
         filteredList = new FilteredList<>(list);
         sortedList = new SortedList<>(filteredList);
         sortedList.comparatorProperty().bind(tableView.comparatorProperty());
@@ -390,7 +413,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
         updateTableSelection();
 
-        list.addListener(tradesListChangeListener);
         updateNewChatMessagesByTradeMap();
         model.getMempoolStatus().addListener(getMempoolStatusListener);
         selectRequestedTrade();
@@ -973,14 +995,51 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                             @Override
                             public void updateItem(final PendingTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
-                                if (item != null && !empty)
-                                    setGraphic(new AutoTooltipLabel(model.getMyRole(item)));
-                                else
+                                if (item != null && !empty) {
+                                    Trade trade = item.getTrade();
+                                    String description = model.getMyRole(item);
+                                    Label role = new AutoTooltipLabel(item.getRole());
+                                    HBox box = new HBox(8);
+                                    box.setAlignment(Pos.CENTER_LEFT);
+                                    if (!trade.isArbitrator()) {
+                                        Label direction = new Label(item.getDirection()
+                                                .toUpperCase(GlobalSettings.getLocale()));
+                                        direction.getStyleClass().addAll("trade-direction-badge", trade.isBuyer() ? "trade-direction-buy" : "trade-direction-sell");
+                                        direction.setMinWidth(Label.USE_PREF_SIZE);
+                                        box.getChildren().add(direction);
+                                    }
+                                    box.getChildren().add(role);
+                                    Tooltip.install(box, new Tooltip(description));
+                                    setAccessibleText(description);
+                                    setGraphic(box);
+                                } else {
+                                    setAccessibleText(null);
                                     setGraphic(null);
+                                }
                             }
                         };
                     }
                 });
+    }
+
+    private void setStatusColumnCellFactory() {
+        statusColumn.setCellValueFactory(trade -> trade.getValue().getTradeStatus());
+        statusColumn.setSortable(false);
+        statusColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            public void updateItem(PendingTradesListItem.TradeStatus status, boolean empty) {
+                super.updateItem(status, empty);
+                if (status != null && !empty) {
+                    Label label = new AutoTooltipLabel(Res.get(status.getResourceKey()));
+                    label.getStyleClass().add(status.isAttention() ? "trade-status-attention" : "trade-status-waiting");
+                    setAccessibleText(label.getText());
+                    setGraphic(label);
+                } else {
+                    setAccessibleText(null);
+                    setGraphic(null);
+                }
+            }
+        });
     }
 
     @SuppressWarnings("UnusedReturnValue")
