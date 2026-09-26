@@ -80,6 +80,7 @@ import javafx.geometry.VPos;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -91,6 +92,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -286,6 +288,21 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         tableView.getSortOrder().add(priceColumn);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView.setRowFactory(tableView -> {
+            TableRow<OfferBookListItem> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getButton() != MouseButton.PRIMARY || event.getClickCount() != 2 || row.isEmpty()) return;
+                for (Node node = (Node) event.getTarget(); node != null && node != row; node = node.getParent()) {
+                    // row actions keep their own behavior
+                    if (node instanceof ButtonBase || node instanceof PeerInfoIconTrading) return;
+                }
+                Offer offer = row.getItem().getOffer();
+                if (model.isOfferBanned(offer)) return;
+                offerDetailsWindow.show(offer);
+                event.consume();
+            });
+            return row;
+        });
 
         // widen by the scrollbar width to keep a constant overhang past the take offer buttons, which shift with it
         tableView.skinProperty().addListener((observable, oldValue, newValue) -> {

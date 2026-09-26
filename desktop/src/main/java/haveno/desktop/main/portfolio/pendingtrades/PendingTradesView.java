@@ -494,7 +494,13 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                 // row actions keep their own navigation behavior
                 if (node instanceof ButtonBase || node instanceof PeerInfoIconTrading) return;
                 if (node instanceof TableRow<?> row) {
-                    if (!row.isEmpty() && row.isSelected()) scrollToTop.run();
+                    if (!row.isEmpty() && row.isSelected()) {
+                        scrollToTop.run();
+                        if (event.getClickCount() == 2 && row.getItem() instanceof PendingTradesListItem item) {
+                            tradeDetailsWindow.show(item.getTrade());
+                            event.consume();
+                        }
+                    }
                     return;
                 }
             }
