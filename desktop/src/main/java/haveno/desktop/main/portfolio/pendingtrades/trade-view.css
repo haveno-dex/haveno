@@ -30,6 +30,27 @@
     -fx-padding: 3 8;
 }
 
+.table-view .table-row-cell .table-cell .label.trade-direction-badge {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 7;
+    -fx-background-radius: 4;
+}
+.table-view .table-row-cell .table-cell .label.trade-direction-buy {
+    -fx-text-fill: ladder(-bs-background-color, -bs-buy 49%, derive(-bs-buy, -45%) 50%);
+    -fx-background-color: ladder(-bs-background-color, derive(-bs-buy, -80%) 49%, derive(-bs-buy, 85%) 50%);
+}
+.table-view .table-row-cell .table-cell .label.trade-direction-sell {
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-sell, 25%) 49%, derive(-bs-sell, -20%) 50%);
+    -fx-background-color: ladder(-bs-background-color, derive(-bs-sell, -80%) 49%, derive(-bs-sell, 85%) 50%);
+}
+.table-view .table-row-cell .table-cell .label.trade-status-waiting {
+    -fx-text-fill: -bs-color-gray-6;
+}
+.table-view .table-row-cell .table-cell .label.trade-status-attention {
+    -fx-text-fill: ladder(-bs-background-color, -bs-yellow 49%, #b45309 50%);
+}
+
 .trade-row-chat-button .glyph-icon {
     -fx-fill: -bs-color-gray-6;
 }

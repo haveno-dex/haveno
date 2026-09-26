@@ -25,6 +25,7 @@ import haveno.common.crypto.PubKeyRingProvider;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
+import haveno.core.monetary.Price;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -55,6 +56,7 @@ import haveno.network.p2p.P2PService;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.proto.grpc.NotificationMessage;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -73,6 +75,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import javafx.collections.transformation.FilteredList;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
@@ -107,6 +110,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -132,6 +136,139 @@ public class OverlayTest {
     @Test
     public void typeUnsafeCreation() {
         assertThrows(RuntimeException.class, () -> new B());
+    }
+
+    @Nested
+    class OpenTradeFiltering {
+        private final Trade trade = mock(Trade.class, RETURNS_DEEP_STUBS);
+        private final ObjectProperty<Trade.State> state = new SimpleObjectProperty<>(Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN);
+        private final ObjectProperty<Trade.PayoutState> payout = new SimpleObjectProperty<>(Trade.PayoutState.PAYOUT_UNPUBLISHED);
+        private final ObjectProperty<Trade.DisputeState> dispute = new SimpleObjectProperty<>(Trade.DisputeState.NO_DISPUTE);
+        private ObservableMap<String, Boolean> showPaymentDetailsEarly;
+        private ObservableList<PendingTradesListItem> source;
+        private PendingTradesListItem item;
+        private Locale locale;
+
+        @BeforeEach
+        @SuppressWarnings("unchecked")
+        void setUp() throws ReflectiveOperationException {
+            locale = GlobalSettings.getLocale();
+            GlobalSettings.setLocale(Locale.US);
+            Res.setup();
+            when(trade.getId()).thenReturn("trade-123");
+            when(trade.isBuyer()).thenReturn(true);
+            when(trade.stateProperty()).thenReturn(state);
+            when(trade.getState()).thenAnswer(invocation -> state.get());
+            when(trade.payoutStateProperty()).thenReturn(payout);
+            when(trade.isPayoutPublished()).thenAnswer(invocation -> payout.get() != Trade.PayoutState.PAYOUT_UNPUBLISHED);
+            when(trade.disputeStateProperty()).thenReturn(dispute);
+            when(trade.getDisputeState()).thenAnswer(invocation -> dispute.get());
+            when(trade.isDepositsPublished()).thenReturn(true);
+            when(trade.getAmount()).thenReturn(BigInteger.valueOf(1_000_000_000_000L));
+            when(trade.getPrice()).thenReturn(Price.valueOf("USD", 1_000_000));
+            when(trade.getOffer().getCounterCurrencyCode()).thenReturn("USD");
+            when(trade.getOffer().getPaymentMethodNameWithCountryCode()).thenReturn("SEPA");
+            when(trade.getOffer().getCombinedExtraInfo()).thenReturn("account note");
+            when(trade.getBuyer().getPaymentAccountPayload()).thenReturn(null);
+            when(trade.getSeller().getPaymentAccountPayload()).thenReturn(null);
+            PendingTradesDataModel dataModel = new PendingTradesDataModel(null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, null);
+            var earlyPayment = PendingTradesDataModel.class.getDeclaredField("showPaymentDetailsEarly");
+            earlyPayment.setAccessible(true);
+            showPaymentDetailsEarly = (ObservableMap<String, Boolean>) earlyPayment.get(dataModel);
+            var list = PendingTradesDataModel.class.getDeclaredField("list");
+            list.setAccessible(true);
+            source = (ObservableList<PendingTradesListItem>) list.get(dataModel);
+            item = new PendingTradesListItem(trade, null, showPaymentDetailsEarly);
+            source.add(item);
+        }
+
+        @AfterEach
+        void tearDown() {
+            GlobalSettings.setLocale(locale);
+        }
+
+        @Test
+        void matchesRolesDirectionsAndExistingFields() {
+            for (boolean maker : List.of(false, true)) {
+                when(trade.isMaker()).thenReturn(maker);
+                for (boolean buyer : List.of(false, true)) {
+                    when(trade.isBuyer()).thenReturn(buyer);
+                    when(trade.isSeller()).thenReturn(!buyer);
+                    assertEquals(maker, item.match("MaKeR"));
+                    assertEquals(!maker, item.match("TaKeR"));
+                    assertEquals(buyer, item.match("buy"));
+                    assertEquals(!buyer, item.match("sell"));
+                }
+            }
+            assertTrue(item.match(""));
+            assertTrue(item.match("trade-123"));
+            assertTrue(item.match("sepa"));
+            assertTrue(item.match("account note"));
+            assertTrue(item.match("usd"));
+            assertFalse(item.match("not a matching field"));
+            when(trade.isArbitrator()).thenReturn(true);
+            assertTrue(item.match("arbitrator"));
+            assertFalse(item.match("maker"));
+            assertFalse(item.match("taker"));
+            assertFalse(item.match("buy"));
+            assertFalse(item.match("sell"));
+        }
+
+        @Test
+        void matchesDirectionWordsInStatusTextToo() {
+            when(trade.isBuyer()).thenReturn(false);
+            when(trade.isSeller()).thenReturn(true);
+            when(trade.isDepositsUnlocked()).thenReturn(true);
+            state.set(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+            assertTrue(item.match("sell"));
+            assertTrue(item.match("buy"));
+            assertTrue(item.match("waiting for buyer"));
+        }
+
+        @Test
+        void matchesLocalizedLabels() {
+            GlobalSettings.setLocale(Locale.GERMAN);
+            when(trade.isMaker()).thenReturn(true);
+            assertTrue(item.match(Res.get("shared.maker")));
+            assertTrue(item.match(Res.get("shared.buy")));
+            assertTrue(item.match(Res.get("portfolio.pending.tradeView.confirming")));
+            assertFalse(item.match("maker"));
+        }
+
+        @Test
+        void refiltersOnRepeatedStateDisputePayoutAndEarlyPaymentChanges() {
+            FilteredList<PendingTradesListItem> filtered = new FilteredList<>(source, row -> row.match("retry"));
+            assertTrue(filtered.isEmpty());
+            state.set(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
+            assertEquals(List.of(item), filtered);
+            state.set(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
+            assertTrue(filtered.isEmpty());
+            state.set(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
+            assertEquals(List.of(item), filtered);
+            filtered.setPredicate(row -> row.match("dispute"));
+            assertTrue(filtered.isEmpty());
+            dispute.set(Trade.DisputeState.DISPUTE_OPENED);
+            assertEquals(List.of(item), filtered);
+            dispute.set(Trade.DisputeState.NO_DISPUTE);
+            assertTrue(filtered.isEmpty());
+            filtered.setPredicate(row -> row.match("completed"));
+            payout.set(Trade.PayoutState.PAYOUT_PUBLISHED);
+            assertEquals(List.of(item), filtered);
+            payout.set(Trade.PayoutState.PAYOUT_UNPUBLISHED);
+            assertTrue(filtered.isEmpty());
+            when(trade.isDepositsUnlocked()).thenReturn(true);
+            state.set(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);
+            filtered.setPredicate(row -> row.match("send payment"));
+            assertTrue(filtered.isEmpty());
+            showPaymentDetailsEarly.put(trade.getId(), true);
+            assertEquals(List.of(item), filtered);
+            showPaymentDetailsEarly.put(trade.getId(), false);
+            assertTrue(filtered.isEmpty());
+            source.clear();
+            showPaymentDetailsEarly.put(trade.getId(), true);
+            assertTrue(filtered.isEmpty());
+        }
     }
 
     @Nested
@@ -1265,7 +1402,9 @@ public class OverlayTest {
                 PendingTradesDataModel dataModel = mock(PendingTradesDataModel.class);
                 var list = PendingTradesDataModel.class.getDeclaredField("list");
                 list.setAccessible(true);
-                list.set(dataModel, FXCollections.observableArrayList(new PendingTradesListItem(trade, null)));
+                PendingTradesListItem item = mock(PendingTradesListItem.class);
+                when(item.getTrade()).thenReturn(trade);
+                list.set(dataModel, FXCollections.observableArrayList(item));
                 PendingTradesViewModel viewModel = mock(PendingTradesViewModel.class);
                 var delegate = WithDataModel.class.getField("dataModel");
                 delegate.setAccessible(true);
