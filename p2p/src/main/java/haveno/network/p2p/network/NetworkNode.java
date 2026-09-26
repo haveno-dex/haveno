@@ -136,9 +136,7 @@ public abstract class NetworkNode implements MessageListener {
 
     public SettableFuture<Connection> sendMessage(@NotNull NodeAddress peersNodeAddress,
             NetworkEnvelope networkEnvelope, Integer timeoutSeconds) {
-        log.debug("Send {} to {}. Message details: {}",
-                networkEnvelope.getClass().getSimpleName(), peersNodeAddress,
-                Utilities.toTruncatedString(networkEnvelope));
+        log.debug("Send {} to {}", networkEnvelope.getClass().getSimpleName(), peersNodeAddress);
 
         checkNotNull(peersNodeAddress, "peerAddress must not be null");
 

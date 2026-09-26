@@ -112,7 +112,7 @@ public class CorePersistenceProtoResolver extends CoreProtoResolver implements P
                     return RemovedPayloadsMap.fromProto(proto.getRemovedPayloadsMap());
                 default:
                     throw new ProtobufferRuntimeException("Unknown proto message case(PB.PersistableEnvelope). " +
-                            "messageCase=" + proto.getMessageCase() + "; proto raw data=" + proto.toString());
+                            "messageCase=" + proto.getMessageCase() + "; size=" + proto.getSerializedSize());
             }
         } else {
             log.error("PersistableEnvelope.fromProto: PB.PersistableEnvelope is null");
