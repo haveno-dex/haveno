@@ -219,7 +219,11 @@ public class Notification extends Overlay<Notification> {
 
     private void updateVisibility() {
         boolean blocked = isDisplayBlocked();
-        if (notificationPane != null) notificationPane.setVisible(!blocked);
+        // keep an already visible card in the dimmed background while dialogs block input
+        if (notificationPane != null) {
+            notificationPane.setDisable(blocked);
+            if (!blocked) notificationPane.setVisible(true);
+        }
         if (blocked) pauseAutoCloseTimer();
         else startAutoCloseTimer();
     }
@@ -267,8 +271,8 @@ public class Notification extends Overlay<Notification> {
             notificationPane.setMinSize(0, 0);
             notificationPane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             notificationPane.setPickOnBounds(false);
-            // defer notifications until all queued popups and other blocking dialogs have closed
-            updateVisibility();
+            // defer new notifications until all queued popups and other blocking dialogs have closed
+            notificationPane.setVisible(!isDisplayBlocked());
             owner.mouseTransparentProperty().addListener(displayBlockedListener);
             PopupManager.hasPendingPopupsProperty().addListener(displayBlockedListener);
             notificationPane.getProperties().put(Notification.class, true);
