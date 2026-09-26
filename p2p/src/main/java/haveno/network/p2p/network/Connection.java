@@ -1019,7 +1019,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     if (banFilter != null &&
                             peersNodeAddressOptional.isPresent() &&
                             banFilter.isPeerBanned(peersNodeAddressOptional.get())) {
-                        String errorMessage = "We got a message from a banned peer. proto=" + Utilities.toTruncatedString(proto);
+                        String errorMessage = "We got a message from a banned peer. messageCase=" + proto.getMessageCase() +
+                                "; size=" + envelopeSize;
                         reportInvalidRequest(RuleViolation.PEER_BANNED, errorMessage);
                         return;
                     }
@@ -1057,14 +1058,14 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     if (networkEnvelope instanceof AddPersistableNetworkPayloadMessage &&
                             !((AddPersistableNetworkPayloadMessage) networkEnvelope).getPersistableNetworkPayload().verifyHashSize()) {
                         String errorMessage = "PersistableNetworkPayload.verifyHashSize failed. hashSize=" +
-                                ((AddPersistableNetworkPayloadMessage) networkEnvelope).getPersistableNetworkPayload().getHash().length + "; object=" +
-                                Utilities.toTruncatedString(proto);
+                                ((AddPersistableNetworkPayloadMessage) networkEnvelope).getPersistableNetworkPayload().getHash().length +
+                                "; messageCase=" + proto.getMessageCase() + "; size=" + size;
                         if (reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, errorMessage))
                             return;
                     }
 
                     if (exceeds) {
-                        String errorMessage = "size > MAX_MSG_SIZE. size=" + size + "; object=" + Utilities.toTruncatedString(proto);
+                        String errorMessage = "size > MAX_MSG_SIZE. size=" + size + "; messageCase=" + proto.getMessageCase();
                         if (reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, errorMessage))
                             return;
                     }
@@ -1073,12 +1074,13 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         return;
 
                     // Check P2P network ID
-                    String errorMessage = "RuleViolation.WRONG_NETWORK_ID. version of message=" + proto.getMessageVersion() +
-                            ", app version=" + Version.getP2PMessageVersion() +
-                            ", proto.toTruncatedString=" + Utilities.toTruncatedString(proto.toString());
-                    if (!proto.getMessageVersion().equals(Version.getP2PMessageVersion())
-                            && reportInvalidRequest(RuleViolation.WRONG_NETWORK_ID, errorMessage)) {
-                        return;
+                    if (!proto.getMessageVersion().equals(Version.getP2PMessageVersion())) {
+                        String errorMessage = "RuleViolation.WRONG_NETWORK_ID. version of message=" + Utilities.toTruncatedString(proto.getMessageVersion()) +
+                                ", app version=" + Version.getP2PMessageVersion() +
+                                ", messageCase=" + proto.getMessageCase() + "; size=" + size;
+                        if (reportInvalidRequest(RuleViolation.WRONG_NETWORK_ID, errorMessage)) {
+                            return;
+                        }
                     }
 
                     boolean causedShutDown = maybeHandleSupportedCapabilitiesMessage(networkEnvelope);

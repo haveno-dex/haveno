@@ -32,6 +32,7 @@ import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import haveno.network.utils.EventThrottler;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
+@ToString(exclude = {"dataSet", "persistableNetworkPayloadSet"})
 @Value
 public final class GetDataResponse extends NetworkEnvelope implements SupportedCapabilitiesMessage,
         ExtendedDataSizePermission, InitialDataResponse {
