@@ -1105,10 +1105,8 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                     // view.
                                     Button button;
                                     if (!buttonByTrade.containsKey(id)) {
-                                        button = FormBuilder.getIconButton(MaterialDesignIcon.COMMENT_MULTIPLE_OUTLINE);
-                                        button.getStyleClass().addAll("trade-row-chat-button", "a11y-focusable");
+                                        button = FormBuilder.getChatIconButton();
                                         buttonByTrade.put(id, button);
-                                        button.setTooltip(new Tooltip(Res.get("tradeChat.openChat")));
                                     } else {
                                         button = buttonByTrade.get(id);
                                     }
@@ -1122,7 +1120,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                                 lookupAll(".badge-pane .label").forEach(Accessibility::mute);
                                             }
                                         };
-                                        badge.getStyleClass().add("trade-row-chat-badge");
+                                        badge.getStyleClass().add("chat-badge");
                                         badgeByTrade.put(id, badge);
                                         badge.setPosition(Pos.TOP_RIGHT);
                                         Tooltip.install(badge, button.getTooltip());

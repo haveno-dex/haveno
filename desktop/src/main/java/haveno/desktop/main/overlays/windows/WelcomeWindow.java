@@ -21,6 +21,7 @@ import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.core.locale.Res;
+import haveno.desktop.components.ChatIcon;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Insets;
@@ -63,7 +64,7 @@ public class WelcomeWindow extends HeroInfoWindow<WelcomeWindow> {
                 Res.get(prefix + ".start.title"),
                 Res.get(prefix + ".start.body")));
         children.add(createSeparator());
-        children.add(createFeatureRow(MaterialDesignIcon.FORUM,
+        children.add(createFeatureRow(new ChatIcon(),
                 ACCENT_PURPLE,
                 Res.get("welcomeWindow.support.title"),
                 Res.get("welcomeWindow.support.body"),

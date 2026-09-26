@@ -37,6 +37,7 @@ import haveno.desktop.components.AutoTooltipTextField;
 import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.BalanceTextField;
 import haveno.desktop.components.BusyAnimation;
+import haveno.desktop.components.ChatIcon;
 import haveno.desktop.components.ExplorerAddressTextField;
 import haveno.desktop.components.ExternalHyperlink;
 import haveno.desktop.components.FundsTextField;
@@ -71,6 +72,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -2490,6 +2492,18 @@ public class FormBuilder {
     public static Label getIconForLabel(FontAwesomeIcon icon, Label label, String fontSize) {
         GlyphsDude.setLabelGlyph(label, icon, fontSize);
         return label;
+    }
+
+    public static Button getChatIconButton() {
+        Button button = new Button("", new ChatIcon());
+        button.setId("icon-button");
+        button.getStyleClass().addAll("chat-icon-button", "a11y-focusable");
+        button.setPrefSize(30, 30);
+        button.setPadding(Insets.EMPTY);
+        String text = Res.get("tradeChat.openChat");
+        button.setTooltip(new Tooltip(text));
+        Accessibility.setName(button, text);
+        return button;
     }
 
     public static Button getIconButton(GlyphIcons icon) {

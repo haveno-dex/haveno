@@ -1158,15 +1158,15 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                     String id = item.getId();
                                     Button button;
                                     if (!chatButtonByDispute.containsKey(id)) {
-                                        button = FormBuilder.getIconButton(MaterialDesignIcon.COMMENT_MULTIPLE_OUTLINE);
+                                        button = FormBuilder.getChatIconButton();
                                         chatButtonByDispute.put(id, button);
-                                        button.setTooltip(new Tooltip(Res.get("tradeChat.openChat")));
                                     } else {
                                         button = chatButtonByDispute.get(id);
                                     }
                                     JFXBadge chatBadge;
                                     if (!chatBadgeByDispute.containsKey(id)) {
                                         chatBadge = new ButtonBadge(button);
+                                        chatBadge.getStyleClass().add("chat-badge");
                                         chatBadgeByDispute.put(id, chatBadge);
                                         chatBadge.setPosition(Pos.TOP_RIGHT);
                                     } else {

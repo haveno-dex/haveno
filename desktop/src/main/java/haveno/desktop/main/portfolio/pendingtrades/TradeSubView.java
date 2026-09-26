@@ -21,12 +21,11 @@ import haveno.core.locale.Res;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade;
 import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.ChatIcon;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeWizardItem;
 import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
-import haveno.desktop.util.GlyphsDude;
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.css.PseudoClass;
@@ -127,8 +126,7 @@ public abstract class TradeSubView extends VBox {
         HBox.setHgrow(text, Priority.ALWAYS);
         chatButton = new AutoTooltipButton(Res.get("portfolio.pending.support.button.getHelp"));
         chatButton.getStyleClass().add("trade-chat-button");
-        chatButton.setGraphic(GlyphsDude.createIcon(MaterialDesignIcon.COMMENT_OUTLINE, "16"));
-        chatButton.getGraphic().getStyleClass().add("trade-chat-icon");
+        chatButton.setGraphic(new ChatIcon());
         chatButton.setGraphicTextGap(10);
         chatButton.setDisable(trade.isArbitrator());
         chatButton.setOnAction(event -> {
@@ -137,7 +135,7 @@ public abstract class TradeSubView extends VBox {
         });
         chatBadge = new Label();
         Accessibility.mute(chatBadge);
-        chatBadge.getStyleClass().add("trade-chat-count");
+        chatBadge.getStyleClass().add("chat-count");
         chatBadge.setMouseTransparent(true);
         chatBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         chatBadge.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
