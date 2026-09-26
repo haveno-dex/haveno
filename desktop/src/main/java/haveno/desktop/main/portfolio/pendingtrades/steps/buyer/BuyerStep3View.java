@@ -20,6 +20,7 @@ package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.core.locale.Res;
 import haveno.core.network.MessageState;
+import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.util.GlyphsDude;
@@ -64,6 +65,16 @@ public class BuyerStep3View extends TradeStepView {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Info
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    protected void addContent() {
+        addInfoBlock();
+        gridPane.add(createAmountPanel(Res.get("portfolio.pending.tradeView.paymentMarkedSent")), 0, ++gridRow, 2, 1);
+        PaymentAccountPayload account = model.dataModel.getSellersPaymentAccountPayload();
+        if (account != null)
+            gridPane.add(createAccountSummary(Res.getWithCol("portfolio.pending.tradeView.paymentDetails"),
+                    account.getPaymentDetailsForTradePopup()), 0, ++gridRow, 2, 1);
+    }
 
     @Override
     protected void addInfoBlock() {
