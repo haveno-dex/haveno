@@ -291,8 +291,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         secondaryNav.getStyleClass().add("nav-secondary");
         secondaryNav.setAlignment(Pos.CENTER_RIGHT);
         secondaryNav.setPickOnBounds(false);
-        HBox.setHgrow(secondaryNav, Priority.ALWAYS);
-        AnchorPane.setLeftAnchor(secondaryNav, 0.0);
         AnchorPane.setRightAnchor(secondaryNav, 0.0);
         AnchorPane.setTopAnchor(secondaryNav, 0.0);
 
@@ -331,6 +329,12 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
                 Class<? extends View> viewClass = viewPath.tip();
                 View view = viewLoader.load(viewClass);
+                if (view instanceof PortfolioView portfolioView)
+                    portfolioView.reserveNavigationWidth(secondaryNav.widthProperty());
+                else if (view instanceof FundsView fundsView)
+                    fundsView.reserveNavigationWidth(secondaryNav.widthProperty());
+                else if (view instanceof SupportView supportView)
+                    supportView.reserveNavigationWidth(secondaryNav.widthProperty());
                 contentContainer.getChildren().setAll(view.getRoot());
 
                 try {

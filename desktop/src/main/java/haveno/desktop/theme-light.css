@@ -56,7 +56,7 @@
     -bs-rd-nav-border: #535353;
     -bs-rd-nav-border-color: rgba(255, 255, 255, 0.31);
     -bs-rd-nav-hover-text: white;
-    -bs-rd-tab-border: #e2e0e0;
+    -bs-rd-tab-border: transparent;
     -bs-tab-content-area: #ffffff;
     -bs-color-gray-background: #f2f2f2;
     -bs-content-pane-bg-top: #f2f2f2;
@@ -182,7 +182,10 @@
     -fx-background-color: -bs-color-gray-3;
 }
 
-.startup-help .separator .line {
+.startup-help .separator .line,
+.portfolio-header-separator .line,
+.funds-header-separator .line,
+.support-header-separator .line {
     -fx-border-color: -bs-rd-separator;
 }
 

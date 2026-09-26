@@ -31,13 +31,30 @@ import haveno.desktop.main.funds.deposit.DepositView;
 import haveno.desktop.main.funds.transactions.TransactionsView;
 import haveno.desktop.main.funds.withdrawal.WithdrawalView;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableNumberValue;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 
 @FxmlView
-public class FundsView extends ActivatableView<TabPane, Void> {
+public class FundsView extends ActivatableView<VBox, Void> {
 
+    @FXML
+    TabPane tabPane;
+    @FXML
+    StackPane headerControls, content;
+    @FXML
+    Region navigationSpacer;
+    @FXML
+    Separator headerSeparator;
     @FXML
     Tab depositTab, withdrawalTab, transactionsTab;
 
@@ -56,10 +73,31 @@ public class FundsView extends ActivatableView<TabPane, Void> {
 
     @Override
     public void initialize() {
-        Accessibility.fixTabs(root);
+        Accessibility.fixTabs(tabPane);
         depositTab.setText(Res.get("funds.tab.deposit"));
         withdrawalTab.setText(Res.get("funds.tab.withdrawal"));
         transactionsTab.setText(Res.get("funds.tab.transactions"));
+
+        // preserve the tab content's clipping when a view exceeds the available space
+        Rectangle contentClip = new Rectangle();
+        contentClip.widthProperty().bind(content.widthProperty());
+        contentClip.heightProperty().bind(content.heightProperty());
+        content.setClip(contentClip);
+        // retain tab shortcuts from controls hosted outside the tab pane
+        EventHandler<KeyEvent> tabNavigationHandler = event -> {
+            if (event.isControlDown() && !event.isAltDown() && !event.isMetaDown() &&
+                    (event.getCode() == KeyCode.TAB || (!event.isShiftDown() &&
+                            (event.getCode() == KeyCode.PAGE_UP || event.getCode() == KeyCode.PAGE_DOWN)))) {
+                tabPane.fireEvent(event.copyFor(tabPane, tabPane));
+                event.consume();
+            }
+        };
+        content.addEventHandler(KeyEvent.KEY_PRESSED, tabNavigationHandler);
+        headerControls.addEventHandler(KeyEvent.KEY_PRESSED, tabNavigationHandler);
+        headerControls.setVisible(false);
+        headerControls.managedProperty().bind(headerControls.visibleProperty());
+        headerSeparator.visibleProperty().bind(headerControls.visibleProperty());
+        headerSeparator.managedProperty().bind(headerControls.visibleProperty());
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(FundsView.class) == 1)
@@ -67,6 +105,9 @@ public class FundsView extends ActivatableView<TabPane, Void> {
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {
+            // navigation has already loaded the tab before selecting it
+            if (newValue == currentTab) return;
+
             if (newValue == depositTab)
                 navigation.navigateTo(MainView.class, FundsView.class, DepositView.class);
             else if (newValue == withdrawalTab)
@@ -76,22 +117,26 @@ public class FundsView extends ActivatableView<TabPane, Void> {
         };
     }
 
+    public void reserveNavigationWidth(ObservableNumberValue width) {
+        navigationSpacer.prefWidthProperty().bind(width);
+    }
+
     @Override
     protected void activate() {
-        root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
+        tabPane.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
         navigation.addListener(navigationListener);
 
-        if (root.getSelectionModel().getSelectedItem() == depositTab)
+        if (tabPane.getSelectionModel().getSelectedItem() == depositTab)
             navigation.navigateTo(MainView.class, FundsView.class, DepositView.class);
-        else if (root.getSelectionModel().getSelectedItem() == withdrawalTab)
+        else if (tabPane.getSelectionModel().getSelectedItem() == withdrawalTab)
             navigation.navigateTo(MainView.class, FundsView.class, WithdrawalView.class);
-        else if (root.getSelectionModel().getSelectedItem() == transactionsTab)
+        else if (tabPane.getSelectionModel().getSelectedItem() == transactionsTab)
             navigation.navigateTo(MainView.class, FundsView.class, TransactionsView.class);
     }
 
     @Override
     protected void deactivate() {
-        root.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
+        tabPane.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
         navigation.removeListener(navigationListener);
         currentTab = null;
     }
@@ -99,7 +144,7 @@ public class FundsView extends ActivatableView<TabPane, Void> {
     private void loadView(Class<? extends View> viewClass) {
         // we want to get activate/deactivate called, so we remove the old view on tab change
         if (currentTab != null)
-            currentTab.setContent(null);
+            content.getChildren().clear();
 
         View view = viewLoader.load(viewClass);
 
@@ -110,8 +155,13 @@ public class FundsView extends ActivatableView<TabPane, Void> {
         else if (view instanceof TransactionsView)
             currentTab = transactionsTab;
 
-        currentTab.setContent(view.getRoot());
-        root.getSelectionModel().select(currentTab);
+        Region controls = view instanceof TransactionsView transactionsView ? transactionsView.getHeaderControls() : null;
+        if (controls == null) headerControls.getChildren().clear();
+        else if (!headerControls.getChildren().contains(controls)) headerControls.getChildren().setAll(controls);
+        headerControls.setVisible(controls != null);
+
+        if (!content.getChildren().contains(view.getRoot())) content.getChildren().setAll(view.getRoot());
+        tabPane.getSelectionModel().select(currentTab);
     }
 }
 

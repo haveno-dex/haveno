@@ -18,15 +18,26 @@
   -->
 
 <?import com.jfoenix.controls.JFXTabPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.layout.AnchorPane?>
-<JFXTabPane fx:id="root" fx:controller="haveno.desktop.main.portfolio.PortfolioView"
-            AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-            AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"
-            xmlns:fx="http://javafx.com/fxml">
-
-    <Tab fx:id="openOffersTab" closable="false"/>
-    <Tab fx:id="pendingTradesTab" closable="false"/>
-    <Tab fx:id="closedTradesTab" closable="false"/>
-
-</JFXTabPane>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<VBox fx:id="root" fx:controller="haveno.desktop.main.portfolio.PortfolioView"
+      AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+      AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"
+      xmlns:fx="http://javafx.com/fxml">
+    <HBox alignment="CENTER" styleClass="portfolio-header">
+        <JFXTabPane fx:id="tabPane" minWidth="0" minHeight="-Infinity" maxHeight="-Infinity" HBox.hgrow="ALWAYS">
+            <Tab fx:id="openOffersTab" closable="false"/>
+            <Tab fx:id="pendingTradesTab" closable="false"/>
+            <Tab fx:id="closedTradesTab" closable="false"/>
+        </JFXTabPane>
+        <StackPane fx:id="headerControls" maxHeight="-Infinity" styleClass="portfolio-header-controls"/>
+        <Separator fx:id="headerSeparator" orientation="VERTICAL" maxHeight="20" styleClass="portfolio-header-separator"/>
+        <Region fx:id="navigationSpacer" minWidth="-Infinity" maxWidth="-Infinity"/>
+    </HBox>
+    <StackPane fx:id="content" VBox.vgrow="ALWAYS" minHeight="0" styleClass="portfolio-content"/>
+</VBox>

@@ -18,9 +18,21 @@
   -->
 
 <?import com.jfoenix.controls.JFXTabPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.AnchorPane?>
-<JFXTabPane fx:id="root" fx:controller="haveno.desktop.main.support.SupportView"
-            AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-            AnchorPane.topAnchor="0.0"
-            xmlns:fx="http://javafx.com/fxml">
-</JFXTabPane>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<VBox fx:id="root" fx:controller="haveno.desktop.main.support.SupportView"
+      AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+      AnchorPane.topAnchor="0.0" xmlns:fx="http://javafx.com/fxml">
+    <HBox alignment="CENTER" styleClass="support-header">
+        <!-- tabs keep their full width so the header controls narrow instead of the tabs scrolling -->
+        <JFXTabPane fx:id="tabPane" minWidth="-Infinity" minHeight="-Infinity" maxHeight="-Infinity" HBox.hgrow="ALWAYS"/>
+        <StackPane fx:id="headerControls" maxHeight="-Infinity" styleClass="support-header-controls"/>
+        <Separator fx:id="headerSeparator" orientation="VERTICAL" maxHeight="20" styleClass="support-header-separator"/>
+        <Region fx:id="navigationSpacer" minWidth="-Infinity" maxWidth="-Infinity"/>
+    </HBox>
+    <StackPane fx:id="content" VBox.vgrow="ALWAYS" minHeight="0" styleClass="support-content"/>
+</VBox>

@@ -15,21 +15,6 @@
  * along with Haveno. If not, see <http://www.gnu.org/licenses/>.
  */
 
-.pending-trades-toolbar {
-    -fx-padding: 0 0 2 0;
-}
-.pending-trades-toolbar .pending-trades-title {
-    -fx-font-size: 18px;
-    -fx-text-fill: -bs-text-color;
-}
-.pending-trades-toolbar .pending-trades-count {
-    -fx-font-size: 12px;
-    -fx-text-fill: -bs-color-gray-6;
-    -fx-border-color: -bs-color-gray-1;
-    -fx-border-radius: 4;
-    -fx-padding: 3 8;
-}
-
 .table-view .table-row-cell .table-cell .label.trade-direction-badge {
     -fx-font-size: 11px;
     -fx-font-weight: bold;
