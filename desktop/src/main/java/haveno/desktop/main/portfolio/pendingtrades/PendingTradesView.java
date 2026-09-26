@@ -221,7 +221,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         setChatColumnCellFactory();
         setRemoveTradeColumnCellFactory();
 
-        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         tableView.setPlaceholder(new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.openTrades"))));
         tableView.setFixedCellSize(TABLE_ROW_HEIGHT);
         GUIUtil.applyTableHorizontalScroll(tableScrollPane, tableView);
