@@ -1769,6 +1769,62 @@ tree-table-view:focused {
     -fx-background-color: transparent;
 }
 
+.chat-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -bs-color-gray-6;
+    -fx-stroke-width: 1.35;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+.chat-badge:hover .chat-icon,
+.chat-icon-button:hover .chat-icon,
+.chat-icon-button:focus-visible .chat-icon {
+    -fx-stroke: -fx-accent;
+}
+
+.chat-badge .badge-pane,
+.chat-count {
+    -fx-background-color: -bs-red;
+    -fx-background-radius: 999;
+    -fx-min-width: 16;
+    -fx-pref-width: -1;
+    -fx-min-height: 16;
+    -fx-pref-height: 16;
+    -fx-max-height: 16;
+    -fx-padding: 0 3;
+    -fx-alignment: center;
+}
+.table-view .table-row-cell .table-cell .chat-badge .badge-pane .label,
+.chat-count {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -bs-white;
+}
+.chat-badge .badge-pane {
+    -fx-min-width: 13;
+    -fx-min-height: 13;
+    -fx-pref-height: 13;
+    -fx-max-height: 13;
+    -fx-padding: 0 2;
+    -fx-border-color: -bs-color-background-row-even;
+    -fx-border-width: 1;
+    -fx-border-insets: -1;
+    -fx-border-radius: 999;
+}
+.chat-badge > Group {
+    -fx-translate-x: 7;
+    -fx-translate-y: -3;
+}
+.table-row-cell:odd .chat-badge .badge-pane {
+    -fx-border-color: -bs-color-background-row-odd;
+}
+.table-row-cell:filled:hover .chat-badge .badge-pane {
+    -fx-border-color: -bs-color-background-row-hover;
+}
+.table-row-cell:filled:selected .chat-badge .badge-pane {
+    -fx-border-color: -fx-selection-bar;
+}
+
 .copy-icon-disputes {
     -fx-text-fill: -bs-background-color;
 }
@@ -3746,6 +3802,10 @@ textfield */
 
 .hero-feature-icon {
     -fx-fill: -hero-accent;
+}
+
+.hero-feature-icon-box .chat-icon {
+    -fx-stroke: -hero-accent;
 }
 
 .hero-feature-title {

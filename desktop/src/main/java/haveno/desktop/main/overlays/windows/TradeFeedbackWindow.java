@@ -19,6 +19,7 @@ package haveno.desktop.main.overlays.windows;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
+import haveno.desktop.components.ChatIcon;
 
 /**
  * Shown after completing a trade, with history guidance, feedback and
@@ -48,7 +49,7 @@ public class TradeFeedbackWindow extends HeroInfoWindow<TradeFeedbackWindow> {
                         Res.get("tradeFeedbackWindow.feedback.title"),
                         Res.get("tradeFeedbackWindow.feedback.body")),
                 createSeparator(),
-                createFeatureRow(MaterialDesignIcon.FORUM,
+                createFeatureRow(new ChatIcon(),
                         ACCENT_PURPLE,
                         Res.get("tradeFeedbackWindow.support.title"),
                         Res.get("tradeFeedbackWindow.support.body"),

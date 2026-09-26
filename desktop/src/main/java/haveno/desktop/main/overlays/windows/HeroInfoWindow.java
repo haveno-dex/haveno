@@ -141,10 +141,24 @@ public abstract class HeroInfoWindow<T extends HeroInfoWindow<T>> extends Overla
                                     String bodyText,
                                     @Nullable String linkText,
                                     @Nullable String linkUrl) {
+        return createFeatureRow(createIcon(icon, "1.65em", "hero-feature-icon"),
+                accentClass, titleText, bodyText, linkText, linkUrl);
+    }
+
+    protected HBox createFeatureRow(Node icon, String accentClass, String titleText, String bodyText) {
+        return createFeatureRow(icon, accentClass, titleText, bodyText, null, null);
+    }
+
+    protected HBox createFeatureRow(Node icon,
+                                    String accentClass,
+                                    String titleText,
+                                    String bodyText,
+                                    @Nullable String linkText,
+                                    @Nullable String linkUrl) {
         double textWidth = width - WINDOW_HORIZONTAL_PADDING - FEATURE_HORIZONTAL_PADDING
                 - FEATURE_ICON_BOX_WIDTH - FEATURE_TEXT_GAP;
 
-        StackPane iconBox = new StackPane(createIcon(icon, "1.65em", "hero-feature-icon"));
+        StackPane iconBox = new StackPane(icon);
         iconBox.getStyleClass().addAll("hero-feature-icon-box", accentClass);
 
         Label title = new Label(titleText);

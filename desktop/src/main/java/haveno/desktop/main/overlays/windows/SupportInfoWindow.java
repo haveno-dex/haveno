@@ -19,6 +19,7 @@ package haveno.desktop.main.overlays.windows;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.core.locale.Res;
+import haveno.desktop.components.ChatIcon;
 
 /**
  * First-visit support window: a header with icon, then rows explaining how
@@ -38,7 +39,7 @@ public class SupportInfoWindow extends HeroInfoWindow<SupportInfoWindow> {
                 createHeader(MaterialDesignIcon.SHIELD_HALF_FULL,
                         Res.get("supportInfoWindow.title"),
                         Res.get("supportInfoWindow.subtitle")),
-                createFeatureRow(MaterialDesignIcon.FORUM,
+                createFeatureRow(new ChatIcon(),
                         ACCENT_PURPLE,
                         Res.get("supportInfoWindow.chat.title"),
                         Res.get("supportInfoWindow.chat.body")),

@@ -31,6 +31,7 @@ public class ButtonBadge extends JFXBadge {
         this.button = button;
         getStyleClass().add("button-badge");
         setCursor(Cursor.HAND);
+        setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
     }
 
     @Override
