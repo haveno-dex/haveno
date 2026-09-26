@@ -2244,8 +2244,8 @@ textfield */
     -fx-border-width: 0px;
 }
 
-.table-view.large-rows .table-row-cell {
-    -fx-cell-size: 47px;
+.table-view.large-rows {
+    -fx-fixed-cell-size: 40px;
 }
 
 .table-view.offer-table {

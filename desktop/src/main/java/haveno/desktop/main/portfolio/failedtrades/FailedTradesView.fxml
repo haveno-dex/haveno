@@ -38,7 +38,7 @@
     <fx:define>
         <FilterBox fx:id="filterBox" minWidth="160" prefWidth="220" maxWidth="220"/>
     </fx:define>
-    <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
+    <TableView fx:id="tableView" styleClass="large-rows" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="tradeIdColumn" minWidth="120" maxWidth="120"/>
             <TableColumn fx:id="dateColumn" minWidth="180"/>
