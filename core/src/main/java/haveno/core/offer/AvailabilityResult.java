@@ -22,7 +22,7 @@ public enum AvailabilityResult {
     AVAILABLE("offer available"),
     OFFER_TAKEN("offer taken"),
     PRICE_OUT_OF_TOLERANCE("cannot take offer because taker's price is outside tolerance"),
-    MARKET_PRICE_NOT_AVAILABLE("cannot take offer because market price for calculating trade price is unavailable"),
+    MARKET_PRICE_NOT_AVAILABLE("cannot take offer because the market price is unavailable or the calculated price is too small to represent"),
     @SuppressWarnings("unused") NO_ARBITRATORS("cannot take offer because no arbitrators are available"),
     NO_MEDIATORS("cannot take offer because no mediators are available"),
     USER_IGNORED("cannot take offer because user is ignored"),

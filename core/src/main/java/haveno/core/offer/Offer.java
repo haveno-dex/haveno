@@ -74,6 +74,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
     public static final String TRADE_PRICE_OUT_OF_TOLERANCE_MSG = "Trade price is too far away from our calculated offer price based on the market price.";
     public static final String MARKET_PRICE_NOT_AVAILABLE_MSG = "Market price required for calculating trade price is not available.";
+    // Avoid "available", which the API would parse as a successful availability result.
+    public static final String PRICE_NOT_AVAILABLE_MSG = "The offer price cannot be calculated: the market price is missing or stale, or the calculated price is too small to represent.";
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
@@ -204,6 +206,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
                         CryptoMoney.SMALLEST_UNIT_EXPONENT;
                 double scaled = MathUtils.scaleUpByPowerOf10(targetPriceAsDouble, precision);
                 final long roundedToLong = MathUtils.roundDoubleToLong(scaled);
+                if (roundedToLong <= 0) return null;
                 return Price.valueOf(counterCurrencyCode, roundedToLong);
             } catch (Exception e) {
                 log.error("Exception at getPrice / parseToFiat: " + e + "\n" +
@@ -241,7 +244,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
 
         Price offerPrice = getPrice();
         if (offerPrice == null)
-            throw new MarketPriceNotAvailableException(MARKET_PRICE_NOT_AVAILABLE_MSG);
+            throw new MarketPriceNotAvailableException(MARKET_PRICE_NOT_AVAILABLE_MSG + " The calculated price may instead be too small to represent.");
 
         double relation = (double) price / (double) offerPrice.getValue();
         double deviation = Math.abs(1 - relation);

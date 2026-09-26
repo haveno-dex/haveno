@@ -1925,8 +1925,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
             // verify market price margin
             double marketPriceMarginPct = request.getOfferPayload().getMarketPriceMarginPct();
-            if (marketPriceMarginPct <= -1 || marketPriceMarginPct >= 1) {
-                errorMessage = "Market price margin must be greater than -100% and less than 100% but was " + (marketPriceMarginPct * 100) + "%";
+            if (!OfferRestrictions.isValidMarketPriceMargin(offer.getDirection(), marketPriceMarginPct)) {
+                errorMessage = "Market price margin must be within 100% and keep the price positive but was " + (marketPriceMarginPct * 100) + "%";
                 log.warn(errorMessage);
                 sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, errorMessage);
                 return;

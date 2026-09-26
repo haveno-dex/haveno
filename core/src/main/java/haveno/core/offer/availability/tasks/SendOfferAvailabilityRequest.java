@@ -64,7 +64,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
 
             // get price
             Price price = offer.getPrice();
-            if (price == null) throw new RuntimeException("Could not get price for offer");
+            if (price == null) throw new RuntimeException(Offer.PRICE_NOT_AVAILABLE_MSG);
 
             // send InitTradeRequest to maker to sign
             InitTradeRequest tradeRequest = new InitTradeRequest(

@@ -352,7 +352,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
                 try {
                     if (!newValue.isEmpty() && !newValue.equals("-")) {
                         double percentage = ParsingUtils.parsePercentStringToDouble(newValue);
-                        if (percentage >= 1 || percentage <= -1) {
+                        if (!OfferRestrictions.isValidMarketPriceMargin(dataModel.getDirection(), percentage)) {
                             marketPriceMarginValidationResult.set(new InputValidator.ValidationResult(false,
                                     Res.get("popup.warning.tooLargePercentageValue")));
                         } else {
@@ -1032,6 +1032,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public boolean isPriceInRange() {
+        if (!marketPriceMarginValidationResult.get().isValid) return false;
         if (marketPriceMargin.get() != null && !marketPriceMargin.get().isEmpty()) {
             if (Math.abs(ParsingUtils.parsePercentStringToDouble(marketPriceMargin.get())) > preferences.getMaxPriceDistanceInPercent()) {
                 displayPriceOutOfRangePopup();
