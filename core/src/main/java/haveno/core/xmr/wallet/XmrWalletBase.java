@@ -1,5 +1,6 @@
 package haveno.core.xmr.wallet;
 
+import java.net.URI;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -49,7 +50,7 @@ public abstract class XmrWalletBase {
     private static final long WALLET_RESTART_BACKOFF_MS = 900000; // minimum time between disconnection restarts
 
     // inherited
-    protected MoneroWallet wallet;
+    protected volatile MoneroWallet wallet;
     @Getter
     protected final Object walletLock = new Object();
     private final Object resetSyncProgressTimeoutLock = new Object();
@@ -91,6 +92,16 @@ public abstract class XmrWalletBase {
 
     public XmrWalletBase() {
         this.xmrConnectionService = HavenoUtils.xmrConnectionService;
+    }
+
+    protected static String getWalletLogInfo(MoneroWallet wallet, String walletName) {
+        String info = "wallet=" + walletName;
+        if (wallet instanceof MoneroWalletRpc) {
+            MoneroWalletRpc rpc = (MoneroWalletRpc) wallet;
+            info += ", port=" + URI.create(rpc.getRpcConnection().getUri()).getPort()
+                    + ", pid=" + (rpc.getProcess() == null ? null : rpc.getProcess().pid());
+        }
+        return info;
     }
 
     public MoneroSyncResult sync() {
