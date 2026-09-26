@@ -68,6 +68,7 @@ import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.network.p2p.P2PService;
+import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
@@ -1013,7 +1014,23 @@ public class GUIUtil {
         double y = Math.round(rootSceneWindow.getY() + rootScene.getY() + (rootScene.getHeight() - height) / 2);
         stage.setX(Math.max(screenBounds.getMinX(), Math.min(x, screenBounds.getMaxX() - width)));
         stage.setY(Math.max(screenBounds.getMinY(), Math.min(y, screenBounds.getMaxY() - height)));
+        // let the chat render before revealing the native window
+        stage.setOpacity(0);
         stage.show();
+        new AnimationTimer() {
+            private int pulses;
+
+            @Override
+            public void handle(long now) {
+                if (!stage.isShowing()) {
+                    stop();
+                    return;
+                }
+                if (++pulses < 3) return;
+                stop();
+                stage.setOpacity(1);
+            }
+        }.start();
         if (!linux) return;
 
         PauseTransition settleDelay = new PauseTransition(Duration.millis(300));
