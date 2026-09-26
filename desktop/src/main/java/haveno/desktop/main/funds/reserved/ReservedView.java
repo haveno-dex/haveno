@@ -20,7 +20,6 @@ package haveno.desktop.main.funds.reserved;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import java.util.function.Function;
-import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
@@ -293,7 +292,8 @@ public class ReservedView extends ActivatableView<VBox, Void> {
                         if (item != null && !empty) {
                             Optional<Tradable> tradableOptional = getTradable(item);
                             if (tradableOptional.isPresent()) {
-                                field = new HyperlinkWithIcon(item.getDetails(), FontAwesomeIcon.INFO_CIRCLE);
+                                field = new HyperlinkWithIcon(item.getDetails());
+                                field.hideIcon();
                                 field.setOnAction(event -> openDetailPopup(item));
                                 field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                 setGraphic(field);

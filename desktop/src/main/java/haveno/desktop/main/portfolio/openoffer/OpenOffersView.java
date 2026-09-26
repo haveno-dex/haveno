@@ -557,11 +557,11 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
                                     hyperlinkWithIcon = new HyperlinkWithIcon(item.getOffer().getShortId());
+                                    hyperlinkWithIcon.hideIcon();
                                     Accessibility.setName(hyperlinkWithIcon, Accessibility.spellOut(item.getOffer().getShortId()));
                                     if (model.isDeactivated(item)) {
                                         // getStyleClass().add("offer-disabled"); does not work with hyperlinkWithIcon;-(
                                         hyperlinkWithIcon.setStyle("-fx-text-fill: -bs-color-gray-3;");
-                                        hyperlinkWithIcon.getIcon().setOpacity(0.2);
                                     }
                                     hyperlinkWithIcon.setOnAction(event -> {
                                         offerDetailsWindow.show(item.getOffer());

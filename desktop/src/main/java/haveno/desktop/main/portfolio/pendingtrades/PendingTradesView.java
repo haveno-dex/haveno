@@ -814,7 +814,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                                     }
                                 } else {
                                     field = new HyperlinkWithIcon(trade.getShortId());
-                                    ((Label) field.getIcon()).setMinWidth(Label.USE_PREF_SIZE);
+                                    field.hideIcon();
                                     field.setOnAction(event -> tradeDetailsWindow.show(trade));
                                     field.setTooltip(new Tooltip(Res.get("tooltip.openPopupForDetails")));
                                 }
