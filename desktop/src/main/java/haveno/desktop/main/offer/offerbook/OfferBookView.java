@@ -256,6 +256,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         root.getChildren().add(offerToolsBox);
 
         tableView = new TableView<>();
+        tableView.getStyleClass().add("large-rows");
         GUIUtil.applyTableStyle(tableView);
 
         GridPane.setRowIndex(tableView, ++gridRow);

@@ -61,6 +61,7 @@ import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
+import java.text.DateFormat;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -111,7 +112,7 @@ import org.fxmisc.easybind.Subscription;
 
 @FxmlView
 public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTradesViewModel> {
-    private static final double TABLE_ROW_HEIGHT = 36;
+    private static final double TABLE_ROW_HEIGHT = 40;
     private static final int MAX_VISIBLE_ROWS = 4;
 
     public interface ChatCallback {
@@ -859,7 +860,9 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                             public void updateItem(final PendingTradesListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
-                                    setGraphic(new AutoTooltipLabel(DisplayUtils.formatDateTime(item.getTrade().getDate())));
+                                    setGraphic(new AutoTooltipLabel(FormattingUtils.formatDateTime(item.getTrade().getDate(),
+                                            DateFormat.getDateInstance(DateFormat.DEFAULT, GlobalSettings.getLocale()),
+                                            DateFormat.getTimeInstance(DateFormat.SHORT, GlobalSettings.getLocale()))));
                                 } else {
                                     setGraphic(null);
                                 }
