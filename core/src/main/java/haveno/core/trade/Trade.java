@@ -451,7 +451,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     @Setter
     private byte[] contractHash;
     @Nullable
-    private String errorMessage;
+    private volatile String errorMessage;
     @Getter
     @Setter
     @Nullable
@@ -2598,7 +2598,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
-        errorMessageProperty.set(errorMessage);
+        UserThread.execute(() -> errorMessageProperty.set(errorMessage));
     }
 
     public void prependErrorMessage(String errorMessage) {
@@ -2610,7 +2610,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         }
         String appendedErrorMessage = sb.toString();
         this.errorMessage = appendedErrorMessage;
-        errorMessageProperty.set(appendedErrorMessage);
+        UserThread.execute(() -> errorMessageProperty.set(appendedErrorMessage));
     }
 
 
@@ -2871,7 +2871,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     public boolean hasFailed() {
-        return errorMessageProperty().get() != null;
+        return errorMessage != null;
     }
 
     public boolean isInPreparation() {
@@ -3182,7 +3182,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     @Nullable
     public String getErrorMessage() {
-        return errorMessageProperty.get();
+        return errorMessage;
     }
 
     public boolean isTxChainInvalid() {

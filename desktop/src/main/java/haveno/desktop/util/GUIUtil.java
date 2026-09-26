@@ -1570,6 +1570,11 @@ public class GUIUtil {
         else if (!apply && applied) column.getStyleClass().remove(styleClass);
     }
 
+    public static void setFixedColumnWidth(TableColumn<?, ?> column, double width) {
+        column.getProperties().put(EDGE_COLUMN_BASE_WIDTH, width);
+        updateEdgeColumnWidth(column);
+    }
+
     // fixed-width edge columns widen by the css padding so their content area is unchanged
     private static void updateEdgeColumnWidth(TableColumn<?, ?> column) {
         int pads = (column.getStyleClass().contains("first-column") ? 1 : 0) +

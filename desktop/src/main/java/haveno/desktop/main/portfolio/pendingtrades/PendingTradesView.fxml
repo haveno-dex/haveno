@@ -37,14 +37,14 @@
                 focusTraversable="false" styleClass="table-scroll-pane" VBox.vgrow="SOMETIMES">
         <TableView fx:id="tableView" styleClass="clickable-rows">
             <columns>
-                <TableColumn fx:id="tradeIdColumn" minWidth="145" maxWidth="145"/>
-                <TableColumn fx:id="dateColumn" minWidth="150"/>
+                <TableColumn fx:id="tradeIdColumn"/>
+                <TableColumn fx:id="dateColumn" minWidth="140"/>
                 <TableColumn fx:id="marketColumn" minWidth="75" maxWidth="130"/>
-                <TableColumn fx:id="priceColumn" minWidth="90"/>
-                <TableColumn fx:id="amountColumn" minWidth="110"/>
-                <TableColumn fx:id="volumeColumn" minWidth="120"/>
-                <TableColumn fx:id="paymentMethodColumn" minWidth="125" maxWidth="260"/>
-                <TableColumn fx:id="roleColumn" minWidth="100"/>
+                <TableColumn fx:id="priceColumn" minWidth="80"/>
+                <TableColumn fx:id="amountColumn" minWidth="105"/>
+                <TableColumn fx:id="volumeColumn" minWidth="110"/>
+                <TableColumn fx:id="paymentMethodColumn" minWidth="115" maxWidth="260"/>
+                <TableColumn fx:id="roleColumn" minWidth="90"/>
                 <TableColumn fx:id="statusColumn" minWidth="130"/>
                 <TableColumn fx:id="avatarColumn" minWidth="40" maxWidth="40"/>
                 <TableColumn fx:id="chatColumn" minWidth="50" maxWidth="50"/>
