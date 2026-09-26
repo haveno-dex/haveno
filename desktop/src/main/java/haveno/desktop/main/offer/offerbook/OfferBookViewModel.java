@@ -550,15 +550,10 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         String result = "";
         if (item != null) {
             Offer offer = item.getOffer();
-            String method = Res.get(offer.getPaymentMethod().getId() + "_SHORT");
-            String methodCountryCode = offer.getCountryCode();
             if (isF2F(offer)) {
-                result = method + " (" + methodCountryCode + ", " + offer.getF2FCity() + ")";
+                result = offer.getPaymentMethod().getShortName() + " (" + offer.getCountryCode() + ", " + offer.getF2FCity() + ")";
             } else {
-                if (methodCountryCode != null)
-                    result = method + " (" + methodCountryCode + ")";
-                else
-                    result = method;
+                result = offer.getPaymentMethodNameWithCountryCode();
             }
 
         }
