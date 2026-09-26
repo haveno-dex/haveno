@@ -1,5 +1,5 @@
 # See docs/installing.md and `make help`
-SHELL := /bin/bash
+SHELL := env bash
 GRADLE := ./gradlew
 # Skip slow checks for dev-iteration targets
 SKIP_CHECKS := -x test -x checkstyleMain -x checkstyleTest
