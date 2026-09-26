@@ -19,8 +19,10 @@ package haveno.desktop.main.presentation;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.provider.price.MarketPrice;
@@ -39,6 +41,8 @@ import java.util.stream.Stream;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -67,6 +71,8 @@ public class MarketPricePresentation {
     private final BooleanProperty isPriceAvailable = new SimpleBooleanProperty(false);
     private final IntegerProperty marketPriceUpdated = new SimpleIntegerProperty(0);
     private final StringProperty marketPrice = new SimpleStringProperty(Res.get("shared.na"));
+    private final ReadOnlyObjectWrapper<MarketPrice> balancePrice = new ReadOnlyObjectWrapper<>();
+    private Timer balancePriceExpiryTimer;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +131,12 @@ public class MarketPricePresentation {
         priceFeedService.currencyCodeProperty().addListener((observable, oldValue, newValue) ->
                 UserThread.execute(this::updateSelectedPriceFeedComboBoxItem));
         priceFeedService.updateCounterProperty().addListener((observable, oldValue, newValue) ->
-                UserThread.execute(this::setMarketPriceInItems));
+                UserThread.execute(() -> {
+                    setMarketPriceInItems();
+                    updateBalancePrice();
+                }));
+        GlobalSettings.defaultTradeCurrencyProperty().addListener((observable, oldValue, newValue) ->
+                UserThread.execute(this::updateBalancePrice));
 
         preferences.getTradeCurrenciesAsObservable().addListener((ListChangeListener<TradeCurrency>) c -> UserThread.runAfter(() -> {
             fillPriceFeedComboBoxItems();
@@ -133,8 +144,32 @@ public class MarketPricePresentation {
         }, 100, TimeUnit.MILLISECONDS));
 
         updateSelectedPriceFeedComboBoxItem();
+        updateBalancePrice();
         priceFeedService.startRequestingPrices(price -> marketPrice.set(FormattingUtils.formatMarketPrice(price, priceFeedService.getCurrencyCode())),
                 (errorMessage, throwable) -> marketPrice.set(Res.get("shared.na")));
+    }
+
+    // balance estimates follow the preferred currency independently of the selected market
+    private void updateBalancePrice() {
+        if (balancePriceExpiryTimer != null) {
+            balancePriceExpiryTimer.stop();
+            balancePriceExpiryTimer = null;
+        }
+        TradeCurrency currency = preferences.getPreferredTradeCurrency();
+        MarketPrice price = currency == null ? null : priceFeedService.getMarketPrice(currency.getCode());
+        if (price == null || !price.isRecentExternalPriceAvailable() || !Double.isFinite(price.getPrice())) {
+            balancePrice.set(null);
+            return;
+        }
+        balancePrice.set(price);
+
+        // expire the estimate even when the feed stops delivering updates
+        long remainingMs = MarketPrice.MARKET_PRICE_MAX_AGE_MS - (System.currentTimeMillis() - price.getTimestampMs());
+        balancePriceExpiryTimer = UserThread.runAfter(this::updateBalancePrice, Math.max(1, remainingMs), TimeUnit.MILLISECONDS);
+    }
+
+    public ReadOnlyObjectProperty<MarketPrice> balancePriceProperty() {
+        return balancePrice.getReadOnlyProperty();
     }
 
     private void updateSelectedPriceFeedComboBoxItem() {
@@ -195,7 +230,7 @@ public class MarketPricePresentation {
     private void setMarketPriceInItem(PriceFeedComboBoxItem item) {
         String currencyCode = item.currencyCode;
         MarketPrice marketPrice = priceFeedService.getMarketPrice(currencyCode);
-        boolean priceAvailable = marketPrice != null && marketPrice.isPriceAvailable();
+        boolean priceAvailable = marketPrice != null && marketPrice.isPriceAvailable() && Double.isFinite(marketPrice.getPrice());
         item.setPriceAvailable(priceAvailable);
         item.setExternallyProvidedPrice(priceAvailable && marketPrice.isExternallyProvidedPrice());
         String priceString = priceAvailable ? FormattingUtils.formatMarketPrice(marketPrice.getPrice(), currencyCode) : Res.get("shared.na");
@@ -227,16 +262,6 @@ public class MarketPricePresentation {
     }
 
     public StringProperty getMarketPrice() {
-        return marketPrice;
-    }
-
-    public StringProperty getMarketPrice(String currencyCode) {
-        SimpleStringProperty marketPrice = new SimpleStringProperty(Res.get("shared.na"));
-        MarketPrice marketPriceValue = priceFeedService.getMarketPrice(currencyCode);
-        // Market price might not be available yet:
-        if (marketPriceValue != null) {
-            marketPrice.set(String.valueOf(marketPriceValue.getPrice()));
-        }
         return marketPrice;
     }
 }

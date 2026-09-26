@@ -43,12 +43,8 @@ import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple2;
-import haveno.core.locale.CurrencyUtil;
-import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
-import haveno.core.locale.TradeCurrency;
 import haveno.core.provider.price.MarketPrice;
-import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.util.validation.NumberValidator;
@@ -71,13 +67,13 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.funds.FundsView;
 import haveno.desktop.main.funds.transactions.TransactionsView;
 import haveno.desktop.main.overlays.windows.QRCodeWindow;
+import haveno.desktop.main.presentation.MarketPricePresentation;
 import haveno.desktop.util.Accessibility;
+import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.GlyphsDude;
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -150,14 +146,13 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     private final XmrWalletService xmrWalletService;
     private final Preferences preferences;
-    private final PriceFeedService priceFeedService;
+    private final MarketPricePresentation marketPricePresentation;
     private final Navigation navigation;
     private final CoinFormatter formatter;
-    private final DecimalFormat fiatFormat;
     private BigInteger totalBalance = BigInteger.ZERO;
     private BigInteger pendingBalance = BigInteger.ZERO;
     private MoneroTxWallet pendingTx;
-    private final ChangeListener<Number> priceChangeListener = (observable, oldValue, newValue) -> updateBalanceDisplay();
+    private final ChangeListener<MarketPrice> priceChangeListener = (observable, oldValue, newValue) -> updateBalanceDisplay();
     private String paymentLabelString;
     private final ObservableList<DepositListItem> observableList = FXCollections.observableArrayList();
     private final FilteredList<DepositListItem> filteredList = new FilteredList<>(observableList);
@@ -186,17 +181,14 @@ public class DepositView extends ActivatableView<VBox, Void> {
     @Inject
     private DepositView(XmrWalletService xmrWalletService,
                         Preferences preferences,
-                        PriceFeedService priceFeedService,
+                        MarketPricePresentation marketPricePresentation,
                         Navigation navigation,
                         @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
         this.xmrWalletService = xmrWalletService;
         this.preferences = preferences;
-        this.priceFeedService = priceFeedService;
+        this.marketPricePresentation = marketPricePresentation;
         this.navigation = navigation;
         this.formatter = formatter;
-        fiatFormat = (DecimalFormat) NumberFormat.getNumberInstance(GlobalSettings.getLocale());
-        fiatFormat.setMinimumFractionDigits(2);
-        fiatFormat.setMaximumFractionDigits(2);
     }
 
     @Override
@@ -389,7 +381,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
                 xmrWalletService.addBalanceListener(balanceListener);
                 xmrWalletService.addWalletListener(walletListener);
-                priceFeedService.updateCounterProperty().addListener(priceChangeListener);
+                marketPricePresentation.balancePriceProperty().addListener(priceChangeListener);
 
                 amountTextFieldSubscription = EasyBind.subscribe(amountTextField.textProperty(), t -> {
                     addressTextField.setAmount(HavenoUtils.parseXmrOrElse(t, BigInteger.ZERO));
@@ -408,7 +400,7 @@ public class DepositView extends ActivatableView<VBox, Void> {
             observableList.forEach(DepositListItem::cleanup);
             xmrWalletService.removeBalanceListener(balanceListener);
             xmrWalletService.removeWalletListener(walletListener);
-            priceFeedService.updateCounterProperty().removeListener(priceChangeListener);
+            marketPricePresentation.balancePriceProperty().removeListener(priceChangeListener);
             amountTextFieldSubscription.unsubscribe();
         }, THREAD_ID);
     }
@@ -474,7 +466,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
     private void updateBalanceDisplay() {
         if (balanceLabel == null) return;
         balanceLabel.setText(HavenoUtils.formatXmr(totalBalance, true));
-        String fiatText = getFiatText();
+        String fiatText = totalBalance.signum() == 0 ? null
+                : DisplayUtils.formatBalanceEstimate(totalBalance, marketPricePresentation.balancePriceProperty().get());
         fiatLabel.setText(fiatText == null ? "" : fiatText);
         fiatLabel.setVisible(fiatText != null);
         fiatLabel.setManaged(fiatText != null);
@@ -488,18 +481,6 @@ public class DepositView extends ActivatableView<VBox, Void> {
             statusIndicator.setManaged(pendingTx != null);
             if (pendingTx != null) GUIUtil.updateConfidence(pendingTx, statusTooltip, statusIndicator);
         }
-    }
-
-    // the total approximated in the user's preferred currency, or null when zero or no price is available
-    private String getFiatText() {
-        if (totalBalance.signum() == 0) return null; // zero needs no approximation
-        TradeCurrency currency = preferences.getPreferredTradeCurrency();
-        if (currency == null) return null;
-        MarketPrice marketPrice = priceFeedService.getMarketPrice(currency.getCode());
-        if (marketPrice == null || !marketPrice.isPriceAvailable()) return null;
-        double fiatValue = HavenoUtils.atomicUnitsToXmr(totalBalance) * marketPrice.getPrice();
-        fiatFormat.setMaximumFractionDigits(CurrencyUtil.isPricePrecise(currency.getCode()) ? 8 : 2); // crypto/metals need more precision than fiat's 2 decimals
-        return "≈ " + fiatFormat.format(fiatValue) + " " + currency.getCode();
     }
 
     private void setAddress(String address, boolean isBaseAddress) {
