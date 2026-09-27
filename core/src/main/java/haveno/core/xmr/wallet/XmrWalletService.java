@@ -1807,31 +1807,38 @@ public class XmrWalletService extends XmrWalletBase {
             if (isProcessingRequestConnectionSwitchSynchronous) return;
             
             // process off thread; notifier can hold a daemon lock, so taking walletLock here could deadlock
-            ThreadUtils.submitToPool(() -> {
-                if (wasWalletSynced && !isSyncing()) {
-                    onConnectionChanged(connection);
-                } else {
-
-                    // check if ignored
-                    if (wallet == null || isShutDownStarted) return;
-                    if (HavenoUtils.connectionConfigsEqual(connection, wallet.getDaemonConnection())) {
-                        updatePollPeriod();
-                        return;
-                    }
-
-                    // force restart main wallet if connection changed while syncing
-                    if (isSyncing()) {
-                        log.warn("Force restarting main wallet because connection changed while syncing");
-                        forceRestartMainWallet();
-                    }
-                }
-            });
+            MoneroWallet sourceWallet = wallet;
+            ThreadUtils.submitToPool(() -> onConnectionChanged(connection, sourceWallet));
         });
 
         // initialize main wallet when daemon synced
         walletInitListener = (obs, oldVal, newVal) -> initMainWalletIfConnected();
         xmrConnectionService.downloadPercentageProperty().addListener(walletInitListener);
         initMainWalletIfConnected();
+    }
+
+    private void onConnectionChanged(MoneroRpcConnection connection, MoneroWallet sourceWallet) {
+        if (isShutDownStarted) return;
+        if (wasWalletSynced && !isSyncing()) {
+            onConnectionChanged(connection);
+            return;
+        }
+        if (sourceWallet == null || wallet != sourceWallet || connection != xmrConnectionService.getConnection()) return;
+
+        // preserve the current sync's proxy choice until onFirstSync applies AFTER_SYNC
+        MoneroRpcConnection sourceConnection = sourceWallet.getDaemonConnection();
+        MoneroRpcConnection walletConnection = connection == null ? null : new MoneroRpcConnection(connection);
+        if (walletConnection != null) xmrConnectionService.applyWalletProxyUri(walletConnection, MONERO_WALLET_NAME, sourceConnection != null && sourceConnection.getProxyUri() != null);
+        if (HavenoUtils.connectionConfigsEqual(walletConnection, sourceConnection)) {
+            updatePollPeriod();
+            return;
+        }
+
+        // stay off walletLock so a connection change can abort the sync holding it
+        if (isSyncing()) {
+            log.warn("Force restarting main wallet because connection changed while syncing");
+            forceRestartMainWallet();
+        }
     }
 
     private void startWalletHeightMonitor() {

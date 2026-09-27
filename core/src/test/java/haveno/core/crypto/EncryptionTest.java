@@ -116,6 +116,7 @@ import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -1377,6 +1378,37 @@ public class EncryptionTest {
         forceClose.invoke(service);
         verify(wallet).close(false);
         assertNull(handle.get(service));
+    }
+
+    @Test
+    public void testDisconnectDuringWalletSyncIgnoresStaleNotifications() throws Exception {
+        XmrConnectionService connections = mock(XmrConnectionService.class);
+        XmrWalletService service = spy(walletService(account(null), connections, walletDir));
+        MoneroRpcConnection connection = new MoneroRpcConnection("http://127.0.0.1:18081");
+        MoneroWallet wallet = mockWallet();
+        doReturn(connection).when(wallet).getDaemonConnection();
+        setField(XmrWalletBase.class, service, "wallet", wallet);
+        setField(XmrWalletBase.class, service, "isSyncingWithProgress", true);
+        doNothing().when(service).forceRestartMainWallet();
+        Method changed = XmrWalletService.class.getDeclaredMethod("onConnectionChanged", MoneroRpcConnection.class, MoneroWallet.class);
+        changed.setAccessible(true);
+
+        for (boolean wasSynced : List.of(false, true)) {
+            setField(XmrWalletBase.class, service, "wasWalletSynced", wasSynced);
+            clearInvocations(service);
+
+            doReturn(connection).when(connections).getConnection();
+            changed.invoke(service, null, wallet);
+            verify(service, never()).forceRestartMainWallet();
+
+            doReturn(null).when(connections).getConnection();
+            changed.invoke(service, null, mockWallet());
+            verify(service, never()).forceRestartMainWallet();
+
+            changed.invoke(service, null, wallet);
+            verify(service).forceRestartMainWallet();
+        }
+        verify(connections, never()).applyWalletProxyUri(any(), anyString(), anyBoolean());
     }
 
     @Test
