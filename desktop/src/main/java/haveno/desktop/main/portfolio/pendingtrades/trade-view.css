@@ -261,6 +261,9 @@
     -fx-font-size: 24px;
     -fx-text-fill: -bs-text-color;
 }
+.trade-detail-view .trade-panel:waiting .trade-deadline-value {
+    -fx-font-family: "IBM Plex Sans Medium";
+}
 .trade-detail-view .trade-deadline-number {
     -fx-font-size: 28px;
     -fx-font-family: "IBM Plex Sans Medium";
