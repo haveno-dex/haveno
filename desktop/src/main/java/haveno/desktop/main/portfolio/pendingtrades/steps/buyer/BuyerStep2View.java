@@ -19,7 +19,6 @@ package haveno.desktop.main.portfolio.pendingtrades.steps.buyer;
 
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
-import javafx.scene.layout.Region;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -130,6 +129,7 @@ import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.main.portfolio.pendingtrades.TradeFormPane;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeConfirmationPane;
 import haveno.common.util.Utilities;
+import javafx.geometry.Pos;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -138,6 +138,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -565,6 +566,7 @@ public class BuyerStep2View extends TradeStepView {
         paymentAccountGridPane.add(instructions, 0, 1, 2, 1);
         paymentAccountGridPane.add(createAmountPanel(Res.get("portfolio.pending.step2_buyer.amountToTransfer")), 0, 2, 2, 1);
         Label detailsTitle = new Label(Res.get("portfolio.pending.tradeView.paymentDetails"));
+        detailsTitle.setWrapText(true);
         detailsTitle.getStyleClass().add("trade-section-heading");
         copyAll = new Hyperlink(Res.get("portfolio.pending.tradeView.copyAll"));
         copyFeedback = new PauseTransition(Duration.seconds(1));
@@ -580,7 +582,7 @@ public class BuyerStep2View extends TradeStepView {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox detailsHeading = new HBox(12, detailsTitle, spacer, copyAll);
-        detailsHeading.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        detailsHeading.setAlignment(Pos.CENTER_LEFT);
         int actionRow = 3;
         paymentAccountGridPane.add(detailsHeading, 0, actionRow++, 2, 1);
         paymentAccountGridPane.add(paymentFields, 0, actionRow++, 2, 1);

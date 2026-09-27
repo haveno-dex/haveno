@@ -658,6 +658,7 @@ public abstract class TradeStepView extends VBox {
 
     protected HBox createAmountPanel(String caption) {
         Label label = new Label(caption);
+        label.setWrapText(true);
         label.getStyleClass().add("trade-field-label");
         String volume = model.getFiatVolume();
         int currencyStart = volume.lastIndexOf(' ');
@@ -675,7 +676,7 @@ public abstract class TradeStepView extends VBox {
         Label currency = new Label(currencyCode);
         currency.getStyleClass().add("trade-amount-currency");
         Button copyAmount = new Button();
-        GUIUtil.configureCopyIcon(copyAmount, () -> volume.split(" ")[0]);
+        GUIUtil.configureCopyIcon(copyAmount, () -> number);
         copyAmount.getStyleClass().add("trade-copy-button");
         copyAmount.getGraphic().getStyleClass().add("trade-copy-icon");
         HBox value = new HBox(8, amount, currency, copyAmount);
