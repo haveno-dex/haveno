@@ -556,6 +556,12 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
 
     private void openChat(Trade trade) {
         if (trade.isArbitrator()) throw new IllegalArgumentException("Arbitrators cannot use trader chat");
+        if (chatPopupStage != null && chatPopupStage.isShowing() && trade.getId().equals(tradeIdOfOpenChat)) {
+            chatPopupStage.setIconified(false);
+            chatPopupStage.toFront();
+            chatPopupStage.requestFocus();
+            return;
+        }
         if (chatPopupStage != null)
             chatPopupStage.close();
 
