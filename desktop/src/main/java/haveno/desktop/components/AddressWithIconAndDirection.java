@@ -17,23 +17,16 @@
 
 package haveno.desktop.components;
 
-import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.GlyphsDude;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class AddressWithIconAndDirection extends HBox {
-    private static final Logger log = LoggerFactory.getLogger(AddressWithIconAndDirection.class);
-    private final Hyperlink hyperlink;
 
     public AddressWithIconAndDirection(String text, String address, boolean received) {
         Label directionIcon = new Label();
@@ -48,24 +41,21 @@ public class AddressWithIconAndDirection extends HBox {
         Label label = new AutoTooltipLabel(text);
         label.setMouseTransparent(true);
         HBox.setMargin(directionIcon, new Insets(0, 3, 0, 0));
-        HBox.setHgrow(label, Priority.ALWAYS);
+        HBox.setMargin(label, new Insets(0, 3, 0, 0));
 
-        hyperlink = new ExternalHyperlink(address);
-        HBox.setMargin(hyperlink, new Insets(0));
-        HBox.setHgrow(hyperlink, Priority.SOMETIMES);
-        // You need to set max width to Double.MAX_VALUE to make HBox.setHgrow working like expected!
-        // also pref width needs to be not default (-1)
-        hyperlink.setMaxWidth(Double.MAX_VALUE);
-        hyperlink.setPrefWidth(0);
+        Label addressLabel = new AutoTooltipLabel(address);
+        HBox.setHgrow(addressLabel, Priority.ALWAYS);
+        addressLabel.setMinWidth(0);
+        addressLabel.setMaxWidth(Double.MAX_VALUE);
+        addressLabel.setPrefWidth(0);
+        getChildren().addAll(directionIcon, label, addressLabel);
 
-        getChildren().addAll(directionIcon, label, hyperlink);
-    }
-
-    public void setOnAction(EventHandler<ActionEvent> handler) {
-        hyperlink.setOnAction(handler);
-    }
-
-    public void setTooltip(Tooltip tooltip) {
-        hyperlink.setTooltip(tooltip);
+        if (address != null && !address.isBlank() && !"unavailable".equals(address)) {
+            Label copyLabel = new Label();
+            copyLabel.getStyleClass().addAll("icon", "transaction-address-copy");
+            GUIUtil.configureCopyIcon(copyLabel, () -> address);
+            HBox.setMargin(copyLabel, new Insets(0, 12, 0, 6));
+            getChildren().add(copyLabel);
+        }
     }
 }
