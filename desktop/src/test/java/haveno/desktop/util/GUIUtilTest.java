@@ -22,8 +22,12 @@ import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.reactfx.FxTimer;
 import haveno.core.app.TorSetup;
+import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
+import haveno.core.locale.TraditionalCurrency;
+import haveno.core.provider.price.MarketPrice;
+import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
@@ -42,6 +46,7 @@ import java.time.Duration;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -127,6 +132,47 @@ public class GUIUtilTest {
         GlobalSettings.setLocale(new Locale("en", "US"));
         Res.setBaseCurrencyCode("BTC");
         Res.setBaseCurrencyName("Bitcoin");
+    }
+
+    @Test
+    public void testFiatTextUsesSharedPrecisionRoundingAndCurrencyLabels() {
+        Preferences preferences = mock(Preferences.class);
+        PriceFeedService feed = mock(PriceFeedService.class);
+        when(preferences.getPreferredTradeCurrency()).thenReturn(new TraditionalCurrency("USD"));
+        when(feed.getMarketPrice("USD")).thenReturn(new MarketPrice("USD", 200.1, System.currentTimeMillis(), true));
+        assertEquals("≈ 30.02 USD", GUIUtil.getFiatText(new BigInteger("150000000000"), feed, preferences));
+
+        BigInteger amount = new BigInteger("1000000000000");
+        when(preferences.getPreferredTradeCurrency()).thenReturn(new CryptoCurrency("BTC", "Bitcoin"));
+        when(feed.getMarketPrice("BTC")).thenReturn(new MarketPrice("BTC", 0.00123456789, System.currentTimeMillis(), true));
+        assertEquals("≈ 0.00123457 BTC", GUIUtil.getFiatText(amount, feed, preferences));
+
+        when(preferences.getPreferredTradeCurrency()).thenReturn(new CryptoCurrency("USDT-ERC20", "Tether USD"));
+        when(feed.getMarketPrice("USDT-ERC20")).thenReturn(new MarketPrice("USDT", 200.1, System.currentTimeMillis(), true));
+        assertEquals("≈ 200.10 USDT", GUIUtil.getFiatText(amount, feed, preferences));
+    }
+
+    @Test
+    public void testFiatTextOmitsUnavailableInputsAndQuotes() {
+        Preferences preferences = mock(Preferences.class);
+        PriceFeedService feed = mock(PriceFeedService.class);
+        BigInteger amount = new BigInteger("1000000000000");
+        assertNull(GUIUtil.getFiatText(null, feed, preferences));
+        assertNull(GUIUtil.getFiatText(BigInteger.ZERO, feed, preferences));
+        assertNull(GUIUtil.getFiatText(BigInteger.ONE.negate(), feed, preferences));
+        assertNull(GUIUtil.getFiatText(amount, null, preferences));
+        assertNull(GUIUtil.getFiatText(amount, feed, null));
+        assertNull(GUIUtil.getFiatText(amount, feed, preferences));
+        verifyNoInteractions(feed);
+
+        when(preferences.getPreferredTradeCurrency()).thenReturn(new TraditionalCurrency("USD"));
+        for (MarketPrice price : new MarketPrice[]{null,
+                new MarketPrice("USD", 200, System.currentTimeMillis(), false),
+                new MarketPrice("USD", 200, System.currentTimeMillis() - MarketPrice.MARKET_PRICE_MAX_AGE_MS, true),
+                new MarketPrice("USD", Double.POSITIVE_INFINITY, System.currentTimeMillis(), true)}) {
+            when(feed.getMarketPrice("USD")).thenReturn(price);
+            assertNull(GUIUtil.getFiatText(amount, feed, preferences));
+        }
     }
 
     @Test
