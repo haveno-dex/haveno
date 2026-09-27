@@ -1,34 +1,41 @@
 .root {
-    -bs-color-primary: rgb(28, 96, 220);
-    -bs-color-primary-dark: #0c59bd;
+    -bs-color-primary: #235cbc;
+    -bs-control-accent: -bs-color-primary;
+    -bs-color-primary-faint: rgba(35, 92, 188, 0.06);
+    -bs-color-primary-soft: rgba(35, 92, 188, 0.12);
+    -bs-color-primary-strong: rgba(35, 92, 188, 0.18);
+    -bs-color-primary-dark: #194f9e;
     -bs-hero-primary: -bs-color-primary;
     -bs-hero-purple: rgb(126, 87, 194);
-    -bs-text-color: #000000;
+    -bs-text-color: #202e45;
+    -fx-dark-text-color: -bs-text-color;
+    -fx-mid-text-color: -bs-text-color;
     -bs-background-color: #ffffff;
-    -bs-background-gray: #dddddd;
-    -bs-content-background-gray: #f4f4f4;
-    -bs-color-gray-13: #333;
-    -bs-color-gray-11: #111;
-    -bs-color-gray-10: #555;
-    -bs-color-gray-6: #666666;
-    -bs-color-gray-5: #f1f6f7;
-    -bs-color-gray-4: #aaaaaa;
-    -bs-color-gray-3: #cccccc;
-    -bs-color-gray-2: #d0d0d0;
-    -bs-color-gray-1: #e9e9e9;
-    -bs-color-gray-0: #f8f8f8;
-    -bs-color-gray-dim: dimgray;
-    -bs-color-gray-ddd: #444444;
-    -bs-color-gray-ccc: #9a9a9a;
-    -bs-color-gray-bbb: #d8d8d8;
-    -bs-color-gray-aaa: #f0f0f0;
-    -bs-color-gray-fafa: #fafafa;
-    -bs-color-blue-5: #0a4576;
-    -bs-color-blue-4: #57acc9;
-    -bs-color-blue-3: #9bbdc9;
-    -bs-color-blue-2: #6aa4b6;
-    -bs-color-blue-1: #b5e1ef;
-    -bs-color-blue-0: blue;
+    -bs-background-gray: #d5dae1;
+    -bs-content-background-gray: #f5f6f8;
+    -fx-background: -bs-content-background-gray;
+    -bs-color-gray-13: #202e45;
+    -bs-color-gray-11: #202e45;
+    -bs-color-gray-10: #53657f;
+    -bs-color-gray-6: #53657f;
+    -bs-color-gray-5: #edf3ff;
+    -bs-color-gray-4: #5b6d85;
+    -bs-color-gray-3: #d5dae1;
+    -bs-color-gray-2: #d5dae1;
+    -bs-color-gray-1: #e3e6eb;
+    -bs-color-gray-0: #f9fafb;
+    -bs-color-gray-dim: -bs-color-gray-6;
+    -bs-color-gray-ddd: #53657f;
+    -bs-color-gray-ccc: #5b6d85;
+    -bs-color-gray-bbb: #d5dae1;
+    -bs-color-gray-aaa: #eef0f3;
+    -bs-color-gray-fafa: #f9fafb;
+    -bs-color-blue-5: -bs-color-primary-dark;
+    -bs-color-blue-4: -bs-color-primary;
+    -bs-color-blue-3: #b9cee9;
+    -bs-color-blue-2: #85a8d8;
+    -bs-color-blue-1: -bs-combo-popup-selected;
+    -bs-color-blue-0: -bs-color-primary;
     -bs-color-green-1: #c4d9c5;
     -bs-color-green-2: #98b999;
     -bs-color-green-3: #619864;
@@ -38,56 +45,56 @@
     -bs-turquoise: #2cacaf;
     -bs-yellow: #ffb60f;
     -bs-yellow-light: derive(-bs-yellow, 81%);
-    -bs-blue-transparent: #0f87c344;
+    -bs-blue-transparent: rgba(35, 92, 188, 0.27);
     -bs-bg-green: #99ba9c;
     -bs-rd-green: -bs-color-primary;
     -bs-rd-green-dark: #3EA34A;
-    -bs-rd-nav-selected: -bs-color-primary;
+    -bs-rd-nav-selected: rgb(28, 96, 220);
     -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
     -bs-rd-nav-unread-dot-stroke: -bs-rd-nav-deselected;
     -bs-rd-nav-secondary-selected: -fx-accent;
     -bs-rd-nav-secondary-deselected: -bs-rd-font-light;
-    -bs-rd-nav-background: -bs-color-primary;
-    -bs-rd-nav-primary-background: -bs-color-primary;
+    -bs-rd-nav-background: rgb(28, 96, 220);
+    -bs-rd-nav-primary-background: -bs-rd-nav-background;
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
     -bs-rd-nav-primary-button-hover: derive(-bs-rd-nav-primary-background, 10%);
-    -bs-rd-nav-primary-border: -bs-color-primary;
+    -bs-rd-nav-primary-border: -bs-rd-nav-background;
     -bs-rd-nav-bar-edge: transparent;
     -bs-rd-nav-border: #535353;
     -bs-rd-nav-border-color: rgba(255, 255, 255, 0.31);
     -bs-rd-nav-hover-text: white;
     -bs-rd-tab-border: transparent;
     -bs-tab-content-area: #ffffff;
-    -bs-color-gray-background: #f2f2f2;
-    -bs-content-pane-bg-top: #f2f2f2;
-    -bs-content-pane-bg-bottom: #f6f6f6;
-    -bs-wizard-backdrop: #f2f2f3;
+    -bs-color-gray-background: #f5f6f8;
+    -bs-content-pane-bg-top: -bs-color-gray-background;
+    -bs-content-pane-bg-bottom: -bs-color-gray-background;
+    -bs-wizard-backdrop: -bs-color-gray-background;
     -bs-wizard-card-bg: #ffffff;
     -bs-wizard-card-shadow: rgba(0, 0, 0, 0.08);
     -bs-scroll-pane-background: transparent;
     -bs-tab-content-area: transparent;
     -bs-viewport-background: transparent;
-    -bs-footer-pane-background: #dddddd;
-    -bs-footer-pane-text: #4b4b4b;
-    -bs-footer-pane-line: #bbb;
+    -bs-footer-pane-background: #eceef1;
+    -bs-footer-pane-text: -bs-color-gray-6;
+    -bs-footer-pane-line: -bs-color-gray-2;
     -bs-rd-font-balance: white;
-    -bs-rd-font-dark-gray: #3c3c3c;
-    -bs-rd-font-dark: #4b4b4b;
-    -bs-rd-font-light: #8d8d8d;
-    -bs-rd-font-lighter: #a7a7a7;
-    -bs-rd-font-confirmation-label: #504f52;
-    -bs-rd-font-balance-label: rgb(215, 215, 215, 1);
+    -bs-rd-font-dark-gray: #202e45;
+    -bs-rd-font-dark: #53657f;
+    -bs-rd-font-light: -bs-color-gray-6;
+    -bs-rd-font-lighter: #5b6d85;
+    -bs-rd-font-confirmation-label: -bs-rd-font-dark;
+    -bs-rd-font-balance-label: #f8faff;
     -bs-text-color-dropshadow: rgba(0, 0, 0, 0.54);
     -bs-popup-shadow: rgba(0, 0, 0, 0.22);
     -bs-popup-shadow-light-mode: -bs-popup-shadow;
     -bs-text-color-transparent: rgba(0, 0, 0, 0.2);
-    -bs-color-gray-line: #979797;
-    -bs-rd-separator: #dbdbdb;
+    -bs-color-gray-line: #5b6d85;
+    -bs-rd-separator: -bs-color-gray-2;
     -bs-rd-separator-dark: rgb(255, 255, 255, 0.1);
     -bs-rd-error-red: #dd0000;
-    -bs-rd-message-bubble: #0086c6;
+    -bs-rd-message-bubble: rgb(28, 96, 220);
     -bs-toggle-selected: #7b7b7b;
-    -bs-rd-tooltip-truncated: #0a0a0a;
+    -bs-rd-tooltip-truncated: -bs-text-color;
     -bs-warning: #ff8a2b;
     -bs-buy: rgb(80, 180, 90);
     -bs-buy-focus: derive(-bs-buy, -50%);
@@ -99,57 +106,199 @@
     -bs-candle-stick-average-line: -bs-rd-green;
     -bs-candle-stick-loss: #fe3001;
     -bs-candle-stick-won: #20b221;
-    -bs-cancel: #dddddd;
+    -bs-cancel: -bs-color-gray-2;
     -bs-cancel-focus: derive(-bs-cancel, -50%);
     -bs-cancel-hover: derive(-bs-cancel, -10%);
     -fx-accent: -bs-color-primary;
-    -fx-box-border: #e9e9e9;
+    -fx-box-border: -bs-color-gray-1;
     -bs-green-soft: derive(-bs-rd-green, 60%);
     -bs-red-soft: derive(-bs-rd-error-red, 60%);
     -fx-focus-color: -fx-accent;
-    -fx-faint-focus-color: #0f87c3;
-    -fx-selection-bar: #4181d4;
+    -fx-faint-focus-color: -bs-color-primary;
+    -fx-selection-bar: -bs-color-primary;
     -fx-selection-bar-non-focused: -fx-selection-bar;
-    -bs-combo-popup-selected: derive(-bs-color-primary, 90%);
-    -bs-combo-popup-hover: derive(-bs-color-primary, 94%);
+    -bs-combo-popup-selected: #cddef8;
+    -bs-combo-popup-hover: #e1ecfc;
     -fx-default-button: derive(-fx-accent, 95%);
-    -bs-progress-bar-track: #e0e0e0;
+    -bs-progress-bar-track: -bs-color-gray-1;
     -bs-white: white;
     -bs-prompt-text: -fx-control-inner-background;
     -bs-soft-red: #aa4c3b;
     -bs-turquoise-light: #11eeee;
     -bs-color-border-form-field: -bs-background-gray;
-    -bs-offer-card-border: #e4e4e4;
-    -bs-login-field-border: #c3c3c9;
-    -bs-login-field-focus-glow: rgba(28, 96, 220, 0.22);
-    -bs-login-prompt-text: #7a7a82;
-    -bs-color-background-form-field-readonly: -bs-color-gray-1;
+    -bs-offer-card-border: -bs-color-gray-1;
+    -bs-login-field-border: #d5dae1;
+    -bs-login-field-focus-glow: rgba(35, 92, 188, 0.22);
+    -bs-login-prompt-text: -bs-color-gray-6;
+    -bs-color-background-form-field-readonly: #f1f3f6;
     -bs-color-background-pane: -bs-background-color;
-    -bs-trade-sidebar-background: rgba(0, 0, 0, 0.025);
+    -bs-trade-sidebar-background: -bs-color-gray-0;
     -bs-color-background-row-even: -bs-color-background-pane;
-    -bs-color-background-row-odd: derive(-bs-color-background-pane, -6%);
-    -bs-color-background-row-hover: #e8f0fb;
+    -bs-color-background-row-odd: #f4f5f7;
+    -bs-color-background-row-hover: -bs-combo-popup-hover;
     -bs-color-table-cell-dim: -bs-color-gray-ccc;
     -bs-color-background-popup: white;
     -bs-color-background-popup-blur: white;
     -bs-color-background-popup-input: -bs-color-gray-background;
-    -bs-confirm-sheet-background: #f7f7f8;
+    -bs-confirm-sheet-background: -bs-color-gray-0;
     -bs-color-background-form-field: white;
-    -bs-text-color-dim1: black;
-    -bs-text-color-dim2: black;
+    -bs-text-color-dim1: -bs-text-color;
+    -bs-text-color-dim2: -bs-color-gray-6;
 
 
     /* Monero orange color code */
     -xmr-orange: #f26822;
 }
 
-/* set a javafx.scene.paint.Color of black for text in the table view */
-.table-view {
+.jfx-check-box {
+    -jfx-unchecked-color: -bs-color-gray-6;
+}
+
+.jfx-radio-button {
+    -jfx-unselected-color: -bs-color-gray-6;
+}
+
+/* limit the lighter gray to buttons, preserving offer-form glyphs */
+.jfx-button {
+    -bs-color-gray-bbb: #e2e6eb;
+}
+
+.pill-toggle-button {
+    -bs-color-primary: rgb(28, 96, 220);
+    -bs-color-gray-2: #d0d0d0;
+}
+
+.toggle-button-no-slider {
+    -fx-border-color: #dddddd;
+}
+
+.text-field, .password-field, .text-area, .combo-box {
+    -fx-prompt-text-fill: -bs-color-gray-6;
+}
+
+.chat-bubble-arrow {
+    -fx-scale-shape: false;
+    -fx-position-shape: false;
+}
+
+#message-bubble-green {
+    -fx-background-color: -bs-color-primary-dark;
+}
+
+#bubble_arrow_blue_left, #bubble_arrow_blue_right {
+    -fx-background-image: none;
+    -fx-background-color: -bs-rd-message-bubble;
+}
+
+#message-bubble-grey, #bubble_arrow_grey_left, #bubble_arrow_grey_right {
+    -fx-background-image: none;
+    -fx-background-color: #cccccc;
+}
+
+#bubble_arrow_blue_left, #bubble_arrow_grey_left {
+    -fx-shape: "M16 0 C16 10 14 16 0 16 C4 20 9 22 16 22 Z";
+}
+
+#bubble_arrow_blue_right, #bubble_arrow_grey_right {
+    -fx-shape: "M0 0 C0 10 2 16 16 16 C12 20 7 22 0 22 Z";
+}
+
+.top-navigation .nav-button:selected:hover,
+.nav-primary .nav-button:selected:hover {
+    -fx-background-color: -bs-combo-popup-hover;
+}
+
+#price-feed-combo > .arrow-button > .arrow {
+    -fx-border-color: -bs-rd-font-balance-label;
+}
+
+#toggle-left:hover, #toggle-right:hover, #toggle-center:hover {
+    -fx-text-fill: white;
+}
+
+.wizard-choice-card:selected,
+.wizard-choice-card-icon-box,
+.tac-agreement-risk-detail-icon-box,
+.tac-agreement-acknowledgment {
+    -fx-background-color: -bs-color-primary-faint;
+}
+
+.date-picker-popup .day-cell.selected,
+.wizard-header-icon-box,
+.wizard-choice-card-badge,
+.list-view.wizard-currency-list .list-cell:filled:selected,
+.list-view.wizard-currency-list .list-cell:filled:selected:hover {
+    -fx-background-color: -bs-color-primary-soft;
+}
+
+.confirm-send-icon {
+    -fx-background-color: linear-gradient(to bottom right, -bs-color-primary-strong, -bs-color-primary-faint);
+}
+
+.hero-accent-primary {
+    -hero-accent-strong: -bs-color-primary-strong;
+    -hero-accent-faint: -bs-color-primary-faint;
+}
+
+.offer-label,
+.fiat-currency-badge {
+    -fx-background-color: -bs-color-primary-dark;
+}
+
+/* preserve the original pulldown accents and neutrals within the cobalt theme */
+.combo-box-popup {
+    -bs-color-primary: rgb(28, 96, 220);
+    -bs-color-border-form-field: #dddddd;
+    -bs-color-gray-2: #d0d0d0;
+    -bs-color-gray-ccc: #9a9a9a;
+    -bs-color-gray-ddd: #444444;
+    -bs-rd-font-dark-gray: #3c3c3c;
+    -bs-rd-font-lighter: #a7a7a7;
+    -bs-text-color: #000000;
     -fx-dark-text-color: black;
-    -fx-mid-text-color: black;
-    -fx-light-text-color: black;
+    -fx-mid-text-color: #333333;
+}
+
+.combo-box-popup .offer-label {
+    -fx-background-color: rgb(50, 95, 182);
+}
+
+.combo-box-popup .fiat-currency-badge {
+    -fx-background-color: -bs-color-primary;
+}
+
+.trade-detail-view {
+    -bs-color-primary: rgb(28, 96, 220);
+}
+
+.list-view .list-cell:odd {
+    -fx-background-color: -bs-color-background-row-odd;
+}
+
+.list-view .list-cell:even,
+.list-view .list-cell:empty {
+    -fx-background-color: -bs-color-background-row-even;
+}
+
+.list-view .list-cell:filled:hover {
+    -fx-background: -bs-combo-popup-hover;
+    -fx-background-color: -bs-combo-popup-hover;
+}
+
+.list-view .list-cell:filled:selected,
+.list-view .list-cell:filled:selected:hover {
+    -fx-background: -bs-combo-popup-selected;
+    -fx-background-color: -bs-combo-popup-selected;
+    -fx-text-fill: -bs-text-color;
+}
+
+/* use the theme text color for text in the table view */
+.table-view {
+    -fx-dark-text-color: -bs-text-color;
+    -fx-mid-text-color: -bs-text-color;
+    -fx-light-text-color: -bs-text-color;
     /* muted selection stays visible while interacting with the selected row's details */
-    -fx-selection-bar: #cfe0f6;
+    -fx-selection-bar: -bs-combo-popup-selected;
     -fx-selection-bar-non-focused: -fx-selection-bar;
 }
 

@@ -1,5 +1,6 @@
 .root {
     -bs-color-primary: rgb(28, 96, 220);
+    -bs-control-accent: #0b65da;
 
     /* javafx main color palette */
     -fx-base: #29292a;
@@ -366,11 +367,17 @@
 }
 
 #bubble_arrow_grey_left {
-    -fx-image: url("../../images/bubble_arrow_grey_left_dark.png");
+    -fx-background-image: url("../../images/bubble_arrow_grey_left_dark.png");
 }
 
 #bubble_arrow_grey_right {
-    -fx-image: url("../../images/bubble_arrow_grey_right_dark.png");
+    -fx-background-image: url("../../images/bubble_arrow_grey_right_dark.png");
+}
+
+#bubble_arrow_grey_left, #bubble_arrow_grey_right {
+    -fx-min-height: 19;
+    -fx-pref-height: 19;
+    -fx-max-height: 19;
 }
 
 .headline-label {
