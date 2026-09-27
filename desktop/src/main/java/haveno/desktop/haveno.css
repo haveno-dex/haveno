@@ -1837,6 +1837,15 @@ tree-table-view:focused {
     -fx-text-fill: -bs-text-color;
 }
 
+.transaction-address-copy .glyph-icon {
+    -fx-fill: -bs-color-gray-dim;
+}
+
+.transaction-address-copy:hover .glyph-icon,
+.transaction-address-copy:focused .glyph-icon {
+    -fx-fill: -fx-accent;
+}
+
 .received-funds-icon {
     -fx-text-fill: -bs-green-soft;
 }

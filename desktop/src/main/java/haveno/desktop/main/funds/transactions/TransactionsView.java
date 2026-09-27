@@ -407,22 +407,17 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                             TransactionsListItem> column) {
                         return new TableCell<>() {
 
-                            private AddressWithIconAndDirection field;
-
                             @Override
                             public void updateItem(final TransactionsListItem item, boolean empty) {
                                 super.updateItem(item, empty);
 
                                 if (item != null && !empty) {
                                     String addressString = item.getAddressString();
-                                    field = new AddressWithIconAndDirection(item.getDirection(), addressString,
-                                            item.getReceived());
-                                    field.setTooltip(new Tooltip(Res.get("tooltip.openBlockchainForAddress", addressString)));
+                                    AddressWithIconAndDirection field = new AddressWithIconAndDirection(item.getDirection(),
+                                            addressString, item.getReceived());
                                     setGraphic(field);
                                 } else {
                                     setGraphic(null);
-                                    if (field != null)
-                                        field.setOnAction(null);
                                 }
                             }
                         };
