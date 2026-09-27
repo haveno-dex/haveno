@@ -24,6 +24,7 @@ import javafx.geometry.VPos;
 import java.util.function.Consumer;
 import static com.google.common.base.Preconditions.checkNotNull;
 import haveno.desktop.util.GlyphsDude;
+import haveno.desktop.util.Accessibility;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
@@ -49,11 +50,14 @@ import haveno.desktop.util.GUIUtil;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import javafx.scene.text.TextAlignment;
+import javafx.scene.shape.SVGPath;
 import javafx.beans.binding.Bindings;
 import javafx.scene.control.ToggleButton;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -71,7 +75,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
-import haveno.desktop.components.SimpleMarkdownLabel;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.support.SupportView;
 import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
@@ -103,6 +106,7 @@ public abstract class TradeStepView extends VBox {
     private Label deadlineDate;
     private Label duration;
     private VBox deadlinePeriod;
+    private HBox maximumPeriodRow;
     private final VBox actionPane;
     private VBox deadlinePane;
     private VBox sidebar;
@@ -111,9 +115,6 @@ public abstract class TradeStepView extends VBox {
     private VBox depositsPane;
     private VBox depositDetails;
     private ToggleButton depositsToggle;
-    private Label depositsTitle;
-    private Label depositsIcon;
-    private Label depositsChevron;
     private Subscription payoutSubscription;
     private final Label syncLabel = new Label();
     private boolean confirmationInProgress;
@@ -495,8 +496,11 @@ public abstract class TradeStepView extends VBox {
         deadlineDate = new Label();
         deadlineDate.setWrapText(true);
         deadlineDate.getStyleClass().add("trade-secondary");
-        title.setGraphic(GlyphsDude.createIcon(FontAwesomeIcon.CLOCK_ALT, "16"));
-        title.getGraphic().getStyleClass().add("trade-muted-icon");
+        SVGPath clock = new SVGPath();
+        clock.setContent("M8 1 A7 7 0 1 1 8 15 A7 7 0 1 1 8 1 Z M8 4 V8 L11 10");
+        clock.getStyleClass().add("trade-clock-icon");
+        Accessibility.mute(clock);
+        title.setGraphic(clock);
         title.setGraphicTextGap(10);
         duration = new Label();
         duration.setWrapText(true);
@@ -515,7 +519,23 @@ public abstract class TradeStepView extends VBox {
         HBox durationRow = new HBox(6, duration, durationHelp);
         durationRow.setAlignment(Pos.CENTER_LEFT);
         deadlinePeriod = new VBox(4, durationRow, deadlineDate);
-        deadlinePane = new VBox(10, title, timeLeftTextField, deadlineStart, timeLeftProgressBar, deadlineConfirmations, deadlinePeriod);
+        Label maximumPeriodTitle = new Label(Res.get("portfolio.pending.tradeView.maximumPeriod"));
+        maximumPeriodTitle.setMinWidth(0);
+        maximumPeriodTitle.setMaxWidth(Double.MAX_VALUE);
+        maximumPeriodTitle.setWrapText(true);
+        maximumPeriodTitle.getStyleClass().add("trade-secondary");
+        HBox.setHgrow(maximumPeriodTitle, Priority.ALWAYS);
+        String period = FormattingUtils.formatDurationAsWords(trade.getOffer().getPaymentMethod().getMaxTradePeriod(), false, false);
+        Label maximumPeriodValue = new Label(period);
+        maximumPeriodValue.setMinWidth(0);
+        maximumPeriodValue.setWrapText(true);
+        maximumPeriodValue.setTextAlignment(TextAlignment.RIGHT);
+        maximumPeriodValue.setAlignment(Pos.TOP_RIGHT);
+        maximumPeriodValue.getStyleClass().add("trade-period-value");
+        maximumPeriodRow = new HBox(12, maximumPeriodTitle, maximumPeriodValue);
+        maximumPeriodRow.setAlignment(Pos.TOP_LEFT);
+        maximumPeriodRow.setPadding(new Insets(1));
+        deadlinePane = new VBox(10, title, timeLeftTextField, deadlineStart, timeLeftProgressBar, deadlineConfirmations, maximumPeriodRow, deadlinePeriod);
         deadlinePane.getStyleClass().add("trade-panel");
 
         depositDetails = new VBox(16);
@@ -528,17 +548,15 @@ public abstract class TradeStepView extends VBox {
             peerDeposit = new TradeDepositView(Res.get("portfolio.pending.tradeView.peerDeposit"), preferences);
             depositDetails.getChildren().add(peerDeposit);
         }
-        depositsIcon = new Label();
-        depositsIcon.setMinWidth(Region.USE_PREF_SIZE);
-        depositsIcon.getStyleClass().add("trade-deposit-status-icon");
-        depositsTitle = new Label();
+        Label depositsTitle = new Label(Res.get("portfolio.pending.tradeView.depositTransactions"));
         depositsTitle.setMinWidth(0);
         depositsTitle.setWrapText(true);
-        depositsChevron = new Label();
-        depositsChevron.setMinWidth(Region.USE_PREF_SIZE);
+        Label depositsAction = new Label();
+        depositsAction.setMinWidth(Region.USE_PREF_SIZE);
+        depositsAction.getStyleClass().add("trade-deposits-action");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox heading = new HBox(12, depositsIcon, depositsTitle, spacer, depositsChevron);
+        HBox heading = new HBox(12, depositsTitle, spacer, depositsAction);
         heading.setAlignment(Pos.CENTER_LEFT);
         heading.setMouseTransparent(true);
         depositsToggle = new ToggleButton();
@@ -549,19 +567,29 @@ public abstract class TradeStepView extends VBox {
         depositsToggle.setMaxWidth(Double.MAX_VALUE);
         // keep the heading aligned while padding the hover and focus area
         VBox.setMargin(depositsToggle, new Insets(0, -12, 0, -12));
-        depositsToggle.selectedProperty().addListener((observable, oldValue, expanded) -> {
-            depositDetails.setVisible(expanded);
-            depositDetails.setManaged(expanded);
-            GlyphsDude.setIcon(depositsChevron, expanded ? FontAwesomeIcon.ANGLE_UP : FontAwesomeIcon.ANGLE_DOWN, "14");
-        });
+        depositDetails.visibleProperty().bind(depositsToggle.selectedProperty());
+        depositDetails.managedProperty().bind(depositsToggle.selectedProperty());
+        depositsAction.textProperty().bind(Bindings.when(depositsToggle.selectedProperty())
+                .then(Res.get("portfolio.pending.tradeView.hide")).otherwise(Res.get("portfolio.pending.tradeView.view")));
+        depositsToggle.accessibleTextProperty().bind(Bindings.concat(depositsTitle.getText(), ": ", depositsAction.textProperty()));
         depositsPane = new VBox(depositsToggle, depositDetails);
         depositsPane.getStyleClass().addAll("trade-panel", "trade-deposits-panel");
         setDepositDetailsExpanded(false);
         updateDepositSummary();
         Label helpTitle = new Label(Res.get("portfolio.pending.support.headline.getHelp"));
         helpTitle.getStyleClass().add("trade-section-heading");
-        SimpleMarkdownLabel help = new SimpleMarkdownLabel(Res.get("portfolio.pending.tradeView.communityHelp"));
-        helpPane = new VBox(8, helpTitle, help);
+        helpPane = new VBox(10, helpTitle);
+        if (!trade.isArbitrator()) {
+            Label help = new Label(Res.get(trade.isBuyer() ? "portfolio.pending.tradeView.contactSeller" : "portfolio.pending.tradeView.contactBuyer"));
+            help.setWrapText(true);
+            help.getStyleClass().add("trade-secondary");
+            helpPane.getChildren().add(help);
+        }
+        Hyperlink communityHelp = new Hyperlink(Res.get("supportInfoWindow.community.link"));
+        communityHelp.setWrapText(true);
+        communityHelp.getStyleClass().add("trade-community-link");
+        communityHelp.setOnAction(event -> GUIUtil.openWebPage("https://matrix.to/#/#haveno:monero.social"));
+        helpPane.getChildren().add(communityHelp);
         helpPane.getStyleClass().add("trade-help");
         sidebar.getChildren().addAll(deadlinePane, depositsPane, helpPane);
     }
@@ -572,9 +600,6 @@ public abstract class TradeStepView extends VBox {
 
     public void setDepositDetailsExpanded(boolean expanded) {
         depositsToggle.setSelected(expanded);
-        depositDetails.setVisible(expanded);
-        depositDetails.setManaged(expanded);
-        GlyphsDude.setIcon(depositsChevron, expanded ? FontAwesomeIcon.ANGLE_UP : FontAwesomeIcon.ANGLE_DOWN, "14");
     }
 
     private void updateDepositSummary() {
@@ -592,12 +617,6 @@ public abstract class TradeStepView extends VBox {
                 if (tradeStepInfo != null) updateTradePeriodState(trade.tradePeriodStateProperty().get());
             }
         }
-        depositsTitle.setText(Res.get(confirmed ? "portfolio.pending.tradeView.depositsConfirmed" : "portfolio.pending.tradeView.depositTransactions"));
-        if (count != null && count >= 0)
-            depositsTitle.setText(depositsTitle.getText() + " · " + Res.get("portfolio.pending.tradeView.depositCount", count));
-        depositsToggle.setAccessibleText(depositsTitle.getText());
-        GlyphsDude.setIcon(depositsIcon, confirmed ? FontAwesomeIcon.CHECK : FontAwesomeIcon.CLOCK_ALT, "14");
-        depositsIcon.pseudoClassStateChanged(PseudoClass.getPseudoClass("confirmed"), confirmed);
         if (selfDeposit != null) updateDeposit(selfDeposit, model.dataModel.isMaker());
         if (peerDeposit != null) updateDeposit(peerDeposit, !model.dataModel.isMaker());
     }
@@ -786,6 +805,8 @@ public abstract class TradeStepView extends VBox {
         deadlineStart.setManaged(waiting);
         deadlineConfirmations.setVisible(waiting);
         deadlineConfirmations.setManaged(waiting);
+        maximumPeriodRow.setVisible(waiting);
+        maximumPeriodRow.setManaged(waiting);
         deadlinePeriod.setVisible(initialized && !waiting);
         deadlinePeriod.setManaged(initialized && !waiting);
         timeLeftProgressBar.setAccessibleText(null);

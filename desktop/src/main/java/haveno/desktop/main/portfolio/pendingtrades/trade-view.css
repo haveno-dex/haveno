@@ -282,6 +282,17 @@
 .trade-detail-view .trade-panel:expired .trade-progress .bar {
     -fx-background-color: -bs-rd-error-red;
 }
+.trade-detail-view .trade-clock-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -bs-text-color;
+    -fx-stroke-width: 1.4;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+.trade-detail-view .trade-period-value {
+    -fx-font-size: 13px;
+    -fx-text-fill: -bs-text-color;
+}
 .trade-detail-view .trade-deposits-panel {
     -fx-padding: 0;
     -fx-border-width: 0;
@@ -312,11 +323,11 @@
     -fx-border-color: -bs-color-primary;
 }
 .trade-detail-view .trade-deposits-toggle .label {
-    -fx-text-fill: -bs-text-color;
+    -fx-text-fill: -bs-color-gray-6;
     -fx-font-size: 13px;
 }
-.trade-detail-view .trade-deposits-toggle .trade-deposit-status-icon:confirmed {
-    -fx-text-fill: -bs-rd-green;
+.trade-detail-view .trade-deposits-toggle .trade-deposits-action {
+    -fx-text-fill: -bs-hero-primary;
 }
 .trade-detail-view .trade-deposit {
     -fx-border-color: -bs-color-gray-1;
@@ -362,10 +373,6 @@
     -fx-border-color: -bs-color-gray-1;
     -fx-border-width: 1 0 0;
 }
-.trade-detail-view .trade-help .markdown-label {
-    -fx-line-spacing: 3px;
-}
-.trade-detail-view .trade-help .text,
 .trade-detail-view .trade-support-state .text {
     -fx-fill: -bs-color-gray-6;
     -fx-font-size: 13px;
@@ -433,6 +440,12 @@
 .trade-detail-view .trade-help .hyperlink {
     -fx-padding: 0;
     -fx-border-width: 0;
+}
+.trade-detail-view .trade-help .trade-community-link {
+    -fx-font-size: 12px;
+}
+.trade-detail-view .trade-help .hyperlink:focus-visible {
+    -fx-underline: true;
 }
 .trade-detail-view .trade-account-summary {
     -fx-padding: 0;
