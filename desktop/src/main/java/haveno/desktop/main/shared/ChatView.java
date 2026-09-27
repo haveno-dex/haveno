@@ -60,13 +60,13 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
@@ -283,7 +283,7 @@ public class ChatView extends AnchorPane {
                     });
                     WeakInvalidationListener weakMsgStateListener = new WeakInvalidationListener(msgStateListener);
                     Pane bg = new Pane();
-                    ImageView arrow = new ImageView();
+                    Region arrow = new Region();
                     Label headerLabel = new AutoTooltipLabel();
                     TextArea messageTextArea = new TextArea();
                     Label copyLabel = new Label();
@@ -301,6 +301,7 @@ public class ChatView extends AnchorPane {
 
                     {
                         bg.setMinHeight(30);
+                        arrow.getStyleClass().add("chat-bubble-arrow");
                         messageTextArea.setEditable(false);
                         messageTextArea.setFocusTraversable(false);
                         messageTextArea.setWrapText(true);

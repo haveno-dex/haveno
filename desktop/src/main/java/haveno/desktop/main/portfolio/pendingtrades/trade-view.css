@@ -23,17 +23,17 @@
 }
 .table-view .table-row-cell .table-cell .label.trade-direction-buy {
     -fx-text-fill: ladder(-bs-background-color, -bs-buy 49%, derive(-bs-buy, -45%) 50%);
-    -fx-background-color: ladder(-bs-background-color, derive(-bs-buy, -80%) 49%, derive(-bs-buy, 85%) 50%);
+    -fx-background-color: ladder(-bs-background-color, derive(-bs-buy, -80%) 49%, #e7f2eb 50%);
 }
 .table-view .table-row-cell .table-cell .label.trade-direction-sell {
     -fx-text-fill: ladder(-bs-background-color, derive(-bs-sell, 25%) 49%, derive(-bs-sell, -20%) 50%);
-    -fx-background-color: ladder(-bs-background-color, derive(-bs-sell, -80%) 49%, derive(-bs-sell, 85%) 50%);
+    -fx-background-color: ladder(-bs-background-color, derive(-bs-sell, -80%) 49%, #fbe9e7 50%);
 }
 .table-view .table-row-cell .table-cell .label.trade-status-waiting {
     -fx-text-fill: -bs-color-gray-6;
 }
 .table-view .table-row-cell .table-cell .label.trade-status-attention {
-    -fx-text-fill: ladder(-bs-background-color, -bs-yellow 49%, #b45309 50%);
+    -fx-text-fill: ladder(-bs-background-color, -bs-yellow 49%, #a04b08 50%);
 }
 
 /* keep mouse focus from highlighting trade actions after a popup closes */

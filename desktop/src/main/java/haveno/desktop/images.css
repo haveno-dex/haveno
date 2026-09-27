@@ -206,19 +206,19 @@
 }
 
 #bubble_arrow_grey_left {
-    -fx-image: url("../../images/bubble_arrow_grey_left.png");
+    -fx-background-image: url("../../images/bubble_arrow_grey_left.png");
 }
 
 #bubble_arrow_blue_left {
-    -fx-image: url("../../images/bubble_arrow_blue_left.png");
+    -fx-background-image: url("../../images/bubble_arrow_blue_left.png");
 }
 
 #bubble_arrow_grey_right {
-    -fx-image: url("../../images/bubble_arrow_grey_right.png");
+    -fx-background-image: url("../../images/bubble_arrow_grey_right.png");
 }
 
 #bubble_arrow_blue_right {
-    -fx-image: url("../../images/bubble_arrow_blue_right.png");
+    -fx-background-image: url("../../images/bubble_arrow_blue_right.png");
 }
 
 #link {

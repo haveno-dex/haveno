@@ -188,6 +188,7 @@
 }
 
 .action-button {
+    -bs-color-primary-dark: #1d4ed8;
     -fx-background-color: -bs-color-primary-dark;
     -fx-text-fill: -bs-background-color;
 }
@@ -225,6 +226,14 @@
 .jfx-checkbox {
     -jfx-checked-color: -bs-color-primary;
     -fx-font-size: 0.692em;
+}
+
+.jfx-check-box {
+    -jfx-checked-color: -bs-control-accent;
+}
+
+.jfx-radio-button {
+    -jfx-selected-color: -bs-control-accent;
 }
 
 .jfx-check-box .box,
@@ -3261,6 +3270,16 @@ textfield */
 }
 
 /* bubble */
+.chat-bubble-arrow {
+    -fx-min-width: 16;
+    -fx-pref-width: 16;
+    -fx-max-width: 16;
+    -fx-min-height: 22;
+    -fx-pref-height: 22;
+    -fx-max-height: 22;
+    -fx-background-repeat: no-repeat;
+}
+
 #message-bubble-green {
     -fx-background-color: -bs-color-primary;
     -fx-background-radius: 10 10 10 10;
