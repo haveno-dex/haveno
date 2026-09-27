@@ -68,6 +68,8 @@ public class SettingsView extends ActivatableView<TabPane, Void> {
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {
+            if (oldValue == preferencesTab)
+                ((PreferencesView) viewLoader.load(PreferencesView.class)).onNavigationAway();
             navigationToTabContent(newValue);
         };
     }

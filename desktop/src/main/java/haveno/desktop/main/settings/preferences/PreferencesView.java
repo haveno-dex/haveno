@@ -45,6 +45,7 @@ import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.ParsingUtils;
+import haveno.core.util.validation.InputValidator.ValidationResult;
 import haveno.core.util.validation.IntegerValidator;
 import haveno.core.util.validation.RegexValidator;
 import haveno.core.util.validation.RegexValidatorFactory;
@@ -233,6 +234,12 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         deactivateAutoConfirmPreferences();
     }
 
+    public void onNavigationAway() {
+        if (deviationInputTextField.isFocused())
+            applyPriceDeviation();
+        resetPriceDeviation();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Initialize
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -266,24 +273,13 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         deviationInputTextField = addInputTextField(optionsGridPane, ++gridRow,
                 Res.get("setting.preferences.deviation"));
         deviationListener = (observable, oldValue, newValue) -> {
-            try {
-                double value = ParsingUtils.parsePercentStringToDouble(newValue);
-                final double maxDeviation = 1.0;
-                if (value >= 0 && value <= maxDeviation) {
-                    preferences.setMaxPriceDistanceInPercent(value);
-                } else {
-                    new Popup().warning(value < 0 ? Res.get("validation.negative") :
-                            Res.get("setting.preferences.deviationToLarge", maxDeviation * 100)).show();
-                    UserThread.runAfter(() -> deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent())), 100, TimeUnit.MILLISECONDS);
-                }
-            } catch (IllegalArgumentException t) {
-                log.error("Exception at parseDouble deviation: " + t.toString());
-                UserThread.runAfter(() -> deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent())), 100, TimeUnit.MILLISECONDS);
+            if (!deviationInputTextField.validationResultProperty().get().isValid) {
+                deviationInputTextField.validationResultProperty().set(new ValidationResult(true));
             }
         };
-        deviationFocusedListener = (observable1, oldValue1, newValue1) -> {
-            if (oldValue1 && !newValue1)
-                UserThread.runAfter(() -> deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent())), 100, TimeUnit.MILLISECONDS);
+        deviationFocusedListener = (observable, oldValue, newValue) -> {
+            if (oldValue && !newValue)
+                applyPriceDeviation();
         };
 
         // ignoreTraders
@@ -331,6 +327,41 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useNativeXmrWalletBox.setAlignment(Pos.CENTER_LEFT);
         GridPane.setRowIndex(useNativeXmrWalletBox, ++gridRow);
         optionsGridPane.getChildren().add(useNativeXmrWalletBox);
+    }
+
+    private void resetPriceDeviation() {
+        deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent()));
+        deviationInputTextField.validationResultProperty().set(new ValidationResult(true));
+    }
+
+    private void applyPriceDeviation() {
+        String input = deviationInputTextField.getText();
+        if (input.trim().isEmpty()) {
+            deviationInputTextField.setInvalid(Res.get("validation.empty"));
+            return;
+        }
+
+        try {
+            double percent = ParsingUtils.parseNumberStringToDouble(input.replace("%", ""));
+            if (!Double.isFinite(percent)) {
+                deviationInputTextField.setInvalid(Res.get("validation.NaN"));
+                return;
+            }
+            if (percent < 0 || percent > 100) {
+                deviationInputTextField.setInvalid(percent < 0 ? Res.get("validation.negative") :
+                        Res.get("setting.preferences.deviationToLarge", 100));
+                return;
+            }
+
+            double value = ParsingUtils.parsePercentStringToDouble(input);
+            if (value != preferences.getMaxPriceDistanceInPercent()) {
+                preferences.setMaxPriceDistanceInPercent(value);
+            }
+            deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(value));
+            deviationInputTextField.validationResultProperty().set(new ValidationResult(true));
+        } catch (IllegalArgumentException e) {
+            deviationInputTextField.setInvalid(Res.get("validation.NaN"));
+        }
     }
 
     private void initializeSeparator() {
@@ -758,9 +789,10 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         xmrExplorerTextField.setText(preferences.getBlockChainExplorer().name);
 
-        deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent()));
+        resetPriceDeviation();
         deviationInputTextField.textProperty().addListener(deviationListener);
         deviationInputTextField.focusedProperty().addListener(deviationFocusedListener);
+        deviationInputTextField.setOnAction(event -> applyPriceDeviation());
 
         ignoreTradersListInputTextField.textProperty().addListener(ignoreTradersListListener);
         //referralIdInputTextField.textProperty().addListener(referralIdListener);
@@ -929,8 +961,10 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         userLanguageComboBox.setOnAction(null);
         userCountryComboBox.setOnAction(null);
         editCustomBtcExplorer.setOnAction(null);
+        onNavigationAway();
         deviationInputTextField.textProperty().removeListener(deviationListener);
         deviationInputTextField.focusedProperty().removeListener(deviationFocusedListener);
+        deviationInputTextField.setOnAction(null);
         ignoreTradersListInputTextField.textProperty().removeListener(ignoreTradersListListener);
         //referralIdInputTextField.textProperty().removeListener(referralIdListener);
         clearDataAfterDaysInputTextField.textProperty().removeListener(clearDataAfterDaysListener);
