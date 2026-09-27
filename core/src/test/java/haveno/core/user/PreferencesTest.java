@@ -37,12 +37,18 @@ import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PreferencesTest {
@@ -65,6 +71,52 @@ public class PreferencesTest {
                 persistenceManager, config, null, null);
         xmrNodes = new XmrNodes();
         XmrLocalNode xmrLocalNode = new XmrLocalNode(config, preferences, xmrNodes);
+    }
+
+    @Test
+    public void testMaxPriceDistanceAcceptsZeroThroughOneHundredPercent() {
+        for (double deviation : new double[]{0, 0.0001, 0.3, 1}) {
+            preferences.setMaxPriceDistanceInPercent(deviation);
+            assertEquals(deviation, preferences.getMaxPriceDistanceInPercent());
+        }
+    }
+
+    @Test
+    public void testInvalidMaxPriceDistancePreservesPreviousValue() {
+        preferences.setMaxPriceDistanceInPercent(0.3);
+        for (double deviation : new double[]{-0.01, -Double.MIN_VALUE, 1.0001,
+                Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> preferences.setMaxPriceDistanceInPercent(deviation));
+            assertEquals(0.3, preferences.getMaxPriceDistanceInPercent());
+        }
+    }
+
+    @Test
+    public void testPersistedMaxPriceDistance() {
+        for (double[] deviations : new double[][]{{0, 0}, {0.3, 0.3}, {1, 1}, {-0.01, 0}, {1.0001, 0},
+                {Double.NaN, 0}, {Double.NEGATIVE_INFINITY, 0}, {Double.POSITIVE_INFINITY, 0}}) {
+            PreferencesPayload payload = new PreferencesPayload();
+            payload.setUserLanguage("en");
+            payload.setUserCountry(CountryUtil.getDefaultCountry());
+            payload.setPreferredTradeCurrency(new TraditionalCurrency("USD"));
+            payload.setMaxPriceDistanceInPercent(deviations[0]);
+            PersistenceManager<PreferencesPayload> manager = mock(PersistenceManager.class);
+            Preferences reloaded = new Preferences(manager, config, null, xmrNodes);
+            doAnswer(invocation -> {
+                Consumer<PreferencesPayload> resultHandler = invocation.getArgument(1);
+                resultHandler.accept(payload);
+                return null;
+            }).when(manager).readPersisted(eq("PreferencesPayload"), any(), any());
+
+            Runnable completeHandler = mock(Runnable.class);
+            reloaded.readPersisted(completeHandler);
+
+            assertEquals(deviations[1], reloaded.getMaxPriceDistanceInPercent());
+            assertEquals(deviations[1], payload.getMaxPriceDistanceInPercent());
+            verify(completeHandler).run();
+            verify(manager).requestPersistence();
+        }
     }
 
     @Test

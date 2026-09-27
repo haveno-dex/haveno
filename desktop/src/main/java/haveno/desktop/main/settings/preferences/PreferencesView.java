@@ -269,13 +269,14 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             try {
                 double value = ParsingUtils.parsePercentStringToDouble(newValue);
                 final double maxDeviation = 1.0;
-                if (value <= maxDeviation) {
+                if (value >= 0 && value <= maxDeviation) {
                     preferences.setMaxPriceDistanceInPercent(value);
                 } else {
-                    new Popup().warning(Res.get("setting.preferences.deviationToLarge", maxDeviation * 100)).show();
+                    new Popup().warning(value < 0 ? Res.get("validation.negative") :
+                            Res.get("setting.preferences.deviationToLarge", maxDeviation * 100)).show();
                     UserThread.runAfter(() -> deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent())), 100, TimeUnit.MILLISECONDS);
                 }
-            } catch (NumberFormatException t) {
+            } catch (IllegalArgumentException t) {
                 log.error("Exception at parseDouble deviation: " + t.toString());
                 UserThread.runAfter(() -> deviationInputTextField.setText(FormattingUtils.formatToPercentWithSymbol(preferences.getMaxPriceDistanceInPercent())), 100, TimeUnit.MILLISECONDS);
             }

@@ -17,6 +17,7 @@
 
 package haveno.core.user;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -230,6 +231,12 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         // sets the value to 0 it will be overwritten by the default at next startup.
         if (prefPayload.getBsqAverageTrimThreshold() == 0) {
             prefPayload.setBsqAverageTrimThreshold(0.05);
+        }
+
+        // Reset invalid limits saved by older versions to the most restrictive value.
+        double maxPriceDistanceInPercent = prefPayload.getMaxPriceDistanceInPercent();
+        if (!(maxPriceDistanceInPercent >= 0 && maxPriceDistanceInPercent <= 1)) {
+            prefPayload.setMaxPriceDistanceInPercent(0);
         }
 
         setupPreferences();
@@ -604,6 +611,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     }
 
     public void setMaxPriceDistanceInPercent(double maxPriceDistanceInPercent) {
+        checkArgument(maxPriceDistanceInPercent >= 0 && maxPriceDistanceInPercent <= 1,
+                "Maximum price deviation must be between 0% and 100%");
         prefPayload.setMaxPriceDistanceInPercent(maxPriceDistanceInPercent);
         requestPersistence();
     }
