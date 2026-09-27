@@ -37,8 +37,10 @@ import static haveno.desktop.maker.OfferMaker.xmrUsdOffer;
 import static haveno.desktop.maker.VolumeMaker.usdVolume;
 import static haveno.desktop.maker.VolumeMaker.volumeString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -203,6 +205,39 @@ public class DisplayUtilsTest {
         assertNull(DisplayUtils.formatBalanceEstimate(amount, stale));
         MarketPrice internal = new MarketPrice("USD", 200, System.currentTimeMillis(), false);
         assertNull(DisplayUtils.formatBalanceEstimate(amount, internal));
+    }
+
+    @Test
+    public void testFiatConversionUsesRecentFiniteExternalPrices() {
+        BigInteger amount = new BigInteger("1000000000000");
+        MarketPrice price = new MarketPrice("USDT", 200.1, System.currentTimeMillis(), true);
+        assertTrue(DisplayUtils.isValidEstimatePrice(price));
+        assertEquals("≈ 200.10 USDT", DisplayUtils.formatBalanceEstimate(amount, price));
+        assertEquals("200.10", DisplayUtils.formatXmrToFiat(amount, price, 8));
+        assertEquals(amount, DisplayUtils.parseFiatToXmr("200.10", price));
+        assertEquals("", DisplayUtils.formatXmrToFiat(null, price, 8));
+        assertEquals(BigInteger.ZERO, DisplayUtils.parseFiatToXmr(null, price));
+        assertEquals(BigInteger.ZERO, DisplayUtils.parseFiatToXmr(" ", price));
+        assertThrows(NumberFormatException.class, () -> DisplayUtils.parseFiatToXmr("invalid", price));
+
+        MarketPrice precise = new MarketPrice("BTC", 0.00123456789, System.currentTimeMillis(), true);
+        assertEquals("0.00123457", DisplayUtils.formatXmrToFiat(amount, precise, 8));
+        MarketPrice fiat = new MarketPrice("USD", 200.1, System.currentTimeMillis(), true);
+        assertEquals("30.02", DisplayUtils.formatXmrToFiat(new BigInteger("150000000000"), fiat, 2));
+
+        for (MarketPrice unavailable : new MarketPrice[]{null,
+                new MarketPrice("USDT", 200.1, System.currentTimeMillis(), false),
+                new MarketPrice("USDT", 200.1, System.currentTimeMillis() - MarketPrice.MARKET_PRICE_MAX_AGE_MS, true),
+                new MarketPrice("USDT", 0, System.currentTimeMillis(), true),
+                new MarketPrice("USDT", -1, System.currentTimeMillis(), true),
+                new MarketPrice("USDT", Double.NaN, System.currentTimeMillis(), true),
+                new MarketPrice("USDT", Double.POSITIVE_INFINITY, System.currentTimeMillis(), true),
+                new MarketPrice("USDT", Double.NEGATIVE_INFINITY, System.currentTimeMillis(), true)}) {
+            assertFalse(DisplayUtils.isValidEstimatePrice(unavailable));
+            assertNull(DisplayUtils.formatBalanceEstimate(amount, unavailable));
+            assertEquals("", DisplayUtils.formatXmrToFiat(amount, unavailable, 8));
+            assertEquals(BigInteger.ZERO, DisplayUtils.parseFiatToXmr("200.10", unavailable));
+        }
     }
 
     @Test
