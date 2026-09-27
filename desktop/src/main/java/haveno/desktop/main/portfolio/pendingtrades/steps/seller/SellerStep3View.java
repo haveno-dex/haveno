@@ -261,6 +261,7 @@ public class SellerStep3View extends TradeStepView {
             myPaymentDetailsTextField.setTooltip(new Tooltip(myPaymentDetails));
         } else {
             Label detailsTitle = new Label(Res.get("portfolio.pending.tradeView.buyersDetails"));
+            detailsTitle.setWrapText(true);
             detailsTitle.getStyleClass().add("trade-section-heading");
             gridPane.add(detailsTitle, 0, ++gridRow, 2, 1);
         }
