@@ -31,6 +31,7 @@ import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Optional;
 
 @Slf4j
@@ -42,10 +43,13 @@ public class DisplayUtils {
         return count > MAX_BADGE_COUNT ? MAX_BADGE_COUNT + "+" : Long.toString(count);
     }
 
+    public static boolean isValidEstimatePrice(MarketPrice price) {
+        return price != null && price.isRecentExternalPriceAvailable() && Double.isFinite(price.getPrice());
+    }
+
     // use atomic units and the unrounded quote; only round the final display value
     public static String formatBalanceEstimate(BigInteger atomicAmount, MarketPrice price) {
-        if (atomicAmount == null || atomicAmount.signum() < 0 || price == null ||
-                !price.isRecentExternalPriceAvailable() || !Double.isFinite(price.getPrice())) return null;
+        if (atomicAmount == null || atomicAmount.signum() < 0 || !isValidEstimatePrice(price)) return null;
         NumberFormat format = NumberFormat.getNumberInstance(GlobalSettings.getLocale());
         format.setRoundingMode(RoundingMode.HALF_UP);
         format.setMinimumFractionDigits(2);
@@ -56,6 +60,24 @@ public class DisplayUtils {
     // the unrounded value of atomic units at the given price
     public static BigDecimal toFiatValue(BigInteger atomicAmount, MarketPrice price) {
         return new BigDecimal(atomicAmount, 12).multiply(BigDecimal.valueOf(price.getPrice()));
+    }
+
+    // convert fiat input to atomic XMR, rounded to 8 decimals; throws on malformed input
+    public static BigInteger parseFiatToXmr(String fiatInput, MarketPrice price) {
+        if (!isValidEstimatePrice(price) || fiatInput == null || fiatInput.trim().isEmpty()) return BigInteger.ZERO;
+        double fiatAmount = Double.parseDouble(fiatInput.trim());
+        return HavenoUtils.parseXmr(String.format(Locale.US, "%.8f", fiatAmount / price.getPrice()));
+    }
+
+    // plain fiat value, kept parseable by parseFiatToXmr (no grouping or currency code)
+    public static String formatXmrToFiat(BigInteger atomicXmr, MarketPrice price, int maxDecimals) {
+        if (!isValidEstimatePrice(price) || atomicXmr == null) return "";
+        NumberFormat format = NumberFormat.getNumberInstance(Locale.US);
+        format.setRoundingMode(RoundingMode.HALF_UP);
+        format.setGroupingUsed(false);
+        format.setMinimumFractionDigits(2);
+        format.setMaximumFractionDigits(maxDecimals);
+        return format.format(toFiatValue(atomicXmr, price));
     }
 
     public static String formatDateTime(Date date) {

@@ -32,6 +32,7 @@ import haveno.core.util.FormattingUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.TxIdTextField;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
+import haveno.desktop.util.DisplayUtils;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -157,7 +158,7 @@ public class MarketPricePresentation {
         }
         TradeCurrency currency = preferences.getPreferredTradeCurrency();
         MarketPrice price = currency == null ? null : priceFeedService.getMarketPrice(currency.getCode());
-        if (price == null || !price.isRecentExternalPriceAvailable() || !Double.isFinite(price.getPrice())) {
+        if (!DisplayUtils.isValidEstimatePrice(price)) {
             balancePrice.set(null);
             return;
         }
