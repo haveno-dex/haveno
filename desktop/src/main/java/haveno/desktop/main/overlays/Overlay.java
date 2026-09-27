@@ -102,6 +102,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static javafx.scene.input.MouseEvent.MOUSE_CLICKED;
+import static javafx.scene.input.MouseEvent.MOUSE_EXITED;
+import static javafx.scene.input.MouseEvent.MOUSE_EXITED_TARGET;
 import static javafx.scene.input.MouseEvent.MOUSE_PRESSED;
 
 @Slf4j
@@ -1030,6 +1032,8 @@ public abstract class Overlay<T extends Overlay<T>> {
         stage.initModality(Modality.NONE); // non-modal keeps the owner window movable and resizable
         // emulate modality by blocking the owner's input, bouncing focus back to the popup on click
         ownerInputFilter = event -> {
+            // let nodes clear hover and tooltips when the pointer leaves behind a popup
+            if (event.getEventType() == MOUSE_EXITED || event.getEventType() == MOUSE_EXITED_TARGET) return;
             event.consume();
             if (event.getEventType() == MOUSE_PRESSED && stage != null) stage.requestFocus();
         };
