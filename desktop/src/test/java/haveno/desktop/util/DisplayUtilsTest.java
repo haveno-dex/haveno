@@ -215,6 +215,7 @@ public class DisplayUtilsTest {
         assertEquals("≈ 200.10 USDT", DisplayUtils.formatBalanceEstimate(amount, price));
         assertEquals("200.10", DisplayUtils.formatXmrToFiat(amount, price, 8));
         assertEquals(amount, DisplayUtils.parseFiatToXmr("200.10", price));
+        assertEquals(BigInteger.ZERO, DisplayUtils.parseFiatToXmr("0", price));
         assertEquals("", DisplayUtils.formatXmrToFiat(null, price, 8));
         assertEquals(BigInteger.ZERO, DisplayUtils.parseFiatToXmr(null, price));
         assertEquals(BigInteger.ZERO, DisplayUtils.parseFiatToXmr(" ", price));
@@ -236,7 +237,11 @@ public class DisplayUtilsTest {
             assertFalse(DisplayUtils.isValidEstimatePrice(unavailable));
             assertNull(DisplayUtils.formatBalanceEstimate(amount, unavailable));
             assertEquals("", DisplayUtils.formatXmrToFiat(amount, unavailable, 8));
-            assertEquals(BigInteger.ZERO, DisplayUtils.parseFiatToXmr("200.10", unavailable));
+            for (String input : new String[]{"200.10", "0", null, " "}) {
+                IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                        () -> DisplayUtils.parseFiatToXmr(input, unavailable));
+                assertEquals(Res.get("funds.withdrawal.priceUnavailable"), error.getMessage());
+            }
         }
     }
 
