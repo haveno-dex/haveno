@@ -62,9 +62,10 @@ public class DisplayUtils {
         return new BigDecimal(atomicAmount, 12).multiply(BigDecimal.valueOf(price.getPrice()));
     }
 
-    // convert fiat input to atomic XMR, rounded to 8 decimals; throws on malformed input
+    // convert fiat input to atomic XMR, rounded to 8 decimals; requires a valid price
     public static BigInteger parseFiatToXmr(String fiatInput, MarketPrice price) {
-        if (!isValidEstimatePrice(price) || fiatInput == null || fiatInput.trim().isEmpty()) return BigInteger.ZERO;
+        if (!isValidEstimatePrice(price)) throw new IllegalArgumentException(Res.get("funds.withdrawal.priceUnavailable"));
+        if (fiatInput == null || fiatInput.trim().isEmpty()) return BigInteger.ZERO;
         double fiatAmount = Double.parseDouble(fiatInput.trim());
         return HavenoUtils.parseXmr(String.format(Locale.US, "%.8f", fiatAmount / price.getPrice()));
     }
