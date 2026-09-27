@@ -77,14 +77,20 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.InputEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
+import javafx.scene.input.TouchEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
@@ -136,6 +142,59 @@ public class OverlayTest {
     @Test
     public void typeUnsafeCreation() {
         assertThrows(RuntimeException.class, () -> new B());
+    }
+
+    @Nested
+    class OwnerInputFiltering {
+        @Test
+        void mouseExitClearsHoverWhilePopupIsOpen() {
+            for (var exitType : List.of(MouseEvent.MOUSE_EXITED, MouseEvent.MOUSE_EXITED_TARGET)) {
+                Pane target = new Pane();
+                Pane content = new Pane(target);
+                target.fireEvent(mouseEvent(MouseEvent.MOUSE_ENTERED_TARGET));
+                assertTrue(target.isHover());
+                installInputFilter(content);
+                target.fireEvent(mouseEvent(exitType));
+                assertFalse(target.isHover());
+            }
+        }
+
+        @Test
+        void ownerActionsRemainBlockedWhilePopupIsOpen() {
+            Pane target = new Pane();
+            Pane content = new Pane(target);
+            List<InputEvent> delivered = new ArrayList<>();
+            target.addEventHandler(InputEvent.ANY, delivered::add);
+            A popup = installInputFilter(content);
+            for (var type : List.of(MouseEvent.MOUSE_PRESSED, MouseEvent.MOUSE_RELEASED,
+                    MouseEvent.MOUSE_CLICKED, MouseEvent.MOUSE_MOVED, MouseEvent.MOUSE_ENTERED_TARGET,
+                    KeyEvent.KEY_PRESSED, KeyEvent.KEY_RELEASED, KeyEvent.KEY_TYPED,
+                    ScrollEvent.SCROLL, TouchEvent.TOUCH_PRESSED, DragEvent.DRAG_DROPPED)) {
+                target.fireEvent(new InputEvent(type));
+            }
+            assertTrue(delivered.isEmpty());
+            verify(popup.stage).requestFocus();
+        }
+
+        private A installInputFilter(Pane content) {
+            A popup = new A();
+            popup.owner = mock(Pane.class);
+            popup.stage = mock(Stage.class);
+            Scene scene = mock(Scene.class);
+            when(popup.owner.getScene()).thenReturn(scene);
+            // route the scene's filter through a parent to exercise real node hover updates
+            doAnswer(invocation -> {
+                content.addEventFilter(InputEvent.ANY, invocation.getArgument(1));
+                return null;
+            }).when(scene).addEventFilter(eq(InputEvent.ANY), any());
+            popup.setModality();
+            return popup;
+        }
+
+        private MouseEvent mouseEvent(EventType<MouseEvent> type) {
+            return new MouseEvent(type, 0, 0, 0, 0, MouseButton.NONE, 0,
+                    false, false, false, false, false, false, false, false, false, false, null);
+        }
     }
 
     @Nested
