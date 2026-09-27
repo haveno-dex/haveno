@@ -50,7 +50,6 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountList;
 import haveno.core.payment.payload.PaymentMethod;
-import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -157,9 +156,7 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Currency;
@@ -703,12 +700,7 @@ public class GUIUtil {
         if (atomicAmount == null || atomicAmount.signum() <= 0 || priceFeedService == null || preferences == null) return null;
         TradeCurrency currency = preferences.getPreferredTradeCurrency();
         if (currency == null) return null;
-        MarketPrice price = priceFeedService.getMarketPrice(currency.getCode());
-        if (price == null || !price.isPriceAvailable()) return null;
-        DecimalFormat format = (DecimalFormat) NumberFormat.getNumberInstance(GlobalSettings.getLocale());
-        format.setMinimumFractionDigits(2);
-        format.setMaximumFractionDigits(2);
-        return "≈ " + format.format(HavenoUtils.atomicUnitsToXmr(atomicAmount) * price.getPrice()) + " " + currency.getCode();
+        return DisplayUtils.formatBalanceEstimate(atomicAmount, priceFeedService.getMarketPrice(currency.getCode()));
     }
 
     public static void updateConfidence(MoneroTx tx,
