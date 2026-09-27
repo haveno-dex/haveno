@@ -98,8 +98,11 @@ public abstract class TradeStepView extends VBox {
     private Subscription tradePeriodStateSubscription, tradeStateSubscription, disputeStateSubscription, mediationResultStateSubscription, syncUpdateSubscription;
     protected int gridRow = 0;
     private Label timeLeftTextField;
+    private Label deadlineStart;
+    private Label deadlineConfirmations;
     private Label deadlineDate;
     private Label duration;
+    private VBox deadlinePeriod;
     private final VBox actionPane;
     private VBox deadlinePane;
     private VBox sidebar;
@@ -304,6 +307,7 @@ public abstract class TradeStepView extends VBox {
                 UserThread.execute(() -> {
                     if (active) {
                         updateDepositSummary();
+                        updateTimeLeft();
                         onDepositTxsUpdate();
                     }
                 });
@@ -482,6 +486,12 @@ public abstract class TradeStepView extends VBox {
         timeLeftProgressBar = new ProgressBar();
         timeLeftProgressBar.getStyleClass().add("trade-progress");
         timeLeftProgressBar.setMaxWidth(Double.MAX_VALUE);
+        deadlineStart = new Label(Res.get("portfolio.pending.remainingTimeDetail.startsAfter", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
+        deadlineStart.setWrapText(true);
+        deadlineStart.getStyleClass().add("trade-secondary");
+        deadlineConfirmations = new Label();
+        deadlineConfirmations.setWrapText(true);
+        deadlineConfirmations.getStyleClass().add("trade-secondary");
         deadlineDate = new Label();
         deadlineDate.setWrapText(true);
         deadlineDate.getStyleClass().add("trade-secondary");
@@ -504,8 +514,8 @@ public abstract class TradeStepView extends VBox {
         });
         HBox durationRow = new HBox(6, duration, durationHelp);
         durationRow.setAlignment(Pos.CENTER_LEFT);
-        VBox period = new VBox(4, durationRow, deadlineDate);
-        deadlinePane = new VBox(10, title, timeLeftTextField, timeLeftProgressBar, period);
+        deadlinePeriod = new VBox(4, durationRow, deadlineDate);
+        deadlinePane = new VBox(10, title, timeLeftTextField, deadlineStart, timeLeftProgressBar, deadlineConfirmations, deadlinePeriod);
         deadlinePane.getStyleClass().add("trade-panel");
 
         depositDetails = new VBox(16);
@@ -768,24 +778,42 @@ public abstract class TradeStepView extends VBox {
 
     private void updateTimeLeft() {
         updateStepWarning();
-        if (!trade.isInitialized()) {
+        boolean initialized = trade.isInitialized();
+        boolean expired = initialized && isTradePeriodOver();
+        boolean started = initialized && trade.isDepositsFinalized();
+        boolean waiting = initialized && !started && !expired;
+        deadlineStart.setVisible(waiting);
+        deadlineStart.setManaged(waiting);
+        deadlineConfirmations.setVisible(waiting);
+        deadlineConfirmations.setManaged(waiting);
+        deadlinePeriod.setVisible(initialized && !waiting);
+        deadlinePeriod.setManaged(initialized && !waiting);
+        timeLeftProgressBar.setAccessibleText(null);
+        deadlinePane.pseudoClassStateChanged(PseudoClass.getPseudoClass("waiting"), waiting);
+        deadlinePane.pseudoClassStateChanged(PseudoClass.getPseudoClass("expired"), expired);
+        deadlinePane.pseudoClassStateChanged(PseudoClass.getPseudoClass("second-half"), started && model.getRemainingTradeDurationAsPercentage() >= 0.5);
+        if (!initialized) {
             setTimeLeft(Res.get("portfolio.pending.tradeView.awaitingInformation"), false);
             timeLeftProgressBar.setProgress(0);
             return;
         }
-        boolean expired = isTradePeriodOver();
-        boolean started = trade.isDepositsFinalized();
-        setTimeLeft(expired ? Res.get("portfolio.pending.tradeView.expired") : started ?
-                formatRemainingTime(model.getRemainingTradeDuration()) : Res.get("portfolio.pending.tradeView.notStarted"), started && !expired);
+        if (waiting) {
+            Long count = getNumDepositConfirmations();
+            setTimeLeft(Res.get("portfolio.pending.tradeView.notStarted"), false);
+            deadlineConfirmations.setText(count == null ? Res.get("portfolio.pending.tradeView.awaitingDeposit") :
+                    Res.get("portfolio.pending.tradeView.confirmationCount", Math.max(0, count), Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
+            timeLeftProgressBar.setProgress(count == null ? 0 : Math.min(1, Math.max(0, (double) count / Trade.NUM_BLOCKS_DEPOSITS_FINALIZED)));
+            timeLeftProgressBar.setAccessibleText(deadlineConfirmations.getText());
+            return;
+        }
+        setTimeLeft(expired ? Res.get("portfolio.pending.tradeView.expired") :
+                formatRemainingTime(model.getRemainingTradeDuration()), !expired);
         deadlineDate.setText(started ? Res.get(expired ? "portfolio.pending.tradeView.endedDate" :
                 "portfolio.pending.tradeView.deadlineDate", model.getDateForOpenDispute()) :
                 Res.get("portfolio.pending.remainingTimeDetail.startsAfter", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
         String period = FormattingUtils.formatDurationAsWords(trade.getOffer().getPaymentMethod().getMaxTradePeriod(), false, false);
-        duration.setText(Res.get(expired ? "portfolio.pending.tradeView.periodWas" : started ?
-                "portfolio.pending.tradeView.periodRemaining" : "portfolio.pending.tradeView.maximumPeriod", period));
-        timeLeftProgressBar.setProgress(expired ? 1 : started ? Math.min(1, Math.max(0, 1 - model.getRemainingTradeDurationAsPercentage())) : 0);
-        deadlinePane.pseudoClassStateChanged(PseudoClass.getPseudoClass("expired"), expired);
-        deadlinePane.pseudoClassStateChanged(PseudoClass.getPseudoClass("second-half"), started && model.getRemainingTradeDurationAsPercentage() >= 0.5);
+        duration.setText(Res.get(expired ? "portfolio.pending.tradeView.periodWas" : "portfolio.pending.tradeView.periodRemaining", period));
+        timeLeftProgressBar.setProgress(expired ? 1 : Math.min(1, Math.max(0, 1 - model.getRemainingTradeDurationAsPercentage())));
     }
 
     private String formatRemainingTime(long milliseconds) {
