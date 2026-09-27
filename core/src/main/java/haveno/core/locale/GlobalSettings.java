@@ -29,7 +29,7 @@ public class GlobalSettings {
     private static boolean useAnimations = true;
     private static Locale locale;
     private static final ObjectProperty<Locale> localeProperty = new SimpleObjectProperty<>(locale);
-    private static TradeCurrency defaultTradeCurrency;
+    private static final ObjectProperty<TradeCurrency> defaultTradeCurrency = new SimpleObjectProperty<>();
     private static String btcDenomination;
 
     static {
@@ -51,7 +51,7 @@ public class GlobalSettings {
     }
 
     public static void setDefaultTradeCurrency(TradeCurrency tradeCurrency) {
-        GlobalSettings.defaultTradeCurrency = tradeCurrency;
+        defaultTradeCurrency.set(tradeCurrency);
     }
 
 
@@ -60,6 +60,10 @@ public class GlobalSettings {
     }
 
     public static TradeCurrency getDefaultTradeCurrency() {
+        return defaultTradeCurrency.get();
+    }
+
+    public static ReadOnlyObjectProperty<TradeCurrency> defaultTradeCurrencyProperty() {
         return defaultTradeCurrency;
     }
 

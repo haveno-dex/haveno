@@ -32,6 +32,7 @@ import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.api.XmrConnectionService;
+import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.app.HavenoSetup;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
@@ -44,6 +45,7 @@ import haveno.core.payment.CryptoCurrencyAccount;
 import haveno.core.payment.RevolutAccount;
 import haveno.core.presentation.BalancePresentation;
 import haveno.core.presentation.SupportTicketsPresentation;
+import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.HavenoUtils;
@@ -85,6 +87,7 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -677,6 +680,14 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
         return balancePresentation.getAvailableBalance();
     }
 
+    ReadOnlyObjectProperty<XmrBalanceInfo> balanceInfoProperty() {
+        return balancePresentation.balanceInfoProperty();
+    }
+
+    ReadOnlyObjectProperty<MarketPrice> balancePriceProperty() {
+        return marketPricePresentation.balancePriceProperty();
+    }
+
     StringProperty getReservedBalance() {
         return balancePresentation.getReservedBalance();
     }
@@ -775,10 +786,6 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     StringProperty getMarketPrice() {
         return marketPricePresentation.getMarketPrice();
-    }
-
-    StringProperty getMarketPrice(String currencyCode) {
-        return marketPricePresentation.getMarketPrice(currencyCode);
     }
 
     public ObservableList<PriceFeedComboBoxItem> getPriceFeedComboBoxItems() {

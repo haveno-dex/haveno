@@ -25,6 +25,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Utilities;
+import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.LanguageUtil;
 import haveno.core.locale.Res;
@@ -61,15 +62,14 @@ import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Transitions;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
+import java.math.BigInteger;
 import java.util.Date;
-import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.beans.binding.ObjectBinding;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -211,11 +211,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 Res.get("notification.chat.unreadSupportTickets"));
         JFXBadge settingsButtonWithBadge = new JFXBadge(settingsButton);
 
-        Locale locale = GlobalSettings.getLocale();
-        DecimalFormat currencyFormat = (DecimalFormat) NumberFormat.getNumberInstance(locale);
-        currencyFormat.setMinimumFractionDigits(2);
-        currencyFormat.setMaximumFractionDigits(2);
-
         root.sceneProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
                 newValue.addEventHandler(KeyEvent.KEY_RELEASED, keyEvent -> {
@@ -246,82 +241,22 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         Tuple2<Label, VBox> availableBalanceBox = getBalanceBox(Res.get("mainView.balance.available"),
                 () -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class));
         availableBalanceBox.first.textProperty().bind(model.getAvailableBalance());
-        availableBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
-            {
-                bind(model.getAvailableBalance());
-                bind(model.getMarketPrice());
-            }
-
-            @Override
-            protected Tooltip computeValue() {
-                String tooltipText = Res.get("mainView.balance.available");
-                try {
-                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
-                    double availableBalance = Double.parseDouble(
-                            model.getAvailableBalance().getValue().replace("XMR", ""));
-                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
-                    tooltipText += "\n" + currencyFormat.format(availableBalance * marketPrice) +
-                            " " + preferredTradeCurrency;
-                } catch (NullPointerException | NumberFormatException e) {
-                    // Either the balance or market price is not available yet
-                }
-                return new Tooltip(tooltipText);
-            }
-        });
+        availableBalanceBox.first.setTooltip(getBalanceTooltip(Res.get("mainView.balance.available"),
+                XmrBalanceInfo::getAvailableBalance));
 
         // reserved funds are held by open offers or open trades, so go to their holder
         Tuple2<Label, VBox> reservedBalanceBox = getBalanceBox(Res.get("mainView.balance.reserved.short"),
                 () -> navigation.navigateTo(MainView.class, PortfolioView.class,
                         model.hasOpenOffers() ? OpenOffersView.class : PendingTradesView.class));
         reservedBalanceBox.first.textProperty().bind(model.getReservedBalance());
-        reservedBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
-            {
-                bind(model.getReservedBalance());
-                bind(model.getMarketPrice());
-            }
-
-            @Override
-            protected Tooltip computeValue() {
-                String tooltipText = Res.get("mainView.balance.reserved");
-                try {
-                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
-                    double reservedBalance = Double.parseDouble(
-                            model.getReservedBalance().getValue().replace("XMR", ""));
-                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
-                    tooltipText += "\n" + currencyFormat.format(reservedBalance * marketPrice) +
-                            " " + preferredTradeCurrency;
-                } catch (NullPointerException | NumberFormatException e) {
-                    // Either the balance or market price is not available yet
-                }
-                return new Tooltip(tooltipText);
-            }
-        });
+        reservedBalanceBox.first.setTooltip(getBalanceTooltip(Res.get("mainView.balance.reserved"),
+                XmrBalanceInfo::getReservedBalance));
 
         Tuple2<Label, VBox> pendingBalanceBox = getBalanceBox(Res.get("mainView.balance.pending.short"),
                 () -> navigation.navigateTo(MainView.class, FundsView.class, TransactionsView.class));
         pendingBalanceBox.first.textProperty().bind(model.getPendingBalance());
-        pendingBalanceBox.first.tooltipProperty().bind(new ObjectBinding<>() {
-            {
-                bind(model.getPendingBalance());
-                bind(model.getMarketPrice());
-            }
-
-            @Override
-            protected Tooltip computeValue() {
-                String tooltipText = Res.get("mainView.balance.pending");
-                try {
-                    String preferredTradeCurrency = model.getPreferences().getPreferredTradeCurrency().getCode();
-                    double lockedBalance = Double.parseDouble(
-                            model.getPendingBalance().getValue().replace("XMR", ""));
-                    double marketPrice = Double.parseDouble(model.getMarketPrice(preferredTradeCurrency).getValue());
-                    tooltipText += "\n" + currencyFormat.format(lockedBalance * marketPrice) +
-                            " " + preferredTradeCurrency;
-                } catch (NullPointerException | NumberFormatException e) {
-                    // Either the balance or market price is not available yet
-                }
-                return new Tooltip(tooltipText);
-            }
-        });
+        pendingBalanceBox.first.setTooltip(getBalanceTooltip(Res.get("mainView.balance.pending"),
+                XmrBalanceInfo::getPendingBalance));
 
         // add spacer to center the nav buttons when window is small
         Region rightSpacer = new Region();
@@ -470,6 +405,17 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         spacer.getStyleClass().add("nav-spacer");
         return spacer;
+    }
+
+    private Tooltip getBalanceTooltip(String title, Function<XmrBalanceInfo, BigInteger> amount) {
+        Tooltip tooltip = new Tooltip();
+        tooltip.textProperty().bind(Bindings.createStringBinding(() -> {
+            XmrBalanceInfo info = model.balanceInfoProperty().get();
+            String estimate = DisplayUtils.formatBalanceEstimate(info == null ? null : amount.apply(info),
+                    model.balancePriceProperty().get());
+            return estimate == null ? title : title + "\n" + estimate;
+        }, model.balanceInfoProperty(), model.balancePriceProperty(), GlobalSettings.localeProperty()));
+        return tooltip;
     }
 
     private Tuple2<Label, VBox> getBalanceBox(String text, Runnable onClick) {

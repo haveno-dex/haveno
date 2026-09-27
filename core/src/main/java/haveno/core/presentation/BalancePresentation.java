@@ -22,6 +22,8 @@ import haveno.common.UserThread;
 import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.Balances;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import lombok.Getter;
@@ -30,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class BalancePresentation {
 
+    private final ReadOnlyObjectWrapper<XmrBalanceInfo> balanceInfo = new ReadOnlyObjectWrapper<>();
     @Getter
     private final StringProperty availableBalance = new SimpleStringProperty();
     @Getter
@@ -42,10 +45,15 @@ public class BalancePresentation {
         balances.getUpdateCounter().addListener((observable, oldValue, newValue) -> {
             XmrBalanceInfo info = balances.getBalances();
             UserThread.execute(() -> {
+                balanceInfo.set(info);
                 availableBalance.set(HavenoUtils.formatXmr(info.getAvailableBalance(), true));
                 pendingBalance.set(HavenoUtils.formatXmr(info.getPendingBalance(), true));
                 reservedBalance.set(HavenoUtils.formatXmr(info.getReservedBalance(), true));
             });
         });
+    }
+
+    public ReadOnlyObjectProperty<XmrBalanceInfo> balanceInfoProperty() {
+        return balanceInfo.getReadOnlyProperty();
     }
 }

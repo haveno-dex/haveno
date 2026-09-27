@@ -38,7 +38,6 @@ import com.google.inject.Inject;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import haveno.common.UserThread;
-import haveno.common.util.MathUtils;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
@@ -61,6 +60,8 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TxWithdrawWindow;
 import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
 import haveno.desktop.main.overlays.windows.WithdrawConfirmationWindow;
+import haveno.desktop.main.presentation.MarketPricePresentation;
+import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -81,6 +82,7 @@ import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Arrays;
@@ -107,11 +109,13 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     private final WalletPasswordWindow walletPasswordWindow;
     private final Preferences preferences;
     private final PriceFeedService priceFeedService;
+    private final MarketPricePresentation marketPricePresentation;
     private final DecimalFormat fiatFormat;
     private final DecimalFormat plainFiatFormat;
 
     private XmrBalanceListener balanceListener;
     private ChangeListener<Number> priceChangeListener;
+    private final ChangeListener<MarketPrice> balancePriceListener = (observable, oldValue, newValue) -> updateBalanceEstimate();
     private ChangeListener<String> addressListener, amountListener;
     private ChangeListener<Boolean> addressFocusListener, amountFocusListener;
     private BigInteger amount = BigInteger.ZERO;
@@ -127,17 +131,21 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     private WithdrawalView(XmrWalletService xmrWalletService,
                            WalletPasswordWindow walletPasswordWindow,
                            Preferences preferences,
-                           PriceFeedService priceFeedService) {
+                           PriceFeedService priceFeedService,
+                           MarketPricePresentation marketPricePresentation) {
         this.xmrWalletService = xmrWalletService;
         this.walletPasswordWindow = walletPasswordWindow;
         this.preferences = preferences;
         this.priceFeedService = priceFeedService;
+        this.marketPricePresentation = marketPricePresentation;
 
         fiatFormat = (DecimalFormat) NumberFormat.getNumberInstance(GlobalSettings.getLocale());
+        fiatFormat.setRoundingMode(RoundingMode.HALF_UP);
         fiatFormat.setMinimumFractionDigits(2);
         fiatFormat.setMaximumFractionDigits(2);
 
         plainFiatFormat = (DecimalFormat) NumberFormat.getNumberInstance(Locale.US);
+        plainFiatFormat.setRoundingMode(RoundingMode.HALF_UP);
         plainFiatFormat.setGroupingUsed(false);
         plainFiatFormat.setMinimumFractionDigits(2);
     }
@@ -296,6 +304,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         amountField.focusedProperty().addListener(amountFocusListener);
         xmrWalletService.addBalanceListener(balanceListener);
         priceFeedService.updateCounterProperty().addListener(priceChangeListener);
+        marketPricePresentation.balancePriceProperty().addListener(balancePriceListener);
 
         GUIUtil.requestFocus(addressField);
     }
@@ -309,6 +318,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         amountField.focusedProperty().removeListener(amountFocusListener);
         xmrWalletService.removeBalanceListener(balanceListener);
         priceFeedService.updateCounterProperty().removeListener(priceChangeListener);
+        marketPricePresentation.balancePriceProperty().removeListener(balancePriceListener);
     }
 
 
@@ -457,12 +467,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     }
 
     private void updateBalanceDisplay() {
-        BigInteger available = xmrWalletService.getAvailableBalance();
-        balanceAmountLabel.setText(HavenoUtils.formatXmr(available, true));
-        String fiat = getFiatText(available);
-        balanceFiatLabel.setText(fiat == null ? "" : fiat);
-        balanceFiatLabel.setVisible(fiat != null);
-        balanceFiatLabel.setManaged(fiat != null);
+        updateBalanceEstimate();
 
         // fiat input needs a market price; clear it if the preferred currency changed while away
         boolean hasPrice = marketPrice() != null;
@@ -472,6 +477,16 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         if (amountInFiat && (!hasPrice || currency == null || !currency.getCode().equals(currencyToggle.getText()))) {
             setAmountCurrency(false);
         }
+    }
+
+    private void updateBalanceEstimate() {
+        BigInteger available = xmrWalletService.getAvailableBalance();
+        balanceAmountLabel.setText(HavenoUtils.formatXmr(available, true));
+        String fiat = available.signum() == 0 ? null
+                : DisplayUtils.formatBalanceEstimate(available, marketPricePresentation.balancePriceProperty().get());
+        balanceFiatLabel.setText(fiat == null ? "" : fiat);
+        balanceFiatLabel.setVisible(fiat != null);
+        balanceFiatLabel.setManaged(fiat != null);
     }
 
     // show the amount in the other currency, or an invalid-input / over-balance error below the field
@@ -536,10 +551,8 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         if (atomicAmount == null || atomicAmount.signum() <= 0) return null;
         MarketPrice price = marketPrice();
         if (price == null) return null;
-        int decimals = fiatMaxDecimals();
-        double fiatValue = MathUtils.roundDouble(HavenoUtils.atomicUnitsToXmr(atomicAmount) * price.getPrice(), decimals);
-        fiatFormat.setMaximumFractionDigits(decimals);
-        return "≈ " + fiatFormat.format(fiatValue) + " " + preferences.getPreferredTradeCurrency().getCode();
+        fiatFormat.setMaximumFractionDigits(fiatMaxDecimals());
+        return "≈ " + fiatFormat.format(DisplayUtils.toFiatValue(atomicAmount, price)) + " " + preferences.getPreferredTradeCurrency().getCode();
     }
 
     // crypto and precious-metal prices need up to 8 decimals; fiat uses 2 (trailing zeros trimmed)
@@ -576,9 +589,8 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     private String formatXmrToFiat(BigInteger atomicXmr) {
         MarketPrice price = marketPrice();
         if (price == null || atomicXmr == null) return "";
-        int decimals = fiatMaxDecimals();
-        plainFiatFormat.setMaximumFractionDigits(decimals);
-        return plainFiatFormat.format(MathUtils.roundDouble(HavenoUtils.atomicUnitsToXmr(atomicXmr) * price.getPrice(), decimals));
+        plainFiatFormat.setMaximumFractionDigits(fiatMaxDecimals());
+        return plainFiatFormat.format(DisplayUtils.toFiatValue(atomicXmr, price));
     }
 
     private String getXmrText(BigInteger atomicAmount) {

@@ -3,6 +3,7 @@ package haveno.desktop.util;
 import haveno.common.crypto.PubKeyRing;
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -12,6 +13,7 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.provider.price.MarketPrice;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.ParsingUtils;
@@ -26,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.text.DateFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Optional;
@@ -37,6 +40,22 @@ public class DisplayUtils {
 
     public static String formatBadgeCount(long count) {
         return count > MAX_BADGE_COUNT ? MAX_BADGE_COUNT + "+" : Long.toString(count);
+    }
+
+    // use atomic units and the unrounded quote; only round the final display value
+    public static String formatBalanceEstimate(BigInteger atomicAmount, MarketPrice price) {
+        if (atomicAmount == null || atomicAmount.signum() < 0 || price == null ||
+                !price.isRecentExternalPriceAvailable() || !Double.isFinite(price.getPrice())) return null;
+        NumberFormat format = NumberFormat.getNumberInstance(GlobalSettings.getLocale());
+        format.setRoundingMode(RoundingMode.HALF_UP);
+        format.setMinimumFractionDigits(2);
+        format.setMaximumFractionDigits(CurrencyUtil.isPricePrecise(price.getCurrencyCode()) ? 8 : 2);
+        return "≈ " + format.format(toFiatValue(atomicAmount, price)) + " " + price.getCurrencyCode();
+    }
+
+    // the unrounded value of atomic units at the given price
+    public static BigDecimal toFiatValue(BigInteger atomicAmount, MarketPrice price) {
+        return new BigDecimal(atomicAmount, 12).multiply(BigDecimal.valueOf(price.getPrice()));
     }
 
     public static String formatDateTime(Date date) {
