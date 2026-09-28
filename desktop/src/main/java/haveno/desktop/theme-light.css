@@ -141,6 +141,7 @@
     -bs-color-background-row-odd: #f4f5f7;
     -bs-color-background-row-hover: -bs-combo-popup-hover;
     -bs-color-table-cell-dim: -bs-color-gray-ccc;
+    -bs-color-table-cell-disabled: #8b96a8;
     -bs-color-background-popup: white;
     -bs-color-background-popup-blur: white;
     -bs-color-background-popup-input: -bs-color-gray-background;

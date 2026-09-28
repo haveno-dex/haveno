@@ -2978,7 +2978,7 @@ textfield */
 
 /* Open Offer */
 .offer-disabled .label {
-    -fx-text-fill: -bs-color-gray-3;
+    -fx-text-fill: -bs-color-table-cell-disabled;
 }
 
 /* OfferBook */
