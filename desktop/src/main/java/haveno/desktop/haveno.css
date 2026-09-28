@@ -166,6 +166,7 @@
     -fx-padding: 0 40 0 40;
     -fx-effect: dropshadow(gaussian, -bs-text-color-transparent, 2, 0, 0, 0, 1);
     -fx-cursor: hand;
+    -jfx-disable-visual-focus: true;
 }
 
 .jfx-button > .jfx-rippler {
@@ -179,11 +180,11 @@
     -fx-background-insets: inherit;
 }
 
-.jfx-button:hover, .jfx-button:focused {
+.jfx-button:hover, .jfx-button:focus-visible {
     -fx-background-color: derive(-bs-color-gray-2, -10%);
 }
 
-.action-button:hover, .action-button:focused {
+.action-button:hover, .action-button:focus-visible {
     -fx-background-color: derive(-bs-color-primary-dark, -10%);
 }
 
