@@ -2558,7 +2558,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     public void setPeriodState(TradePeriodState tradePeriodState) {
         this.periodState = tradePeriodState;
-        tradePeriodStateProperty.set(tradePeriodState);
+        UserThread.execute(() -> tradePeriodStateProperty.set(tradePeriodState));
     }
 
     public void setAmount(BigInteger tradeAmount) {

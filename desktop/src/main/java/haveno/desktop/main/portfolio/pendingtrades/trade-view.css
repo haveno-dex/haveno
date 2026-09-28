@@ -22,18 +22,29 @@
     -fx-background-radius: 4;
 }
 .table-view .table-row-cell .table-cell .label.trade-direction-buy {
-    -fx-text-fill: ladder(-bs-background-color, -bs-buy 49%, derive(-bs-buy, -45%) 50%);
-    -fx-background-color: ladder(-bs-background-color, derive(-bs-buy, -80%) 49%, #e7f2eb 50%);
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-buy, 15%) 49%, derive(-bs-buy, -30%) 50%);
+    -fx-background-color: ladder(-bs-background-color, derive(-bs-buy, -65%) 49%, #d3ecd7 50%);
 }
 .table-view .table-row-cell .table-cell .label.trade-direction-sell {
-    -fx-text-fill: ladder(-bs-background-color, derive(-bs-sell, 25%) 49%, derive(-bs-sell, -20%) 50%);
-    -fx-background-color: ladder(-bs-background-color, derive(-bs-sell, -80%) 49%, #fbe9e7 50%);
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-sell, 35%) 49%, derive(-bs-sell, -10%) 50%);
+    -fx-background-color: ladder(-bs-background-color, derive(-bs-sell, -65%) 49%, #f9d4cf 50%);
 }
 .table-view .table-row-cell .table-cell .label.trade-status-waiting {
     -fx-text-fill: -bs-color-gray-6;
 }
 .table-view .table-row-cell .table-cell .label.trade-status-attention {
-    -fx-text-fill: ladder(-bs-background-color, -bs-yellow 49%, #a04b08 50%);
+    -fx-text-fill: -bs-hero-primary;
+}
+.table-view .table-row-cell .table-cell .label.trade-status-overdue {
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-warning, 20%) 49%, derive(-bs-warning, -25%) 50%);
+}
+.table-view .table-row-cell .table-cell .label.trade-status-problem {
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-rd-error-red, 25%) 49%, -bs-rd-error-red 50%);
+}
+.table-view.pending-trades-table .table-row-cell:filled:selected .table-cell.first-column {
+    -fx-background-color: -bs-hero-primary, -fx-selection-bar;
+    -fx-background-insets: 0, 0 0 0 3;
+    -fx-border-color: transparent;
 }
 
 /* keep mouse focus from highlighting trade actions after a popup closes */
@@ -158,9 +169,9 @@
     -fx-text-fill: -bs-color-gray-6;
 }
 .trade-detail-view .trade-step:current .trade-step-circle {
-    -fx-background-color: -bs-color-primary-dark;
+    -fx-background-color: -bs-color-primary;
     -fx-background-radius: 30;
-    -fx-border-color: -bs-color-primary-dark;
+    -fx-border-color: -bs-color-primary;
     -fx-text-fill: white;
 }
 .trade-detail-view .trade-step:current .trade-step-title {
@@ -183,12 +194,12 @@
 .trade-detail-view .trade-step:complete .separator .line {
     -fx-border-color: -bs-rd-green;
 }
-.trade-detail-view .trade-step:current:warning .trade-step-circle {
-    -fx-background-color: -bs-rd-error-red;
-    -fx-border-color: -bs-rd-error-red;
+.trade-detail-view .trade-step:current:warning .trade-step-caption {
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-warning, 20%) 49%, derive(-bs-warning, -25%) 50%);
 }
-.trade-detail-view .trade-step:current:warning .trade-step-title {
-    -fx-text-fill: -bs-rd-error-red;
+.trade-detail-view .trade-step:current:warning:dispute .trade-step-caption {
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-rd-error-red, 25%) 49%, -bs-rd-error-red 50%);
 }
 .trade-detail-view .trade-amount-panel,
 .trade-detail-view .trade-confirmations {
@@ -281,6 +292,19 @@
 }
 .trade-detail-view .trade-panel:expired .trade-progress .bar {
     -fx-background-color: -bs-rd-error-red;
+}
+.trade-detail-view .trade-panel:expired:arbitration .trade-deadline-value {
+    -fx-font-size: 18px;
+    -fx-text-fill: -bs-color-gray-6;
+}
+.trade-detail-view .trade-panel:expired:arbitration .trade-progress {
+    -fx-pref-height: 3;
+    -fx-min-height: 3;
+    -fx-max-height: 3;
+}
+.trade-detail-view .trade-panel:expired:arbitration .trade-progress .bar {
+    -fx-background-color: -bs-color-gray-2;
+    -fx-padding: 1.5;
 }
 .trade-detail-view .trade-clock-icon {
     -fx-fill: transparent;

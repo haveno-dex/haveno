@@ -21,6 +21,7 @@ import monero.wallet.model.MoneroTxWallet;
 import haveno.core.util.FormattingUtils;
 import javafx.css.PseudoClass;
 import javafx.geometry.VPos;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import static com.google.common.base.Preconditions.checkNotNull;
 import haveno.desktop.util.GlyphsDude;
@@ -111,6 +112,7 @@ public abstract class TradeStepView extends VBox {
     private VBox deadlinePane;
     private VBox sidebar;
     private VBox helpPane;
+    private Label helpLabel;
     private final PopOverWrapper durationPopover = new PopOverWrapper();
     private VBox depositsPane;
     private VBox depositDetails;
@@ -126,7 +128,7 @@ public abstract class TradeStepView extends VBox {
     };
     private boolean completed;
     private Consumer<String> stepCaptionHandler;
-    private Consumer<String> stepWarningHandler;
+    private BiConsumer<String, Boolean> stepWarningHandler;
     private String stepCaption;
     private boolean subscriptionsRegistered;
     private ProgressBar timeLeftProgressBar;
@@ -580,10 +582,10 @@ public abstract class TradeStepView extends VBox {
         helpTitle.getStyleClass().add("trade-section-heading");
         helpPane = new VBox(10, helpTitle);
         if (!trade.isArbitrator()) {
-            Label help = new Label(Res.get(trade.isBuyer() ? "portfolio.pending.tradeView.contactSeller" : "portfolio.pending.tradeView.contactBuyer"));
-            help.setWrapText(true);
-            help.getStyleClass().add("trade-secondary");
-            helpPane.getChildren().add(help);
+            helpLabel = new Label(Res.get(trade.isBuyer() ? "portfolio.pending.tradeView.contactSeller" : "portfolio.pending.tradeView.contactBuyer"));
+            helpLabel.setWrapText(true);
+            helpLabel.getStyleClass().add("trade-secondary");
+            helpPane.getChildren().add(helpLabel);
         }
         Hyperlink communityHelp = new Hyperlink(Res.get("supportInfoWindow.community.link"));
         communityHelp.setWrapText(true);
@@ -688,7 +690,7 @@ public abstract class TradeStepView extends VBox {
         rate.getStyleClass().add("trade-secondary");
         rate.setWrapText(true);
         VBox exchange = new VBox(4, xmrAmount, rate);
-        exchange.setAlignment(Pos.CENTER_RIGHT);
+        exchange.setAlignment(Pos.BOTTOM_RIGHT);
         exchange.setMinWidth(0);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -798,6 +800,14 @@ public abstract class TradeStepView extends VBox {
 
     private void updateTimeLeft() {
         updateStepWarning();
+        boolean arbitration = trade.getDisputeState() == Trade.DisputeState.DISPUTE_OPENED && tradeStepInfo != null &&
+                (tradeStepInfo.getState() == TradeStepInfo.State.IN_ARBITRATION_SELF_REQUESTED ||
+                        tradeStepInfo.getState() == TradeStepInfo.State.IN_ARBITRATION_PEER_REQUESTED);
+        deadlinePane.pseudoClassStateChanged(PseudoClass.getPseudoClass("arbitration"), arbitration);
+        if (helpLabel != null) {
+            helpLabel.setVisible(!arbitration);
+            helpLabel.setManaged(!arbitration);
+        }
         boolean initialized = trade.isInitialized();
         boolean expired = initialized && isTradePeriodOver();
         boolean started = initialized && trade.isDepositsFinalized();
@@ -866,7 +876,7 @@ public abstract class TradeStepView extends VBox {
         if (stepCaption != null) handler.accept(stepCaption);
     }
 
-    public void setStepWarningHandler(Consumer<String> handler) {
+    public void setStepWarningHandler(BiConsumer<String, Boolean> handler) {
         stepWarningHandler = handler;
         updateStepWarning();
     }
@@ -879,7 +889,7 @@ public abstract class TradeStepView extends VBox {
                 state == Trade.DisputeState.MEDIATION_STARTED_BY_PEER;
         String key = disputed ? "portfolio.pending.tradeView.inDispute" :
                 isTradePeriodOver() && !(trade.isArbitrator() && trade.isDepositsFinalized()) ? "portfolio.pending.tradeView.overdue" : null;
-        stepWarningHandler.accept(completed || trade.isPayoutPublished() || key == null ? null : Res.get(key));
+        stepWarningHandler.accept(completed || trade.isPayoutPublished() || key == null ? null : Res.get(key), disputed);
     }
 
     protected void updateStepCaption(String caption) {
@@ -946,7 +956,6 @@ public abstract class TradeStepView extends VBox {
     }
 
     protected void updateDisputeState(Trade.DisputeState disputeState) {
-        updateStepWarning();
         Optional<Dispute> ownDispute;
         switch (disputeState) {
             case NO_DISPUTE:
@@ -1053,6 +1062,7 @@ public abstract class TradeStepView extends VBox {
             default:
                 break;
         }
+        updateTimeLeft();
     }
 
     private void updateMediationResultState(boolean blockOpeningOfResultAcceptedPopup) {

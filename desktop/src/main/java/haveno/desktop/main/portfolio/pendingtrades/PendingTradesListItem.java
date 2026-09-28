@@ -44,9 +44,11 @@ public class PendingTradesListItem implements FilterableListItem {
         DEPOSITS_CONFIRMED("portfolio.pending.tradeView.depositsConfirmed", false),
         RECOMMENDED_WAIT("portfolio.pending.tradeView.recommendedWait", false),
         SEND_PAYMENT("portfolio.pending.tradeView.sendPayment", true),
+        SEND_PAYMENT_OVERDUE("portfolio.pending.tradeView.sendPayment", true),
         WAITING_BUYER("portfolio.pending.tradeView.waitingBuyer", false),
         WAITING_SELLER("portfolio.pending.tradeView.waitingSeller", false),
         CONFIRM_RECEIPT("portfolio.pending.tradeView.confirmReceipt", true),
+        CONFIRM_RECEIPT_OVERDUE("portfolio.pending.tradeView.confirmReceipt", true),
         CONFIRMING_PAYMENT("portfolio.pending.tradeView.confirmingPayment", false),
         RETRY_CONFIRMATION("portfolio.pending.status.retryConfirmation", true),
         IN_DISPUTE("portfolio.pending.tradeView.inDispute", true),
@@ -73,7 +75,8 @@ public class PendingTradesListItem implements FilterableListItem {
         this.btcFormatter = btcFormatter;
         tradeStatus = Bindings.createObjectBinding(
                 () -> calculateTradeStatus(showPaymentDetailsEarly.getOrDefault(trade.getId(), false)),
-                trade.stateProperty(), trade.payoutStateProperty(), trade.disputeStateProperty(), showPaymentDetailsEarly);
+                trade.stateProperty(), trade.payoutStateProperty(), trade.disputeStateProperty(), trade.tradePeriodStateProperty(),
+                showPaymentDetailsEarly);
     }
 
     public Trade getTrade() {
@@ -109,6 +112,13 @@ public class PendingTradesListItem implements FilterableListItem {
     }
 
     private TradeStatus calculateTradeStatus(boolean showPaymentDetailsEarly) {
+        TradeStatus status = calculateBaseTradeStatus(showPaymentDetailsEarly);
+        if (trade.tradePeriodStateProperty().get() != Trade.TradePeriodState.TRADE_PERIOD_OVER) return status;
+        return status == TradeStatus.SEND_PAYMENT ? TradeStatus.SEND_PAYMENT_OVERDUE :
+                status == TradeStatus.CONFIRM_RECEIPT ? TradeStatus.CONFIRM_RECEIPT_OVERDUE : status;
+    }
+
+    private TradeStatus calculateBaseTradeStatus(boolean showPaymentDetailsEarly) {
         if (trade.isPayoutPublished() || trade.isCompleted()) return TradeStatus.COMPLETED;
         if (trade.getDisputeState().isDisputed()) {
             return trade.getDisputeState().isCloseRequested() ? TradeStatus.ARBITRATED : TradeStatus.IN_DISPUTE;

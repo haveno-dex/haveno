@@ -34,27 +34,37 @@ public class TradeWizardItem extends HBox {
     private static final PseudoClass CURRENT = PseudoClass.getPseudoClass("current");
     private static final PseudoClass COMPLETE = PseudoClass.getPseudoClass("complete");
     private static final PseudoClass WARNING = PseudoClass.getPseudoClass("warning");
+    private static final PseudoClass DISPUTE = PseudoClass.getPseudoClass("dispute");
     private final String number;
     private final String title;
+    private final String completedTitle;
     private final Label circle;
+    private final Label heading;
     private final Label caption = new Label();
     private final Class<? extends TradeStepView> viewClass;
     private String stepCaption = "";
     private String warningCaption;
+    private boolean dispute;
 
     public TradeWizardItem(Class<? extends TradeStepView> viewClass, String title, String number) {
+        this(viewClass, title, title, number);
+    }
+
+    public TradeWizardItem(Class<? extends TradeStepView> viewClass, String title, String completedTitle, String number) {
         this.viewClass = viewClass;
         this.title = title;
+        this.completedTitle = completedTitle;
         this.number = number;
         circle = new Label(number);
         circle.setGraphic(GlyphsDude.createIcon(FontAwesomeIcon.CHECK, "14"));
         circle.getStyleClass().add("trade-step-circle");
-        Label heading = new Label(title);
+        heading = new Label(title);
         heading.setWrapText(true);
         heading.getStyleClass().add("trade-step-title");
         caption.getStyleClass().add("trade-step-caption");
         caption.setWrapText(true);
         VBox text = new VBox(3, heading, caption);
+        text.setAlignment(Pos.CENTER_LEFT);
         text.setMinWidth(0);
         getChildren().addAll(circle, text);
         getStyleClass().add("trade-step");
@@ -82,6 +92,7 @@ public class TradeWizardItem extends HBox {
     public void setDisabled() {
         pseudoClassStateChanged(CURRENT, false);
         pseudoClassStateChanged(COMPLETE, false);
+        heading.setText(title);
         circle.setText(number);
         circle.setContentDisplay(ContentDisplay.TEXT_ONLY);
         warningCaption = null;
@@ -91,6 +102,7 @@ public class TradeWizardItem extends HBox {
     public void setActive() {
         pseudoClassStateChanged(CURRENT, true);
         pseudoClassStateChanged(COMPLETE, false);
+        heading.setText(title);
         circle.setText(number);
         circle.setContentDisplay(ContentDisplay.TEXT_ONLY);
         setCaption(Res.get("portfolio.pending.tradeView.yourTurn"));
@@ -99,6 +111,7 @@ public class TradeWizardItem extends HBox {
     public void setCompleted() {
         pseudoClassStateChanged(CURRENT, false);
         pseudoClassStateChanged(COMPLETE, true);
+        heading.setText(completedTitle);
         circle.setText("✓");
         circle.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         warningCaption = null;
@@ -110,8 +123,9 @@ public class TradeWizardItem extends HBox {
         updateCaption();
     }
 
-    public void setWarningCaption(String value) {
+    public void setWarningCaption(String value, boolean dispute) {
         warningCaption = value;
+        this.dispute = dispute;
         updateCaption();
     }
 
@@ -119,9 +133,10 @@ public class TradeWizardItem extends HBox {
         boolean warning = warningCaption != null && getPseudoClassStates().contains(CURRENT);
         String value = warning ? warningCaption : stepCaption;
         pseudoClassStateChanged(WARNING, warning);
+        pseudoClassStateChanged(DISPUTE, warning && dispute);
         caption.setText(value);
         caption.setVisible(!value.isEmpty());
         caption.setManaged(!value.isEmpty());
-        setAccessibleText(value.isEmpty() ? title : title + ": " + value);
+        setAccessibleText(value.isEmpty() ? heading.getText() : heading.getText() + ": " + value);
     }
 }

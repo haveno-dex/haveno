@@ -49,9 +49,9 @@ public class SellerSubView extends TradeSubView {
 
     @Override
     protected void addWizards() {
-        step1 = new TradeWizardItem(SellerStep1View.class, Res.get("portfolio.pending.tradeView.depositConfirmations"), "1");
+        step1 = new TradeWizardItem(SellerStep1View.class, Res.get("portfolio.pending.tradeView.depositConfirmations"), Res.get("portfolio.pending.tradeView.depositsConfirmed"), "1");
         step2 = new TradeWizardItem(SellerStep2View.class, Res.get("portfolio.pending.tradeView.paymentSent"), "2");
-        step3 = new TradeWizardItem(SellerStep3View.class, Res.get("portfolio.pending.tradeView.confirmReceipt"), "3");
+        step3 = new TradeWizardItem(SellerStep3View.class, Res.get("portfolio.pending.tradeView.confirmReceipt"), Res.get("portfolio.pending.tradeView.paymentReceived"), "3");
         step4 = new TradeWizardItem(SellerStep4View.class, Res.get("portfolio.pending.step5.completed"), "4");
 
         addWizardsToGridPane(step1);
