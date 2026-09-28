@@ -56,7 +56,6 @@ import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
 import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.Accessibility;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
@@ -714,7 +713,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         });
 
         Scene scene = new Scene(pane);
-        CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), useDevModeHeader);
         scene.addEventHandler(KeyEvent.KEY_RELEASED, ev -> {
             if (ev.getCode() == KeyCode.ESCAPE || Utilities.isCtrlPressed(KeyCode.W, ev)) {
                 ev.consume();
@@ -722,6 +720,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             }
         });
         chatPopupStage.setScene(scene);
+        GUIUtil.loadWindowStyles(chatPopupStage, preferences, useDevModeHeader);
 
         GUIUtil.showCenteredChatWindow(chatPopupStage, rootScene);
         updateChatMessageCount(trade, badgeByTrade.get(trade.getId()));

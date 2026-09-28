@@ -984,6 +984,18 @@ public class GUIUtil {
         }
     }
 
+    // apply the theme to a window's scene and follow theme toggles until the window hides
+    public static void loadWindowStyles(Stage stage, Preferences preferences, boolean devHeader) {
+        Scene scene = stage.getScene();
+        ChangeListener<Number> themeListener = (ov, o, n) -> {
+            CssTheme.loadSceneStyles(scene, n.intValue(), devHeader);
+            scene.setFill(CssTheme.isDarkTheme() ? Color.BLACK : Color.WHITE);
+        };
+        CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), devHeader);
+        preferences.getCssThemeProperty().addListener(themeListener);
+        stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, e -> preferences.getCssThemeProperty().removeListener(themeListener));
+    }
+
     public static void showCenteredChatWindow(Stage stage, Scene rootScene) {
         Window rootSceneWindow = rootScene.getWindow();
         // use the screen containing the largest part of the application window

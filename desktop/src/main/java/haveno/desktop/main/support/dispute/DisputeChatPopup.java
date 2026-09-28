@@ -21,7 +21,6 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.shared.ChatView;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 
@@ -152,7 +151,6 @@ public class DisputeChatPopup {
         });
 
         Scene scene = new Scene(pane);
-        CssTheme.loadSceneStyles(scene, preferences.getCssTheme(), false);
         scene.addEventHandler(KeyEvent.KEY_RELEASED, ev -> {
             if (ev.getCode() == KeyCode.ESCAPE || Utilities.isCtrlPressed(KeyCode.W, ev)) {
                 ev.consume();
@@ -160,6 +158,7 @@ public class DisputeChatPopup {
             }
         });
         chatPopupStage.setScene(scene);
+        GUIUtil.loadWindowStyles(chatPopupStage, preferences, false);
         GUIUtil.showCenteredChatWindow(chatPopupStage, rootScene);
     }
 

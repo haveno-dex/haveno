@@ -205,20 +205,20 @@
     -fx-image: url("../../images/attachment.png");
 }
 
-#bubble_arrow_grey_left {
-    -fx-background-image: url("../../images/bubble_arrow_grey_left.png");
+#bubble_arrow_blue_left, #bubble_arrow_blue_right {
+    -fx-background-color: -bs-rd-message-bubble;
 }
 
-#bubble_arrow_blue_left {
-    -fx-background-image: url("../../images/bubble_arrow_blue_left.png");
+#bubble_arrow_grey_left, #bubble_arrow_grey_right {
+    -fx-background-color: -bs-rd-message-bubble-other;
 }
 
-#bubble_arrow_grey_right {
-    -fx-background-image: url("../../images/bubble_arrow_grey_right.png");
+#bubble_arrow_blue_left, #bubble_arrow_grey_left {
+    -fx-shape: "M16 0 C16 10 14 16 0 16 C4 20 9 22 16 22 Z";
 }
 
-#bubble_arrow_blue_right {
-    -fx-background-image: url("../../images/bubble_arrow_blue_right.png");
+#bubble_arrow_blue_right, #bubble_arrow_grey_right {
+    -fx-shape: "M0 0 C0 10 2 16 16 16 C12 20 7 22 0 22 Z";
 }
 
 #link {
