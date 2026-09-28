@@ -998,13 +998,12 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         tableView.getSelectionModel().clearSelection();
 
         tableView.getColumns().add(getContractColumn());
-        maybeAddProcessColumnsForAgent();   // agent view prefers action buttons on the left
-
-        TableColumn<Dispute, Dispute> dateColumn = getDateColumn();
-        tableView.getColumns().add(dateColumn);
 
         TableColumn<Dispute, Dispute> tradeIdColumn = getTradeIdColumn();
         tableView.getColumns().add(tradeIdColumn);
+
+        TableColumn<Dispute, Dispute> dateColumn = getDateColumn();
+        tableView.getColumns().add(dateColumn);
 
         TableColumn<Dispute, Dispute> buyerOnionAddressColumn = getBuyerOnionAddressColumn();
         tableView.getColumns().add(buyerOnionAddressColumn);
@@ -1034,10 +1033,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
         dateColumn.setSortType(TableColumn.SortType.DESCENDING);
         tableView.getSortOrder().add(dateColumn);
-    }
-
-    protected void maybeAddProcessColumnsForAgent() {
-        // Only relevant client views will impl it
     }
 
     protected void maybeAddChatColumnForClient() {
