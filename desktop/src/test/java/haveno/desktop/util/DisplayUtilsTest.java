@@ -113,6 +113,34 @@ public class DisplayUtilsTest {
     }
 
     @Test
+    public void testFormatCompactXmr() {
+        assertEquals("78.34630921 XMR", DisplayUtils.formatCompactXmr("78.346309213743 XMR"));
+        assertEquals("1.57596038 XMR", DisplayUtils.formatCompactXmr("1.575960386688 XMR"));
+        assertEquals("5.407647 XMR", DisplayUtils.formatCompactXmr("5.407647 XMR"));
+        assertEquals("0.99999999 XMR", DisplayUtils.formatCompactXmr("0.999999999999 XMR"));
+        assertEquals("12.34 XMR", DisplayUtils.formatCompactXmr("12.34 XMR"));
+        assertEquals("12.00 XMR", DisplayUtils.formatCompactXmr("12.00 XMR"));
+        assertEquals("0.00 XMR", DisplayUtils.formatCompactXmr("0.00 XMR"));
+        assertEquals("-1.23456789 XMR", DisplayUtils.formatCompactXmr("-1.234567891234 XMR"));
+    }
+
+    @Test
+    public void testFormatCompactXmrSmallBalances() {
+        assertEquals("< 0.00000001 XMR", DisplayUtils.formatCompactXmr("0.000000000001 XMR"));
+        assertEquals("< 0.00000001 XMR", DisplayUtils.formatCompactXmr("0.000000009999 XMR"));
+        assertEquals("0.00000001 XMR", DisplayUtils.formatCompactXmr("0.00000001 XMR"));
+        assertEquals("0.00009999 XMR", DisplayUtils.formatCompactXmr("0.000099999999 XMR"));
+        assertEquals("0.0001 XMR", DisplayUtils.formatCompactXmr("0.0001 XMR"));
+        assertEquals("> -0.00000001 XMR", DisplayUtils.formatCompactXmr("-0.000000000001 XMR"));
+    }
+
+    @Test
+    public void testFormatCompactXmrMissingBalance() {
+        assertEquals("", DisplayUtils.formatCompactXmr(null));
+        assertEquals("", DisplayUtils.formatCompactXmr(""));
+    }
+
+    @Test
     public void testFormatSameAmount() {
         Offer offer = mock(Offer.class);
         when(offer.getMinAmount()).thenReturn(BigInteger.valueOf(100000000000L));

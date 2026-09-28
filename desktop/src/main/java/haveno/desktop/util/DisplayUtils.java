@@ -205,6 +205,17 @@ public class DisplayUtils {
     // Amount
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    // shortens a formatted XMR balance for the navigation header without hiding small balances
+    public static String formatCompactXmr(String formattedXmr) {
+        if (formattedXmr == null || formattedXmr.isEmpty()) return "";
+        BigDecimal amount = new BigDecimal(formattedXmr.replace(" XMR", ""));
+        BigDecimal rounded = amount.setScale(8, RoundingMode.DOWN).stripTrailingZeros();
+        if (amount.signum() != 0 && rounded.signum() == 0) {
+            return amount.signum() > 0 ? "< 0.00000001 XMR" : "> -0.00000001 XMR";
+        }
+        return rounded.setScale(Math.max(2, rounded.scale())).toPlainString() + " XMR";
+    }
+
     public static String formatAmount(Offer offer, CoinFormatter coinFormatter) {
         return offer.isRange()
                 ? HavenoUtils.formatXmr(offer.getMinAmount()) + FormattingUtils.RANGE_SEPARATOR + HavenoUtils.formatXmr(offer.getAmount())
