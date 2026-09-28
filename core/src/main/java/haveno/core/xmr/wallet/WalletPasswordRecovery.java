@@ -50,13 +50,13 @@ public final class WalletPasswordRecovery implements AutoCloseable {
     }
 
     public RecoveredWallet recover(Path path) throws IOException {
-        return recover(path, Files.readAllBytes(path.resolveSibling(path.getFileName() + ".keys")));
+        return recover(path, Files.readAllBytes(path.resolveSibling(path.getFileName() + ".keys")), candidates, null);
     }
 
-    // a null path rekeys a detached keys backup without rebuilding its cache
-    private RecoveredWallet recover(Path path, byte[] keys) throws IOException {
+    // a null path rekeys a detached keys backup without rebuilding its cache; null cachePasswords tries the key password first
+    private RecoveredWallet recover(Path path, byte[] keys, List<String> keyPasswords, List<String> cachePasswords) throws IOException {
         initialize();
-        return rpcSession == null ? recoverNativeWallet(path, keys) : recoverRpcWallet(path, keys);
+        return rpcSession == null ? recoverNativeWallet(path, keys, keyPasswords, cachePasswords) : recoverRpcWallet(path, keys, keyPasswords, cachePasswords);
     }
 
     // authenticate each rolling copy independently; their timestamps do not identify matching keys/cache pairs
@@ -68,7 +68,11 @@ public final class WalletPasswordRecovery implements AutoCloseable {
         if (keys.isEmpty() && caches.isEmpty() && addresses.isEmpty()) return Set.of();
         byte[] reference = Files.readAllBytes(currentKeys);
         initialize();
-        String address = readKeyAddress(reference);
+        List<String> current = preferring(candidates, target);
+        List<String> superseded = new ArrayList<>(candidates); // rolling copies predate the change, so try the target last
+        superseded.remove(target);
+        superseded.add(target);
+        String address = readKeyAddress(reference, current);
         if (address == null) throw new IOException("Could not verify the current main wallet before protecting its backups");
         Set<String> protectedDirectories = new HashSet<>();
         for (String suffix : List.of(".keys", "", ".address.txt")) {
@@ -86,8 +90,8 @@ public final class WalletPasswordRecovery implements AutoCloseable {
                         if (!address.equals(Files.readString(path).trim())) allProtected = false;
                         continue;
                     }
-                    recovered = recover(suffix.isEmpty() ? path : null,
-                            suffix.isEmpty() ? reference : Files.readAllBytes(path));
+                    recovered = suffix.isEmpty() ? recover(path, reference, current, superseded)
+                            : recover(null, Files.readAllBytes(path), superseded, null);
                     if (!address.equals(recovered.address())) {
                         allProtected = false;
                         continue;
@@ -116,7 +120,7 @@ public final class WalletPasswordRecovery implements AutoCloseable {
         }
         for (Path copy : copies) {
             if (!Files.isRegularFile(copy, LinkOption.NOFOLLOW_LINKS)) continue;
-            String copyAddress = readKeyAddress(Files.readAllBytes(copy));
+            String copyAddress = readKeyAddress(Files.readAllBytes(copy), candidates);
             if (recovered.address() != null && recovered.address().equals(copyAddress)) Files.delete(copy);
             else retainTemporaryFile(copy);
         }
@@ -173,11 +177,11 @@ public final class WalletPasswordRecovery implements AutoCloseable {
         }
     }
 
-    private String readKeyAddress(byte[] keys) throws IOException {
+    private String readKeyAddress(byte[] keys, List<String> passwords) throws IOException {
         if (rpcSession == null) {
             MoneroWalletFull wallet;
             try {
-                wallet = WalletPasswordChange.open(candidates,
+                wallet = WalletPasswordChange.open(passwords,
                         password -> MoneroWalletFull.openWalletData(password, network, keys, null, null));
             } catch (RuntimeException e) {
                 return null; // preserve foreign or unreadable copies for manual recovery
@@ -193,7 +197,7 @@ public final class WalletPasswordRecovery implements AutoCloseable {
         Files.write(scratch.resolve("key-copy.keys"), keys);
         MoneroWalletRpc wallet = rpcSession.get();
         try {
-            WalletPasswordChange.open(candidates, password -> wallet.openWallet(
+            WalletPasswordChange.open(passwords, password -> wallet.openWallet(
                     new MoneroWalletConfig().setPath("key-copy").setPassword(password)));
         } catch (RuntimeException e) {
             rpcSession.close(); // an unreadable copy may have terminated the isolated process
@@ -236,11 +240,11 @@ public final class WalletPasswordRecovery implements AutoCloseable {
     private record OpenedWallet(MoneroWallet wallet, String password) {}
     public record RecoveredWallet(byte[][] data, String address, byte[] cacheHash) {}
 
-    private RecoveredWallet recoverNativeWallet(Path path, byte[] keys) throws IOException {
+    private RecoveredWallet recoverNativeWallet(Path path, byte[] keys, List<String> keyPasswords, List<String> cachePasswords) throws IOException {
         byte[] cache = path != null && Files.exists(path) ? Files.readAllBytes(path) : null;
         byte[] cacheHash = cache == null ? null : Hash.getSha256Hash(cache);
         if (cache != null && cache.length == 0) throw new IOException("Empty wallet cache: " + path.getFileName() + "; restore a readable cache backup");
-        OpenedWallet opened = WalletPasswordChange.open(candidates, password -> new OpenedWallet(
+        OpenedWallet opened = WalletPasswordChange.open(keyPasswords, password -> new OpenedWallet(
                 MoneroWalletFull.openWalletData(password, network, keys, null, null), password));
         MoneroWalletFull probe = (MoneroWalletFull) opened.wallet();
         String probePassword = opened.password();
@@ -251,7 +255,7 @@ public final class WalletPasswordRecovery implements AutoCloseable {
                 return new RecoveredWallet(probe.getData(), probe.getPrimaryAddress(), cacheHash);
             }
             Throwable failure = null;
-            for (String candidate : cachePasswords(candidates, probePassword)) {
+            for (String candidate : cachePasswords == null ? preferring(candidates, probePassword) : cachePasswords) {
                 probe.changePassword(probePassword, candidate);
                 probePassword = candidate;
                 MoneroWalletFull wallet;
@@ -280,14 +284,14 @@ public final class WalletPasswordRecovery implements AutoCloseable {
         }
     }
 
-    private RecoveredWallet recoverRpcWallet(Path path, byte[] originalKeys) throws IOException {
+    private RecoveredWallet recoverRpcWallet(Path path, byte[] originalKeys, List<String> keyPasswords, List<String> cachePasswords) throws IOException {
         Path copy = scratch.resolve("wallet");
         Path keys = scratch.resolve("wallet.keys");
         boolean hasCache = path != null && Files.exists(path);
         Files.deleteIfExists(copy);
         Files.write(keys, originalKeys);
         MoneroWalletRpc initial = rpcSession.get();
-        OpenedWallet opened = WalletPasswordChange.open(candidates, password -> {
+        OpenedWallet opened = WalletPasswordChange.open(keyPasswords, password -> {
             initial.openWallet(new MoneroWalletConfig().setPath("wallet").setPassword(password));
             return new OpenedWallet(initial, password);
         });
@@ -301,7 +305,8 @@ public final class WalletPasswordRecovery implements AutoCloseable {
         if (hasCache && Files.size(path) == 0) throw unreadableCache(path, null);
         byte[] cacheHash = hasCache ? hashCache(path) : null;
         Throwable failure = null;
-        for (String candidate : hasCache ? cachePasswords(candidates, keyPassword) : List.of(target)) {
+        if (cachePasswords == null) cachePasswords = preferring(candidates, keyPassword);
+        for (String candidate : hasCache ? cachePasswords : List.of(target)) {
             // each candidate starts from pristine keys, even if the previous cache probe killed its process
             MoneroWalletRpc rpc = rpcSession.get();
             Files.deleteIfExists(copy);
@@ -364,10 +369,10 @@ public final class WalletPasswordRecovery implements AutoCloseable {
         }
     }
 
-    private static List<String> cachePasswords(List<String> candidates, String keyPassword) {
+    private static List<String> preferring(List<String> candidates, String first) {
         List<String> passwords = new ArrayList<>(candidates);
-        passwords.remove(keyPassword);
-        passwords.add(0, keyPassword);
+        passwords.remove(first);
+        passwords.add(0, first);
         return passwords;
     }
 
