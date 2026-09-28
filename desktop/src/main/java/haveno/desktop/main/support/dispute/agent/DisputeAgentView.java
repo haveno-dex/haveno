@@ -210,6 +210,8 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
         super.setupTable();
 
         tableView.getColumns().add(getAlertColumn());
+        tableView.getColumns().add(getProcessColumn());
+        tableView.getColumns().add(getChatColumn());
     }
 
     protected abstract void onCloseDispute(Dispute dispute);
@@ -330,12 +332,6 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                 "If you find suspicious disputes, please notify the developers and provide the contract json data " +
                 "to them so they can ban those traders.\n\n" +
                 Utilities.toTruncatedString(report, 700, false);
-    }
-
-    @Override
-    protected void maybeAddProcessColumnsForAgent() {
-        tableView.getColumns().add(getProcessColumn());
-        tableView.getColumns().add(getChatColumn());
     }
 
     @Override
