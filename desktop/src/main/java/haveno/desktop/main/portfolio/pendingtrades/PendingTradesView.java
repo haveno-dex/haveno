@@ -206,6 +206,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     @Override
     public void initialize() {
         root.getStylesheets().add(PendingTradesView.class.getResource("trade-view.css").toExternalForm());
+        tableView.getStyleClass().add("pending-trades-table");
         filterBox.setInputFillWidth(0);
         GUIUtil.setFixedColumnWidth(tradeIdColumn, TRADE_ID_COLUMN_MIN_WIDTH);
         GUIUtil.applyTableStyle(tableView);
@@ -1117,7 +1118,16 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                 super.updateItem(status, empty);
                 if (status != null && !empty) {
                     Label label = new AutoTooltipLabel(Res.get(status.getResourceKey()));
-                    label.getStyleClass().add(status.isAttention() ? "trade-status-attention" : "trade-status-waiting");
+                    boolean problem = status == PendingTradesListItem.TradeStatus.IN_DISPUTE ||
+                            status == PendingTradesListItem.TradeStatus.RETRY_CONFIRMATION;
+                    boolean overdue = status == PendingTradesListItem.TradeStatus.SEND_PAYMENT_OVERDUE ||
+                            status == PendingTradesListItem.TradeStatus.CONFIRM_RECEIPT_OVERDUE;
+                    label.getStyleClass().add(problem ? "trade-status-problem" : overdue ? "trade-status-overdue" :
+                            status.isAttention() ? "trade-status-attention" : "trade-status-waiting");
+                    Circle dot = new Circle(3);
+                    dot.fillProperty().bind(label.textFillProperty());
+                    label.setGraphic(dot);
+                    label.setGraphicTextGap(6);
                     setAccessibleText(label.getText());
                     setGraphic(label);
                 } else {

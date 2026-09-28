@@ -194,13 +194,15 @@ public abstract class TradeSubView extends VBox {
     }
 
     void addWizardsToGridPane(TradeWizardItem item) {
-        item.setPrefWidth(0);
-        HBox.setHgrow(item, Priority.ALWAYS);
         steps.getChildren().add(item);
     }
 
+    // steps with a connector share the row so the last step ends flush right
     void addLineSeparatorToGridPane() {
-        ((TradeWizardItem) steps.getChildren().get(steps.getChildren().size() - 1)).addConnector();
+        TradeWizardItem item = (TradeWizardItem) steps.getChildren().get(steps.getChildren().size() - 1);
+        item.addConnector();
+        item.setPrefWidth(0);
+        HBox.setHgrow(item, Priority.ALWAYS);
     }
 
     private void createAndAddTradeStepView(TradeWizardItem item) {
