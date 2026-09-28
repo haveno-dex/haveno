@@ -144,7 +144,11 @@
     -bs-rd-separator-dark: rgb(255, 255, 255, 0.1);
     -bs-rd-error-red: #d83431;
     -bs-rd-error-field: #521C1C;
-    -bs-rd-message-bubble: #0086c6;
+    -bs-rd-message-bubble: -bs-color-primary;
+    -bs-rd-message-bubble-other: #2c2c2e;
+    -bs-rd-chat-background: #121212;
+    -bs-rd-message-bubble-system: #1c1c1e;
+    -bs-rd-message-bubble-system-border: rgba(255, 255, 255, 0.08);
     -bs-rd-tooltip-truncated: #afaeb0;
 
     /*-bs-toggle-selected: rgb(12, 89, 189);*/
@@ -364,20 +368,6 @@
 
 .small-icon-label {
     -fx-fill: -bs-color-gray-11;
-}
-
-#bubble_arrow_grey_left {
-    -fx-background-image: url("../../images/bubble_arrow_grey_left_dark.png");
-}
-
-#bubble_arrow_grey_right {
-    -fx-background-image: url("../../images/bubble_arrow_grey_right_dark.png");
-}
-
-#bubble_arrow_grey_left, #bubble_arrow_grey_right {
-    -fx-min-height: 19;
-    -fx-pref-height: 19;
-    -fx-max-height: 19;
 }
 
 .headline-label {
@@ -679,10 +669,6 @@
 
 #image-fiat-logo {
     -fx-image: url("../../images/fiat_logo_dark_mode.png");
-}
-
-#message-list-view.list-view {
-    -fx-background-image: url("../../images/chatbg_dark.png");
 }
 
 /* brighten the withdraw-confirmation badges against the dark popup */

@@ -92,7 +92,11 @@
     -bs-rd-separator: -bs-color-gray-2;
     -bs-rd-separator-dark: rgb(255, 255, 255, 0.1);
     -bs-rd-error-red: #dd0000;
-    -bs-rd-message-bubble: rgb(28, 96, 220);
+    -bs-rd-message-bubble: -bs-color-primary;
+    -bs-rd-message-bubble-other: #ffffff;
+    -bs-rd-chat-background: #edf0f5;
+    -bs-rd-message-bubble-system: -bs-color-gray-1;
+    -bs-rd-message-bubble-system-border: -bs-color-gray-2;
     -bs-toggle-selected: #7b7b7b;
     -bs-rd-tooltip-truncated: -bs-text-color;
     -bs-warning: #ff8a2b;
@@ -176,31 +180,9 @@
     -fx-prompt-text-fill: -bs-color-gray-6;
 }
 
-.chat-bubble-arrow {
-    -fx-scale-shape: false;
-    -fx-position-shape: false;
-}
-
-#message-bubble-green {
-    -fx-background-color: -bs-color-primary-dark;
-}
-
-#bubble_arrow_blue_left, #bubble_arrow_blue_right {
-    -fx-background-image: none;
-    -fx-background-color: -bs-rd-message-bubble;
-}
-
-#message-bubble-grey, #bubble_arrow_grey_left, #bubble_arrow_grey_right {
-    -fx-background-image: none;
-    -fx-background-color: #cccccc;
-}
-
-#bubble_arrow_blue_left, #bubble_arrow_grey_left {
-    -fx-shape: "M16 0 C16 10 14 16 0 16 C4 20 9 22 16 22 Z";
-}
-
-#bubble_arrow_blue_right, #bubble_arrow_grey_right {
-    -fx-shape: "M0 0 C0 10 2 16 16 16 C12 20 7 22 0 22 Z";
+/* shadow the bubble and its arrow together so they share one outline */
+.chat-bubble-raised {
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.16), 6, 0, 0, 1.5);
 }
 
 .top-navigation .nav-button:selected:hover,

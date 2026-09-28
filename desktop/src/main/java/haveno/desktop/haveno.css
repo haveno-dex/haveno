@@ -3290,20 +3290,28 @@ textfield */
 }
 
 #message-list-view.list-view {
-    -fx-background-color: transparent;
+    -fx-background-color: -bs-rd-chat-background;
     -fx-background-insets: 0;
     -fx-border-width: 0;
     -fx-padding: 0;
-    -fx-background-image: url("../../images/chatbg_light.png");
-    -fx-background-repeat: repeat;
-    -fx-background-position: 0 0;
-    -fx-background-size: 700px;
 }
 
 #message-list-view.list-view:focused {
-    -fx-background-color: transparent;
+    -fx-background-color: -bs-rd-chat-background;
     -fx-background-insets: 0;
     -fx-padding: 0;
+}
+
+#message-list-view.list-view:input-visible {
+    -fx-border-color: -bs-rd-separator;
+    -fx-border-width: 0 0 1 0;
+}
+
+#message-list-view .scroll-bar,
+#message-list-view .scroll-bar .track,
+#message-list-view .scroll-bar .track-background {
+    -fx-background-color: -bs-rd-chat-background;
+    -fx-border-color: -bs-rd-chat-background;
 }
 
 /* bubble */
@@ -3315,11 +3323,16 @@ textfield */
     -fx-pref-height: 22;
     -fx-max-height: 22;
     -fx-background-repeat: no-repeat;
+    -fx-scale-shape: false;
+    -fx-position-shape: false;
 }
 
 #message-bubble-green {
-    -fx-background-color: -bs-color-primary;
+    -fx-background-color: -bs-rd-message-bubble-system;
     -fx-background-radius: 10 10 10 10;
+    -fx-border-color: -bs-rd-message-bubble-system-border;
+    -fx-border-radius: 10 10 10 10;
+    -fx-border-width: 1;
 }
 
 #message-bubble-blue {
@@ -3328,12 +3341,12 @@ textfield */
 }
 
 #message-bubble-grey {
-    -fx-background-color: -bs-color-gray-3;
+    -fx-background-color: -bs-rd-message-bubble-other;
     -fx-background-radius: 10 10 10 10;
 }
 
 .attachment-icon {
-    -fx-text-fill: -bs-background-color;
+    -fx-text-fill: white;
     -fx-cursor: hand;
 }
 
@@ -4014,21 +4027,33 @@ textfield */
 }
 
 .my-message {
-    -fx-text-fill: -bs-background-color;
+    -fx-text-fill: white;
 }
 
 .my-message.label .glyph-icon {
-    -fx-fill: -bs-background-color;
+    -fx-fill: white;
+}
+
+/* invert the selection since the accent matches the bubble */
+.my-message.text-area:focused {
+    -fx-highlight-fill: white;
+    -fx-highlight-text-fill: -bs-rd-message-bubble;
+}
+
+.message.label,
+.my-message.label {
+    -fx-opacity: 0.6;
+}
+
+.message.label:hover,
+.message.label:focused,
+.my-message.label:hover,
+.my-message.label:focused {
+    -fx-opacity: 1;
 }
 
 .message-header {
     -fx-text-fill: -bs-color-gray-6;
-    -fx-font-size: 0.846em;
-}
-
-.my-message-header {
-    -fx-text-fill: -bs-rd-message-bubble;
-    -fx-fill: -bs-rd-message-bubble;
     -fx-font-size: 0.846em;
 }
 
@@ -4180,7 +4205,11 @@ textfield */
 }
 
 .status-icon {
-    -fx-text-fill: -fx-faint-focus-color;
+    -fx-text-fill: -bs-color-gray-6;
+}
+
+.status-icon.error-text {
+    -fx-text-fill: -bs-rd-error-red;
 }
 
 /********************************************************************************************************************

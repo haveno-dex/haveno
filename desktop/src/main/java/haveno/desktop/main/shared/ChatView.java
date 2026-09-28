@@ -51,8 +51,10 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.DoubleBinding;
 import javafx.stage.FileChooser;
 
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -72,6 +74,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.fxmisc.easybind.EasyBind;
@@ -111,6 +114,8 @@ import javax.annotation.Nullable;
 
 @Slf4j
 public class ChatView extends AnchorPane {
+
+    private static final PseudoClass INPUT_VISIBLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("input-visible");
 
     // UI
     private TextArea inputTextArea;
@@ -245,15 +250,12 @@ public class ChatView extends AnchorPane {
             HBox buttonBox = new HBox();
             buttonBox.setSpacing(10);
             if (allowAttachments)
-                buttonBox.getChildren().addAll(sendButton, uploadButton, clipboardButton, sendMsgBusyAnimation, sendMsgInfoLabel);
-            else
-                buttonBox.getChildren().addAll(sendButton, sendMsgBusyAnimation, sendMsgInfoLabel);
-
-            if (extraButton != null) {
-                Pane spacer = new Pane();
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-                buttonBox.getChildren().addAll(spacer, extraButton);
-            }
+                buttonBox.getChildren().addAll(uploadButton, clipboardButton);
+            if (extraButton != null)
+                buttonBox.getChildren().add(extraButton);
+            Pane spacer = new Pane();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+            buttonBox.getChildren().addAll(spacer, sendMsgBusyAnimation, sendMsgInfoLabel, sendButton);
 
             messagesInputBox = new VBox();
             messagesInputBox.setSpacing(10);
@@ -264,7 +266,8 @@ public class ChatView extends AnchorPane {
             AnchorPane.setBottomAnchor(messagesInputBox, displayHeader ? 5d : 15d);
             AnchorPane.setLeftAnchor(messagesInputBox, displayHeader ? 0d : 10d);
 
-            AnchorPane.setBottomAnchor(messageListView, displayHeader ? 120d : 130d);
+            AnchorPane.setBottomAnchor(messageListView, displayHeader ? 125d : 135d);
+            messageListView.pseudoClassStateChanged(INPUT_VISIBLE_PSEUDO_CLASS, true);
 
             this.getChildren().addAll(messageListView, messagesInputBox);
         } else {
@@ -284,6 +287,7 @@ public class ChatView extends AnchorPane {
                     WeakInvalidationListener weakMsgStateListener = new WeakInvalidationListener(msgStateListener);
                     Pane bg = new Pane();
                     Region arrow = new Region();
+                    AnchorPane bubblePane = new AnchorPane(bg, arrow);
                     Label headerLabel = new AutoTooltipLabel();
                     TextArea messageTextArea = new TextArea();
                     Label copyLabel = new Label();
@@ -302,12 +306,18 @@ public class ChatView extends AnchorPane {
                     {
                         bg.setMinHeight(30);
                         arrow.getStyleClass().add("chat-bubble-arrow");
+                        headerLabel.getStyleClass().add("message-header");
                         messageTextArea.setEditable(false);
                         messageTextArea.setFocusTraversable(false);
                         messageTextArea.setWrapText(true);
                         messageTextArea.setMinHeight(0);
                         messageTextArea.setPrefRowCount(1);
                         messageTextArea.getStyleClass().add("selectable-label");
+                        // clear the selection when focus moves within the window, keep it across window switches
+                        messageTextArea.focusedProperty().addListener((observable, wasFocused, isFocused) -> {
+                            if (!isFocused && messageTextArea.getScene() != null && messageTextArea.getScene().getFocusOwner() != messageTextArea)
+                                messageTextArea.deselect();
+                        });
                         // size to wrapped text without adding listeners whenever a cell rejoins the scene
                         messageTextArea.skinProperty().addListener((observable, oldSkin, newSkin) -> {
                             if (newSkin == null) return;
@@ -322,14 +332,19 @@ public class ChatView extends AnchorPane {
                         });
                         headerLabel.setTextAlignment(TextAlignment.CENTER);
                         attachmentsBox.setSpacing(5);
-                        statusIcon.getStyleClass().add("small-text");
-                        statusInfoLabel.getStyleClass().add("small-text");
-                        statusInfoLabel.setPadding(new Insets(3, 0, 0, 0));
+                        statusIcon.getStyleClass().addAll("small-text", "status-icon");
+                        statusInfoLabel.getStyleClass().addAll("small-text", "status-icon");
                         copyLabel.setTooltip(new Tooltip(Res.get("shared.copyToClipboard")));
                         Accessibility.asButton(copyLabel, Res.get("shared.copyToClipboard"));
                         statusHBox.setSpacing(5);
+                        statusHBox.setAlignment(Pos.CENTER_LEFT);
                         statusHBox.getChildren().addAll(statusIcon, statusInfoLabel);
-                        messageAnchorPane.getChildren().addAll(bg, arrow, headerLabel, messageTextArea, copyLabel, attachmentsBox, statusHBox);
+                        AnchorPane.setTopAnchor(bubblePane, 0d);
+                        AnchorPane.setRightAnchor(bubblePane, 0d);
+                        AnchorPane.setBottomAnchor(bubblePane, 0d);
+                        AnchorPane.setLeftAnchor(bubblePane, 0d);
+                        messageAnchorPane.getChildren().addAll(bubblePane, headerLabel, messageTextArea, copyLabel, attachmentsBox, statusHBox);
+                        messageAnchorPane.setMaxWidth(Region.USE_PREF_SIZE);
                     }
 
                     @Override
@@ -347,9 +362,10 @@ public class ChatView extends AnchorPane {
                                     tp.show(node, e.getScreenX() + Layout.PADDING, e.getScreenY() + Layout.PADDING);
                                 });
     
-                                if (!messageAnchorPane.prefWidthProperty().isBound())
-                                    messageAnchorPane.prefWidthProperty()
-                                            .bind(messageListView.widthProperty().subtract(padding + GUIUtil.getScrollbarWidth(messageListView)));
+                                boolean senderIsTrader = message.isSenderIsTrader();
+                                boolean isMyMsg = supportSession.isClient() == senderIsTrader;
+                                messageAnchorPane.prefWidthProperty().bind(bubbleWidth(message.getMessage(), message.isSystemMessage()));
+                                setAlignment(isMyMsg && !message.isSystemMessage() ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
     
                                 AnchorPane.clearConstraints(bg);
                                 AnchorPane.clearConstraints(headerLabel);
@@ -367,34 +383,26 @@ public class ChatView extends AnchorPane {
                                 AnchorPane.setTopAnchor(copyLabel, 25d);
                                 AnchorPane.setBottomAnchor(attachmentsBox, bottomBorder + 10);
     
-                                boolean senderIsTrader = message.isSenderIsTrader();
-                                boolean isMyMsg = supportSession.isClient() == senderIsTrader;
-    
                                 arrow.setVisible(!message.isSystemMessage());
                                 arrow.setManaged(!message.isSystemMessage());
                                 statusHBox.setVisible(false);
     
-                                headerLabel.getStyleClass().removeAll("message-header", "my-message-header", "success-text",
-                                        "highlight-static");
                                 messageTextArea.getStyleClass().removeAll("my-message", "message");
                                 copyLabel.getStyleClass().removeAll("my-message", "message");
+                                bubblePane.getStyleClass().remove("chat-bubble-raised");
+                                if (!message.isSystemMessage()) bubblePane.getStyleClass().add("chat-bubble-raised");
     
                                 if (message.isSystemMessage()) {
-                                    headerLabel.getStyleClass().addAll("message-header", "success-text");
                                     bg.setId("message-bubble-green");
-                                    messageTextArea.getStyleClass().add("my-message");
-                                    copyLabel.getStyleClass().add("my-message");
+                                    messageTextArea.getStyleClass().add("message");
+                                    copyLabel.getStyleClass().add("message");
                                     observeMsgState(message);
                                     updateMsgState(message);
                                 } else if (isMyMsg) {
-                                    headerLabel.getStyleClass().add("my-message-header");
                                     bg.setId("message-bubble-blue");
                                     messageTextArea.getStyleClass().add("my-message");
                                     copyLabel.getStyleClass().add("my-message");
-                                    if (supportSession.isClient())
-                                        arrow.setId("bubble_arrow_blue_left");
-                                    else
-                                        arrow.setId("bubble_arrow_blue_right");
+                                    arrow.setId("bubble_arrow_blue_right");
     
                                     if (sendMsgBusyAnimationListener != null)
                                         sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
@@ -408,14 +416,10 @@ public class ChatView extends AnchorPane {
                                     observeMsgState(message);
                                     updateMsgState(message);
                                 } else {
-                                    headerLabel.getStyleClass().add("message-header");
                                     bg.setId("message-bubble-grey");
                                     messageTextArea.getStyleClass().add("message");
                                     copyLabel.getStyleClass().add("message");
-                                    if (supportSession.isClient())
-                                        arrow.setId("bubble_arrow_grey_right");
-                                    else
-                                        arrow.setId("bubble_arrow_grey_left");
+                                    arrow.setId("bubble_arrow_grey_left");
                                 }
     
                                 if (message.isSystemMessage()) {
@@ -429,7 +433,7 @@ public class ChatView extends AnchorPane {
                                     AnchorPane.setLeftAnchor(attachmentsBox, padding);
                                     AnchorPane.setRightAnchor(attachmentsBox, padding);
                                     AnchorPane.setLeftAnchor(statusHBox, padding);
-                                } else if (senderIsTrader) {
+                                } else if (!isMyMsg) {
                                     AnchorPane.setLeftAnchor(headerLabel, padding + arrowWidth);
                                     AnchorPane.setLeftAnchor(bg, border + arrowWidth);
                                     AnchorPane.setRightAnchor(bg, border);
@@ -450,9 +454,9 @@ public class ChatView extends AnchorPane {
                                     AnchorPane.setRightAnchor(copyLabel, padding + arrowWidth);
                                     AnchorPane.setLeftAnchor(attachmentsBox, padding);
                                     AnchorPane.setRightAnchor(attachmentsBox, padding + arrowWidth);
-                                    AnchorPane.setLeftAnchor(statusHBox, padding);
+                                    AnchorPane.setRightAnchor(statusHBox, padding + arrowWidth);
                                 }
-                                AnchorPane.setBottomAnchor(statusHBox, 7d);
+                                AnchorPane.setBottomAnchor(statusHBox, 6d);
                                 String metaData = DisplayUtils.formatDateTime(new Date(message.getDate()));
                                 if (!message.isSystemMessage())
                                     metaData = (isMyMsg ? "Sent " : "Received ") + metaData
@@ -473,7 +477,6 @@ public class ChatView extends AnchorPane {
                                     }});
                                     message.getAttachments().forEach(attachment -> {
                                         Label icon = new Label();
-                                        setPadding(new Insets(0, 0, 3, 0));
                                         if (isMyMsg)
                                             icon.getStyleClass().add("attachment-icon");
                                         else
@@ -524,12 +527,29 @@ public class ChatView extends AnchorPane {
                                 message.acknowledgedProperty(), message.ackErrorProperty());
                     }
 
+                    // fit the bubble to its content up to a share of the list width; system messages span it
+                    private DoubleBinding bubbleWidth(String text, boolean fullWidth) {
+                        return Bindings.createDoubleBinding(() -> {
+                            double available = messageListView.getWidth() - padding - GUIUtil.getScrollbarWidth(messageListView);
+                            if (fullWidth) return available;
+                            Text measure = new Text(text);
+                            measure.setFont(messageTextArea.getFont());
+                            double content = Math.max(Math.ceil(measure.getLayoutBounds().getWidth()) + 2 + padding + msgLabelPaddingRight,
+                                    headerLabel.prefWidth(-1) + 2 * padding);
+                            content = Math.max(content, attachmentsBox.prefWidth(-1) + 2 * padding);
+                            if (statusHBox.isVisible()) content = Math.max(content, statusHBox.prefWidth(-1) + 2 * padding);
+                            return Math.min(available * 0.75, content + arrowWidth);
+                        }, messageListView.widthProperty(), messageTextArea.fontProperty(), headerLabel.textProperty(),
+                                headerLabel.fontProperty(), attachmentsBox.getChildren(), statusHBox.visibleProperty(),
+                                statusInfoLabel.textProperty());
+                    }
+
                     private void updateMsgState(ChatMessage message) {
                         boolean visible;
                         FontAwesomeIcon icon = null;
                         String text = null;
-                        statusIcon.getStyleClass().add("status-icon");
-                        statusInfoLabel.getStyleClass().add("status-icon");
+                        statusIcon.getStyleClass().removeAll("error-text");
+                        statusInfoLabel.getStyleClass().removeAll("error-text");
                         statusHBox.setOpacity(1);
                         log.debug("updateMsgState msg-{}, ack={}, arrived={}", message.getMessage(),
                                 message.acknowledgedProperty().get(), message.arrivedProperty().get());
@@ -793,8 +813,9 @@ public class ChatView extends AnchorPane {
         if (messagesInputBox != null) {
             messagesInputBox.setVisible(visible);
             messagesInputBox.setManaged(visible);
-            double inputBoxHeight = displayHeader ? 120d : 130d;
+            double inputBoxHeight = displayHeader ? 125d : 135d;
             AnchorPane.setBottomAnchor(messageListView, visible ? inputBoxHeight : 0d);
+            messageListView.pseudoClassStateChanged(INPUT_VISIBLE_PSEUDO_CLASS, visible);
         }
     }
 
