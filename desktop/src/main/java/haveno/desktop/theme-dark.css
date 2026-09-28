@@ -66,6 +66,7 @@
     -bs-color-background-row-odd: rgb(9, 9, 9);
     -bs-color-background-row-hover: rgb(33, 33, 33);
     -bs-color-table-cell-dim: -bs-color-gray-ccc;
+    -bs-color-table-cell-disabled: #7a7a7a;
     -bs-text-color-dim1: rgb(87, 87, 87);
     -bs-text-color-dim2: rgb(130, 130, 130);
 
