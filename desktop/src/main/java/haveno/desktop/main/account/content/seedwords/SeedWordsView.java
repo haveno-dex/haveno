@@ -200,21 +200,8 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
         if (xmrWalletService.isWalletEncrypted()) {
             askForPassword();
         } else {
-            String key = "showSeedWordsWarning";
-            if (DontShowAgainLookup.showAgain(key)) {
-                new Popup().warning(Res.get("account.seed.warn.noPw.msg"))
-                        .actionButtonText(Res.get("account.seed.warn.noPw.yes"))
-                        .onAction(() -> {
-                            DontShowAgainLookup.dontShowAgain(key, true);
-                            initSeedWords(xmrWalletService.getSeed());
-                            showSeedScreen();
-                        })
-                        .closeButtonText(Res.get("shared.no"))
-                        .show();
-            } else {
-                initSeedWords(xmrWalletService.getSeed());
-                showSeedScreen();
-            }
+            initSeedWords(xmrWalletService.getSeed());
+            showSeedScreen();
         }
     }
 
