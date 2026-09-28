@@ -98,8 +98,6 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -417,13 +415,15 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                 Res.get("setting.preferences.displayTraditional"));
 
         int listRowSpan = 6;
+        double listCellHeight = Layout.LIST_ROW_HEIGHT + 4; // taller cell padding in .preferences-currency-list
         GridPane.setRowSpan(traditionalTuple.third, listRowSpan);
 
         GridPane.setValignment(traditionalTuple.third, VPos.TOP);
         GridPane.setMargin(traditionalTuple.third, new Insets(10, 0, 0, 0));
         traditionalCurrenciesListView = traditionalTuple.second;
-        traditionalCurrenciesListView.setMinHeight(9 * Layout.LIST_ROW_HEIGHT + 2);
-        traditionalCurrenciesListView.setPrefHeight(10 * Layout.LIST_ROW_HEIGHT + 2);
+        traditionalCurrenciesListView.getStyleClass().add("preferences-currency-list");
+        traditionalCurrenciesListView.setMinHeight(7 * listCellHeight + 10);
+        traditionalCurrenciesListView.setPrefHeight(9 * listCellHeight + 10);
         Label placeholder = new AutoTooltipLabel(Res.get("setting.preferences.noTraditional"));
         placeholder.setWrapText(true);
         traditionalCurrenciesListView.setPlaceholder(placeholder);
@@ -432,15 +432,17 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             public ListCell<TraditionalCurrency> call(ListView<TraditionalCurrency> list) {
                 return new ListCell<>() {
                     final Label label = new AutoTooltipLabel();
-                    final ImageView icon = ImageUtil.getImageViewById(ImageUtil.REMOVE_ICON);
-                    final Button removeButton = new AutoTooltipButton("", icon);
-                    final AnchorPane pane = new AnchorPane(label, removeButton);
+                    final Button removeButton = new AutoTooltipButton("", ImageUtil.getImageViewById(ImageUtil.REMOVE_ICON));
+                    final HBox pane = new HBox(8, label, removeButton);
 
                     {
-                        label.setLayoutY(5);
+                        pane.setAlignment(Pos.CENTER_LEFT);
+                        label.setMinWidth(0);
+                        label.setMaxWidth(Double.MAX_VALUE);
+                        HBox.setHgrow(label, Priority.ALWAYS);
                         removeButton.setId("icon-button");
+                        removeButton.getStyleClass().add("preferences-currency-remove");
                         Accessibility.setName(removeButton, Res.get("shared.remove"));
-                        AnchorPane.setRightAnchor(removeButton, -30d);
                     }
 
                     @Override
@@ -478,10 +480,11 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         GridPane.setRowSpan(cryptoCurrenciesTuple.third, listRowSpan);
 
         GridPane.setValignment(cryptoCurrenciesTuple.third, VPos.TOP);
-        GridPane.setMargin(cryptoCurrenciesTuple.third, new Insets(0, 0, 0, 20));
+        GridPane.setMargin(cryptoCurrenciesTuple.third, new Insets(10, 0, 0, 20));
         cryptoCurrenciesListView = cryptoCurrenciesTuple.second;
-        cryptoCurrenciesListView.setMinHeight(9 * Layout.LIST_ROW_HEIGHT + 2);
-        cryptoCurrenciesListView.setPrefHeight(10 * Layout.LIST_ROW_HEIGHT + 2);
+        cryptoCurrenciesListView.getStyleClass().add("preferences-currency-list");
+        cryptoCurrenciesListView.setMinHeight(7 * listCellHeight + 10);
+        cryptoCurrenciesListView.setPrefHeight(9 * listCellHeight + 10);
         placeholder = new AutoTooltipLabel(Res.get("setting.preferences.noCryptos"));
         placeholder.setWrapText(true);
         cryptoCurrenciesListView.setPlaceholder(placeholder);
@@ -490,15 +493,17 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             public ListCell<CryptoCurrency> call(ListView<CryptoCurrency> list) {
                 return new ListCell<>() {
                     final Label label = new AutoTooltipLabel();
-                    final ImageView icon = ImageUtil.getImageViewById(ImageUtil.REMOVE_ICON);
-                    final Button removeButton = new AutoTooltipButton("", icon);
-                    final AnchorPane pane = new AnchorPane(label, removeButton);
+                    final Button removeButton = new AutoTooltipButton("", ImageUtil.getImageViewById(ImageUtil.REMOVE_ICON));
+                    final HBox pane = new HBox(8, label, removeButton);
 
                     {
-                        label.setLayoutY(5);
+                        pane.setAlignment(Pos.CENTER_LEFT);
+                        label.setMinWidth(0);
+                        label.setMaxWidth(Double.MAX_VALUE);
+                        HBox.setHgrow(label, Priority.ALWAYS);
                         removeButton.setId("icon-button");
+                        removeButton.getStyleClass().add("preferences-currency-remove");
                         Accessibility.setName(removeButton, Res.get("shared.remove"));
-                        AnchorPane.setRightAnchor(removeButton, -30d);
                     }
 
                     @Override

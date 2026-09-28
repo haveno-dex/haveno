@@ -491,6 +491,43 @@ tree-table-view:focused {
     -fx-background-insets: 0;
 }
 
+/* preferences currency lists */
+.list-view.preferences-currency-list,
+.list-view.preferences-currency-list:focused {
+    -fx-background-color: -bs-background-color;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-padding: 4;
+}
+
+.list-view.preferences-currency-list:focused {
+    -fx-border-color: -bs-color-primary;
+}
+
+.list-view.preferences-currency-list .list-cell {
+    /* keep long names from pushing the remove button outside the viewport */
+    -fx-pref-width: 0;
+    -fx-padding: 7 10 7 10;
+    -fx-background-radius: 4;
+}
+
+.preferences-currency-list .preferences-currency-remove {
+    -fx-opacity: 0;
+    -fx-padding: 0;
+    -fx-min-width: 24;
+    -fx-max-width: 24;
+    -fx-min-height: 24;
+    -fx-max-height: 24;
+}
+
+.preferences-currency-list .list-cell:hover .preferences-currency-remove,
+.preferences-currency-list .preferences-currency-remove:focused {
+    -fx-opacity: 1;
+}
+
 /* combo box list view */
 .combo-box .list-view .list-cell:odd {
     -fx-background-color: -bs-color-background-pane;
