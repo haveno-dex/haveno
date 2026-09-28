@@ -210,6 +210,8 @@ public class CoreAccountService {
             if (newPassword != null && newPassword.length() < 8) throw new IllegalStateException("Password must be at least 8 characters");
             if (StringUtils.equals(oldPassword, newPassword)) return List.of();
             passwordChangeRetainedBackups = List.of();
+            log.info("Changing account password");
+            long startTime = System.currentTimeMillis();
 
             // validate and serialize the replacement before changing any passwords
             byte[] keyStore = keyStorage.preparePasswordChange(oldPassword, newPassword);
@@ -256,6 +258,7 @@ public class CoreAccountService {
                         + "Use the new password. Older backups may still be accessible with a previous or unset password. Cause: "
                         + ExceptionUtils.getRootCauseMessage(e), e);
             }
+            log.info("Done changing account password in {} ms", System.currentTimeMillis() - startTime);
             return passwordChangeRetainedBackups;
         } finally {
             accountLock.unlock();
