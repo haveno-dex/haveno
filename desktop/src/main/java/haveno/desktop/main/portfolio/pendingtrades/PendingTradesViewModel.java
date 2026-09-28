@@ -24,7 +24,6 @@ import haveno.common.ClockWatcher;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -44,6 +43,7 @@ import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.common.model.ViewModel;
 import static haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel.SellerState.UNDEFINED;
+import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
@@ -316,10 +316,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
         Price price = trade == null ? null : trade.getPrice();
         if (price == null) return Res.get("shared.na");
         String currencyCode = price.getCurrencyCode();
-        String formattedPrice = CurrencyUtil.isFiatCurrency(currencyCode)
-                ? FormattingUtils.formatMarketPrice(price.getDoubleValue(), 2)
-                : FormattingUtils.formatPrice(price);
-        return formattedPrice + " " + currencyCode + "/" + Res.getBaseCurrencyCode();
+        return DisplayUtils.formatTradePrice(price) + " " + currencyCode + "/" + Res.getBaseCurrencyCode();
     }
 
     public String getTradeFee() {

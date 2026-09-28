@@ -22,8 +22,8 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
-import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.filtering.FilterableListItem;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
@@ -88,7 +88,7 @@ public class PendingTradesListItem implements FilterableListItem {
     }
 
     public String getPriceAsString() {
-        return FormattingUtils.formatPrice(trade.getPrice());
+        return DisplayUtils.formatTradePrice(trade.getPrice());
     }
 
     public String getAmountAsString() {

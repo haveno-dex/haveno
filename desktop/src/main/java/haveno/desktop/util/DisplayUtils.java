@@ -241,6 +241,12 @@ public class DisplayUtils {
     // Other
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    public static String formatTradePrice(Price price) {
+        return price != null && CurrencyUtil.isFiatCurrency(price.getCurrencyCode())
+                ? FormattingUtils.formatMarketPrice(price.getDoubleValue(), 2)
+                : FormattingUtils.formatPrice(price);
+    }
+
     public static String formatPrice(Price price, Boolean decimalAligned, int maxPlaces) {
         String formattedPrice = FormattingUtils.formatPrice(price);
 
