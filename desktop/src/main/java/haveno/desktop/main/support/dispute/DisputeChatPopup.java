@@ -60,6 +60,7 @@ public class DisputeChatPopup {
     }
 
     private Stage chatPopupStage;
+    private boolean disputeClosedAtOpen;
     protected final DisputeManager<? extends DisputeList<Dispute>> disputeManager;
     protected final CoinFormatter formatter;
     protected final Preferences preferences;
@@ -90,8 +91,16 @@ public class DisputeChatPopup {
     }
 
     public void openChat(Dispute selectedDispute, DisputeSession concreteDisputeSession, String counterpartyName) {
+        if (chatPopupStage != null && chatPopupStage.isShowing() && selectedDispute == this.selectedDispute
+                && selectedDispute.isClosed() == disputeClosedAtOpen) {
+            chatPopupStage.setIconified(false);
+            chatPopupStage.toFront();
+            chatPopupStage.requestFocus();
+            return;
+        }
         closeChat();
         this.selectedDispute = selectedDispute;
+        disputeClosedAtOpen = selectedDispute.isClosed();
 
         ChatView chatView = new ChatView(disputeManager, counterpartyName);
         chatView.setAllowAttachments(true);
