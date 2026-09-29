@@ -20,6 +20,7 @@ package haveno.desktop.main.portfolio.pendingtrades;
 import haveno.desktop.components.TextFieldWithCopyIcon;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -92,7 +93,7 @@ public class TradeFormPane extends GridPane {
                         if (!textArea.isEditable()) {
                             textArea.setMinHeight(0);
                             textArea.setMaxHeight(Double.MAX_VALUE);
-                            GUIUtil.adjustHeightAutomatically(textArea, null, false, 8.0);
+                            GUIUtil.adjustHeightAutomatically(textArea, Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT, false, 8.0);
                             fullWidth.add(field);
                         }
                     } else if (control instanceof TextFieldWithCopyIcon) {

@@ -79,6 +79,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
@@ -1899,6 +1900,8 @@ public class GUIUtil {
         return null;
     }
 
+    private static final PseudoClass CAPPED = PseudoClass.getPseudoClass("capped");
+
     public static void adjustHeightAutomatically(TextArea textArea) {
         adjustHeightAutomatically(textArea, null);
     }
@@ -1912,6 +1915,8 @@ public class GUIUtil {
     }
 
     public static void adjustHeightAutomatically(TextArea textArea, Double maxHeight, boolean loadSceneStyles, Double extraHeight) {
+        if (maxHeight != null) textArea.prefHeightProperty().addListener((o, oldHeight, newHeight) ->
+                textArea.pseudoClassStateChanged(CAPPED, newHeight.doubleValue() >= maxHeight));
         textArea.sceneProperty().addListener((o, oldScene, newScene) -> {
             if (newScene != null) {
                 // avoid javafx css warning
