@@ -126,8 +126,12 @@ public class OfferInfo implements Payload {
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
+        return toOfferInfo(offer, false);
+    }
+
+    public static OfferInfo toOfferInfo(Offer offer, boolean isMyOffer) {
         return getBuilder(offer)
-                .withIsMyOffer(false)
+                .withIsMyOffer(isMyOffer)
                 .withIsActivated(true)
                 .build();
     }
