@@ -102,7 +102,7 @@ public class TextFieldWithCopyIcon extends AnchorPane {
             AnchorPane.setLeftAnchor(wrappedTextArea, 0.0);
             AnchorPane.setRightAnchor(wrappedTextArea, 30.0);
             getChildren().add(0, wrappedTextArea);
-            GUIUtil.adjustHeightAutomatically(wrappedTextArea, null, false, 8.0);
+            GUIUtil.adjustHeightAutomatically(wrappedTextArea, Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT, false, 8.0);
         }
         textField.setVisible(!wrap);
         textField.setManaged(!wrap);

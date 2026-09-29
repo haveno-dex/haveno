@@ -243,6 +243,10 @@
     -fx-pref-height: 0;
     -fx-opacity: 0;
 }
+.trade-detail-view .trade-payment-field .text-area:capped .scroll-bar:vertical {
+    -fx-pref-width: -1;
+    -fx-opacity: 1;
+}
 .trade-detail-view .trade-confirmation-count {
     -fx-font-size: 38px;
     -fx-font-family: "IBM Plex Sans Medium";
@@ -482,6 +486,9 @@
 }
 .trade-detail-view .trade-account-summary .text-area .scroll-pane {
     -fx-border-width: 0;
+}
+.trade-detail-view .trade-account-summary .text-area:capped .scroll-pane {
+    -fx-vbar-policy: as-needed;
 }
 .trade-detail-view .trade-message-status {
     -fx-background-color: -bs-confirm-sheet-background;

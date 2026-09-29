@@ -48,6 +48,7 @@ import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.PopOverWrapper;
 import haveno.desktop.components.controlsfx.control.PopOver;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.Layout;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
@@ -712,7 +713,7 @@ public abstract class TradeStepView extends VBox {
         value.setWrapText(true);
         value.setMinSize(0, 0);
         value.getStyleClass().addAll("selectable-label", "trade-account-details");
-        GUIUtil.adjustHeightAutomatically(value, null, false);
+        GUIUtil.adjustHeightAutomatically(value, Layout.DETAILS_WINDOW_EXTRA_INFO_MAX_HEIGHT, false);
         HBox.setHgrow(value, Priority.ALWAYS);
         HBox summary = new HBox(10, label, value);
         summary.setMinWidth(0);
