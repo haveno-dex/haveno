@@ -47,6 +47,9 @@ import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.beans.WeakInvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.stage.FileChooser;
 
@@ -274,6 +277,11 @@ public class ChatView extends AnchorPane {
             public ListCell<ChatMessage> call(ListView<ChatMessage> list) {
                 return new ListCell<>() {
                     ChangeListener<Boolean> sendMsgBusyAnimationListener;
+                    ChatMessage stateMessage;
+                    InvalidationListener msgStateListener = o -> UserThread.execute(() -> {
+                        if (stateMessage != null) updateMsgState(stateMessage);
+                    });
+                    WeakInvalidationListener weakMsgStateListener = new WeakInvalidationListener(msgStateListener);
                     Pane bg = new Pane();
                     ImageView arrow = new ImageView();
                     Label headerLabel = new AutoTooltipLabel();
@@ -328,6 +336,7 @@ public class ChatView extends AnchorPane {
                         UserThread.execute(() -> {
                             if (message != getItem()) messageTextArea.deselect();
                             super.updateItem(message, empty);
+                            observeMsgState(null);
                             if (message != null && !empty) {
                                 copyLabel.setOnMouseClicked(e -> {
                                     Utilities.copyToClipboard(messageTextArea.getText());
@@ -374,7 +383,7 @@ public class ChatView extends AnchorPane {
                                     bg.setId("message-bubble-green");
                                     messageTextArea.getStyleClass().add("my-message");
                                     copyLabel.getStyleClass().add("my-message");
-                                    message.addWeakMessageStateListener(() -> UserThread.execute(() -> updateMsgState(message)));
+                                    observeMsgState(message);
                                     updateMsgState(message);
                                 } else if (isMyMsg) {
                                     headerLabel.getStyleClass().add("my-message-header");
@@ -395,7 +404,7 @@ public class ChatView extends AnchorPane {
                                     };
     
                                     sendMsgBusyAnimation.isRunningProperty().addListener(sendMsgBusyAnimationListener);
-                                    message.addWeakMessageStateListener(() -> UserThread.execute(() -> updateMsgState(message)));
+                                    observeMsgState(message);
                                     updateMsgState(message);
                                 } else {
                                     headerLabel.getStyleClass().add("message-header");
@@ -500,6 +509,18 @@ public class ChatView extends AnchorPane {
                                 setAccessibleText(null);
                             }
                         });
+                    }
+
+                    // observe state of the cell's current message only, since cells are reused
+                    private void observeMsgState(ChatMessage message) {
+                        if (stateMessage != null) msgStateProperties(stateMessage).forEach(p -> p.removeListener(weakMsgStateListener));
+                        stateMessage = message;
+                        if (message != null) msgStateProperties(message).forEach(p -> p.addListener(weakMsgStateListener));
+                    }
+
+                    private List<Observable> msgStateProperties(ChatMessage message) {
+                        return List.of(message.arrivedProperty(), message.storedInMailboxProperty(),
+                                message.acknowledgedProperty(), message.ackErrorProperty());
                     }
 
                     private void updateMsgState(ChatMessage message) {

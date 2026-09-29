@@ -44,8 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import java.lang.ref.WeakReference;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -60,15 +58,11 @@ import javax.annotation.Nullable;
  * For trader to trader communication the maker is considered to be the server
  * and the taker is considered as the client.
  */
-@EqualsAndHashCode(callSuper = true) // listener is transient and therefore excluded anyway
+@EqualsAndHashCode(callSuper = true)
 @Getter
 @Slf4j
 public final class ChatMessage extends SupportMessage {
     public static final long TTL = TimeUnit.DAYS.toMillis(7);
-
-    public interface Listener {
-        void onMessageStateChanged();
-    }
 
     private final String tradeId;
     private final int traderId;
@@ -92,8 +86,6 @@ public final class ChatMessage extends SupportMessage {
     private final BooleanProperty acknowledgedProperty;
     private final StringProperty sendMessageErrorProperty;
     private final StringProperty ackErrorProperty;
-
-    transient private WeakReference<Listener> listener;
 
     public ChatMessage(SupportType supportType,
                     String tradeId,
@@ -223,7 +215,6 @@ public final class ChatMessage extends SupportMessage {
         acknowledgedProperty = new SimpleBooleanProperty(acknowledged);
         sendMessageErrorProperty = new SimpleStringProperty(sendMessageError);
         ackErrorProperty = new SimpleStringProperty(ackError);
-        notifyChangeListener();
     }
 
     // We cannot rename protobuf definition because it would break backward compatibility
@@ -296,7 +287,6 @@ public final class ChatMessage extends SupportMessage {
 
     public void setArrived(@SuppressWarnings("SameParameterValue") boolean arrived) {
         this.arrivedProperty.set(arrived);
-        notifyChangeListener();
     }
 
     public ReadOnlyBooleanProperty arrivedProperty() {
@@ -306,7 +296,6 @@ public final class ChatMessage extends SupportMessage {
 
     public void setStoredInMailbox(@SuppressWarnings("SameParameterValue") boolean storedInMailbox) {
         this.storedInMailboxProperty.set(storedInMailbox);
-        notifyChangeListener();
     }
 
     public ReadOnlyBooleanProperty storedInMailboxProperty() {
@@ -315,7 +304,6 @@ public final class ChatMessage extends SupportMessage {
 
     public void setAcknowledged(boolean acknowledged) {
         this.acknowledgedProperty.set(acknowledged);
-        notifyChangeListener();
     }
 
     // each chat message notifies the user if an ACK is not received in time
@@ -334,7 +322,6 @@ public final class ChatMessage extends SupportMessage {
 
     public void setSendMessageError(String sendMessageError) {
         this.sendMessageErrorProperty.set(sendMessageError);
-        notifyChangeListener();
     }
 
     public ReadOnlyStringProperty sendMessageErrorProperty() {
@@ -343,7 +330,6 @@ public final class ChatMessage extends SupportMessage {
 
     public void setAckError(String ackError) {
         this.ackErrorProperty.set(ackError);
-        notifyChangeListener();
     }
 
     public ReadOnlyStringProperty ackErrorProperty() {
@@ -359,10 +345,6 @@ public final class ChatMessage extends SupportMessage {
         return Utilities.getShortId(tradeId);
     }
 
-    public void addWeakMessageStateListener(Listener listener) {
-        this.listener = new WeakReference<>(listener);
-    }
-
     public boolean isResultMessage(Dispute dispute) {
         DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
         if (disputeResult == null) {
@@ -376,15 +358,6 @@ public final class ChatMessage extends SupportMessage {
     @Override
     public long getTTL() {
         return TTL;
-    }
-
-    private void notifyChangeListener() {
-        if (listener != null) {
-            Listener listener = this.listener.get();
-            if (listener != null) {
-                listener.onMessageStateChanged();
-            }
-        }
     }
 
     @Override
