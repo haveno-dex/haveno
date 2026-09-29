@@ -97,7 +97,8 @@
     -fx-padding: 22 28 10;
     -fx-border-width: 0;
 }
-.trade-detail-view .trade-action-panel:completed {
+.trade-detail-view .trade-action-panel:completed,
+.trade-detail-view .trade-action-panel:inline-status {
     -fx-padding: 22 28;
 }
 .trade-detail-view .trade-sidebar {

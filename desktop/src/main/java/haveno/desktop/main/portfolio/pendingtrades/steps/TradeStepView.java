@@ -69,6 +69,7 @@ import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 
 import haveno.network.p2p.BootstrapListener;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -120,6 +121,7 @@ public abstract class TradeStepView extends VBox {
     private Subscription payoutSubscription;
     private final Label syncLabel = new Label();
     private boolean confirmationInProgress;
+    private boolean walletUpdatePending;
     protected TradeConfirmationPane confirmationPane;
     private ChangeListener<Boolean> walletSyncedListener;
     private boolean active;
@@ -757,12 +759,16 @@ public abstract class TradeStepView extends VBox {
             updateStatus();
         });
 
-        action.third.getStyleClass().add("trade-secondary");
-        // reserve the status gap and let the message use the remaining row space
-        action.third.setPrefWidth(0);
-        action.third.setMaxWidth(Double.MAX_VALUE);
-        action.third.visibleProperty().bind(action.third.textProperty().isNotEmpty());
+        initStatusLabel(action.third);
         return action;
+    }
+
+    protected void initStatusLabel(Label label) {
+        label.getStyleClass().add("trade-secondary");
+        // reserve the status gap and let the message use the remaining row space
+        label.setPrefWidth(0);
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.visibleProperty().bind(label.textProperty().isNotEmpty());
     }
 
     private PopOver createDurationPopover(Button owner) {
@@ -1359,12 +1365,21 @@ public abstract class TradeStepView extends VBox {
     }
 
     protected void setSyncStatus(String text) {
+        if (text.isEmpty() && syncStatus != null && !syncStatus.isEmpty()) walletUpdatePending = false; // wallet update is done syncing
         syncStatus = text;
         updateStatus();
     }
 
     protected void setTradeStatus(String text) {
+        if (!Objects.equals(tradeStatus, text)) walletUpdatePending = false;
         tradeStatus = text;
+        updateStatus();
+    }
+
+    // confirmation starts by updating the wallet, so hold the status until its sync ends or the status advances
+    protected void setPreparingConfirmation() {
+        tradeStatus = Res.get("shared.preparingConfirmation");
+        walletUpdatePending = true;
         updateStatus();
     }
 
@@ -1376,21 +1391,19 @@ public abstract class TradeStepView extends VBox {
     }
 
     protected void updateStatus() {
-        // keep the footer space while confirmation progress moves into the action row
-        String syncText = confirmationInProgress || syncStatus == null ? "" : syncStatus;
-        if (syncText.equals(Res.get("portfolio.pending.syncing"))) syncText += "…";
-        syncLabel.setText(syncText);
-        String text = getStatusText();
+        // show sync progress in the action row if the step has one, otherwise in the footer
+        boolean inline = statusLabel != null && statusLabel.getParent() instanceof HBox;
+        String syncText = syncStatus == null ? "" : syncStatus;
+        syncLabel.setText(inline ? "" : syncText);
+        syncLabel.setVisible(!inline && !completed);
+        syncLabel.setManaged(syncLabel.isVisible());
+        actionPane.pseudoClassStateChanged(PseudoClass.getPseudoClass("inline-status"), inline);
         if (statusLabel != null) {
+            boolean syncing = inline && !syncText.isEmpty();
             statusLabel.setMinWidth(0);
-            statusLabel.setWrapText(!confirmationInProgress);
+            statusLabel.setWrapText(!confirmationInProgress && !syncing);
             HBox.setHgrow(statusLabel, Priority.ALWAYS);
-            statusLabel.setText(text == null ? "" : text);
+            statusLabel.setText(syncing ? syncText : walletUpdatePending || tradeStatus == null ? "" : tradeStatus);
         }
-    }
-
-    private String getStatusText() {
-        if (confirmationInProgress && syncStatus != null && !syncStatus.isEmpty()) return syncStatus;
-        return tradeStatus;
     }
 }
