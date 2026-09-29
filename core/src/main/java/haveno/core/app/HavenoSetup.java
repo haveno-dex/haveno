@@ -56,6 +56,7 @@ import haveno.core.alert.AlertManager;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.alert.PrivateNotificationPayload;
 import haveno.core.api.CoreContext;
+import haveno.core.api.CoreNotificationService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrConnectionService.XmrConnectionFallbackType;
 import haveno.core.api.XmrLocalNode;
@@ -143,6 +144,7 @@ public class HavenoSetup {
     private final TorSetup torSetup;
     private final CoinFormatter formatter;
     private final AppStartupState appStartupState;
+    private final CoreNotificationService notificationService;
     private final MediationManager mediationManager;
     private final RefundManager refundManager;
     private final ArbitrationManager arbitrationManager;
@@ -242,6 +244,7 @@ public class HavenoSetup {
                        TorSetup torSetup,
                        @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                        AppStartupState appStartupState,
+                       CoreNotificationService notificationService,
                        Socks5ProxyProvider socks5ProxyProvider,
                        MediationManager mediationManager,
                        RefundManager refundManager,
@@ -267,12 +270,18 @@ public class HavenoSetup {
         this.torSetup = torSetup;
         this.formatter = formatter;
         this.appStartupState = appStartupState;
+        this.notificationService = notificationService;
         this.mediationManager = mediationManager;
         this.refundManager = refundManager;
         this.arbitrationManager = arbitrationManager;
 
         HavenoUtils.havenoSetup = this;
         HavenoUtils.preferences = preferences;
+
+        // notify api clients of applicable alerts, registered before p2p startup
+        alertManager.alertMessageProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && newValue.isApplicable(preferences)) notificationService.sendAlertNotification(newValue);
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

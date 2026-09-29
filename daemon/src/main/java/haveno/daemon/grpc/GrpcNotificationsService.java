@@ -1,13 +1,17 @@
 package haveno.daemon.grpc;
 
 import com.google.inject.Inject;
+import haveno.core.alert.Alert;
 import haveno.core.api.CoreApi;
 import haveno.core.api.NotificationListener;
 import haveno.daemon.grpc.interceptor.CallRateMeteringInterceptor;
 import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
+import haveno.proto.grpc.GetAlertReply;
+import haveno.proto.grpc.GetAlertRequest;
 import haveno.proto.grpc.NotificationMessage;
 import haveno.proto.grpc.NotificationsGrpc.NotificationsImplBase;
+import static haveno.proto.grpc.NotificationsGrpc.getGetAlertMethod;
 import static haveno.proto.grpc.NotificationsGrpc.getRegisterNotificationListenerMethod;
 import static haveno.proto.grpc.NotificationsGrpc.getSendNotificationMethod;
 import haveno.proto.grpc.RegisterNotificationListenerRequest;
@@ -65,6 +69,20 @@ class GrpcNotificationsService extends NotificationsImplBase {
         });
     }
 
+    @Override
+    public void getAlert(GetAlertRequest request,
+                         StreamObserver<GetAlertReply> responseObserver) {
+        try {
+            GetAlertReply.Builder reply = GetAlertReply.newBuilder();
+            Alert alert = coreApi.getAlert();
+            if (alert != null) reply.setAlert(alert.toProtoMessage().getAlert());
+            responseObserver.onNext(reply.build());
+            responseObserver.onCompleted();
+        } catch (Throwable t) {
+            exceptionHandler.handleException(log, t, responseObserver);
+        }
+    }
+
     @Value
     private static class GrpcNotificationListener implements NotificationListener {
 
@@ -91,6 +109,7 @@ class GrpcNotificationsService extends NotificationsImplBase {
                         new HashMap<>() {{
                             put(getRegisterNotificationListenerMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getSendNotificationMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getGetAlertMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                         }}
                 )));
     }
