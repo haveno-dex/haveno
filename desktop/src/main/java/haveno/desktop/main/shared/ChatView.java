@@ -20,7 +20,6 @@ package haveno.desktop.main.shared;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.HavenoTextArea;
-import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.TableGroupHeadline;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -37,7 +36,6 @@ import haveno.core.support.messages.ChatMessage;
 
 import haveno.network.p2p.network.Connection;
 
-import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 
@@ -81,10 +79,10 @@ import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
 import javafx.beans.property.ReadOnlyDoubleProperty;
-import javafx.beans.value.ChangeListener;
 
 import javafx.event.EventHandler;
 
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
@@ -104,7 +102,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -121,8 +118,6 @@ public class ChatView extends AnchorPane {
     private TextArea inputTextArea;
     private Button sendButton;
     private ListView<ChatMessage> messageListView;
-    private Label sendMsgInfoLabel;
-    private BusyAnimation sendMsgBusyAnimation;
     private TableGroupHeadline tableGroupHeadline;
     private VBox messagesInputBox;
 
@@ -137,13 +132,11 @@ public class ChatView extends AnchorPane {
     boolean displayHeader;
 
     // Communication stuff, to be renamed to something more generic
-    private ChatMessage chatMessage;
+    private static final ObservableList<ChatMessage> sendingMessages = FXCollections.observableArrayList(); // shared so a reopened chat window still shows sending
     private ObservableList<ChatMessage> chatMessages;
     private ListChangeListener<ChatMessage> disputeDirectMessageListListener;
     private Subscription inputTextAreaTextSubscription;
     private final List<Attachment> tempAttachments = new ArrayList<>();
-    private ChangeListener<Boolean> storedInMailboxPropertyListener, acknowledgedPropertyListener;
-    private ChangeListener<String> sendMessageErrorPropertyListener;
 
     private EventHandler<KeyEvent> keyEventEventHandler;
     private SupportManager supportManager;
@@ -236,13 +229,6 @@ public class ChatView extends AnchorPane {
         uploadButton.setStyle("-fx-pref-width: 125; -fx-min-width: 110; -fx-padding: 3 3 3 3;");
         clipboardButton.setStyle("-fx-pref-width: 125; -fx-min-width: 110; -fx-padding: 3 3 3 3;");
 
-        sendMsgInfoLabel = new AutoTooltipLabel();
-        sendMsgInfoLabel.setVisible(false);
-        sendMsgInfoLabel.setManaged(false);
-        sendMsgInfoLabel.setPadding(new Insets(5, 0, 0, 0));
-
-        sendMsgBusyAnimation = new BusyAnimation(false);
-
         if (displayHeader)
             this.getChildren().add(tableGroupHeadline);
 
@@ -255,7 +241,7 @@ public class ChatView extends AnchorPane {
                 buttonBox.getChildren().add(extraButton);
             Pane spacer = new Pane();
             HBox.setHgrow(spacer, Priority.ALWAYS);
-            buttonBox.getChildren().addAll(spacer, sendMsgBusyAnimation, sendMsgInfoLabel, sendButton);
+            buttonBox.getChildren().addAll(spacer, sendButton);
 
             messagesInputBox = new VBox();
             messagesInputBox.setSpacing(10);
@@ -279,7 +265,6 @@ public class ChatView extends AnchorPane {
             @Override
             public ListCell<ChatMessage> call(ListView<ChatMessage> list) {
                 return new ListCell<>() {
-                    ChangeListener<Boolean> sendMsgBusyAnimationListener;
                     ChatMessage stateMessage;
                     InvalidationListener msgStateListener = o -> UserThread.execute(() -> {
                         if (stateMessage != null) updateMsgState(stateMessage);
@@ -296,6 +281,7 @@ public class ChatView extends AnchorPane {
                     Label statusIcon = new Label();
                     Label statusInfoLabel = new Label();
                     HBox statusHBox = new HBox();
+                    Tooltip statusTooltip = new Tooltip();
                     double arrowWidth = 15d;
                     double attachmentsBoxHeight = 20d;
                     double border = 10d;
@@ -338,6 +324,10 @@ public class ChatView extends AnchorPane {
                         Accessibility.asButton(copyLabel, Res.get("shared.copyToClipboard"));
                         statusHBox.setSpacing(5);
                         statusHBox.setAlignment(Pos.CENTER_LEFT);
+                        // the status row may extend past the bubble, capped like the bubble
+                        statusHBox.maxWidthProperty().bind(messageListView.widthProperty().multiply(0.75));
+                        Tooltip.install(statusHBox, statusTooltip);
+                        sendingMessages.addListener(weakMsgStateListener);
                         statusHBox.getChildren().addAll(statusIcon, statusInfoLabel);
                         AnchorPane.setTopAnchor(bubblePane, 0d);
                         AnchorPane.setRightAnchor(bubblePane, 0d);
@@ -345,6 +335,7 @@ public class ChatView extends AnchorPane {
                         AnchorPane.setLeftAnchor(bubblePane, 0d);
                         messageAnchorPane.getChildren().addAll(bubblePane, headerLabel, messageTextArea, copyLabel, attachmentsBox, statusHBox);
                         messageAnchorPane.setMaxWidth(Region.USE_PREF_SIZE);
+                        messageAnchorPane.setMinWidth(Region.USE_PREF_SIZE); // keep the status row from widening the bubble
                     }
 
                     @Override
@@ -404,15 +395,6 @@ public class ChatView extends AnchorPane {
                                     copyLabel.getStyleClass().add("my-message");
                                     arrow.setId("bubble_arrow_blue_right");
     
-                                    if (sendMsgBusyAnimationListener != null)
-                                        sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
-    
-                                    sendMsgBusyAnimationListener = (observable, oldValue, newValue) -> {
-                                        if (!newValue)
-                                            UserThread.execute(() -> updateMsgState(message));
-                                    };
-    
-                                    sendMsgBusyAnimation.isRunningProperty().addListener(sendMsgBusyAnimationListener);
                                     observeMsgState(message);
                                     updateMsgState(message);
                                 } else {
@@ -443,7 +425,7 @@ public class ChatView extends AnchorPane {
                                     AnchorPane.setRightAnchor(copyLabel, padding);
                                     AnchorPane.setLeftAnchor(attachmentsBox, padding + arrowWidth);
                                     AnchorPane.setRightAnchor(attachmentsBox, padding);
-                                    AnchorPane.setRightAnchor(statusHBox, padding);
+                                    AnchorPane.setLeftAnchor(statusHBox, padding + arrowWidth);
                                 } else {
                                     AnchorPane.setRightAnchor(headerLabel, padding + arrowWidth);
                                     AnchorPane.setRightAnchor(bg, border + arrowWidth);
@@ -502,8 +484,6 @@ public class ChatView extends AnchorPane {
                                 setGraphic(messageAnchorPane);
                                 setAccessibleText(headerLabel.getText() + ". " + messageTextArea.getText());
                             } else {
-                                if (sendMsgBusyAnimation != null && sendMsgBusyAnimationListener != null)
-                                    sendMsgBusyAnimation.isRunningProperty().removeListener(sendMsgBusyAnimationListener);
     
                                 messageAnchorPane.prefWidthProperty().unbind();
     
@@ -524,7 +504,7 @@ public class ChatView extends AnchorPane {
 
                     private List<Observable> msgStateProperties(ChatMessage message) {
                         return List.of(message.arrivedProperty(), message.storedInMailboxProperty(),
-                                message.acknowledgedProperty(), message.ackErrorProperty());
+                                message.acknowledgedProperty(), message.ackErrorProperty(), message.sendMessageErrorProperty());
                     }
 
                     // fit the bubble to its content up to a share of the list width; system messages span it
@@ -537,11 +517,9 @@ public class ChatView extends AnchorPane {
                             double content = Math.max(Math.ceil(measure.getLayoutBounds().getWidth()) + 2 + padding + msgLabelPaddingRight,
                                     headerLabel.prefWidth(-1) + 2 * padding);
                             content = Math.max(content, attachmentsBox.prefWidth(-1) + 2 * padding);
-                            if (statusHBox.isVisible()) content = Math.max(content, statusHBox.prefWidth(-1) + 2 * padding);
                             return Math.min(available * 0.75, content + arrowWidth);
                         }, messageListView.widthProperty(), messageTextArea.fontProperty(), headerLabel.textProperty(),
-                                headerLabel.fontProperty(), attachmentsBox.getChildren(), statusHBox.visibleProperty(),
-                                statusInfoLabel.textProperty());
+                                headerLabel.fontProperty(), attachmentsBox.getChildren());
                     }
 
                     private void updateMsgState(ChatMessage message) {
@@ -550,7 +528,6 @@ public class ChatView extends AnchorPane {
                         String text = null;
                         statusIcon.getStyleClass().removeAll("error-text");
                         statusInfoLabel.getStyleClass().removeAll("error-text");
-                        statusHBox.setOpacity(1);
                         log.debug("updateMsgState msg-{}, ack={}, arrived={}", message.getMessage(),
                                 message.acknowledgedProperty().get(), message.arrivedProperty().get());
                         if (message.acknowledgedProperty().get()) {
@@ -563,6 +540,12 @@ public class ChatView extends AnchorPane {
                             text = Res.get("support.error", message.ackErrorProperty().get());
                             statusIcon.getStyleClass().add("error-text");
                             statusInfoLabel.getStyleClass().add("error-text");
+                        } else if (message.sendMessageErrorProperty().get() != null) {
+                            visible = true;
+                            icon = FontAwesomeIcon.EXCLAMATION_CIRCLE;
+                            text = Res.get("support.sendMessageError", message.sendMessageErrorProperty().get());
+                            statusIcon.getStyleClass().add("error-text");
+                            statusInfoLabel.getStyleClass().add("error-text");
                         } else if (message.storedInMailboxProperty().get()) {
                             visible = true;
                             icon = FontAwesomeIcon.ENVELOPE;
@@ -571,6 +554,10 @@ public class ChatView extends AnchorPane {
                             visible = true;
                             icon = FontAwesomeIcon.MAIL_REPLY;
                             text = Res.get("support.transient");
+                        } else if (sendingMessages.contains(message)) {
+                            visible = true;
+                            icon = FontAwesomeIcon.CLOCK_ALT;
+                            text = Res.get("support.sendingMessage");
                         } else {
                             visible = false;
                             log.debug("updateMsgState called but no msg state available. message={}", message);
@@ -579,8 +566,9 @@ public class ChatView extends AnchorPane {
                         statusHBox.setVisible(visible);
                         if (visible) {
                             GlyphsDude.setIcon(statusIcon, icon, "14");
-                            statusIcon.setTooltip(new Tooltip(text));
-                            statusInfoLabel.setText(text);
+                            // keep the row to one line, e.g. for multiline network errors
+                            statusTooltip.setText(text);
+                            statusInfoLabel.setText(text.lines().findFirst().orElse(""));
                         }
                     }
                 };
@@ -711,56 +699,35 @@ public class ChatView extends AnchorPane {
     }
 
     private void onSendMessage(String inputText) {
-        if (chatMessage != null) {
-            chatMessage.acknowledgedProperty().removeListener(acknowledgedPropertyListener);
-            chatMessage.storedInMailboxProperty().removeListener(storedInMailboxPropertyListener);
-            chatMessage.sendMessageErrorProperty().removeListener(sendMessageErrorPropertyListener);
-        }
-
-        chatMessage = sendDisputeDirectMessage(inputText, new ArrayList<>(tempAttachments));
+        ChatMessage message = sendDisputeDirectMessage(inputText, new ArrayList<>(tempAttachments));
         tempAttachments.clear();
         scrollToBottom();
-
-        inputTextArea.setDisable(true);
         inputTextArea.clear();
+        inputTextArea.requestFocus();
+        if (message == null) return;
 
-        chatMessage.startAckTimer();
-
-        Timer timer = UserThread.runAfter(() -> {
-            sendMsgInfoLabel.setVisible(true);
-            sendMsgInfoLabel.setManaged(true);
-            sendMsgInfoLabel.setText(Res.get("support.sendingMessage"));
-
-            sendMsgBusyAnimation.play();
-        }, 500, TimeUnit.MILLISECONDS);
-
-        acknowledgedPropertyListener = (observable, oldValue, newValue) -> {
-            if (newValue) {
-                sendMsgInfoLabel.setVisible(false);
-                hideSendMsgInfo(timer);
+        // show as sending until confirmed, saved to the mailbox, or failed
+        message.startAckTimer();
+        sendingMessages.add(message);
+        List<Observable> sendStates = List.of(message.acknowledgedProperty(), message.storedInMailboxProperty(),
+                message.ackErrorProperty(), message.sendMessageErrorProperty());
+        InvalidationListener sendDoneListener = new InvalidationListener() {
+            @Override
+            public void invalidated(Observable observable) {
+                if (!isSendingDone(message)) return;
+                UserThread.execute(() -> {
+                    sendStates.forEach(state -> state.removeListener(this));
+                    sendingMessages.remove(message);
+                });
             }
         };
-        storedInMailboxPropertyListener = (observable, oldValue, newValue) -> {
-            if (newValue) {
-                sendMsgInfoLabel.setVisible(true);
-                sendMsgInfoLabel.setManaged(true);
-                sendMsgInfoLabel.setText(Res.get("support.receiverNotOnline"));
-                hideSendMsgInfo(timer);
-            }
-        };
-        sendMessageErrorPropertyListener = (observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                sendMsgInfoLabel.setVisible(true);
-                sendMsgInfoLabel.setManaged(true);
-                sendMsgInfoLabel.setText(Res.get("support.sendMessageError", newValue));
-                hideSendMsgInfo(timer);
-            }
-        };
-        if (chatMessage != null) {
-            chatMessage.acknowledgedProperty().addListener(acknowledgedPropertyListener);
-            chatMessage.storedInMailboxProperty().addListener(storedInMailboxPropertyListener);
-            chatMessage.sendMessageErrorProperty().addListener(sendMessageErrorPropertyListener);
-        }
+        sendStates.forEach(state -> state.addListener(sendDoneListener));
+        sendDoneListener.invalidated(null); // the send can finish before the listener is added
+    }
+
+    private boolean isSendingDone(ChatMessage message) {
+        return message.acknowledgedProperty().get() || message.storedInMailboxProperty().get() ||
+                message.ackErrorProperty().get() != null || message.sendMessageErrorProperty().get() != null;
     }
 
     private ChatMessage sendDisputeDirectMessage(String text, ArrayList<Attachment> attachments) {
@@ -788,17 +755,6 @@ public class ChatView extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Helpers
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private void hideSendMsgInfo(Timer timer) {
-        timer.stop();
-        inputTextArea.setDisable(false);
-
-        UserThread.runAfter(() -> {
-            sendMsgInfoLabel.setVisible(false);
-            sendMsgInfoLabel.setManaged(false);
-        }, 5);
-        sendMsgBusyAnimation.stop();
-    }
 
     public void scrollToBottom() {
         UserThread.execute(() -> {
@@ -840,13 +796,6 @@ public class ChatView extends AnchorPane {
     private void removeListenersOnSessionChange() {
         if (chatMessages != null && disputeDirectMessageListListener != null)
             chatMessages.removeListener(disputeDirectMessageListListener);
-
-        if (chatMessage != null) {
-            if (acknowledgedPropertyListener != null)
-                chatMessage.arrivedProperty().removeListener(acknowledgedPropertyListener);
-            if (storedInMailboxPropertyListener != null)
-                chatMessage.storedInMailboxProperty().removeListener(storedInMailboxPropertyListener);
-        }
 
         if (messageListView != null)
             messageListView.prefWidthProperty().unbind();
