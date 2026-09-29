@@ -160,6 +160,10 @@ public final class Alert implements ProtectedStoragePayload, ExpirablePayload {
         return (isUpdateInfo || isPreReleaseInfo);
     }
 
+    public boolean isApplicable(Preferences preferences) {
+        return !isSoftwareUpdateNotification() || isNewVersion(preferences);
+    }
+
     public boolean canShowPopup(Preferences preferences) {
         // only show popup if its version is newer than current
         // and only if user has not checked "don't show again"

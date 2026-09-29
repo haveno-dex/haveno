@@ -267,6 +267,8 @@ service Notifications {
     }
     rpc SendNotification (SendNotificationRequest) returns (SendNotificationReply) { // only used for testing
     }
+    rpc GetAlert (GetAlertRequest) returns (GetAlertReply) {
+    }
 }
 
 message RegisterNotificationListenerRequest {
@@ -279,6 +281,7 @@ message NotificationMessage {
         KEEP_ALIVE = 2;
         TRADE_UPDATE = 3;
         CHAT_MESSAGE = 4;
+        ALERT = 5;
     }
 
     string id = 1;
@@ -288,6 +291,7 @@ message NotificationMessage {
     string message = 5;
     TradeInfo trade = 6;
     ChatMessage chat_message = 7;
+    Alert alert = 8;
 }
 
 message SendNotificationRequest {
@@ -295,6 +299,13 @@ message SendNotificationRequest {
 }
 
 message SendNotificationReply {
+}
+
+message GetAlertRequest {
+}
+
+message GetAlertReply {
+    Alert alert = 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
