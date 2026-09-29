@@ -232,7 +232,9 @@ public class PeerExchangeManager implements MessageListener, ConnectionListener,
 
                                 peerManager.handleConnectionFault(nodeAddress);
                                 handlerMap.remove(nodeAddress);
-                                remainingNodeAddresses.removeIf(peerManager::isPeerUnavailable);
+                                // skip peers connected since the list was built, except seeds as the bootstrap fallback
+                                remainingNodeAddresses.removeIf(e -> peerManager.isPeerUnavailable(e) ||
+                                        (peerManager.isConfirmed(e) && !peerManager.isSeedNode(e)));
                                 if (!remainingNodeAddresses.isEmpty()) {
                                     if (!peerManager.hasSufficientConnections()) {
                                         log.debug("There are remaining nodes available for requesting peers. " +
