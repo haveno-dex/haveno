@@ -213,7 +213,7 @@ public class TradeInfo implements Payload {
                 .withIsCompleted(trade.isCompleted())
                 .withContractAsJson(trade.getContractAsJson())
                 .withContract(contractInfo)
-                .withOffer(toOfferInfo(trade.getOffer()))
+                .withOffer(toOfferInfo(trade.getOffer(), trade.isMaker()))
                 .withStartTime(trade.getStartDate().getTime())
                 .withMaxDurationMs(trade.getMaxTradePeriod())
                 .withDeadlineTime(trade.getMaxTradePeriodDate().getTime())
