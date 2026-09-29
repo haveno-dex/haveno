@@ -470,7 +470,7 @@ public class SellerStep3View extends TradeStepView {
     private void confirmPaymentReceived() {
         log.info("User pressed the [Confirm payment receipt] button for Trade {}", trade.getShortId());
         busyAnimation.play();
-        setTradeStatus(Res.get("shared.preparingConfirmation"));
+        setPreparingConfirmation();
         disableConfirmationButton(confirmButton);
 
         model.dataModel.onPaymentReceived(() -> {
@@ -478,7 +478,7 @@ public class SellerStep3View extends TradeStepView {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentReceivedPermitted());
-            setTradeStatus("Error confirming payment received.");
+            setTradeStatus("Error confirming payment received");
         }));
     }
 

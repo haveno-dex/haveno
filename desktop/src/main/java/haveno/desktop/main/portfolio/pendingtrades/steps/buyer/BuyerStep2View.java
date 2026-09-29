@@ -620,6 +620,7 @@ public class BuyerStep2View extends TradeStepView {
             attachPaymentDetailsGrid();
         });
         moreConfirmationsLabel = tuple.third;
+        initStatusLabel(moreConfirmationsLabel);
     }
 
     private GridPane createGridPane() {
@@ -797,7 +798,7 @@ public class BuyerStep2View extends TradeStepView {
 
     private void confirmPaymentSent() {
         busyAnimation.play();
-        setTradeStatus(Res.get("shared.preparingConfirmation"));
+        setPreparingConfirmation();
         disableConfirmationButton(confirmButton);
 
         model.dataModel.onPaymentSent(() -> {
@@ -805,7 +806,7 @@ public class BuyerStep2View extends TradeStepView {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();
             confirmButton.setDisable(!confirmPaymentSentPermitted());
-            setTradeStatus("Error confirming payment sent.");
+            setTradeStatus("Error confirming payment sent");
         }));
     }
 
