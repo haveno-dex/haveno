@@ -58,7 +58,7 @@
 }
 
 .trade-detail-view {
-    -fx-padding: 18 16 12 0;
+    -fx-padding: 18 16 0 0;
 }
 .trade-detail-view .trade-summary {
     -fx-padding: 0 4 2 4;
