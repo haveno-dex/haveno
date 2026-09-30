@@ -3304,6 +3304,17 @@ textfield */
     -fx-background-color: transparent;
 }
 
+/* float the new messages button above the chat */
+.jfx-button.chat-new-messages-button {
+    -fx-background-color: -bs-rd-message-bubble-other;
+    -fx-padding: 0 15 0 15;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.28), 8, 0, 0, 2);
+}
+
+.jfx-button.chat-new-messages-button:hover, .jfx-button.chat-new-messages-button:focus-visible {
+    -fx-background-color: derive(-bs-rd-message-bubble-other, -6%);
+}
+
 #message-list-view.list-cell {
     -fx-padding: 0.25em 0.583em 0.25em 0.583em;
 }
