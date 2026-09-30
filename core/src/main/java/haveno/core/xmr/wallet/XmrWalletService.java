@@ -78,6 +78,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javafx.beans.property.LongProperty;
@@ -1671,14 +1672,24 @@ public class XmrWalletService extends XmrWalletBase {
             StringBuilder sb = new StringBuilder();
             sb.append("Primary address: ").append(wallet.getPrimaryAddress()).append("\n");
             sb.append("Wallet height: ").append(getHeight()).append("\n");
-            sb.append("Public view key: ").append(wallet.getPublicViewKey()).append("\n");
-            sb.append("Public spend key: ").append(wallet.getPublicSpendKey()).append("\n");
+            appendKeyIfSupported(sb, "Public view key", wallet::getPublicViewKey);
+            appendKeyIfSupported(sb, "Public spend key", wallet::getPublicSpendKey);
             if (includePrivKeys) {
                 sb.append("Seed: ").append(wallet.getSeed()).append("\n");
                 sb.append("Private view key: ").append(wallet.getPrivateViewKey()).append("\n");
                 sb.append("Private spend key: ").append(wallet.getPrivateSpendKey()).append("\n");
             }
             return sb.toString();
+        }
+    }
+
+    // monero-wallet-rpc release-v0.18 does not support querying public keys
+    private static void appendKeyIfSupported(StringBuilder sb, String label, Supplier<String> getter) {
+        try {
+            String key = getter.get();
+            sb.append(label).append(": ").append(key).append("\n");
+        } catch (MoneroRpcError e) {
+            if (e.getMessage() == null || !e.getMessage().startsWith("key_type")) throw e;
         }
     }
 
