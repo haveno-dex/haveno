@@ -214,9 +214,9 @@ public class XmrWalletService extends XmrWalletBase {
     private Long cachedHeight;
     private BigInteger cachedBalance;
     private BigInteger cachedAvailableBalance = null;
-    private List<MoneroSubaddress> cachedSubaddresses;
+    private volatile List<MoneroSubaddress> cachedSubaddresses; // read without the wallet lock
     private List<MoneroOutputWallet> cachedOutputs;
-    private List<MoneroTxWallet> cachedTxs;
+    private volatile List<MoneroTxWallet> cachedTxs; // replaced rather than mutated so readers can iterate without the wallet lock
     private boolean isInitializingWallet;
     private final ReadOnlyBooleanWrapper passwordRecoveryRequired = new ReadOnlyBooleanWrapper();
     private Long walletRestoreHeight; // tracked in-process because wallet rpc cannot report it
@@ -835,7 +835,9 @@ public class XmrWalletService extends XmrWalletBase {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 MoneroTxWallet tx = wallet.createTx(txConfig);
                 if (Boolean.TRUE.equals(txConfig.getRelay())) {
-                    cachedTxs.addFirst(tx);
+                    List<MoneroTxWallet> updatedTxs = new ArrayList<>(cachedTxs);
+                    updatedTxs.addFirst(tx);
+                    cachedTxs = updatedTxs;
                     cacheWalletInfo();
                     saveWallet();
                 }
@@ -853,7 +855,9 @@ public class XmrWalletService extends XmrWalletBase {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 List<MoneroTxWallet> txs = wallet.sweepUnlocked(txConfig);
                 if (Boolean.TRUE.equals(txConfig.getRelay())) {
-                    for (MoneroTxWallet tx : txs) cachedTxs.addFirst(tx);
+                    List<MoneroTxWallet> updatedTxs = new ArrayList<>(cachedTxs);
+                    for (MoneroTxWallet tx : txs) updatedTxs.addFirst(tx);
+                    cachedTxs = updatedTxs;
                     cacheWalletInfo();
                     saveWallet();
                 }
@@ -1005,17 +1009,19 @@ public class XmrWalletService extends XmrWalletBase {
         List<MoneroTxWallet> nonPoolTxs = wallet.getTxs(new MoneroTxQuery().setIncludeOutputs(true).setInTxPool(false));
 
         // replace non-pool txs in cache
+        List<MoneroTxWallet> updatedTxs = new ArrayList<>(cachedTxs);
         for (MoneroTxWallet nonPoolTx : nonPoolTxs) {
             boolean replaced = false;
-            for (int i = 0; i < cachedTxs.size(); i++) {
-                if (cachedTxs.get(i).getHash().equals(nonPoolTx.getHash())) {
-                    cachedTxs.set(i, nonPoolTx);
+            for (int i = 0; i < updatedTxs.size(); i++) {
+                if (updatedTxs.get(i).getHash().equals(nonPoolTx.getHash())) {
+                    updatedTxs.set(i, nonPoolTx);
                     replaced = true;
                     break;
                 }
             }
-            if (!replaced) cachedTxs.add(nonPoolTx);
+            if (!replaced) updatedTxs.add(nonPoolTx);
         }
+        cachedTxs = updatedTxs;
     }
 
     private List<Integer> getSubaddressesWithExactInput(BigInteger amount) {
@@ -1380,6 +1386,10 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     public XmrAddressEntry getFreshAddressEntry() {
+        synchronized (addressEntryLock) { // reuse an unused entry without waiting on the wallet
+            List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
+            if (!unusedAddressEntries.isEmpty()) return unusedAddressEntries.get(0);
+        }
         synchronized (walletLock) { // wallet lock first, since a new subaddress may be created
             synchronized (addressEntryLock) {
                 List<XmrAddressEntry> unusedAddressEntries = getUnusedAddressEntries();
