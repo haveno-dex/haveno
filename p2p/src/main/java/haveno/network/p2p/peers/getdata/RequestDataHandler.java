@@ -140,6 +140,7 @@ class RequestDataHandler implements MessageListener {
                             if (!stopped) {
                                 String errorMessage = "A timeout occurred at sending getDataRequest:" + getDataRequest +
                                         " on nodeAddress:" + nodeAddress;
+                                log.info("Sending {} to peer {} timed out", getDataRequestType, nodeAddress);
                                 log.debug(errorMessage + " / RequestDataHandler=" + RequestDataHandler.this);
                                 handleFault(errorMessage, nodeAddress, CloseConnectionReason.SEND_MSG_TIMEOUT);
                             } else {
@@ -175,6 +176,7 @@ class RequestDataHandler implements MessageListener {
                                     " failed. That is expected if the peer is offline.\n\t" +
                                     "getDataRequest=" + getDataRequest + "." +
                                     "\n\tException=" + throwable.getMessage();
+                            log.info("Sending {} to peer {} failed: {}", getDataRequestType, nodeAddress, throwable.getMessage());
                             handleFault(errorMessage, nodeAddress, CloseConnectionReason.SEND_MSG_FAILURE);
                         } else {
                             log.trace("We have stopped already. We ignore that networkNode.sendMessage.onFailure call. " +
@@ -286,7 +288,7 @@ class RequestDataHandler implements MessageListener {
                              NodeAddress nodeAddress,
                              CloseConnectionReason closeConnectionReason) {
         cleanup();
-        log.info(errorMessage);
+        log.debug(errorMessage);
         //peerManager.shutDownConnection(nodeAddress, closeConnectionReason);
         peerManager.handleConnectionFault(nodeAddress);
         listener.onFault(errorMessage, null);

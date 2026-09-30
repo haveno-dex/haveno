@@ -35,6 +35,8 @@ import haveno.network.p2p.peers.getdata.messages.GetDataRequest;
 import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.utils.EventThrottler;
+import haveno.network.utils.EventThrottler.ThrottleResult;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -101,6 +103,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private final PeerManager peerManager;
     private final List<NodeAddress> seedNodeAddresses;
     private final List<ResponseListener> responseListeners = new CopyOnWriteArrayList<>();
+    private final EventThrottler retryLogThrottler = new EventThrottler(1, TimeUnit.MINUTES);
 
     // As we use Guice injection we cannot set the listener in our constructor but the P2PService calls the setListener
     // in it's constructor so we can guarantee it is not null.
@@ -448,10 +451,15 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
 
                                     // retry until a node is reachable, else data missed while offline or at bootstrap is only fetched on app restart
                                     if (!requested) {
+                                        ThrottleResult throttleResult = retryLogThrottler.onEvent();
+                                        if (!throttleResult.throttled) {
+                                            log.warn("Data request attempts exhausted. Retrying in {} seconds ({} similar messages suppressed).",
+                                                    RETRY_DELAY_SEC, throttleResult.throttledCount);
+                                        }
                                         restart();
                                     }
                                 } else {
-                                    log.info("We could not connect to seed node {} but we have other connection attempts open.", nodeAddress.getFullAddress());
+                                    log.debug("We could not connect to seed node {} but we have other connection attempts open.", nodeAddress.getFullAddress());
                                 }
                             }
                         });
