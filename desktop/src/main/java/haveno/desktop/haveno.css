@@ -2958,18 +2958,36 @@ textfield */
 }
 
 .toggle-button-no-slider {
+    -fx-background-color: -bs-color-gray-bbb;
     -fx-background-radius: 999;
     -fx-border-radius: 999;
-    -fx-border-width: 1px;
-    -fx-border-color: -bs-color-border-form-field;
     -fx-background-insets: 0;
+    -fx-text-fill: -bs-rd-font-dark-gray;
     -fx-pref-height: 36px;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
+    -fx-cursor: hand;
 }
 
-.toggle-button-no-slider:hover {
-    -fx-cursor: hand;
+.toggle-button-no-slider .glyph-icon {
+    -fx-fill: -bs-rd-font-dark-gray;
+}
+
+.toggle-button-no-slider:hover, .toggle-button-no-slider:focus-visible {
+    -fx-background-color: derive(-bs-color-gray-2, -10%);
+}
+
+.toggle-button-no-slider:selected {
+    -fx-background-color: -bs-blue-transparent;
+    -fx-text-fill: -bs-hero-primary;
+}
+
+.toggle-button-no-slider:selected .glyph-icon {
+    -fx-fill: -bs-hero-primary;
+}
+
+.toggle-button-no-slider:selected:hover, .toggle-button-no-slider:selected:focus-visible {
+    -fx-background-color: derive(-bs-blue-transparent, -15%);
 }
 
 #trade-fee-textfield {

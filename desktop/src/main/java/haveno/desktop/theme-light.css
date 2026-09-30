@@ -164,17 +164,13 @@
 }
 
 /* limit the lighter gray to buttons, preserving offer-form glyphs */
-.jfx-button {
+.jfx-button, .toggle-button-no-slider {
     -bs-color-gray-bbb: #e2e6eb;
 }
 
 .pill-toggle-button {
     -bs-color-primary: rgb(28, 96, 220);
     -bs-color-gray-2: #d0d0d0;
-}
-
-.toggle-button-no-slider {
-    -fx-border-color: #dddddd;
 }
 
 .text-field, .password-field, .text-area, .combo-box {

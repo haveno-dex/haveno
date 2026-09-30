@@ -126,10 +126,8 @@ public final class GlyphsDude {
 
     public static ToggleButton createIconToggleButton(GlyphIcons icon, String text, String iconSize,
                                                       ContentDisplay contentDisplay) {
-        Label iconLabel = new Label();
-        setLabelGlyph(iconLabel, icon, iconSize);
         ToggleButton button = new ToggleButton(text);
-        button.setGraphic(iconLabel);
+        button.setGraphic(createIcon(icon, iconSize)); // glyph-icon node so toggle styles can fill it
         if (contentDisplay != null) {
             button.setContentDisplay(contentDisplay);
         }
