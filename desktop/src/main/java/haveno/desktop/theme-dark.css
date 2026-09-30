@@ -597,6 +597,11 @@
     -fx-background-color: -bs-color-gray-bbb;
 }
 
+/* soften the slide toggle accent so it does not read heavy on dark backgrounds */
+.pill-toggle-button {
+    -bs-color-primary: rgb(85, 133, 242);
+}
+
 #image-logo-splash {
     -fx-image: url("../../images/logo_splash_dark_mode.png");
 }
