@@ -708,12 +708,13 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         errorMessageSubscription = EasyBind.subscribe(model.errorMessage, newValue -> {
             if (newValue != null) {
                 errorPopupDisplayed.set(true);
-                new Popup().error(Res.get("takeOffer.error.message", model.errorMessage.get()))
-                        .onClose(() -> {
-                            model.resetErrorMessage();
-                            close();
-                        })
-                        .show();
+                Popup popup = newValue.contains(Offer.OFFER_UNAVAILABLE_MSG)
+                        ? new Popup().warning(Res.get("takeOffer.failed.offerNotAvailable"))
+                        : new Popup().error(Res.get("takeOffer.error.message", newValue));
+                popup.onClose(() -> {
+                    model.resetErrorMessage();
+                    close();
+                }).show();
             }
         });
 

@@ -283,7 +283,9 @@ class TakeOfferDataModel extends OfferDataModel {
                     tradeResultHandler,
                     errorMessage -> {
                         log.warn(errorMessage);
-                        errorMessageHandler.handleErrorMessage(errorMessage);
+                        if (offer.getState() != Offer.State.NOT_AVAILABLE && offer.getState() != Offer.State.INVALID && offer.getState() != Offer.State.MAKER_OFFLINE) { // handled elsewhere in UI
+                            errorMessageHandler.handleErrorMessage(errorMessage);
+                        }
                     }
             );
         }

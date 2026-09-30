@@ -748,7 +748,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 log.warn("Rejecting InitTradeRequest to maker because offer is not available, offerId={}, sender={}", request.getOfferId(), sender);
                 Optional<Trade> existingTrade = getOpenOrClosedTrade(request.getOfferId());
                 boolean isCurrentTaker = existingTrade.isPresent() && request.getTakerPubKeyRing().equals(existingTrade.get().getTaker().getPubKeyRing());
-                if (!isCurrentTaker) sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " is already taken or unavailable", null); // skip nack on duplicate request from current taker
+                if (!isCurrentTaker) sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " " + Offer.OFFER_UNAVAILABLE_MSG, null); // skip nack on duplicate request from current taker
                 return;
             }
             OpenOffer openOffer = openOfferOptional.get();
@@ -822,7 +822,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             // claim the offer atomically with cancellation
             if (!openOfferManager.reserveOpenOffer(openOffer)) {
-                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " is already taken or unavailable", null);
+                sendAckMessage(sender, request.getTakerPubKeyRing(), request, false, "The offer with ID " + request.getOfferId() + " " + Offer.OFFER_UNAVAILABLE_MSG, null);
                 return;
             }
 
