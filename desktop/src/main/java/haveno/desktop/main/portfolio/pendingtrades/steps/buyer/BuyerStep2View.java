@@ -537,19 +537,17 @@ public class BuyerStep2View extends TradeStepView {
         PaymentAccountPayload buyersPaymentAccountPayload = model.dataModel.getBuyersPaymentAccountPayload();
         if (buyersPaymentAccountPayload != null) {
             PaymentAccount savedAccount = model.getUser().getPaymentAccount(buyersPaymentAccountPayload.getId());
-            boolean isCryptoAccount = buyersPaymentAccountPayload instanceof AssetAccountPayload;
-            String accountDetails = isCryptoAccount ? ((AssetAccountPayload) buyersPaymentAccountPayload).getAddress() :
-                    buyersPaymentAccountPayload.getPaymentDetails();
-            if (savedAccount != null && savedAccount.getAccountName() != null && !savedAccount.getAccountName().isBlank())
-                accountDetails = savedAccount.getAccountName() + (isCryptoAccount ? "\n" : " · ") + accountDetails;
-            if (isCryptoAccount) {
+            boolean hasAccountName = savedAccount != null && savedAccount.getAccountName() != null && !savedAccount.getAccountName().isBlank();
+            if (buyersPaymentAccountPayload instanceof AssetAccountPayload) {
+                String accountDetails = ((AssetAccountPayload) buyersPaymentAccountPayload).getAddress();
+                if (hasAccountName) accountDetails = savedAccount.getAccountName() + "\n" + accountDetails;
                 TradeFormPane registeredAccount = new TradeFormPane();
                 addCompactTopLabelTextFieldWithCopyIcon(registeredAccount, 0, 0,
                         Res.get("portfolio.pending.tradeView.registeredPaymentAccount"), accountDetails);
                 registeredAccount.finish(true);
                 buyerAccount = registeredAccount;
-            } else {
-                buyerAccount = createAccountSummary(Res.getWithCol("portfolio.pending.tradeView.payingFrom"), accountDetails);
+            } else if (hasAccountName) {
+                buyerAccount = createAccountSummary(Res.getWithCol("portfolio.pending.tradeView.payingFrom"), savedAccount.getAccountName());
             }
         }
 
