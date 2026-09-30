@@ -55,13 +55,17 @@ import javafx.stage.FileChooser;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.IndexedCell;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -80,6 +84,7 @@ import org.fxmisc.easybind.Subscription;
 
 import javafx.beans.property.ReadOnlyDoubleProperty;
 
+import javafx.event.Event;
 import javafx.event.EventHandler;
 
 import javafx.collections.FXCollections;
@@ -120,6 +125,9 @@ public class ChatView extends AnchorPane {
     private ListView<ChatMessage> messageListView;
     private TableGroupHeadline tableGroupHeadline;
     private VBox messagesInputBox;
+    private Button newMessagesButton;
+    private HBox newMessagesBox;
+    private boolean stickToBottom, userScrolled;
 
     // Options
     @Getter
@@ -151,7 +159,11 @@ public class ChatView extends AnchorPane {
     }
 
     public void initialize() {
-        disputeDirectMessageListListener = c -> scrollToBottom();
+        // follow new messages at the bottom, otherwise offer a button to jump to them
+        disputeDirectMessageListListener = c -> UserThread.execute(() -> {
+            if (stickToBottom && !userScrolled) scrollToLastMessage();
+            else if (newMessagesButton != null) newMessagesButton.setVisible(true);
+        });
 
         keyEventEventHandler = event -> {
             if (Utilities.isAltOrCtrlPressed(KeyCode.ENTER, event)) {
@@ -199,6 +211,43 @@ public class ChatView extends AnchorPane {
         sortedList.setComparator(Comparator.comparing(o -> new Date(o.getDate())));
         messageListView = new ListView<>(sortedList);
         messageListView.setId("message-list-view");
+
+        // cell heights settle over several layouts, so keep the newest message at the bottom while the user is there
+        stickToBottom = false;
+        userScrolled = false;
+        EventHandler<Event> onUserScroll = e -> userScrolled = true;
+        messageListView.addEventFilter(ScrollEvent.SCROLL, onUserScroll);
+        messageListView.addEventFilter(MouseEvent.MOUSE_PRESSED, onUserScroll);
+        messageListView.addEventFilter(MouseEvent.MOUSE_DRAGGED, onUserScroll);
+        messageListView.addEventFilter(MouseEvent.MOUSE_RELEASED, onUserScroll);
+        messageListView.addEventFilter(KeyEvent.KEY_PRESSED, onUserScroll);
+        Runnable stickToBottomListener = () -> {
+            if (messageListView.getItems().isEmpty() || !(messageListView.lookup(".virtual-flow") instanceof VirtualFlow<?> flow)) return;
+            if (userScrolled || !stickToBottom) {
+                userScrolled = false;
+                stickToBottom = isScrolledToBottom(flow);
+                if (stickToBottom) newMessagesButton.setVisible(false);
+            } else if (flow.getPosition() < 1) {
+                scrollToBottom(flow, messageListView.getItems().size() - 1);
+            }
+        };
+        messageListView.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (oldScene != null) oldScene.removePostLayoutPulseListener(stickToBottomListener);
+            if (newScene != null) newScene.addPostLayoutPulseListener(stickToBottomListener);
+        });
+
+        newMessagesButton = new AutoTooltipButton(Res.get("support.newMessages"));
+        Text newMessagesIcon = GlyphsDude.createIcon(FontAwesomeIcon.ARROW_DOWN, "11");
+        newMessagesIcon.fillProperty().bind(newMessagesButton.textFillProperty());
+        newMessagesButton.setGraphic(newMessagesIcon);
+        newMessagesButton.getStyleClass().add("chat-new-messages-button");
+        newMessagesButton.setVisible(false);
+        newMessagesButton.setOnAction(e -> scrollToBottom());
+        newMessagesBox = new HBox(newMessagesButton);
+        newMessagesBox.setAlignment(Pos.CENTER);
+        newMessagesBox.setPickOnBounds(false); // pass clicks beside the button through to the list
+        AnchorPane.setLeftAnchor(newMessagesBox, 0d);
+        AnchorPane.setRightAnchor(newMessagesBox, 0d);
 
         messageListView.setMinHeight(150);
         AnchorPane.setTopAnchor(messageListView, displayHeader ? 30d : 0d);
@@ -252,13 +301,13 @@ public class ChatView extends AnchorPane {
             AnchorPane.setBottomAnchor(messagesInputBox, displayHeader ? 5d : 15d);
             AnchorPane.setLeftAnchor(messagesInputBox, displayHeader ? 0d : 10d);
 
-            AnchorPane.setBottomAnchor(messageListView, displayHeader ? 125d : 135d);
+            setMessageListBottomAnchor(displayHeader ? 125d : 135d);
             messageListView.pseudoClassStateChanged(INPUT_VISIBLE_PSEUDO_CLASS, true);
 
-            this.getChildren().addAll(messageListView, messagesInputBox);
+            this.getChildren().addAll(messageListView, newMessagesBox, messagesInputBox);
         } else {
-            AnchorPane.setBottomAnchor(messageListView, 0d);
-            this.getChildren().add(messageListView);
+            setMessageListBottomAnchor(0d);
+            this.getChildren().addAll(messageListView, newMessagesBox);
         }
 
         messageListView.setCellFactory(new Callback<>() {
@@ -757,12 +806,35 @@ public class ChatView extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void scrollToBottom() {
-        UserThread.execute(() -> {
-            if (messageListView != null && !messageListView.getItems().isEmpty()) {
-                int lastIndex = messageListView.getItems().size();
-                messageListView.scrollTo(lastIndex);
-            }
-        });
+        stickToBottom = true;
+        UserThread.execute(this::scrollToLastMessage);
+    }
+
+    private void scrollToLastMessage() {
+        if (newMessagesButton != null) newMessagesButton.setVisible(false);
+        if (messageListView != null && !messageListView.getItems().isEmpty()) {
+            int lastIndex = messageListView.getItems().size();
+            messageListView.scrollTo(lastIndex);
+        }
+    }
+
+    // align the last cell's bottom with the viewport once it is laid out, a no-op when the content fits
+    private <T extends IndexedCell> void scrollToBottom(VirtualFlow<T> flow, int lastIndex) {
+        T lastCell = flow.getVisibleCell(lastIndex);
+        if (lastCell != null) flow.scrollToBottom(lastCell);
+        else if (flow.getLastVisibleCell() != null) messageListView.scrollTo(lastIndex);
+    }
+
+    // whether the last message is laid out and ends within the viewport
+    private boolean isScrolledToBottom(VirtualFlow<?> flow) {
+        IndexedCell<?> lastCell = flow.getVisibleCell(messageListView.getItems().size() - 1);
+        return lastCell != null && flow.sceneToLocal(lastCell.localToScene(lastCell.getLayoutBounds())).getMaxY() <= flow.getHeight() + 1;
+    }
+
+    // keep the new messages button just above the list's bottom edge
+    private void setMessageListBottomAnchor(double bottom) {
+        AnchorPane.setBottomAnchor(messageListView, bottom);
+        AnchorPane.setBottomAnchor(newMessagesBox, bottom + 12);
     }
 
     public void setInputBoxVisible(boolean visible) {
@@ -770,7 +842,7 @@ public class ChatView extends AnchorPane {
             messagesInputBox.setVisible(visible);
             messagesInputBox.setManaged(visible);
             double inputBoxHeight = displayHeader ? 125d : 135d;
-            AnchorPane.setBottomAnchor(messageListView, visible ? inputBoxHeight : 0d);
+            setMessageListBottomAnchor(visible ? inputBoxHeight : 0d);
             messageListView.pseudoClassStateChanged(INPUT_VISIBLE_PSEUDO_CLASS, visible);
         }
     }
