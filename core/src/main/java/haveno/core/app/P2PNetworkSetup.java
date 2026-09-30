@@ -193,7 +193,7 @@ public class P2PNetworkSetup {
 
             @Override
             public void onNoSeedNodeAvailable() {
-                log.warn("onNoSeedNodeAvailable");
+                log.debug("onNoSeedNodeAvailable");
                 if (p2PService.getNumConnectedPeers().get() == 0)
                     bootstrapWarning.set(Res.get("mainView.bootstrapWarning.noSeedNodesAvailable"));
                 else
@@ -205,7 +205,7 @@ public class P2PNetworkSetup {
 
             @Override
             public void onNoPeersAvailable() {
-                log.warn("onNoPeersAvailable");
+                log.debug("onNoPeersAvailable");
                 if (p2PService.getNumConnectedPeers().get() == 0) {
                     p2pNetworkWarnMsg.set(Res.get("mainView.p2pNetworkWarnMsg.noNodesAvailable"));
                     bootstrapWarning.set(Res.get("mainView.bootstrapWarning.noNodesAvailable"));

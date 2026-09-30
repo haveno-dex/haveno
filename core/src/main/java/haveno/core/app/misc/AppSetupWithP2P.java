@@ -147,13 +147,13 @@ public class AppSetupWithP2P extends AppSetup {
 
             @Override
             public void onNoSeedNodeAvailable() {
-                log.info("onNoSeedNodeAvailable");
+                log.debug("onNoSeedNodeAvailable");
                 p2pNetworkInitialized.set(true);
             }
 
             @Override
             public void onNoPeersAvailable() {
-                log.info("onNoPeersAvailable");
+                log.debug("onNoPeersAvailable");
                 p2pNetworkInitialized.set(true);
             }
 
