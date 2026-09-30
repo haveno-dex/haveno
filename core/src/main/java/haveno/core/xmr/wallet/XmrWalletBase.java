@@ -49,7 +49,7 @@ public abstract class XmrWalletBase {
     private static final long WALLET_RESTART_BACKOFF_MS = 900000; // minimum time between disconnection restarts
 
     // inherited
-    protected MoneroWallet wallet;
+    protected volatile MoneroWallet wallet;
     @Getter
     protected final Object walletLock = new Object();
     private final Object resetSyncProgressTimeoutLock = new Object();

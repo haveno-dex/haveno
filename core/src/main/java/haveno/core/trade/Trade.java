@@ -875,11 +875,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     }
                     return;
                 }
-                ThreadUtils.execute(() -> {
-                    if (isIdling() && !isPayoutFinalized()) {
-                        closeWallet();
-                    }
-                }, getId());
+                maybeCloseIdlingWallet();
             }, KEEP_ALIVE_PERIOD_MINS * 60);
         }
     }
@@ -3414,30 +3410,41 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private void pollWallet() {
         synchronized (pollLock) {
-            if (pollInProgress) {
-                maybeCloseIdlingWallet();
-                return;
-            }
+            if (pollInProgress) return;
+            pollInProgress = true;
         }
-        doPollWallet();
-        maybeCloseIdlingWallet();
+        try {
+            doPollWallet();
+        } finally {
+            synchronized (pollLock) {
+                pollInProgress = false;
+            }
+            maybeCloseIdlingWallet();
+        }
     }
 
     private void maybeCloseIdlingWallet() {
-        if (isShutDownStarted) return;
-        
+        if (isShutDownStarted || !isArbitrator() || isPayoutFinalized()) return;
+        MoneroWallet sourceWallet = wallet;
+        if (sourceWallet == null) return;
+
         // close arbitrator trade wallet while idling
-        if (isArbitrator()) {
-            ThreadUtils.execute(() -> {
-                if (isIdling() && !isPayoutFinalized()) {
-                    try {
-                        closeWallet();
-                    } catch (Exception e) {
-                        log.warn("Error closing wallet for idling {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage(), e);
-                    }
+        ThreadUtils.execute(() -> {
+            if (!isIdling()) return;
+            synchronized (walletLock) {
+                synchronized (pollLock) {
+                    if (pollInProgress) return;
                 }
-            }, getId());
-        }
+                if (isShutDownStarted || wallet != sourceWallet || !isIdling() || isPayoutFinalized()) return;
+
+                // new polls wait on walletLock until the close finishes
+                try {
+                    closeWallet();
+                } catch (Exception e) {
+                    log.warn("Error closing wallet for idling {} {}: {}", getClass().getSimpleName(), getId(), e.getMessage(), e);
+                }
+            }
+        }, getId());
     }
 
     private void doPollWallet() {
