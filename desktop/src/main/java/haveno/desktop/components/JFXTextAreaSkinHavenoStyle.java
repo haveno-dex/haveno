@@ -4,10 +4,14 @@ import com.jfoenix.adapters.ReflectionHelper;
 import com.jfoenix.controls.JFXTextArea;
 import com.jfoenix.skins.PromptLinesWrapper;
 import com.jfoenix.skins.ValidationPane;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.skin.TextAreaSkin;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
@@ -32,6 +36,15 @@ public class JFXTextAreaSkinHavenoStyle extends TextAreaSkin {
     private ValidationPane<JFXTextArea> errorContainer;
     private PromptLinesWrapper<JFXTextArea> linesWrapper;
 
+    // default text area behavior only inserts a newline on plain enter
+    private final EventHandler<KeyEvent> shiftEnterHandler = e -> {
+        TextArea textArea = getSkinnable();
+        if (e.getCode() == KeyCode.ENTER && e.isShiftDown() && !e.isControlDown() && !e.isMetaDown() && !e.isAltDown() && textArea.isEditable()) {
+            textArea.replaceSelection("\n");
+            e.consume();
+        }
+    };
+
     public JFXTextAreaSkinHavenoStyle(JFXTextArea textArea) {
         super(textArea);
         // init text area properties
@@ -53,7 +66,13 @@ public class JFXTextAreaSkinHavenoStyle extends TextAreaSkin {
         registerChangeListener(textArea.focusColorProperty(), obs -> linesWrapper.updateFocusColor());
         registerChangeListener(textArea.unFocusColorProperty(), obs -> linesWrapper.updateUnfocusColor());
         registerChangeListener(textArea.disableAnimationProperty(), obs -> errorContainer.updateClip());
+        textArea.addEventHandler(KeyEvent.KEY_PRESSED, shiftEnterHandler);
+    }
 
+    @Override
+    public void dispose() {
+        if (getSkinnable() != null) getSkinnable().removeEventHandler(KeyEvent.KEY_PRESSED, shiftEnterHandler);
+        super.dispose();
     }
 
 
