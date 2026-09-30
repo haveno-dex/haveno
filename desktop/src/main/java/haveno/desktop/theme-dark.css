@@ -570,30 +570,30 @@
     -fx-fill: -bs-text-color;
 }
 
+/* neutral gray toggles with white text and glyphs when selected */
 .toggle-button-no-slider {
+    -bs-hero-primary: white;
     -fx-background-color: -bs-color-background-form-field;
-}
-
-.toggle-button-no-slider:selected {
-    -fx-text-fill: white;
-    -fx-background-color: -bs-color-gray-ccc;
-    -fx-border-color: -bs-color-gray-ccc;
+    -fx-border-color: -bs-color-border-form-field;
     -fx-border-width: 1px;
 }
 
-.toggle-button-no-slider:hover {
-    -fx-cursor: hand;
+.toggle-button-no-slider:selected {
+    -fx-background-color: -bs-color-gray-ccc;
+    -fx-border-color: -bs-color-gray-ccc;
+}
+
+.toggle-button-no-slider:hover, .toggle-button-no-slider:focus-visible {
     -fx-background-color: -bs-color-gray-ddd;
     -fx-border-color: -bs-color-gray-ddd;
 }
 
-.toggle-button-no-slider:selected:hover {
-    -fx-cursor: hand;
+.toggle-button-no-slider:selected:hover, .toggle-button-no-slider:selected:focus-visible {
     -fx-background-color: -bs-color-gray-3;
     -fx-border-color: -bs-color-gray-3;
 }
 
-.toggle-button-no-slider:pressed,  .toggle-button-no-slider:selected:hover:pressed {
+.toggle-button-no-slider:pressed, .toggle-button-no-slider:selected:hover:pressed {
     -fx-background-color: -bs-color-gray-bbb;
 }
 
