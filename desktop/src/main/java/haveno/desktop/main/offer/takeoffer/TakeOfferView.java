@@ -89,6 +89,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import javafx.beans.binding.Bindings;
 import static javafx.beans.binding.Bindings.createStringBinding;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -373,6 +374,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             extraInfoTextArea.setMaxHeight(300);
             extraInfoTextArea.setEditable(false);
             GUIUtil.adjustHeightAutomatically(extraInfoTextArea);
+            extraInfoTextArea.minHeightProperty().bind(Bindings.min(extraInfoTextArea.prefHeightProperty(), 300)); // page scrolls instead of shrinking box on short windows
             GridPane.setColumnSpan(extraInfoTextArea.getParent(), GridPane.REMAINING); // grid child is the wrapping vbox
 
             if (noDeposit) {
