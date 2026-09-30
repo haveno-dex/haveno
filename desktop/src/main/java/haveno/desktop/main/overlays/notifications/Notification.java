@@ -294,6 +294,9 @@ public class Notification extends Overlay<Notification> {
 
     @Override
     protected void setSceneRoot(Scene scene, Parent root) {
+        // the capped card's shadow frame needs no scene background and must pass clicks through its margin
+        root.setStyle(null);
+        root.setPickOnBounds(false);
         notificationPane.getChildren().setAll(root);
     }
 
@@ -393,6 +396,7 @@ public class Notification extends Overlay<Notification> {
         gridPane.setPadding(new Insets(insets.getTop() + 18, insets.getRight() + 18,
                 insets.getBottom() + 18, insets.getLeft() + 18));
         gridPane.getStyleClass().add("notification-popup-bg");
+        gridPane.setPickOnBounds(false); // pick the visible card only, so clicks pass through the shadow margin
         if (headLineLabel != null)
             headLineLabel.getStyleClass().add("notification-popup-headline");
 
