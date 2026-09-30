@@ -1911,18 +1911,19 @@ public class XmrWalletService extends XmrWalletBase {
                     // repeatedly attempt to sync wallet on startup, otherwise open application
                     long initialSyncTimeoutMs = getInitialSyncTimeoutMs();
                     for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+                        MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                         try {
                             doPollWallet(initialSyncTimeoutMs);
                             break;
                         } catch (Exception e) { // error is logged when polling
                             if (isShutDownStarted) return;
                             if (i + 1 >= MAX_SYNC_ATTEMPTS) {
-                                log.warn("Opening application without syncing main wallet after {} attempts, last error: {}", MAX_SYNC_ATTEMPTS, e.getMessage());
+                                log.warn("Opening application without syncing main wallet after {} attempts, last monerod={}, last error: {}", MAX_SYNC_ATTEMPTS, sourceConnection == null ? null : sourceConnection.getUri(), e.getMessage());
                                 HavenoUtils.setTopError("Could not sync main wallet on startup.\n\nError: " + e.getMessage());
                                 UserThread.execute(() -> onWalletServiceInitialized());
                             } else {
                                 initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS, initialSyncTimeoutMs * 2);
-                                log.warn("Retrying to sync main wallet on startup in {}s, attempt={}/{}, last error: {}", INIT_WALLET_DELAY_MS / 1000, i + 2, MAX_SYNC_ATTEMPTS, e.getMessage());
+                                log.warn("Retrying to sync main wallet on startup in {}s, attempt={}/{}, last monerod={}, last error: {}", INIT_WALLET_DELAY_MS / 1000, i + 2, MAX_SYNC_ATTEMPTS, sourceConnection == null ? null : sourceConnection.getUri(), e.getMessage());
                                 HavenoUtils.waitFor(INIT_WALLET_DELAY_MS); // wait before retrying
                             }
                         }
