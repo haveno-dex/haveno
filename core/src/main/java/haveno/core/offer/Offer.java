@@ -76,6 +76,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
     // Keep this wording stable because peers match it to preserve offers.
     public static final String MARKET_PRICE_NOT_AVAILABLE_MSG = "Market price required for calculating trade price is not available.";
     public static final String PRICE_NOT_AVAILABLE_MSG = "The offer price is currently unavailable.";
+    public static final String OFFER_UNAVAILABLE_MSG = "is already taken or unavailable";
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enums
