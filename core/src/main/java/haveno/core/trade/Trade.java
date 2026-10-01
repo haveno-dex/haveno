@@ -3672,6 +3672,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                             }
                         }
                         saveWalletIfElapsedTime();
+                    } else if (importMultisigHex) {
+                        clearSyncProgress(); // full update reports no sync so status listeners can advance
                     }
                 }
 
