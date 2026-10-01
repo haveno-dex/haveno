@@ -142,7 +142,7 @@ public class SellerProtocol extends DisputeProtocol {
                                     log.warn("Error confirming payment received, reverting state to {}, error={}", Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, errorMessage);
                                     trade.resetToPaymentSentState();
                                 }
-                                handleTaskRunnerFault(event, errorMessage);
+                                handleTaskRunnerFault(null, null, event.name(), errorMessage, null, false); // the caller reports the error and can retry, so skip setting a trade error
                             })))
                             .executeTasks(true);
                 } catch (Exception e) {
