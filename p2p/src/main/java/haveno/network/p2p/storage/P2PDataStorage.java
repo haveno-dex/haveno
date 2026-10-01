@@ -43,6 +43,7 @@ import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.ConnectionListener;
 import haveno.network.p2p.network.MessageListener;
 import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.network.OutboundConnection;
 import haveno.network.p2p.peers.BroadcastHandler;
 import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.peers.getdata.messages.GetDataRequest;
@@ -697,6 +698,10 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     @Override
     public void onDisconnect(CloseConnectionReason closeConnectionReason, Connection connection) {
         if (closeConnectionReason.isIntended)
+            return;
+
+        // only the address of an outbound connection is known to be the peer's; an inbound peer only claims one
+        if (!(connection instanceof OutboundConnection))
             return;
 
         if (!connection.getPeersNodeAddressOptional().isPresent())
