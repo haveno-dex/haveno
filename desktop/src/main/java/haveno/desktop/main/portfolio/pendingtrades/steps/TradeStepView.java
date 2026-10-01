@@ -1386,7 +1386,7 @@ public abstract class TradeStepView extends VBox {
     }
 
     protected void setSyncStatus(String text) {
-        if (text.isEmpty() && syncStatus != null && !syncStatus.isEmpty()) walletUpdatePending = false; // wallet update is done syncing
+        if (text.isEmpty()) walletUpdatePending = false; // wallet update is done syncing or needs no sync
         syncStatus = text;
         updateStatus();
     }
@@ -1397,7 +1397,7 @@ public abstract class TradeStepView extends VBox {
         updateStatus();
     }
 
-    // confirmation starts by updating the wallet, so hold the status until its sync ends or the status advances
+    // confirmation starts by updating the wallet, so hold the status until the update reports it is not syncing
     protected void setPreparingConfirmation() {
         tradeStatus = Res.get("shared.preparingConfirmation");
         walletUpdatePending = true;
