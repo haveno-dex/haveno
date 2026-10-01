@@ -22,11 +22,11 @@
     -fx-background-radius: 4;
 }
 .table-view .table-row-cell .table-cell .label.trade-direction-buy {
-    -fx-text-fill: ladder(-bs-background-color, derive(-bs-buy, 15%) 49%, derive(-bs-buy, -30%) 50%);
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-buy, 15%) 49%, #2f7a3a 50%);
     -fx-background-color: ladder(-bs-background-color, derive(-bs-buy, -65%) 49%, #d3ecd7 50%);
 }
 .table-view .table-row-cell .table-cell .label.trade-direction-sell {
-    -fx-text-fill: ladder(-bs-background-color, derive(-bs-sell, 35%) 49%, derive(-bs-sell, -10%) 50%);
+    -fx-text-fill: ladder(-bs-background-color, derive(-bs-sell, 35%) 49%, #b23a2b 50%);
     -fx-background-color: ladder(-bs-background-color, derive(-bs-sell, -65%) 49%, #f9d4cf 50%);
 }
 .table-view .table-row-cell .table-cell .label.trade-status-waiting {
@@ -84,13 +84,13 @@
 .trade-detail-view .trade-workspace {
     -fx-background-color: -bs-color-background-pane;
     -fx-background-radius: 10;
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-radius: 10;
     -fx-border-width: 1;
 }
 .trade-detail-view .trade-panel {
     -fx-padding: 0 0 18;
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 0 0 1;
 }
 .trade-detail-view .trade-action-panel {
@@ -104,7 +104,7 @@
 .trade-detail-view .trade-sidebar {
     -fx-background-color: -bs-trade-sidebar-background;
     -fx-background-radius: 0 0 9 0;
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 0 0 0 1;
     -fx-padding: 20 22 18;
 }
@@ -150,7 +150,7 @@
 }
 .trade-detail-view .trade-steps {
     -fx-padding: 14 22;
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 0 0 1;
 }
 .trade-detail-view .trade-step-circle {
@@ -189,7 +189,7 @@
     -fx-text-fill: -bs-text-color;
 }
 .trade-detail-view .separator .line {
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 1 0 0 0;
 }
 .trade-detail-view .trade-step:complete .separator .line {
@@ -225,7 +225,7 @@
     -fx-padding: 0;
 }
 .trade-detail-view .trade-payment-field {
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 0 0 1 0;
     -fx-padding: 0 0 4 0;
 }
@@ -359,7 +359,7 @@
     -fx-text-fill: -bs-hero-primary;
 }
 .trade-detail-view .trade-deposit {
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 1 0 0 0;
     -fx-padding: 14 0 0 0;
 }
@@ -399,7 +399,7 @@
 }
 .trade-detail-view .trade-help {
     -fx-padding: 18 0 0;
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 1 0 0;
 }
 .trade-detail-view .trade-support-state .text {
@@ -408,11 +408,12 @@
 }
 .trade-detail-view .trade-support-state {
     -fx-padding: 16 0 0 0;
-    -fx-border-color: -bs-color-gray-1;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 1 0 0 0;
 }
 .trade-detail-view .trade-chat-button {
     -fx-background-color: transparent;
+    -fx-effect: null;
     -fx-background-radius: 30;
     -fx-background-insets: 1;
     -fx-border-color: -bs-color-border-form-field;
