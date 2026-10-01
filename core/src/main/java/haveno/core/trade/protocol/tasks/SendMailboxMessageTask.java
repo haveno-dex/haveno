@@ -110,7 +110,8 @@ public abstract class SendMailboxMessageTask extends TradeTask {
                     }
             );
         } catch (Throwable t) {
-            failed(t);
+            if (isCompleted()) log.warn("Error resending message for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), t.getMessage()); // a resend error must not revert the trade state or fail the completed task runner
+            else failed(t);
         }
     }
 
