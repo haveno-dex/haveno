@@ -107,6 +107,12 @@ public class BuyerProtocol extends DisputeProtocol {
     public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         log.info(TradeProtocol.LOG_HIGHLIGHT + "BuyerProtocol.onPaymentSent() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
 
+        // the buyer cannot have paid without the seller's payment account details
+        if (trade.getSeller().getPaymentAccountPayload() == null) {
+            errorMessageHandler.handleErrorMessage("Cannot confirm payment sent for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " until the seller's payment account details have been received");
+            return;
+        }
+
         // advance trade state
         if (trade.isDepositsUnlocked() || trade.isDepositsFinalized() || trade.isPaymentSent()) {
             trade.setStateIfValidTransitionTo(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT);
