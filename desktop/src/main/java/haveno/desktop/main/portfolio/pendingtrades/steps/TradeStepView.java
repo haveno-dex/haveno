@@ -722,6 +722,26 @@ public abstract class TradeStepView extends VBox {
         return summary;
     }
 
+    // account notes are already shown with the payment details, so only the maker's offer terms are added
+    protected VBox createOfferExtraInfoField() {
+        String extraInfo = trade.getOffer().getOfferExtraInfo();
+        if (extraInfo == null || extraInfo.isBlank()) return null;
+        Label label = new Label(Res.get("payment.shared.extraInfo.offer"));
+        label.setWrapText(true);
+        label.getStyleClass().add("trade-field-label");
+        TextArea textArea = new TextArea(extraInfo.trim());
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setMinHeight(0);
+
+        // offer terms are length limited, so show them in full rather than in a nested scroll
+        GUIUtil.adjustHeightAutomatically(textArea, null, false, 8.0);
+        VBox field = new VBox(4, label, textArea);
+        field.setMinWidth(0);
+        field.getStyleClass().add("trade-payment-field");
+        return field;
+    }
+
     protected Tuple4<Button, BusyAnimation, Label, HBox> addConfirmationButton(GridPane pane, int row, String title) {
         Tuple4<Button, BusyAnimation, Label, HBox> action = addButtonBusyAnimationLabel(pane, row, 0, title, 4);
         Button button = action.first;

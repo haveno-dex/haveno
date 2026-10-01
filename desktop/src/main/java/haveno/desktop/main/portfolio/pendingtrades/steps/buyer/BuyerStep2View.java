@@ -563,6 +563,7 @@ public class BuyerStep2View extends TradeStepView {
         instructions.setMaxWidth(640);
         paymentAccountGridPane.add(instructions, 0, 1, 2, 1);
         paymentAccountGridPane.add(createAmountPanel(Res.get("portfolio.pending.step2_buyer.amountToTransfer")), 0, 2, 2, 1);
+        int actionRow = 3;
         Label detailsTitle = new Label(Res.get("portfolio.pending.tradeView.paymentDetails"));
         detailsTitle.setWrapText(true);
         detailsTitle.getStyleClass().add("trade-section-heading");
@@ -581,10 +582,11 @@ public class BuyerStep2View extends TradeStepView {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox detailsHeading = new HBox(12, detailsTitle, spacer, copyAll);
         detailsHeading.setAlignment(Pos.CENTER_LEFT);
-        int actionRow = 3;
         paymentAccountGridPane.add(detailsHeading, 0, actionRow++, 2, 1);
         paymentAccountGridPane.add(paymentFields, 0, actionRow++, 2, 1);
         if (buyerAccount != null) paymentAccountGridPane.add(buyerAccount, 0, actionRow++, 2, 1);
+        Node offerExtraInfo = createOfferExtraInfoField();
+        if (offerExtraInfo != null) paymentAccountGridPane.add(offerExtraInfo, 0, actionRow++, 2, 1);
         Tuple4<Button, BusyAnimation, Label, HBox> tuple3 = addConfirmationButton(paymentAccountGridPane, actionRow,
                 Res.get("portfolio.pending.step2_buyer.paymentSent"));
 
