@@ -3261,8 +3261,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     private boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
+        return requestConnectionSwitchSynchronous(sourceConnection, false);
+    }
+
+    private boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection, boolean skipCooldown) {
         boolean wasPolling = isPolling();
-        if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this)) {
+        if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this, skipCooldown)) {
             onConnectionChanged(xmrConnectionService.getConnection(), wasPolling); // change connection on same thread
             return true;
         }
@@ -3593,7 +3597,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             boolean restartWallet = !offlinePoll && HavenoUtils.isNotConnectedToDaemon(e) && Boolean.TRUE.equals(xmrConnectionService.isConnected()) && shouldRestartFromDisconnections();
             if (restartWallet) {
                 log.warn("Restarting wallet for {} {} after frequent disconnections while connected to daemon", getClass().getSimpleName(), getShortId());
-                handleWalletError(e, true, false, sourceConnection, false, true);
+                handleWalletError(e, true, false, sourceConnection, false, true, false);
             } else if (!exceptionFromUpdateWallet) { // skip redundant error handling with update wallet
 
                 // request connection switch on failure until synced and polled, or on sustained disconnection
@@ -3651,6 +3655,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     if (isWalletBehind()) {
                         long initialSyncTimeoutMs = getInitialSyncTimeoutMs();
                         for (int i = 0; i < MAX_SYNC_ATTEMPTS; i++) {
+                            MoneroRpcConnection syncConnection = xmrConnectionService.getConnection();
                             try {
                                 if (isShutDownStarted) throw new RuntimeException("Aborting wallet sync for " + getClass().getSimpleName() + " " + getShortId() + " because shut down is started");
                                 doSyncWithProgress(logInfoLevel, initialSyncTimeoutMs);
@@ -3660,7 +3665,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                                 String errorMsg = String.format("Error syncing wallet for %s %s on attempt %d/%d: %s", getClass().getSimpleName(), getId(), i + 1, MAX_SYNC_ATTEMPTS, e.getMessage());
                                 if (i < 1) log.info(errorMsg); // don't warn on first error which is common
                                 else log.warn(errorMsg);
-                                handleWalletError(e, false, false, sourceConnection, i + 1);
+                                handleWalletError(e, false, false, syncConnection, i + 1);
                                 if (i == MAX_SYNC_ATTEMPTS - 1) throw e;
                                 initialSyncTimeoutMs = Math.min(XmrWalletBase.SYNC_TIMEOUT_MS, initialSyncTimeoutMs * 2);
                                 HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
@@ -3865,20 +3870,23 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     private void handleWalletError(Throwable t, boolean restartPolling, boolean pollImmediately, MoneroRpcConnection sourceConnection, int numAttempts) {
         boolean requestConnectionSwitch = numAttempts % TradeProtocol.REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS == 0 && !HavenoUtils.isIllegal(t) && xmrConnectionService.isConnected();
-        handleWalletError(t, restartPolling, pollImmediately, sourceConnection, requestConnectionSwitch);
+        handleWalletError(t, restartPolling, pollImmediately, sourceConnection, requestConnectionSwitch, false, true); // bounded retries can exhaust their attempts before the switch cooldown expires
     }
 
     private void handleWalletError(Throwable t, boolean restartPolling, boolean pollImmediately, MoneroRpcConnection sourceConnection, boolean requestConnectionSwitch) {
-        handleWalletError(t, restartPolling, pollImmediately, sourceConnection, requestConnectionSwitch, false);
+        handleWalletError(t, restartPolling, pollImmediately, sourceConnection, requestConnectionSwitch, false, false);
     }
 
-    private void handleWalletError(Throwable t, boolean restartPolling, boolean pollImmediately, MoneroRpcConnection sourceConnection, boolean requestConnectionSwitch, boolean restartWallet) {
+    private void handleWalletError(Throwable t, boolean restartPolling, boolean pollImmediately, MoneroRpcConnection sourceConnection, boolean requestConnectionSwitch, boolean restartWallet, boolean skipCooldown) {
         synchronized (walletLock) {
             boolean doRestartPolling = restartPolling && isPolling();
             if (doRestartPolling) stopPolling();
             try {
+                MoneroRpcConnection walletConnection = wallet == null ? null : wallet.getDaemonConnection();
+                boolean usedSourceConnection = sourceConnection != null && walletConnection != null && StringUtils.equals(sourceConnection.getUri(), walletConnection.getUri()); // a concurrent switch can apply after the source is captured
                 if (HavenoUtils.isUnresponsive(t) || restartWallet) forceCloseWallet(false); // wallet can be stuck a while
-                if (requestConnectionSwitch) requestConnectionSwitchSynchronous(sourceConnection);
+                if (requestConnectionSwitch && (!skipCooldown || usedSourceConnection)) requestConnectionSwitchSynchronous(sourceConnection, skipCooldown);
+                onConnectionChanged(xmrConnectionService.getConnection(), isPolling()); // apply a concurrent switch whose listener waits on walletLock
                 getWallet(); // re-open wallet if necessary
             } finally {
                 if (doRestartPolling) { // restart polling even if reopening fails, so it keeps retrying
