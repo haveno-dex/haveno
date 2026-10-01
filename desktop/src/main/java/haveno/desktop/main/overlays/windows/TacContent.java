@@ -139,7 +139,8 @@ public class TacContent {
     private VBox createLegalScrollContent() {
         VBox content = new VBox(10);
         content.getStyleClass().add("tac-agreement-legal-scroll-content");
-        for (int i = 1; i <= 7; i++) {
+        // sections run until the first missing key so a network can append its own in the properties file
+        for (int i = 1; Res.getResourceBundle().containsKey("tacWindow.legal.section" + i + ".title"); i++) {
             content.getChildren().add(createLegalSection(i + ".",
                     Res.get("tacWindow.legal.section" + i + ".title"),
                     Res.get("tacWindow.legal.section" + i + ".body")));
