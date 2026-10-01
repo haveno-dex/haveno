@@ -105,7 +105,7 @@ public final class RevolutAccountPayload extends PaymentAccountPayload {
         String label;
         String value;
         checkArgument(!username.isEmpty(), "Username must be set");
-        label = Res.get("payment.account.username");
+        label = Res.get("payment.account.revtag");
         value = username;
         return new Tuple2<>(label, value);
     }
