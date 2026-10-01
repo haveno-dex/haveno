@@ -223,6 +223,9 @@ public class BuyerStep2View extends TradeStepView {
                             break;
                     }
                 }
+
+                // update confirm button state
+                confirmButton.setDisable(!confirmPaymentSentPermitted());
             });
         }
     }
