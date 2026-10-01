@@ -13,6 +13,7 @@ import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrKeyImagePoller;
 import haveno.core.filter.FilterManager;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.BuyerAsMakerTrade;
 import haveno.core.trade.ClosedTradableManager;
@@ -26,7 +27,9 @@ import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NetworkNotReadyException;
+import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.peers.PeerManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +42,7 @@ import org.mockito.MockedStatic;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -89,6 +93,183 @@ public class OpenOfferManagerTest {
     public void tearDown() {
         persistenceManager.shutdown();
         signedOfferPersistenceManager.shutdown();
+    }
+
+    @Test
+    public void testArbitratorRecoveryRetriesOnlyFundedPendingOffers() throws Exception {
+        ArbitratorManager arbitratorManager = mock(ArbitratorManager.class);
+        var arbitrators = FXCollections.<NodeAddress, Arbitrator>observableHashMap();
+        when(arbitratorManager.getObservableMap()).thenReturn(arbitrators);
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        ArrayDeque<Runnable> userTasks = new ArrayDeque<>();
+        ArrayDeque<Runnable> timers = new ArrayDeque<>();
+        ArrayDeque<Runnable> processing = new ArrayDeque<>();
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class)) {
+            userThread.when(() -> UserThread.execute(any())).thenAnswer(invocation -> {
+                userTasks.add(invocation.getArgument(0));
+                return null;
+            });
+            userThread.when(() -> UserThread.runAfter(any(), eq(10L))).thenAnswer(invocation -> {
+                timers.add(invocation.getArgument(0));
+                return mock(Timer.class);
+            });
+            threadUtils.when(() -> ThreadUtils.execute(any(), eq("OpenOfferManager"))).thenAnswer(invocation -> {
+                processing.add(invocation.getArgument(0));
+                return CompletableFuture.completedFuture(null);
+            });
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), mock(OfferBookService.class),
+                    mock(XmrConnectionService.class), null, arbitratorManager);
+            List<OpenOffer> offers = new ArrayList<>();
+            for (OpenOffer.State state : List.of(OpenOffer.State.PENDING, OpenOffer.State.AVAILABLE,
+                    OpenOffer.State.DEACTIVATED, OpenOffer.State.RESERVED, OpenOffer.State.CANCELED)) {
+                OpenOffer offer = mock(OpenOffer.class);
+                when(offer.isPending()).thenReturn(state == OpenOffer.State.PENDING);
+                when(offer.getReserveTxHash()).thenReturn("reserve");
+                when(offer.isProcessing()).thenReturn(true);
+                when(offer.getNumProcessingAttempts()).thenReturn(100);
+                when(offer.getLastProcessingAttemptMs()).thenReturn(System.currentTimeMillis());
+                offers.add(offer);
+            }
+            OpenOffer unfunded = mock(OpenOffer.class);
+            when(unfunded.isPending()).thenReturn(true);
+            offers.add(unfunded);
+            OpenOffer canceledWhileQueued = mock(OpenOffer.class);
+            when(canceledWhileQueued.isPending()).thenReturn(true);
+            when(canceledWhileQueued.getReserveTxHash()).thenReturn("reserve");
+            manager.getObservableList().addAll(offers);
+            manager.getObservableList().add(canceledWhileQueued);
+
+            registerArbitratorListener(manager);
+            userTasks.remove().run();
+            timers.remove().run();
+            assertTrue(processing.isEmpty());
+            arbitrators.put(new NodeAddress("arbitrator:9999"), mock(Arbitrator.class));
+            assertTrue(timers.isEmpty());
+            assertEquals(1, userTasks.size());
+            userTasks.remove().run();
+            timers.remove().run();
+            assertEquals(1, processing.size());
+            when(canceledWhileQueued.isPending()).thenReturn(false);
+            processing.remove().run();
+
+            verify(offers.get(0)).isProcessing();
+            verify(offers.get(0), never()).setProcessing(true);
+            for (OpenOffer offer : offers.subList(1, offers.size())) verify(offer, never()).isProcessing();
+            verify(canceledWhileQueued, never()).isProcessing();
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testArbitratorRecoveryRegistersAfterConnectionLossAndIgnoresRefreshes() throws Exception {
+        ArbitratorManager arbitratorManager = mock(ArbitratorManager.class);
+        var arbitrators = FXCollections.<NodeAddress, Arbitrator>observableHashMap();
+        when(arbitratorManager.getObservableMap()).thenReturn(arbitrators);
+        NodeAddress address = new NodeAddress("arbitrator:9999");
+        Arbitrator arbitrator = mock(Arbitrator.class);
+        arbitrators.put(address, arbitrator);
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        ArrayDeque<Runnable> timers = new ArrayDeque<>();
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class)) {
+            userThread.when(() -> UserThread.execute(any())).thenAnswer(invocation -> {
+                ((Runnable) invocation.getArgument(0)).run();
+                return null;
+            });
+            userThread.when(() -> UserThread.runAfter(any(), eq(10L))).thenAnswer(invocation -> {
+                timers.add(invocation.getArgument(0));
+                return mock(Timer.class);
+            });
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), mock(OfferBookService.class),
+                    mock(XmrConnectionService.class), null, arbitratorManager);
+            manager.onAllConnectionsLost();
+            registerArbitratorListener(manager);
+            timers.remove().run();
+            threadUtils.verify(() -> ThreadUtils.execute(any(), eq("OpenOfferManager")));
+
+            registerArbitratorListener(manager);
+            arbitrators.clear();
+            arbitrators.put(address, arbitrator);
+            assertEquals(1, timers.size());
+            timers.remove().run();
+            threadUtils.verify(() -> ThreadUtils.execute(any(), eq("OpenOfferManager")), times(2));
+
+            arbitrators.clear();
+            arbitrators.put(address, arbitrator);
+            timers.remove().run();
+            threadUtils.verify(() -> ThreadUtils.execute(any(), eq("OpenOfferManager")), times(2));
+
+            arbitrators.clear();
+            timers.remove().run();
+            threadUtils.verify(() -> ThreadUtils.execute(any(), eq("OpenOfferManager")), times(2));
+            arbitrators.put(address, arbitrator);
+            timers.remove().run();
+            threadUtils.verify(() -> ThreadUtils.execute(any(), eq("OpenOfferManager")), times(3));
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testArbitratorRecoveryStopsAtShutdown() throws Exception {
+        ArbitratorManager arbitratorManager = mock(ArbitratorManager.class);
+        var arbitrators = FXCollections.<NodeAddress, Arbitrator>observableHashMap();
+        when(arbitratorManager.getObservableMap()).thenReturn(arbitrators);
+        P2PService p2PService = mock(P2PService.class);
+        when(p2PService.getPeerManager()).thenReturn(mock(PeerManager.class));
+        XmrConnectionService connectionService = mock(XmrConnectionService.class);
+        when(connectionService.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        ArrayDeque<Runnable> timers = new ArrayDeque<>();
+        ArrayDeque<Runnable> processing = new ArrayDeque<>();
+        Timer timer = mock(Timer.class);
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class)) {
+            userThread.when(() -> UserThread.execute(any())).thenAnswer(invocation -> {
+                ((Runnable) invocation.getArgument(0)).run();
+                return null;
+            });
+            userThread.when(() -> UserThread.runAfter(any(), eq(10L))).thenAnswer(invocation -> {
+                timers.add(invocation.getArgument(0));
+                return timer;
+            });
+            threadUtils.when(() -> ThreadUtils.execute(any(), eq("OpenOfferManager"))).thenAnswer(invocation -> {
+                processing.add(invocation.getArgument(0));
+                return CompletableFuture.completedFuture(null);
+            });
+            OpenOfferManager manager = createOfferManager(p2PService, mock(OfferBookService.class),
+                    connectionService, null, arbitratorManager);
+            OpenOffer offer = mock(OpenOffer.class);
+            when(offer.isPending()).thenReturn(true);
+            when(offer.getReserveTxHash()).thenReturn("reserve");
+            manager.getObservableList().add(offer);
+            registerArbitratorListener(manager);
+            arbitrators.put(new NodeAddress("arbitrator:9999"), mock(Arbitrator.class));
+            timers.remove().run();
+            assertEquals(1, processing.size());
+            arbitrators.clear();
+            assertEquals(1, timers.size());
+
+            manager.shutDown(null);
+            verify(timer).stop();
+            processing.remove().run();
+            verify(offer, never()).isProcessing();
+            timers.remove().run();
+            arbitrators.put(new NodeAddress("arbitrator:9999"), mock(Arbitrator.class));
+            registerArbitratorListener(manager);
+            assertTrue(processing.isEmpty());
+            assertTrue(timers.isEmpty());
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    private void registerArbitratorListener(OpenOfferManager manager) throws Exception {
+        var method = OpenOfferManager.class.getDeclaredMethod("registerArbitratorListener");
+        method.setAccessible(true);
+        method.invoke(manager);
     }
 
     @Test
@@ -876,6 +1057,14 @@ public class OpenOfferManagerTest {
                                                 OfferBookService offerBookService,
                                                 XmrConnectionService xmrConnectionService,
                                                 XmrWalletService xmrWalletService) {
+        return createOfferManager(p2PService, offerBookService, xmrConnectionService, xmrWalletService, null);
+    }
+
+    private OpenOfferManager createOfferManager(P2PService p2PService,
+                                                OfferBookService offerBookService,
+                                                XmrConnectionService xmrConnectionService,
+                                                XmrWalletService xmrWalletService,
+                                                ArbitratorManager arbitratorManager) {
         return new OpenOfferManager(coreContext,
                 null,
                 null,
@@ -889,10 +1078,10 @@ public class OpenOfferManagerTest {
                 null,
                 null,
                 null,
+                arbitratorManager,
                 null,
                 null,
-                null,
-                null,
+                mock(Broadcaster.class),
                 persistenceManager,
                 signedOfferPersistenceManager,
                 null);

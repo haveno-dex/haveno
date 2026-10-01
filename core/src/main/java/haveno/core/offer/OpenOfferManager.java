@@ -116,8 +116,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
+import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableList;
 import javax.annotation.Nullable;
 import lombok.Getter;
@@ -145,6 +147,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private static final long REFRESH_INTERVAL_MS = OfferPayload.TTL / 2;
     private static final int NUM_ATTEMPTS_THRESHOLD = 5; // process offer at reduced frequency after this many attempts
     private static final long RETRY_PROCESSING_INTERVAL_MS = TimeUnit.MINUTES.toMillis(10); // retry processing offers with too many attempts at this interval
+    private static final long ARBITRATOR_AVAILABILITY_DELAY_SEC = 10;
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final String OPEN_OFFER_GROUP_KEY_IMAGE_ID = OpenOffer.class.getSimpleName();
     private static final String SIGNED_OFFER_KEY_IMAGE_GROUP_ID = SignedOffer.class.getSimpleName();
@@ -174,8 +177,11 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final SignedOfferList signedOffers = new SignedOfferList();
     private final PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
     private final Map<String, PlaceOfferProtocol> placeOfferProtocols = new HashMap<String, PlaceOfferProtocol>();
-    private boolean stopped;
+    private volatile boolean stopped;
     private Timer periodicRepublishOffersTimer, periodicRefreshOffersTimer, retryRepublishOffersTimer;
+    private Timer arbitratorAvailabilityTimer;
+    private MapChangeListener<NodeAddress, Arbitrator> arbitratorMapListener;
+    private boolean arbitratorsAvailable;
     @Getter
     private final ObservableList<Tuple2<OpenOffer, String>> invalidOffers = FXCollections.observableArrayList();
     @Getter
@@ -301,6 +307,17 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         stopPeriodicRefreshOffersTimer();
         stopPeriodicRepublishOffersTimer();
         stopRetryRepublishOffersTimer();
+
+        UserThread.execute(() -> {
+            if (arbitratorMapListener != null) {
+                arbitratorManager.getObservableMap().removeListener(arbitratorMapListener);
+                arbitratorMapListener = null;
+            }
+            if (arbitratorAvailabilityTimer != null) {
+                arbitratorAvailabilityTimer.stop();
+                arbitratorAvailabilityTimer = null;
+            }
+        });
 
         // we remove own offers from offerbook when we go offline
         // Normally we use a delay for broadcasting to the peers, but at shut down we want to get it fast out
@@ -485,7 +502,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         //                        .ifPresent(errorMsg -> invalidOffers.add(new Tuple2<>(openOffer, errorMsg))));
 
                 // processs offers
-                processOffers(false, (transaction) -> {}, (errorMessage) -> {
+                processOffers(false, offer -> true, (transaction) -> {}, (errorMessage) -> {
                     log.warn("Error processing offers on bootstrap: " + errorMessage);
                 });
 
@@ -495,11 +512,13 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     public void onNewBlock(long height) {
 
                         // process each offer on new block a few times, then retry periodically
-                        processOffers(true, (transaction) -> {}, (errorMessage) -> {
+                        processOffers(true, offer -> true, (transaction) -> {}, (errorMessage) -> {
                             log.warn("Error processing offers on new block {}: {}", height, errorMessage);
                         });
                     }
                 });
+
+                registerArbitratorListener();
 
                 // poll spent status of open offer key images
                 synchronized (openOffers.getList()) {
@@ -1297,7 +1316,34 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Place offer helpers
     ///////////////////////////////////////////////////////////////////////////////////////////
+    private void registerArbitratorListener() {
+        UserThread.execute(() -> {
+            if (stopped || arbitratorMapListener != null) return;
+            arbitratorMapListener = change -> UserThread.execute(this::onArbitratorsChanged);
+            arbitratorManager.getObservableMap().addListener(arbitratorMapListener);
+            onArbitratorsChanged();
+        });
+    }
+
+    private void onArbitratorsChanged() {
+        if (stopped || arbitratorAvailabilityTimer != null) return;
+
+        // coalesce map rebuilds and let accepted arbitrators update before retrying
+        arbitratorAvailabilityTimer = UserThread.runAfter(() -> {
+            arbitratorAvailabilityTimer = null;
+            if (stopped) return;
+            boolean hadArbitrators = arbitratorsAvailable;
+            arbitratorsAvailable = !arbitratorManager.getObservableMap().isEmpty();
+            if (hadArbitrators || !arbitratorsAvailable) return;
+
+            // retry funded pending offers once on recovery, even after repeated failures while no arbitrator was available
+            processOffers(false, offer -> !stopped && offer.isPending() && offer.getReserveTxHash() != null,
+                    transaction -> {}, errorMessage -> log.warn("Error processing offers after arbitrators became available: {}", errorMessage));
+        }, ARBITRATOR_AVAILABILITY_DELAY_SEC);
+    }
+
     private void processOffers(boolean skipOffersWithTooManyAttempts,
+                                       Predicate<OpenOffer> offerFilter,
                                        TransactionResultHandler resultHandler, // TODO (woodser): transaction not needed with result handler
                                        ErrorMessageHandler errorMessageHandler) {
         ThreadUtils.execute(() -> {
@@ -1305,6 +1351,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             synchronized (processOffersLock) {
                 List<OpenOffer> openOffers = getOpenOffers();
                 for (OpenOffer offer : openOffers) {
+                    if (!offerFilter.test(offer)) continue;
                     if (skipOffersWithTooManyAttempts && offer.getNumProcessingAttempts() > NUM_ATTEMPTS_THRESHOLD &&
                             System.currentTimeMillis() - offer.getLastProcessingAttemptMs() < RETRY_PROCESSING_INTERVAL_MS) continue; // throttle offers with too many attempts
                     CountDownLatch latch = new CountDownLatch(1);
@@ -2690,6 +2737,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (retryRepublishOffersTimer == null)
             retryRepublishOffersTimer = UserThread.runAfter(() -> {
                 stopped = false;
+                registerArbitratorListener();
                 stopRetryRepublishOffersTimer();
                 republishOffers();
             }, RETRY_REPUBLISH_DELAY_SEC);
