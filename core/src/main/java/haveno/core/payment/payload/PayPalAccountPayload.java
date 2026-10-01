@@ -86,7 +86,7 @@ public final class PayPalAccountPayload extends PaymentAccountPayload {
     @Override
     public String getPaymentDetails() {
         return Res.getWithCol("payment.email.mobile.username") + " "+ emailOrMobileNrOrUsername + "\n" +
-                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo+ "\n";
+                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo;
     }
 
     @Override

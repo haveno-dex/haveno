@@ -89,7 +89,7 @@ public final class CashAppAccountPayload extends PaymentAccountPayload {
         return Res.get(paymentMethodId) + " - " +
                 Res.getWithCol("payment.email.mobile.cashtag") +
                 " " + emailOrMobileNrOrCashtag + "\n" +
-                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo+ "\n";
+                Res.getWithCol("payment.shared.extraInfo") + " " + extraInfo;
     }
 
     @Override
