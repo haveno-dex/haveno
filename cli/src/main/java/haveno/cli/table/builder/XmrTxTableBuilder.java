@@ -79,8 +79,8 @@ class XmrTxTableBuilder extends AbstractTableBuilder {
 
         txs.forEach(tx -> {
             colTxId.addRow(tx.getHash());
-            colHeight.addRow(tx.getHeight());
-            colTimestamp.addRow(tx.getTimestamp() * 1000); // seconds -> ms
+            colHeight.addRow(tx.getHeight() > 0 ? tx.getHeight() : null);
+            colTimestamp.addRow(tx.getTimestamp() > 0 ? tx.getTimestamp() * 1000 : null); // seconds -> ms
             colIncoming.addRow(toIncomingAmount(tx));
             colOutgoing.addRow(toOutgoingAmount(tx));
             colTxFee.addRow(toPiconeros(tx.getFee()));

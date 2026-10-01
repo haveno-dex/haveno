@@ -47,7 +47,7 @@ public class LongColumn extends NumberColumn<LongColumn, Long> {
     public void addRow(Long value) {
         rows.add(value);
 
-        String s = String.valueOf(value);
+        String s = value == null ? "" : String.valueOf(value);
         if (isNewMaxWidth.test(s))
             maxWidth = s.length();
     }
@@ -79,7 +79,8 @@ public class LongColumn extends NumberColumn<LongColumn, Long> {
 
     @Override
     public String getRowAsFormattedString(int rowIndex) {
-        String s = String.valueOf(getRow(rowIndex));
+        Long value = getRow(rowIndex);
+        String s = value == null ? "" : String.valueOf(value);
         return toJustifiedString(s);
     }
 
