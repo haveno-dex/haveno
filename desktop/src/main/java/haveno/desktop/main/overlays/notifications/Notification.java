@@ -25,7 +25,6 @@ import haveno.core.locale.Res;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.PopupManager;
-import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
@@ -282,7 +281,6 @@ public class Notification extends Overlay<Notification> {
             notificationPane.autosize();
             notificationPane.layout();
             constrainToScreen(null);
-            if (!CssTheme.isDarkTheme()) getDisplayContainer().getStyleClass().add("popup-dropshadow");
             layout();
             ownerScene.widthProperty().addListener(sizeListener);
             ownerScene.heightProperty().addListener(sizeListener);
