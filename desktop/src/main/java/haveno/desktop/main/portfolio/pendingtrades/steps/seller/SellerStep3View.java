@@ -301,6 +301,8 @@ public class SellerStep3View extends TradeStepView {
         gridPane.add(details, 0, ++gridRow, 2, 1);
         if (!model.isBlockChainMethod())
             gridPane.add(createAccountSummary(Res.getWithCol("portfolio.pending.tradeView.receivingTo"), myPaymentDetails), 0, ++gridRow, 2, 1);
+        VBox offerExtraInfo = createOfferExtraInfoField();
+        if (offerExtraInfo != null) gridPane.add(offerExtraInfo, 0, ++gridRow, 2, 1);
 
         Tuple4<Button, BusyAnimation, Label, HBox> tuple = addConfirmationButton(gridPane, ++gridRow,
                 Res.get("portfolio.pending.step3_seller.confirmReceipt"));
