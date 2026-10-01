@@ -24,6 +24,7 @@
     -bs-color-gray-2: #d5dae1;
     -bs-color-gray-1: #e3e6eb;
     -bs-color-gray-0: #f9fafb;
+    -bs-color-hairline: rgba(32, 46, 69, 0.10);
     -bs-color-gray-dim: -bs-color-gray-6;
     -bs-color-gray-ddd: #53657f;
     -bs-color-gray-ccc: #5b6d85;
@@ -49,12 +50,12 @@
     -bs-bg-green: #99ba9c;
     -bs-rd-green: -bs-color-primary;
     -bs-rd-green-dark: #3EA34A;
-    -bs-rd-nav-selected: rgb(28, 96, 220);
+    -bs-rd-nav-selected: -bs-color-primary;
     -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
     -bs-rd-nav-unread-dot-stroke: -bs-rd-nav-deselected;
     -bs-rd-nav-secondary-selected: -fx-accent;
     -bs-rd-nav-secondary-deselected: -bs-rd-font-light;
-    -bs-rd-nav-background: rgb(28, 96, 220);
+    -bs-rd-nav-background: -bs-color-primary;
     -bs-rd-nav-primary-background: -bs-rd-nav-background;
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);
     -bs-rd-nav-primary-button-hover: derive(-bs-rd-nav-primary-background, 10%);
@@ -136,6 +137,7 @@
     -bs-login-prompt-text: -bs-color-gray-6;
     -bs-color-background-form-field-readonly: #f1f3f6;
     -bs-color-background-pane: -bs-background-color;
+    -bs-color-table-header-background: -bs-color-gray-0;
     -bs-trade-sidebar-background: -bs-color-gray-0;
     -bs-color-background-row-even: -bs-color-background-pane;
     -bs-color-background-row-odd: #f4f5f7;
@@ -244,10 +246,6 @@
 
 .combo-box-popup .fiat-currency-badge {
     -fx-background-color: -bs-color-primary;
-}
-
-.trade-detail-view {
-    -bs-color-primary: rgb(28, 96, 220);
 }
 
 .trade-detail-view .trade-steps {

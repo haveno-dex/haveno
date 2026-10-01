@@ -2179,8 +2179,8 @@ textfield */
 }
 
 .table-view .column-header-background {
-    -fx-background-color: -bs-color-background-pane;
-    -fx-border-color: -bs-color-border-form-field;
+    -fx-background-color: -bs-color-table-header-background;
+    -fx-border-color: -bs-color-hairline;
     -fx-border-width: 0 0 1 0;
 }
 
@@ -2194,7 +2194,7 @@ textfield */
 
 .table-view .column-header {
     -fx-border-color: transparent;
-    -fx-background-color: -bs-color-background-pane;
+    -fx-background-color: -bs-color-table-header-background;
 }
 
 /* horizontal scrollbars are never needed and are flickering at scaling so lets turn them off */
