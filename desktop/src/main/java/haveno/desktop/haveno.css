@@ -3799,6 +3799,7 @@ textfield */
 
 .popup-scroll-shell.notification-popup-bg {
     -fx-background-color: -bs-color-background-popup;
+    -fx-effect: dropshadow(gaussian, -bs-popup-shadow-light-mode, 12, 0, 0, 0);
 }
 
 /* keep compact popup shadows inside their narrower transparent margins */
