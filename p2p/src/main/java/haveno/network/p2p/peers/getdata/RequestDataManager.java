@@ -539,6 +539,10 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                         List<NodeAddress> filteredPersistedPeers = getFilteredNonSeedNodeList(getSortedNodeAddresses(peerManager.getPersistedPeers()), list);
                         list.addAll(filteredPersistedPeers);
 
+                        // mark queued non-seed peers so the exhaustion fallback does not dial them again this cycle
+                        attemptedNonSeedNodes.addAll(filteredReportedPeers);
+                        attemptedNonSeedNodes.addAll(filteredPersistedPeers);
+
                         // prefer connected nodes so short wake windows complete before unreachable candidates time out
                         Set<NodeAddress> connectedNodes = networkNode.getAllConnections().stream()
                                 .flatMap(connection -> connection.getPeersNodeAddressOptional().stream())
