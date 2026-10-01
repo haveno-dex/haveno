@@ -107,6 +107,8 @@ public enum HavenoAppConfig {
             + " --add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED"
             + " --add-opens=javafx.graphics/com.sun.javafx.scene.text=ALL-UNNAMED"
             + " --add-opens=javafx.graphics/com.sun.javafx.css=ALL-UNNAMED"
+            + " --add-opens=javafx.graphics/javafx.stage=ALL-UNNAMED"
+            + " --add-opens=javafx.graphics/javafx.scene=ALL-UNNAMED"
             + " --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
             + " --add-opens=java.base/java.lang=ALL-UNNAMED"
             + " --add-opens=java.base/java.util=ALL-UNNAMED"
