@@ -181,6 +181,12 @@ public class TraderChatManager extends SupportManager {
                         mailboxMessageService.removeMailboxMsg(message);
                         return;
                     }
+                    if (trade != null && trade.isCompleted()) {
+                        log.info("Rejecting trader chat message for completed trade. TradeId = {}, uid = {}", message.getTradeId(), message.getUid());
+                        mailboxMessageService.removeMailboxMsg(message);
+                        sendAckMessage(message, trade.getVerifiedTradePeer(decryptedMessageWithPubKey).getPubKeyRing(), false, "Trade is already completed");
+                        return;
+                    }
                     handle((ChatMessage) message);
                 } else {
                     log.warn("Unsupported message at dispatchMessage. message={}", message);
