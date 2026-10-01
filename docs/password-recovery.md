@@ -22,7 +22,7 @@ The screen is also available from the desktop launcher with `--recover-password`
 /Applications/Haveno.app/Contents/MacOS/Haveno --recover-password '/path/to/application-data/xmr_mainnet'
 ```
 
-This uses the bundled runtime; a separate Java installation or source checkout is unnecessary. Other platforms use their installed Haveno executable with the same arguments. Older installations must first be updated to a version containing this screen. For source builds, use the generated desktop launcher, or `java -cp desktop/build/libs/desktop-1.8.0-SNAPSHOT-all.jar haveno.desktop.app.HavenoAppMain --recover-password '/path/to/application-data/xmr_mainnet'` with the filename produced by your build. Close Haveno before starting recovery manually.
+This uses the bundled runtime; a separate Java installation or source checkout is unnecessary. Other platforms use their installed Haveno executable with the same arguments. Older installations must first be updated to a version containing this screen. For source builds, use the generated desktop launcher, or `java -cp desktop/build/libs/desktop-X.X.X-SNAPSHOT-all.jar haveno.desktop.app.HavenoAppMain --recover-password '/path/to/application-data/xmr_mainnet'` with the filename produced by your build. Close Haveno before starting recovery manually.
 
 ## Terminal recovery
 
