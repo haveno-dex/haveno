@@ -4196,6 +4196,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 log.info("Done sending updated PaymentReceivedMessages on payout error for {} {}", getClass().getSimpleName(), getId());
             }, (errorMessage) -> {
                 log.warn("Error sending updated PaymentReceivedMessages on payout error for {} {}: {}", getClass().getSimpleName(), getId(), errorMessage);
+                setErrorMessage(errorMessage);
+                requestPersistence();
             });
             return true;
         }
