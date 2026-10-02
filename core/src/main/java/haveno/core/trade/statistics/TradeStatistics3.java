@@ -119,7 +119,7 @@ public final class TradeStatistics3 implements ProcessOncePersistableNetworkPayl
         return new TradeStatistics3(offer.getCounterCurrencyCode(),
                 fuzzTradePriceReproducibly(trade, fuzzPricePct),
                 fuzzTradeAmountReproducibly(trade, fuzzAmountPct),
-                offer.getPaymentMethod().getId(),
+                offer.getOfferPayload().getPaymentMethodId(), // keeps retired payment method ids
                 fuzzTradeDateReproducibly(trade, fuzzDateHours),
                 truncatedArbitratorNodeAddress,
                 extraDataMap);

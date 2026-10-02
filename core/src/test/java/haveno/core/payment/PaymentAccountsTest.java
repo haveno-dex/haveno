@@ -24,11 +24,15 @@ import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.payload.PopmoneyAccountPayload;
 import haveno.core.payment.payload.SwishAccountPayload;
 import haveno.core.payment.payload.TwintAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
+import haveno.core.user.UserPayload;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -38,8 +42,10 @@ import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -61,6 +67,29 @@ public class PaymentAccountsTest {
             assertEquals("payment-identifier@example.com", restored.toForm().getValue(PaymentAccountFormField.FieldId.ACCOUNT_ID));
             assertArrayEquals(witnessInput, restored.toForm().toPaymentAccount().getPaymentAccountPayload().getAgeWitnessInputData());
         }
+    }
+
+    @Test
+    public void testRetiredPopmoneyIsUnavailableAndSkippedOnLoad() {
+        Res.setup();
+        assertFalse(PaymentMethod.getPaymentMethods().stream().anyMatch(method -> method.getId().equals(PaymentMethod.POPMONEY_ID)));
+        assertThrows(IllegalArgumentException.class, () -> PaymentAccountForm.getForm(PaymentMethod.POPMONEY_ID));
+        protobuf.PaymentAccount proto = protobuf.PaymentAccount.newBuilder()
+                .setId("popmoney")
+                .setPaymentMethod(protobuf.PaymentMethod.newBuilder().setId(PaymentMethod.POPMONEY_ID))
+                .setAccountName("historical account")
+                .addTradeCurrencies((protobuf.TradeCurrency) new TraditionalCurrency("USD").toProtoMessage())
+                .setPaymentAccountPayload((protobuf.PaymentAccountPayload) new PopmoneyAccountPayload(PaymentMethod.POPMONEY_ID, "popmoney").toProtoMessage())
+                .build();
+        assertNull(PaymentAccount.fromProto(proto, new CoreProtoResolver()));
+        protobuf.UserPayload userProto = protobuf.UserPayload.newBuilder()
+                .addPaymentAccounts(proto)
+                .addMarketAlertFilters(protobuf.MarketAlertFilter.newBuilder().setPaymentAccount(proto).setTriggerValue(100))
+                .build();
+        UserPayload user = UserPayload.fromProto(userProto, new CoreProtoResolver());
+        assertTrue(user.getPaymentAccounts().isEmpty());
+        assertTrue(user.getMarketAlertFilters().isEmpty());
+        assertDoesNotThrow(user::toProtoMessage);
     }
 
     @Test

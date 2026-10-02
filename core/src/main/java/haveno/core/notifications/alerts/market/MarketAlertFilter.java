@@ -71,7 +71,9 @@ public class MarketAlertFilter implements PersistablePayload {
     public static MarketAlertFilter fromProto(protobuf.MarketAlertFilter proto, CoreProtoResolver coreProtoResolver) {
         List<String> list = proto.getAlertIdsList().isEmpty() ?
                 new ArrayList<>() : new ArrayList<>(proto.getAlertIdsList());
-        return new MarketAlertFilter(PaymentAccount.fromProto(proto.getPaymentAccount(), coreProtoResolver),
+        PaymentAccount paymentAccount = PaymentAccount.fromProto(proto.getPaymentAccount(), coreProtoResolver);
+        if (paymentAccount == null) return null; // skipped with its account, e.g. for a retired payment method
+        return new MarketAlertFilter(paymentAccount,
                 proto.getTriggerValue(),
                 proto.getIsBuyOffer(),
                 list);
