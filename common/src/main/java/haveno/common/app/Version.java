@@ -32,7 +32,7 @@ public class Version {
     // 1st digit: Mandatory protocol or consensus changes from upstream.
     // 2nd digit: Non-mandatory updates, patches, or minor improvements from upstream.
     // 3rd digit: Network-specific builds. This is reserved for forks and is never set by upstream.
-    public static final String VERSION = "1.8.0";
+    public static final String VERSION = "1.9.0";
 
     // Increment when the user agreement changes, independently of the application version.
     public static final int TAC_VERSION = 2;
