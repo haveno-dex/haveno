@@ -80,6 +80,7 @@ import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.support.SupportView;
+import haveno.desktop.main.support.dispute.agent.arbitration.ArbitratorView;
 import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.ColumnConstraints;
@@ -258,7 +259,8 @@ public abstract class TradeStepView extends VBox {
         tradeStepInfo.setOnAction(e -> {
             if (tradeStepInfo.getState() == TradeStepInfo.State.IN_ARBITRATION_SELF_REQUESTED ||
                     tradeStepInfo.getState() == TradeStepInfo.State.IN_ARBITRATION_PEER_REQUESTED) {
-                model.getNavigation().navigateToWithData(trade, MainView.class, SupportView.class, ArbitrationClientView.class);
+                model.getNavigation().navigateToWithData(trade, MainView.class, SupportView.class,
+                        trade.isArbitrator() ? ArbitratorView.class : ArbitrationClientView.class);
             } else if (!isArbitrationOpenedState() && (this.isTradePeriodOver() || trade.wasWalletSyncedAndPolledProperty.get() && trade.isMissingUnlockedDepositTx())) {
                 openSupportTicket();
             } else {
