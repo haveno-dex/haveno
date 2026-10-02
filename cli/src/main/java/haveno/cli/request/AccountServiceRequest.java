@@ -32,6 +32,7 @@ import haveno.proto.grpc.OpenAccountRequest;
 import haveno.proto.grpc.RestoreAccountRequest;
 
 import java.util.Iterator;
+import java.util.List;
 
 public class AccountServiceRequest {
 
@@ -72,13 +73,12 @@ public class AccountServiceRequest {
         grpcStubs.accountService.openAccount(request);
     }
 
-    public void changePassword(String oldPassword, String newPassword) {
+    public List<String> changePassword(String oldPassword, String newPassword) {
         var request = ChangePasswordRequest.newBuilder()
                 .setOldPassword(oldPassword)
                 .setNewPassword(newPassword)
                 .build();
-        //noinspection ResultOfMethodCallIgnored
-        grpcStubs.accountService.changePassword(request);
+        return grpcStubs.accountService.changePassword(request).getRetainedWalletBackupsList();
     }
 
     public void closeAccount() {
