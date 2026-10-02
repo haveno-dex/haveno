@@ -114,7 +114,6 @@ public final class PaymentAccountForm implements PersistablePayload {
         MONESE,
         MONEY_BEAM,
         PERFECT_MONEY,
-        POPMONEY,
         RTGS,
         VERSE,
         SAME_BANK,

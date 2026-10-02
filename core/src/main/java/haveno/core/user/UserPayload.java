@@ -150,6 +150,7 @@ public class UserPayload implements PersistableEnvelope {
                 PriceAlertFilter.fromProto(proto.getPriceAlertFilter()),
                 proto.getMarketAlertFiltersList().isEmpty() ? new ArrayList<>() : new ArrayList<>(proto.getMarketAlertFiltersList().stream()
                         .map(e -> MarketAlertFilter.fromProto(e, coreProtoResolver))
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toSet())),
                 proto.hasRegisteredRefundAgent() ? RefundAgent.fromProto(proto.getRegisteredRefundAgent()) : null,
                 proto.getAcceptedRefundAgentsList().isEmpty() ? new ArrayList<>() : new ArrayList<>(proto.getAcceptedRefundAgentsList().stream()

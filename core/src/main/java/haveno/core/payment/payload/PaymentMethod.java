@@ -89,7 +89,6 @@ import haveno.core.payment.PayseraAccount;
 import haveno.core.payment.PaytmAccount;
 import haveno.core.payment.PerfectMoneyAccount;
 import haveno.core.payment.PixAccount;
-import haveno.core.payment.PopmoneyAccount;
 import haveno.core.payment.PromptPayAccount;
 import haveno.core.payment.QrisAccount;
 import haveno.core.payment.RaastAccount;
@@ -158,7 +157,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
     public static final String UPHOLD_ID = "UPHOLD";
     public static final String MONEY_BEAM_ID = "MONEY_BEAM";
-    public static final String POPMONEY_ID = "POPMONEY";
+    @Deprecated
+    public static final String POPMONEY_ID = "POPMONEY"; // Removed due to Popmoney being discontinued
     public static final String REVOLUT_ID = "REVOLUT";
     public static final String PERFECT_MONEY_ID = "PERFECT_MONEY";
     public static final String SEPA_ID = "SEPA";
@@ -399,7 +399,6 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
 
             // US
             ZELLE = new PaymentMethod(ZELLE_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(ZelleAccount.SUPPORTED_CURRENCIES)),
-            POPMONEY = new PaymentMethod(POPMONEY_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(PopmoneyAccount.SUPPORTED_CURRENCIES)),
             US_POSTAL_MONEY_ORDER = new PaymentMethod(US_POSTAL_MONEY_ORDER_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(USPostalMoneyOrderAccount.SUPPORTED_CURRENCIES)),
             VENMO = new PaymentMethod(VENMO_ID, DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(VenmoAccount.SUPPORTED_CURRENCIES)),
 
@@ -510,7 +509,6 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 PAYSERA_ID,
                 PAYTM_ID,
                 PERFECT_MONEY_ID,
-                POPMONEY_ID,
                 PROMPT_PAY_ID,
                 REVOLUT_ID,
                 RTGS_ID,
