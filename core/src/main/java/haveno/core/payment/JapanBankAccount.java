@@ -79,6 +79,20 @@ public final class JapanBankAccount extends PaymentAccount {
     }
 
     @Override
+    public PaymentAccountForm toForm() {
+        PaymentAccountForm form = super.toForm();
+        if (paymentAccountPayload == null) return form;
+        for (PaymentAccountFormField field : form.getFields()) {
+            if (field.getId() != PaymentAccountFormField.FieldId.BANK_NAME) continue;
+            field.getSupportedValues().stream()
+                    .filter(entry -> getBankCode().equals(JapanBankData.bankCodeFromEntry(entry))
+                            && getBankName().equals(JapanBankData.bankNameFromEntry(entry)))
+                    .findFirst().ifPresent(field::setValue);
+        }
+        return form;
+    }
+
+    @Override
     public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
         // reuse the same Japan specific validators as the desktop JapanBankTransferForm
         switch (fieldId) {

@@ -35,6 +35,9 @@ import haveno.core.proto.CoreProtoResolver;
 import haveno.core.user.UserPayload;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -52,6 +55,49 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PaymentAccountsTest {
+    @Test
+    public void testBlankJapanBankForms() throws IOException {
+        Res.setup();
+        PaymentAccountForm form = PaymentAccountForm.getForm(PaymentMethod.JAPAN_BANK_ID);
+        assertEquals(PaymentAccountForm.FormId.JAPAN_BANK, form.getId());
+        assertNull(form.getValue(PaymentAccountFormField.FieldId.BANK_NAME));
+        PaymentAccountFormField bankField = form.getFields().stream()
+                .filter(field -> field.getId() == PaymentAccountFormField.FieldId.BANK_NAME).findFirst().orElseThrow();
+        assertEquals(JapanBankData.prettyPrintBankList(), bankField.getSupportedValues());
+
+        Path jsonForm = PaymentAccountForm.getPaymentAccountForm(PaymentMethod.JAPAN_BANK_ID).toPath();
+        try {
+            assertEquals(form.toPaymentAccountJsonString(), Files.readString(jsonForm));
+        } finally {
+            Files.deleteIfExists(jsonForm);
+        }
+    }
+
+    @Test
+    public void testJapanBankFormRoundTripPreservesBankAndWitnessIdentity() {
+        Res.setup();
+        List<String> banks = JapanBankData.prettyPrintBankList();
+        for (String bank : List.of(banks.getFirst(), banks.getLast())) {
+            JapanBankAccount account = new JapanBankAccount();
+            account.init();
+            account.setAccountName("japan bank account");
+            account.setBankName(bank);
+            account.setBankBranchCode("123");
+            account.setBankBranchName("東京");
+            account.setBankAccountNumber("1234567");
+            account.setBankAccountName("タナカ");
+            account.setBankAccountType(JapanBankData.accountTypes().getFirst());
+            PaymentAccountForm form = account.toForm();
+            assertEquals(bank, form.getValue(PaymentAccountFormField.FieldId.BANK_NAME));
+            assertDoesNotThrow(() -> account.validateFormField(form, PaymentAccountFormField.FieldId.BANK_NAME, bank));
+            JapanBankAccount restored = (JapanBankAccount) form.toPaymentAccount();
+            assertEquals(account.getBankCode(), restored.getBankCode());
+            assertEquals(account.getBankName(), restored.getBankName());
+            assertArrayEquals(account.getPaymentAccountPayload().getAgeWitnessInputData(),
+                    restored.getPaymentAccountPayload().getAgeWitnessInputData());
+        }
+    }
+
     @Test
     public void testFormExportPreservesPaymentIdentifiersInsteadOfLocalAccountIds() {
         Res.setup();
