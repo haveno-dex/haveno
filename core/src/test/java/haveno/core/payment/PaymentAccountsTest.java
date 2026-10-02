@@ -47,6 +47,23 @@ import static org.mockito.Mockito.when;
 
 public class PaymentAccountsTest {
     @Test
+    public void testFormExportPreservesPaymentIdentifiersInsteadOfLocalAccountIds() {
+        Res.setup();
+        for (PaymentAccount account : List.of(new MoneyBeamAccount(), new UpholdAccount())) {
+            account.init();
+            account.setAccountName("payment account");
+            account.setSingleTradeCurrency(account.getSupportedCurrencies().get(0));
+            PaymentAccountForm form = account.toForm();
+            form.getFields().stream().filter(field -> field.getId() == PaymentAccountFormField.FieldId.ACCOUNT_ID)
+                    .forEach(field -> field.setValue("payment-identifier@example.com"));
+            PaymentAccount restored = form.toPaymentAccount();
+            byte[] witnessInput = restored.getPaymentAccountPayload().getAgeWitnessInputData();
+            assertEquals("payment-identifier@example.com", restored.toForm().getValue(PaymentAccountFormField.FieldId.ACCOUNT_ID));
+            assertArrayEquals(witnessInput, restored.toForm().toPaymentAccount().getPaymentAccountPayload().getAgeWitnessInputData());
+        }
+    }
+
+    @Test
     public void testDuitNowKeepsNricDistinctFromInternationalMobileNumbers() {
         Res.setup();
         DuitNowAccount account = new DuitNowAccount();
