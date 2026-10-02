@@ -152,7 +152,7 @@ public class ClosedTradableManager implements PersistedDataHost {
             synchronized (closedTradables.getList()) {
                 removed = closedTradables.remove(tradable);
             }
-            if (removed) store.appendEntries(List.of(ClosedTradesStore.deleteBytes(tradable.getId())));
+            if (removed) store.appendEntries(List.of(ClosedTradesStore.deleteBytes(tradable)));
         }
     }
 
@@ -256,25 +256,16 @@ public class ClosedTradableManager implements PersistedDataHost {
     private List<Trade> clearSensitiveDataForEligibleTrades() {
         log.info("checking closed trades eligibility for having sensitive data cleared");
         List<Trade> cleared = new ArrayList<>();
+        Instant safeDate = getSafeDateForSensitiveDataClearing();
         closedTradables.stream()
                 .filter(e -> e instanceof Trade)
                 .map(e -> (Trade) e)
                 .filter(e -> !e.isReopened())
-                .filter(e -> canTradeHaveSensitiveDataCleared(e.getId()))
+                .filter(e -> e.getDate().toInstant().isBefore(safeDate))
                 .forEach(trade -> {
                     if (trade.maybeClearSensitiveData()) cleared.add(trade);
                 });
         return cleared;
-    }
-
-    public boolean canTradeHaveSensitiveDataCleared(String tradeId) {
-        Instant safeDate = getSafeDateForSensitiveDataClearing();
-        synchronized (closedTradables.getList()) {
-            return closedTradables.stream()
-                    .filter(e -> e.getId().equals(tradeId))
-                    .filter(e -> e.getDate().toInstant().isBefore(safeDate))
-                    .count() > 0;
-        }
     }
 
     public Instant getSafeDateForSensitiveDataClearing() {

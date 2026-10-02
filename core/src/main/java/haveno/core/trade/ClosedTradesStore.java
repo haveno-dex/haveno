@@ -34,9 +34,11 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import javax.crypto.SecretKey;
@@ -52,8 +54,8 @@ import lombok.extern.slf4j.Slf4j;
  * superseded trade records are loaded.
  *
  * <p>The log holds {@link protobuf.TradableLogEntry} records: an {@code upsert} adds or replaces
- * the tradable with the matching id, a {@code delete_id} tombstones one. Replaying in order
- * (latest-wins per id, first-seen position kept) reconstructs the equivalent list.
+ * the matching trade uid or offer id, and {@code delete_key} tombstones that entry. Legacy
+ * {@code delete_id} records remove all entries with that offer id. First-seen position is kept.
  * A mutation ID distinguishes retries from later writes with identical contents.
  *
  * <p>Writes never throw into callers: a failed batch is kept in memory, mirrored to a pending file
@@ -357,6 +359,18 @@ public class ClosedTradesStore {
                 .toByteArray();
     }
 
+    static byte[] deleteBytes(Tradable tradable) {
+        return protobuf.TradableLogEntry.newBuilder()
+                .setDeleteKey(key(tradable))
+                .setMutationId(UUID.randomUUID().toString())
+                .build()
+                .toByteArray();
+    }
+
+    private static String key(Tradable tradable) {
+        return tradable instanceof Trade ? "trade:" + ((Trade) tradable).getUid() : "offer:" + tradable.getId();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Read / replay
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -392,11 +406,11 @@ public class ClosedTradesStore {
             records = combined;
         }
 
-        // Replay keyed by id: upsert replaces in place (LinkedHashMap keeps the original position),
-        // delete removes. seenIds tracks every id ever mentioned, for the legacy merge below.
-        LinkedHashMap<String, Tradable> byId = new LinkedHashMap<>();
-        Set<String> seenIds = new HashSet<>();
-        Set<String> deletedIds = new HashSet<>();
+        // Trades and canceled offers can share an offer id; retries of the same trade share a uid.
+        LinkedHashMap<String, Tradable> byKey = new LinkedHashMap<>();
+        Set<String> seenKeys = new HashSet<>();
+        Set<String> deletedKeys = new HashSet<>();
+        Set<String> legacyDeletedIds = new HashSet<>();
         int skipped = 0;
         for (byte[] record : records) {
             try {
@@ -404,14 +418,20 @@ public class ClosedTradesStore {
                 switch (entry.getEntryCase()) {
                     case UPSERT:
                         Tradable tradable = TradableList.tradableFromProto(entry.getUpsert(), protoResolver, xmrWalletService.get());
-                        if (byId.put(tradable.getId(), tradable) instanceof Trade) redactionRequired = true; // may still hold sensitive data, e.g. if a crash preceded redaction
-                        seenIds.add(tradable.getId());
-                        deletedIds.remove(tradable.getId());
+                        String key = key(tradable);
+                        if (byKey.put(key, tradable) instanceof Trade) redactionRequired = true; // may still hold sensitive data, e.g. if a crash preceded redaction
+                        seenKeys.add(key);
+                        deletedKeys.remove(key);
                         break;
                     case DELETE_ID:
-                        byId.remove(entry.getDeleteId());
-                        seenIds.add(entry.getDeleteId());
-                        deletedIds.add(entry.getDeleteId());
+                        byKey.values().removeIf(value -> value.getId().equals(entry.getDeleteId()));
+                        legacyDeletedIds.add(entry.getDeleteId());
+                        deletedKeys.add("legacy:" + entry.getDeleteId());
+                        break;
+                    case DELETE_KEY:
+                        byKey.remove(entry.getDeleteKey());
+                        seenKeys.add(entry.getDeleteKey());
+                        deletedKeys.add(entry.getDeleteKey());
                         break;
                     default:
                         // An unknown entry type is most likely from a newer version; keep it on disk.
@@ -437,26 +457,25 @@ public class ClosedTradesStore {
         // so the on-disk log replays to this same state.
         flushFailedEntries();
 
-        maybeMergeLegacy(byId, seenIds);
+        maybeMergeLegacy(byKey, seenKeys, legacyDeletedIds);
 
-        List<Tradable> result = new ArrayList<>(byId.values());
+        List<Tradable> result = new ArrayList<>(byKey.values());
         // Compaction discards mutation identities. Keep them until the pending queue is cleared,
         // and never rewrite from undecodable records or an uncommitted in-memory queue.
         if (skipped == 0 && !pendingClearRequired && failedEntries.isEmpty()) {
-            maybeCompact(records.size(), result, deletedIds);
+            maybeCompact(records.size(), result, deletedKeys);
         }
         redactionAllowed = skipped == 0; // undecodable records would fail every rewrite
         scheduleRedaction();
         return result;
     }
 
-    // Compaction keeps one tombstone per deleted id: the legacy merge skips ids the log has ever
-    // mentioned, so dropping tombstones could let a reappearing legacy file resurrect deleted
-    // trades. Best effort - a failed rewrite never fails the load; the log on disk is intact.
-    private void maybeCompact(int recordsRead, List<Tradable> liveTrades, Set<String> deletedIds) {
-        int compactedSize = liveTrades.size() + deletedIds.size();
+    // Keep tombstones so a reappearing legacy file cannot resurrect deleted entries.
+    // A failed rewrite never fails the load; the existing log remains intact.
+    private void maybeCompact(int recordsRead, List<Tradable> liveTrades, Set<String> deletedKeys) {
+        int compactedSize = liveTrades.size() + deletedKeys.size();
         if (!shouldCompact(recordsRead, compactedSize)) return;
-        log.info("Compacting {}: {} records -> {} live trades + {} tombstones", LOG_FILE_NAME, recordsRead, liveTrades.size(), deletedIds.size());
+        log.info("Compacting {}: {} records -> {} live trades + {} tombstones", LOG_FILE_NAME, recordsRead, liveTrades.size(), deletedKeys.size());
         try {
             compactLog();
         } catch (OutOfMemoryError e) {
@@ -472,17 +491,29 @@ public class ClosedTradesStore {
         List<byte[]> records = appendLog().readAllValidRecords();
         LinkedHashMap<String, byte[]> live = new LinkedHashMap<>();
         LinkedHashMap<String, byte[]> deleted = new LinkedHashMap<>();
+        Map<String, String> offerIds = new HashMap<>();
         for (byte[] record : records) {
             protobuf.TradableLogEntry entry = protobuf.TradableLogEntry.parseFrom(record);
             switch (entry.getEntryCase()) {
                 case UPSERT:
-                    String id = TradableList.tradableFromProto(entry.getUpsert(), protoResolver, xmrWalletService.get()).getId();
-                    live.put(id, record);
-                    deleted.remove(id);
+                    Tradable tradable = TradableList.tradableFromProto(entry.getUpsert(), protoResolver, xmrWalletService.get());
+                    String key = key(tradable);
+                    live.put(key, record);
+                    offerIds.put(key, tradable.getId());
+                    deleted.remove(key);
                     break;
                 case DELETE_ID:
-                    live.remove(entry.getDeleteId());
-                    deleted.put(entry.getDeleteId(), record);
+                    offerIds.entrySet().removeIf(value -> {
+                        if (!value.getValue().equals(entry.getDeleteId())) return false;
+                        live.remove(value.getKey());
+                        return true;
+                    });
+                    deleted.put("legacy:" + entry.getDeleteId(), record);
+                    break;
+                case DELETE_KEY:
+                    live.remove(entry.getDeleteKey());
+                    offerIds.remove(entry.getDeleteKey());
+                    deleted.put(entry.getDeleteKey(), record);
                     break;
                 default:
                     throw new IllegalStateException("Unknown record type in " + LOG_FILE_NAME);
@@ -491,8 +522,9 @@ public class ClosedTradesStore {
         int retainedRecords = live.size() + deleted.size();
         if (records.size() > retainedRecords) {
             List<byte[]> compacted = new ArrayList<>(retainedRecords);
-            compacted.addAll(live.values());
+            // A legacy tombstone can coexist with a subsequently re-added trade or canceled offer.
             compacted.addAll(deleted.values());
+            compacted.addAll(live.values());
             appendLog().rewrite(compacted);
         }
         redactionRequired = false;
@@ -512,7 +544,7 @@ public class ClosedTradesStore {
     // reappear after a downgrade/upgrade cycle or a deferred first migration). Only ids the log
     // has never mentioned are merged, so tombstoned or updated trades are not resurrected. The
     // legacy file is renamed to a backup only after the merge is durably appended.
-    private void maybeMergeLegacy(LinkedHashMap<String, Tradable> byId, Set<String> seenIds) {
+    private void maybeMergeLegacy(LinkedHashMap<String, Tradable> byKey, Set<String> seenKeys, Set<String> legacyDeletedIds) {
         File legacyFile = new File(dir, LEGACY_FILE_NAME);
         if (!legacyFile.exists()) return;
 
@@ -529,7 +561,7 @@ public class ClosedTradesStore {
         List<Tradable> merged = new ArrayList<>();
         synchronized (legacy.getList()) {
             for (Tradable tradable : legacy.getList()) {
-                if (seenIds.contains(tradable.getId())) continue; // already migrated, superseded, or deliberately deleted
+                if (seenKeys.contains(key(tradable)) || legacyDeletedIds.contains(tradable.getId())) continue;
                 entries.add(upsertBytes(tradable));
                 merged.add(tradable);
             }
@@ -542,7 +574,7 @@ public class ClosedTradesStore {
             log.warn("Could not append legacy {} trades to {}; deferring migration", LEGACY_FILE_NAME, LOG_FILE_NAME, t);
             return;
         }
-        for (Tradable tradable : merged) byId.put(tradable.getId(), tradable);
+        for (Tradable tradable : merged) byKey.put(key(tradable), tradable);
 
         try {
             File backupFile = new File(dir, LEGACY_BACKUP_NAME);

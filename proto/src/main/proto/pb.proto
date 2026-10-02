@@ -1527,12 +1527,13 @@ message TradableList {
 }
 
 // A single entry in the append-only ClosedTrades log. An "upsert" adds or replaces the tradable
-// with the matching id; a "delete_id" tombstones (removes) the tradable with that id. Replaying the
-// log in order, latest-wins per id, reconstructs the equivalent of a TradableList.
+// with the matching trade uid or offer id. A "delete_key" removes "trade:<uid>" or "offer:<id>";
+// legacy "delete_id" entries remove all tradables with that offer id.
 message TradableLogEntry {
     oneof entry {
         Tradable upsert = 1;
         string delete_id = 2;
+        string delete_key = 4;
     }
     // Local persistence identity, retained when a failed mutation is retried.
     string mutation_id = 3;

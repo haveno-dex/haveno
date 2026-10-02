@@ -116,8 +116,9 @@ public class ClosedTradesStoreTest {
 
     private ClosedTradesStore newStore(XmrWalletService walletService) {
         Provider<XmrWalletService> xmr = () -> walletService;
-        return new ClosedTradesStore(dir, keyRing, resolver, xmr, corruptedStorageFileHandler,
-                new PersistenceManager<>(dir, resolver, null, keyRing));
+        CorePersistenceProtoResolver storeResolver = new CorePersistenceProtoResolver(() -> null, xmr, null);
+        return new ClosedTradesStore(dir, keyRing, storeResolver, xmr, corruptedStorageFileHandler,
+                new PersistenceManager<>(dir, storeResolver, null, keyRing));
     }
 
     // Builds a real, fully-serializable OpenOffer (with a real PubKeyRing so toProtoMessage/fromProto
@@ -183,9 +184,9 @@ public class ClosedTradesStoreTest {
     }
 
     // Writes a legacy monolithic ClosedTrades file in the exact on-disk format PersistenceManager uses.
-    private void writeLegacyFile(OpenOffer... offers) throws Exception {
+    private void writeLegacyFile(Tradable... tradables) throws Exception {
         TradableList<Tradable> legacy = new TradableList<>();
-        for (OpenOffer offer : offers) legacy.add(offer);
+        for (Tradable tradable : tradables) legacy.add(tradable);
         byte[] payload = ((protobuf.PersistableEnvelope) legacy.toProtoMessage()).toByteArray();
         byte[] encrypted = Encryption.encryptPayloadWithHmac(payload, keyRing.getSymmetricKey());
         Files.write(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).toPath(), encrypted);
@@ -203,6 +204,148 @@ public class ClosedTradesStoreTest {
         assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists(), "legacy file should be moved");
         // A second start does not re-migrate (log already present) and reads identically.
         assertEquals(List.of("legacy-1", "legacy-2"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testMigrationPreservesCanceledOfferAndTradeWithSameId() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            OpenOffer offer = openOffer("handoff", 0);
+            offer.setState(OpenOffer.State.CANCELED);
+            Trade trade = handoffTrade();
+            trade.setCompleted(true);
+            writeLegacyFile(offer, trade);
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            assertEquals(List.of(OpenOffer.class, BuyerAsMakerTrade.class),
+                    newStore(walletService).load().stream().map(Object::getClass).toList());
+            assertEquals(List.of(OpenOffer.class, BuyerAsMakerTrade.class),
+                    newStore(walletService).load().stream().map(Object::getClass).toList());
+        }
+    }
+
+    @Test
+    public void testLogPreservesCanceledOfferAndTradeWithSameId() {
+        try (var userThread = mockStatic(UserThread.class)) {
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            ClosedTradesStore store = newStore(walletService);
+            OpenOffer offer = openOffer("handoff", 0);
+            offer.setState(OpenOffer.State.CANCELED);
+            store.appendUpsert(offer);
+            Trade trade = handoffTrade();
+            trade.setCompleted(true);
+            store.appendUpsert(trade);
+            for (int i = 0; i < 600; i++) store.appendUpsert(offer);
+            assertEquals(List.of(OpenOffer.class, BuyerAsMakerTrade.class),
+                    newStore(walletService).load().stream().map(Object::getClass).toList());
+            assertEquals(List.of(OpenOffer.class, BuyerAsMakerTrade.class),
+                    newStore(walletService).load().stream().map(Object::getClass).toList());
+            assertEquals(2, rawLog().readAllValidRecords().size());
+        }
+    }
+
+    @Test
+    public void testRemovingTradeKeepsCanceledOfferWithSameId() throws Exception {
+        assertTypedRemovalPreservesCounterpart(true);
+    }
+
+    @Test
+    public void testRemovingCanceledOfferKeepsTradeWithSameId() throws Exception {
+        assertTypedRemovalPreservesCounterpart(false);
+    }
+
+    private void assertTypedRemovalPreservesCounterpart(boolean removeTrade) throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            ClosedTradesStore store = newStore(walletService);
+            store.load();
+            ClosedTradableManager manager = new ClosedTradableManager(null, null, mock(Preferences.class), null,
+                    store, corruptedStorageFileHandler, null);
+            OpenOffer offer = openOffer("handoff", 0);
+            offer.setState(OpenOffer.State.CANCELED);
+            Trade trade = handoffTrade();
+            trade.setCompleted(true);
+            manager.add(offer);
+            manager.add(trade);
+            manager.remove(removeTrade ? trade : offer);
+            store.requestRedaction();
+            store.flushRedaction();
+            writeLegacyFile(offer, trade);
+            for (int i = 0; i < 2; i++) {
+                List<Tradable> loaded = newStore(walletService).load();
+                assertEquals(1, loaded.size());
+                assertEquals(removeTrade ? OpenOffer.class : BuyerAsMakerTrade.class, loaded.getFirst().getClass());
+            }
+            assertEquals(2, rawLog().readAllValidRecords().size());
+        }
+    }
+
+    @Test
+    public void testLegacyDeletionPrecedesReaddedTradeAfterCompaction() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            ClosedTradesStore store = newStore(walletService);
+            store.load();
+            OpenOffer offer = openOffer("handoff", 0);
+            Trade first = handoffTrade();
+            Trade second = handoffTrade("second-attempt");
+            store.appendUpsert(offer);
+            store.appendUpsert(first);
+            store.appendUpsert(second);
+            store.appendDelete("handoff");
+            store.appendUpsert(second);
+            store.requestRedaction();
+            store.flushRedaction();
+            assertEquals("handoff", protobuf.TradableLogEntry.parseFrom(rawLog().readAllValidRecords().getFirst()).getDeleteId());
+            writeLegacyFile(offer, first, second);
+            List<Tradable> loaded = newStore(walletService).load();
+            assertEquals(1, loaded.size());
+            assertEquals(second.getUid(), ((Trade) loaded.getFirst()).getUid());
+            assertEquals(2, rawLog().readAllValidRecords().size());
+        }
+    }
+
+    @Test
+    public void testTradeAttemptsWithSameOfferIdKeepSeparateHistory() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            Trade first = handoffTrade();
+            Trade second = handoffTrade("second-attempt");
+            writeLegacyFile(first, second);
+            ClosedTradesStore store = newStore(walletService);
+            assertEquals(List.of(first.getUid(), second.getUid()),
+                    store.load().stream().map(value -> ((Trade) value).getUid()).toList());
+            store.appendUpsert(first);
+            store.requestRedaction();
+            store.flushRedaction();
+            assertEquals(List.of(first.getUid(), second.getUid()),
+                    newStore(walletService).load().stream().map(value -> ((Trade) value).getUid()).toList());
+            store.appendEntries(List.of(ClosedTradesStore.deleteBytes(first)));
+            store.requestRedaction();
+            store.flushRedaction();
+            writeLegacyFile(first, second);
+            List<Tradable> loaded = newStore(walletService).load();
+            assertEquals(1, loaded.size());
+            assertEquals(second.getUid(), ((Trade) loaded.getFirst()).getUid());
+        }
+    }
+
+    @Test
+    public void testPendingTypedDeletionKeepsOtherTradeAttempt() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            ClosedTradesStore store = newStore(walletService);
+            Trade first = handoffTrade();
+            Trade second = handoffTrade("second-attempt");
+            store.appendUpsert(first);
+            store.appendUpsert(second);
+            EncryptedAppendLog pending = new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1);
+            pending.appendAll(List.of(ClosedTradesStore.deleteBytes(first),
+                    protobuf.TradableLogEntry.newBuilder().setDeleteId("unrelated").build().toByteArray()));
+            List<Tradable> loaded = newStore(walletService).load();
+            assertEquals(1, loaded.size());
+            assertEquals(second.getUid(), ((Trade) loaded.getFirst()).getUid());
+            assertTrue(pending.readAllValidRecords().isEmpty());
+            assertEquals(second.getUid(), ((Trade) newStore(walletService).load().getFirst()).getUid());
+        }
     }
 
     @Test
@@ -739,8 +882,8 @@ public class ClosedTradesStoreTest {
 
             List<byte[]> records = rawLog().readAllValidRecords();
             assertEquals(2, records.size());
-            assertArrayEquals(cleared, records.get(0), "retain raw fields and mutation identity");
-            assertEquals("deleted", protobuf.TradableLogEntry.parseFrom(records.get(1)).getDeleteId());
+            assertArrayEquals(cleared, records.get(1), "retain raw fields and mutation identity");
+            assertEquals("deleted", protobuf.TradableLogEntry.parseFrom(records.get(0)).getDeleteId());
             assertEquals(1, FileUtil.getBackupFiles(dir, ClosedTradesStore.LOG_FILE_NAME).size());
             writeLegacyFile(openOffer("deleted", 99));
             assertEquals(List.of("keep"), ids(newStore().load()), "redaction must retain deletion markers");
@@ -1147,6 +1290,31 @@ public class ClosedTradesStoreTest {
     }
 
     @Test
+    public void testSensitiveDataClearingUsesEachTradesOwnDate() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            Preferences preferences = mock(Preferences.class);
+            when(preferences.getClearDataAfterDays()).thenReturn(1);
+            ClosedTradableManager closed = new ClosedTradableManager(null, null, preferences, null,
+                    mock(ClosedTradesStore.class), corruptedStorageFileHandler, null);
+            Trade oldTrade = handoffTrade("old-attempt");
+            oldTrade.setTakeOfferDate(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(2));
+            Trade recentTrade = handoffTrade("recent-attempt");
+            recentTrade.setTakeOfferDate(System.currentTimeMillis());
+            ZelleAccount account = new ZelleAccount();
+            account.init();
+            account.setEmailOrMobileNr("payment@example.com");
+            oldTrade.getMaker().setPaymentAccountPayload(account.getPaymentAccountPayload());
+            recentTrade.getMaker().setPaymentAccountPayload(account.getPaymentAccountPayload());
+            closed.add(openOffer("handoff", 0));
+            closed.add(oldTrade);
+            closed.add(recentTrade);
+            closed.maybeClearSensitiveData();
+            assertNull(oldTrade.getMaker().getPaymentAccountPayload());
+            assertSame(account.getPaymentAccountPayload(), recentTrade.getMaker().getPaymentAccountPayload());
+        }
+    }
+
+    @Test
     public void testReopenCannotDeleteConcurrentCompletion() throws Exception {
         assertConcurrentCompletion(false);
         assertConcurrentCompletion(true);
@@ -1224,9 +1392,13 @@ public class ClosedTradesStoreTest {
     }
 
     private Trade handoffTrade() {
+        return handoffTrade("handoff-uid");
+    }
+
+    private Trade handoffTrade(String uid) {
         return new BuyerAsMakerTrade(openOffer("handoff", 0).getOffer(), BigInteger.ONE, 100,
                 mock(XmrWalletService.class), new ProcessModel("handoff", "account", keyRing.getPubKeyRing()),
-                "handoff-uid", null, null, null, null);
+                uid, null, null, null, null);
     }
 
     private ClosedTradableManager handoffClosedManager(Trade... trades) {
