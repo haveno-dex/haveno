@@ -75,7 +75,7 @@ public class DisputeSummaryVerification {
         try {
             String[] parts = input.split(SEPARATOR1);
             String textToSign = parts[0];
-            String fullAddress = textToSign.split("\n")[1].split(": ")[1];
+            String fullAddress = textToSign.split("\n")[1].split("[:：]", 2)[1].trim();
             NodeAddress nodeAddress = new NodeAddress(fullAddress);
             disputeAgent = arbitratorManager.getDisputeAgentByNodeAddress(nodeAddress).orElse(null);
             checkNotNull(disputeAgent, "Dispute agent is null");
