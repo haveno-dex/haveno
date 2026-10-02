@@ -160,7 +160,7 @@ public class HavenoAppMain extends HavenoExecutable {
         }
         if (startupWizardResult.getUseTorForXmr() != null) preferences.setUseTorForXmrOrdinal(startupWizardResult.getUseTorForXmr().ordinal());
         // last: force-persists the preferences, making all wizard choices durable before startup continues
-        preferences.setTacAcceptedV190(true);
+        preferences.setTacAcceptedVersion(Version.TAC_VERSION);
     }
 
     @Override
