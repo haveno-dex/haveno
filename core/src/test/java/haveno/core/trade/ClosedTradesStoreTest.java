@@ -1391,6 +1391,25 @@ public class ClosedTradesStoreTest {
         }
     }
 
+    @Test
+    public void testRetainedWalletDoesNotRepersistUnchangedProcessData() throws Exception {
+        Trade trade = spy(handoffTrade());
+        doReturn(true).when(trade).walletExists();
+        doReturn(true).when(trade).isPayoutFinalized();
+        doNothing().when(trade).deleteWallet();
+        trade.setPayoutTxHex("payout");
+        trade.getMaker().setUpdatedMultisigHex("multisig");
+        trade.getTaker().setUnsignedPayoutTxHex("unsigned");
+        var clear = Trade.class.getDeclaredMethod("clearProcessData");
+        clear.setAccessible(true);
+        assertEquals(true, clear.invoke(trade));
+        assertNull(trade.getPayoutTxHex());
+        assertNull(trade.getMaker().getUpdatedMultisigHex());
+        assertNull(trade.getTaker().getUnsignedPayoutTxHex());
+        assertEquals(false, clear.invoke(trade));
+        assertTrue(trade.walletExists());
+    }
+
     private Trade handoffTrade() {
         return handoffTrade("handoff-uid");
     }
