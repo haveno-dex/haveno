@@ -25,10 +25,12 @@ import static io.grpc.Metadata.Key;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
+import static io.grpc.Status.RESOURCE_EXHAUSTED;
 import static io.grpc.Status.UNAUTHENTICATED;
 import io.grpc.StatusRuntimeException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.TimeUnit;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -43,26 +45,41 @@ public class PasswordAuthInterceptor implements ServerInterceptor {
     private static final String PASSWORD_KEY = "password";
 
     private final byte[] expectedPasswordDigest;
+    private final GrpcCallRateMeter failedAuthenticationRateMeter;
 
     @Inject
     public PasswordAuthInterceptor(Config config) {
-        this.expectedPasswordDigest = sha256(config.apiPassword);
+        this(config.apiPassword, new GrpcCallRateMeter(5, TimeUnit.MINUTES));
+    }
+
+    PasswordAuthInterceptor(String password, GrpcCallRateMeter failedAuthenticationRateMeter) {
+        this.expectedPasswordDigest = sha256(password);
+        this.failedAuthenticationRateMeter = failedAuthenticationRateMeter;
     }
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> serverCall,
                                                                  Metadata headers,
                                                                  ServerCallHandler<ReqT, RespT> serverCallHandler) {
-        var actualPasswordValue = headers.get(Key.of(PASSWORD_KEY, ASCII_STRING_MARSHALLER));
+        synchronized (failedAuthenticationRateMeter) {
+            // check before comparing passwords so concurrent guesses cannot bypass the limit
+            if (failedAuthenticationRateMeter.getCallsCount() >= failedAuthenticationRateMeter.getAllowedCallsPerTimeWindow())
+                throw new StatusRuntimeException(RESOURCE_EXHAUSTED.withDescription("Too many authentication failures; retry in one minute"));
 
-        if (actualPasswordValue == null)
-            throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
-                    format("missing '%s' rpc header value", PASSWORD_KEY)));
+            var actualPasswordValue = headers.get(Key.of(PASSWORD_KEY, ASCII_STRING_MARSHALLER));
+            if (actualPasswordValue == null) {
+                failedAuthenticationRateMeter.checkAndIncrement();
+                throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
+                        format("missing '%s' rpc header value", PASSWORD_KEY)));
+            }
 
-        // compare fixed-length digests so timing does not depend on the password
-        if (!MessageDigest.isEqual(sha256(actualPasswordValue), expectedPasswordDigest))
-            throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
-                    format("incorrect '%s' rpc header value", PASSWORD_KEY)));
+            // compare fixed-length digests so timing does not depend on the password
+            if (!MessageDigest.isEqual(sha256(actualPasswordValue), expectedPasswordDigest)) {
+                failedAuthenticationRateMeter.checkAndIncrement();
+                throw new StatusRuntimeException(UNAUTHENTICATED.withDescription(
+                        format("incorrect '%s' rpc header value", PASSWORD_KEY)));
+            }
+        }
 
         return serverCallHandler.startCall(serverCall, headers);
     }
