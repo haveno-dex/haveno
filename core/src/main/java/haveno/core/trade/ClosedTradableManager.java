@@ -136,6 +136,7 @@ public class ClosedTradableManager implements PersistedDataHost {
                 for (Trade trade : cleared) entries.add(ClosedTradesStore.upsertBytes(trade));
                 entries.add(ClosedTradesStore.upsertBytes(tradable));
                 store.appendEntries(entries);
+                if (!cleared.isEmpty()) store.requestRedaction();
             } catch (OutOfMemoryError e) {
                 throw e;
             } catch (Throwable t) {
@@ -181,6 +182,7 @@ public class ClosedTradableManager implements PersistedDataHost {
     // append failure earlier in the session cannot silently drop history with the process.
     public void shutDown() {
         store.flushFailedEntries();
+        store.flushRedaction();
     }
 
     public boolean wasMyOffer(Offer offer) {
@@ -239,6 +241,7 @@ public class ClosedTradableManager implements PersistedDataHost {
                 List<byte[]> entries = new ArrayList<>(cleared.size());
                 for (Trade trade : cleared) entries.add(ClosedTradesStore.upsertBytes(trade));
                 store.appendEntries(entries);
+                if (!cleared.isEmpty()) store.requestRedaction();
             } catch (OutOfMemoryError e) {
                 throw e;
             } catch (Throwable t) {

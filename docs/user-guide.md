@@ -2,6 +2,10 @@
 
 This document is a guide for Haveno users.
 
+## Clearing Old Trade Details
+
+The "Clear sensitive data after (days)" preference removes payment details from eligible completed trades in active history. Recovery backups are retained, as in Bisq, and can still contain those details. This includes rolling backups under `db/backup`, migrated `db/ClosedTrades.legacy-backup*` files, and backups you created separately.
+
 ## Diagnosing Out-of-Memory Shutdowns
 
 If Haveno repeatedly shuts down due to a Java out-of-memory error, you can enable a heap dump to help investigate the cause. Add this line to `haveno.properties` in your [application data directory](installing.md#run-haveno), then restart Haveno:

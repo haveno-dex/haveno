@@ -18,6 +18,7 @@
 package haveno.core.trade;
 
 import com.google.inject.Provider;
+import com.google.protobuf.UnknownFieldSet;
 import haveno.common.UserThread;
 import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
@@ -30,11 +31,15 @@ import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
+import haveno.core.payment.ZelleAccount;
 import haveno.core.proto.persistable.CorePersistenceProtoResolver;
+import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,8 +52,10 @@ import org.mockito.InOrder;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -59,6 +66,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -90,7 +99,11 @@ public class ClosedTradesStoreTest {
     }
 
     private ClosedTradesStore newStore() {
-        Provider<XmrWalletService> xmr = () -> null;
+        return newStore(null);
+    }
+
+    private ClosedTradesStore newStore(XmrWalletService walletService) {
+        Provider<XmrWalletService> xmr = () -> walletService;
         return new ClosedTradesStore(dir, keyRing, resolver, xmr, corruptedStorageFileHandler,
                 new PersistenceManager<>(dir, resolver, null, keyRing));
     }
@@ -655,6 +668,204 @@ public class ClosedTradesStoreTest {
             verifyNoInteractions(main, pending);
             userThread.verifyNoInteractions();
         }
+    }
+
+    @Test
+    public void testManagerClearsPaymentDetailsFromPersistedTradeHistory() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            ClosedTradesStore store = new ClosedTradesStore(dir, keyRing, resolver, () -> walletService,
+                    corruptedStorageFileHandler, new PersistenceManager<>(dir, resolver, null, keyRing));
+            store.load();
+            ZelleAccount account = new ZelleAccount();
+            account.init();
+            account.setHolderName("Sensitive account holder");
+            account.setEmailOrMobileNr("sensitive-payment-detail@example.com");
+            ProcessModel processModel = new ProcessModel("trade", "account", keyRing.getPubKeyRing());
+            BuyerAsMakerTrade trade = new BuyerAsMakerTrade(openOffer("trade", 0).getOffer(), BigInteger.ONE, 100,
+                    walletService, processModel, "trade-uid", null, null, null, null);
+            trade.setTakeOfferDate(0);
+            trade.getMaker().setPaymentAccountPayload(account.getPaymentAccountPayload());
+            store.appendUpsert(trade);
+            assertTrue(protobuf.TradableLogEntry.parseFrom(rawLog().readAllValidRecords().get(0))
+                    .getUpsert().getBuyerAsMakerTrade().getTrade().getProcessModel().getMaker().hasPaymentAccountPayload());
+            ClosedTradableManager manager = new ClosedTradableManager(null, null, mock(Preferences.class), null,
+                    store, corruptedStorageFileHandler, null);
+            manager.getObservableList().add(trade);
+
+            manager.maybeClearSensitiveData();
+            manager.shutDown();
+
+            assertNull(trade.getMaker().getPaymentAccountPayload());
+            List<byte[]> records = rawLog().readAllValidRecords();
+            assertEquals(1, records.size());
+            assertFalse(protobuf.TradableLogEntry.parseFrom(records.get(0))
+                    .getUpsert().getBuyerAsMakerTrade().getTrade().getProcessModel().getMaker().hasPaymentAccountPayload());
+            ClosedTradesStore restarted = new ClosedTradesStore(dir, keyRing, resolver, () -> walletService,
+                    corruptedStorageFileHandler, new PersistenceManager<>(dir, resolver, null, keyRing));
+            Trade restored = (Trade) restarted.load().get(0);
+            assertNull(restored.getMaker().getPaymentAccountPayload());
+        }
+    }
+
+    @Test
+    public void testRedactionKeepsLatestRawRecordsAndTombstones() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            store.load();
+            store.appendUpsert(openOffer("deleted", 99));
+            store.appendUpsert(openOffer("keep", 99));
+            store.appendDelete("deleted");
+            byte[] cleared = protobuf.TradableLogEntry.parseFrom(ClosedTradesStore.upsertBytes(openOffer("keep", 0)))
+                    .toBuilder().setUnknownFields(UnknownFieldSet.newBuilder()
+                            .addField(99, UnknownFieldSet.Field.newBuilder().addVarint(123).build()).build())
+                    .build().toByteArray();
+            store.appendEntries(List.of(cleared));
+
+            store.requestRedaction();
+            store.flushRedaction();
+
+            List<byte[]> records = rawLog().readAllValidRecords();
+            assertEquals(2, records.size());
+            assertArrayEquals(cleared, records.get(0), "retain raw fields and mutation identity");
+            assertEquals("deleted", protobuf.TradableLogEntry.parseFrom(records.get(1)).getDeleteId());
+            assertEquals(1, FileUtil.getBackupFiles(dir, ClosedTradesStore.LOG_FILE_NAME).size());
+            writeLegacyFile(openOffer("deleted", 99));
+            assertEquals(List.of("keep"), ids(newStore().load()), "redaction must retain deletion markers");
+        }
+    }
+
+    @Test
+    public void testManagerDoesNotRewriteWithoutClearedData() {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            store.appendUpsert(openOffer("keep", 99));
+            store.appendUpsert(openOffer("keep", 0));
+            ClosedTradesStore restarted = newStore();
+            restarted.load();
+            ClosedTradableManager manager = new ClosedTradableManager(null, null, mock(Preferences.class), null,
+                    restarted, corruptedStorageFileHandler, null);
+
+            manager.maybeClearSensitiveData();
+            manager.shutDown();
+
+            assertEquals(2, rawLog().readAllValidRecords().size());
+        }
+    }
+
+    @Test
+    public void testRedactionWaitsForDurablePendingClear() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            store.load();
+            store.appendUpsert(openOffer("same", 99));
+            EncryptedAppendLog main = spy(rawLog());
+            EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
+                    keyRing.getSymmetricKey(), 1));
+            setLog(store, "appendLog", main);
+            setLog(store, "pendingLog", pending);
+            doThrow(new IllegalStateException("Simulated append failure")).doCallRealMethod().when(main).appendAll(anyList());
+            doThrow(new IllegalStateException("Simulated pending clear failure")).when(pending).rewrite(List.of());
+            store.appendUpsert(openOffer("same", 0));
+            store.requestRedaction();
+            store.flushFailedEntries();
+            store.flushRedaction();
+            assertEquals(2, rawLog().readAllValidRecords().size());
+            verify(main, never()).rewrite(anyList());
+
+            doCallRealMethod().when(pending).rewrite(List.of());
+            store.flushFailedEntries();
+            store.flushRedaction();
+            assertEquals(1, rawLog().readAllValidRecords().size());
+            assertEquals(0, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
+        }
+    }
+
+    @Test
+    public void testRedactionRetriesTransientFailureWithoutAnotherWrite() throws Exception {
+        try (var userThread = mockStatic(UserThread.class);
+             var threads = mockConstruction(Thread.class, (thread, context) ->
+                     doAnswer(invocation -> {
+                         ((Runnable) context.arguments().get(0)).run();
+                         return null;
+                     }).when(thread).start())) {
+            ClosedTradesStore store = newStore();
+            store.load();
+            store.appendUpsert(openOffer("same", 99));
+            store.appendUpsert(openOffer("same", 0));
+            EncryptedAppendLog main = spy(rawLog());
+            setLog(store, "appendLog", main);
+            doThrow(new IllegalStateException("Simulated rewrite failure")).doCallRealMethod().when(main).rewrite(anyList());
+            store.requestRedaction();
+            ArgumentCaptor<Runnable> retry = ArgumentCaptor.forClass(Runnable.class);
+            userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(30L)));
+
+            retry.getValue().run();
+
+            assertEquals(2, rawLog().readAllValidRecords().size());
+            userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(30L)), times(2));
+            retry.getValue().run();
+            assertEquals(1, rawLog().readAllValidRecords().size());
+            assertEquals(0, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
+            userThread.verify(() -> UserThread.runAfter(any(Runnable.class), eq(30L)), times(2));
+        }
+    }
+
+
+    @Test
+    public void testRedactionSkipsUndecodableHistory() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            store.appendUpsert(openOffer("keep", 99));
+            rawLog().append(new byte[]{0x0a});
+            store = newStore();
+            store.load();
+            store.appendUpsert(openOffer("keep", 0));
+            store.requestRedaction();
+            store.flushRedaction();
+            assertEquals(3, rawLog().readAllValidRecords().size());
+        }
+    }
+
+    @Test
+    public void testRedactionDoesNotRunWithoutLoad() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            ClosedTradesStore store = newStore();
+            EncryptedAppendLog main = mock(EncryptedAppendLog.class);
+            setLog(store, "appendLog", main);
+            doThrow(new OutOfMemoryError("Simulated load failure")).when(main).readAllValidRecords();
+            assertThrows(OutOfMemoryError.class, store::load);
+            store.requestRedaction();
+            store.flushRedaction();
+            verify(main).readAllValidRecords();
+            verify(main, never()).rewrite(anyList());
+            userThread.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    public void testLoadRedactsSupersededTradeRecords() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            BuyerAsMakerTrade trade = new BuyerAsMakerTrade(openOffer("trade", 0).getOffer(), BigInteger.ONE, 100,
+                    walletService, new ProcessModel("trade", "account", keyRing.getPubKeyRing()), "trade-uid", null, null, null, null);
+            ClosedTradesStore store = newStore(walletService);
+            store.appendUpsert(trade);
+            store.appendUpsert(trade); // e.g. a cleared snapshot whose redaction was interrupted
+            ClosedTradesStore restarted = newStore(walletService);
+
+            restarted.load();
+            userThread.verify(() -> UserThread.runAfter(any(Runnable.class), eq(30L)));
+            assertEquals(2, rawLog().readAllValidRecords().size());
+            restarted.flushRedaction();
+
+            assertEquals(1, rawLog().readAllValidRecords().size());
+            assertEquals(List.of("trade"), ids(newStore(walletService).load()));
+        }
+    }
+
+    private EncryptedAppendLog rawLog() {
+        return new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME, keyRing.getSymmetricKey(), 0);
     }
 
     @Test
