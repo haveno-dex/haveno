@@ -312,6 +312,11 @@ Then follow these instructions: https://github.com/haveno-dex/haveno/blob/master
 
 ## Send alerts to update the application
 
+Publish alerts from an upgraded client so they include the metadata signature.
+Upgraded clients ignore legacy alerts until they are republished; older clients
+can still read alerts published by upgraded clients. The signature binds the
+message, update flags, version, publisher key, and extra data.
+
 <b>Enable in-app update verification (one-time, forks only)</b>
 
 The base Haveno repo pins no release signers, so the in-app updater performs no verification and directs users to download and verify manually. A fork enables verification by pinning its own signing key. `<FINGERPRINT>` below is the signer's full 40 hex character primary-key fingerprint, uppercase and without spaces (see `gpg --fingerprint`, e.g. `1DC3C8C4316A698AC494039CF5B84436F379A1C6`).
