@@ -23,8 +23,15 @@ import org.slf4j.LoggerFactory;
 
 public class Popup extends Overlay<Popup> {
     protected final Logger log = LoggerFactory.getLogger(this.getClass());
+    private boolean nested;
 
     public Popup() {
+    }
+
+    // for prompts opened from within the displayed popup
+    public Popup nested() {
+        this.nested = true;
+        return this;
     }
 
     @Override
@@ -40,7 +47,8 @@ public class Popup extends Overlay<Popup> {
 
     @Override
     protected void onShow() {
-        PopupManager.queueForDisplay(this);
+        if (nested) PopupManager.displayNested(this);
+        else PopupManager.queueForDisplay(this);
     }
 
     @Override

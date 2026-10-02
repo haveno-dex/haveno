@@ -765,7 +765,7 @@ public class GUIUtil {
 
         if (DontShowAgainLookup.showAgain(OPEN_WEB_PAGE_KEY)) {
             final String finalTarget = target;
-            new Popup().information(Res.get("guiUtil.openWebBrowser.warning", target))
+            new Popup().nested().information(Res.get("guiUtil.openWebBrowser.warning", target))
                     .actionButtonText(Res.get("guiUtil.openWebBrowser.doOpen"))
                     .onAction(() -> {
                         DontShowAgainLookup.dontShowAgain(OPEN_WEB_PAGE_KEY, true);
