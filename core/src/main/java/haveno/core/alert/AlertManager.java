@@ -196,15 +196,18 @@ public class AlertManager {
         String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
         String signatureAsBase64 = alertSigningKey.signMessage(alertMessageAsHex);
         alert.setSigAndPubKey(signatureAsBase64, keyRing.getSignatureKeyPair().getPublic());
+        alert.setMetadataSignature(alertSigningKey.signMessage(alert.getMetadataSignaturePayload()));
     }
 
     private boolean verifySignature(Alert alert) {
-        String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
+        String signature = alert.getMetadataSignature();
+        if (signature == null) return false;
+        String signaturePayload = alert.getMetadataSignaturePayload();
         for (String pubKeyAsHex : getPubKeyList()) {
             try {
-                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(alertMessageAsHex, alert.getSignatureAsBase64());
+                ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(signaturePayload, signature);
                 return true;
-            } catch (SignatureException e) {
+            } catch (SignatureException | IllegalArgumentException e) {
                 // ignore
             }
         }
