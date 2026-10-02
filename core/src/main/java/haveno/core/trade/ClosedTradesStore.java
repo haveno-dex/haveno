@@ -48,7 +48,8 @@ import lombok.extern.slf4j.Slf4j;
  * <p>Replaces the old "re-serialize the whole {@code TradableList} on every change" model - O(n)
  * per closed trade and the root cause of the OOM-on-write in issue #2383 - with an
  * {@link EncryptedAppendLog}: closing a trade appends one small record, and the full history is
- * only rewritten during infrequent compaction.
+ * only rewritten during compaction, which also runs after sensitive data is cleared or when
+ * superseded trade records are loaded.
  *
  * <p>The log holds {@link protobuf.TradableLogEntry} records: an {@code upsert} adds or replaces
  * the tradable with the matching id, a {@code delete_id} tombstones one. Replaying in order
@@ -95,6 +96,9 @@ public class ClosedTradesStore {
     private boolean pendingMigrationRequired = false; // guarded by failedEntries
     private boolean receiptsUnsynced = false; // guarded by failedEntries
     private boolean retryScheduled = false; // guarded by failedEntries
+    private boolean redactionAllowed = false; // guarded by failedEntries
+    private boolean redactionRequired = false; // guarded by failedEntries
+    private boolean redactionScheduled = false; // guarded by failedEntries
     private static final long RETRY_DELAY_SEC = 30;
 
     @Inject
@@ -170,6 +174,7 @@ public class ClosedTradesStore {
                     receiptsUnsynced = false; // the append fsynced the log
                 }
                 if (pendingClearRequired) clearPendingQueue();
+                scheduleRedaction();
             } catch (OutOfMemoryError e) {
                 throw e;
             } catch (Throwable t) {
@@ -193,6 +198,40 @@ public class ClosedTradesStore {
      */
     public void flushFailedEntries() {
         appendEntries(List.of());
+    }
+
+    // Removes superseded records, so sensitive data cleared from closed trades does not remain in the log.
+    public void requestRedaction() {
+        synchronized (failedEntries) {
+            redactionRequired = true;
+            scheduleRedaction();
+        }
+    }
+
+    private void scheduleRedaction() {
+        if (!redactionRequired || redactionScheduled || !redactionAllowed) return;
+        redactionScheduled = true;
+        UserThread.runAfter(() -> new Thread(() -> {
+            synchronized (failedEntries) {
+                redactionScheduled = false;
+                flushRedaction();
+            }
+        }, "ClosedTradesStore-redact").start(), RETRY_DELAY_SEC);
+    }
+
+    // Also called at shutdown. Waits for queued writes, which are retried by the next append.
+    public void flushRedaction() {
+        synchronized (failedEntries) {
+            if (!redactionRequired || !redactionAllowed || !failedEntries.isEmpty() || pendingClearRequired) return;
+            try {
+                compactLog();
+            } catch (OutOfMemoryError e) {
+                throw e;
+            } catch (Throwable t) {
+                log.warn("Could not remove superseded records from {}", LOG_FILE_NAME, t);
+                scheduleRedaction();
+            }
+        }
     }
 
     // Called under the queue monitor for either a failed append or an outstanding queue clear.
@@ -336,6 +375,7 @@ public class ClosedTradesStore {
     }
 
     private List<Tradable> loadLocked() {
+        redactionAllowed = false;
         loadPendingEntries();
         List<byte[]> records = appendLog().readAllValidRecords();
         reconcilePendingEntries(records);
@@ -364,7 +404,7 @@ public class ClosedTradesStore {
                 switch (entry.getEntryCase()) {
                     case UPSERT:
                         Tradable tradable = TradableList.tradableFromProto(entry.getUpsert(), protoResolver, xmrWalletService.get());
-                        byId.put(tradable.getId(), tradable);
+                        if (byId.put(tradable.getId(), tradable) instanceof Trade) redactionRequired = true; // may still hold sensitive data, e.g. if a crash preceded redaction
                         seenIds.add(tradable.getId());
                         deletedIds.remove(tradable.getId());
                         break;
@@ -405,6 +445,8 @@ public class ClosedTradesStore {
         if (skipped == 0 && !pendingClearRequired && failedEntries.isEmpty()) {
             maybeCompact(records.size(), result, deletedIds);
         }
+        redactionAllowed = skipped == 0; // undecodable records would fail every rewrite
+        scheduleRedaction();
         return result;
     }
 
@@ -415,16 +457,45 @@ public class ClosedTradesStore {
         int compactedSize = liveTrades.size() + deletedIds.size();
         if (!shouldCompact(recordsRead, compactedSize)) return;
         log.info("Compacting {}: {} records -> {} live trades + {} tombstones", LOG_FILE_NAME, recordsRead, liveTrades.size(), deletedIds.size());
-        List<byte[]> compacted = new ArrayList<>(compactedSize);
-        for (Tradable tradable : liveTrades) compacted.add(upsertBytes(tradable));
-        for (String id : deletedIds) compacted.add(deleteBytes(id));
         try {
-            appendLog().rewrite(compacted);
+            compactLog();
         } catch (OutOfMemoryError e) {
             throw e;
         } catch (Throwable t) {
             log.error("Compaction of {} failed; keeping the existing log.", LOG_FILE_NAME, t);
         }
+    }
+
+    // Keep raw latest records, including unknown fields and mutation identities. Replaying under
+    // the queue monitor prevents a concurrent append from disappearing in the replacement.
+    private void compactLog() throws InvalidProtocolBufferException {
+        List<byte[]> records = appendLog().readAllValidRecords();
+        LinkedHashMap<String, byte[]> live = new LinkedHashMap<>();
+        LinkedHashMap<String, byte[]> deleted = new LinkedHashMap<>();
+        for (byte[] record : records) {
+            protobuf.TradableLogEntry entry = protobuf.TradableLogEntry.parseFrom(record);
+            switch (entry.getEntryCase()) {
+                case UPSERT:
+                    String id = TradableList.tradableFromProto(entry.getUpsert(), protoResolver, xmrWalletService.get()).getId();
+                    live.put(id, record);
+                    deleted.remove(id);
+                    break;
+                case DELETE_ID:
+                    live.remove(entry.getDeleteId());
+                    deleted.put(entry.getDeleteId(), record);
+                    break;
+                default:
+                    throw new IllegalStateException("Unknown record type in " + LOG_FILE_NAME);
+            }
+        }
+        int retainedRecords = live.size() + deleted.size();
+        if (records.size() > retainedRecords) {
+            List<byte[]> compacted = new ArrayList<>(retainedRecords);
+            compacted.addAll(live.values());
+            compacted.addAll(deleted.values());
+            appendLog().rewrite(compacted);
+        }
+        redactionRequired = false;
     }
 
     // Compact once the log carries enough superseded records to be worth a rewrite.
