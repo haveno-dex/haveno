@@ -127,7 +127,7 @@ public class ClosedTradableManager implements PersistedDataHost {
         synchronized (persistLock) {
             List<Trade> cleared;
             synchronized (closedTradables.getList()) {
-                if (!closedTradables.add(tradable)) return;
+                if (!closedTradables.add(tradable) && !(tradable instanceof Trade)) return;
                 cleared = clearSensitiveDataForEligibleTrades();
             }
             try {
@@ -259,6 +259,7 @@ public class ClosedTradableManager implements PersistedDataHost {
         closedTradables.stream()
                 .filter(e -> e instanceof Trade)
                 .map(e -> (Trade) e)
+                .filter(e -> !e.isReopened())
                 .filter(e -> canTradeHaveSensitiveDataCleared(e.getId()))
                 .forEach(trade -> {
                     if (trade.maybeClearSensitiveData()) cleared.add(trade);
