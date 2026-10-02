@@ -155,8 +155,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
 
     private XmrNodeSettings xmrNodeSettings = new XmrNodeSettings();
     private boolean depositAddressesExpanded;
-    private boolean tacAcceptedV190;
     private boolean useNativeXmrWallet;
+    private int tacAcceptedVersion;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -232,8 +232,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setDenyApiTaker(denyApiTaker)
                 .setNotifyOnPreRelease(notifyOnPreRelease)
                 .setDepositAddressesExpanded(depositAddressesExpanded)
-                .setTacAcceptedV190(tacAcceptedV190)
-                .setUseNativeXmrWallet(useNativeXmrWallet);
+                .setUseNativeXmrWallet(useNativeXmrWallet)
+                .setTacAcceptedVersion(tacAcceptedVersion);
 
         Optional.ofNullable(backupDirectory).ifPresent(builder::setBackupDirectory);
         Optional.ofNullable(preferredTradeCurrency).ifPresent(e -> builder.setPreferredTradeCurrency((protobuf.TradeCurrency) e.toProtoMessage()));
@@ -360,8 +360,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getNotifyOnPreRelease(),
                 XmrNodeSettings.fromProto(proto.getXmrNodeSettings()),
                 proto.getDepositAddressesExpanded(),
-                proto.getTacAcceptedV190(),
-                proto.getUseNativeXmrWallet()
+                proto.getUseNativeXmrWallet(),
+                proto.getTacAcceptedVersion()
         );
     }
 }

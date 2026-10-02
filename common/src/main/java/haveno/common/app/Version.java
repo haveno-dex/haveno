@@ -34,6 +34,9 @@ public class Version {
     // 3rd digit: Network-specific builds. This is reserved for forks and is never set by upstream.
     public static final String VERSION = "1.8.0";
 
+    // Increment when the user agreement changes, independently of the application version.
+    public static final int TAC_VERSION = 2;
+
     /**
      * Holds a list of the tagged resource files for optimizing the getData requests.
      * This must not contain each version but only those where we add new version-tagged resource files for
