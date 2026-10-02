@@ -12,7 +12,8 @@ restoreaccount
 DESCRIPTION
 -----------
 Uploads a zip archive created by the backupaccount method, replacing the server
-account data.  Restart the server before using the restored account.
+account data.  The server restarts automatically; wait for startup to finish
+before using the restored account.
 
 OPTIONS
 -------
