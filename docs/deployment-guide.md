@@ -179,6 +179,12 @@ is missing or extra funds arrived, and wait for new deposits to unlock.
 Daemon instances require a non-empty API password. Set `HAVENO_API_PASSWORD` to a
 strong secret before running [run-arbitrator-daemon.sh](../scripts/deployment/run-arbitrator-daemon.sh).
 
+The gRPC API binds to `127.0.0.1` by default. Use the Tor hidden service or an
+SSH tunnel for remote access. Set `--apiBindAddress` only to an interface that
+untrusted networks cannot reach, such as a container network behind a proxy.
+The API grants full wallet access, including seed export and withdrawals. Its
+password is separate from the account password.
+
 Five failed API authentication attempts in one minute temporarily block all
 authentication, including correct passwords, until an attempt expires from the
 window. The limit is shared across callers because Tor connections arrive through

@@ -18,6 +18,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -117,6 +119,7 @@ public class Config {
     public static final String NUM_CONNECTIONS_FOR_BTC = "numConnectionsForBtc";
     public static final String API_PASSWORD = "apiPassword";
     public static final String API_PORT = "apiPort";
+    public static final String API_BIND_ADDRESS = "apiBindAddress";
     public static final String API_HIDDEN_SERVICE = "apiHiddenService";
     public static final String API_HIDDEN_SERVICE_BEFORE_LOGIN = "apiHiddenServiceBeforeLogin";
     public static final String API_HIDDEN_SERVICE_PORT = "apiHiddenServicePort";
@@ -225,6 +228,7 @@ public class Config {
     public final int numConnectionsForBtc;
     public final String apiPassword;
     public final int apiPort;
+    public final String apiBindAddress;
     public final boolean apiHiddenService;
     public final boolean apiHiddenServiceBeforeLogin;
     public final int apiHiddenServicePort;
@@ -678,6 +682,11 @@ public class Config {
                         .ofType(Integer.class)
                         .defaultsTo(9998);
 
+        ArgumentAcceptingOptionSpec<String> apiBindAddressOpt =
+                parser.accepts(API_BIND_ADDRESS, "gRPC API bind address; anything but loopback exposes full wallet access to that network")
+                        .withRequiredArg()
+                        .defaultsTo("127.0.0.1");
+
         ArgumentAcceptingOptionSpec<Boolean> apiHiddenServiceOpt =
                 parser.accepts(API_HIDDEN_SERVICE,
                         "Publish the gRPC API as a Tor hidden service; bundled Tor waits for account login by default")
@@ -867,6 +876,7 @@ public class Config {
 
             this.apiPassword = options.valueOf(apiPasswordOpt);
             this.apiPort = options.valueOf(apiPortOpt);
+            this.apiBindAddress = options.valueOf(apiBindAddressOpt);
             this.apiHiddenService = options.valueOf(apiHiddenServiceOpt);
             this.apiHiddenServiceBeforeLogin = options.valueOf(apiHiddenServiceBeforeLoginOpt);
             this.apiHiddenServicePort = options.has(apiHiddenServicePortOpt) ? options.valueOf(apiHiddenServicePortOpt) : apiPort;
@@ -895,6 +905,8 @@ public class Config {
                 throw new ConfigException("The '%s' option requires an '%s' of at least 8 characters", API_HIDDEN_SERVICE, API_PASSWORD);
             if (apiHiddenServicePort < 1 || apiHiddenServicePort > 65535)
                 throw new ConfigException("The '%s' option must be a port between 1 and 65535", API_HIDDEN_SERVICE_PORT);
+            if (!acceptsHiddenServiceForwarding(apiBindAddress))
+                throw new ConfigException("The '%s' option forwards to 127.0.0.1, so '%s' must be 127.0.0.1 or a wildcard address", API_HIDDEN_SERVICE, API_BIND_ADDRESS);
         }
 
         // Create all appDataDir subdirectories and assign to their respective properties
@@ -980,6 +992,16 @@ public class Config {
             }
         }
         return dir;
+    }
+
+    // whether a bind address accepts the 127.0.0.1 connections the API hidden service forwards
+    private static boolean acceptsHiddenServiceForwarding(String address) {
+        try {
+            InetAddress inetAddress = InetAddress.getByName(address);
+            return inetAddress.isAnyLocalAddress() || inetAddress.equals(InetAddress.getByName("127.0.0.1"));
+        } catch (UnknownHostException e) {
+            return false;
+        }
     }
 
     /**
