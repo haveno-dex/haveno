@@ -6,10 +6,13 @@ import haveno.common.crypto.KeyStorage;
 import haveno.common.app.Version;
 import haveno.common.file.FileUtil;
 import haveno.common.util.Utilities;
+import haveno.core.api.CoreDisputesService;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
 import haveno.network.p2p.NodeAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,8 +24,13 @@ import java.util.Date;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DisputeClosedMessageBindingTest {
     private static final String SIG_BEGIN = "\n-----BEGIN SIGNATURE-----\n";
@@ -106,6 +114,61 @@ public class DisputeClosedMessageBindingTest {
     public void mutatedSubtractFeeFromBreaksPayoutSignature() {
         DisputeResult received = roundTrip(proto -> proto.setSubtractFeeFrom(protobuf.DisputeResult.SubtractFeeFrom.BUYER_ONLY));
         assertFalse(isPayoutSignatureValid(received));
+    }
+
+    @Test
+    public void customAwardIncludesExtraDepositInLoserRemainder() {
+        DisputeResult result = customAward(2200, false, DisputeResult.Winner.BUYER, 1300);
+        assertEquals(BigInteger.valueOf(1300), result.getBuyerPayoutAmountBeforeCost());
+        assertEquals(BigInteger.valueOf(900), result.getSellerPayoutAmountBeforeCost());
+        assertEquals(DisputeResult.SubtractFeeFrom.SELLER_ONLY, result.getSubtractFeeFrom());
+    }
+
+    @Test
+    public void customAwardCanAllocateSurplusToWinner() {
+        DisputeResult result = customAward(2200, false, DisputeResult.Winner.SELLER, 2100);
+        assertEquals(BigInteger.valueOf(100), result.getBuyerPayoutAmountBeforeCost());
+        assertEquals(BigInteger.valueOf(2100), result.getSellerPayoutAmountBeforeCost());
+        assertEquals(DisputeResult.SubtractFeeFrom.BUYER_ONLY, result.getSubtractFeeFrom());
+    }
+
+    @Test
+    public void customAwardHandlesMissingDepositAndUnchangedBalance() {
+        assertEquals(BigInteger.valueOf(200), customAward(1500, false, DisputeResult.Winner.BUYER, 1300).getSellerPayoutAmountBeforeCost());
+        assertEquals(BigInteger.valueOf(700), customAward(2000, false, DisputeResult.Winner.BUYER, 1300).getSellerPayoutAmountBeforeCost());
+        assertEquals(BigInteger.ZERO, customAward(1500, false, DisputeResult.Winner.BUYER, 1500).getSellerPayoutAmountBeforeCost());
+    }
+
+    @Test
+    public void customAwardRejectsNegativeOrExcessiveAmounts() {
+        assertThrows(IllegalArgumentException.class, () -> customAward(2200, false, DisputeResult.Winner.BUYER, -1));
+        assertThrows(RuntimeException.class, () -> customAward(2200, false, DisputeResult.Winner.BUYER, 2201));
+        assertThrows(RuntimeException.class, () -> customAward(1500, false, DisputeResult.Winner.SELLER, 1700));
+    }
+
+    @Test
+    public void customAwardAfterPublicationDoesNotUseSpentWalletBalance() {
+        DisputeResult result = customAward(0, true, DisputeResult.Winner.BUYER, 1300);
+        assertEquals(BigInteger.valueOf(1300), result.getBuyerPayoutAmountBeforeCost());
+        assertEquals(BigInteger.valueOf(700), result.getSellerPayoutAmountBeforeCost());
+    }
+
+    private DisputeResult customAward(long walletBalance, boolean published, DisputeResult.Winner winner, long winnerAmount) {
+        Trade trade = mock(Trade.class, RETURNS_DEEP_STUBS);
+        when(trade.getBuyer().getSecurityDeposit()).thenReturn(BigInteger.valueOf(300));
+        when(trade.getSeller().getSecurityDeposit()).thenReturn(BigInteger.valueOf(700));
+        when(trade.isPayoutPublished()).thenReturn(published);
+        when(trade.getWalletBalance()).thenReturn(BigInteger.valueOf(walletBalance));
+        Dispute dispute = mock(Dispute.class, RETURNS_DEEP_STUBS);
+        when(dispute.getTradeId()).thenReturn("custom-award");
+        when(dispute.getContract().getTradeAmount()).thenReturn(BigInteger.valueOf(1000));
+        TradeManager tradeManager = mock(TradeManager.class);
+        when(tradeManager.getTrade("custom-award")).thenReturn(trade);
+        CoreDisputesService service = new CoreDisputesService(null, null, null, tradeManager, null);
+        DisputeResult result = new DisputeResult("custom-award", 1);
+        result.setWinner(winner);
+        service.applyPayoutAmountsToDisputeResult(CoreDisputesService.PayoutSuggestion.CUSTOM, dispute, result, winnerAmount);
+        return result;
     }
 
     // builds a signed dispute result, applies the given mutation to its protobuf, then deserializes as the receiver would
