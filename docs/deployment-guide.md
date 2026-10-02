@@ -179,6 +179,12 @@ is missing or extra funds arrived, and wait for new deposits to unlock.
 Daemon instances require a non-empty API password. Set `HAVENO_API_PASSWORD` to a
 strong secret before running [run-arbitrator-daemon.sh](../scripts/deployment/run-arbitrator-daemon.sh).
 
+Five failed API authentication attempts in one minute temporarily block all
+authentication, including correct passwords, until an attempt expires from the
+window. The limit is shared across callers because Tor connections arrive through
+loopback. Successful calls do not consume it, and `--disableRateLimits` does not
+disable it.
+
 To publish the API over Tor, use `--apiHiddenService=true`. Bundled Tor waits until
 login so persisted bridge settings are loaded; the local API remains available to
 unlock the account. For remote unlock after a restart, also set

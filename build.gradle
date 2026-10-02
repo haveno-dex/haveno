@@ -1037,6 +1037,10 @@ configure(project(':daemon')) {
             exclude(module: 'animal-sniffer-annotations')
             exclude(module: 'guava')
         }
+        testImplementation(libs.grpc.netty.shaded) {
+            exclude(module: 'animal-sniffer-annotations')
+            exclude(module: 'guava')
+        }
         testAnnotationProcessor libs.lombok
         testCompileOnly libs.lombok
         testImplementation libs.junit.jupiter.api

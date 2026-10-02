@@ -18,7 +18,19 @@
 package haveno.daemon.grpc.interceptor;
 
 import haveno.daemon.grpc.GrpcVersionService;
+import haveno.proto.grpc.GetVersionGrpc;
+import haveno.proto.grpc.GetVersionReply;
+import haveno.proto.grpc.GetVersionRequest;
+import io.grpc.Metadata;
+import io.grpc.Server;
+import io.grpc.ServerCall;
 import io.grpc.ServerInterceptor;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.stub.MetadataUtils;
+import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,9 +38,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import static java.lang.System.getProperty;
@@ -39,6 +58,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
@@ -81,6 +101,121 @@ public class GrpcServiceRateMeteringConfigTest {
     public void buildConfigFile() {
         if (configFile == null)
             configFile = builder.build();
+    }
+
+    @Test
+    public void authenticationFailuresBlockFurtherGuessesWithoutCountingSuccessfulCalls() {
+        GrpcCallRateMeter meter = new GrpcCallRateMeter(5, MINUTES);
+        PasswordAuthInterceptor interceptor = new PasswordAuthInterceptor("test-secret", meter);
+        AtomicInteger admitted = new AtomicInteger();
+        for (int i = 0; i < 20; i++) authenticate(interceptor, "test-secret", admitted);
+        assertEquals(0, meter.getCallsCount());
+        for (int i = 0; i < 5; i++) {
+            StatusRuntimeException error = assertThrows(StatusRuntimeException.class,
+                    () -> authenticate(interceptor, "wrong-secret", admitted));
+            assertEquals(Status.Code.UNAUTHENTICATED, error.getStatus().getCode());
+        }
+        StatusRuntimeException error = assertThrows(StatusRuntimeException.class,
+                () -> authenticate(interceptor, "test-secret", admitted));
+        assertEquals(Status.Code.RESOURCE_EXHAUSTED, error.getStatus().getCode());
+        assertEquals(20, admitted.get());
+        assertEquals(5, meter.getCallsCount());
+    }
+
+    @Test
+    public void missingPasswordCountsAsAuthenticationFailure() {
+        GrpcCallRateMeter meter = new GrpcCallRateMeter(5, MINUTES);
+        PasswordAuthInterceptor interceptor = new PasswordAuthInterceptor("test-secret", meter);
+        AtomicInteger admitted = new AtomicInteger();
+        StatusRuntimeException error = assertThrows(StatusRuntimeException.class,
+                () -> authenticate(interceptor, null, admitted));
+        assertEquals(Status.Code.UNAUTHENTICATED, error.getStatus().getCode());
+        assertEquals(1, meter.getCallsCount());
+        assertEquals(0, admitted.get());
+    }
+
+    @Test
+    public void authenticationRecoversAfterFailureWindowExpires() throws InterruptedException {
+        GrpcCallRateMeter meter = new GrpcCallRateMeter(1, TimeUnit.MILLISECONDS, 1000);
+        PasswordAuthInterceptor interceptor = new PasswordAuthInterceptor("test-secret", meter);
+        AtomicInteger admitted = new AtomicInteger();
+        assertThrows(StatusRuntimeException.class, () -> authenticate(interceptor, "wrong-secret", admitted));
+        assertEquals(Status.Code.RESOURCE_EXHAUSTED,
+                assertThrows(StatusRuntimeException.class, () -> authenticate(interceptor, "test-secret", admitted)).getStatus().getCode());
+        TimeUnit.MILLISECONDS.sleep(1001);
+        authenticate(interceptor, "test-secret", admitted);
+        assertEquals(1, admitted.get());
+        assertEquals(0, meter.getCallsCount());
+    }
+
+    @Test
+    public void concurrentAuthenticationFailuresCannotExceedBudget() throws Exception {
+        PasswordAuthInterceptor interceptor = new PasswordAuthInterceptor("test-secret", new GrpcCallRateMeter(5, MINUTES));
+        AtomicInteger admitted = new AtomicInteger();
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(8)) {
+            List<Future<Status.Code>> results = new ArrayList<>();
+            for (int i = 0; i < 32; i++) {
+                results.add(executor.submit(() -> {
+                    start.await();
+                    return assertThrows(StatusRuntimeException.class,
+                            () -> authenticate(interceptor, "wrong-secret", admitted)).getStatus().getCode();
+                }));
+            }
+            start.countDown();
+            int checked = 0;
+            int throttled = 0;
+            for (Future<Status.Code> result : results) {
+                if (result.get(10, SECONDS) == Status.Code.UNAUTHENTICATED) checked++;
+                else if (result.get() == Status.Code.RESOURCE_EXHAUSTED) throttled++;
+            }
+            assertEquals(5, checked);
+            assertEquals(27, throttled);
+            assertEquals(0, admitted.get());
+        }
+    }
+
+    @Test
+    public void authenticationAndThrottleStatusesReachGrpcClients() throws Exception {
+        AtomicInteger admitted = new AtomicInteger();
+        Server server = NettyServerBuilder.forAddress(new InetSocketAddress("127.0.0.1", 0))
+                .intercept(new PasswordAuthInterceptor("test-secret", new GrpcCallRateMeter(2, MINUTES)))
+                .addService(new GetVersionGrpc.GetVersionImplBase() {
+                    @Override
+                    public void getVersion(GetVersionRequest request, StreamObserver<GetVersionReply> response) {
+                        admitted.incrementAndGet();
+                        response.onNext(GetVersionReply.newBuilder().setVersion("test").build());
+                        response.onCompleted();
+                    }
+                }).build().start();
+        var channel = NettyChannelBuilder.forAddress("127.0.0.1", server.getPort()).usePlaintext().build();
+        try {
+            Metadata headers = new Metadata();
+            headers.put(Metadata.Key.of("password", Metadata.ASCII_STRING_MARSHALLER), "test-secret");
+            var authenticated = GetVersionGrpc.newBlockingStub(channel).withDeadlineAfter(5, SECONDS)
+                    .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
+            assertEquals("test", authenticated.getVersion(GetVersionRequest.getDefaultInstance()).getVersion());
+            var unauthenticated = GetVersionGrpc.newBlockingStub(channel).withDeadlineAfter(5, SECONDS);
+            for (int i = 0; i < 2; i++) {
+                assertEquals(Status.Code.UNAUTHENTICATED, assertThrows(StatusRuntimeException.class,
+                        () -> unauthenticated.getVersion(GetVersionRequest.getDefaultInstance())).getStatus().getCode());
+            }
+            assertEquals(Status.Code.RESOURCE_EXHAUSTED, assertThrows(StatusRuntimeException.class,
+                    () -> authenticated.getVersion(GetVersionRequest.getDefaultInstance())).getStatus().getCode());
+            assertEquals(1, admitted.get());
+        } finally {
+            channel.shutdownNow().awaitTermination(5, SECONDS);
+            server.shutdownNow().awaitTermination(5, SECONDS);
+        }
+    }
+
+    private void authenticate(PasswordAuthInterceptor interceptor, String password, AtomicInteger admitted) {
+        Metadata headers = new Metadata();
+        if (password != null) headers.put(Metadata.Key.of("password", Metadata.ASCII_STRING_MARSHALLER), password);
+        interceptor.interceptCall(null, headers, (call, metadata) -> {
+            admitted.incrementAndGet();
+            return new ServerCall.Listener<Object>() {};
+        });
     }
 
     @Test
