@@ -26,12 +26,14 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.locale.TraditionalCurrency;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.desktop.common.UITimer;
+import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.network.p2p.network.NetworkNode;
 import javafx.application.Platform;
@@ -43,10 +45,15 @@ import org.mockito.MockedStatic;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -58,6 +65,21 @@ import static org.mockito.Mockito.when;
 
 
 public class GUIUtilTest {
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCountrySearchIncludesGlobalPaymentMethods() throws Exception {
+        Method queryFilter = TraditionalAccountsView.class.getDeclaredMethod("getPaymentMethodQueryFilter", List.class);
+        queryFilter.setAccessible(true);
+        Function<String, Predicate<PaymentMethod>> filter = (Function<String, Predicate<PaymentMethod>>) queryFilter.invoke(null,
+                List.of(PaymentMethod.REVOLUT, PaymentMethod.SEPA, PaymentMethod.JAPAN_BANK));
+        assertTrue(filter.apply("US").test(PaymentMethod.REVOLUT));
+        assertFalse(filter.apply("US").test(PaymentMethod.SEPA));
+        assertFalse(filter.apply("US").test(PaymentMethod.JAPAN_BANK));
+        assertTrue(filter.apply("DE").test(PaymentMethod.SEPA));
+        assertTrue(filter.apply("JP").test(PaymentMethod.JAPAN_BANK));
+        assertTrue(filter.apply("Revolut").test(PaymentMethod.REVOLUT));
+    }
 
     @Test
     public void testTorFilesAreKeptWhenShutdownFails() throws Exception {
