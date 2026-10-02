@@ -2076,23 +2076,36 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private boolean clearProcessData() {
 
         // delete trade wallet
+        boolean changed;
         synchronized (walletLock) {
             if (!walletExists()) return false; // done if already cleared
             deleteWallet();
+            changed = !walletExists();
         }
 
         // TODO: clear other process data
-        if (isPayoutFinalized() || processModel.isPaymentReceivedMessagesAcked()) setPayoutTxHex(null);
+        if (isPayoutFinalized() || processModel.isPaymentReceivedMessagesAcked()) {
+            changed |= getPayoutTxHex() != null;
+            setPayoutTxHex(null);
+        }
         for (TradePeer peer : getAllPeers()) {
+            changed |= peer.getUpdatedMultisigHex() != null || peer.getDisputeClosedMessage() != null
+                    || peer.getPaymentSentMessage() != null || peer.getDepositTxHex() != null || peer.getDepositTxKey() != null;
             peer.setUpdatedMultisigHex(null);
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
             peer.setDepositTxHex(null);
             peer.setDepositTxKey(null);
-            if (peer.isPaymentReceivedMessageAckedOrNacked() || isPayoutFinalized()) peer.setUnsignedPayoutTxHex(null);
-            if (peer.isPaymentReceivedMessageAckedOrNacked()) peer.setPaymentReceivedMessage(null);
+            if (peer.isPaymentReceivedMessageAckedOrNacked() || isPayoutFinalized()) {
+                changed |= peer.getUnsignedPayoutTxHex() != null;
+                peer.setUnsignedPayoutTxHex(null);
+            }
+            if (peer.isPaymentReceivedMessageAckedOrNacked()) {
+                changed |= peer.getPaymentReceivedMessage() != null;
+                peer.setPaymentReceivedMessage(null);
+            }
         }
-        return true;
+        return changed;
     }
 
     private void removeDecryptedDirectMessageListener() {
