@@ -1,10 +1,10 @@
 .root {
-    -bs-color-primary: #235cbc;
+    -bs-color-primary: #205ecc;
     -bs-control-accent: -bs-color-primary;
-    -bs-color-primary-faint: rgba(35, 92, 188, 0.06);
-    -bs-color-primary-soft: rgba(35, 92, 188, 0.12);
-    -bs-color-primary-strong: rgba(35, 92, 188, 0.18);
-    -bs-color-primary-dark: #194f9e;
+    -bs-color-primary-faint: rgba(32, 94, 204, 0.06);
+    -bs-color-primary-soft: rgba(32, 94, 204, 0.12);
+    -bs-color-primary-strong: rgba(32, 94, 204, 0.18);
+    -bs-color-primary-dark: #1354ae;
     -bs-hero-primary: -bs-color-primary;
     -bs-hero-purple: rgb(126, 87, 194);
     -bs-text-color: #202e45;
@@ -46,7 +46,7 @@
     -bs-turquoise: #2cacaf;
     -bs-yellow: #ffb60f;
     -bs-yellow-light: derive(-bs-yellow, 81%);
-    -bs-blue-transparent: rgba(35, 92, 188, 0.27);
+    -bs-blue-transparent: rgba(32, 94, 204, 0.27);
     -bs-bg-green: #99ba9c;
     -bs-rd-green: -bs-color-primary;
     -bs-rd-green-dark: #3EA34A;
@@ -133,7 +133,7 @@
     -bs-color-border-form-field: -bs-background-gray;
     -bs-offer-card-border: -bs-color-gray-1;
     -bs-login-field-border: #d5dae1;
-    -bs-login-field-focus-glow: rgba(35, 92, 188, 0.22);
+    -bs-login-field-focus-glow: rgba(32, 94, 204, 0.22);
     -bs-login-prompt-text: -bs-color-gray-6;
     -bs-color-background-form-field-readonly: #f1f3f6;
     -bs-color-background-pane: -bs-background-color;
