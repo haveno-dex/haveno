@@ -124,6 +124,7 @@ public final class DuitNowAccount extends PaymentAccount {
     @Override
     protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
         PaymentAccountFormField field = super.getEmptyFormField(fieldId);
+        if (fieldId == PaymentAccountFormField.FieldId.ACCOUNT_NR) field.setLabel(Res.get("payment.duitnow.identifier"));
         if (fieldId == PaymentAccountFormField.FieldId.BANK_NAME) field.setLabel(Res.get("payment.bank.name"));
         return field;
     }

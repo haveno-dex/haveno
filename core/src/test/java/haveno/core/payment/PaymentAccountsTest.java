@@ -47,6 +47,22 @@ import static org.mockito.Mockito.when;
 
 public class PaymentAccountsTest {
     @Test
+    public void testDuitNowKeepsNricDistinctFromInternationalMobileNumbers() {
+        Res.setup();
+        DuitNowAccount account = new DuitNowAccount();
+        account.init();
+        account.setAccountName("duitnow account");
+        account.setAccountNr("601112345678");
+        assertEquals("601112345678", account.getAccountNr());
+        assertDoesNotThrow(() -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+        account.setAccountNr("+60 11-1234-5678");
+        assertEquals("01112345678", account.getAccountNr());
+        account.setAccountNr(account.getAccountNr());
+        assertEquals("01112345678", account.getAccountNr());
+        assertDoesNotThrow(() -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+    }
+
+    @Test
     public void testMobileAccountFormsUseTheDesktopWitnessIdentity() {
         GlobalSettings.setLocale(Locale.US);
         Res.setBaseCurrencyCode("XMR");

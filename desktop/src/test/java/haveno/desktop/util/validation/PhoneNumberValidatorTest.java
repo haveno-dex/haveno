@@ -1,16 +1,24 @@
 package haveno.desktop.util.validation;
 
 import haveno.core.locale.Res;
+import haveno.core.payment.MbWayAccount;
+import haveno.core.payment.PagoMovilAccount;
 import haveno.core.payment.SwishAccount;
 import haveno.core.payment.TwintAccount;
 import haveno.core.payment.payload.SwishAccountPayload;
+import haveno.core.payment.payload.MbWayAccountPayload;
+import haveno.core.payment.payload.PagoMovilAccountPayload;
 import haveno.core.payment.payload.TwintAccountPayload;
 import haveno.core.payment.validation.PhoneNumberValidator;
+import haveno.core.payment.validation.MbWayValidator;
+import haveno.core.payment.validation.PagoMovilValidator;
 import haveno.core.payment.validation.SwishValidator;
 import haveno.core.payment.validation.TwintValidator;
 import haveno.core.util.validation.InputValidator;
 import haveno.core.util.validation.InputValidator.ValidationResult;
 import haveno.desktop.components.paymentmethods.SwishForm;
+import haveno.desktop.components.paymentmethods.MbWayForm;
+import haveno.desktop.components.paymentmethods.PagoMovilForm;
 import haveno.desktop.components.paymentmethods.TwintForm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +38,40 @@ public class PhoneNumberValidatorTest {
     @BeforeEach
     public void setup() {
         Res.setup();
+    }
+
+    @Test
+    public void testMbWayFormValidationPreservesStoredNumber() {
+        MbWayAccount account = new MbWayAccount();
+        account.init();
+        account.setAccountName("mb way account");
+        account.setHolderName("Alice");
+        ((MbWayAccountPayload) account.getPaymentAccountPayload()).setMobileNr("912 345 678");
+        byte[] witnessInput = account.getPaymentAccountPayload().getAgeWitnessInputData();
+        MbWayForm form = new MbWayForm(account, null, new MbWayValidator(), new InputValidator(), null, 0, null);
+        account.setAccountName("renamed account");
+        form.updateAllInputsValid();
+        assertTrue(form.allInputsValidProperty().get());
+        assertEquals("912 345 678", account.getMobileNr());
+        assertArrayEquals(witnessInput, account.getPaymentAccountPayload().getAgeWitnessInputData());
+    }
+
+    @Test
+    public void testPagoMovilFormValidationPreservesStoredNumber() {
+        PagoMovilAccount account = new PagoMovilAccount();
+        account.init();
+        account.setAccountName("pago movil account");
+        account.setHolderName("Alice");
+        account.setHolderTaxId("V12345678");
+        account.setBankName("Bank");
+        ((PagoMovilAccountPayload) account.getPaymentAccountPayload()).setMobileNr("0412 123 4567");
+        byte[] witnessInput = account.getPaymentAccountPayload().getAgeWitnessInputData();
+        PagoMovilForm form = new PagoMovilForm(account, null, new PagoMovilValidator(), new InputValidator(), null, 0, null);
+        account.setAccountName("renamed account");
+        form.updateAllInputsValid();
+        assertTrue(form.allInputsValidProperty().get());
+        assertEquals("0412 123 4567", account.getMobileNr());
+        assertArrayEquals(witnessInput, account.getPaymentAccountPayload().getAgeWitnessInputData());
     }
 
     @Test

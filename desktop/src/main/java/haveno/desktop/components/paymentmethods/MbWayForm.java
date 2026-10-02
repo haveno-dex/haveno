@@ -114,9 +114,6 @@ public class MbWayForm extends PaymentMethodForm {
 
     @Override
     public void updateAllInputsValid() {
-        if (mbWayValidator.validate(mbWayAccount.getMobileNr()).isValid) {
-            mbWayAccount.setMobileNr(mbWayValidator.getNormalizedPhoneNumber());
-        }
         allInputsValid.set(isAccountNameValid()
                 && mbWayValidator.validate(mbWayAccount.getMobileNr()).isValid
                 && inputValidator.validate(mbWayAccount.getHolderName()).isValid

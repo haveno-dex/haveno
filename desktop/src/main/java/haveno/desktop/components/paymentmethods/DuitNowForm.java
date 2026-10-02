@@ -77,7 +77,7 @@ public class DuitNowForm extends PaymentMethodForm {
         });
 
         InputTextField accountNrInputTextField = FormBuilder.addInputTextField(gridPane, ++gridRow,
-                Res.get("payment.accountNr"));
+                Res.get("payment.duitnow.identifier"));
         accountNrInputTextField.setValidator(accountNrValidator);
         accountNrInputTextField.textProperty().addListener((ov, oldValue, newValue) -> {
             duitnowAccount.setAccountNr(newValue);
