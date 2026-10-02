@@ -32,13 +32,14 @@ import haveno.network.p2p.network.TorNetworkNodeNetlayer;
 import static io.grpc.ServerInterceptors.interceptForward;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 @Singleton
@@ -82,7 +83,7 @@ public class GrpcServer {
         this.config = config;
         this.coreAccountService = coreAccountService;
         this.networkNode = networkNode;
-        this.server = ServerBuilder.forPort(config.apiPort)
+        this.server = NettyServerBuilder.forAddress(new InetSocketAddress(config.apiBindAddress, config.apiPort))
                 .addService(shutdownService)
                 .intercept(passwordAuthInterceptor)
                 .addService(interceptForward(accountService, config.disableRateLimits ? interceptors() : accountService.interceptors()))
