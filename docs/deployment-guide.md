@@ -170,6 +170,12 @@ For each arbitrator:
 
 The arbitrator is now registered and ready to accept requests for dispute resolution.
 
+If a trade's multisig wallet has extra funds, use a custom dispute award to
+allocate its full balance. Cooperative payouts and preset awards reject a
+surplus above the dust limit. The API custom award now uses the current wallet
+balance, as the desktop does; review the counterparty's remainder when a deposit
+is missing or extra funds arrived, and wait for new deposits to unlock.
+
 Daemon instances require a non-empty API password. Set `HAVENO_API_PASSWORD` to a
 strong secret before running [run-arbitrator-daemon.sh](../scripts/deployment/run-arbitrator-daemon.sh).
 

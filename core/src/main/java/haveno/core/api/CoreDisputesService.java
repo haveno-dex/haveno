@@ -257,8 +257,14 @@ public class CoreDisputesService {
                 disputeResult.setSellerPayoutAmountBeforeCost(tradeWalletBalance);
             }
         } else if (payoutSuggestion == PayoutSuggestion.CUSTOM) {
+            if (customWinnerAmount < 0) throw new IllegalArgumentException("Winner payout cannot be negative");
             if (tradeWalletBalance != null && !trade.isPayoutPublished() && customWinnerAmount > tradeWalletBalance.longValueExact()) throw new RuntimeException("Winner payout is more than the trade wallet's balance");
-            long loserAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit).subtract(BigInteger.valueOf(customWinnerAmount)).longValueExact();
+            BigInteger totalAmount = tradeAmount.add(buyerSecurityDeposit).add(sellerSecurityDeposit);
+            if (tradeWalletBalance != null) {
+                if (!tradeWalletBalance.equals(totalAmount)) log.warn("Custom dispute payout uses wallet balance {} instead of expected deposits {} for trade {}", tradeWalletBalance, totalAmount, trade.getId());
+                totalAmount = tradeWalletBalance;
+            }
+            long loserAmount = totalAmount.subtract(BigInteger.valueOf(customWinnerAmount)).longValueExact();
             if (loserAmount < 0) throw new RuntimeException("Loser payout cannot be negative");
             disputeResult.setBuyerPayoutAmountBeforeCost(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? customWinnerAmount : loserAmount));
             disputeResult.setSellerPayoutAmountBeforeCost(BigInteger.valueOf(disputeResult.getWinner() == DisputeResult.Winner.BUYER ? loserAmount : customWinnerAmount));
