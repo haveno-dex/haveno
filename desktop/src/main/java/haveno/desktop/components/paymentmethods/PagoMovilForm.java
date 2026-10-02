@@ -139,9 +139,6 @@ public class PagoMovilForm extends PaymentMethodForm {
 
     @Override
     public void updateAllInputsValid() {
-        if (pagoMovilValidator.validate(pagoMovilAccount.getMobileNr()).isValid) {
-            pagoMovilAccount.setMobileNr(pagoMovilValidator.getNormalizedPhoneNumber());
-        }
         allInputsValid.set(isAccountNameValid()
                 && inputValidator.validate(pagoMovilAccount.getHolderName()).isValid
                 && pagoMovilValidator.validate(pagoMovilAccount.getMobileNr()).isValid
