@@ -24,6 +24,8 @@ import javafx.beans.property.ReadOnlyBooleanWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 public class PopupManager {
     private static final Logger log = LoggerFactory.getLogger(PopupManager.class);
     private static final Queue<Overlay<?>> popups = new LinkedBlockingQueue<>(5);
+    private static final List<Overlay<?>> nestedPopups = new ArrayList<>();
     private static final ReadOnlyBooleanWrapper hasPendingPopups = new ReadOnlyBooleanWrapper();
 
     private static Overlay<?> displayedPopup;
@@ -52,8 +55,26 @@ public class PopupManager {
         displayNext();
     }
 
+    // display above the displayed popup instead of queueing behind it, for prompts opened from within it
+    public static void displayNested(Overlay<?> popup) {
+        if (displayedPopup == null) {
+            queueForDisplay(popup);
+            return;
+        }
+        if (hasDuplicatePopup(popup)) {
+            log.warn("The popup is already in the queue or displayed.\n\t" +
+                   "New popup not added=" + popup);
+            return;
+        }
+        nestedPopups.add(popup);
+        popup.displayAbove(displayedPopup);
+        displayNext();
+    }
+
     public static void onHidden(Overlay<?> popup) {
-        if (displayedPopup == null || displayedPopup == popup) {
+        if (nestedPopups.remove(popup)) {
+            displayNext();
+        } else if (displayedPopup == null || displayedPopup == popup) {
             displayedPopup = null;
             UserThread.runAfter(() -> { displayNext(); }, 100, TimeUnit.MILLISECONDS);
         } else {
@@ -67,8 +88,8 @@ public class PopupManager {
 
     private static void displayNext() {
         // keep notifications deferred through the gap between queued popups
-        hasPendingPopups.set(displayedPopup != null || !popups.isEmpty());
-        if (displayedPopup == null) {
+        hasPendingPopups.set(displayedPopup != null || !popups.isEmpty() || !nestedPopups.isEmpty());
+        if (displayedPopup == null && nestedPopups.isEmpty()) {
             if (!popups.isEmpty()) {
                 displayedPopup = popups.poll();
                 displayedPopup.display();
@@ -81,6 +102,11 @@ public class PopupManager {
             return true;
         }
         for (Overlay<?> p : popups) {
+            if (p.toString().equals(popup.toString())) {
+                return true;
+            }
+        }
+        for (Overlay<?> p : nestedPopups) {
             if (p.toString().equals(popup.toString())) {
                 return true;
             }
