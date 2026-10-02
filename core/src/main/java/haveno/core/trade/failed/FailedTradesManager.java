@@ -29,6 +29,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.TradeUtil;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
+import javax.annotation.Nullable;
 import javafx.collections.ObservableList;
 import lombok.Setter;
 import org.slf4j.Logger;
@@ -172,5 +173,9 @@ public class FailedTradesManager implements PersistedDataHost {
 
     public void requestPersistence() {
         persistenceManager.requestPersistence();
+    }
+
+    public void persistNow(@Nullable Runnable completeHandler) {
+        persistenceManager.persistNow(completeHandler);
     }
 }

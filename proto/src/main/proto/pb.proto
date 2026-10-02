@@ -1718,6 +1718,7 @@ message Trade {
     bool is_completed = 28;
     string challenge = 29;
     int64 payout_height = 30;
+    int64 completed_revision = 31;
 }
 
 message BuyerAsMakerTrade {

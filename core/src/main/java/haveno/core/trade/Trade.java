@@ -535,7 +535,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private Long payoutHeight;
     private IdleBlockPoller idleBlockPoller;
     @Getter
-    private boolean isCompleted;
+    private volatile boolean isCompleted;
+    @Getter
+    private volatile long completedRevision;
     @Getter
     private final String challenge;
 
@@ -955,8 +957,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     public void setCompleted(boolean completed) {
+        if (isCompleted != completed || completedRevision == 0) completedRevision = Math.incrementExact(completedRevision);
         this.isCompleted = completed;
         if (isInitialized && isFinished()) clearAndShutDown();
+    }
+
+    public boolean isReopened() {
+        return completedRevision > 0 && !isCompleted;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -4590,7 +4597,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 .setLockTime(lockTime)
                 .setStartTime(startTime)
                 .setUid(uid)
-                .setIsCompleted(isCompleted);
+                .setIsCompleted(isCompleted)
+                .setCompletedRevision(completedRevision);
 
         synchronized (getChatMessages()) {
             builder.addAllChatMessage(getChatMessages().stream()
@@ -4633,7 +4641,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         trade.setLockTime(proto.getLockTime());
         trade.setStartTime(proto.getStartTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
-        trade.setCompleted(proto.getIsCompleted());
+        trade.isCompleted = proto.getIsCompleted();
+        trade.completedRevision = proto.getCompletedRevision();
         trade.payoutHeight = proto.getPayoutHeight() == 0 ? null : proto.getPayoutHeight();
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()
