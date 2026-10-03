@@ -52,6 +52,7 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.common.util.Tuple2;
+import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreContext;
 import haveno.core.api.XmrConnectionService;
@@ -100,6 +101,7 @@ import haveno.network.p2p.SendDirectMessageListener;
 import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.peers.PeerManager;
 import java.math.BigInteger;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -113,6 +115,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -175,6 +179,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
     private final Map<String, PlaceOfferProtocol> placeOfferProtocols = new HashMap<String, PlaceOfferProtocol>();
     private boolean stopped;
+    private final ExecutorService signOfferRequestExecutor = Utilities.getThreadPoolExecutor("SignOfferRequests", 1, 1, 16, 60);
+    private final Set<PublicKey> pendingSignOfferRequests = ConcurrentHashMap.newKeySet();
     private Timer periodicRepublishOffersTimer, periodicRefreshOffersTimer, retryRepublishOffersTimer;
     @Getter
     private final ObservableList<Tuple2<OpenOffer, String>> invalidOffers = FXCollections.observableArrayList();
@@ -293,6 +299,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     public void shutDown(@Nullable Runnable completeHandler) {
         stopped = true;
+        signOfferRequestExecutor.shutdown();
         p2PService.getPeerManager().removeListener(this);
         p2PService.removeDecryptedDirectMessageListener(this);
         xmrConnectionService.getKeyImagePoller().removeKeyImages(OPEN_OFFER_GROUP_KEY_IMAGE_ID);
@@ -341,6 +348,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private void shutDownThreadPool() {
         try {
+            Utilities.shutdownAndAwaitTermination(signOfferRequestExecutor, SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            pendingSignOfferRequests.clear();
             ThreadUtils.shutDown(THREAD_ID, SHUTDOWN_TIMEOUT_MS);
         } catch (Exception e) {
             log.error("Error shutting down OpenOfferManager thread pool", e);
@@ -409,7 +418,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         // A basic sig check is in done also at decryption time
         NetworkEnvelope networkEnvelope = decryptedMessageWithPubKey.getNetworkEnvelope();
         if (networkEnvelope instanceof SignOfferRequest) {
-            handleSignOfferRequest((SignOfferRequest) networkEnvelope, peerNodeAddress);
+            enqueueSignOfferRequest(decryptedMessageWithPubKey, (SignOfferRequest) networkEnvelope, peerNodeAddress);
         } if (networkEnvelope instanceof SignOfferResponse) {
             handleSignOfferResponse((SignOfferResponse) networkEnvelope, peerNodeAddress);
         } else if (networkEnvelope instanceof OfferAvailabilityRequest) {
@@ -1854,6 +1863,40 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // Arbitrator Signs Offer
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    private void enqueueSignOfferRequest(DecryptedMessageWithPubKey message, SignOfferRequest request, NodeAddress peer) {
+        if (signOfferRequestExecutor.isShutdown()) return;
+        Arbitrator arbitrator = user.getRegisteredArbitrator();
+        NodeAddress thisAddress = p2PService.getNetworkNode().getNodeAddress();
+        if (arbitrator == null || !arbitrator.getNodeAddress().equals(thisAddress)
+                || !arbitrator.getNodeAddress().equals(request.getOfferPayload().getArbitratorSigner())) return;
+
+        // bind admission to the authenticated maker, not a claimed address or replaceable encryption key
+        PublicKey signatureKey = message.getSignaturePubKey();
+        if (!signatureKey.equals(request.getPubKeyRing().getSignaturePubKey()) || peer == null) return;
+        if (!request.getPubKeyRing().equals(request.getOfferPayload().getPubKeyRing())
+                || !peer.equals(request.getSenderNodeAddress())
+                || !peer.equals(request.getOfferPayload().getOwnerNodeAddress())
+                || request.getOfferId().isEmpty() || !request.getOfferId().equals(request.getOfferPayload().getId())) {
+            sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), false, "SignOfferRequest does not match the maker or offer");
+            return;
+        }
+
+        // overload must time out: older makers treat every nack as a permanently invalid offer
+        if (!pendingSignOfferRequests.add(signatureKey)) return;
+        try {
+            signOfferRequestExecutor.execute(() -> {
+                try {
+                    if (!signOfferRequestExecutor.isShutdown()) handleSignOfferRequest(request, peer);
+                } finally {
+                    pendingSignOfferRequests.remove(signatureKey);
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            pendingSignOfferRequests.remove(signatureKey);
+            log.debug("Ignoring SignOfferRequest because signing is busy or shutting down");
+        }
+    }
+
     private void handleSignOfferRequest(SignOfferRequest request, NodeAddress peer) {
         log.info("Received SignOfferRequest from {} with offerId {} and uid {}",
                 peer, request.getOfferId(), request.getUid());
@@ -2074,6 +2117,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     request.getReserveTxHex(),
                     request.getReserveTxKey(),
                     request.getReserveTxKeyImages());
+            if (signOfferRequestExecutor.isShutdown()) return;
 
             // arbitrator signs offer to certify they have valid reserve tx
             byte[] signature = HavenoUtils.signOffer(request.getOfferPayload(), keyRing);
@@ -2126,12 +2170,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             errorMessage = "Exception at handleSignOfferRequest " + t.getMessage();
             log.error(errorMessage + "\n", t);
         } finally {
-            if (result == false && errorMessage == null) {
+            if (!signOfferRequestExecutor.isShutdown() && result == false && errorMessage == null) {
                 log.warn("Arbitrator is NACKing SignOfferRequest for unknown reason with offerId={}. That should never happen", request.getOfferId());
                 log.warn("Printing stacktrace:");
                 Thread.dumpStack();
             }
-            sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
+            if (!signOfferRequestExecutor.isShutdown()) sendAckMessage(request.getClass(), peer, request.getPubKeyRing(), request.getOfferId(), request.getUid(), result, errorMessage);
         }
     }
 
