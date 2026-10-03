@@ -249,7 +249,7 @@ public final class XmrConnectionService {
         if (socks5ProxyProvider.getSocks5Proxy() == null) return null;
         String host = socks5ProxyProvider.getSocks5Proxy().getInetAddress().getHostAddress();
         String hostAndPort = NetworkUtils.formatHostAndPort(host, socks5ProxyProvider.getSocks5Proxy().getPort());
-        if (isolationId == null || !config.xmrStreamIsolation) return hostAndPort;
+        if (isolationId == null || !config.xmrStreamIsolation) return "socks5://" + hostAndPort; // monero defaults to socks4a, which cannot reach ipv6
         String credential = Utilities.encodeToHex(Hash.getSha256Hash(isolationId)).substring(0, 16);
         return "socks5://" + credential + ":" + credential + "@" + hostAndPort;
     }
