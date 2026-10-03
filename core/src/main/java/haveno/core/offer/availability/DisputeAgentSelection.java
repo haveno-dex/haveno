@@ -26,13 +26,13 @@ import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -41,6 +41,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 public class DisputeAgentSelection {
+    private static final SecureRandom RANDOM = new SecureRandom();
     public static final int LOOK_BACK_RANGE = 100;
 
     public static <T extends DisputeAgent> T getLeastUsedArbitrator(TradeStatisticsManager tradeStatisticsManager,
@@ -142,7 +143,7 @@ public class DisputeAgentSelection {
     }
 
     private static String getRandomDisputeAgent(Set<String> disputeAgents) {
-        int randomIndex = new Random().nextInt(disputeAgents.size());
+        int randomIndex = RANDOM.nextInt(disputeAgents.size());
         List<String> elements = new ArrayList<String>(disputeAgents);
         return elements.get(randomIndex);
     }

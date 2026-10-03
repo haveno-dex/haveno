@@ -17,6 +17,12 @@
 
 package haveno.core.offer.availability;
 
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.network.p2p.NodeAddress;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableMap;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -25,6 +31,12 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 
 public class ArbitratorSelectionTest {
     @Test
@@ -81,5 +93,26 @@ public class ArbitratorSelectionTest {
         arbitrators = new HashSet<>(Arrays.asList("arb1", "arb2"));
         result = DisputeAgentSelection.getLeastUsedDisputeAgent(lastAddressesUsedInTrades, arbitrators);
         assertEquals("arb1", result);
+    }
+
+    @Test
+    public void selectsOnlyAcceptedNonExcludedArbitrators() {
+        ArbitratorManager manager = mock(ArbitratorManager.class);
+        ObservableMap<NodeAddress, Arbitrator> arbitrators = FXCollections.observableHashMap();
+        when(manager.getObservableMap()).thenReturn(arbitrators);
+        assertNull(DisputeAgentSelection.getRandomArbitrator(manager));
+        Arbitrator first = mock(Arbitrator.class);
+        Arbitrator second = mock(Arbitrator.class);
+        NodeAddress firstAddress = new NodeAddress("first:9999");
+        NodeAddress secondAddress = new NodeAddress("second:9999");
+        when(first.getNodeAddress()).thenReturn(firstAddress);
+        when(second.getNodeAddress()).thenReturn(secondAddress);
+        arbitrators.put(firstAddress, first);
+        arbitrators.put(secondAddress, second);
+        for (int i = 0; i < 20; i++) {
+            assertTrue(arbitrators.containsValue(DisputeAgentSelection.getRandomArbitrator(manager)));
+            assertSame(second, DisputeAgentSelection.getRandomArbitrator(manager, Set.of(firstAddress)));
+        }
+        assertNull(DisputeAgentSelection.getRandomArbitrator(manager, Set.of(firstAddress, secondAddress)));
     }
 }

@@ -17,14 +17,36 @@
 
 package haveno.core.monetary;
 
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static haveno.core.monetary.Price.parse;
 import static haveno.core.monetary.Price.valueOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class PriceTest {
+
+    @Test
+    public void validatesTradeStatisticsBeforeAcceptingNetworkData() {
+        long oldDate = 1700000000000L;
+        TradeStatistics3 historical = new TradeStatistics3("USD", 10000000000L, 1000000000000L, "SEPA", oldDate, "abcd", Map.of());
+        assertDoesNotThrow(() -> TradeStatistics3.fromProto(historical.toProtoTradeStatistics3()));
+        for (TradeStatistics3 invalid : new TradeStatistics3[]{
+                new TradeStatistics3("USD", 10000000000L, 1000000000000L, "SEPA", System.currentTimeMillis() + TimeUnit.DAYS.toMillis(2), "abcd", Map.of()),
+                new TradeStatistics3("USD", Long.MAX_VALUE, Long.MAX_VALUE, "SEPA", oldDate, "abcd", Map.of()),
+                new TradeStatistics3("USD", 0, 1000000000000L, "SEPA", oldDate, "abcd", Map.of()),
+                new TradeStatistics3("USD", 10000000000L, 1000000000000L, "SEPA", oldDate, "abcd", Map.of("x", "x".repeat(1025)))}) {
+            assertThrows(InvalidPersistableNetworkPayloadException.class, () -> TradeStatistics3.fromProto(invalid.toProtoTradeStatistics3()));
+        }
+    }
+
 
     @Test
     public void testParse() {
