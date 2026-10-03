@@ -3,6 +3,7 @@ package haveno.core.offer;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.app.Version;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.crypto.PubKeyRing;
@@ -15,6 +16,9 @@ import haveno.core.api.CoreNotificationService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrKeyImagePoller;
 import haveno.core.filter.FilterManager;
+import haveno.core.offer.messages.SignOfferRequest;
+import haveno.core.offer.messages.SignOfferResponse;
+import haveno.core.offer.messages.OfferAvailabilityRequest;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.ArbitratorTrade;
@@ -34,14 +38,17 @@ import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.TradeProtocolVersion;
 import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.NetworkNotReadyException;
-import haveno.network.p2p.P2PService;
 import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.P2PService;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.peers.Broadcaster;
+import monero.daemon.model.MoneroTx;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +57,7 @@ import javafx.collections.FXCollections;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PublicKey;
@@ -75,6 +83,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -92,12 +101,13 @@ public class OpenOfferManagerTest {
     private PersistenceManager<TradableList<OpenOffer>> persistenceManager;
     private PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
     private CoreContext coreContext;
+    private KeyRing keyRing;
 
     @BeforeEach
     public void setUp() throws Exception {
         var corruptedStorageFileHandler = mock(CorruptedStorageFileHandler.class);
         var storageDir = Files.createTempDirectory("storage").toFile();
-        var keyRing = new KeyRing(new KeyStorage(storageDir));
+        keyRing = new KeyRing(new KeyStorage(storageDir));
         persistenceManager = new PersistenceManager<>(storageDir, null, corruptedStorageFileHandler, keyRing);
         signedOfferPersistenceManager = new PersistenceManager<>(storageDir, null, corruptedStorageFileHandler, keyRing);
         coreContext = new CoreContext();
@@ -1011,6 +1021,201 @@ public class OpenOfferManagerTest {
             when(signer.getNodeAddress()).thenReturn(context.arbitrator);
             when(payload.getArbitratorSigner()).thenReturn(context.arbitrator);
             assertTrue(context.expects(request, context.makerKey, context.maker));
+        }
+    }
+
+    @Test
+    public void testSigningDoesNotBlockDispatchAndCoalescesAuthenticatedSender() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        try (SigningRequestContext context = new SigningRequestContext()) {
+            CountDownLatch verifying = new CountDownLatch(1);
+            doAnswer(invocation -> {
+                verifying.countDown();
+                assertTrue(release.await(10, TimeUnit.SECONDS));
+                throw new IllegalStateException("verification failed");
+            }).when(context.walletService).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+            SignOfferRequest request = context.request("offer", context.makerKeys);
+            ExecutorService dispatcher = Executors.newSingleThreadExecutor();
+            try {
+                var arrival = dispatcher.submit(() -> context.receive(request));
+                assertTrue(verifying.await(5, TimeUnit.SECONDS));
+                arrival.get(5, TimeUnit.SECONDS);
+                for (int i = 0; i < 100; i++) context.receive(request);
+                PubKeyRing changedEncryptionKey = mock(PubKeyRing.class);
+                PublicKey signatureKey = context.makerKeys.getSignaturePubKey();
+                when(changedEncryptionKey.getSignaturePubKey()).thenReturn(signatureKey);
+                context.receive(context.request("same-signer", changedEncryptionKey));
+                assertTrue(context.executor.getQueue().isEmpty());
+                verify(context.p2p, never()).sendEncryptedDirectMessage(any(), any(), any(AckMessage.class), any());
+
+                OfferAvailabilityRequest availability = mock(OfferAvailabilityRequest.class);
+                when(availability.getOfferId()).thenReturn("unrelated");
+                when(availability.getPubKeyRing()).thenReturn(context.makerKeys);
+                DecryptedMessageWithPubKey message = mock(DecryptedMessageWithPubKey.class);
+                when(message.getNetworkEnvelope()).thenReturn(availability);
+                dispatcher.submit(() -> context.manager.onDirectMessage(message, context.maker)).get(5, TimeUnit.SECONDS);
+                verify(context.p2p).sendEncryptedDirectMessage(eq(context.maker), eq(context.makerKeys),
+                        argThat(envelope -> envelope instanceof AckMessage && "unrelated".equals(((AckMessage) envelope).getSourceId())), any());
+                verify(context.walletService).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+            } finally {
+                release.countDown();
+                dispatcher.shutdownNow();
+                assertTrue(dispatcher.awaitTermination(5, TimeUnit.SECONDS));
+            }
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            context.receive(request);
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            verify(context.walletService, times(2)).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @Test
+    public void testSigningQueueIsBoundedAndShutdownSkipsQueuedRequests() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        try (SigningRequestContext context = new SigningRequestContext()) {
+            CountDownLatch verifying = new CountDownLatch(1);
+            AtomicBoolean interrupted = new AtomicBoolean();
+            doAnswer(invocation -> {
+                verifying.countDown();
+                try {
+                    assertTrue(release.await(10, TimeUnit.SECONDS));
+                } catch (InterruptedException e) {
+                    interrupted.set(true);
+                    throw e;
+                }
+                return new MoneroTx().setFee(BigInteger.ONE);
+            }).when(context.walletService).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+            try {
+                context.receive(context.request("active", context.makerKeys));
+                assertTrue(verifying.await(5, TimeUnit.SECONDS));
+                for (int i = 0; i < 32; i++) context.receive(context.request("queued-" + i, context.keys()));
+                assertEquals(16, context.executor.getQueue().size());
+                assertEquals(1, context.executor.getLargestPoolSize());
+                verify(context.p2p, never()).sendEncryptedDirectMessage(any(), any(), any(AckMessage.class), any());
+                CountDownLatch shutdown = new CountDownLatch(1);
+                context.manager.shutDown(shutdown::countDown);
+                assertTrue(context.executor.isShutdown());
+                context.receive(context.request("after-shutdown", context.keys()));
+                release.countDown();
+                assertTrue(shutdown.await(5, TimeUnit.SECONDS));
+                assertFalse(interrupted.get());
+                verify(context.walletService).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+                verify(context.p2p, never()).sendEncryptedDirectMessage(any(), any(), any(), any());
+            } finally {
+                release.countDown();
+            }
+        }
+    }
+
+    @Test
+    public void testSigningAuthenticatesRequestsAndPreservesSuccessfulVerification() throws Exception {
+        keyRing.generateKeys(null);
+        try (SigningRequestContext context = new SigningRequestContext()) {
+            SignOfferRequest request = context.request("offer", context.makerKeys);
+            DecryptedMessageWithPubKey impostor = mock(DecryptedMessageWithPubKey.class);
+            when(impostor.getNetworkEnvelope()).thenReturn(request);
+            when(impostor.getSignaturePubKey()).thenReturn(mock(PublicKey.class));
+            context.manager.onDirectMessage(impostor, context.maker);
+            when(request.getOfferPayload().getOwnerNodeAddress()).thenReturn(context.arbitrator);
+            context.receive(request);
+            verify(context.p2p).sendEncryptedDirectMessage(eq(context.maker), eq(context.makerKeys),
+                    argThat(envelope -> envelope instanceof AckMessage && !((AckMessage) envelope).isSuccess()), any());
+            when(request.getOfferPayload().getOwnerNodeAddress()).thenReturn(context.maker);
+            verify(context.walletService, never()).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+
+            when(context.walletService.verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any()))
+                    .thenReturn(new MoneroTx().setFee(BigInteger.ONE));
+            try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+                context.manager.onAllConnectionsLost();
+            }
+            context.receive(request);
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            ArgumentCaptor<byte[]> signature = ArgumentCaptor.forClass(byte[].class);
+            verify(request.getOfferPayload()).setArbitratorSignature(signature.capture());
+            assertTrue(HavenoUtils.isSignatureValid(keyRing.getPubKeyRing(), request.getOfferPayload().getSignatureHash(), signature.getValue()));
+            verify(context.p2p).sendEncryptedDirectMessage(eq(context.maker), eq(context.makerKeys), any(SignOfferResponse.class), any());
+            verify(context.p2p).sendEncryptedDirectMessage(eq(context.maker), eq(context.makerKeys),
+                    argThat(envelope -> envelope instanceof AckMessage && ((AckMessage) envelope).isSuccess()), any());
+        }
+    }
+
+    private class SigningRequestContext implements AutoCloseable {
+        private final NodeAddress maker = new NodeAddress("maker.onion", 9999);
+        private final NodeAddress arbitrator = new NodeAddress("arbitrator.onion", 9999);
+        private final PubKeyRing makerKeys = keys();
+        private final P2PService p2p = mock(P2PService.class);
+        private final XmrWalletService walletService = mock(XmrWalletService.class);
+        private final OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        private final OpenOfferManager manager;
+        private final ThreadPoolExecutor executor;
+
+        private SigningRequestContext() throws Exception {
+            User user = mock(User.class);
+            Arbitrator registeredArbitrator = mock(Arbitrator.class);
+            when(registeredArbitrator.getNodeAddress()).thenReturn(arbitrator);
+            when(user.getRegisteredArbitrator()).thenReturn(registeredArbitrator);
+            NetworkNode networkNode = mock(NetworkNode.class);
+            when(networkNode.getNodeAddress()).thenReturn(arbitrator);
+            when(p2p.getNetworkNode()).thenReturn(networkNode);
+            when(p2p.getPeerManager()).thenReturn(mock(PeerManager.class));
+            XmrConnectionService connectionService = mock(XmrConnectionService.class);
+            when(connectionService.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
+            manager = new OpenOfferManager(coreContext, keyRing, user, p2p, connectionService, null, walletService,
+                    null, mock(OfferBookService.class), mock(ClosedTradableManager.class), null, null, null,
+                    null, null, mock(FilterManager.class), mock(Broadcaster.class), persistenceManager,
+                    signedOfferPersistenceManager, null);
+            var field = OpenOfferManager.class.getDeclaredField("signOfferRequestExecutor");
+            field.setAccessible(true);
+            executor = (ThreadPoolExecutor) field.get(manager);
+        }
+
+        private PubKeyRing keys() {
+            PubKeyRing keys = mock(PubKeyRing.class);
+            when(keys.getSignaturePubKey()).thenReturn(mock(PublicKey.class));
+            return keys;
+        }
+
+        private SignOfferRequest request(String id, PubKeyRing keys) {
+            OfferPayload payload = mock(OfferPayload.class);
+            when(payload.getId()).thenReturn(id);
+            when(payload.getOwnerNodeAddress()).thenReturn(maker);
+            when(payload.getPubKeyRing()).thenReturn(keys);
+            when(payload.getArbitratorSigner()).thenReturn(arbitrator);
+            when(payload.getProtocolVersion()).thenReturn(Version.TRADE_PROTOCOL_VERSION);
+            when(payload.getDirection()).thenReturn(OfferDirection.BUY);
+            when(payload.getPrice()).thenReturn(100000L);
+            when(payload.getAmount()).thenReturn(1000000000000L);
+            when(payload.getCounterCurrencyCode()).thenReturn("USD");
+            when(payload.getMakerFeePct()).thenReturn(HavenoUtils.getMakerFeePct("USD", false));
+            when(payload.getTakerFeePct()).thenReturn(HavenoUtils.getTakerFeePct("USD", false));
+            when(payload.getPenaltyFeePct()).thenReturn(HavenoUtils.PENALTY_FEE_PCT);
+            when(payload.getBuyerSecurityDepositPct()).thenReturn(Restrictions.getMinSecurityDepositPct());
+            when(payload.getSellerSecurityDepositPct()).thenReturn(Restrictions.getMinSecurityDepositPct());
+            when(payload.getMaxBuyerSecurityDeposit()).thenReturn(BigInteger.valueOf(150000000000L));
+            when(payload.getSignatureHash()).thenReturn(new byte[]{1, 2, 3});
+            return new SignOfferRequest(id, maker, keys, "account", payload, id, "1", 1,
+                    "1".repeat(64), "0102", "2".repeat(64), List.of("3".repeat(64)), "payout");
+        }
+
+        private void receive(SignOfferRequest request) {
+            DecryptedMessageWithPubKey message = mock(DecryptedMessageWithPubKey.class);
+            when(message.getNetworkEnvelope()).thenReturn(request);
+            PublicKey signatureKey = request.getPubKeyRing().getSignaturePubKey();
+            when(message.getSignaturePubKey()).thenReturn(signatureKey);
+            manager.onDirectMessage(message, maker);
+        }
+
+        @Override
+        public void close() throws Exception {
+            CountDownLatch shutdown = new CountDownLatch(1);
+            manager.shutDown(shutdown::countDown);
+            try {
+                assertTrue(shutdown.await(5, TimeUnit.SECONDS));
+            } finally {
+                HavenoUtils.openOfferManager = originalManager;
+            }
         }
     }
 
