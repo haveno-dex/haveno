@@ -98,7 +98,7 @@ public class TriggerPriceService {
 
     public static boolean isTriggered(MarketPrice marketPrice, OpenOffer openOffer) {
         Price price = openOffer.getOffer().getPrice();
-        if (price == null || marketPrice == null) {
+        if (price == null || marketPrice == null || !marketPrice.isRecentExternalPriceAvailable()) {
             return false;
         }
 
@@ -121,7 +121,10 @@ public class TriggerPriceService {
                 marketPriceAsLong > triggerPrice;
     }
 
-    private void checkPriceThreshold(MarketPrice marketPrice, OpenOffer openOffer) {
+    void checkPriceThreshold(MarketPrice marketPrice, OpenOffer openOffer) {
+        // Leave both activation states unchanged until a recent external price is available.
+        if (marketPrice == null || !marketPrice.isRecentExternalPriceAvailable()) return;
+
         String currencyCode = openOffer.getOffer().getCounterCurrencyCode();
         int smallestUnitExponent = CurrencyUtil.isTraditionalCurrency(currencyCode) ?
                 TraditionalMoney.SMALLEST_UNIT_EXPONENT :

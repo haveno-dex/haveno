@@ -36,8 +36,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class OfferTest {
+
+    @Test
+    public void statisticsPricesCannotActivateOrDeactivateOffers() {
+        OpenOfferManager manager = mock(OpenOfferManager.class);
+        TriggerPriceService service = new TriggerPriceService(null, manager, null);
+        OpenOffer offer = mock(OpenOffer.class);
+        for (OpenOffer.State state : new OpenOffer.State[]{OpenOffer.State.AVAILABLE, OpenOffer.State.DEACTIVATED}) {
+            when(offer.getState()).thenReturn(state);
+            when(offer.isDeactivatedByTrigger()).thenReturn(true);
+            service.checkPriceThreshold(new MarketPrice("USD", 100, System.currentTimeMillis(), false), offer);
+            service.checkPriceThreshold(new MarketPrice("USD", 100, 0, true), offer);
+        }
+        verifyNoInteractions(manager);
+    }
+
 
     @Test
     public void testMarketPriceMarginBoundsRequirePositivePrice() {
