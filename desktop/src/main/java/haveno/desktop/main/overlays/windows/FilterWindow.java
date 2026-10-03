@@ -212,7 +212,7 @@ public class FilterWindow extends Overlay<FilterWindow> {
                     addDevFilter(removeFilterMessageButton, privKeyString, newFilter);
                 }
             } else {
-                new Popup().warning(Res.get("shared.invalidKey")).onClose(this::blurAgain).show();
+                new Popup().warning(Res.get("shared.invalidKey")).show();
             }
         });
 
@@ -222,7 +222,7 @@ public class FilterWindow extends Overlay<FilterWindow> {
                 filterManager.removeDevFilter(privKeyString);
                 hide();
             } else {
-                new Popup().warning(Res.get("shared.invalidKey")).onClose(this::blurAgain).show();
+                new Popup().warning(Res.get("shared.invalidKey")).show();
             }
         });
 
