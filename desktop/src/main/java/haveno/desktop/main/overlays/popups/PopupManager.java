@@ -33,10 +33,8 @@ import java.util.concurrent.TimeUnit;
 public class PopupManager {
     private static final Logger log = LoggerFactory.getLogger(PopupManager.class);
     private static final Queue<Overlay<?>> popups = new LinkedBlockingQueue<>(5);
-    private static final List<Overlay<?>> nestedPopups = new ArrayList<>();
+    private static final List<Overlay<?>> displayedPopups = new ArrayList<>();
     private static final ReadOnlyBooleanWrapper hasPendingPopups = new ReadOnlyBooleanWrapper();
-
-    private static Overlay<?> displayedPopup;
 
     public static ReadOnlyBooleanProperty hasPendingPopupsProperty() {
         return hasPendingPopups.getReadOnlyProperty();
@@ -55,58 +53,48 @@ public class PopupManager {
         displayNext();
     }
 
-    // display above the displayed popup instead of queueing behind it, for prompts opened from within it
+    // prompts opened from within a popup bypass the queue and block every managed popup beneath them
     public static void displayNested(Overlay<?> popup) {
-        if (displayedPopup == null) {
+        if (displayedPopups.isEmpty()) {
             queueForDisplay(popup);
             return;
         }
         if (hasDuplicatePopup(popup)) {
             log.warn("The popup is already in the queue or displayed.\n\t" +
-                   "New popup not added=" + popup);
+                    "New popup not added=" + popup);
             return;
         }
-        nestedPopups.add(popup);
-        popup.displayAbove(displayedPopup);
-        displayNext();
+        List<Overlay<?>> parents = List.copyOf(displayedPopups);
+        displayedPopups.add(popup);
+        popup.displayAbove(parents);
     }
 
     public static void onHidden(Overlay<?> popup) {
-        if (nestedPopups.remove(popup)) {
-            displayNext();
-        } else if (displayedPopup == null || displayedPopup == popup) {
-            displayedPopup = null;
-            UserThread.runAfter(() -> { displayNext(); }, 100, TimeUnit.MILLISECONDS);
+        if (displayedPopups.remove(popup)) {
+            if (displayedPopups.isEmpty())
+                UserThread.runAfter(PopupManager::displayNext, 100, TimeUnit.MILLISECONDS);
         } else {
-            boolean removed = popups.remove(popup);
-            if (removed) {
-            log.warn("We got a isHidden called with a wrong popup.\n\t" +
-                    "popup (argument)=" + popup + "\n\tdisplayedPopup=" + displayedPopup);
-            }
+            popups.remove(popup);
         }
     }
 
     private static void displayNext() {
         // keep notifications deferred through the gap between queued popups
-        hasPendingPopups.set(displayedPopup != null || !popups.isEmpty() || !nestedPopups.isEmpty());
-        if (displayedPopup == null && nestedPopups.isEmpty()) {
-            if (!popups.isEmpty()) {
-                displayedPopup = popups.poll();
-                displayedPopup.display();
-            }
+        hasPendingPopups.set(!displayedPopups.isEmpty() || !popups.isEmpty());
+        if (displayedPopups.isEmpty() && !popups.isEmpty()) {
+            Overlay<?> popup = popups.poll();
+            displayedPopups.add(popup);
+            popup.display();
         }
     }
 
     private static boolean hasDuplicatePopup(Overlay<?> popup) {
-        if (displayedPopup != null && displayedPopup.toString().equals(popup.toString())) {
-            return true;
-        }
-        for (Overlay<?> p : popups) {
+        for (Overlay<?> p : displayedPopups) {
             if (p.toString().equals(popup.toString())) {
                 return true;
             }
         }
-        for (Overlay<?> p : nestedPopups) {
+        for (Overlay<?> p : popups) {
             if (p.toString().equals(popup.toString())) {
                 return true;
             }

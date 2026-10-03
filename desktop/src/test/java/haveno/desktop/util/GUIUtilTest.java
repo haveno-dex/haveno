@@ -21,6 +21,7 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.reactfx.FxTimer;
+import haveno.common.util.Utilities;
 import haveno.core.app.TorSetup;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.GlobalSettings;
@@ -34,16 +35,19 @@ import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
+import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.network.p2p.network.NetworkNode;
 import javafx.application.Platform;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
@@ -56,12 +60,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 
 public class GUIUtilTest {
@@ -198,40 +205,60 @@ public class GUIUtilTest {
     }
 
     @Test
-    public void testOpenURLWithCampaignParameters() {
-        Preferences preferences = mock(Preferences.class);
-        DontShowAgainLookup.setPreferences(preferences);
-        GUIUtil.setPreferences(preferences);
-        when(preferences.showAgain("warnOpenURLWhenTorEnabled")).thenReturn(false);
-        when(preferences.getUserLanguage()).thenReturn("en");
-
-/*        PowerMockito.mockStatic(Utilities.class);
-        ArgumentCaptor<URI> captor = ArgumentCaptor.forClass(URI.class);
-        PowerMockito.doNothing().when(Utilities.class, "openURI", captor.capture());
-        GUIUtil.openWebPage("https://haveno.exchange");
-
-        assertEquals("https://haveno.exchange?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en", captor.getValue().toString());
-
-        GUIUtil.openWebPage("https://docs.haveno.exchange/trading-rules.html#f2f-trading");
-
-        assertEquals("https://docs.haveno.exchange/trading-rules.html?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en#f2f-trading", captor.getValue().toString());
-*/
+    public void testBrowserPromptRequiresActionOrCopiesUrlOnClose() {
+        String target = "https://haveno.exchange";
+        String preferenceKey = "warnOpenURLWhenTorEnabled";
+        for (boolean open : List.of(false, true)) {
+            Runnable closeHandler = mock(Runnable.class);
+            try (MockedStatic<DontShowAgainLookup> lookup = mockStatic(DontShowAgainLookup.class);
+                    MockedStatic<Utilities> utilities = mockStatic(Utilities.class);
+                    MockedConstruction<Popup> popups = mockConstruction(Popup.class, withSettings().defaultAnswer(RETURNS_SELF))) {
+                lookup.when(() -> DontShowAgainLookup.showAgain(preferenceKey)).thenReturn(true);
+                GUIUtil.openWebPage(target, false, closeHandler);
+                assertEquals(1, popups.constructed().size());
+                Popup popup = popups.constructed().get(0);
+                verify(popup).nested();
+                verify(popup).show();
+                utilities.verifyNoInteractions();
+                verifyNoInteractions(closeHandler);
+                ArgumentCaptor<Runnable> action = ArgumentCaptor.forClass(Runnable.class);
+                if (open) {
+                    verify(popup).onAction(action.capture());
+                    action.getValue().run();
+                    lookup.verify(() -> DontShowAgainLookup.dontShowAgain(preferenceKey, true));
+                    utilities.verify(() -> Utilities.openURI(URI.create(target)));
+                    utilities.verify(() -> Utilities.copyToClipboard(any()), never());
+                    verifyNoInteractions(closeHandler);
+                } else {
+                    verify(popup).onClose(action.capture());
+                    action.getValue().run();
+                    utilities.verify(() -> Utilities.copyToClipboard(target));
+                    utilities.verify(() -> Utilities.openURI(any()), never());
+                    lookup.verify(() -> DontShowAgainLookup.dontShowAgain(preferenceKey, true), never());
+                    verify(closeHandler).run();
+                }
+            }
+        }
     }
 
     @Test
-    public void testOpenURLWithoutCampaignParameters() {
+    public void testAcknowledgedBrowserWarningPreservesReferrerAndCloseHandler() {
         Preferences preferences = mock(Preferences.class);
-        DontShowAgainLookup.setPreferences(preferences);
         GUIUtil.setPreferences(preferences);
-        when(preferences.showAgain("warnOpenURLWhenTorEnabled")).thenReturn(false);
-/*
-        PowerMockito.mockStatic(Utilities.class);
-        ArgumentCaptor<URI> captor = ArgumentCaptor.forClass(URI.class);
-        PowerMockito.doNothing().when(Utilities.class, "openURI", captor.capture());
-        GUIUtil.openWebPage("https://www.github.com");
-
-        assertEquals("https://www.github.com", captor.getValue().toString());
-*/
+        when(preferences.getUserLanguage()).thenReturn("en");
+        Runnable closeHandler = mock(Runnable.class);
+        try (MockedStatic<DontShowAgainLookup> lookup = mockStatic(DontShowAgainLookup.class);
+                MockedStatic<Utilities> utilities = mockStatic(Utilities.class);
+                MockedConstruction<Popup> popups = mockConstruction(Popup.class)) {
+            lookup.when(() -> DontShowAgainLookup.showAgain("warnOpenURLWhenTorEnabled")).thenReturn(false);
+            GUIUtil.openWebPage("https://haveno.network", true, closeHandler);
+            utilities.verify(() -> Utilities.openURI(URI.create(
+                    "https://haveno.network?utm_source=desktop-client&utm_medium=in-app-link&utm_campaign=language_en")));
+            verify(closeHandler).run();
+            GUIUtil.openWebPage("https://www.github.com", false);
+            utilities.verify(() -> Utilities.openURI(URI.create("https://www.github.com")));
+            assertTrue(popups.constructed().isEmpty());
+        }
     }
 
     @Test
