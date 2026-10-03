@@ -566,6 +566,8 @@ public class ClosedTradesStore {
                 merged.add(tradable);
             }
         }
+        // load the legacy trades even if the append fails, so the session keeps processing them
+        for (Tradable tradable : merged) byKey.put(key(tradable), tradable);
         try {
             appendLog().appendAll(entries);
         } catch (OutOfMemoryError e) {
@@ -574,7 +576,6 @@ public class ClosedTradesStore {
             log.warn("Could not append legacy {} trades to {}; deferring migration", LEGACY_FILE_NAME, LOG_FILE_NAME, t);
             return;
         }
-        for (Tradable tradable : merged) byKey.put(key(tradable), tradable);
 
         try {
             File backupFile = new File(dir, LEGACY_BACKUP_NAME);
