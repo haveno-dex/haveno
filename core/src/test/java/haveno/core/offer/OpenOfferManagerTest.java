@@ -5,16 +5,21 @@ import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
+import haveno.common.crypto.PubKeyRing;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.api.CoreContext;
+import haveno.core.api.CoreNotificationService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrKeyImagePoller;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.BuyerAsMakerTrade;
+import haveno.core.trade.BuyerAsTakerTrade;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradableList;
@@ -24,9 +29,18 @@ import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.monetary.Volume;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.ProcessModelServiceProvider;
+import haveno.core.trade.protocol.TradePeer;
+import haveno.core.trade.messages.InitTradeRequest;
+import haveno.core.trade.messages.TradeProtocolVersion;
+import haveno.core.user.User;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.NetworkNotReadyException;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.peers.PeerManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +52,9 @@ import org.mockito.MockedStatic;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.PublicKey;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -46,6 +62,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -69,6 +86,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.atLeastOnce;
 
 public class OpenOfferManagerTest {
     private PersistenceManager<TradableList<OpenOffer>> persistenceManager;
@@ -863,6 +881,212 @@ public class OpenOfferManagerTest {
         } finally {
             HavenoUtils.tradeManager = originalTradeManager;
             HavenoUtils.notificationService = originalNotificationService;
+        }
+    }
+
+    @Test
+    public void testUnknownInitTradeRequestsDoNotAllocateTradeThreads() throws Exception {
+        List<String> ids = new ArrayList<>();
+        try (TradeRequestContext context = new TradeRequestContext()) {
+            for (int i = 0; i < 256; i++) {
+                String id = "unknown-init-request-" + i;
+                ids.add(id);
+                context.manager.onDirectMessage(context.message(context.request(id), context.takerKey), context.taker);
+            }
+            context.executor.shutdown();
+            assertTrue(context.executor.awaitTermination(10, TimeUnit.SECONDS));
+            verify(context.openOffers, atLeastOnce()).getOpenOffer(anyString());
+            assertFalse(Thread.getAllStackTraces().keySet().stream().anyMatch(thread -> ids.contains(thread.getName())));
+        } finally {
+            ids.forEach(ThreadUtils::shutDown);
+        }
+    }
+
+    @Test
+    public void testInitTradeAdmissionIsBoundedAndStopsAtShutdown() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        try (TradeRequestContext context = new TradeRequestContext()) {
+            CountDownLatch started = new CountDownLatch(1);
+            context.executor.execute(() -> {
+                started.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            InitTradeRequest request = context.request("unknown");
+            DecryptedMessageWithPubKey message = context.message(request, context.takerKey);
+            for (int i = 0; i < 256; i++) context.manager.onDirectMessage(message, context.taker);
+            assertEquals(64, context.executor.getQueue().size());
+            assertEquals(1, context.executor.getLargestPoolSize());
+            context.manager.onShutDownStarted();
+            assertTrue(context.executor.awaitTermination(5, TimeUnit.SECONDS));
+            assertTrue(context.executor.getQueue().isEmpty());
+            assertDoesNotThrow(() -> context.manager.onDirectMessage(message, context.taker));
+            verify(context.openOffers, never()).getOpenOffer(anyString());
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @Test
+    public void testInitTradeAdmissionAuthenticatesMakerTakerAndArbitrator() throws Exception {
+        try (TradeRequestContext context = new TradeRequestContext()) {
+            InitTradeRequest request = context.request("offer", null);
+            Offer offer = mock(Offer.class);
+            when(offer.getId()).thenReturn("offer");
+            when(offer.getOwnerNodeAddress()).thenReturn(context.maker);
+            PubKeyRing makerKeys = mock(PubKeyRing.class);
+            when(makerKeys.getSignaturePubKey()).thenReturn(context.makerKey);
+            when(offer.getPubKeyRing()).thenReturn(makerKeys);
+            OpenOffer openOffer = new OpenOffer(offer);
+            openOffer.setState(OpenOffer.State.AVAILABLE);
+            when(context.openOffers.getOpenOffer("offer")).thenReturn(Optional.of(openOffer));
+
+            assertTrue(context.expects(request, context.takerKey, context.taker));
+            assertFalse(context.expects(request, context.makerKey, context.taker));
+            assertFalse(context.expects(request, context.takerKey, context.arbitrator));
+            openOffer.setState(OpenOffer.State.RESERVED);
+            assertFalse(context.expects(request, context.takerKey, context.taker));
+            ArgumentCaptor<AckMessage> unavailable = ArgumentCaptor.forClass(AckMessage.class);
+            verify(context.mailbox).sendEncryptedMailboxMessage(eq(context.taker), eq(context.takerKeys), unavailable.capture(), any());
+            assertFalse(unavailable.getValue().isSuccess());
+            assertEquals("offer", unavailable.getValue().getSourceId());
+
+            when(offer.getChallenge()).thenReturn("secret");
+            OpenOffer privateOffer = new OpenOffer(offer);
+            privateOffer.setState(OpenOffer.State.AVAILABLE);
+            when(context.openOffers.getOpenOffer("offer")).thenReturn(Optional.of(privateOffer));
+            assertFalse(context.expects(request, context.takerKey, context.taker));
+
+            when(context.networkNode.getNodeAddress()).thenReturn(context.arbitrator);
+            when(context.offerBook.getOffers()).thenReturn(List.of(offer));
+            request = context.request("offer");
+            OfferPayload payload = mock(OfferPayload.class);
+            when(offer.getOfferPayload()).thenReturn(payload);
+            NodeAddress signerAddress = new NodeAddress("signer.onion", 9999);
+            when(payload.getArbitratorSigner()).thenReturn(signerAddress);
+            when(payload.getSignatureHash()).thenReturn(new byte[]{1, 2, 3});
+            KeyRing signerKeys = new KeyRing(new KeyStorage(Files.createTempDirectory("admission-signing").toFile()), null, true);
+            Arbitrator signer = mock(Arbitrator.class);
+            when(signer.getPubKeyRing()).thenReturn(signerKeys.getPubKeyRing());
+            when(context.user.getAcceptedArbitratorByAddress(signerAddress)).thenReturn(signer);
+            assertFalse(context.expects(request, context.makerKey, context.maker));
+            when(payload.getArbitratorSignature()).thenReturn(new byte[]{1, 2, 3});
+            assertFalse(context.expects(request, context.makerKey, context.maker));
+            byte[] signature = HavenoUtils.signOffer(payload, signerKeys);
+            when(payload.getArbitratorSignature()).thenReturn(signature);
+            when(context.user.getAcceptedArbitratorByAddress(signerAddress)).thenReturn(null);
+            assertFalse(context.expects(request, context.makerKey, context.maker));
+            when(context.user.getAcceptedArbitratorByAddress(signerAddress)).thenReturn(signer);
+            assertTrue(context.expects(request, context.makerKey, context.maker));
+            assertFalse(context.expects(request, context.takerKey, context.maker));
+            assertFalse(context.expects(request, context.takerKey, context.taker));
+            assertFalse(context.expects(context.request("unknown"), context.makerKey, context.maker));
+
+            ArbitratorTrade arbitratorTrade = mock(ArbitratorTrade.class);
+            TradePeer taker = mock(TradePeer.class);
+            when(arbitratorTrade.getId()).thenReturn("offer");
+            when(arbitratorTrade.getTaker()).thenReturn(taker);
+            when(taker.getNodeAddress()).thenReturn(context.taker);
+            when(taker.getPubKeyRing()).thenReturn(context.takerKeys);
+            context.manager.getObservableList().add(arbitratorTrade);
+            assertTrue(context.expects(request, context.takerKey, context.taker));
+            assertFalse(context.expects(request, context.makerKey, context.taker));
+
+            context.manager.getObservableList().clear();
+            when(context.networkNode.getNodeAddress()).thenReturn(context.taker);
+            assertFalse(context.expects(request, context.arbitratorKey, context.arbitrator));
+            BuyerAsTakerTrade takerTrade = mock(BuyerAsTakerTrade.class);
+            when(takerTrade.getId()).thenReturn("offer");
+            context.manager.getObservableList().add(takerTrade);
+            assertTrue(context.expects(request, context.arbitratorKey, context.arbitrator));
+            assertFalse(context.expects(request, context.takerKey, context.arbitrator));
+
+            context.manager.getObservableList().clear();
+            when(context.networkNode.getNodeAddress()).thenReturn(context.arbitrator);
+            when(context.user.getRegisteredArbitrator()).thenReturn(signer);
+            when(signer.getNodeAddress()).thenReturn(context.arbitrator);
+            when(payload.getArbitratorSigner()).thenReturn(context.arbitrator);
+            assertTrue(context.expects(request, context.makerKey, context.maker));
+        }
+    }
+
+    private static class TradeRequestContext implements AutoCloseable {
+        private final NodeAddress maker = new NodeAddress("maker.onion", 9999);
+        private final NodeAddress taker = new NodeAddress("taker.onion", 9999);
+        private final NodeAddress arbitrator = new NodeAddress("arbitrator.onion", 9999);
+        private final PublicKey makerKey = mock(PublicKey.class);
+        private final PublicKey takerKey = mock(PublicKey.class);
+        private final PublicKey arbitratorKey = mock(PublicKey.class);
+        private final PubKeyRing takerKeys = mock(PubKeyRing.class);
+        private final User user = mock(User.class);
+        private final MailboxMessageService mailbox = mock(MailboxMessageService.class);
+        private final OpenOfferManager openOffers = mock(OpenOfferManager.class);
+        private final OfferBookService offerBook = mock(OfferBookService.class);
+        private final NetworkNode networkNode = mock(NetworkNode.class);
+        private final TradeManager originalManager = HavenoUtils.tradeManager;
+        private final CoreNotificationService originalNotifications = HavenoUtils.notificationService;
+        private final TradeManager manager;
+        private final ThreadPoolExecutor executor;
+
+        private TradeRequestContext() throws Exception {
+            Arbitrator registeredArbitrator = mock(Arbitrator.class);
+            PubKeyRing arbitratorKeys = mock(PubKeyRing.class);
+            when(arbitratorKeys.getSignaturePubKey()).thenReturn(arbitratorKey);
+            when(registeredArbitrator.getNodeAddress()).thenReturn(arbitrator);
+            when(registeredArbitrator.getPubKeyRing()).thenReturn(arbitratorKeys);
+            when(user.getRegisteredArbitrator()).thenReturn(registeredArbitrator);
+            when(user.getAcceptedArbitratorByAddress(arbitrator)).thenReturn(registeredArbitrator);
+            when(takerKeys.getSignaturePubKey()).thenReturn(takerKey);
+            P2PService p2p = mock(P2PService.class);
+            when(p2p.getNetworkNode()).thenReturn(networkNode);
+            when(p2p.getMailboxMessageService()).thenReturn(mailbox);
+            when(networkNode.getNodeAddress()).thenReturn(maker);
+            FailedTradesManager failedTrades = mock(FailedTradesManager.class);
+            when(failedTrades.getObservableList()).thenReturn(FXCollections.observableArrayList());
+            manager = new TradeManager(user, null, null, null, null, offerBook, openOffers,
+                    mock(ClosedTradableManager.class), failedTrades, p2p, null, null, null, null, null, null, null, null,
+                    mock(PersistenceManager.class), null);
+            var field = TradeManager.class.getDeclaredField("initTradeRequestExecutor");
+            field.setAccessible(true);
+            executor = (ThreadPoolExecutor) field.get(manager);
+        }
+
+        private InitTradeRequest request(String id) {
+            return request(id, arbitrator);
+        }
+
+        private InitTradeRequest request(String id, NodeAddress arbitratorAddress) {
+            return new InitTradeRequest(TradeProtocolVersion.MULTISIG_2_3, id, 1, 1, "SEPA", null,
+                    "taker", "maker-payment", "taker-payment", takerKeys, "uid", "1", null, 1,
+                    maker, taker, arbitratorAddress, null, null, null, null, null);
+        }
+
+        private DecryptedMessageWithPubKey message(InitTradeRequest request, PublicKey signatureKey) {
+            DecryptedMessageWithPubKey message = mock(DecryptedMessageWithPubKey.class);
+            when(message.getNetworkEnvelope()).thenReturn(request);
+            when(message.getSignaturePubKey()).thenReturn(signatureKey);
+            return message;
+        }
+
+        private boolean expects(InitTradeRequest request, PublicKey signatureKey, NodeAddress sender) throws Exception {
+            var method = TradeManager.class.getDeclaredMethod("isInitTradeRequestExpected", DecryptedMessageWithPubKey.class, InitTradeRequest.class, NodeAddress.class);
+            method.setAccessible(true);
+            return (boolean) method.invoke(manager, message(request, signatureKey), request, sender);
+        }
+
+        @Override
+        public void close() throws Exception {
+            executor.shutdownNow();
+            try {
+                assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+            } finally {
+                HavenoUtils.tradeManager = originalManager;
+                HavenoUtils.notificationService = originalNotifications;
+            }
         }
     }
 
