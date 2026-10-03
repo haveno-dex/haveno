@@ -11,6 +11,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static haveno.common.config.Config.API_BIND_ADDRESS;
 import static haveno.common.config.Config.API_HIDDEN_SERVICE;
 import static haveno.common.config.Config.API_HIDDEN_SERVICE_BEFORE_LOGIN;
 import static haveno.common.config.Config.API_HIDDEN_SERVICE_PORT;
@@ -295,6 +296,16 @@ public class ConfigTests {
         assertThrows(ConfigException.class, () -> configWithOpts(opt(API_HIDDEN_SERVICE_BEFORE_LOGIN, true)));
         assertThrows(ConfigException.class, () -> configWithOpts(opt(API_HIDDEN_SERVICE, false),
                 opt(API_HIDDEN_SERVICE_BEFORE_LOGIN, true)));
+    }
+
+    @Test
+    public void whenApiHiddenServiceIsSet_thenApiBindAddressMustAcceptForwardedConnections() {
+        assertEquals("0.0.0.0", configWithOpts(opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "12345678"),
+                opt(API_BIND_ADDRESS, "0.0.0.0")).apiBindAddress);
+        for (String address : new String[]{"192.0.2.1", "::1", "127.0.0.2"}) {
+            assertThrows(ConfigException.class, () -> configWithOpts(opt(API_HIDDEN_SERVICE, true), opt(API_PASSWORD, "12345678"),
+                    opt(API_BIND_ADDRESS, address)));
+        }
     }
 
     @Test

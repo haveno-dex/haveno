@@ -47,15 +47,15 @@ public class MakerSendInitTradeRequestToArbitrator extends TradeTask {
         try {
             runInterceptHook();
 
-            // get least used arbitrator
-            Arbitrator leastUsedArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(processModel.getTradeStatisticsManager(), processModel.getArbitratorManager());
-            if (leastUsedArbitrator == null) {
-                failed("Could not get least used arbitrator to send " + InitTradeRequest.class.getSimpleName() + " for offer " + trade.getId());
+            // get random arbitrator
+            Arbitrator arbitrator = DisputeAgentSelection.getRandomArbitrator(processModel.getArbitratorManager());
+            if (arbitrator == null) {
+                failed("Could not get random arbitrator to send " + InitTradeRequest.class.getSimpleName() + " for offer " + trade.getId());
                 return;
             }
 
-            // send request to least used arbitrators until success
-            sendInitTradeRequests(leastUsedArbitrator.getNodeAddress(), new HashSet<NodeAddress>(), () -> {
+            // send request to available arbitrators until success
+            sendInitTradeRequests(arbitrator.getNodeAddress(), new HashSet<NodeAddress>(), () -> {
                 trade.addInitProgressStep();
                 complete();
             }, (errorMessage) -> {
@@ -105,7 +105,7 @@ public class MakerSendInitTradeRequestToArbitrator extends TradeTask {
             return;
         }
 
-        Arbitrator altArbitrator = DisputeAgentSelection.getLeastUsedArbitrator(processModel.getTradeStatisticsManager(), processModel.getArbitratorManager(), excludedArbitrators);
+        Arbitrator altArbitrator = DisputeAgentSelection.getRandomArbitrator(processModel.getArbitratorManager(), excludedArbitrators);
         if (altArbitrator == null) {
             errorMessageHandler.handleErrorMessage("Cannot take offer because no arbitrators are available");
             return;

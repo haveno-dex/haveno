@@ -1044,6 +1044,15 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     // We want to track the size of each object even if it is invalid data
                     statistic.addReceivedBytes(size);
 
+                    // the dispute log transfer was removed, so drop parts from older clients under the standard limits instead of as invalid data
+                    if (proto.getMessageCase() == protobuf.NetworkEnvelope.MessageCase.FILE_TRANSFER_PART) {
+                        if (size > PERMITTED_MESSAGE_SIZE && reportInvalidRequest(RuleViolation.MAX_MSG_SIZE_EXCEEDED, "size > MAX_MSG_SIZE. size=" + size + "; messageCase=" + proto.getMessageCase()))
+                            return;
+                        if (violatesThrottleLimit() && reportInvalidRequest(RuleViolation.THROTTLE_LIMIT_EXCEEDED, "Violates throttle limit"))
+                            return;
+                        continue;
+                    }
+
                     NetworkEnvelope networkEnvelope = networkProtoResolver.fromProto(proto);
                     log.debug("<< Received networkEnvelope of type: {}", networkEnvelope.getClass().getSimpleName());
 

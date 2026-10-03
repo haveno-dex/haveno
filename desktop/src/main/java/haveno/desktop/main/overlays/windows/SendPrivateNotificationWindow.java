@@ -142,7 +142,6 @@ public class SendPrivateNotificationWindow extends Overlay<SendPrivateNotificati
                 } else {
                     UserThread.runAfter(() -> new Popup().warning(Res.get("shared.invalidKey"))
                             .width(300)
-                            .onClose(this::blurAgain)
                             .show(), 100, TimeUnit.MILLISECONDS);
                 }
             }

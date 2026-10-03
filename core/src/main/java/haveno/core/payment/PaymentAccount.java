@@ -374,7 +374,6 @@ public abstract class PaymentAccount implements PersistablePayload {
         }
 
         jsonMap.put("accountName", getAccountName());
-        jsonMap.put("accountId", getId());
         if (paymentAccountPayload != null) jsonMap.put("salt", getSaltAsHex());
         return gson.toJson(jsonMap);
     }

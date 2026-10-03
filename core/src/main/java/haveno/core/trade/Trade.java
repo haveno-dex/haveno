@@ -535,7 +535,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private Long payoutHeight;
     private IdleBlockPoller idleBlockPoller;
     @Getter
-    private boolean isCompleted;
+    private volatile boolean isCompleted;
+    @Getter
+    private volatile long completedRevision;
     @Getter
     private final String challenge;
 
@@ -955,8 +957,13 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
 
     public void setCompleted(boolean completed) {
+        if (isCompleted != completed || completedRevision == 0) completedRevision = Math.incrementExact(completedRevision);
         this.isCompleted = completed;
         if (isInitialized && isFinished()) clearAndShutDown();
+    }
+
+    public boolean isReopened() {
+        return completedRevision > 0 && !isCompleted;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -2069,23 +2076,36 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     private boolean clearProcessData() {
 
         // delete trade wallet
+        boolean changed;
         synchronized (walletLock) {
             if (!walletExists()) return false; // done if already cleared
             deleteWallet();
+            changed = !walletExists();
         }
 
         // TODO: clear other process data
-        if (isPayoutFinalized() || processModel.isPaymentReceivedMessagesAcked()) setPayoutTxHex(null);
+        if (isPayoutFinalized() || processModel.isPaymentReceivedMessagesAcked()) {
+            changed |= getPayoutTxHex() != null;
+            setPayoutTxHex(null);
+        }
         for (TradePeer peer : getAllPeers()) {
+            changed |= peer.getUpdatedMultisigHex() != null || peer.getDisputeClosedMessage() != null
+                    || peer.getPaymentSentMessage() != null || peer.getDepositTxHex() != null || peer.getDepositTxKey() != null;
             peer.setUpdatedMultisigHex(null);
             peer.setDisputeClosedMessage(null);
             peer.setPaymentSentMessage(null);
             peer.setDepositTxHex(null);
             peer.setDepositTxKey(null);
-            if (peer.isPaymentReceivedMessageAckedOrNacked() || isPayoutFinalized()) peer.setUnsignedPayoutTxHex(null);
-            if (peer.isPaymentReceivedMessageAckedOrNacked()) peer.setPaymentReceivedMessage(null);
+            if (peer.isPaymentReceivedMessageAckedOrNacked() || isPayoutFinalized()) {
+                changed |= peer.getUnsignedPayoutTxHex() != null;
+                peer.setUnsignedPayoutTxHex(null);
+            }
+            if (peer.isPaymentReceivedMessageAckedOrNacked()) {
+                changed |= peer.getPaymentReceivedMessage() != null;
+                peer.setPaymentReceivedMessage(null);
+            }
         }
-        return true;
+        return changed;
     }
 
     private void removeDecryptedDirectMessageListener() {
@@ -4146,7 +4166,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
         // revert payout state if evidenced by the tx (e.g. failed or demoted by reorg); txs without chain state cannot revert
         PayoutState evidencedPayoutState = getPayoutState(payoutTx);
-        if (evidencedPayoutState != null && evidencedPayoutState != getPayoutState()) setPayoutState(evidencedPayoutState);
+        if (evidencedPayoutState != null && evidencedPayoutState != getPayoutState()) {
+            if (evidencedPayoutState.ordinal() < PayoutState.PAYOUT_CONFIRMED.ordinal()) payoutHeight = null; // resume pool checks for a demoted or failed payout, persisted with the state
+            setPayoutState(evidencedPayoutState);
+        }
     }
 
     /**
@@ -4590,7 +4613,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 .setLockTime(lockTime)
                 .setStartTime(startTime)
                 .setUid(uid)
-                .setIsCompleted(isCompleted);
+                .setIsCompleted(isCompleted)
+                .setCompletedRevision(completedRevision);
 
         synchronized (getChatMessages()) {
             builder.addAllChatMessage(getChatMessages().stream()
@@ -4633,7 +4657,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         trade.setLockTime(proto.getLockTime());
         trade.setStartTime(proto.getStartTime());
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
-        trade.setCompleted(proto.getIsCompleted());
+        trade.isCompleted = proto.getIsCompleted();
+        trade.completedRevision = proto.getCompletedRevision();
         trade.payoutHeight = proto.getPayoutHeight() == 0 ? null : proto.getPayoutHeight();
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()

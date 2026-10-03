@@ -24,13 +24,20 @@ import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
+import haveno.core.locale.TraditionalCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.payload.PopmoneyAccountPayload;
 import haveno.core.payment.payload.SwishAccountPayload;
 import haveno.core.payment.payload.TwintAccountPayload;
 import haveno.core.proto.CoreProtoResolver;
+import haveno.core.user.UserPayload;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -38,14 +45,115 @@ import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PaymentAccountsTest {
+    @Test
+    public void testBlankJapanBankForms() throws IOException {
+        Res.setup();
+        PaymentAccountForm form = PaymentAccountForm.getForm(PaymentMethod.JAPAN_BANK_ID);
+        assertEquals(PaymentAccountForm.FormId.JAPAN_BANK, form.getId());
+        assertNull(form.getValue(PaymentAccountFormField.FieldId.BANK_NAME));
+        PaymentAccountFormField bankField = form.getFields().stream()
+                .filter(field -> field.getId() == PaymentAccountFormField.FieldId.BANK_NAME).findFirst().orElseThrow();
+        assertEquals(JapanBankData.prettyPrintBankList(), bankField.getSupportedValues());
+
+        Path jsonForm = PaymentAccountForm.getPaymentAccountForm(PaymentMethod.JAPAN_BANK_ID).toPath();
+        try {
+            assertEquals(form.toPaymentAccountJsonString(), Files.readString(jsonForm));
+        } finally {
+            Files.deleteIfExists(jsonForm);
+        }
+    }
+
+    @Test
+    public void testJapanBankFormRoundTripPreservesBankAndWitnessIdentity() {
+        Res.setup();
+        List<String> banks = JapanBankData.prettyPrintBankList();
+        for (String bank : List.of(banks.getFirst(), banks.getLast())) {
+            JapanBankAccount account = new JapanBankAccount();
+            account.init();
+            account.setAccountName("japan bank account");
+            account.setBankName(bank);
+            account.setBankBranchCode("123");
+            account.setBankBranchName("東京");
+            account.setBankAccountNumber("1234567");
+            account.setBankAccountName("タナカ");
+            account.setBankAccountType(JapanBankData.accountTypes().getFirst());
+            PaymentAccountForm form = account.toForm();
+            assertEquals(bank, form.getValue(PaymentAccountFormField.FieldId.BANK_NAME));
+            assertDoesNotThrow(() -> account.validateFormField(form, PaymentAccountFormField.FieldId.BANK_NAME, bank));
+            JapanBankAccount restored = (JapanBankAccount) form.toPaymentAccount();
+            assertEquals(account.getBankCode(), restored.getBankCode());
+            assertEquals(account.getBankName(), restored.getBankName());
+            assertArrayEquals(account.getPaymentAccountPayload().getAgeWitnessInputData(),
+                    restored.getPaymentAccountPayload().getAgeWitnessInputData());
+        }
+    }
+
+    @Test
+    public void testFormExportPreservesPaymentIdentifiersInsteadOfLocalAccountIds() {
+        Res.setup();
+        for (PaymentAccount account : List.of(new MoneyBeamAccount(), new UpholdAccount())) {
+            account.init();
+            account.setAccountName("payment account");
+            account.setSingleTradeCurrency(account.getSupportedCurrencies().get(0));
+            PaymentAccountForm form = account.toForm();
+            form.getFields().stream().filter(field -> field.getId() == PaymentAccountFormField.FieldId.ACCOUNT_ID)
+                    .forEach(field -> field.setValue("payment-identifier@example.com"));
+            PaymentAccount restored = form.toPaymentAccount();
+            byte[] witnessInput = restored.getPaymentAccountPayload().getAgeWitnessInputData();
+            assertEquals("payment-identifier@example.com", restored.toForm().getValue(PaymentAccountFormField.FieldId.ACCOUNT_ID));
+            assertArrayEquals(witnessInput, restored.toForm().toPaymentAccount().getPaymentAccountPayload().getAgeWitnessInputData());
+        }
+    }
+
+    @Test
+    public void testRetiredPopmoneyIsUnavailableAndSkippedOnLoad() {
+        Res.setup();
+        assertFalse(PaymentMethod.getPaymentMethods().stream().anyMatch(method -> method.getId().equals(PaymentMethod.POPMONEY_ID)));
+        assertThrows(IllegalArgumentException.class, () -> PaymentAccountForm.getForm(PaymentMethod.POPMONEY_ID));
+        protobuf.PaymentAccount proto = protobuf.PaymentAccount.newBuilder()
+                .setId("popmoney")
+                .setPaymentMethod(protobuf.PaymentMethod.newBuilder().setId(PaymentMethod.POPMONEY_ID))
+                .setAccountName("historical account")
+                .addTradeCurrencies((protobuf.TradeCurrency) new TraditionalCurrency("USD").toProtoMessage())
+                .setPaymentAccountPayload((protobuf.PaymentAccountPayload) new PopmoneyAccountPayload(PaymentMethod.POPMONEY_ID, "popmoney").toProtoMessage())
+                .build();
+        assertNull(PaymentAccount.fromProto(proto, new CoreProtoResolver()));
+        protobuf.UserPayload userProto = protobuf.UserPayload.newBuilder()
+                .addPaymentAccounts(proto)
+                .addMarketAlertFilters(protobuf.MarketAlertFilter.newBuilder().setPaymentAccount(proto).setTriggerValue(100))
+                .build();
+        UserPayload user = UserPayload.fromProto(userProto, new CoreProtoResolver());
+        assertTrue(user.getPaymentAccounts().isEmpty());
+        assertTrue(user.getMarketAlertFilters().isEmpty());
+        assertDoesNotThrow(user::toProtoMessage);
+    }
+
+    @Test
+    public void testDuitNowKeepsNricDistinctFromInternationalMobileNumbers() {
+        Res.setup();
+        DuitNowAccount account = new DuitNowAccount();
+        account.init();
+        account.setAccountName("duitnow account");
+        account.setAccountNr("601112345678");
+        assertEquals("601112345678", account.getAccountNr());
+        assertDoesNotThrow(() -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+        account.setAccountNr("+60 11-1234-5678");
+        assertEquals("01112345678", account.getAccountNr());
+        account.setAccountNr(account.getAccountNr());
+        assertEquals("01112345678", account.getAccountNr());
+        assertDoesNotThrow(() -> account.validateFormField(null, PaymentAccountFormField.FieldId.ACCOUNT_NR, account.getAccountNr()));
+    }
+
     @Test
     public void testMobileAccountFormsUseTheDesktopWitnessIdentity() {
         GlobalSettings.setLocale(Locale.US);

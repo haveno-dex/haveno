@@ -170,8 +170,26 @@ For each arbitrator:
 
 The arbitrator is now registered and ready to accept requests for dispute resolution.
 
+If a trade's multisig wallet has extra funds, use a custom dispute award to
+allocate its full balance. Cooperative payouts and preset awards reject a
+surplus above the dust limit. The API custom award now uses the current wallet
+balance, as the desktop does; review the counterparty's remainder when a deposit
+is missing or extra funds arrived, and wait for new deposits to unlock.
+
 Daemon instances require a non-empty API password. Set `HAVENO_API_PASSWORD` to a
 strong secret before running [run-arbitrator-daemon.sh](../scripts/deployment/run-arbitrator-daemon.sh).
+
+The gRPC API binds to `127.0.0.1` by default. Use the Tor hidden service or an
+SSH tunnel for remote access. Set `--apiBindAddress` only to an interface that
+untrusted networks cannot reach, such as a container network behind a proxy.
+The API grants full wallet access, including seed export and withdrawals. Its
+password is separate from the account password.
+
+Five failed API authentication attempts in one minute temporarily block all
+authentication, including correct passwords, until an attempt expires from the
+window. The limit is shared across callers because Tor connections arrive through
+loopback. Successful calls do not consume it, and `--disableRateLimits` does not
+disable it.
 
 To publish the API over Tor, use `--apiHiddenService=true`. Bundled Tor waits until
 login so persisted bridge settings are loaded; the local API remains available to
@@ -299,6 +317,11 @@ For mainnet, first modify [package.gradle](https://github.com/haveno-dex/haveno/
 Then follow these instructions: https://github.com/haveno-dex/haveno/blob/master/desktop/package/README.md.
 
 ## Send alerts to update the application
+
+Publish alerts from an upgraded client so they include the metadata signature.
+Upgraded clients ignore legacy alerts until they are republished; older clients
+can still read alerts published by upgraded clients. The signature binds the
+message, update flags, version, publisher key, and extra data.
 
 <b>Enable in-app update verification (one-time, forks only)</b>
 

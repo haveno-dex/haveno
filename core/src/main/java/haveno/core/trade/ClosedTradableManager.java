@@ -127,7 +127,7 @@ public class ClosedTradableManager implements PersistedDataHost {
         synchronized (persistLock) {
             List<Trade> cleared;
             synchronized (closedTradables.getList()) {
-                if (!closedTradables.add(tradable)) return;
+                if (!closedTradables.add(tradable) && !(tradable instanceof Trade)) return;
                 cleared = clearSensitiveDataForEligibleTrades();
             }
             try {
@@ -136,6 +136,7 @@ public class ClosedTradableManager implements PersistedDataHost {
                 for (Trade trade : cleared) entries.add(ClosedTradesStore.upsertBytes(trade));
                 entries.add(ClosedTradesStore.upsertBytes(tradable));
                 store.appendEntries(entries);
+                if (!cleared.isEmpty()) store.requestRedaction();
             } catch (OutOfMemoryError e) {
                 throw e;
             } catch (Throwable t) {
@@ -151,7 +152,7 @@ public class ClosedTradableManager implements PersistedDataHost {
             synchronized (closedTradables.getList()) {
                 removed = closedTradables.remove(tradable);
             }
-            if (removed) store.appendEntries(List.of(ClosedTradesStore.deleteBytes(tradable.getId())));
+            if (removed) store.appendEntries(List.of(ClosedTradesStore.deleteBytes(tradable)));
         }
     }
 
@@ -181,6 +182,7 @@ public class ClosedTradableManager implements PersistedDataHost {
     // append failure earlier in the session cannot silently drop history with the process.
     public void shutDown() {
         store.flushFailedEntries();
+        store.flushRedaction();
     }
 
     public boolean wasMyOffer(Offer offer) {
@@ -239,6 +241,7 @@ public class ClosedTradableManager implements PersistedDataHost {
                 List<byte[]> entries = new ArrayList<>(cleared.size());
                 for (Trade trade : cleared) entries.add(ClosedTradesStore.upsertBytes(trade));
                 store.appendEntries(entries);
+                if (!cleared.isEmpty()) store.requestRedaction();
             } catch (OutOfMemoryError e) {
                 throw e;
             } catch (Throwable t) {
@@ -253,24 +256,16 @@ public class ClosedTradableManager implements PersistedDataHost {
     private List<Trade> clearSensitiveDataForEligibleTrades() {
         log.info("checking closed trades eligibility for having sensitive data cleared");
         List<Trade> cleared = new ArrayList<>();
+        Instant safeDate = getSafeDateForSensitiveDataClearing();
         closedTradables.stream()
                 .filter(e -> e instanceof Trade)
                 .map(e -> (Trade) e)
-                .filter(e -> canTradeHaveSensitiveDataCleared(e.getId()))
+                .filter(e -> !e.isReopened())
+                .filter(e -> e.getDate().toInstant().isBefore(safeDate))
                 .forEach(trade -> {
                     if (trade.maybeClearSensitiveData()) cleared.add(trade);
                 });
         return cleared;
-    }
-
-    public boolean canTradeHaveSensitiveDataCleared(String tradeId) {
-        Instant safeDate = getSafeDateForSensitiveDataClearing();
-        synchronized (closedTradables.getList()) {
-            return closedTradables.stream()
-                    .filter(e -> e.getId().equals(tradeId))
-                    .filter(e -> e.getDate().toInstant().isBefore(safeDate))
-                    .count() > 0;
-        }
     }
 
     public Instant getSafeDateForSensitiveDataClearing() {

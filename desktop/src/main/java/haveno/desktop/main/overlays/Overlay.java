@@ -40,7 +40,6 @@ import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
-import haveno.desktop.util.Transitions;
 import javafx.animation.AnimationTimer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -95,9 +94,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -206,6 +205,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected ChangeListener<Number> positionListener;
     private ListChangeListener<String> stylesheetsListener;
     private EventHandler<InputEvent> ownerInputFilter;
+    private final List<Scene> parentScenes = new ArrayList<>();
     private ChangeListener<Boolean> contentDemandListener;
     private double lastContentDemand;
     private AnimationTimer displayTimer;
@@ -313,6 +313,10 @@ public abstract class Overlay<T extends Overlay<T>> {
 
         if (contentDemandListener != null)
             getRootContainer().needsLayoutProperty().removeListener(contentDemandListener);
+
+        if (ownerInputFilter != null)
+            parentScenes.forEach(scene -> scene.removeEventFilter(InputEvent.ANY, ownerInputFilter));
+        parentScenes.clear();
 
         if (owner == null)
             owner = MainView.getRootContainer();
@@ -561,10 +565,6 @@ public abstract class Overlay<T extends Overlay<T>> {
         gridPane.getColumnConstraints().addAll(columnConstraints1, columnConstraints2);
     }
 
-    protected void blurAgain() {
-        UserThread.runAfter(MainView::blurLight, Transitions.DEFAULT_DURATION, TimeUnit.MILLISECONDS);
-    }
-
     protected long startDisplay() {
         isDisplayed = true;
         hiding = false;
@@ -576,6 +576,11 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     public void display() {
+        displayAbove(List.of());
+    }
+
+    // keep native ownership with the main window so a prompt can outlive its parents
+    public void displayAbove(List<Overlay<?>> parents) {
         if (isDisplayed) return;
         if (owner == null)
             owner = MainView.getRootContainer();
@@ -594,6 +599,11 @@ public abstract class Overlay<T extends Overlay<T>> {
                     stage.setTitle(headLine != null ? headLine : ownerTitle != null ? ownerTitle : "Haveno");
                     Scene scene = new Scene(getRootContainer());
                     stage.setScene(scene);
+                    // resolve scenes here because the parents' stage creation may also have been queued
+                    for (Overlay<?> parent : parents) {
+                        if (parent.stage != null && parent.stage.getScene() != null)
+                            parentScenes.add(parent.stage.getScene());
+                    }
                     setModality();
                     stage.initStyle(StageStyle.TRANSPARENT);
                     scene.getStylesheets().setAll(rootScene.getStylesheets());
@@ -1038,6 +1048,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             if (event.getEventType() == MOUSE_PRESSED && stage != null) stage.requestFocus();
         };
         owner.getScene().addEventFilter(InputEvent.ANY, ownerInputFilter);
+        parentScenes.forEach(scene -> scene.addEventFilter(InputEvent.ANY, ownerInputFilter));
     }
 
     protected void removeEffectFromBackground() {

@@ -597,7 +597,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
             return method -> {
                 if (StringUtils.containsIgnoreCase(Res.get(method.getId()), query)) return true;
                 Set<String> supported = countryCodesByMethod.get(method);
-                if (!queriedCountryCodes.isEmpty()) return supported != null && supported.stream().anyMatch(queriedCountryCodes::contains);
+                if (!queriedCountryCodes.isEmpty()) return supported == null || supported.stream().anyMatch(queriedCountryCodes::contains);
                 return StringUtils.containsIgnoreCase(currencyTextByMethod.get(method), query);
             };
         };

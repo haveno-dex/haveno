@@ -45,6 +45,7 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.notifications.NotificationManager;
+import haveno.desktop.main.overlays.popups.PopupManager;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesDataModel;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesListItem;
@@ -58,6 +59,7 @@ import haveno.proto.grpc.NotificationMessage;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -69,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -194,6 +197,356 @@ public class OverlayTest {
         private MouseEvent mouseEvent(EventType<MouseEvent> type) {
             return new MouseEvent(type, 0, 0, 0, 0, MouseButton.NONE, 0,
                     false, false, false, false, false, false, false, false, false, false, null);
+        }
+    }
+
+    @Nested
+    class ManagedPopupQueue {
+        private final List<Runnable> timeouts = new ArrayList<>();
+        private MockedStatic<UserThread> scheduler;
+
+        @BeforeEach
+        void setUp() throws ReflectiveOperationException {
+            resetQueue();
+            scheduler = mockStatic(UserThread.class, CALLS_REAL_METHODS);
+            scheduler.when(() -> UserThread.runAfter(any(Runnable.class), eq(100L), eq(TimeUnit.MILLISECONDS)))
+                    .thenAnswer(invocation -> {
+                        timeouts.add(invocation.getArgument(0));
+                        return mock(Timer.class);
+                    });
+        }
+
+        @AfterEach
+        void tearDown() throws ReflectiveOperationException {
+            resetQueue();
+            scheduler.close();
+        }
+
+        @Test
+        void ordinaryPopupsStayFifoAndDeferNotificationsThroughHandoff() {
+            ManagedPopup first = new ManagedPopup("first");
+            ManagedPopup second = new ManagedPopup("second");
+            ManagedPopup third = new ManagedPopup("third");
+            first.show();
+            second.show();
+            third.show();
+            assertTrue(PopupManager.hasPendingPopupsProperty().get());
+            assertEquals(0, second.displays);
+            assertEquals(0, third.displays);
+            first.hide();
+            assertTrue(PopupManager.hasPendingPopupsProperty().get());
+            assertEquals(0, second.displays);
+            timeouts.remove(0).run();
+            assertEquals(1, second.displays);
+            assertEquals(0, third.displays);
+            second.hide();
+            timeouts.remove(0).run();
+            assertEquals(1, third.displays);
+            third.hide();
+            assertTrue(PopupManager.hasPendingPopupsProperty().get());
+            timeouts.remove(0).run();
+            assertFalse(PopupManager.hasPendingPopupsProperty().get());
+        }
+
+        @Test
+        void nestedPromptsTrackAllRemainingParentsAndWaitForHideCompletion() {
+            ManagedPopup base = new ManagedPopup("base");
+            ManagedPopup middle = new ManagedPopup("middle");
+            ManagedPopup top = new ManagedPopup("top");
+            ManagedPopup next = new ManagedPopup("next");
+            base.show();
+            next.show();
+            middle.nested().show();
+            top.nested().show();
+            assertEquals(List.of(base), middle.parents);
+            assertEquals(List.of(base, middle), top.parents);
+            middle.hide();
+            ManagedPopup prompt = new ManagedPopup("prompt");
+            prompt.nested().show();
+            assertEquals(List.of(base, top), prompt.parents);
+            base.hide();
+            top.hide();
+            assertTrue(timeouts.isEmpty());
+            assertTrue(PopupManager.hasPendingPopupsProperty().get());
+            prompt.deferHide = true;
+            prompt.hide();
+            assertTrue(timeouts.isEmpty());
+            assertEquals(0, next.displays);
+            prompt.finishHide.run();
+            assertEquals(0, next.displays);
+            timeouts.remove(0).run();
+            assertEquals(1, next.displays);
+        }
+
+        @Test
+        void nestedWithoutAParentUsesTheNormalQueueAndCanOutliveAClosingParent() {
+            ManagedPopup parent = new ManagedPopup("parent");
+            parent.nested().show();
+            assertTrue(parent.parents.isEmpty());
+            parent.deferHide = true;
+            parent.hide();
+            ManagedPopup child = new ManagedPopup("child");
+            child.nested().show();
+            assertEquals(List.of(parent), child.parents);
+            parent.finishHide.run();
+            assertTrue(child.isDisplayed());
+            assertTrue(timeouts.isEmpty());
+            child.hide();
+            timeouts.remove(0).run();
+            assertFalse(PopupManager.hasPendingPopupsProperty().get());
+        }
+
+        @Test
+        void cancellingAQueuedPopupDuringHandoffDoesNotDisplayIt() {
+            ManagedPopup first = new ManagedPopup("first");
+            ManagedPopup cancelled = new ManagedPopup("cancelled");
+            ManagedPopup next = new ManagedPopup("next");
+            first.show();
+            cancelled.show();
+            next.show();
+            first.hide();
+            cancelled.hide();
+            PopupManager.onHidden(first);
+            assertEquals(1, timeouts.size());
+            assertEquals(0, next.displays);
+            timeouts.remove(0).run();
+            assertEquals(0, cancelled.displays);
+            assertEquals(1, next.displays);
+        }
+
+        @Test
+        void duplicatesAreSuppressedAcrossActiveAndQueuedPopups() {
+            ManagedPopup base = new ManagedPopup("base");
+            ManagedPopup child = new ManagedPopup("child");
+            ManagedPopup queued = new ManagedPopup("queued");
+            base.show();
+            child.nested().show();
+            queued.show();
+            for (String message : List.of("base", "child", "queued")) {
+                ManagedPopup duplicate = new ManagedPopup(message);
+                duplicate.show();
+                duplicate.nested().show();
+                assertEquals(0, duplicate.displays);
+                duplicate.hide();
+            }
+            child.hide();
+            base.hide();
+            timeouts.remove(0).run();
+            assertEquals(1, queued.displays);
+            queued.hide();
+            timeouts.remove(0).run();
+            assertFalse(PopupManager.hasPendingPopupsProperty().get());
+        }
+
+        @Test
+        void nestingDoesNotUseTheBoundedQueueCapacity() {
+            ManagedPopup base = new ManagedPopup("base");
+            base.show();
+            List<ManagedPopup> queued = new ArrayList<>();
+            for (int i = 0; i < 6; i++) {
+                ManagedPopup popup = new ManagedPopup("queued " + i);
+                queued.add(popup);
+                popup.show();
+            }
+            ManagedPopup child = new ManagedPopup("child");
+            child.nested().show();
+            assertEquals(1, child.displays);
+            child.hide();
+            base.hide();
+            for (int i = 0; i < 5; i++) {
+                timeouts.remove(0).run();
+                assertEquals(1, queued.get(i).displays);
+                queued.get(i).hide();
+            }
+            timeouts.remove(0).run();
+            assertEquals(0, queued.get(5).displays);
+            assertFalse(PopupManager.hasPendingPopupsProperty().get());
+        }
+
+        private void resetQueue() throws ReflectiveOperationException {
+            for (String name : List.of("popups", "displayedPopups")) {
+                var field = PopupManager.class.getDeclaredField(name);
+                field.setAccessible(true);
+                ((Collection<?>) field.get(null)).clear();
+            }
+            var pending = PopupManager.class.getDeclaredField("hasPendingPopups");
+            pending.setAccessible(true);
+            ((ReadOnlyBooleanWrapper) pending.get(null)).set(false);
+        }
+    }
+
+    private static class ManagedPopup extends haveno.desktop.main.overlays.popups.Popup {
+        private int displays;
+        private List<Overlay<?>> parents = List.of();
+        private boolean deferHide;
+        private Runnable finishHide;
+
+        private ManagedPopup(String message) {
+            this.message = message;
+        }
+
+        @Override
+        protected void createContent(boolean showAgainChecked) {
+            gridPane = mock(GridPane.class);
+        }
+
+        @Override
+        public void display() {
+            displayAbove(List.of());
+        }
+
+        @Override
+        public void displayAbove(List<Overlay<?>> parents) {
+            this.parents = parents;
+            displays++;
+            startDisplay();
+        }
+
+        @Override
+        protected void animateHide(Runnable onFinishedHandler) {
+            if (deferHide) finishHide = onFinishedHandler;
+            else onFinishedHandler.run();
+        }
+    }
+
+    @Nested
+    class NestedInputFiltering {
+        @Test
+        void closingTheMiddlePopupKeepsLowerInputBlockedUntilTheTopCloses() throws ReflectiveOperationException {
+            Pane content = new Pane();
+            Pane baseContent = new Pane();
+            Pane middleContent = new Pane();
+            Scene ownerScene = routedScene(content);
+            Scene baseScene = routedScene(baseContent);
+            Scene middleScene = routedScene(middleContent);
+            List<InputEvent> delivered = new ArrayList<>();
+            content.addEventHandler(InputEvent.ANY, delivered::add);
+            baseContent.addEventHandler(InputEvent.ANY, delivered::add);
+            A base = installFilter(ownerScene, List.of());
+            A middle = installFilter(ownerScene, List.of(baseScene));
+            A top = installFilter(ownerScene, List.of(baseScene, middleScene));
+            middle.hide();
+            content.fireEvent(new InputEvent(KeyEvent.KEY_PRESSED));
+            baseContent.fireEvent(new InputEvent(MouseEvent.MOUSE_PRESSED));
+            assertTrue(delivered.isEmpty());
+            verify(top.stage).requestFocus();
+            top.hide();
+            baseContent.fireEvent(new InputEvent(KeyEvent.KEY_PRESSED));
+            content.fireEvent(new InputEvent(KeyEvent.KEY_PRESSED));
+            assertEquals(1, delivered.size());
+            base.hide();
+            content.fireEvent(new InputEvent(KeyEvent.KEY_PRESSED));
+            assertEquals(2, delivered.size());
+        }
+
+        @Test
+        void deferredDisplayResolvesParentsAndReuseDoesNotKeepTheirFilters() {
+            List<Runnable> displays = new ArrayList<>();
+            List<Runnable> showingChecks = new ArrayList<>();
+            Pane parentContent = new Pane();
+            Scene parentScene = routedScene(parentContent);
+            List<InputEvent> delivered = new ArrayList<>();
+            parentContent.addEventHandler(InputEvent.ANY, delivered::add);
+            A parent = new A();
+            A popup = new A();
+            popup.gridPane = mock(GridPane.class);
+            popup.owner = mock(Pane.class);
+            Scene ownerScene = routedScene(new Pane());
+            when(popup.owner.getScene()).thenReturn(ownerScene);
+            try (MockedStatic<UserThread> scheduler = mockStatic(UserThread.class, CALLS_REAL_METHODS);
+                 MockedConstruction<Stage> stages = mockConstruction(Stage.class, (stage, context) -> {
+                doAnswer(invocation -> {
+                    when(stage.getScene()).thenReturn(invocation.getArgument(0));
+                    return null;
+                }).when(stage).setScene(any(Scene.class));
+                doAnswer(invocation -> {
+                    showingChecks.remove(0).run();
+                    return null;
+                }).when(stage).show();
+            }); MockedConstruction<Scene> scenes = mockConstruction(Scene.class, (scene, context) ->
+                    when(scene.getStylesheets()).thenReturn(FXCollections.observableArrayList()))) {
+                scheduler.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                    displays.add(invocation.getArgument(0));
+                    return null;
+                });
+                popup.displayAbove(List.of(parent));
+                parent.stage = mock(Stage.class);
+                when(parent.stage.getScene()).thenReturn(parentScene);
+                showingChecks.add(() -> {
+                    popup.displayAbove(List.of());
+                    parentContent.fireEvent(new InputEvent(KeyEvent.KEY_PRESSED));
+                    assertTrue(delivered.isEmpty());
+                });
+                displays.remove(0).run();
+                // the mocked stage does not show, exercising the normal failed-show teardown
+                parentContent.fireEvent(new InputEvent(KeyEvent.KEY_PRESSED));
+                assertEquals(1, delivered.size());
+                showingChecks.add(() -> {
+                    parentContent.fireEvent(new InputEvent(KeyEvent.KEY_PRESSED));
+                    assertEquals(2, delivered.size());
+                });
+                popup.display();
+                displays.remove(0).run();
+                popup.displayAbove(List.of(parent));
+                popup.hide();
+                displays.remove(0).run();
+                assertEquals(2, stages.constructed().size());
+                assertEquals(2, scenes.constructed().size());
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        private A installFilter(Scene ownerScene, List<Scene> parents) throws ReflectiveOperationException {
+            A popup = new A();
+            popup.gridPane = mock(GridPane.class);
+            popup.owner = mock(Pane.class);
+            popup.stage = mock(Stage.class);
+            when(popup.owner.getScene()).thenReturn(ownerScene);
+            var field = Overlay.class.getDeclaredField("parentScenes");
+            field.setAccessible(true);
+            ((List<Scene>) field.get(popup)).addAll(parents);
+            popup.setModality();
+            return popup;
+        }
+
+        private Scene routedScene(Pane content) {
+            Scene scene = mock(Scene.class);
+            when(scene.getStylesheets()).thenReturn(FXCollections.observableArrayList());
+            when(scene.getWindow()).thenReturn(mock(Stage.class));
+            doAnswer(invocation -> {
+                content.addEventFilter(InputEvent.ANY, invocation.getArgument(1));
+                return null;
+            }).when(scene).addEventFilter(eq(InputEvent.ANY), any());
+            doAnswer(invocation -> {
+                content.removeEventFilter(InputEvent.ANY, invocation.getArgument(1));
+                return null;
+            }).when(scene).removeEventFilter(eq(InputEvent.ANY), any());
+            return scene;
+        }
+    }
+
+    @Test
+    void backgroundBlurLastsUntilBothOverlaysCloseInEitherOrder() {
+        try (MockedStatic<MainView> mainView = mockStatic(MainView.class)) {
+            for (boolean parentFirst : List.of(false, true)) {
+                A parent = new A();
+                A child = new A();
+                for (A popup : List.of(parent, child)) {
+                    popup.type = Overlay.Type.BackgroundInfo;
+                    popup.gridPane = mock(GridPane.class);
+                    popup.stage = mock(Stage.class);
+                    when(popup.stage.isShowing()).thenReturn(true);
+                    popup.addEffectToBackground();
+                }
+                mainView.verify(MainView::blurUltraLight, times(1));
+                (parentFirst ? parent : child).hide();
+                mainView.verify(MainView::removeEffect, never());
+                (parentFirst ? child : parent).hide();
+                parent.hide();
+                child.hide();
+                mainView.verify(MainView::removeEffect, times(1));
+                mainView.clearInvocations();
+            }
         }
     }
 

@@ -20,6 +20,7 @@ package haveno.desktop.main.portfolio.closedtrades;
 import com.google.inject.Inject;
 
 import haveno.common.UserThread;
+import haveno.common.ThreadUtils;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
@@ -141,6 +142,6 @@ class ClosedTradesDataModel extends ActivatableDataModel {
     }
 
     public void onMoveTradeToPendingTrades(Trade trade) {
-        tradeManager.onMoveClosedTradeToPendingTrades(trade);
+        ThreadUtils.execute(() -> tradeManager.onMoveClosedTradeToPendingTrades(trade), trade.getId());
     }
 }

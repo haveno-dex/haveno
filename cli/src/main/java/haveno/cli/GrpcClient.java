@@ -117,8 +117,8 @@ public final class GrpcClient {
         accountServiceRequest.openAccount(password);
     }
 
-    public void changePassword(String oldPassword, String newPassword) {
-        accountServiceRequest.changePassword(oldPassword, newPassword);
+    public List<String> changePassword(String oldPassword, String newPassword) {
+        return accountServiceRequest.changePassword(oldPassword, newPassword);
     }
 
     public void closeAccount() {

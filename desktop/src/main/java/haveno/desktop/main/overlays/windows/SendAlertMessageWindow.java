@@ -137,7 +137,6 @@ public class SendAlertMessageWindow extends Overlay<SendAlertMessageWindow> {
                 versionOK = split.length == 3;
                 if (!versionOK) // Do not translate as only used by devs
                     new Popup().warning("Version number must be in semantic version format (contain 2 '.'). version=" + version)
-                            .onClose(this::blurAgain)
                             .show();
             }
             if (!isSoftwareUpdateCheckBox.isSelected() || versionOK) {
@@ -148,7 +147,7 @@ public class SendAlertMessageWindow extends Overlay<SendAlertMessageWindow> {
                     )
                         hide();
                     else
-                        new Popup().warning(Res.get("shared.invalidKey")).width(300).onClose(this::blurAgain).show();
+                        new Popup().warning(Res.get("shared.invalidKey")).width(300).show();
                 }
             }
         });
@@ -159,7 +158,7 @@ public class SendAlertMessageWindow extends Overlay<SendAlertMessageWindow> {
                 if (alertManager.removeAlertMessageIfKeyIsValid(keyInputTextField.getText()))
                     hide();
                 else
-                    new Popup().warning(Res.get("shared.invalidKey")).width(300).onClose(this::blurAgain).show();
+                    new Popup().warning(Res.get("shared.invalidKey")).width(300).show();
             }
         });
 

@@ -47,7 +47,8 @@ public class Iso8601DateTimeColumn extends LongColumn {
 
     @Override
     public String getRowAsFormattedString(int rowIndex) {
-        long time = getRow(rowIndex);
+        Long time = getRow(rowIndex);
+        if (time == null) return toJustifiedString("");
         return justification.equals(LEFT)
                 ? padEnd(iso8601DateFormat.format(new Date(time)), maxWidth, ' ')
                 : padStart(iso8601DateFormat.format(new Date(time)), maxWidth, ' ');

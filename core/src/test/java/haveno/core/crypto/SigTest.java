@@ -17,11 +17,20 @@
 
 package haveno.core.crypto;
 
+import com.google.protobuf.ByteString;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.crypto.Sig;
 import haveno.common.file.FileUtil;
+import haveno.core.alert.Alert;
+import haveno.core.alert.AlertManager;
+import haveno.core.user.User;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.storage.HashMapChangedListener;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,9 +39,18 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
+import org.mockito.ArgumentCaptor;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class SigTest {
     private static final Logger log = LoggerFactory.getLogger(SigTest.class);
@@ -80,6 +98,77 @@ public class SigTest {
             }
         }
         log.trace("took {} ms.", System.currentTimeMillis() - ts);
+    }
+
+    @Test
+    public void metadataSignedAlertRoundTripsAndStillVerifiesForLegacyClients() throws Exception {
+        ECKey signingKey = new ECKey();
+        Alert signed = signedAlert(signingKey);
+        Alert received = Alert.fromProto(signed.toProtoMessage().getAlert());
+        signingKey.verifyMessage(Utils.HEX.encode(received.getMessage().getBytes(StandardCharsets.UTF_8)), received.getSignatureAsBase64());
+        assertAlertAccepted(signingKey, received, true);
+    }
+
+    @Test
+    public void alertMetadataAndOwnerCannotBeChangedOrStripped() {
+        ECKey signingKey = new ECKey();
+        Alert signed = signedAlert(signingKey);
+        List<Consumer<protobuf.Alert.Builder>> mutations = List.of(
+                builder -> builder.setMessage("different message"),
+                builder -> builder.setIsUpdateInfo(false),
+                builder -> builder.setIsPreReleaseInfo(true),
+                builder -> builder.setVersion("999.0.0"),
+                builder -> builder.setOwnerPubKeyBytes(ByteString.copyFrom(Sig.generateKeyPair().getPublic().getEncoded())),
+                protobuf.Alert.Builder::clearExtraData,
+                builder -> builder.putExtraData("metadataSignature", "malformed"),
+                builder -> builder.putExtraData("injected", "value"));
+        for (Consumer<protobuf.Alert.Builder> mutation : mutations) {
+            protobuf.Alert.Builder builder = signed.toProtoMessage().getAlert().toBuilder();
+            mutation.accept(builder);
+            assertAlertAccepted(signingKey, Alert.fromProto(builder.build()), false);
+        }
+        assertAlertAccepted(new ECKey(), signed, false);
+    }
+
+    @Test
+    public void alertMetadataSignatureUsesStableMapOrdering() {
+        ECKey signingKey = new ECKey();
+        Alert alert = Alert.fromProto(signedAlert(signingKey).toProtoMessage().getAlert().toBuilder()
+                .putExtraData("z", "last").putExtraData("a", "first").build());
+        alert.setMetadataSignature(signingKey.signMessage(alert.getMetadataSignaturePayload()));
+        protobuf.Alert reordered = alert.toProtoMessage().getAlert().toBuilder().clearExtraData()
+                .putExtraData("a", "first").putExtraData("metadataSignature", alert.getMetadataSignature())
+                .putExtraData("z", "last").build();
+        assertAlertAccepted(signingKey, Alert.fromProto(reordered), true);
+    }
+
+    private Alert signedAlert(ECKey signingKey) {
+        AlertManager manager = alertManager(signingKey, mock(P2PService.class));
+        Alert alert = new Alert("release message", true, false, "99.0.0");
+        assertTrue(manager.addAlertMessageIfKeyIsValid(alert, Utils.HEX.encode(signingKey.getPrivKeyBytes())));
+        return alert;
+    }
+
+    private AlertManager alertManager(ECKey signingKey, P2PService p2pService) {
+        return new AlertManager(p2pService, keyRing, mock(User.class), false, false) {
+            @Override
+            protected List<String> getPubKeyList() {
+                return List.of(Utils.HEX.encode(signingKey.getPubKey()));
+            }
+        };
+    }
+
+    private void assertAlertAccepted(ECKey signingKey, Alert alert, boolean accepted) {
+        P2PService p2pService = mock(P2PService.class);
+        AlertManager manager = alertManager(signingKey, p2pService);
+        ArgumentCaptor<HashMapChangedListener> listener = ArgumentCaptor.forClass(HashMapChangedListener.class);
+        verify(p2pService).addHashSetChangedListener(listener.capture());
+        ProtectedStorageEntry entry = new ProtectedStorageEntry(alert, alert.getOwnerPubKey(), 1, new byte[0], Clock.systemUTC());
+        listener.getValue().onAdded(List.of(entry));
+        if (accepted) assertEquals(alert, manager.alertMessageProperty().get());
+        else assertNull(manager.alertMessageProperty().get());
+        listener.getValue().onRemoved(List.of(entry));
+        assertNull(manager.alertMessageProperty().get());
     }
 }
 

@@ -316,8 +316,12 @@ public class CliMain {
                         out.println(client.getMethodHelp(method));
                         return;
                     }
-                    client.changePassword(opts.getAccountPassword(), opts.getNewAccountPassword());
+                    var retainedBackups = client.changePassword(opts.getAccountPassword(), opts.getNewAccountPassword());
                     out.println("account password changed");
+                    if (!retainedBackups.isEmpty()) {
+                        out.println("Warning: retained wallet backups or recovery files may still be accessible with a previous password or no password. Keep all relevant passwords for recovery.");
+                        retainedBackups.forEach(path -> out.println("  " + escapeTerminalControls(path)));
+                    }
                     return;
                 }
                 case closeaccount: {
@@ -348,20 +352,44 @@ public class CliMain {
                             ? format("haveno-account-backup_%d.zip", new Date().getTime())
                             : opts.getBackupFile();
                     Path path = Paths.get(backupFile);
+                    Path temporary = null;
                     try {
+                        if (Files.exists(path)) throw new FileAlreadyExistsException(backupFile);
                         FileAttribute<?>[] attributes = Files.getFileStore(path.toAbsolutePath().getParent())
                                 .supportsFileAttributeView("posix")
                                 ? new FileAttribute<?>[]{PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))}
                                 : new FileAttribute<?>[0];
-                        try (var outputStream = Channels.newOutputStream(Files.newByteChannel(path, Set.of(CREATE_NEW, WRITE), attributes))) {
+                        temporary = Files.createTempFile(path.toAbsolutePath().getParent(), ".haveno-backup-", ".tmp", attributes);
+                        try (var outputStream = Files.newOutputStream(temporary)) {
                             var backupBytes = client.backupAccount();
                             while (backupBytes.hasNext())
                                 outputStream.write(backupBytes.next().getZipBytes().toByteArray());
+                        }
+                        // Create the destination exclusively so concurrent backups cannot overwrite it.
+                        // A hard interruption during this copy can leave a partial destination.
+                        var backupChannel = Files.newByteChannel(path, Set.of(CREATE_NEW, WRITE), attributes);
+                        try (backupChannel) {
+                            Files.copy(temporary, Channels.newOutputStream(backupChannel));
+                        } catch (IOException | RuntimeException ex) {
+                            try {
+                                Files.deleteIfExists(path);
+                            } catch (IOException cleanupException) {
+                                ex.addSuppressed(cleanupException);
+                            }
+                            throw ex;
                         }
                     } catch (FileAlreadyExistsException ex) {
                         throw new IllegalStateException(format("could not overwrite existing file '%s'", backupFile), ex);
                     } catch (IOException ex) {
                         throw new IllegalStateException(format("could not write backup file '%s'", backupFile), ex);
+                    } finally {
+                        if (temporary != null) {
+                            try {
+                                Files.deleteIfExists(temporary);
+                            } catch (IOException ex) {
+                                log.warn("Could not remove temporary backup {}", temporary, ex);
+                            }
+                        }
                     }
                     out.printf("account backup saved to %s%n", path.toAbsolutePath());
                     return;
@@ -389,7 +417,7 @@ public class CliMain {
                         boolean hasMore = offset + chunkSize < zipBytes.length;
                         client.restoreAccount(chunk, offset, zipBytes.length, hasMore);
                     }
-                    out.println("account restored, restart the server before using the account");
+                    out.println("account restored, wait for the server to restart before using the account");
                     return;
                 }
                 case getbalance: {
