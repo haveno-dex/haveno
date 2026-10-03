@@ -45,11 +45,13 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
@@ -70,6 +72,8 @@ import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.input.InputEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -158,6 +162,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected final static double DEFAULT_WIDTH = 800;
     private final static double CARD_INSET = 44; // shadow margin around the card, matching .popup-bg -fx-background-insets
     private final static double CAP_MARGIN = 15; // band of the app left visible around capped popups
+    private final static Color COVER_COLOR = Color.rgb(0, 0, 0, 0.4); // dims a popup beneath a nested prompt
     protected Stage stage;
     protected GridPane gridPane;
     protected Pane owner;
@@ -206,6 +211,13 @@ public abstract class Overlay<T extends Overlay<T>> {
     private ListChangeListener<String> stylesheetsListener;
     private EventHandler<InputEvent> ownerInputFilter;
     private final List<Scene> parentScenes = new ArrayList<>();
+    private final List<Overlay<?>> coveredParents = new ArrayList<>();
+    private int numCoveringOverlays;
+    private final Timeline coverAnimation = new Timeline();
+    private Region coverScrim;
+    private Pane coverContainer;
+    private final ChangeListener<Bounds> coverBoundsListener = (observable, oldValue, bounds) ->
+            coverScrim.resize(bounds.getWidth(), bounds.getHeight());
     private ChangeListener<Boolean> contentDemandListener;
     private double lastContentDemand;
     private AnimationTimer displayTimer;
@@ -317,6 +329,9 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (ownerInputFilter != null)
             parentScenes.forEach(scene -> scene.removeEventFilter(InputEvent.ANY, ownerInputFilter));
         parentScenes.clear();
+        if (!coveredParents.isEmpty()) getRootContainer().getStyleClass().remove("popup-nested");
+        coveredParents.forEach(parent -> parent.setCovered(false));
+        coveredParents.clear();
 
         if (owner == null)
             owner = MainView.getRootContainer();
@@ -601,9 +616,13 @@ public abstract class Overlay<T extends Overlay<T>> {
                     stage.setScene(scene);
                     // resolve scenes here because the parents' stage creation may also have been queued
                     for (Overlay<?> parent : parents) {
-                        if (parent.stage != null && parent.stage.getScene() != null)
+                        if (parent.stage != null && parent.stage.getScene() != null) {
                             parentScenes.add(parent.stage.getScene());
+                            coveredParents.add(parent);
+                            parent.setCovered(true);
+                        }
                     }
+                    if (!coveredParents.isEmpty()) getRootContainer().getStyleClass().add("popup-nested");
                     setModality();
                     stage.initStyle(StageStyle.TRANSPARENT);
                     scene.getStylesheets().setAll(rootScene.getStylesheets());
@@ -760,7 +779,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         // along to keep their text styling, while the shell style flattens their insets and shadow
         capShell = new StackPane(scrollRoot);
         capShell.getStyleClass().add("popup-scroll-shell");
-        for (String style : new String[]{"popup-bg", "popup-bg-top", "notification-popup-bg", "popup-dropshadow"})
+        for (String style : new String[]{"popup-bg", "popup-bg-top", "notification-popup-bg", "popup-dropshadow", "popup-nested"})
             if (rootContainer.getStyleClass().remove(style)) capShell.getStyleClass().add(style);
         rootContainer.setTranslateY(0); // clear the top-anchor settle offset if the cap engages mid-display
         // the card edge replaces the shadow margin, so drop it from the content's padding to keep the normal card-edge distance
@@ -777,6 +796,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         shadowFrame.setPadding(new Insets(CAP_MARGIN));
         shadowFrame.setStyle("-fx-background-color: transparent;");
         setSceneRoot(scene, shadowFrame);
+        if (coverScrim != null) attachCoverScrim(capShell); // the shell now paints the card
         scrollRoot.setContent(rootContainer);
         capShell.setPrefSize(Math.min(stageWidth - cardInsets.getLeft() - cardInsets.getRight(), maxWidth),
                 Math.min(stageHeight - cardInsets.getTop() - cardInsets.getBottom(), maxHeight));
@@ -874,6 +894,54 @@ public abstract class Overlay<T extends Overlay<T>> {
         rootContainer.setScaleY(scale);
         rootContainer.setTranslateX(translateX);
         rootContainer.setTranslateY(translateY);
+    }
+
+    // dim the card with an opaque scrim while nested prompts are above it, so the app behind never shows through
+    private void setCovered(boolean covered) {
+        numCoveringOverlays += covered ? 1 : -1;
+        if (numCoveringOverlays > 0 && coverScrim == null) {
+            if (stage == null || !(getDisplayContainer() instanceof Pane)) return;
+            coverScrim = new Region();
+            coverScrim.setManaged(false);
+            coverScrim.setMouseTransparent(true);
+            coverScrim.setOpacity(0);
+            attachCoverScrim((Pane) getDisplayContainer());
+        }
+        if (coverScrim == null) return;
+        Region scrim = coverScrim;
+        coverAnimation.stop();
+        coverAnimation.getKeyFrames().setAll(new KeyFrame(Duration.millis(getDuration(240)),
+                new KeyValue(scrim.opacityProperty(), numCoveringOverlays > 0 ? 1 : 0, Interpolator.SPLINE(0.2, 0, 0.2, 1))));
+        coverAnimation.setOnFinished(event -> {
+            if (numCoveringOverlays > 0 || coverScrim != scrim) return;
+            detachCoverScrim();
+            coverScrim = null;
+        });
+        coverAnimation.play();
+    }
+
+    // the scrim follows the card's own fill so it matches its insets and corners
+    private void attachCoverScrim(Pane container) {
+        if (coverContainer != null) detachCoverScrim();
+        coverContainer = container;
+        coverScrim.backgroundProperty().bind(Bindings.createObjectBinding(() -> {
+            Background card = container.getBackground();
+            return card == null ? null : card.getFills().stream()
+                    .filter(fill -> !Color.TRANSPARENT.equals(fill.getFill()))
+                    .reduce((first, second) -> second)
+                    .map(fill -> new Background(new BackgroundFill(COVER_COLOR, fill.getRadii(), fill.getInsets())))
+                    .orElse(null);
+        }, container.backgroundProperty()));
+        container.layoutBoundsProperty().addListener(coverBoundsListener);
+        coverScrim.resize(container.getWidth(), container.getHeight());
+        container.getChildren().add(coverScrim);
+    }
+
+    private void detachCoverScrim() {
+        coverScrim.backgroundProperty().unbind();
+        coverContainer.layoutBoundsProperty().removeListener(coverBoundsListener);
+        coverContainer.getChildren().remove(coverScrim);
+        coverContainer = null;
     }
 
     protected void animateDisplay() {
