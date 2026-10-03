@@ -81,6 +81,14 @@ public class Socks5ProxyProvider {
         return socks5ProxyHttp;
     }
 
+    // The proxy to use for http requests: socks5ProxyHttp if set, otherwise getSocks5Proxy().
+    @Nullable
+    public Socks5Proxy getSocks5ProxyForHttp() {
+        Socks5Proxy socks5Proxy = getSocks5ProxyHttp();
+        if (socks5Proxy == null) socks5Proxy = getSocks5Proxy();
+        return socks5Proxy;
+    }
+
     @Nullable
     public Socks5Proxy getSocks5ProxyInternal() {
         return socks5ProxyInternalFactory.getSocksProxy();
