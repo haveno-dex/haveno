@@ -3773,6 +3773,14 @@ textfield */
     -fx-effect: dropshadow(gaussian, -bs-popup-shadow, 28, 0, 0, 2);
 }
 
+/* nested prompts keep a visible edge where the dark theme's shadow does not show, drawn as a
+   background layer because a border would add to the content insets */
+.popup-bg.popup-nested {
+    -fx-background-color: -bs-popup-nested-border, -bs-color-background-popup-blur;
+    -fx-background-insets: 44, 45;
+    -fx-background-radius: 8, 7;
+}
+
 /* Scroll shell for popups capped to the default window size (Overlay#constrainToScreen) */
 .scroll-pane.popup-scroll-pane,
 .popup-scroll-pane > .viewport,
@@ -3800,6 +3808,11 @@ textfield */
 .popup-scroll-shell.notification-popup-bg {
     -fx-background-color: -bs-color-background-popup;
     -fx-effect: dropshadow(gaussian, -bs-popup-shadow-light-mode, 12, 0, 0, 0);
+}
+
+/* the shell paints the card at its edge, so the nested edge follows it there */
+.popup-scroll-shell.popup-nested {
+    -fx-background-insets: 0, 1;
 }
 
 /* keep compact popup shadows inside their narrower transparent margins */

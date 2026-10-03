@@ -88,6 +88,7 @@
     -bs-text-color-dropshadow: rgba(0, 0, 0, 0.54);
     -bs-popup-shadow: rgba(0, 0, 0, 0.22);
     -bs-popup-shadow-light-mode: -bs-popup-shadow;
+    -bs-popup-nested-border: -bs-color-background-popup-blur;
     -bs-text-color-transparent: rgba(0, 0, 0, 0.2);
     -bs-color-gray-line: #5b6d85;
     -bs-rd-separator: -bs-color-gray-2;

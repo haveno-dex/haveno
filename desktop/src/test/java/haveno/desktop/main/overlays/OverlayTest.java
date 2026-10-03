@@ -450,6 +450,7 @@ public class OverlayTest {
             A parent = new A();
             A popup = new A();
             popup.gridPane = mock(GridPane.class);
+            when(popup.gridPane.getStyleClass()).thenReturn(FXCollections.observableArrayList());
             popup.owner = mock(Pane.class);
             Scene ownerScene = routedScene(new Pane());
             when(popup.owner.getScene()).thenReturn(ownerScene);
