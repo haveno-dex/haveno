@@ -4166,7 +4166,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
         // revert payout state if evidenced by the tx (e.g. failed or demoted by reorg); txs without chain state cannot revert
         PayoutState evidencedPayoutState = getPayoutState(payoutTx);
-        if (evidencedPayoutState != null && evidencedPayoutState != getPayoutState()) setPayoutState(evidencedPayoutState);
+        if (evidencedPayoutState != null && evidencedPayoutState != getPayoutState()) {
+            if (evidencedPayoutState.ordinal() < PayoutState.PAYOUT_CONFIRMED.ordinal()) payoutHeight = null; // resume pool checks for a demoted or failed payout, persisted with the state
+            setPayoutState(evidencedPayoutState);
+        }
     }
 
     /**
