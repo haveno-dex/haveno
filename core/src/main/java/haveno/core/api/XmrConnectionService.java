@@ -352,6 +352,7 @@ public final class XmrConnectionService {
         if (connection == null) {
             log.warn("Setting monerod connection to null", new Throwable("Stack trace"));
         }
+        applySslPolicy(connection, true);
 
         // update internals if applicable
         boolean isInitializing = monerod == null && connection != null;
@@ -362,7 +363,6 @@ public final class XmrConnectionService {
                     isConnected = false;
                     connectionList.setCurrentConnectionUri(null);
                 } else {
-                    applySslPolicy(connection, true);
                     monerod = new MoneroDaemonRpc(connection);
                     isConnected = connection.isConnected();
                     synchronized (connections) {
