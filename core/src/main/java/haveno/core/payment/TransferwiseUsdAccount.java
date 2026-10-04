@@ -109,6 +109,11 @@ public final class TransferwiseUsdAccount extends CountryBasedPaymentAccount {
     }
 
     @Override
+    protected boolean isFormFieldRequired(PaymentAccountFormField.FieldId fieldId, @Nullable String countryCode) {
+        return fieldId != PaymentAccountFormField.FieldId.HOLDER_ADDRESS && super.isFormFieldRequired(fieldId, countryCode);
+    }
+
+    @Override
     protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
         var field = super.getEmptyFormField(fieldId);
         if (field.getId() == PaymentAccountFormField.FieldId.HOLDER_ADDRESS) field.setLabel(field.getLabel() + " " + Res.get("payment.transferwiseUsd.address"));

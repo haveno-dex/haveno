@@ -53,7 +53,7 @@ public class WesternUnionForm extends PaymentMethodForm {
                 payload.getEmail());
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow, Res.get("payment.account.city"),
                 payload.getCity());
-        if (BankUtil.isStateRequired(payload.getCountryCode()))
+        if (BankUtil.isStateShown(payload.getCountryCode(), payload.getState()))
             addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1, Res.get("payment.account.state"),
                     payload.getState());
 
@@ -91,7 +91,7 @@ public class WesternUnionForm extends PaymentMethodForm {
                 westernUnionAccountPayload.getHolderName());
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.city"),
                 westernUnionAccountPayload.getCity()).second.setMouseTransparent(false);
-        if (BankUtil.isStateRequired(westernUnionAccountPayload.getCountryCode()))
+        if (BankUtil.isStateShown(westernUnionAccountPayload.getCountryCode(), westernUnionAccountPayload.getState()))
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.state"),
                     westernUnionAccountPayload.getState()).second.setMouseTransparent(false);
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.email"),

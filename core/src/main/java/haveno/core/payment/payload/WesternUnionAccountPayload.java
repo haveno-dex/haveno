@@ -119,7 +119,7 @@ public class WesternUnionAccountPayload extends CountryBasedPaymentAccountPayloa
 
     @Override
     public String getPaymentDetailsForTradePopup() {
-        String cityState = BankUtil.isStateRequired(countryCode)
+        String cityState = BankUtil.isStateShown(countryCode, state)
                 ? (Res.get("payment.account.city") + " / " + Res.getWithCol("payment.account.state") + " " + city + " / " + state + "\n")
                 : (Res.getWithCol("payment.account.city") + " " + city + "\n");
         return Res.getWithCol("payment.account.fullName") + " " + holderName + "\n" +

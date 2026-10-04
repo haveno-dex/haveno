@@ -56,7 +56,7 @@ public class MoneyGramForm extends PaymentMethodForm {
         addCompactTopLabelTextFieldWithCopyIcon(gridPane, ++gridRow,
                 Res.get("payment.bank.country"),
                 CountryUtil.getNameAndCode(((MoneyGramAccountPayload) paymentAccountPayload).getCountryCode()));
-        if (BankUtil.isStateRequired(payload.getCountryCode()))
+        if (BankUtil.isStateShown(payload.getCountryCode(), payload.getState()))
             addCompactTopLabelTextFieldWithCopyIcon(gridPane, gridRow, 1,
                     Res.get("payment.account.state"),
                     payload.getState());
@@ -86,7 +86,7 @@ public class MoneyGramForm extends PaymentMethodForm {
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.country"), country != null ? country.name : "");
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.fullName"),
                 moneyGramAccountPayload.getHolderName());
-        if (BankUtil.isStateRequired(moneyGramAccountPayload.getCountryCode()))
+        if (BankUtil.isStateShown(moneyGramAccountPayload.getCountryCode(), moneyGramAccountPayload.getState()))
             addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.account.state"),
                     moneyGramAccountPayload.getState()).second.setMouseTransparent(false);
         addCompactTopLabelTextField(gridPane, ++gridRow, Res.get("payment.email"),

@@ -170,7 +170,7 @@ public final class PaymentAccountForm implements PersistablePayload {
     }
 
     public static PaymentAccountForm fromProto(protobuf.PaymentAccountForm proto) {
-        List<PaymentAccountFormField> fields = proto.getFieldsList().isEmpty() ? null : proto.getFieldsList().stream().map(PaymentAccountFormField::fromProto).collect(Collectors.toList());
+        List<PaymentAccountFormField> fields = proto.getFieldsList().stream().map(PaymentAccountFormField::fromProto).collect(Collectors.toList());
         return new PaymentAccountForm(FormId.fromProto(proto.getId()), fields);
     }
 

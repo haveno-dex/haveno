@@ -280,6 +280,11 @@ public class BankUtil {
         return getAllStateRequiredCountries().stream().map(country -> country.code).collect(Collectors.toList()).contains(countryCode);
     }
 
+    // a state is shown for countries which expect one, or when one was provided
+    public static boolean isStateShown(String countryCode, String state) {
+        return isStateRequired(countryCode) || !state.isEmpty();
+    }
+
     public static boolean isNationalAccountIdRequired(String countryCode) {
         switch (countryCode) {
             case "AR":
