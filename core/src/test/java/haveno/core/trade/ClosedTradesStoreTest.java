@@ -1053,6 +1053,19 @@ public class ClosedTradesStoreTest {
     }
 
     @Test
+    public void testPayoutHeightLoadsOnlyWithConfirmedPayout() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            protobuf.BuyerAsMakerTrade proto = ((protobuf.Tradable) handoffTrade().toProtoMessage()).getBuyerAsMakerTrade();
+            for (Trade.PayoutState state : Trade.PayoutState.values()) {
+                Trade restored = (Trade) BuyerAsMakerTrade.fromProto(proto.toBuilder().setTrade(proto.getTrade().toBuilder()
+                        .setPayoutState(Trade.PayoutState.toProtoMessage(state)).setPayoutHeight(100)).build(), mock(XmrWalletService.class), resolver);
+                assertEquals(restored.isPayoutConfirmed() ? 100 : 0,
+                        ((protobuf.Tradable) restored.toProtoMessage()).getBuyerAsMakerTrade().getTrade().getPayoutHeight(), state.name());
+            }
+        }
+    }
+
+    @Test
     public void testDuplicateResolutionKeepsNewestCloseOrReopenInEitherOrder() throws Exception {
         try (var userThread = mockStatic(UserThread.class)) {
             for (boolean pendingFirst : List.of(false, true)) {

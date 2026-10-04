@@ -4659,7 +4659,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         trade.setCounterCurrencyExtraData(ProtoUtil.stringOrNullFromProto(proto.getCounterCurrencyExtraData()));
         trade.isCompleted = proto.getIsCompleted();
         trade.completedRevision = proto.getCompletedRevision();
-        trade.payoutHeight = proto.getPayoutHeight() == 0 ? null : proto.getPayoutHeight();
+        trade.payoutHeight = proto.getPayoutHeight() == 0 || !trade.isPayoutConfirmed() ? null : proto.getPayoutHeight(); // drop a height stored without a confirmed payout, e.g. after a reorg, so pool checks resume
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()
                 .map(ChatMessage::fromPayloadProto)
