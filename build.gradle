@@ -620,16 +620,16 @@ configure(project(':core')) {
         doLast {
             // get monero binaries download url
             Map moneroBinaries = [
-                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release16/monero-bins-haveno-linux-x86_64.tar.gz',
-                'linux-x86_64-sha256'  : '9a9114d232befae175826cd0e18058ce3352eb8093f04a0c9c0a6eae382c0457',
-                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release16/monero-bins-haveno-linux-aarch64.tar.gz',
-                'linux-aarch64-sha256' : '30c5de3042b8b4c280d05c405d46495d0f1331591c0b1b6d1c92ccdaeec6d817',
-                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release16/monero-bins-haveno-mac.tar.gz',
-                'mac-sha256'           : '87eb76b9d6e21fbbccffbec42cafba55a5bb9884ae54253ba883b5ea9819e6ad',
-                'mac-aarch64'          : 'https://github.com/haveno-dex/monero/releases/download/release16/monero-bins-haveno-mac-aarch64.tar.gz',
-                'mac-aarch64-sha256'   : '20dd0498955e8b89c43d99262677c1a21fd1ba28d5be84987f42e7d9f6477b62',
-                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release16/monero-bins-haveno-windows.zip',
-                'windows-sha256'       : '284a306d06220a229d8e83d45176246568b01178a0d090bb9a7fe4e4e5044e5e'
+                'linux-x86_64'         : 'https://github.com/haveno-dex/monero/releases/download/release17/monero-bins-haveno-linux-x86_64.tar.gz',
+                'linux-x86_64-sha256'  : '79b1e3ad9c79bc723741b2cf5a42d12c9d3d86dd7834c5f64ed5a35b088d0132',
+                'linux-aarch64'        : 'https://github.com/haveno-dex/monero/releases/download/release17/monero-bins-haveno-linux-aarch64.tar.gz',
+                'linux-aarch64-sha256' : '13b6b3fdf1ffd6ac4844eec9a9648d68ee889b30f1e22949c0ba748e99838b3f',
+                'mac'                  : 'https://github.com/haveno-dex/monero/releases/download/release17/monero-bins-haveno-mac.tar.gz',
+                'mac-sha256'           : 'a643f54c691d54795f37cbfc4dafa96fb59ce9ad45b7524e534767b0083aac8d',
+                'mac-aarch64'          : 'https://github.com/haveno-dex/monero/releases/download/release17/monero-bins-haveno-mac-aarch64.tar.gz',
+                'mac-aarch64-sha256'   : '76ca4d1e051b2b004dcb7148423bb60d11ddd04ab45c0ece4eae49bc8ec4e2b8',
+                'windows'              : 'https://github.com/haveno-dex/monero/releases/download/release17/monero-bins-haveno-windows.zip',
+                'windows-sha256'       : '41fde69fc92af553c4243607abfceddfd88bebb72757db8d599e3f85fd92f0d5'
             ]
 
             String architecture = System.getProperty("os.arch").toLowerCase()
