@@ -107,7 +107,7 @@ public class MoneyGramAccountPayload extends PaymentAccountPayload implements Pa
 
     @Override
     public String getPaymentDetailsForTradePopup() {
-        String state = BankUtil.isStateRequired(countryCode) ? (Res.getWithCol("payment.account.state") +
+        String state = BankUtil.isStateShown(countryCode, this.state) ? (Res.getWithCol("payment.account.state") +
                 " " + this.state + "\n") : "";
         return Res.getWithCol("payment.account.fullName") + " " + holderName + "\n" +
                 state +

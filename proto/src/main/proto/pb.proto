@@ -2247,6 +2247,8 @@ message PaymentAccountFormField {
     repeated Country supported_countries = 9;
     repeated Country supported_sepa_euro_countries = 10;
     repeated Country supported_sepa_non_euro_countries = 11;
-    repeated string required_for_countries = 12;
+    repeated string required_for_countries = 12; // required when the country is one of these codes
     repeated string supported_values = 13; // valid options for a SELECT_ONE/SELECT_MULTIPLE field whose values are plain strings
+    optional bool required = 14; // required regardless of country or other fields
+    repeated FieldId required_if_any_field_has_value = 15; // required when any of these fields has a value
 }

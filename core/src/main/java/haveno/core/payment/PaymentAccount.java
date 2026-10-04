@@ -42,7 +42,6 @@ import haveno.common.proto.persistable.PersistablePayload;
 import haveno.common.util.Utilities;
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
-import haveno.core.locale.BankUtil;
 import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CurrencyUtil;
@@ -414,18 +413,63 @@ public abstract class PaymentAccount implements PersistablePayload {
 
         // build form
         PaymentAccountForm form = new PaymentAccountForm(PaymentAccountForm.FormId.valueOf(paymentMethod.getId()));
+        List<Country> countries = getSupportedCountries();
+        if (countries == null || countries.isEmpty()) countries = CountryUtil.getAllCountries();
         for (PaymentAccountFormField.FieldId fieldId : getInputFieldIds()) {
             PaymentAccountFormField field = getEmptyFormField(fieldId);
+            field.setRequired(isFormFieldRequired(fieldId, null));
+            if (!field.getRequired() && getInputFieldIds().contains(PaymentAccountFormField.FieldId.COUNTRY)) {
+                field.setRequiredForCountries(countries.stream()
+                        .filter(country -> isFormFieldRequired(fieldId, country.code))
+                        .map(country -> country.code)
+                        .collect(Collectors.toList()));
+            }
             field.setValue((String) jsonMap.get(HavenoUtils.toCamelCase(field.getId().toString())));
             form.getFields().add(field);
         }
         return form;
     }
 
+    // a null country asks whether the field is required unconditionally
+    protected boolean isFormFieldRequired(PaymentAccountFormField.FieldId fieldId, @Nullable String countryCode) {
+        switch (fieldId) {
+        case ACCOUNT_OWNER:
+        case EXTRA_INFO:
+        case REQUIREMENTS:
+        case SALT:
+        case SPECIAL_INSTRUCTIONS:
+        case STATE:
+            return false;
+        default:
+            return true;
+        }
+    }
+
+    public void validateForm(PaymentAccountForm form) {
+        Map<PaymentAccountFormField.FieldId, String> values = new HashMap<>();
+        for (PaymentAccountFormField field : form.getFields()) {
+            if (!getInputFieldIds().contains(field.getId())) throw new IllegalArgumentException("Unexpected form field: " + field.getId());
+            if (values.containsKey(field.getId())) throw new IllegalArgumentException("Duplicate form field: " + field.getId());
+            values.put(field.getId(), field.getValue() == null ? "" : field.getValue());
+        }
+
+        // validate every declared field, including omitted fields and their dependencies
+        PaymentAccountForm completeForm = new PaymentAccountForm(form.getId());
+        for (PaymentAccountFormField.FieldId fieldId : getInputFieldIds()) {
+            PaymentAccountFormField field = new PaymentAccountFormField(fieldId);
+            field.setValue(values.getOrDefault(fieldId, ""));
+            completeForm.addField(field);
+        }
+        for (PaymentAccountFormField field : completeForm.getFields()) {
+            validateFormField(completeForm, field.getId(), field.getValue());
+        }
+    }
+
     public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
         switch (fieldId) {
         case ACCEPTED_COUNTRY_CODES: {
             List<String> countryCodes = PaymentAccount.commaDelimitedCodesToList.apply(value);
+            if (countryCodes.isEmpty()) throw new IllegalArgumentException("Must accept at least one country");
             List<String> supportedCountryCodes = CountryUtil.getCountryCodes(((CountryBasedPaymentAccount) this).getSupportedCountries());
             for (String countryCode : countryCodes) {
                 if (!supportedCountryCodes.contains(countryCode)) throw new IllegalArgumentException("Country is not supported by " + getPaymentMethod().getId() + ": " + value);
@@ -446,7 +490,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
         case ACCOUNT_OWNER:
-            processValidationResult(new LengthValidator(2, 100).validate(value));
+            if (value != null && !value.isEmpty()) processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
         case ACCOUNT_TYPE:
             processValidationResult(new LengthValidator(2, 100).validate(value));
@@ -540,6 +584,7 @@ public abstract class PaymentAccount implements PersistablePayload {
         case EXTRA_INFO:
             break;
         case HOLDER_ADDRESS:
+            if (isFormFieldRequired(fieldId, null)) processValidationResult(new InputValidator().validate(value));
             processValidationResult(new LengthValidator(0, 100).validate(value));
             break;
         case HOLDER_EMAIL:
@@ -590,15 +635,7 @@ public abstract class PaymentAccount implements PersistablePayload {
             processValidationResult(new BranchIdValidator("GB").validate(value));
             break;
         case SPECIAL_INSTRUCTIONS:
-            break;
         case STATE:
-            String countryCode = form.getValue(PaymentAccountFormField.FieldId.COUNTRY);
-            boolean isStateRequired = BankUtil.isStateRequired(countryCode);
-            if (value == null || value.isEmpty()) {
-                if (isStateRequired) throw new IllegalArgumentException("Must provide state for country " + countryCode);
-            } else {
-                if (!isStateRequired) throw new IllegalArgumentException("Must not provide state for country " + countryCode);
-            }
             break;
         case TRADE_CURRENCIES:
             processValidationResult(new InputValidator().validate(value));
@@ -854,7 +891,6 @@ public abstract class PaymentAccount implements PersistablePayload {
         case STATE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.account.state"));
-            field.setRequiredForCountries(CountryUtil.getCountryCodes(BankUtil.getAllStateRequiredCountries()));
             break;
         case TRADE_CURRENCIES:
             field.setComponent(PaymentAccountFormField.Component.SELECT_MULTIPLE);

@@ -29,6 +29,7 @@ import haveno.core.util.validation.InputValidator;
 import lombok.EqualsAndHashCode;
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -69,6 +70,27 @@ public abstract class GeneralBankAccount extends CountryBasedPaymentAccount impl
     }
 
     @Override
+    protected boolean isFormFieldRequired(PaymentAccountFormField.FieldId fieldId, @Nullable String countryCode) {
+        boolean useValidation = countryCode != null && BankUtil.useValidation(countryCode);
+        switch (fieldId) {
+        case BANK_NAME:
+            return useValidation && BankUtil.isBankNameRequired(countryCode);
+        case BANK_ID:
+            return useValidation && BankUtil.isBankIdRequired(countryCode);
+        case BRANCH_ID:
+            return useValidation && BankUtil.isBranchIdRequired(countryCode);
+        case NATIONAL_ACCOUNT_ID:
+            return useValidation && BankUtil.isNationalAccountIdRequired(countryCode);
+        case ACCOUNT_TYPE:
+            return useValidation && BankUtil.isAccountTypeRequired(countryCode);
+        case HOLDER_TAX_ID:
+            return useValidation && BankUtil.isHolderIdRequired(countryCode);
+        default:
+            return super.isFormFieldRequired(fieldId, countryCode);
+        }
+    }
+
+    @Override
     public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
 
         // bank specific fields are only validated for countries which use validation,
@@ -79,22 +101,22 @@ public abstract class GeneralBankAccount extends CountryBasedPaymentAccount impl
 
         switch (fieldId) {
         case BANK_NAME:
-            if (useValidation && BankUtil.isBankNameRequired(countryCode)) processValidationResult(new InputValidator().validate(value));
+            if (isFormFieldRequired(fieldId, countryCode)) processValidationResult(new InputValidator().validate(value));
             break;
         case BANK_ID:
-            if (useValidation && BankUtil.isBankIdRequired(countryCode)) processValidationResult(new BankIdValidator(countryCode).validate(value));
+            if (isFormFieldRequired(fieldId, countryCode)) processValidationResult(new BankIdValidator(countryCode).validate(value));
             break;
         case BRANCH_ID:
-            if (useValidation && BankUtil.isBranchIdRequired(countryCode)) processValidationResult(new BranchIdValidator(countryCode).validate(value));
+            if (isFormFieldRequired(fieldId, countryCode)) processValidationResult(new BranchIdValidator(countryCode).validate(value));
             break;
         case NATIONAL_ACCOUNT_ID:
-            if (useValidation && BankUtil.isNationalAccountIdRequired(countryCode)) processValidationResult(new NationalAccountIdValidator(countryCode).validate(value));
+            if (isFormFieldRequired(fieldId, countryCode)) processValidationResult(new NationalAccountIdValidator(countryCode).validate(value));
             break;
         case ACCOUNT_TYPE:
-            if (useValidation && BankUtil.isAccountTypeRequired(countryCode)) processValidationResult(new InputValidator().validate(value));
+            if (isFormFieldRequired(fieldId, countryCode)) processValidationResult(new InputValidator().validate(value));
             break;
         case HOLDER_TAX_ID:
-            if (useValidation && BankUtil.isHolderIdRequired(countryCode)) processValidationResult(new InputValidator().validate(value));
+            if (isFormFieldRequired(fieldId, countryCode)) processValidationResult(new InputValidator().validate(value));
             break;
         case ACCOUNT_NR:
             if (useValidation) super.validateFormField(form, fieldId, value);

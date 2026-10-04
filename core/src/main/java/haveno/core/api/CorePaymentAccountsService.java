@@ -71,8 +71,8 @@ public class CorePaymentAccountsService {
     }
 
     PaymentAccount createPaymentAccount(PaymentAccountForm form) {
-        validateFormFields(form);
         PaymentAccount paymentAccount = form.toPaymentAccount();
+        paymentAccount.validateForm(form);
         setSelectedTradeCurrency(paymentAccount); // TODO: selected trade currency is function of offer, not payment account payload
         verifyPaymentAccountHasRequiredFields(paymentAccount);
         if (paymentAccount instanceof CryptoCurrencyAccount) {
@@ -176,12 +176,6 @@ public class CorePaymentAccountsService {
                 .filter(PaymentMethod::isCrypto)
                 .sorted(Comparator.comparing(PaymentMethod::getId))
                 .collect(Collectors.toList());
-    }
-
-    private void validateFormFields(PaymentAccountForm form) {
-        for (PaymentAccountFormField field : form.getFields()) {
-            validateFormField(form, field.getId(), field.getValue());
-        }
     }
 
     void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {

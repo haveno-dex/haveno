@@ -17,6 +17,7 @@
 
 package haveno.core.payment;
 
+import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
@@ -26,8 +27,10 @@ import haveno.core.payment.payload.SwiftAccountPayload;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Comparator.comparing;
 
@@ -35,6 +38,14 @@ import static java.util.Comparator.comparing;
 public final class SwiftAccount extends PaymentAccount {
 
     public static final List<TradeCurrency> SUPPORTED_CURRENCIES = new ArrayList<>(CurrencyUtil.getAllSortedFiatCurrencies(comparing(TradeCurrency::getCode)));
+
+    // the desktop retains the country selection when disabling the intermediary bank
+    private static final List<PaymentAccountFormField.FieldId> INTERMEDIARY_DETAILS = List.of(
+            PaymentAccountFormField.FieldId.INTERMEDIARY_SWIFT_CODE,
+            PaymentAccountFormField.FieldId.INTERMEDIARY_NAME,
+            PaymentAccountFormField.FieldId.INTERMEDIARY_BRANCH,
+            PaymentAccountFormField.FieldId.INTERMEDIARY_ADDRESS
+    );
 
     private static final List<PaymentAccountFormField.FieldId> INPUT_FIELD_IDS = List.of(
             PaymentAccountFormField.FieldId.ACCOUNT_NAME,
@@ -94,5 +105,33 @@ public final class SwiftAccount extends PaymentAccount {
     @Override
     public @NonNull List<PaymentAccountFormField.FieldId> getInputFieldIds() {
         return INPUT_FIELD_IDS;
+    }
+
+    private static boolean isIntermediaryField(PaymentAccountFormField.FieldId fieldId) {
+        return fieldId == PaymentAccountFormField.FieldId.INTERMEDIARY_COUNTRY_CODE || INTERMEDIARY_DETAILS.contains(fieldId);
+    }
+
+    @Override
+    protected boolean isFormFieldRequired(PaymentAccountFormField.FieldId fieldId, @Nullable String countryCode) {
+        return !isIntermediaryField(fieldId) && super.isFormFieldRequired(fieldId, countryCode);
+    }
+
+    @Override
+    protected PaymentAccountFormField getEmptyFormField(PaymentAccountFormField.FieldId fieldId) {
+        PaymentAccountFormField field = super.getEmptyFormField(fieldId);
+        if (isIntermediaryField(fieldId)) field.setRequiredIfAnyFieldHasValue(INTERMEDIARY_DETAILS.stream()
+                .filter(id -> id != fieldId).collect(Collectors.toList()));
+        return field;
+    }
+
+    @Override
+    public void validateFormField(PaymentAccountForm form, PaymentAccountFormField.FieldId fieldId, String value) {
+        if (isIntermediaryField(fieldId) && (value == null || value.isEmpty())) {
+            // ignore the old value of the field being cleared
+            boolean hasOtherDetails = form.getFields().stream().anyMatch(field -> field.getId() != fieldId
+                    && INTERMEDIARY_DETAILS.contains(field.getId()) && field.getValue() != null && !field.getValue().isEmpty());
+            if (!hasOtherDetails) return;
+        }
+        super.validateFormField(form, fieldId, value);
     }
 }

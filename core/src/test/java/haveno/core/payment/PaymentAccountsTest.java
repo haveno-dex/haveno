@@ -19,8 +19,12 @@ package haveno.core.payment;
 
 import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.api.CorePaymentAccountsService;
 import haveno.core.api.model.PaymentAccountForm;
 import haveno.core.api.model.PaymentAccountFormField;
+import haveno.core.api.model.PaymentAccountFormField.FieldId;
+import haveno.core.locale.BankUtil;
+import haveno.core.locale.Country;
 import haveno.core.locale.CountryUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
@@ -31,8 +35,16 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.PopmoneyAccountPayload;
 import haveno.core.payment.payload.SwishAccountPayload;
 import haveno.core.payment.payload.TwintAccountPayload;
+import haveno.core.payment.validation.EmailValidator;
+import haveno.core.payment.validation.InteracETransferAnswerValidator;
+import haveno.core.payment.validation.InteracETransferQuestionValidator;
+import haveno.core.payment.validation.InteracETransferValidator;
+import haveno.core.payment.validation.LengthValidator;
 import haveno.core.proto.CoreProtoResolver;
+import haveno.core.trade.HavenoUtils;
+import haveno.core.user.Preferences;
 import haveno.core.user.UserPayload;
+import haveno.core.util.validation.RegexValidator;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -41,11 +53,14 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,6 +70,296 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PaymentAccountsTest {
+    @Test
+    public void testFormFieldRequiredPresenceRoundTrip() {
+        protobuf.PaymentAccountFormField legacy = protobuf.PaymentAccountFormField.newBuilder()
+                .setId(protobuf.PaymentAccountFormField.FieldId.EXTRA_INFO)
+                .setComponent(protobuf.PaymentAccountFormField.Component.TEXTAREA)
+                .build();
+        assertNull(PaymentAccountFormField.fromProto(legacy).getRequired());
+        assertEquals(legacy, PaymentAccountFormField.fromProto(legacy).toProtoMessage());
+        for (boolean required : List.of(false, true)) {
+            protobuf.PaymentAccountFormField proto = legacy.toBuilder().setRequired(required).build();
+            PaymentAccountFormField restored = PaymentAccountFormField.fromProto(proto);
+            assertEquals(required, restored.getRequired());
+            assertTrue(restored.toProtoMessage().hasRequired());
+            assertEquals(proto, restored.toProtoMessage());
+        }
+        // preserve acceptance of client forms with incomplete currency metadata
+        protobuf.PaymentAccountFormField withCurrencyMetadata = legacy.toBuilder()
+                .setRequired(false)
+                .addSupportedCurrencies(protobuf.TradeCurrency.newBuilder().setCode("USD"))
+                .build();
+        assertFalse(PaymentAccountFormField.fromProto(withCurrencyMetadata).getRequired());
+        protobuf.PaymentAccountFormField conditional = legacy.toBuilder().setRequired(false)
+                .addRequiredIfAnyFieldHasValue(protobuf.PaymentAccountFormField.FieldId.INTERMEDIARY_SWIFT_CODE)
+                .addRequiredIfAnyFieldHasValue(protobuf.PaymentAccountFormField.FieldId.INTERMEDIARY_NAME).build();
+        assertEquals(conditional, PaymentAccountFormField.fromProto(conditional).toProtoMessage());
+    }
+
+    @Test
+    public void testAllPaymentFormRequirementsMatchValidation() {
+        Res.setup();
+        CorePaymentAccountsService previousService = HavenoUtils.corePaymentAccountService;
+        Preferences previousPreferences = HavenoUtils.preferences;
+        HavenoUtils.preferences = mock(Preferences.class);
+        when(HavenoUtils.preferences.getUserLanguage()).thenReturn("en");
+        new CorePaymentAccountsService(null, null, null, new InteracETransferValidator(new EmailValidator(),
+                new InteracETransferQuestionValidator(new LengthValidator(), new RegexValidator()),
+                new InteracETransferAnswerValidator(new LengthValidator(), new RegexValidator())));
+        try {
+            for (PaymentMethod method : PaymentMethod.getPaymentMethods()) {
+                PaymentAccountForm blank = PaymentAccountForm.getForm(method.getId());
+                protobuf.PaymentAccountForm proto = blank.toProtoMessage();
+                protobuf.PaymentAccountForm restored = PaymentAccountForm.fromProto(proto).toProtoMessage();
+                for (int i = 0; i < proto.getFieldsCount(); i++) {
+                    protobuf.PaymentAccountFormField field = proto.getFields(i);
+                    protobuf.PaymentAccountFormField restoredField = restored.getFields(i);
+                    assertTrue(field.hasRequired(), method.getId() + ": " + field.getId());
+                    assertTrue(restoredField.hasRequired(), method.getId() + ": " + field.getId());
+                    assertEquals(field.getRequired(), restoredField.getRequired());
+                    assertEquals(field.getRequiredForCountriesList(), restoredField.getRequiredForCountriesList());
+                    assertEquals(field.getRequiredIfAnyFieldHasValueList(), restoredField.getRequiredIfAnyFieldHasValueList());
+                }
+
+                PaymentAccount account = PaymentAccountFactory.getPaymentAccount(method);
+                account.init();
+                List<Country> countries = account.getSupportedCountries();
+                Country country = countries == null || countries.isEmpty()
+                        ? CountryUtil.findCountryByCode("US").orElseThrow() : countries.getFirst();
+                if (account instanceof CountryBasedPaymentAccount) ((CountryBasedPaymentAccount) account).setCountry(country);
+                PaymentAccountForm form = account.toForm();
+                for (int i = 0; i < form.getFields().size(); i++) {
+                    PaymentAccountFormField field = form.getFields().get(i);
+                    PaymentAccountFormField blankField = blank.getFields().get(i);
+                    assertEquals(blankField.getRequired(), field.getRequired());
+                    assertEquals(blankField.getRequiredForCountries(), field.getRequiredForCountries());
+                    assertEquals(blankField.getRequiredIfAnyFieldHasValue(), field.getRequiredIfAnyFieldHasValue());
+                    if (field.getId() == PaymentAccountFormField.FieldId.COUNTRY) field.setValue(country.code);
+                }
+                for (PaymentAccountFormField field : form.getFields()) {
+                    assertFormFieldRequiredMatchesValidation(account, form, field, country.code);
+                }
+
+                // requirement metadata must not affect account JSON
+                String json = form.toPaymentAccountJsonString();
+                for (PaymentAccountFormField field : form.getFields()) {
+                    boolean required = field.getRequired();
+                    List<String> requiredForCountries = field.getRequiredForCountries();
+                    field.setRequired(!required);
+                    field.setRequiredForCountries(List.of());
+                    List<FieldId> triggers = field.getRequiredIfAnyFieldHasValue();
+                    field.setRequiredIfAnyFieldHasValue(List.of(FieldId.ACCOUNT_NAME));
+                    assertEquals(json, form.toPaymentAccountJsonString());
+                    field.setRequired(required);
+                    field.setRequiredForCountries(requiredForCountries);
+                    field.setRequiredIfAnyFieldHasValue(triggers);
+                }
+            }
+        } finally {
+            HavenoUtils.corePaymentAccountService = previousService;
+            HavenoUtils.preferences = previousPreferences;
+        }
+    }
+
+    @Test
+    public void testCountryDependentFormRequirements() {
+        Res.setup();
+        for (PaymentAccount account : List.of(new NationalBankAccount(), new SameBankAccount(),
+                new SpecificBanksAccount(), new CashDepositAccount(), new MoneyGramAccount(), new WesternUnionAccount())) {
+            account.init();
+            PaymentAccountForm form = account.toForm();
+            PaymentAccountFormField countryField = form.getFields().stream()
+                    .filter(field -> field.getId() == PaymentAccountFormField.FieldId.COUNTRY).findFirst().orElseThrow();
+            for (Country country : CountryUtil.getAllCountries()) {
+                countryField.setValue(country.code);
+                if (account instanceof CountryBasedPaymentAccount) ((CountryBasedPaymentAccount) account).setCountry(country);
+                for (PaymentAccountFormField field : form.getFields()) {
+                    if (!field.getRequired()) assertFormFieldRequiredMatchesValidation(account, form, field, country.code);
+                }
+            }
+            for (PaymentAccountFormField field : form.getFields()) {
+                if (field.getId() == PaymentAccountFormField.FieldId.STATE) {
+                    assertTrue(field.getRequiredForCountries().isEmpty());
+                } else if (field.getId() == PaymentAccountFormField.FieldId.BANK_NAME) {
+                    assertEquals(Set.of("GB", "US", "BR", "AU", "CA", "NZ", "MX", "HK", "SE", "NO", "AR"),
+                            Set.copyOf(field.getRequiredForCountries()));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testMoneyTransferStatesAreOptional() {
+        Res.setup();
+        for (PaymentMethod method : List.of(PaymentMethod.MONEY_GRAM, PaymentMethod.WESTERN_UNION)) {
+            PaymentAccountForm form = PaymentAccountForm.getForm(method.getId());
+            PaymentAccountFormField stateField = form.getFields().stream()
+                    .filter(field -> field.getId() == FieldId.STATE).findFirst().orElseThrow();
+            assertFalse(stateField.getRequired());
+            assertTrue(stateField.getRequiredForCountries().isEmpty());
+            setFormValue(form, FieldId.ACCOUNT_NAME, "money transfer account");
+            setFormValue(form, FieldId.HOLDER_NAME, "Test Holder");
+            setFormValue(form, FieldId.EMAIL, "holder@example.com");
+            setFormValue(form, FieldId.TRADE_CURRENCIES, "EUR");
+            setFormValue(form, FieldId.SALT, "");
+            if (method.equals(PaymentMethod.WESTERN_UNION)) setFormValue(form, FieldId.CITY, "Test City");
+            setFormValue(form, FieldId.STATE, "Test State");
+            for (String country : List.of("US", "CA", "AU", "MY", "MX", "CN", "FR", "GB")) {
+                setFormValue(form, FieldId.COUNTRY, country);
+                PaymentAccount account = form.toPaymentAccount();
+                assertDoesNotThrow(() -> account.validateForm(form));
+                PaymentAccount restored = PaymentAccount.fromProto(account.toProtoMessage(), new CoreProtoResolver());
+                assertEquals("Test State", restored.toForm().getValue(FieldId.STATE));
+                assertTrue(restored.getPaymentAccountPayload().getPaymentDetailsForTradePopup().contains("Test State"));
+                assertTrue(restored.getPaymentAccountPayload().getPaymentDetails().contains("Test State"));
+
+                PaymentAccountForm missing = PaymentAccountForm.fromProto(form.toProtoMessage());
+                missing.getFields().removeIf(field -> field.getId() == FieldId.STATE);
+                PaymentAccount withoutState = missing.toPaymentAccount();
+                assertDoesNotThrow(() -> withoutState.validateForm(missing));
+                assertEquals("", withoutState.toForm().getValue(FieldId.STATE));
+                assertEquals(BankUtil.isStateRequired(country), withoutState.getPaymentAccountPayload().getPaymentDetailsForTradePopup().contains(Res.get("payment.account.state")));
+                assertDoesNotThrow(() -> account.validateFormField(form, FieldId.STATE, null));
+                for (String blank : List.of("", "   ")) {
+                    assertDoesNotThrow(() -> account.validateFormField(form, FieldId.STATE, blank));
+                    PaymentAccountForm blankForm = PaymentAccountForm.fromProto(form.toProtoMessage());
+                    setFormValue(blankForm, FieldId.STATE, blank);
+                    assertDoesNotThrow(() -> blankForm.toPaymentAccount().validateForm(blankForm));
+                }
+            }
+        }
+    }
+
+    private static void assertFormFieldRequiredMatchesValidation(PaymentAccount account, PaymentAccountForm form,
+                                                               PaymentAccountFormField field, String countryCode) {
+        boolean required = field.getRequired() || field.getRequiredForCountries() != null
+                && field.getRequiredForCountries().contains(countryCode)
+                || field.getRequiredIfAnyFieldHasValue() != null && form.getFields().stream().anyMatch(other ->
+                        other.getId() != field.getId() && field.getRequiredIfAnyFieldHasValue().contains(other.getId())
+                                && other.getValue() != null && !other.getValue().isEmpty());
+        String context = form.getId() + ": " + field.getId() + " in " + countryCode;
+        boolean unconditional = field.getRequired();
+        List<String> requiredForCountries = field.getRequiredForCountries();
+        List<FieldId> triggers = field.getRequiredIfAnyFieldHasValue();
+        try {
+            // metadata from the client must not control server validation
+            field.setRequired(!required);
+            field.setRequiredForCountries(List.of());
+            field.setRequiredIfAnyFieldHasValue(List.of(FieldId.ACCOUNT_NAME));
+            if (required) {
+                IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                        () -> account.validateFormField(form, field.getId(), ""), context);
+                assertNotEquals("Not implemented", error.getMessage(), context);
+            } else assertDoesNotThrow(() -> account.validateFormField(form, field.getId(), ""), context);
+        } finally {
+            field.setRequired(unconditional);
+            field.setRequiredForCountries(requiredForCountries);
+            field.setRequiredIfAnyFieldHasValue(triggers);
+        }
+    }
+
+    @Test
+    public void testDesktopRequiredFieldRules() {
+        Res.setup();
+        // expectations follow the desktop forms' save validation, including the optional Wise USD address
+        Map<PaymentMethod, FieldId> requiredFields = Map.of(
+                PaymentMethod.ACH_TRANSFER, FieldId.HOLDER_ADDRESS,
+                PaymentMethod.DOMESTIC_WIRE_TRANSFER, FieldId.HOLDER_ADDRESS,
+                PaymentMethod.SEPA, FieldId.ACCEPTED_COUNTRY_CODES,
+                PaymentMethod.SEPA_INSTANT, FieldId.ACCEPTED_COUNTRY_CODES);
+        Map<PaymentMethod, FieldId> optionalFields = Map.of(
+                PaymentMethod.TRANSFERWISE_USD, FieldId.HOLDER_ADDRESS,
+                PaymentMethod.UPHOLD, FieldId.ACCOUNT_OWNER);
+        for (Map<PaymentMethod, FieldId> expectations : List.of(requiredFields, optionalFields)) {
+            for (Map.Entry<PaymentMethod, FieldId> entry : expectations.entrySet()) {
+                PaymentAccount account = PaymentAccountFactory.getPaymentAccount(entry.getKey());
+                account.init();
+                PaymentAccountForm form = account.toForm();
+                form.getFields().stream().filter(field -> field.getId() == FieldId.COUNTRY).forEach(field -> field.setValue("US"));
+                PaymentAccountFormField field = form.getFields().stream().filter(f -> f.getId() == entry.getValue()).findFirst().orElseThrow();
+                assertEquals(expectations == requiredFields, field.getRequired(), entry.getKey().getId());
+                assertFormFieldRequiredMatchesValidation(account, form, field, "US");
+            }
+        }
+        for (PaymentAccount account : List.of(new AchTransferAccount(), new DomesticWireTransferAccount())) {
+            assertThrows(IllegalArgumentException.class, () -> account.validateFormField(null, FieldId.HOLDER_ADDRESS, "   "));
+        }
+    }
+
+    @Test
+    public void testSwiftIntermediaryRequirements() {
+        Res.setup();
+        SwiftAccount account = new SwiftAccount();
+        account.init();
+        PaymentAccountForm form = account.toForm();
+        for (PaymentAccountFormField field : form.getFields()) field.setValue("valid value");
+        setFormValue(form, FieldId.SALT, "");
+        setFormValue(form, FieldId.BANK_SWIFT_CODE, "ABCDEFGH123");
+        setFormValue(form, FieldId.BANK_COUNTRY_CODE, "US");
+        List<FieldId> details = List.of(FieldId.INTERMEDIARY_SWIFT_CODE, FieldId.INTERMEDIARY_NAME,
+                FieldId.INTERMEDIARY_BRANCH, FieldId.INTERMEDIARY_ADDRESS);
+        List<PaymentAccountFormField> intermediary = form.getFields().stream()
+                .filter(field -> details.contains(field.getId()) || field.getId() == FieldId.INTERMEDIARY_COUNTRY_CODE).toList();
+        for (PaymentAccountFormField field : intermediary) {
+            field.setValue("");
+            assertFalse(field.getRequired());
+            assertEquals(details.stream().filter(id -> id != field.getId()).toList(), field.getRequiredIfAnyFieldHasValue());
+        }
+        assertDoesNotThrow(() -> form.toPaymentAccount().validateForm(form));
+
+        // disabling the intermediary bank can leave its country selected
+        setFormValue(form, FieldId.INTERMEDIARY_COUNTRY_CODE, "US");
+        assertDoesNotThrow(() -> form.toPaymentAccount().validateForm(form));
+        for (FieldId trigger : details) {
+            setFormValue(form, trigger, "ABCDEFGH123");
+            assertThrows(IllegalArgumentException.class, () -> form.toPaymentAccount().validateForm(form));
+            for (PaymentAccountFormField field : intermediary) assertFormFieldRequiredMatchesValidation(account, form, field, "");
+            setFormValue(form, trigger, "");
+        }
+
+        for (FieldId fieldId : details) setFormValue(form, fieldId, "ABCDEFGH123");
+        assertDoesNotThrow(() -> form.toPaymentAccount().validateForm(form));
+        for (PaymentAccountFormField field : intermediary) {
+            PaymentAccountForm missing = PaymentAccountForm.fromProto(form.toProtoMessage());
+            missing.getFields().removeIf(f -> f.getId() == field.getId());
+            assertThrows(IllegalArgumentException.class, () -> missing.toPaymentAccount().validateForm(missing));
+        }
+        form.getFields().removeAll(intermediary);
+        assertDoesNotThrow(() -> form.toPaymentAccount().validateForm(form));
+    }
+
+    @Test
+    public void testRequiredFieldsCannotBeOmitted() {
+        Res.setup();
+        PaymentAccountForm form = PaymentAccountForm.getForm(PaymentMethod.REVOLUT_ID);
+        setFormValue(form, FieldId.ACCOUNT_NAME, "revolut account");
+        setFormValue(form, FieldId.USERNAME, "username");
+        setFormValue(form, FieldId.TRADE_CURRENCIES, "USD");
+        form.getFields().removeIf(field -> field.getId() == FieldId.SALT);
+        assertDoesNotThrow(() -> form.toPaymentAccount().validateForm(form));
+        for (PaymentAccountFormField field : form.getFields()) {
+            field.setRequired(false);
+            PaymentAccountForm missing = PaymentAccountForm.fromProto(form.toProtoMessage());
+            missing.getFields().removeIf(f -> f.getId() == field.getId());
+            assertThrows(IllegalArgumentException.class, () -> missing.toPaymentAccount().validateForm(missing));
+        }
+        PaymentAccountForm empty = PaymentAccountForm.fromProto(protobuf.PaymentAccountForm.newBuilder()
+                .setId(protobuf.PaymentAccountForm.FormId.REVOLUT).build());
+        assertTrue(empty.getFields().isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> empty.toPaymentAccount().validateForm(empty));
+        PaymentAccountForm duplicate = PaymentAccountForm.fromProto(form.toProtoMessage());
+        duplicate.addField(duplicate.getFields().getFirst());
+        assertThrows(IllegalArgumentException.class, () -> duplicate.toPaymentAccount().validateForm(duplicate));
+        PaymentAccountFormField unexpected = new PaymentAccountFormField(FieldId.BANK_NAME);
+        form.addField(unexpected);
+        assertThrows(IllegalArgumentException.class, () -> new RevolutAccount().validateForm(form));
+    }
+
+    private static void setFormValue(PaymentAccountForm form, FieldId fieldId, String value) {
+        form.getFields().stream().filter(field -> field.getId() == fieldId).findFirst().orElseThrow().setValue(value);
+    }
+
     @Test
     public void testBlankJapanBankForms() throws IOException {
         Res.setup();
