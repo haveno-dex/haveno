@@ -19,6 +19,7 @@ package haveno.core.api;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -177,10 +178,10 @@ class CoreDisputeAgentsService {
                 "",
                 null,
                 null);
-        arbitratorManager.addDisputeAgent(arbitrator, () -> {
+        runOnUserThread(() -> arbitratorManager.addDisputeAgent(arbitrator, () -> {
             if (!arbitratorManager.getDisputeAgentByNodeAddress(nodeAddress).isPresent()) errorMessageHandler.handleErrorMessage("could not register arbitrator");
             else resultHandler.handleResult();
-        }, errorMessageHandler);
+        }, errorMessageHandler), errorMessageHandler);
     }
 
     private void registerMediator(NodeAddress nodeAddress,
@@ -243,8 +244,19 @@ class CoreDisputeAgentsService {
     }
 
     private void unregisterDisputeAgent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        arbitratorManager.removeDisputeAgent(resultHandler, errorMesage -> {
+        runOnUserThread(() -> arbitratorManager.removeDisputeAgent(resultHandler, errorMesage -> {
             errorMessageHandler.handleErrorMessage("Error unregistering dispute agent: " + errorMesage);
+        }), errorMessageHandler);
+    }
+
+    // dispute agent maps are updated on the user thread, so mutate and read them there
+    private static void runOnUserThread(Runnable runnable, ErrorMessageHandler errorMessageHandler) {
+        UserThread.execute(() -> {
+            try {
+                runnable.run();
+            } catch (Exception e) {
+                errorMessageHandler.handleErrorMessage(e.getMessage());
+            }
         });
     }
 }
