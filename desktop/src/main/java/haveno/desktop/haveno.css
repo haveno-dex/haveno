@@ -1373,6 +1373,11 @@ tree-table-view:focused {
     -fx-effect: dropshadow(gaussian, -bs-wizard-card-shadow, 24, 0, 0, 6);
 }
 
+/* outline pulldowns like the wizard fields so they stand out from the card */
+.wizard-card .jfx-combo-box {
+    -fx-border-color: -bs-login-field-border;
+}
+
 .startup-wizard-footer-label {
     -fx-font-size: 0.9em;
     -fx-text-fill: -bs-color-gray-6;
