@@ -142,7 +142,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
     private Label splashP2PNetworkLabel;
     private ProgressBar xmrSyncIndicator;
     private Label xmrSplashInfo;
-    private Popup p2PNetworkWarnMsgPopup, xmrNetworkWarnMsgPopup;
+    private Popup p2PNetworkWarnMsgPopup;
     private String lastP2PNetworkWarnMsg;
     private long lastP2PNetworkWarnMsgPopupTime;
     private static final long P2P_NETWORK_WARN_MSG_POPUP_THROTTLE_MS = 10 * 60 * 1000;
@@ -785,14 +785,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 if (newValue != null && !newValue.isEmpty()) {
                     xmrInfoLabel.setId("splash-error-state-msg");
                     if (!xmrInfoLabel.getStyleClass().contains("error-text")) xmrInfoLabel.getStyleClass().add("error-text");
-                    if (xmrNetworkWarnMsgPopup != null) xmrNetworkWarnMsgPopup.hide(); // hide replaced popup so it cannot linger
-                    xmrNetworkWarnMsgPopup = new Popup().warning(newValue);
-                    xmrNetworkWarnMsgPopup.show();
                 } else {
                     xmrInfoLabel.setId("footer-pane");
                     xmrInfoLabel.getStyleClass().remove("error-text");
-                    if (xmrNetworkWarnMsgPopup != null)
-                        xmrNetworkWarnMsgPopup.hide();
                 }
             });
         });
