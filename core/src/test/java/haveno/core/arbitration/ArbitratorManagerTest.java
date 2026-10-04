@@ -70,6 +70,11 @@ public class ArbitratorManagerTest {
         Timer periodicTimer = mock(Timer.class);
 
         try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.execute(any(Runnable.class)))
+                    .thenAnswer(invocation -> {
+                        ((Runnable) invocation.getArgument(0)).run();
+                        return null;
+                    });
             userThread.when(() -> UserThread.runPeriodically(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS)))
                     .thenReturn(periodicTimer);
             userThread.when(() -> UserThread.runAfter(any(Runnable.class), eq(60L)))
@@ -112,6 +117,11 @@ public class ArbitratorManagerTest {
         when(filterManager.filterProperty()).thenReturn(new SimpleObjectProperty<>());
 
         try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.execute(any(Runnable.class)))
+                    .thenAnswer(invocation -> {
+                        ((Runnable) invocation.getArgument(0)).run();
+                        return null;
+                    });
             userThread.when(() -> UserThread.runPeriodically(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS)))
                     .thenReturn(mock(Timer.class));
             ArbitratorManager manager = new ArbitratorManager(null, arbitratorService, user, filterManager);
