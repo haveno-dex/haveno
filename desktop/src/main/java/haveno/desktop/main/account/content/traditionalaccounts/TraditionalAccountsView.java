@@ -579,7 +579,7 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
         });
     }
 
-    // A query naming a country shows only methods supporting it; otherwise it matches method names and currencies.
+    // Method names take precedence over partial country matches; exact country names and codes still match.
     private static Function<String, Predicate<PaymentMethod>> getPaymentMethodQueryFilter(List<PaymentMethod> methods) {
         Map<PaymentMethod, String> currencyTextByMethod = new HashMap<>();
         Map<PaymentMethod, Set<String>> countryCodesByMethod = new HashMap<>();
@@ -591,11 +591,14 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
             if (countries != null) countryCodesByMethod.put(method, countries.stream().map(country -> country.code).collect(Collectors.toSet()));
         }
         return query -> {
+            Predicate<PaymentMethod> matchesName = method -> StringUtils.containsIgnoreCase(Res.get(method.getId()), query);
+            boolean matchesMethodName = methods.stream().anyMatch(matchesName);
             Set<String> queriedCountryCodes = CountryUtil.getAllCountries().stream()
-                    .filter(country -> countryMatches(country, query))
+                    .filter(country -> country.code.equalsIgnoreCase(query) || country.name.equalsIgnoreCase(query)
+                            || (!matchesMethodName && countryMatches(country, query)))
                     .map(country -> country.code).collect(Collectors.toSet());
             return method -> {
-                if (StringUtils.containsIgnoreCase(Res.get(method.getId()), query)) return true;
+                if (matchesName.test(method)) return true;
                 Set<String> supported = countryCodesByMethod.get(method);
                 if (!queriedCountryCodes.isEmpty()) return supported == null || supported.stream().anyMatch(queriedCountryCodes::contains);
                 return StringUtils.containsIgnoreCase(currencyTextByMethod.get(method), query);

@@ -75,17 +75,43 @@ public class GUIUtilTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    public void testPaymentMethodNameSearchDoesNotMatchPartialCountries() throws Exception {
+        List<PaymentMethod> methods = PaymentMethod.paymentMethods.stream().filter(PaymentMethod::isTraditional).toList();
+        Method queryFilter = TraditionalAccountsView.class.getDeclaredMethod("getPaymentMethodQueryFilter", List.class);
+        queryFilter.setAccessible(true);
+        Function<String, Predicate<PaymentMethod>> filter = (Function<String, Predicate<PaymentMethod>>) queryFilter.invoke(null, methods);
+        for (String query : List.of("Western", "western", "WESTERN", "Wester", "Western Union")) {
+            assertEquals(List.of(PaymentMethod.WESTERN_UNION_ID),
+                    methods.stream().filter(filter.apply(query)).map(PaymentMethod::getId).toList(), query);
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     public void testCountrySearchIncludesGlobalPaymentMethods() throws Exception {
         Method queryFilter = TraditionalAccountsView.class.getDeclaredMethod("getPaymentMethodQueryFilter", List.class);
         queryFilter.setAccessible(true);
         Function<String, Predicate<PaymentMethod>> filter = (Function<String, Predicate<PaymentMethod>>) queryFilter.invoke(null,
-                List.of(PaymentMethod.REVOLUT, PaymentMethod.SEPA, PaymentMethod.JAPAN_BANK));
+                List.of(PaymentMethod.REVOLUT, PaymentMethod.SEPA, PaymentMethod.JAPAN_BANK,
+                        PaymentMethod.WESTERN_UNION, PaymentMethod.CASH_DEPOSIT, PaymentMethod.US_POSTAL_MONEY_ORDER));
         assertTrue(filter.apply("US").test(PaymentMethod.REVOLUT));
         assertFalse(filter.apply("US").test(PaymentMethod.SEPA));
         assertFalse(filter.apply("US").test(PaymentMethod.JAPAN_BANK));
         assertTrue(filter.apply("DE").test(PaymentMethod.SEPA));
         assertTrue(filter.apply("JP").test(PaymentMethod.JAPAN_BANK));
         assertTrue(filter.apply("Revolut").test(PaymentMethod.REVOLUT));
+        assertTrue(filter.apply("Japan").test(PaymentMethod.JAPAN_BANK));
+        assertTrue(filter.apply("Japan").test(PaymentMethod.REVOLUT));
+        assertFalse(filter.apply("Japan").test(PaymentMethod.SEPA));
+        assertTrue(filter.apply("Germ").test(PaymentMethod.SEPA));
+        assertTrue(filter.apply("Germ").test(PaymentMethod.REVOLUT));
+        assertTrue(filter.apply("Western Sahara").test(PaymentMethod.REVOLUT));
+        assertFalse(filter.apply("Western Sahara").test(PaymentMethod.SEPA));
+        assertTrue(filter.apply("Sahara").test(PaymentMethod.REVOLUT));
+        assertTrue(filter.apply("USD").test(PaymentMethod.WESTERN_UNION));
+        assertFalse(filter.apply("USD").test(PaymentMethod.SEPA));
+        assertTrue(filter.apply("Euro").test(PaymentMethod.SEPA));
+        assertFalse(filter.apply("no such payment method").test(PaymentMethod.REVOLUT));
     }
 
     @Test
