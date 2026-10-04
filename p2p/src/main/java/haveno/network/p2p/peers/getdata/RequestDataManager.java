@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -124,6 +125,10 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     // Non-seed peers already tried in the current sync cycle; exhausting all candidates ends the
     // cycle instead of looping over unreachable peers without pause (peers are not purged while offline).
     private final Set<NodeAddress> attemptedNonSeedNodes = new HashSet<>();
+    // A failed redundant request is not exhaustion if the current sync cycle completed and no truncated chain is unfinished.
+    private volatile int syncCycle = 0;
+    private volatile int completedSyncCycle = -1;
+    private final Set<NodeAddress> truncatedNodes = ConcurrentHashMap.newKeySet();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -181,6 +186,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
 
     public void requestPreliminaryData() {
         attemptedNonSeedNodes.clear();
+        syncCycle++;
         ArrayList<NodeAddress> nodeAddresses = new ArrayList<>(seedNodeAddresses);
         if (!nodeAddresses.isEmpty()) {
             ArrayList<NodeAddress> finalNodeAddresses = new ArrayList<>(nodeAddresses);
@@ -204,6 +210,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         dataUpdateRequested = true;
         isPreliminaryDataRequest = false;
         attemptedNonSeedNodes.clear();
+        syncCycle++;
         List<NodeAddress> nodeAddresses = new ArrayList<>(seedNodeAddresses);
         if (!nodeAddresses.isEmpty()) {
             // We use the node we have already connected to to request again
@@ -351,6 +358,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         if (!stopped) {
             if (!handlerMap.containsKey(nodeAddress)) {
                 boolean preliminaryRequest = isPreliminaryDataRequest;
+                int requestSyncCycle = syncCycle;
                 RequestDataHandler requestDataHandler = new RequestDataHandler(networkNode, dataStorage, peerManager,
                         new RequestDataHandler.Listener() {
                             @Override
@@ -363,6 +371,13 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                 // counter. The limit then only bounds requests that fail to make progress, letting
                                 // a large initial sync page through all data within a single startup.
                                 if (numNewItems > 0) numRepeatedRequests = 0;
+
+                                if (wasTruncated) {
+                                    truncatedNodes.add(nodeAddress);
+                                } else {
+                                    truncatedNodes.remove(nodeAddress);
+                                    if (requestSyncCycle == syncCycle) completedSyncCycle = requestSyncCycle;
+                                }
 
                                 // need to remove before listeners are notified as they cause the update call
                                 handlerMap.remove(nodeAddress);
@@ -430,7 +445,12 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                     NodeAddress nextCandidate = remainingNodeAddresses.get(0);
                                     remainingNodeAddresses.remove(nextCandidate);
                                     requestData(nextCandidate, remainingNodeAddresses);
-                                } else if (handlerMap.isEmpty()) {
+                                } else if (!handlerMap.isEmpty()) {
+                                    log.debug("We could not connect to seed node {} but we have other connection attempts open.", nodeAddress.getFullAddress());
+                                } else if (completedSyncCycle == syncCycle && truncatedNodes.isEmpty()) {
+                                    // keep redundancy through non-seed peers, but do not restart since data was already received
+                                    if (!requestFromNonSeedNodePeers()) log.debug("Request to {} failed but data was already received in this sync cycle.", nodeAddress.getFullAddress());
+                                } else {
                                     // If not other connection attempts are in the handlerMap we assume that no seed
                                     // nodes are available.
                                     log.debug("There is no remaining node available for requesting data. " +
@@ -458,8 +478,6 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                                         }
                                         restart();
                                     }
-                                } else {
-                                    log.debug("We could not connect to seed node {} but we have other connection attempts open.", nodeAddress.getFullAddress());
                                 }
                             }
                         });
@@ -523,6 +541,7 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
                         numRepeatedRequests = 0; // reset the repeat limit per sync cycle
                         numTotalRequests = 0;
                         attemptedNonSeedNodes.clear();
+                        syncCycle++;
 
                         stopRetryTimer();
 

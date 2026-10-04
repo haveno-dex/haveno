@@ -61,11 +61,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.time.Clock;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -154,63 +157,205 @@ public class PeerManagerTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     public void testLatePreliminaryResponseDoesNotCompleteUpdatedDataHandshake(boolean updatedRequestFails) {
-        NetworkNode networkNode = mock(NetworkNode.class);
-        when(networkNode.nodeAddressProperty()).thenReturn(new SimpleObjectProperty<>());
-        SeedNodeRepository seeds = mock(SeedNodeRepository.class);
-        when(seeds.getSeedNodeAddresses()).thenReturn(Set.of(new NodeAddress("seed1:1002"), new NodeAddress("seed2:1003")));
-        RequestDataManager.Listener listener = mock(RequestDataManager.Listener.class);
-        ArrayDeque<Runnable> scheduled = new ArrayDeque<>();
-        List<Runnable> responses = new ArrayList<>();
-        List<SettableFuture<Connection>> sends = new ArrayList<>();
-        List<MessageListener> messageListeners = new ArrayList<>();
-        doAnswer(invocation -> messageListeners.add(invocation.getArgument(0)))
-                .when(networkNode).addMessageListener(any(MessageListener.class));
-        doAnswer(invocation -> messageListeners.remove(invocation.getArgument(0)))
-                .when(networkNode).removeMessageListener(any(MessageListener.class));
-        when(networkNode.getNodeAddress()).thenReturn(new NodeAddress("local:9999"));
-        when(networkNode.sendMessage(any(NodeAddress.class), any(GetDataRequest.class))).thenAnswer(invocation -> {
-            NodeAddress peer = invocation.getArgument(0);
-            GetDataRequest request = invocation.getArgument(1);
-            Connection connection = mock(Connection.class);
-            when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(peer));
-            responses.add(() -> new ArrayList<>(messageListeners).forEach(messageListener -> messageListener.onMessage(
-                    new GetDataResponse(Set.of(), Set.of(), request.getNonce(), request instanceof GetUpdatedDataRequest, false), connection)));
-            SettableFuture<Connection> send = SettableFuture.create();
-            sends.add(send);
-            return send;
-        });
-        P2PDataStorage storage = mock(P2PDataStorage.class);
-        when(storage.buildPreliminaryGetDataRequest(anyInt())).thenAnswer(invocation ->
-                new PreliminaryGetDataRequest(invocation.getArgument(0), Set.of()));
-        when(storage.buildGetUpdatedDataRequest(any(NodeAddress.class), anyInt())).thenAnswer(invocation ->
-                new GetUpdatedDataRequest(invocation.getArgument(0), invocation.getArgument(1), Set.of()));
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            fixture.respond(0, false);
+            fixture.runAfter(100);
+            verify(fixture.listener).onPreliminaryDataReceived();
 
-        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
-            userThread.when(() -> UserThread.runAfter(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS)))
-                    .thenAnswer(invocation -> {
-                        scheduled.add(invocation.getArgument(0));
-                        return mock(Timer.class);
-                    });
-            RequestDataManager requests = new RequestDataManager(networkNode, seeds, storage, mock(PeerManager.class));
-            requests.setListener(listener);
-            requests.requestPreliminaryData();
-            scheduled.remove().run();
-            scheduled.remove().run();
-            assertEquals(2, responses.size());
-            responses.get(0).run();
-            scheduled.remove().run();
-            verify(listener).onPreliminaryDataReceived();
+            fixture.manager.requestUpdateData();
+            assertEquals(3, fixture.requests.size());
+            if (updatedRequestFails) fixture.fail(2);
+            fixture.respond(1, false);
+            verify(fixture.listener, never()).onUpdatedDataReceived();
 
-            requests.requestUpdateData();
-            assertEquals(3, responses.size());
-            if (updatedRequestFails) sends.get(2).setException(new IOException("Seed disconnected"));
-            responses.get(1).run();
-            verify(listener, never()).onUpdatedDataReceived();
+            assertEquals(updatedRequestFails ? 4 : 3, fixture.requests.size());
+            fixture.respond(updatedRequestFails ? 3 : 2, false);
+            verify(fixture.listener).onUpdatedDataReceived();
+        }
+    }
 
-            assertEquals(updatedRequestFails ? 4 : 3, responses.size());
-            responses.get(updatedRequestFails ? 3 : 2).run();
-            verify(listener).onUpdatedDataReceived();
-            requests.shutDown();
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testCompletedDataRequestDoesNotRetryRedundantFailure(boolean update) {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            int firstRequest = 0;
+            if (update) {
+                fixture.completePreliminaryData();
+                fixture.requestUpdateData();
+                firstRequest = 2;
+            }
+            fixture.respond(firstRequest, false);
+            fixture.fail(firstRequest + 1);
+
+            assertFalse(fixture.isRetryPending());
+            if (update) verify(fixture.listener).onUpdatedDataReceived();
+        }
+    }
+
+    @Test
+    public void testCompletedDataRequestStillTriesNonSeedPeerAfterRedundantFailure() {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            NodeAddress peer = new NodeAddress("peer:2004");
+            when(fixture.peerManager.isSeedNode(peer)).thenReturn(false);
+            when(fixture.peerManager.getReportedPeers()).thenReturn(Set.of(new Peer(peer, null)));
+            fixture.start();
+            fixture.respond(0, false);
+            fixture.fail(1);
+
+            assertEquals(peer, fixture.peers.get(2));
+            fixture.fail(2);
+            assertFalse(fixture.isRetryPending());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testDataRequestWithoutCompletedCycleRetries(boolean update) {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            int firstRequest = 0;
+            if (update) {
+                fixture.completePreliminaryData();
+                fixture.requestUpdateData();
+                firstRequest = 2;
+            }
+            fixture.fail(firstRequest);
+            fixture.fail(firstRequest + 1);
+
+            assertTrue(fixture.isRetryPending());
+            if (!update) verify(fixture.listener).onNoSeedNodeAvailable();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testUnfinishedTruncatedDataRequestStillRetries(boolean newCycle) {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            fixture.completePreliminaryData();
+            fixture.requestUpdateData();
+            fixture.respond(2, false);
+            fixture.respond(3, true);
+            fixture.runAfter(2000);
+            if (newCycle) {
+                fixture.manager.requestUpdateData();
+                fixture.respond(5, false);
+            }
+            fixture.fail(4);
+
+            assertTrue(fixture.isRetryPending());
+            fixture.runAfter(10_000);
+            int firstRequest = newCycle ? 6 : 5;
+            int truncatedRequest = fixture.peers.get(firstRequest).equals(fixture.peers.get(3)) ? firstRequest : firstRequest + 1;
+            fixture.respond(truncatedRequest == firstRequest ? firstRequest + 1 : firstRequest, false);
+            fixture.fail(truncatedRequest);
+
+            assertTrue(fixture.isRetryPending());
+        }
+    }
+
+    @Test
+    public void testLatePreliminaryResponseDoesNotSuppressUpdateRetry() {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            fixture.respond(0, false);
+            fixture.runAfter(100);
+            fixture.manager.requestUpdateData();
+            fixture.respond(1, false);
+            fixture.fail(2);
+            fixture.fail(3);
+
+            assertTrue(fixture.isRetryPending());
+            verify(fixture.listener, never()).onUpdatedDataReceived();
+        }
+    }
+
+    @Test
+    public void testCompletedTruncatedDataRequestDoesNotRetryRedundantFailure() {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            fixture.completePreliminaryData();
+            fixture.requestUpdateData();
+            fixture.respond(3, true);
+            fixture.runAfter(2000);
+            fixture.respond(4, false);
+            fixture.fail(2);
+
+            assertFalse(fixture.isRetryPending());
+        }
+    }
+
+    @Test
+    public void testFailedRecoveryDoesNotReusePreviousDataRequestCompletion() {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            fixture.completePreliminaryData();
+            fixture.requestUpdateData();
+            fixture.respond(2, false);
+            fixture.fail(3);
+            fixture.manager.onAllConnectionsLost();
+            assertTrue(fixture.isRetryPending());
+            fixture.runAfter(10_000);
+            fixture.fail(4);
+            fixture.fail(5);
+
+            assertTrue(fixture.isRetryPending());
+        }
+    }
+
+    @Test
+    public void testRedundantFailureBeforeDataResponseDoesNotLeaveRetryPending() {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            fixture.completePreliminaryData();
+            fixture.requestUpdateData();
+            fixture.fail(3);
+            fixture.respond(2, false);
+
+            assertFalse(fixture.isRetryPending());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testDataRequestCompletionDoesNotRaceRedundantFailure(boolean completeDuringExhaustionCheck) throws ReflectiveOperationException {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            fixture.completePreliminaryData();
+            fixture.requestUpdateData();
+            Field handlers = RequestDataManager.class.getDeclaredField("handlerMap");
+            handlers.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            Map<NodeAddress, Object> current = (Map<NodeAddress, Object>) handlers.get(fixture.manager);
+            NodeAddress completingNode = fixture.peers.get(2);
+            handlers.set(fixture.manager, new HashMap<NodeAddress, Object>(current) {
+                private boolean responded;
+
+                @Override
+                public Object remove(Object key) {
+                    Object handler = super.remove(key);
+                    // force the redundant failure into the gap immediately after handler removal
+                    if (!completeDuringExhaustionCheck && completingNode.equals(key)) fixture.fail(3);
+                    return handler;
+                }
+
+                @Override
+                public boolean isEmpty() {
+                    // complete the live request while the failed request checks for exhaustion
+                    if (completeDuringExhaustionCheck && !responded) {
+                        responded = true;
+                        fixture.respond(2, false);
+                    }
+                    return super.isEmpty();
+                }
+            });
+            if (completeDuringExhaustionCheck) fixture.fail(3);
+            else fixture.respond(2, false);
+
+            assertFalse(fixture.isRetryPending());
+            verify(fixture.listener).onUpdatedDataReceived();
         }
     }
 
@@ -880,6 +1025,108 @@ public class PeerManagerTest {
             fixture.manager.shutDown();
             fixture.drainConnectionTasks();
             verify(fixture.connection).removeMessageListener(replacementListener);
+        }
+    }
+
+    private static class DataRequestFixture implements AutoCloseable {
+        private final NetworkNode networkNode = mock(NetworkNode.class);
+        private final PeerManager peerManager = mock(PeerManager.class);
+        private final RequestDataManager.Listener listener = mock(RequestDataManager.Listener.class);
+        private final List<MessageListener> messageListeners = new ArrayList<>();
+        private final List<NodeAddress> peers = new ArrayList<>();
+        private final List<GetDataRequest> requests = new ArrayList<>();
+        private final List<SettableFuture<Connection>> sends = new ArrayList<>();
+        private final Map<Long, ArrayDeque<Runnable>> scheduled = new HashMap<>();
+        private final MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+        private final RequestDataManager manager;
+
+        private DataRequestFixture() {
+            when(networkNode.nodeAddressProperty()).thenReturn(new SimpleObjectProperty<>());
+            when(networkNode.getNodeAddress()).thenReturn(new NodeAddress("local:9999"));
+            when(networkNode.getAllConnections()).thenReturn(Set.of());
+            doAnswer(invocation -> messageListeners.add(invocation.getArgument(0)))
+                    .when(networkNode).addMessageListener(any(MessageListener.class));
+            doAnswer(invocation -> messageListeners.remove(invocation.getArgument(0)))
+                    .when(networkNode).removeMessageListener(any(MessageListener.class));
+            when(networkNode.sendMessage(any(NodeAddress.class), any(GetDataRequest.class))).thenAnswer(invocation -> {
+                peers.add(invocation.getArgument(0));
+                requests.add(invocation.getArgument(1));
+                SettableFuture<Connection> send = SettableFuture.create();
+                sends.add(send);
+                return send;
+            });
+            SeedNodeRepository seeds = mock(SeedNodeRepository.class);
+            when(seeds.getSeedNodeAddresses()).thenReturn(Set.of(new NodeAddress("seed1:1002"), new NodeAddress("seed2:1003")));
+            when(peerManager.isSeedNode(any(NodeAddress.class))).thenReturn(true);
+            P2PDataStorage storage = mock(P2PDataStorage.class);
+            when(storage.buildPreliminaryGetDataRequest(anyInt())).thenAnswer(invocation ->
+                    new PreliminaryGetDataRequest(invocation.getArgument(0), Set.of()));
+            when(storage.buildGetUpdatedDataRequest(any(NodeAddress.class), anyInt())).thenAnswer(invocation ->
+                    new GetUpdatedDataRequest(invocation.getArgument(0), invocation.getArgument(1), Set.of()));
+            userThread.when(() -> UserThread.runAfter(any(Runnable.class), anyLong(), any(TimeUnit.class)))
+                    .thenAnswer(invocation -> schedule(invocation.getArgument(0),
+                            invocation.getArgument(2, TimeUnit.class).toMillis(invocation.getArgument(1))));
+            userThread.when(() -> UserThread.runAfter(any(Runnable.class), anyLong()))
+                    .thenAnswer(invocation -> schedule(invocation.getArgument(0),
+                            TimeUnit.SECONDS.toMillis(invocation.getArgument(1))));
+            manager = new RequestDataManager(networkNode, seeds, storage, peerManager);
+            manager.setListener(listener);
+        }
+
+        private Timer schedule(Runnable runnable, long delayMs) {
+            ArrayDeque<Runnable> tasks = scheduled.computeIfAbsent(delayMs, key -> new ArrayDeque<>());
+            tasks.add(runnable);
+            Timer timer = mock(Timer.class);
+            doAnswer(invocation -> {
+                tasks.remove(runnable);
+                return null;
+            }).when(timer).stop();
+            return timer;
+        }
+
+        private void runAfter(long delayMs) {
+            scheduled.get(delayMs).removeFirst().run();
+        }
+
+        private boolean isRetryPending() {
+            return scheduled.containsKey(10_000L) && !scheduled.get(10_000L).isEmpty();
+        }
+
+        private void start() {
+            manager.requestPreliminaryData();
+            runAfter(1);
+            runAfter(201);
+            assertEquals(2, requests.size());
+        }
+
+        private void completePreliminaryData() {
+            respond(0, false);
+            respond(1, false);
+            runAfter(100);
+        }
+
+        private void requestUpdateData() {
+            manager.requestUpdateData();
+            runAfter(1);
+        }
+
+        private void respond(int index, boolean truncated) {
+            GetDataRequest request = requests.get(index);
+            Connection connection = mock(Connection.class);
+            when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(peers.get(index)));
+            GetDataResponse response = new GetDataResponse(Set.of(), Set.of(), request.getNonce(),
+                    request instanceof GetUpdatedDataRequest, truncated);
+            new ArrayList<>(messageListeners).forEach(messageListener -> messageListener.onMessage(response, connection));
+        }
+
+        private void fail(int index) {
+            sends.get(index).setException(new IOException("Seed disconnected"));
+        }
+
+        @Override
+        public void close() {
+            manager.shutDown();
+            userThread.close();
         }
     }
 
