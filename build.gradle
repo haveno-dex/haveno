@@ -662,6 +662,8 @@ configure(project(':core')) {
                 moneroRpcFile = new File(localnetDir, 'monero-wallet-rpc')
             }
             if (ext.dependencyDownloadedAndVerified || !monerodFile.exists() || !moneroRpcFile.exists()) {
+                monerodFile.delete() // replace rather than overwrite in place, which macOS kills on launch
+                moneroRpcFile.delete()
                 if (Os.isFamily(Os.FAMILY_WINDOWS)) {
                     ext.extractArchiveZip(moneroArchiveFile, localnetDir)
                 } else {
