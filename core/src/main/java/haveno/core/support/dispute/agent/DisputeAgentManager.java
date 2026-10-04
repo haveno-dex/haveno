@@ -121,24 +121,25 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onAllServicesInitialized() {
+        // network callbacks arrive on connection threads, so update the observable map on the user thread
         disputeAgentService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                protectedStorageEntries.forEach(protectedStorageEntry -> {
+                UserThread.execute(() -> protectedStorageEntries.forEach(protectedStorageEntry -> {
                     if (isExpectedInstance(protectedStorageEntry)) {
                         updateMap();
                     }
-                });
+                }));
             }
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
-                protectedStorageEntries.forEach(protectedStorageEntry -> {
+                UserThread.execute(() -> protectedStorageEntries.forEach(protectedStorageEntry -> {
                     if (isExpectedInstance(protectedStorageEntry)) {
                         updateMap();
                         removeAcceptedDisputeAgentFromUser(protectedStorageEntry);
                     }
-                });
+                }));
             }
         });
 
@@ -150,14 +151,14 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
             bootstrapListener = new BootstrapListener() {
                 @Override
                 public void onDataReceived() {
-                    startRepublishDisputeAgent();
+                    UserThread.execute(() -> startRepublishDisputeAgent());
                 }
 
                 @Override
                 public void onUpdatedDataReceived() {
                     // Preliminary data can arrive before peers know our address and accept broadcasts.
                     // Republish after the updated-data handshake, even if both startup attempts were too early.
-                    if (p2PService.isBootstrapped()) republish();
+                    if (p2PService.isBootstrapped()) UserThread.execute(() -> republish());
                 }
             };
             p2PService.addP2PServiceListener(bootstrapListener);
@@ -165,7 +166,7 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
                 startRepublishDisputeAgent();
         }
 
-        filterManager.filterProperty().addListener((observable, oldValue, newValue) -> updateMap());
+        filterManager.filterProperty().addListener((observable, oldValue, newValue) -> UserThread.execute(this::updateMap));
 
         updateMap();
     }
