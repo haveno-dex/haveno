@@ -201,7 +201,10 @@ public final class XmrConnectionService {
                         initialize();
                     } catch (Exception e) {
                         log.warn("Error initializing connection service, error={}\n", e.getMessage(), e);
-                        UserThread.execute(() -> connectionServiceErrorMsg.set(e.getMessage()));
+                        UserThread.execute(() -> {
+                            connectionServiceErrorMsg.set(e.getMessage());
+                            HavenoUtils.setTopError(Res.get("popup.warning.moneroConnection", e.getMessage())); // polling never starts, so surface fatal error
+                        });
                     }
                 });
             }
