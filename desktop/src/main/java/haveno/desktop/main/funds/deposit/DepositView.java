@@ -115,8 +115,7 @@ import org.jetbrains.annotations.NotNull;
 @FxmlView
 public class DepositView extends ActivatableView<VBox, Void> {
 
-    @FXML
-    VBox heroBox;
+    private VBox heroBox;
     @FXML
     TableView<DepositListItem> tableView;
     private FilterBox filterBox;
@@ -316,6 +315,8 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
                 heroContent = new VBox(12, heroTitleLabel, qrCodePane, qrCodePaneSmall, balanceBox, addressTextField, amountTextField, actionRow);
                 heroContent.setAlignment(Pos.TOP_CENTER);
+                heroBox = new VBox();
+                heroBox.setAlignment(Pos.TOP_CENTER);
 
                 // spacers seat the collapsed hero in the upper third; unmanaged when expanded so it sits compact at the top
                 heroTopSpacer = new Region();
@@ -342,6 +343,10 @@ public class DepositView extends ActivatableView<VBox, Void> {
                 // restore the saved show/hide state; deposit to the main wallet by default
                 setAddressListVisible(preferences.isDepositAddressesExpanded());
                 if (baseAddress != null) setAddress(baseAddress, true);
+
+                // adding to the root re-marks its ancestors dirty, so the built view repaints even if
+                // JavaFX left stale dirty flags under it while loading (JDK-8322619, fixed in JavaFX 23)
+                root.getChildren().add(0, heroBox);
 
                 balanceListener = new XmrBalanceListener() {
                     @Override

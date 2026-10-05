@@ -27,8 +27,6 @@
         <Insets bottom="15.0" left="15.0" right="15.0" top="8.0"/>
     </padding>
 
-    <VBox fx:id="heroBox" alignment="TOP_CENTER"/>
-
     <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
         <columns>
             <TableColumn fx:id="addressColumn" minWidth="320"/>
