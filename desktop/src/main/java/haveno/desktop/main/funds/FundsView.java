@@ -142,10 +142,6 @@ public class FundsView extends ActivatableView<VBox, Void> {
     }
 
     private void loadView(Class<? extends View> viewClass) {
-        // we want to get activate/deactivate called, so we remove the old view on tab change
-        if (currentTab != null)
-            content.getChildren().clear();
-
         View view = viewLoader.load(viewClass);
 
         if (view instanceof DepositView)
