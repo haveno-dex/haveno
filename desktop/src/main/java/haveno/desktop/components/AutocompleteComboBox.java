@@ -238,8 +238,9 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
             UserThread.execute(() -> {
                 String query = getEditor().getText();
-                if (items.stream().anyMatch(item -> asString(item).equalsIgnoreCase(query))) return;
-                if (query.isEmpty()) removeFilter();
+                T value = getValue();
+                if (value != null && getItems().contains(value) && asString(value).equals(query)) return; // editor shows the arrowed or committed item
+                if (query.isBlank()) removeFilter();
                 else filterBy(query);
                 openPopup();
             });
@@ -248,8 +249,9 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
     private void filterBy(String query) {
         List<? extends T> pool = searchPool != null && !query.isEmpty() ? searchPool : items;
-        Predicate<T> matchesQuery = queryFilter != null ? queryFilter.apply(query)
-                : item -> StringUtils.containsIgnoreCase(asString(item), query);
+        String trimmed = query.strip();
+        Predicate<T> matchesQuery = queryFilter != null ? queryFilter.apply(trimmed)
+                : item -> StringUtils.containsIgnoreCase(asString(item), trimmed);
         shownItems = pool.stream()
                 .filter(matchesQuery)
                 .collect(Collectors.toList());
