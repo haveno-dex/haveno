@@ -347,7 +347,7 @@ public abstract class PaymentAccount implements PersistablePayload {
 
     @Nullable
     public List<Country> getSupportedCountries() {
-        return null; // support all countries by default
+        return CountryUtil.getAllCountries(); // support all countries by default
     }
 
     // ---------------------------- SERIALIZATION -----------------------------
@@ -733,10 +733,13 @@ public abstract class PaymentAccount implements PersistablePayload {
             throw new IllegalArgumentException("Not implemented");
         case BANK_CODE:
             throw new IllegalArgumentException("Not implemented");
-        case BANK_COUNTRY_CODE:
+        case BANK_COUNTRY_CODE: {
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel(Res.get("payment.bank.country"));
+            List<Country> countries = getSupportedCountries();
+            if (countries != null && !countries.isEmpty()) field.setSupportedCountries(countries);
             break;
+        }
         case BANK_ID:
             throw new IllegalArgumentException("Not implemented");
         case BANK_NAME:
@@ -783,12 +786,13 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.payByMail.contact"));
             break;
-        case COUNTRY:
+        case COUNTRY: {
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel(Res.get("shared.country"));
             List<Country> countries = getSupportedCountries();
             if (countries != null && !countries.isEmpty()) field.setSupportedCountries(countries);
             break;
+        }
         case CLABE:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.clabe"));
@@ -836,10 +840,13 @@ public abstract class PaymentAccount implements PersistablePayload {
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.swift.branch.intermediary"));
             break;
-        case INTERMEDIARY_COUNTRY_CODE:
+        case INTERMEDIARY_COUNTRY_CODE: {
             field.setComponent(PaymentAccountFormField.Component.SELECT_ONE);
             field.setLabel(Res.get("payment.swift.country.intermediary"));
+            List<Country> countries = getSupportedCountries();
+            if (countries != null && !countries.isEmpty()) field.setSupportedCountries(countries);
             break;
+        }
         case INTERMEDIARY_NAME:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.swift.name.intermediary"));
