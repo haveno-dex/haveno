@@ -1069,6 +1069,36 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testNativePasswordChangeSkipsOrphanOnOlderPassword() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        CoreAccountService account = account(null);
+        XmrWalletService service = walletService(account);
+        Preferences preferences = mock(Preferences.class);
+        doReturn(true).when(preferences).isUseNativeXmrWallet();
+        setField(XmrWalletService.class, service, "preferences", preferences);
+        MoneroWallet mainWallet = mockWallet();
+        Files.createFile(walletDir.toPath().resolve("haveno_XMR.keys"));
+        setField(XmrWalletBase.class, service, "wallet", mainWallet);
+        Path path = walletDir.toPath().resolve("orphan_trade");
+        MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("older-password").setNetworkType(XmrWalletService.getMoneroNetworkType())).close(true);
+        byte[] keys = Files.readAllBytes(path.resolveSibling("orphan_trade.keys"));
+        byte[] cache = Files.readAllBytes(path);
+        Path rollingBackup = Files.createDirectories(walletDir.toPath().resolve("backup/backups_orphan_trade"));
+
+        List<String> retained = account.changePassword(null, "new-password");
+
+        assertTrue(retained.contains("wallet/orphan_trade.keys"));
+        assertTrue(Files.isDirectory(rollingBackup));
+        assertFalse(account.isPasswordRecoveryRequired());
+        assertEquals("new-password", account("new-password").getPassword());
+        verify(mainWallet).changePassword("password", "new-password");
+        assertArrayEquals(keys, Files.readAllBytes(path.resolveSibling("orphan_trade.keys")));
+        assertArrayEquals(cache, Files.readAllBytes(path));
+    }
+
+    @Test
     public void testRpcPasswordChangesPreserveTradeAndMainWalletTrust() throws Exception {
         CoreAccountService account = account(null);
         XmrConnectionService connections = mock(XmrConnectionService.class, CALLS_REAL_METHODS);
