@@ -348,7 +348,7 @@ public abstract class PaymentAccount implements PersistablePayload {
 
     @Nullable
     public List<Country> getSupportedCountries() {
-        return null; // support all countries by default
+        return CountryUtil.getAllCountries(); // support all countries by default
     }
 
     // ---------------------------- SERIALIZATION -----------------------------
