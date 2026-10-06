@@ -581,6 +581,9 @@ public abstract class TradeStepView extends VBox {
         depositsToggle.accessibleTextProperty().bind(Bindings.concat(depositsTitle.getText(), ": ", depositsAction.textProperty()));
         depositsPane = new VBox(depositsToggle, depositDetails);
         depositsPane.getStyleClass().addAll("trade-panel", "trade-deposits-panel");
+        // paint the toggle above adjacent dividers so the hover background covers them
+        depositsToggle.setViewOrder(-1);
+        depositsPane.setViewOrder(-1);
         setDepositDetailsExpanded(false);
         updateDepositSummary();
         Label helpTitle = new Label(Res.get("portfolio.pending.support.headline.getHelp"));
