@@ -398,7 +398,7 @@ public class EncryptionTest {
             mainChanged.countDown();
             assertTrue(resumeWallets.await(10, TimeUnit.SECONDS));
             return null;
-        }).when(mainWallet).save();
+        }).when(mainWallet).changePassword(any(), any());
         AccountServiceListener listener = mock(AccountServiceListener.class);
         doAnswer(invocation -> {
             cleanupStarted.countDown();
@@ -997,7 +997,6 @@ public class EncryptionTest {
         }).when(wallet).changePassword(anyString(), anyString());
         service.changeWalletPassword("retained", wallet, "new-password", true);
         verify(wallet).changePassword("password", "new-password");
-        verify(wallet).save();
         verify(wallet, never()).close(anyBoolean());
     }
 
@@ -1174,11 +1173,10 @@ public class EncryptionTest {
         MoneroWallet wallet = mockWallet();
         doThrow(new MoneroError("Invalid original password.")).when(wallet).changePassword(anyString(), anyString());
         assertThrows(MoneroError.class, () -> service.changeWalletPassword("retained", wallet, "new-password", true));
-        verify(wallet, never()).save();
         XmrWalletService failingService = walletService(account(null));
         MoneroWallet failingSave = mockWallet();
         MoneroError error = new MoneroError("disk full");
-        doThrow(error).when(failingSave).save();
+        doThrow(error).when(failingSave).changePassword(anyString(), anyString());
         assertSame(error, assertThrows(MoneroError.class, () -> failingService.changeWalletPassword("retained", failingSave, "new-password", true)));
     }
 
@@ -1284,7 +1282,6 @@ public class EncryptionTest {
         assertEquals("new-password", account("new-password").getPassword());
         assertFalse(account.isPasswordRecoveryRequired());
         verify(wallet).changePassword("password", "new-password");
-        verify(wallet).save();
         verify(wallet, never()).close(anyBoolean());
     }
 
@@ -1325,7 +1322,6 @@ public class EncryptionTest {
         assertFalse(changing.isAlive());
         assertNull(failure.get());
         verify(restored).changePassword("password", "new-password");
-        verify(restored).save();
         assertEquals("new-password", account("new-password").getPassword());
     }
 
@@ -1472,7 +1468,6 @@ public class EncryptionTest {
         change.setAccessible(true);
         assertThrows(InvocationTargetException.class, () -> change.invoke(service, null, "new-password"));
         verify(wallet).changePassword("password", "new-password");
-        verify(wallet).save();
         verify(wallet, never()).close(anyBoolean());
         assertTrue(account.isPasswordRecoveryRequired());
         Method close = XmrWalletService.class.getDeclaredMethod("closeMainWallet", boolean.class);

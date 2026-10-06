@@ -418,7 +418,7 @@ public class XmrWalletService extends XmrWalletBase {
             MoneroWallet created = isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
             if (change != null) {
                 try {
-                    backupWalletForPasswordChange(created, walletName, config.getPassword(), change.backupDir(), trustDaemon);
+                    backupWalletForPasswordChange(created, walletName, config.getPassword(), change.backupDir(), trustDaemon, false);
                     change.remaining().remove(walletName);
                 } catch (Throwable e) {
                     forceCloseWallet(created, created.getPath());
@@ -443,7 +443,7 @@ public class XmrWalletService extends XmrWalletBase {
             MoneroWallet created = isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
             if (change != null) {
                 try {
-                    backupWalletForPasswordChange(created, walletName, config.getPassword(), change.backupDir(), trustDaemon);
+                    backupWalletForPasswordChange(created, walletName, config.getPassword(), change.backupDir(), trustDaemon, false);
                     change.remaining().remove(walletName);
                 } catch (Throwable e) {
                     forceCloseWallet(created, created.getPath());
@@ -2350,10 +2350,9 @@ public class XmrWalletService extends XmrWalletBase {
             }
             PasswordChange change = passwordChange;
             File backupDir = change == null ? new File(walletDir, "backup/password-change-" + UUID.randomUUID()) : change.backupDir();
-            backupWalletForPasswordChange(changing, walletName, current, backupDir, trustDaemon);
-            changing.changePassword(current, target);
-            changing.save();
-            backupWalletForPasswordChange(changing, walletName, target, backupDir, trustDaemon);
+            backupWalletForPasswordChange(changing, walletName, current, backupDir, trustDaemon, false);
+            changing.changePassword(current, target); // stores the keys and cache
+            backupWalletForPasswordChange(changing, walletName, target, backupDir, trustDaemon, true);
             if (passwordChange != null) passwordChange.remaining().remove(walletName);
         } catch (Throwable e) {
             failure = e;
@@ -2377,7 +2376,8 @@ public class XmrWalletService extends XmrWalletBase {
     }
 
     // the caller holds the owning wallet lock; never open a second descriptor for a live native keys file
-    private void backupWalletForPasswordChange(MoneroWallet changing, String walletName, String password, File backupDir, boolean trustDaemon) {
+    // stored indicates the wallet files already reflect its in-memory state
+    private void backupWalletForPasswordChange(MoneroWallet changing, String walletName, String password, File backupDir, boolean trustDaemon, boolean stored) {
         try {
             byte[][] data;
             if (changing instanceof MoneroWalletFull) {
@@ -2386,7 +2386,7 @@ public class XmrWalletService extends XmrWalletBase {
                 MoneroWalletRpc rpc = (MoneroWalletRpc) changing;
                 List<MoneroWalletListenerI> listeners = new ArrayList<>(rpc.getListeners());
                 MoneroRpcConnection connection = rpc.getDaemonConnection();
-                rpc.changePassword(password, password); // rewrite keys so in-memory state such as the multisig flag survives the reopen
+                if (!stored) rpc.changePassword(password, password); // rewrite keys so in-memory state such as the multisig flag survives the reopen
                 // progress polling uses this handle's monitor without needing the owning wallet lock
                 synchronized (rpc) {
                     rpc.close(false); // Windows denies access to an open RPC wallet's keys file
