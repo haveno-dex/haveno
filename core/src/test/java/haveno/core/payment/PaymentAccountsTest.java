@@ -163,6 +163,42 @@ public class PaymentAccountsTest {
     }
 
     @Test
+    public void testPaymentFormSupportedCountries() {
+        Res.setup();
+        List<Country> allCountries = CountryUtil.getAllCountries();
+        Map<PaymentMethod, List<Country>> expectedCountries = Map.of(
+                PaymentMethod.SWIFT, allCountries,
+                PaymentMethod.NATIONAL_BANK, allCountries,
+                PaymentMethod.MONEY_GRAM, allCountries,
+                PaymentMethod.SEPA, CountryUtil.getAllSepaCountries(),
+                PaymentMethod.SEPA_INSTANT, CountryUtil.getAllSepaCountries(),
+                PaymentMethod.ACH_TRANSFER, List.of(CountryUtil.findCountryByCode("US").orElseThrow()),
+                PaymentMethod.AMAZON_GIFT_CARD, CountryUtil.getAllAmazonGiftCardCountries());
+        for (Map.Entry<PaymentMethod, List<Country>> entry : expectedCountries.entrySet()) {
+            PaymentAccount account = PaymentAccountFactory.getPaymentAccount(entry.getKey());
+            PaymentAccountForm form = PaymentAccountForm.getForm(entry.getKey().getId());
+            PaymentAccountForm restored = PaymentAccountForm.fromProto(form.toProtoMessage());
+            List<FieldId> fieldIds = entry.getKey().equals(PaymentMethod.SWIFT)
+                    ? List.of(FieldId.BANK_COUNTRY_CODE, FieldId.INTERMEDIARY_COUNTRY_CODE) : List.of(FieldId.COUNTRY);
+            for (FieldId fieldId : fieldIds) {
+                String context = entry.getKey().getId() + ": " + fieldId;
+                for (PaymentAccountForm candidate : List.of(form, restored)) {
+                    PaymentAccountFormField field = candidate.getFields().stream()
+                            .filter(f -> f.getId() == fieldId).findFirst().orElseThrow();
+                    assertEquals(PaymentAccountFormField.Component.SELECT_ONE, field.getComponent(), context);
+                    assertEquals(entry.getValue(), field.getSupportedCountries(), context);
+                }
+                for (Country country : entry.getValue()) {
+                    assertDoesNotThrow(() -> account.validateFormField(form, fieldId, country.code), context + ": " + country.code);
+                }
+                assertThrows(IllegalArgumentException.class, () -> account.validateFormField(form, fieldId, "ZZ"), context);
+                allCountries.stream().filter(country -> !entry.getValue().contains(country)).findFirst().ifPresent(country ->
+                        assertThrows(IllegalArgumentException.class, () -> account.validateFormField(form, fieldId, country.code), context));
+            }
+        }
+    }
+
+    @Test
     public void testCountryDependentFormRequirements() {
         Res.setup();
         for (PaymentAccount account : List.of(new NationalBankAccount(), new SameBankAccount(),
