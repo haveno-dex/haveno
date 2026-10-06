@@ -138,7 +138,7 @@ public class XmrWalletService extends XmrWalletBase {
     private final ReentrantReadWriteLock walletLifecycleLock = new ReentrantReadWriteLock(true);
     private volatile PasswordChange passwordChange;
 
-    private record PasswordChange(String oldPassword, String newPassword, Set<String> remaining, File backupDir) {}
+    private record PasswordChange(String oldPassword, String newPassword, Set<String> remaining, Set<String> skipped, File backupDir) {}
     private static final boolean PRINT_RPC_STACK_TRACE = false;
     private static final long SHUTDOWN_TIMEOUT_MS = 60000;
     private static final long FORCE_CLOSE_TIMEOUT_MS = 15000; // bounded wait since native close can block draining a stalled network request
@@ -260,6 +260,7 @@ public class XmrWalletService extends XmrWalletBase {
                     walletLifecycleLock.writeLock().lock();
                     try {
                         File currentBackup = passwordChange == null ? null : passwordChange.backupDir();
+                        Set<String> skipped = passwordChange == null ? Set.of() : Set.copyOf(passwordChange.skipped());
                         passwordChange = null;
                         try {
                             try (WalletPasswordRecovery recovery = new WalletPasswordRecovery(walletDir.toPath(), getMoneroNetworkType(),
@@ -269,7 +270,7 @@ public class XmrWalletService extends XmrWalletBase {
                                     protectedBackups = recovery.rekeyMainWalletBackups(new File(currentBackup, MONERO_WALLET_NAME + KEYS_FILE_POSTFIX).toPath());
                                 }
                                 // retain the flushed copies under the new password, including wallets created during the change
-                                List<String> retained = WalletPasswordChange.cleanupBackups(walletDir, currentBackup, null, protectedBackups);
+                                List<String> retained = WalletPasswordChange.cleanupBackups(walletDir, currentBackup, null, protectedBackups, skipped);
                                 accountService.onWalletBackupsRetained(retained);
                                 if (!retained.isEmpty()) log.warn("Retained wallet files and backups: {}. Keep their previous passwords", retained);
                             }
@@ -2264,7 +2265,7 @@ public class XmrWalletService extends XmrWalletBase {
                 for (File file : files) remaining.add(file.getName().substring(0, file.getName().length() - KEYS_FILE_POSTFIX.length()));
                 Set<String> pending = ConcurrentHashMap.newKeySet();
                 pending.addAll(remaining);
-                passwordChange = new PasswordChange(normalizeWalletPassword(oldPassword), normalizeWalletPassword(newPassword), pending,
+                passwordChange = new PasswordChange(normalizeWalletPassword(oldPassword), normalizeWalletPassword(newPassword), pending, ConcurrentHashMap.newKeySet(),
                         new File(walletDir, "backup/password-change-" + UUID.randomUUID()));
             } finally {
                 walletLifecycleLock.writeLock().unlock();
@@ -2296,7 +2297,14 @@ public class XmrWalletService extends XmrWalletBase {
             try {
                 // a trade can delete its wallet and unregister after the disk snapshot
                 if (!walletExists(walletName) && !new File(walletDir, walletName).exists()) continue;
-                changeWalletPassword(walletName, null, newPassword, false);
+                try {
+                    changeWalletPassword(walletName, null, newPassword, false);
+                } catch (Throwable e) {
+                    // wallets outside current trades may predate earlier password changes, which only re-keyed trade wallets
+                    if (accountService.isPasswordRecoveryRequired() || !WalletPasswordChange.isPasswordError(e)) throw e;
+                    log.warn("Skipping password change for wallet {} which does not open with the current password", walletName);
+                    passwordChange.skipped().add(walletName);
+                }
             } finally {
                 walletLifecycleLock.writeLock().unlock();
             }
@@ -2319,6 +2327,7 @@ public class XmrWalletService extends XmrWalletBase {
         String target = normalizeWalletPassword(newPassword);
         MoneroWallet temporary = null;
         Throwable failure = null;
+        boolean opened = openWallet != null;
         try {
             MoneroWallet changing = openWallet;
             if (changing == null) {
@@ -2337,6 +2346,7 @@ public class XmrWalletService extends XmrWalletBase {
                     rpc.openWallet(config);
                 }
                 changing = temporary;
+                opened = true;
             }
             PasswordChange change = passwordChange;
             File backupDir = change == null ? new File(walletDir, "backup/password-change-" + UUID.randomUUID()) : change.backupDir();
@@ -2347,11 +2357,13 @@ public class XmrWalletService extends XmrWalletBase {
             if (passwordChange != null) passwordChange.remaining().remove(walletName);
         } catch (Throwable e) {
             failure = e;
-            accountService.requirePasswordRecovery();
+            if (opened || !WalletPasswordChange.isPasswordError(e)) accountService.requirePasswordRecovery(); // a rejected open leaves the wallet unchanged
             if (openWallet != null) forceCloseWallet(openWallet, getWalletPath(walletName));
             throw e;
         } finally {
-            if (temporary != null) {
+            if (temporary != null && !opened) {
+                forceCloseWallet(temporary, getWalletPath(walletName)); // stop an RPC instance whose open was rejected
+            } else if (temporary != null) {
                 try {
                     closeWallet(temporary, false);
                 } catch (Exception closeError) {

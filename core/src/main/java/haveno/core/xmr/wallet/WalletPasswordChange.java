@@ -38,6 +38,12 @@ public final class WalletPasswordChange {
 
     public static List<String> cleanupBackups(File walletDir, File currentSnapshot, String mainAddress,
                                              Set<String> protectedMainBackups) throws IOException {
+        return cleanupBackups(walletDir, currentSnapshot, mainAddress, protectedMainBackups, Set.of());
+    }
+
+    // skipped wallets keep their previous password, so their files and backups are retained
+    public static List<String> cleanupBackups(File walletDir, File currentSnapshot, String mainAddress,
+                                             Set<String> protectedMainBackups, Set<String> skippedWallets) throws IOException {
         String mainId = getMainWalletId(mainAddress);
         if (mainId == null && currentSnapshot != null) {
             mainId = readMainWalletId(currentSnapshot.toPath());
@@ -47,12 +53,13 @@ public final class WalletPasswordChange {
             for (var keys : files.filter(path -> path.getFileName().toString().endsWith(".keys")).toList()) {
                 String name = keys.getFileName().toString();
                 name = name.substring(0, name.length() - ".keys".length());
-                if (!Files.isRegularFile(walletDir.toPath().resolve(name))) continue;
+                if (!Files.isRegularFile(walletDir.toPath().resolve(name)) || skippedWallets.contains(name)) continue;
                 name = name.replace('.', '_');
                 for (String suffix : List.of("", "_keys", "_address_txt")) rollingDirs.add("backups_" + name + suffix);
             }
         }
         List<String> retained = new ArrayList<>();
+        for (String name : skippedWallets) retained.add("wallet/" + name + ".keys");
         // recovery can only discard temporary files it has matched to a repaired wallet
         try (var files = Files.list(walletDir.toPath())) {
             files.filter(path -> {
@@ -87,7 +94,7 @@ public final class WalletPasswordChange {
                             String fileName = path.getFileName().toString();
                             if (fileName.equals(MAIN_WALLET_ID_FILE) || fileName.equals(".main-wallet-address")) return false;
                             String walletName = fileName.endsWith(".keys") ? fileName.substring(0, fileName.length() - ".keys".length()) : fileName;
-                            return (walletName.equals("haveno_XMR") && !sameMainWallet)
+                            return (walletName.equals("haveno_XMR") && !sameMainWallet) || skippedWallets.contains(walletName)
                                     || !Files.isRegularFile(entry.resolve(walletName), LinkOption.NOFOLLOW_LINKS)
                                     || !Files.isRegularFile(entry.resolve(walletName + ".keys"), LinkOption.NOFOLLOW_LINKS)
                                     || !Files.isRegularFile(walletDir.toPath().resolve(walletName), LinkOption.NOFOLLOW_LINKS)
