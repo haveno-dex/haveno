@@ -27,6 +27,7 @@ import haveno.core.api.CoreNotificationService;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
+import haveno.core.support.SupportSession;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
@@ -41,6 +42,7 @@ import haveno.core.trade.protocol.TradePeer;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.WithDataModel;
+import haveno.desktop.common.view.AbstractView;
 import haveno.desktop.common.view.ViewPath;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.notifications.Notification;
@@ -48,6 +50,8 @@ import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.notifications.NotificationManager;
 import haveno.desktop.main.overlays.popups.PopupManager;
 import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.closedtrades.ClosedTradesView;
+import haveno.desktop.main.portfolio.closedtrades.ClosedTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesDataModel;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesListItem;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
@@ -101,6 +105,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.input.TouchEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Popup;
@@ -1464,6 +1469,47 @@ public class OverlayTest {
             when(message.copy()).thenReturn(message);
             traderChatManager.sendChatMessage(message);
             verify(mailboxMessageService).sendEncryptedMailboxMessage(eq(peerAddress), eq(peerPubKeyRing), eq(message), any());
+        }
+
+        @Test
+        void historyChatIsReadOnlyAndCleansUpOnClose() throws ReflectiveOperationException {
+            Res.setup();
+            when(trade.getShortId()).thenReturn("trade-id");
+            when(trade.isCompleted()).thenReturn(true);
+            when(trade.getChatMessages()).thenReturn(FXCollections.observableArrayList(message));
+            NotificationCenter center = mock(NotificationCenter.class);
+            ClosedTradesView view = new ClosedTradesView(mock(ClosedTradesViewModel.class), null, null, null, null, null, null,
+                    traderChatManager, tradeManager, center, false, false);
+            VBox root = mock(VBox.class);
+            when(root.getScene()).thenReturn(mock(Scene.class));
+            var rootField = AbstractView.class.getDeclaredField("root");
+            rootField.setAccessible(true);
+            rootField.set(view, root);
+            SimpleBooleanProperty focused = new SimpleBooleanProperty();
+            try (MockedConstruction<ChatView> chats = mockConstruction(ChatView.class, (chat, context) ->
+                         when(chat.getProperties()).thenReturn(FXCollections.observableMap(new HashMap<>())));
+                 MockedConstruction<AnchorPane> panes = mockConstruction(AnchorPane.class, (pane, context) ->
+                         when(pane.widthProperty()).thenReturn(new SimpleDoubleProperty()));
+                 MockedConstruction<Scene> scenes = mockConstruction(Scene.class);
+                 MockedConstruction<Stage> stages = mockConstruction(Stage.class, (stage, context) ->
+                         when(stage.focusedProperty()).thenReturn(focused));
+                 MockedStatic<GUIUtil> gui = mockStatic(GUIUtil.class)) {
+                var openChat = ClosedTradesView.class.getDeclaredMethod("openChat", Trade.class);
+                openChat.setAccessible(true);
+                openChat.invoke(view, trade);
+                ChatView chat = chats.constructed().get(0);
+                ArgumentCaptor<SupportSession> session = ArgumentCaptor.forClass(SupportSession.class);
+                verify(chat).display(session.capture(), any());
+                assertFalse(session.getValue().chatIsOpen());
+                assertEquals(trade.getChatMessages(), session.getValue().getObservableChatMessageList());
+                focused.set(true);
+                verify(center).onChatFocusChanged(eq(trade.getChatMessages()), eq(true), any());
+                ArgumentCaptor<EventHandler<WindowEvent>> onHiding = ArgumentCaptor.forClass(EventHandler.class);
+                verify(stages.constructed().get(0)).setOnHiding(onHiding.capture());
+                onHiding.getValue().handle(null);
+                verify(chat).deactivate();
+                verify(center).onChatFocusChanged(eq(trade.getChatMessages()), eq(false), any());
+            }
         }
 
         @Test
