@@ -23,15 +23,20 @@ import java.util.function.Function;
 import com.jfoenix.controls.JFXButton;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
+import haveno.common.ThreadUtils;
 import haveno.common.config.Config;
 import haveno.common.crypto.KeyRing;
+import haveno.common.util.Utilities;
 import haveno.core.alert.PrivateNotificationManager;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
+import haveno.core.support.traderchat.TradeChatSession;
+import haveno.core.support.traderchat.TraderChatManager;
 import haveno.core.trade.Tradable;
 import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.ActivatableViewAndModel;
@@ -42,11 +47,13 @@ import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.PeerInfoIconTrading;
 import haveno.desktop.components.list.FilterBox;
+import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.ClosedTradesSummaryWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.overlays.windows.TradeDetailsWindow;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
+import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
@@ -61,6 +68,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ContextMenu;
@@ -72,7 +80,10 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -83,6 +94,7 @@ import javafx.util.Callback;
 @FxmlView
 public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTradesViewModel> {
     private final boolean useDevPrivilegeKeys;
+    private final boolean useDevModeHeader;
 
     private enum ColumnNames {
         TRADE_ID(Res.get("shared.tradeId")),
@@ -120,7 +132,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     TableColumn<ClosedTradesListItem, ClosedTradesListItem> priceColumn, deviationColumn, amountColumn, volumeColumn,
             tradeFeeColumn, buyerSecurityDepositColumn, sellerSecurityDepositColumn,
             marketColumn, directionColumn, dateColumn, tradeIdColumn, stateColumn, removeTradeColumn,
-            duplicateColumn, avatarColumn;
+            duplicateColumn, avatarColumn, chatColumn;
     @FXML
     FilterBox filterBox;
     @FXML
@@ -139,6 +151,10 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     private SortedList<ClosedTradesListItem> sortedList;
     private FilteredList<ClosedTradesListItem> filteredList;
     private ChangeListener<Number> widthListener;
+    private final TraderChatManager traderChatManager;
+    private final TradeManager tradeManager;
+    private final NotificationCenter notificationCenter;
+    private Stage chatPopupStage;
 
     @Inject
     public ClosedTradesView(ClosedTradesViewModel model,
@@ -148,7 +164,11 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                             Preferences preferences,
                             TradeDetailsWindow tradeDetailsWindow,
                             PrivateNotificationManager privateNotificationManager,
-                            @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys) {
+                            TraderChatManager traderChatManager,
+                            TradeManager tradeManager,
+                            NotificationCenter notificationCenter,
+                            @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
+                            @Named(Config.USE_DEV_MODE_HEADER) boolean useDevModeHeader) {
         super(model);
         this.offerDetailsWindow = offerDetailsWindow;
         this.navigation = navigation;
@@ -157,6 +177,10 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         this.tradeDetailsWindow = tradeDetailsWindow;
         this.privateNotificationManager = privateNotificationManager;
         this.useDevPrivilegeKeys = useDevPrivilegeKeys;
+        this.useDevModeHeader = useDevModeHeader;
+        this.traderChatManager = traderChatManager;
+        this.tradeManager = tradeManager;
+        this.notificationCenter = notificationCenter;
     }
 
     @Override
@@ -200,6 +224,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         setRemoveTradeColumnCellFactory();
         setDuplicateColumnCellFactory();
         setAvatarColumnCellFactory();
+        setChatColumnCellFactory();
 
         tradeIdColumn.setComparator(Comparator.comparing(ClosedTradesListItem::getTradeId));
         dateColumn.setComparator(Comparator.comparing(ClosedTradesListItem::getDate));
@@ -324,6 +349,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
 
     @Override
     protected void deactivate() {
+        if (chatPopupStage != null) chatPopupStage.hide();
         sortedList.comparatorProperty().unbind();
         removeTradeColumn.visibleProperty().unbind();
         exportButton.setOnAction(null);
@@ -358,6 +384,66 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         } else if (tradable instanceof OpenOffer) {
             offerDetailsWindow.show(tradable.getOffer());
         }
+    }
+
+    private void setChatColumnCellFactory() {
+        chatColumn.setCellValueFactory(item -> new ReadOnlyObjectWrapper<>(item.getValue()));
+        chatColumn.getStyleClass().add("avatar-column");
+        chatColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(ClosedTradesListItem item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(null);
+                if (!empty && item != null && item.getTradable() instanceof Trade trade &&
+                        !trade.isArbitrator() && !trade.getChatMessages().isEmpty()) {
+                    Button button = FormBuilder.getChatIconButton();
+                    button.setOnAction(event -> openChat(trade));
+                    setGraphic(button);
+                }
+            }
+        });
+    }
+
+    private void openChat(Trade trade) {
+        if (trade.isArbitrator() || trade.getChatMessages().isEmpty()) return;
+        if (chatPopupStage != null) chatPopupStage.hide();
+
+        ChatView chatView = new ChatView(traderChatManager, Res.get("offerbook.trader"));
+        chatView.setAllowAttachments(false);
+        chatView.setDisplayHeader(false);
+        chatView.initialize();
+        AnchorPane pane = new AnchorPane(chatView);
+        AnchorPane.setLeftAnchor(chatView, 0d);
+        AnchorPane.setRightAnchor(chatView, 0d);
+        AnchorPane.setTopAnchor(chatView, 0d);
+        AnchorPane.setBottomAnchor(chatView, 0d);
+        chatView.display(new TradeChatSession(trade, trade.isTaker()), pane.widthProperty());
+        chatView.activate();
+        chatView.scrollToBottom();
+
+        Stage stage = new Stage();
+        chatPopupStage = stage;
+        Runnable persist = () -> ThreadUtils.submitToPool(() -> tradeManager.requestPersistence(trade));
+        ChangeListener<Boolean> focusListener = (observable, oldValue, focused) ->
+                notificationCenter.onChatFocusChanged(trade.getChatMessages(), focused, persist);
+        stage.focusedProperty().addListener(focusListener);
+        stage.setTitle(Res.get("tradeChat.chatWindowTitle", trade.getShortId()));
+        stage.setOnHiding(event -> {
+            chatView.deactivate();
+            stage.focusedProperty().removeListener(focusListener);
+            notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, persist);
+            chatPopupStage = null;
+        });
+        Scene scene = new Scene(pane);
+        scene.addEventHandler(KeyEvent.KEY_RELEASED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE || Utilities.isCtrlPressed(KeyCode.W, event)) {
+                event.consume();
+                stage.hide();
+            }
+        });
+        stage.setScene(scene);
+        GUIUtil.loadWindowStyles(stage, preferences, useDevModeHeader);
+        GUIUtil.showCenteredChatWindow(stage, root.getScene());
     }
 
     private void setTradeIdColumnCellFactory() {
