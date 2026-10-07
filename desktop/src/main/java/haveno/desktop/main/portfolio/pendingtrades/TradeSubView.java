@@ -39,7 +39,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.Subscription;
-import org.fxmisc.easybind.EasyBind;
 
 @Slf4j
 public abstract class TradeSubView extends VBox {
@@ -55,13 +54,10 @@ public abstract class TradeSubView extends VBox {
     private Runnable stepChangedCallback;
     private ListChangeListener<ChatMessage> chatListener;
     private AutoTooltipButton chatButton;
-    private StackPane chatButtonContainer;
     private Label chatBadge;
     private String focusedChatTradeId;
     private Trade trade;
     private boolean active;
-    private boolean completed;
-    private Subscription payoutSubscription;
 
     public TradeSubView(PendingTradesViewModel model) {
         this.model = model;
@@ -87,10 +83,6 @@ public abstract class TradeSubView extends VBox {
         active = true;
         trade = model.dataModel.getTrade();
         buildSummary();
-        payoutSubscription = EasyBind.subscribe(trade.payoutStateProperty(), state -> Platform.runLater(() -> {
-            if (active) updateChatAvailability();
-        }));
-        updateChatAvailability();
         chatListener = change -> Platform.runLater(() -> {
             if (active) updateChatBadge();
         });
@@ -100,10 +92,6 @@ public abstract class TradeSubView extends VBox {
 
     protected void deactivate() {
         active = false;
-        if (payoutSubscription != null) {
-            payoutSubscription.unsubscribe();
-            payoutSubscription = null;
-        }
         if (viewStateSubscription != null) viewStateSubscription.unsubscribe();
         if (tradeStepView != null) tradeStepView.deactivate();
         if (trade != null && chatListener != null) trade.getChatMessages().removeListener(chatListener);
@@ -130,7 +118,7 @@ public abstract class TradeSubView extends VBox {
         chatButton.setGraphicTextGap(10);
         chatButton.setDisable(trade.isArbitrator());
         chatButton.setOnAction(event -> {
-            if (!completed && !trade.isPayoutPublished() && chatCallback != null) chatCallback.onOpenChat(trade);
+            if (chatCallback != null) chatCallback.onOpenChat(trade);
             updateChatBadge();
         });
         chatBadge = new Label();
@@ -141,17 +129,9 @@ public abstract class TradeSubView extends VBox {
         chatBadge.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         StackPane.setAlignment(chatBadge, Pos.CENTER_RIGHT);
         StackPane.setMargin(chatBadge, new Insets(0, 12, 0, 0));
-        chatButtonContainer = new StackPane(chatButton, chatBadge);
+        StackPane chatButtonContainer = new StackPane(chatButton, chatBadge);
         chatButtonContainer.setMinWidth(Region.USE_PREF_SIZE);
         summary.getChildren().setAll(text, chatButtonContainer);
-    }
-
-    private void updateChatAvailability() {
-        if (chatButtonContainer == null) return;
-        boolean available = !completed && !trade.isPayoutPublished();
-        chatButtonContainer.setVisible(available);
-        chatButtonContainer.setManaged(available);
-        chatButtonContainer.setDisable(!available);
     }
 
     void setFocusedChatTradeId(String tradeId) {
@@ -184,13 +164,12 @@ public abstract class TradeSubView extends VBox {
     protected void onViewStateChanged(PendingTradesViewModel.State viewState) {
         Trade selectedTrade = model.dataModel.getTrade();
         tradeStepInfo.setTrade(selectedTrade);
-        completed = viewState == PendingTradesViewModel.BuyerState.STEP4 || viewState == PendingTradesViewModel.SellerState.STEP4;
+        boolean completed = viewState == PendingTradesViewModel.BuyerState.STEP4 || viewState == PendingTradesViewModel.SellerState.STEP4;
         boolean arbitrated = completed && selectedTrade != null && !selectedTrade.getDisputeState().isMediated() &&
                 selectedTrade.getDisputeState().isDisputed() && selectedTrade.getDisputeResult() != null;
         steps.setVisible(!arbitrated);
         steps.setManaged(!arbitrated);
         pseudoClassStateChanged(PseudoClass.getPseudoClass("arbitrated"), arbitrated);
-        updateChatAvailability();
     }
 
     void addWizardsToGridPane(TradeWizardItem item) {

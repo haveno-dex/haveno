@@ -166,7 +166,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
     private final Map<String, Button> buttonByTrade = new HashMap<>();
     private final Map<String, JFXBadge> badgeByTrade = new HashMap<>();
     private final Map<String, ListChangeListener<ChatMessage>> listenerByTrade = new HashMap<>();
-    private ChangeListener<Trade.State> tradeStateListener;
     private ChangeListener<Trade.DisputeState> disputeStateListener;
     private ChangeListener<MediationResultState> mediationResultStateListener;
     private ChangeListener<Number> getMempoolStatusListener;
@@ -643,17 +642,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         boolean isTaker = !model.dataModel.isMaker(trade.getOffer());
         TradeChatSession tradeChatSession = new TradeChatSession(trade, isTaker);
 
-        tradeStateListener = (observable, oldValue, newValue) -> {
-            UserThread.execute(() -> {
-                if (trade.getId().equals(tradeIdOfOpenChat) && trade.isPayoutPublished()) {
-                    if (chatPopupStage.isShowing()) {
-                        chatPopupStage.hide();
-                    }
-                }
-            });
-        };
-        trade.stateProperty().addListener(tradeStateListener);
-
         disputeStateListener = (observable, oldValue, newValue) -> {
             UserThread.execute(() -> {
                 if (trade.getId().equals(tradeIdOfOpenChat) &&
@@ -676,13 +664,18 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         trade.mediationResultStateProperty().addListener(mediationResultStateListener);
 
         chatView.display(tradeChatSession, pane.widthProperty());
-        Subscription payoutStateSubscription = EasyBind.subscribe(trade.payoutStateProperty(),
-                payoutState -> chatView.setInputBoxVisible(!trade.isPayoutPublished()));
 
         chatView.activate();
         chatView.scrollToBottom();
 
-        chatPopupStage = new Stage();
+        Stage stage = new Stage();
+        chatPopupStage = stage;
+        // the chat can outlive this view, so observe trade removal until the window closes
+        ObservableList<Trade> openTrades = model.dataModel.getTradeManager().getObservableList();
+        ListChangeListener<Trade> tradeListListener = change -> {
+            if (!change.getList().contains(trade)) UserThread.execute(stage::hide);
+        };
+        openTrades.addListener(tradeListListener);
         ChangeListener<Boolean> chatFocusListener = (observable, oldValue, focused) -> {
             notificationCenter.onChatFocusChanged(trade.getChatMessages(), focused, traderChatManager::requestPersistence);
             updateChatMessageCount(trade, badgeByTrade.get(trade.getId()));
@@ -697,7 +690,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         chatPopupStage.initModality(Modality.NONE);
         chatPopupStage.initStyle(StageStyle.DECORATED);
         chatPopupStage.setOnHiding(event -> {
-            payoutStateSubscription.unsubscribe();
+            openTrades.removeListener(tradeListListener);
             chatView.deactivate();
             chatPopupStage.focusedProperty().removeListener(chatFocusListener);
             notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, traderChatManager::requestPersistence);
@@ -705,7 +698,6 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
             tradeIdOfOpenChat = null;
             if (selectedSubView != null) selectedSubView.setFocusedChatTradeId(null);
 
-            trade.stateProperty().removeListener(tradeStateListener);
             trade.disputeStateProperty().removeListener(disputeStateListener);
             trade.mediationResultStateProperty().removeListener(mediationResultStateListener);
 

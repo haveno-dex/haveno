@@ -52,6 +52,8 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesDataModel;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesListItem;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
+import haveno.desktop.main.shared.ChatView;
+import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -63,6 +65,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -96,12 +99,14 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.input.TouchEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -1325,6 +1330,71 @@ public class OverlayTest {
             when(tradeManager.getOpenTrade("trade-id")).thenReturn(Optional.of(trade));
             when(p2PService.getMailboxMessageService()).thenReturn(mailboxMessageService);
             traderChatManager = new TraderChatManager(p2PService, null, null, null, tradeManager, pubKeyRingProvider);
+        }
+
+        @Test
+        void openChatSurvivesPayoutAndClosesWithTradeWhileViewIsInactive() throws ReflectiveOperationException {
+            Res.setup();
+            when(trade.getId()).thenReturn("trade-id");
+            when(trade.getShortId()).thenReturn("trade-id");
+            when(trade.getChatMessages()).thenReturn(FXCollections.observableArrayList(message));
+            SimpleObjectProperty<Trade.State> state = new SimpleObjectProperty<>(Trade.State.PREPARATION);
+            SimpleObjectProperty<Trade.PayoutState> payout = new SimpleObjectProperty<>(Trade.PayoutState.PAYOUT_UNPUBLISHED);
+            when(trade.stateProperty()).thenReturn(state);
+            when(trade.payoutStateProperty()).thenReturn(payout);
+            when(trade.disputeStateProperty()).thenReturn(new SimpleObjectProperty<>());
+            when(trade.mediationResultStateProperty()).thenReturn(new SimpleObjectProperty<>());
+            when(trade.isPayoutPublished()).thenAnswer(invocation -> payout.get() != Trade.PayoutState.PAYOUT_UNPUBLISHED);
+            PendingTradesDataModel dataModel = mock(PendingTradesDataModel.class);
+            when(dataModel.getTraderChatManager()).thenReturn(traderChatManager);
+            when(dataModel.getTradeManager()).thenReturn(tradeManager);
+            ObservableList<Trade> openTrades = FXCollections.observableArrayList(trade);
+            when(tradeManager.getObservableList()).thenReturn(openTrades);
+            PendingTradesViewModel viewModel = mock(PendingTradesViewModel.class);
+            when(viewModel.getChatOpen()).thenReturn(new SimpleBooleanProperty());
+            var delegate = WithDataModel.class.getField("dataModel");
+            delegate.setAccessible(true);
+            delegate.set(viewModel, dataModel);
+            PendingTradesView view = new PendingTradesView(viewModel, null, null, mock(NotificationCenter.class),
+                    null, null, null, null, false, false);
+            StackPane root = mock(StackPane.class);
+            when(root.getScene()).thenReturn(mock(Scene.class));
+            try (MockedConstruction<ChatView> chats = mockConstruction(ChatView.class, (chat, context) ->
+                         when(chat.getProperties()).thenReturn(FXCollections.observableMap(new HashMap<>())));
+                 MockedConstruction<AnchorPane> panes = mockConstruction(AnchorPane.class, (pane, context) ->
+                         when(pane.widthProperty()).thenReturn(new SimpleDoubleProperty()));
+                 MockedConstruction<Scene> scenes = mockConstruction(Scene.class);
+                 MockedConstruction<Stage> stages = mockConstruction(Stage.class, (stage, context) -> {
+                     when(stage.focusedProperty()).thenReturn(new SimpleBooleanProperty());
+                     when(stage.showingProperty()).thenReturn(new SimpleBooleanProperty());
+                 });
+                 MockedStatic<UserThread> scheduler = mockStatic(UserThread.class);
+                 MockedStatic<MainView> main = mockStatic(MainView.class);
+                 MockedStatic<GUIUtil> gui = mockStatic(GUIUtil.class)) {
+                scheduler.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                    invocation.<Runnable>getArgument(0).run();
+                    return null;
+                });
+                main.when(MainView::getRootContainer).thenReturn(root);
+                var openChat = PendingTradesView.class.getDeclaredMethod("openChat", Trade.class);
+                openChat.setAccessible(true);
+                openChat.invoke(view, trade);
+                ChatView chat = chats.constructed().get(0);
+                state.set(Trade.State.DEPOSIT_TXS_SEEN_IN_NETWORK);
+                payout.set(Trade.PayoutState.PAYOUT_PUBLISHED);
+                verify(chat, never()).setInputBoxVisible(false);
+                Stage stage = stages.constructed().get(0);
+                openTrades.add(mock(Trade.class));
+                verify(stage, never()).hide();
+                openTrades.remove(trade);
+                verify(stage).hide();
+                ArgumentCaptor<EventHandler<WindowEvent>> hiding = ArgumentCaptor.forClass(EventHandler.class);
+                verify(stage).setOnHiding(hiding.capture());
+                hiding.getValue().handle(null);
+                verify(chat).deactivate();
+                openTrades.clear();
+                verify(stage, times(1)).hide();
+            }
         }
 
         @Test
