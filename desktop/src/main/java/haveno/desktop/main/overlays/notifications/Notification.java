@@ -70,6 +70,10 @@ public class Notification extends Overlay<Notification> {
         if (!showing) hide();
     };
     private final ChangeListener<Boolean> displayBlockedListener = (observable, oldValue, blocked) -> updateVisibility();
+    private final ChangeListener<Boolean> focusedListener = (observable, oldValue, focused) -> {
+        if (focused) startAutoCloseTimer();
+        else pauseAutoCloseTimer();
+    };
     private Timer autoCloseTimer;
     private long autoCloseGeneration;
     private BooleanSupplier displayCondition = () -> true;
@@ -230,6 +234,7 @@ public class Notification extends Overlay<Notification> {
     private void startAutoCloseTimer() {
         if (!autoClose || !displayReady || closing || !NotificationManager.isCurrent(this) || autoCloseTimer != null) return;
         if (isDisplayBlocked()) return;
+        if (ownerWindow != null && !ownerWindow.isFocused()) return; // keep the card until the window is back in use
         long generation = ++autoCloseGeneration;
         autoCloseTimer = UserThread.runAfter(() -> {
             // a stopped timer may already have queued its callback on the user thread
@@ -285,6 +290,7 @@ public class Notification extends Overlay<Notification> {
             ownerScene.widthProperty().addListener(sizeListener);
             ownerScene.heightProperty().addListener(sizeListener);
             ownerWindow.showingProperty().addListener(showingListener);
+            ownerWindow.focusedProperty().addListener(focusedListener);
             getRootContainer().needsLayoutProperty().addListener(demandListener);
             animateDisplay();
         });
@@ -336,6 +342,7 @@ public class Notification extends Overlay<Notification> {
         }
         if (ownerWindow != null) {
             ownerWindow.showingProperty().removeListener(showingListener);
+            ownerWindow.focusedProperty().removeListener(focusedListener);
             ownerWindow = null;
         }
         owner.getChildren().remove(notificationPane);
