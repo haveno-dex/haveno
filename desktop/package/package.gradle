@@ -400,6 +400,7 @@ task packageInstallers {
 
             // Package rpm
             executeCmd(jPackageFilePath + commonOpts + linuxOpts +
+                    " --linux-package-deps /usr/bin/notify-send" +
                     " --linux-rpm-license-type AGPLv3" + // https://fedoraproject.org/wiki/Licensing:Main?rd=Licensing#Good_Licenses
                     " --type rpm")
 
