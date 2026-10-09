@@ -803,7 +803,7 @@ public class HavenoUtils {
                 convertedStream.close();
                 audioInputStream.close();
             } catch (Exception e) {
-                e.printStackTrace();
+                log.warn("Failed to play sound {}: {}", fileName, e.getMessage(), e);
             }
         }).start();
     }
