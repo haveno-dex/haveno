@@ -20,6 +20,7 @@ package haveno.desktop.main.overlays.notifications;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import haveno.common.app.DevEnv;
 import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
@@ -51,6 +52,7 @@ import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 import haveno.proto.grpc.NotificationMessage;
 import haveno.proto.grpc.NotificationMessage.NotificationType;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,6 +75,7 @@ import javafx.collections.ObservableMap;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 import javax.annotation.Nullable;
 import lombok.NonNull;
@@ -364,17 +367,19 @@ public class NotificationCenter {
         if (!notifiedChatMessages.add(key)) return;
         long unread = snapshot(messages).stream().filter(chatMessage -> isUnreadChat(chatMessage, senderFlag)).count();
         String text = unread == 1 ? Res.get("notification.chat.message") : Res.get("notification.chat.messages", unread);
+        boolean support = message.getSupportType() != SupportType.TRADE;
+        String headLine = Res.get(support ? "notification.chat.support" : "notification.chat.trade", Utilities.getShortId(message.getTradeId()));
+        notifyDesktop(headLine, text);
         Notification existing = chatNotifications.get(messages);
         if (existing != null && !existing.isClosing()) {
             existing.message(text);
             return;
         }
 
-        boolean support = message.getSupportType() != SupportType.TRADE;
         Notification notification = new Notification();
         notification
                 .autoClose()
-                .headLine(Res.get(support ? "notification.chat.support" : "notification.chat.trade", Utilities.getShortId(message.getTradeId())))
+                .headLine(headLine)
                 .message(text)
                 .actionButtonText(Res.get(support ? "notification.chat.goToTicket" : "notification.chat.openChat"))
                 .onAction(navigate)
@@ -478,6 +483,7 @@ public class NotificationCenter {
             if (!navigateToTrades && (viewedTradeId == null || viewedTradeId.equals(trade.getId()))) return;
 
             // phase-triggered arbitrator notices survive automatic removal from open trades
+            notifyDesktop(Res.get("notification.trade.headline", trade.getShortId()), Res.get("notification.trade.completed"));
             Notification notification = new Notification().tradeHeadLine(trade.getShortId())
                     .message(Res.get("notification.trade.completed"))
                     .onAction(() -> {
@@ -545,6 +551,7 @@ public class NotificationCenter {
             if (derived || Trade.Phase.valueOf(event).ordinal() <= previousPhase.ordinal()) return;
         }
         if (!notifiedTradeUpdates.add(key)) return;
+        notifyDesktop(Res.get("notification.trade.headline", trade.getShortId()), message);
 
         Notification notification = new Notification();
         notification.useAnimation(false)
@@ -666,8 +673,31 @@ public class NotificationCenter {
         }
     }
 
+    // in-app cards go unseen while the window is minimized or in the background
+    private void notifyDesktop(String headLine, String message) {
+        if (DevEnv.isDevMode() || !Utilities.isLinux() || mainWindow == null || mainWindow.isFocused()) return;
+        String appName = mainWindow instanceof Stage stage && stage.getTitle() != null ? stage.getTitle() : "Haveno";
+        List<String> command = new ArrayList<>(List.of("notify-send", "--app-name=" + appName));
+        if (!preferences.isUseSoundForNotifications()) command.add("--hint=int:suppress-sound:1");
+        command.addAll(List.of("--", headLine, message));
+        ThreadUtils.submitToPool(() -> {
+            try {
+                new ProcessBuilder(command)
+                        .redirectErrorStream(true)
+                        .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                        .start().onExit().thenAccept(process -> {
+                            if (process.exitValue() != 0)
+                                log.info("Could not show desktop notification: notify-send exited with {}", process.exitValue());
+                        });
+            } catch (IOException e) {
+                log.info("Could not show desktop notification: {}", e.getMessage());
+            }
+        });
+    }
+
     private void goToSupport(Trade trade, String message, Class<? extends DisputeView> viewClass) {
         UserThread.execute(() -> {
+            notifyDesktop(Res.get("notification.ticket.headline", trade.getShortId()), message);
             Notification notification = new Notification()
                     .disputeHeadLine(trade.getShortId()).message(message);
             if (navigation.getCurrentPath() != null && !navigation.getCurrentPath().contains(viewClass)) {

@@ -20,6 +20,7 @@ package haveno.desktop.main.overlays;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.util.Utilities;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
 import haveno.core.api.CoreNotificationService;
@@ -56,6 +57,7 @@ import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.proto.grpc.NotificationMessage;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -1570,6 +1572,94 @@ public class OverlayTest {
             assertFalse(hasUnreadChat());
             trade.getChatMessages().add(message(trade, true));
             assertTrue(hasUnreadChat());
+        }
+
+        @Test
+        void linuxChatAlertsWhileUnfocusedWithoutExposingMessageText() throws IOException {
+            Trade trade = addTrade(true);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            mainWindowFocused.set(false);
+            Process process = mock(Process.class);
+            when(process.onExit()).thenReturn(CompletableFuture.completedFuture(process));
+            List<List<String>> commands = new ArrayList<>();
+            try (MockedStatic<Utilities> utilities = mockStatic(Utilities.class, CALLS_REAL_METHODS);
+                 MockedConstruction<ProcessBuilder> processes = mockConstruction(ProcessBuilder.class,
+                         withSettings().defaultAnswer(RETURNS_SELF), (builder, context) -> {
+                             commands.add(new ArrayList<>((List<String>) context.arguments().get(0)));
+                             when(builder.start()).thenReturn(process);
+                         });
+                 MockedConstruction<Notification> notifications = mockNotifications()) {
+                utilities.when(Utilities::isLinux).thenReturn(true);
+                ChatMessage first = message(trade, true);
+                trade.getChatMessages().add(first);
+                sendMessage(first);
+                sendMessage(first); // duplicate delivery must not repeat the desktop alert
+                when(preferences.isUseSoundForNotifications()).thenReturn(true);
+                ChatMessage second = message(trade, true);
+                trade.getChatMessages().add(second);
+                sendMessage(second);
+                assertEquals(2, commands.size());
+                assertEquals(List.of("notify-send", "--app-name=Haveno", "--hint=int:suppress-sound:1", "--",
+                        Res.get("notification.chat.trade", Utilities.getShortId(trade.getId())),
+                        Res.get("notification.chat.message")), commands.get(0));
+                assertEquals(List.of("notify-send", "--app-name=Haveno", "--",
+                        Res.get("notification.chat.trade", Utilities.getShortId(trade.getId())),
+                        Res.get("notification.chat.messages", 2L)), commands.get(1));
+                assertEquals(1, notifications.constructed().size());
+
+                mainWindowFocused.set(true);
+                ChatMessage third = message(trade, true);
+                trade.getChatMessages().add(third);
+                sendMessage(third);
+                assertEquals(2, processes.constructed().size());
+            }
+        }
+
+        @Test
+        void missingNotifySendKeepsTheInAppNotification() throws IOException {
+            Trade trade = addTrade(true);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            mainWindowFocused.set(false);
+            try (MockedStatic<Utilities> utilities = mockStatic(Utilities.class, CALLS_REAL_METHODS);
+                 MockedConstruction<ProcessBuilder> processes = mockConstruction(ProcessBuilder.class,
+                         withSettings().defaultAnswer(RETURNS_SELF), (builder, context) ->
+                                 when(builder.start()).thenThrow(new IOException("notify-send unavailable")));
+                 MockedConstruction<Notification> notifications = mockNotifications()) {
+                utilities.when(Utilities::isLinux).thenReturn(true);
+                ChatMessage message = message(trade, true);
+                trade.getChatMessages().add(message);
+                sendMessage(message);
+                assertEquals(1, processes.constructed().size());
+                assertEquals(1, notifications.constructed().size());
+                verify(notifications.constructed().get(0)).show();
+                assertTrue(hasUnreadChat());
+            }
+        }
+
+        @Test
+        void linuxDisputeAlertsWhileUnfocused() throws IOException {
+            Trade trade = addTrade(true);
+            when(trade.getShortId()).thenReturn("trade");
+            when(arbitrationManager.findDispute(trade.getId())).thenReturn(Optional.of(mock(Dispute.class)));
+            notificationCenter.onAllServicesAndViewsInitialized();
+            mainWindowFocused.set(false);
+            Process process = mock(Process.class);
+            when(process.onExit()).thenReturn(CompletableFuture.completedFuture(process));
+            List<List<String>> commands = new ArrayList<>();
+            try (MockedStatic<Utilities> utilities = mockStatic(Utilities.class, CALLS_REAL_METHODS);
+                 MockedConstruction<ProcessBuilder> processes = mockConstruction(ProcessBuilder.class,
+                         withSettings().defaultAnswer(RETURNS_SELF), (builder, context) -> {
+                             commands.add(new ArrayList<>((List<String>) context.arguments().get(0)));
+                             when(builder.start()).thenReturn(process);
+                         });
+                 MockedConstruction<Notification> notifications = mockNotifications()) {
+                utilities.when(Utilities::isLinux).thenReturn(true);
+                ((ObjectProperty<Trade.DisputeState>) trade.disputeStateProperty()).set(Trade.DisputeState.DISPUTE_OPENED);
+                assertEquals(List.of(List.of("notify-send", "--app-name=Haveno", "--hint=int:suppress-sound:1", "--",
+                        Res.get("notification.ticket.headline", "trade"),
+                        Res.get("notification.trade.peerOpenedDispute", Res.get("shared.dispute")))), commands);
+                verify(notifications.constructed().get(0)).show();
+            }
         }
 
         @Test
