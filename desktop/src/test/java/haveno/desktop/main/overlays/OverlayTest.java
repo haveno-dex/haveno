@@ -780,6 +780,34 @@ public class OverlayTest {
         }
 
         @Test
+        void autoCloseWaitsWhileOwnerWindowIsUnfocused() {
+            List<Runnable> displays = new ArrayList<>();
+            scheduler.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                displays.add(invocation.getArgument(0));
+                return null;
+            });
+            TestNotification chat = new TestNotification();
+            chat.deferDisplay = true;
+            chat.ownerFocused.set(false);
+            try (MockedConstruction<StackPane> panes = mockConstruction(StackPane.class, (pane, context) -> {
+                when(pane.getProperties()).thenReturn(FXCollections.observableHashMap());
+                when(pane.getChildren()).thenReturn(FXCollections.observableArrayList());
+            })) {
+                chat.autoClose().show();
+                displays.remove(0).run();
+                assertTrue(timeouts.isEmpty());
+                chat.ownerFocused.set(true);
+                assertEquals(List.of(6000L), delays);
+                chat.ownerFocused.set(false);
+                timeouts.get(0).run();
+                assertFalse(chat.getIsHiddenProperty().get());
+                chat.ownerFocused.set(true);
+                timeouts.get(1).run();
+                assertTrue(chat.getIsHiddenProperty().get());
+            }
+        }
+
+        @Test
         void builderMessageDoesNotDisplayOrStartATimer() throws ReflectiveOperationException {
             TestNotification chat = new TestNotification();
             chat.autoClose().message("Unread message");
@@ -1184,6 +1212,7 @@ public class OverlayTest {
         private Runnable finishHide;
         private final SimpleBooleanProperty ownerShowing = new SimpleBooleanProperty(true);
         private final SimpleBooleanProperty ownerBlocked = new SimpleBooleanProperty();
+        private final SimpleBooleanProperty ownerFocused = new SimpleBooleanProperty(true);
 
         private TestNotification() {
             owner = mock(Pane.class);
@@ -1200,6 +1229,8 @@ public class OverlayTest {
             when(owner.isMouseTransparent()).thenAnswer(invocation -> ownerBlocked.get());
             when(ownerWindow.isShowing()).thenAnswer(invocation -> ownerShowing.get());
             when(ownerWindow.showingProperty()).thenReturn(ownerShowing);
+            when(ownerWindow.isFocused()).thenAnswer(invocation -> ownerFocused.get());
+            when(ownerWindow.focusedProperty()).thenReturn(ownerFocused);
         }
 
         private void finishDisplay() {
