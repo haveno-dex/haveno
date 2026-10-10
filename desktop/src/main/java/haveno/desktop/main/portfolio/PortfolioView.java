@@ -23,7 +23,6 @@ import haveno.core.locale.Res;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
 import haveno.core.trade.Trade;
-import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.desktop.Navigation;
 import haveno.desktop.util.Accessibility;
@@ -41,21 +40,16 @@ import haveno.desktop.main.portfolio.editoffer.EditOfferView;
 import haveno.desktop.main.portfolio.failedtrades.FailedTradesView;
 import haveno.desktop.main.portfolio.openoffer.OpenOffersView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.LongProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.SimpleLongProperty;
+import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableNumberValue;
 import javafx.collections.ListChangeListener;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -92,13 +86,6 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
     private final CachingViewLoader viewLoader;
     private final Navigation navigation;
     private final FailedTradesManager failedTradesManager;
-    private final TradeManager tradeManager;
-    private final LongProperty numOpenTrades = new SimpleLongProperty();
-    private final Set<Trade> observedTrades = new HashSet<>();
-    private final ListChangeListener<Trade> tradesListChangeListener = change -> UserThread.execute(this::updateOpenTradeCount);
-    private final ChangeListener<Trade.State> tradeStateChangeListener = (observable, oldValue, newValue) ->
-            UserThread.execute(this::updateOpenTradeCount);
-    private boolean active;
     private final NotificationCenter notificationCenter;
     private EditOfferView editOfferView;
     private ReadOnlyBooleanProperty editOfferCanceling;
@@ -111,12 +98,11 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
 
     @Inject
     public PortfolioView(CachingViewLoader viewLoader, Navigation navigation, FailedTradesManager failedTradesManager,
-                         NotificationCenter notificationCenter, TradeManager tradeManager) {
+                         NotificationCenter notificationCenter) {
         this.viewLoader = viewLoader;
         this.navigation = navigation;
         this.failedTradesManager = failedTradesManager;
         this.notificationCenter = notificationCenter;
-        this.tradeManager = tradeManager;
     }
 
     @Override
@@ -203,21 +189,7 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
     }
 
     private void setupOpenTradeIndicator() {
-        Label count = new Label();
-        count.getStyleClass().add("pending-trades-count");
-        count.textProperty().bind(numOpenTrades.asString());
-        StackPane countContainer = new StackPane(count);
-        countContainer.setPadding(new Insets(0, 0, 0, 8));
-        countContainer.setMouseTransparent(true);
-
-        Circle countDot = new Circle(4);
-        countDot.getStyleClass().add("tab-unread-dot");
-        countDot.setManaged(false);
-        countDot.visibleProperty().bind(notificationCenter.unreadPortfolioProperty());
-        countDot.centerXProperty().bind(count.layoutXProperty().add(count.widthProperty()));
-        countDot.centerYProperty().bind(count.layoutYProperty());
-        countContainer.getChildren().add(countDot);
-
+        ReadOnlyLongProperty numOpenTrades = notificationCenter.openTradeCountProperty();
         Circle dot = new Circle(4);
         dot.getStyleClass().add("tab-unread-dot");
         dot.setManaged(false);
@@ -243,8 +215,7 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
         indicator.setPrefSize(0, 0);
         indicator.setMaxSize(0, 0);
         indicator.setMouseTransparent(true);
-        pendingTradesTab.graphicProperty().bind(Bindings.when(numOpenTrades.greaterThan(0))
-                .then(countContainer).otherwise(indicator));
+        pendingTradesTab.setGraphic(indicator);
         pendingTradesTab.getStyleClass().add("unread-trade-chat-tab");
 
         Tooltip tooltip = new Tooltip(Res.get("notification.trade.unreadUpdates"));
@@ -260,22 +231,6 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
         notificationCenter.unreadPortfolioProperty().addListener((observable, oldValue, newValue) -> updateHelp.run());
         numOpenTrades.addListener((observable, oldValue, newValue) -> updateHelp.run());
         updateHelp.run();
-    }
-
-    private void updateOpenTradeCount() {
-        if (!active) return;
-        synchronized (tradeManager.getObservableList()) {
-            observedTrades.removeIf(trade -> {
-                if (tradeManager.getObservableList().contains(trade)) return false;
-                trade.stateProperty().removeListener(tradeStateChangeListener);
-                return true;
-            });
-            for (Trade trade : tradeManager.getObservableList()) {
-                if (observedTrades.add(trade)) trade.stateProperty().addListener(tradeStateChangeListener);
-            }
-            // match the unfiltered table even while another portfolio tab is selected
-            numOpenTrades.set(tradeManager.getObservableList().stream().filter(Trade::isDepositsPublished).count());
-        }
     }
 
     private void onEditOpenOfferRemoved() {
@@ -310,9 +265,6 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
 
     @Override
     protected void activate() {
-        active = true;
-        tradeManager.getObservableList().addListener(tradesListChangeListener);
-        updateOpenTradeCount();
         failedTradesManager.getObservableList().addListener((ListChangeListener<Trade>) c -> {
             UserThread.execute(() -> {
                 if (failedTradesManager.getObservableList().size() > 0 && tabPane.getTabs().size() == 3)
@@ -351,10 +303,6 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
 
     @Override
     protected void deactivate() {
-        active = false;
-        tradeManager.getObservableList().removeListener(tradesListChangeListener);
-        observedTrades.forEach(trade -> trade.stateProperty().removeListener(tradeStateChangeListener));
-        observedTrades.clear();
         tabPane.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
         navigation.removeListener(navigationListener);
         currentTab = null;

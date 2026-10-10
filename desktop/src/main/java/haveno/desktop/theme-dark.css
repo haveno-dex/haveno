@@ -103,6 +103,7 @@
     -bs-rd-nav-selected: black;
     -bs-rd-nav-deselected: rgba(255, 255, 255, 1);
     -bs-rd-nav-unread-dot-stroke: -bs-rd-nav-primary-background;
+    -bs-rd-nav-badge-neutral: #5a5a5a;
     -bs-rd-nav-secondary-selected: -fx-accent;
     -bs-rd-nav-secondary-deselected: -bs-rd-font-light;
     -bs-rd-nav-button-hover: derive(-bs-rd-nav-background, 10%);

@@ -1146,19 +1146,6 @@ tree-table-view:focused {
     -fx-padding: 0 12;
 }
 
-.portfolio-header .pending-trades-count {
-    -fx-font-size: 11px;
-    -fx-font-family: "IBM Plex Sans Medium";
-    -fx-text-fill: -bs-rd-font-dark;
-    -fx-background-color: -bs-color-background-form-field;
-    -fx-background-radius: 9;
-    -fx-border-color: -bs-color-gray-2;
-    -fx-border-radius: 9;
-    -fx-min-width: 20;
-    -fx-alignment: center;
-    -fx-padding: 0 6;
-}
-
 .nav-separator {
     -fx-max-width: 1;
     -fx-min-width: 1;
@@ -1208,6 +1195,25 @@ tree-table-view:focused {
 .nav-primary .nav-unread-dot {
     -fx-translate-x: 4;
     -fx-translate-y: -4;
+}
+
+.nav-count-badge {
+    -fx-font-size: 10px;
+    -fx-font-family: "IBM Plex Sans";
+    -fx-font-weight: bold;
+    -fx-min-width: 17;
+    -fx-min-height: 17;
+    -fx-max-height: 17;
+    -fx-padding: 0 4 0 4;
+    -fx-alignment: center;
+    -fx-text-fill: white;
+    -fx-background-color: -bs-rd-nav-unread-dot-stroke, -bs-rd-nav-badge-neutral;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 999;
+}
+
+.nav-count-badge:unread {
+    -fx-background-color: -bs-rd-nav-unread-dot-stroke, -bs-red;
 }
 
 .nav-secondary .nav-unread-dot {

@@ -87,6 +87,7 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -674,6 +675,10 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
     ReadOnlyBooleanProperty getUnreadPortfolio() {
         return notificationCenter.unreadPortfolioProperty();
+    }
+
+    ReadOnlyLongProperty getOpenTradeCount() {
+        return notificationCenter.openTradeCountProperty();
     }
 
     StringProperty getAvailableBalance() {
