@@ -628,7 +628,8 @@ public abstract class Overlay<T extends Overlay<T>> {
                     scene.getStylesheets().setAll(rootScene.getStylesheets());
                     stylesheetsListener = change -> scene.getStylesheets().setAll(rootScene.getStylesheets());
                     rootScene.getStylesheets().addListener(stylesheetsListener); // re-theme the overlay if the css theme changes (light/dark) while it is showing
-                    scene.setFill(Color.TRANSPARENT);
+                    // GTK otherwise turns the transparent fill's RGB into an opaque black native background
+                    scene.setFill(Utilities.isLinux() ? null : Color.TRANSPARENT);
 
                     setupKeyHandler(scene);
 
@@ -637,10 +638,17 @@ public abstract class Overlay<T extends Overlay<T>> {
                         event.consume();
                         doClose();
                     });
-                    getRootContainer().setOpacity(1); // render the complete card while the native window is hidden
-                    stage.setOpacity(0); // hide the native window too, else it can flash white before the first frame renders
+                    // GTK ignores native opacity on transparent windows, so hide the scene content on Linux
+                    if (Utilities.isLinux()) {
+                        getRootContainer().opacityProperty().unbind();
+                        getRootContainer().opacityProperty().bind(stage.opacityProperty());
+                    } else {
+                        getRootContainer().setOpacity(1);
+                    }
+                    stage.setOpacity(0);
                     stage.sizeToScene();
                     stage.show();
+                    scene.setFill(Color.TRANSPARENT); // clear transparent pixels normally once the native window exists
                     if (!stage.isShowing()) {
                         hide();
                         return;
@@ -735,6 +743,11 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void setSceneRoot(Scene scene, Parent root) {
+        if (Utilities.isLinux()) {
+            scene.getRoot().opacityProperty().unbind();
+            scene.getRoot().setOpacity(1);
+            root.opacityProperty().bind(stage.opacityProperty());
+        }
         scene.setRoot(root);
     }
 
@@ -980,7 +993,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     private void playAnimation(double translateX, double translateY, double scale, double opacity, double duration,
                                Interpolator interpolator, Runnable onFinishedHandler) {
-        // keep the content opaque and fade the native window as a whole, continuing from the current pose
+        // continue from the current pose, using scene opacity where GTK cannot fade the native window
         Region rootContainer = getDisplayContainer();
         double startX = rootContainer.getTranslateX();
         double startY = rootContainer.getTranslateY();
