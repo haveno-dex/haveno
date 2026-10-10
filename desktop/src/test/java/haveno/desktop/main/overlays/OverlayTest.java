@@ -58,6 +58,8 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.util.GUIUtil;
+import haveno.desktop.util.CssTheme;
+import haveno.desktop.util.Transitions;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
@@ -95,6 +97,8 @@ import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.effect.ColorAdjust;
+import javafx.scene.effect.GaussianBlur;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.InputEvent;
 import javafx.scene.input.KeyCode;
@@ -157,6 +161,40 @@ public class OverlayTest {
     @Test
     public void typeUnsafeCreation() {
         assertThrows(RuntimeException.class, () -> new B());
+    }
+
+    @Nested
+    class BackgroundTransitions {
+        @Test
+        void disabledAnimationsApplyAndRemoveBlurImmediately() {
+            Preferences preferences = mock(Preferences.class);
+            Transitions transitions = new Transitions(preferences);
+            Pane node = new Pane();
+
+            transitions.blur(node, 150, -0.6, false, 15);
+
+            GaussianBlur blur = (GaussianBlur) node.getEffect();
+            assertEquals(15, blur.getRadius());
+            assertEquals(CssTheme.isDarkTheme() ? 0.078 : -0.6, ((ColorAdjust) blur.getInput()).getBrightness(), 0.0001);
+            assertTrue(node.isMouseTransparent());
+
+            transitions.removeEffect(node);
+
+            assertNull(node.getEffect());
+            assertFalse(node.isMouseTransparent());
+        }
+
+        @Test
+        void disabledAnimationsDarkenImmediatelyWithoutBlur() {
+            Transitions transitions = new Transitions(mock(Preferences.class));
+            Pane node = new Pane();
+
+            transitions.darken(node, 150, false);
+
+            GaussianBlur blur = (GaussianBlur) node.getEffect();
+            assertEquals(0, blur.getRadius());
+            assertEquals(CssTheme.isDarkTheme() ? 0.026 : -0.2, ((ColorAdjust) blur.getInput()).getBrightness(), 0.0001);
+        }
     }
 
     @Nested

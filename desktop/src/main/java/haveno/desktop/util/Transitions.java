@@ -100,18 +100,28 @@ public class Transitions {
     }
 
     public void blur(Node node, int duration, double brightness, boolean removeNode, double blurRadius) {
-        if (removeEffectTimeLine != null)
+        if (removeEffectTimeLine != null) {
             removeEffectTimeLine.stop();
+            removeEffectTimeLine = null;
+        }
 
         node.setMouseTransparent(true);
         GaussianBlur blur = new GaussianBlur(0.0);
+        ColorAdjust darken = new ColorAdjust();
+        blur.setInput(darken);
+        double targetBrightness = CssTheme.isDarkTheme() ? brightness * -0.13 : brightness;
+        if (!preferences.isUseAnimations()) {
+            blur.setRadius(blurRadius);
+            darken.setBrightness(targetBrightness);
+            node.setEffect(blur);
+            if (removeNode) UserThread.execute(() -> ((Pane) (node.getParent())).getChildren().remove(node));
+            return;
+        }
+
         Timeline timeline = new Timeline();
         KeyValue kv1 = new KeyValue(blur.radiusProperty(), blurRadius);
         KeyFrame kf1 = new KeyFrame(Duration.millis(getDuration(duration)), kv1);
-        ColorAdjust darken = new ColorAdjust();
-        darken.setBrightness(0.0);
-        blur.setInput(darken);
-        KeyValue kv2 = new KeyValue(darken.brightnessProperty(), CssTheme.isDarkTheme() ? brightness * -0.13 : brightness);
+        KeyValue kv2 = new KeyValue(darken.brightnessProperty(), targetBrightness);
         KeyFrame kf2 = new KeyFrame(Duration.millis(getDuration(duration)), kv2);
         timeline.getKeyFrames().addAll(kf1, kf2);
         node.setEffect(blur);
@@ -132,6 +142,14 @@ public class Transitions {
     private void removeEffect(Node node, int duration) {
         if (node != null) {
             node.setMouseTransparent(false);
+            if (removeEffectTimeLine != null) {
+                removeEffectTimeLine.stop();
+                removeEffectTimeLine = null;
+            }
+            if (!preferences.isUseAnimations()) {
+                node.setEffect(null);
+                return;
+            }
             removeEffectTimeLine = new Timeline();
             GaussianBlur blur = (GaussianBlur) node.getEffect();
             if (blur != null) {
