@@ -30,7 +30,6 @@ public class CorePresentationModule extends AppModule {
     @Override
     protected void configure() {
         bind(BalancePresentation.class).in(Singleton.class);
-        bind(TradePresentation.class).in(Singleton.class);
         bind(SupportTicketsPresentation.class).in(Singleton.class);
     }
 }
