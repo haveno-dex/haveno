@@ -43,6 +43,8 @@ import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.WithDataModel;
 import haveno.desktop.common.view.AbstractView;
+import haveno.desktop.common.view.CachingViewLoader;
+import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewPath;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.notifications.Notification;
@@ -57,6 +59,8 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesListItem;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.shared.ChatView;
+import haveno.desktop.main.support.SupportView;
+import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.Transitions;
@@ -80,6 +84,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import javafx.application.Platform;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
@@ -97,6 +102,7 @@ import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.effect.BoxBlur;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.input.DragEvent;
@@ -164,36 +170,163 @@ public class OverlayTest {
     }
 
     @Nested
+    class SupportNavigation {
+        private final Navigation navigation = mock(Navigation.class);
+        private final CachingViewLoader viewLoader = mock(CachingViewLoader.class);
+        private final SupportView support = new SupportView(viewLoader, navigation, null, null, null, null, null, null, null);
+        private final VBox root = mock(VBox.class);
+        private final ViewPath path = ViewPath.to(MainView.class, SupportView.class, ArbitrationClientView.class);
+
+        @BeforeEach
+        void setup() throws ReflectiveOperationException {
+            var rootField = AbstractView.class.getDeclaredField("root");
+            rootField.setAccessible(true);
+            rootField.set(support, root);
+            when(root.getScene()).thenReturn(mock(Scene.class));
+            when(navigation.getCurrentPath()).thenReturn(path);
+            when(viewLoader.load(ArbitrationClientView.class)).thenReturn(mock(View.class));
+        }
+
+        @Test
+        void loadsTheSubviewBeforeReturningFromFxNavigation() throws ReflectiveOperationException {
+            try (MockedStatic<Platform> platform = mockStatic(Platform.class);
+                 MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+                platform.when(Platform::isFxApplicationThread).thenReturn(true);
+
+                navigate();
+
+                verify(viewLoader).load(ArbitrationClientView.class);
+                userThread.verifyNoInteractions();
+            }
+        }
+
+        @Test
+        void backgroundNavigationWaitsForTheUserThread() throws ReflectiveOperationException {
+            try (MockedStatic<Platform> platform = mockStatic(Platform.class);
+                 MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+                platform.when(Platform::isFxApplicationThread).thenReturn(false);
+                ArgumentCaptor<Runnable> queued = ArgumentCaptor.forClass(Runnable.class);
+
+                navigate();
+
+                verifyNoInteractions(viewLoader);
+                userThread.verify(() -> UserThread.execute(queued.capture()));
+                queued.getValue().run();
+                verify(viewLoader).load(ArbitrationClientView.class);
+            }
+        }
+
+        @Test
+        void queuedNavigationIgnoresChangedPathsAndDetachedViews() throws ReflectiveOperationException {
+            for (boolean detached : List.of(false, true)) {
+                try (MockedStatic<Platform> platform = mockStatic(Platform.class);
+                     MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+                    platform.when(Platform::isFxApplicationThread).thenReturn(false);
+                    when(navigation.getCurrentPath()).thenReturn(path);
+                    ArgumentCaptor<Runnable> queued = ArgumentCaptor.forClass(Runnable.class);
+
+                    navigate();
+
+                    userThread.verify(() -> UserThread.execute(queued.capture()));
+                    if (detached) when(root.getScene()).thenReturn(null);
+                    else when(navigation.getCurrentPath()).thenReturn(ViewPath.to(MainView.class, PortfolioView.class));
+                    queued.getValue().run();
+                    verifyNoInteractions(viewLoader);
+                }
+            }
+        }
+
+        private void navigate() throws ReflectiveOperationException {
+            var method = SupportView.class.getDeclaredMethod("onNavigationRequested", ViewPath.class, Object.class);
+            method.setAccessible(true);
+            method.invoke(support, path, null);
+        }
+    }
+
+    @Nested
     class BackgroundTransitions {
         @Test
+        void linuxSceneReplacementKeepsTheWholePopupFading() {
+            try (MockedStatic<Utilities> utilities = mockStatic(Utilities.class)) {
+                utilities.when(Utilities::isLinux).thenReturn(true);
+                A popup = new A();
+                popup.stage = mock(Stage.class);
+                SimpleDoubleProperty opacity = new SimpleDoubleProperty(0);
+                when(popup.stage.opacityProperty()).thenReturn(opacity);
+                Pane content = new Pane();
+                content.opacityProperty().bind(opacity);
+                Scene scene = mock(Scene.class);
+                when(scene.getRoot()).thenReturn(content);
+                StackPane shell = new StackPane(content);
+
+                popup.setSceneRoot(scene, shell);
+
+                assertEquals(1, content.getOpacity());
+                assertFalse(content.opacityProperty().isBound());
+                assertEquals(0, shell.getOpacity());
+                opacity.set(0.5);
+                assertEquals(0.5, shell.getOpacity());
+                assertEquals(1, content.getOpacity());
+                verify(scene).setRoot(shell);
+            }
+        }
+
+        @Test
         void disabledAnimationsApplyAndRemoveBlurImmediately() {
-            Preferences preferences = mock(Preferences.class);
-            Transitions transitions = new Transitions(preferences);
-            Pane node = new Pane();
+            for (boolean linux : List.of(false, true)) {
+                try (MockedStatic<Utilities> utilities = mockStatic(Utilities.class)) {
+                    utilities.when(Utilities::isLinux).thenReturn(linux);
+                    Transitions transitions = new Transitions(mock(Preferences.class));
+                    Pane node = new Pane();
 
-            transitions.blur(node, 150, -0.6, false, 15);
+                    transitions.blur(node, 150, -0.6, false, 15);
 
-            GaussianBlur blur = (GaussianBlur) node.getEffect();
-            assertEquals(15, blur.getRadius());
-            assertEquals(CssTheme.isDarkTheme() ? 0.078 : -0.6, ((ColorAdjust) blur.getInput()).getBrightness(), 0.0001);
-            assertTrue(node.isMouseTransparent());
+                    ColorAdjust darken;
+                    if (linux) {
+                        BoxBlur blur = (BoxBlur) node.getEffect();
+                        assertEquals(10, blur.getWidth());
+                        assertEquals(10, blur.getHeight());
+                        darken = (ColorAdjust) blur.getInput();
+                    } else {
+                        GaussianBlur blur = (GaussianBlur) node.getEffect();
+                        assertEquals(15, blur.getRadius());
+                        darken = (ColorAdjust) blur.getInput();
+                    }
+                    assertEquals(CssTheme.isDarkTheme() ? 0.078 : -0.6, darken.getBrightness(), 0.0001);
+                    assertTrue(node.isMouseTransparent());
 
-            transitions.removeEffect(node);
+                    transitions.removeEffect(node);
 
-            assertNull(node.getEffect());
-            assertFalse(node.isMouseTransparent());
+                    assertNull(node.getEffect());
+                    assertFalse(node.isMouseTransparent());
+                }
+            }
         }
 
         @Test
         void disabledAnimationsDarkenImmediatelyWithoutBlur() {
-            Transitions transitions = new Transitions(mock(Preferences.class));
-            Pane node = new Pane();
+            for (boolean linux : List.of(false, true)) {
+                try (MockedStatic<Utilities> utilities = mockStatic(Utilities.class)) {
+                    utilities.when(Utilities::isLinux).thenReturn(linux);
+                    Transitions transitions = new Transitions(mock(Preferences.class));
+                    Pane node = new Pane();
 
-            transitions.darken(node, 150, false);
+                    transitions.darken(node, 150, false);
 
-            GaussianBlur blur = (GaussianBlur) node.getEffect();
-            assertEquals(0, blur.getRadius());
-            assertEquals(CssTheme.isDarkTheme() ? 0.026 : -0.2, ((ColorAdjust) blur.getInput()).getBrightness(), 0.0001);
+                    ColorAdjust darken;
+                    if (linux) {
+                        BoxBlur blur = (BoxBlur) node.getEffect();
+                        assertEquals(0, blur.getWidth());
+                        assertEquals(0, blur.getHeight());
+                        darken = (ColorAdjust) blur.getInput();
+                    } else {
+                        GaussianBlur blur = (GaussianBlur) node.getEffect();
+                        assertEquals(0, blur.getRadius());
+                        darken = (ColorAdjust) blur.getInput();
+                    }
+                    assertEquals(CssTheme.isDarkTheme() ? 0.026 : -0.2, darken.getBrightness(), 0.0001);
+                }
+            }
         }
     }
 
@@ -501,11 +634,13 @@ public class OverlayTest {
             A popup = new A();
             popup.gridPane = mock(GridPane.class);
             when(popup.gridPane.getStyleClass()).thenReturn(FXCollections.observableArrayList());
+            when(popup.gridPane.opacityProperty()).thenReturn(new SimpleDoubleProperty(1));
             popup.owner = mock(Pane.class);
             Scene ownerScene = routedScene(new Pane());
             when(popup.owner.getScene()).thenReturn(ownerScene);
             try (MockedStatic<UserThread> scheduler = mockStatic(UserThread.class, CALLS_REAL_METHODS);
                  MockedConstruction<Stage> stages = mockConstruction(Stage.class, (stage, context) -> {
+                when(stage.opacityProperty()).thenReturn(new SimpleDoubleProperty(1));
                 doAnswer(invocation -> {
                     when(stage.getScene()).thenReturn(invocation.getArgument(0));
                     return null;

@@ -59,6 +59,7 @@ import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.common.view.ViewPath;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.offer.signedoffer.SignedOfferView;
 import haveno.desktop.main.overlays.windows.SupportInfoWindow;
@@ -70,6 +71,7 @@ import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientV
 import haveno.desktop.main.support.dispute.client.mediation.MediationClientView;
 import haveno.desktop.main.support.dispute.client.refund.RefundClientView;
 import haveno.network.p2p.NodeAddress;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableNumberValue;
 import javafx.collections.MapChangeListener;
@@ -188,13 +190,7 @@ public class SupportView extends ActivatableView<VBox, Void> {
         headerSeparator.visibleProperty().bind(headerControls.visibleProperty());
         headerSeparator.managedProperty().bind(headerControls.visibleProperty());
 
-        navigationListener = (viewPath, data) -> {
-            if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1)
-                UserThread.execute(() -> {
-                    if (root.getScene() != null && viewPath.equals(navigation.getCurrentPath()))
-                        loadView(viewPath.tip(), data);
-                });
-        };
+        navigationListener = this::onNavigationRequested;
 
         tabChangeListener = (ov, oldValue, newValue) -> {
             if (newValue == currentTab) return;
@@ -336,6 +332,18 @@ public class SupportView extends ActivatableView<VBox, Void> {
         navigation.removeListener(navigationListener);
         if (currentTab != null) content.getChildren().clear();
         currentTab = null;
+    }
+
+    private void onNavigationRequested(ViewPath viewPath, @Nullable Object data) {
+        if (viewPath.size() == 3 && viewPath.indexOf(SupportView.class) == 1) {
+            Runnable load = () -> {
+                if (root.getScene() != null && viewPath.equals(navigation.getCurrentPath()))
+                    loadView(viewPath.tip(), data);
+            };
+            // attach the content during activation so an empty support page cannot render first
+            if (Platform.isFxApplicationThread()) load.run();
+            else UserThread.execute(load);
+        }
     }
 
     private void loadView(Class<? extends View> viewClass, @Nullable Object data) {
