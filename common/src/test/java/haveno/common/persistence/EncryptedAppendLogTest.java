@@ -73,7 +73,15 @@ public class EncryptedAppendLogTest {
     // Backups are written to backup_of_corrupted_data/ with a timestamped name so incidents never
     // overwrite each other.
     private int corruptedBackupCount() {
-        File[] files = new File(dir, "backup_of_corrupted_data").listFiles((d, name) -> name.endsWith("_Test.log"));
+        return backupCount("_Test.log") + corruptMarkedBackupCount();
+    }
+
+    private int corruptMarkedBackupCount() {
+        return backupCount("_Test.log" + EncryptedAppendLog.CORRUPT_BACKUP_SUFFIX);
+    }
+
+    private int backupCount(String suffix) {
+        File[] files = new File(dir, "backup_of_corrupted_data").listFiles((d, name) -> name.endsWith(suffix));
         return files == null ? 0 : files.length;
     }
 
@@ -135,15 +143,23 @@ public class EncryptedAppendLogTest {
             raf.setLength(goodLength + 5); // keep the 3 good frames + a few bytes of the 4th
         }
 
-        List<byte[]> read = newLog().readAllValidRecords();
+        EncryptedAppendLog repaired = newLog();
+        assertFalse(repaired.wasRepaired());
+        List<byte[]> read = repaired.readAllValidRecords();
         assertRecords(full, read);
+        assertTrue(repaired.wasRepaired());
+        assertRecords(full, repaired.readAllValidRecords());
+        assertTrue(repaired.wasRepaired(), "repair status must survive a clean reread");
         // The torn tail must have been repaired on disk.
         assertEquals(goodLength, logFile.length(), "log should be truncated back to last good frame");
         // The dropped bytes must have been preserved first (a mid-log length corruption is
         // indistinguishable from a torn tail, so nothing is ever destroyed without a copy).
         assertEquals(1, corruptedBackupCount(), "pre-truncation copy must be preserved");
+        assertEquals(0, corruptMarkedBackupCount(), "a torn tail must not be marked as corruption");
         // And a re-read returns the same clean prefix.
-        assertRecords(full, newLog().readAllValidRecords());
+        EncryptedAppendLog restarted = newLog();
+        assertRecords(full, restarted.readAllValidRecords());
+        assertFalse(restarted.wasRepaired());
     }
 
     @Test
@@ -166,7 +182,7 @@ public class EncryptedAppendLogTest {
         // Only the valid leading prefix survives.
         assertRecords(List.of("keep-1", "keep-2"), read);
         // Original corrupt log preserved for recovery.
-        assertEquals(1, corruptedBackupCount(), "corrupt log must be backed up");
+        assertEquals(1, corruptMarkedBackupCount(), "corrupt log must be backed up with the corruption marker");
         // Log rebuilt clean from the prefix; re-read is stable and equal.
         assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
     }
@@ -187,7 +203,7 @@ public class EncryptedAppendLogTest {
         Files.write(logFile.toPath(), bytes);
 
         assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
-        assertEquals(1, corruptedBackupCount(), "file with corrupted prefix must be backed up");
+        assertEquals(1, corruptMarkedBackupCount(), "file with corrupted prefix must be backed up with the corruption marker");
         assertRecords(List.of("keep-1", "keep-2"), newLog().readAllValidRecords());
     }
 
@@ -264,6 +280,6 @@ public class EncryptedAppendLogTest {
         EncryptedAppendLog wrongKeyLog = new EncryptedAppendLog(dir, "Test.log", Encryption.generateSecretKey(256), 3);
         List<byte[]> read = wrongKeyLog.readAllValidRecords();
         assertTrue(read.isEmpty(), "no records should be recovered with the wrong key");
-        assertEquals(1, corruptedBackupCount(), "undecryptable log must be backed up");
+        assertEquals(1, corruptMarkedBackupCount(), "undecryptable log must be backed up with the corruption marker");
     }
 }

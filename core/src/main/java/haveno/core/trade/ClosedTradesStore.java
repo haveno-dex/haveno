@@ -24,6 +24,7 @@ import com.google.inject.name.Named;
 import com.google.protobuf.InvalidProtocolBufferException;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
+import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.KeyRing;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.file.FileUtil;
@@ -32,6 +33,7 @@ import haveno.common.persistence.PersistenceManager;
 import haveno.core.proto.persistable.CorePersistenceProtoResolver;
 import haveno.core.xmr.wallet.XmrWalletService;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,7 +53,9 @@ import lombok.extern.slf4j.Slf4j;
  * per closed trade and the root cause of the OOM-on-write in issue #2383 - with an
  * {@link EncryptedAppendLog}: closing a trade appends one small record, and the full history is
  * only rewritten during compaction, which also runs after sensitive data is cleared or when
- * superseded trade records are loaded.
+ * superseded trade records are loaded. The store is named {@code ClosedTradesStore}; old names
+ * and legacy copies are removed after durable migration and a clean replay. Recovery copies may
+ * remain when migration or cleanup is deferred.
  *
  * <p>The log holds {@link protobuf.TradableLogEntry} records: an {@code upsert} adds or replaces
  * the matching trade uid or offer id, and {@code delete_key} tombstones that entry. Legacy
@@ -68,9 +72,11 @@ import lombok.extern.slf4j.Slf4j;
 public class ClosedTradesStore {
 
     static final String LEGACY_FILE_NAME = "ClosedTrades";          // old monolithic store
-    static final String LOG_FILE_NAME = "ClosedTrades.log";         // new append-only log
+    static final String STORE_FILE_NAME = "ClosedTradesStore";      // append-only store
+    static final String OLD_LOG_FILE_NAME = "ClosedTrades.log";
+    static final String OLD_PENDING_FILE_NAME = OLD_LOG_FILE_NAME + ".pending";
     static final String LEGACY_BACKUP_NAME = "ClosedTrades.legacy-backup";
-    static final String PENDING_FILE_NAME = "ClosedTrades.log.pending"; // durable copy of the failed-write queue
+    static final String PENDING_FILE_NAME = "ClosedTradesStore.pending"; // durable copy of the failed-write queue
 
     private static final int NUM_MAX_BACKUP_FILES = 3;
     // Compact when the log holds a lot more records than live trades (mutations/tombstones accumulated)
@@ -84,11 +90,13 @@ public class ClosedTradesStore {
     private final Provider<XmrWalletService> xmrWalletService;
     private final CorruptedStorageFileHandler corruptedStorageFileHandler;
     // Used only for the one-time legacy read during migration; never initialize()d, so it is not
-    // registered for shutdown flush and will not rewrite the (renamed) legacy file.
+    // registered for shutdown flush and will not rewrite the legacy file.
     private final PersistenceManager<TradableList<Tradable>> legacyPersistenceManager;
 
     private EncryptedAppendLog appendLog;
     private EncryptedAppendLog pendingLog;
+    private boolean legacyCleanupDeferred;
+    private final Set<String> migratedLogs = new HashSet<>();
     // Entries whose write failed (e.g. disk full); mirrored to the pending file (best effort) and
     // retried in order before the next write, on a timer, and at shutdown.
     private final List<byte[]> failedEntries = new ArrayList<>();
@@ -119,21 +127,62 @@ public class ClosedTradesStore {
     }
 
     private synchronized EncryptedAppendLog appendLog() {
-        if (appendLog == null) {
-            SecretKey symmetricKey = keyRing.getSymmetricKey();
-            if (symmetricKey == null) throw new IllegalStateException("Cannot use ClosedTradesStore before the key ring is unlocked");
-            appendLog = new EncryptedAppendLog(dir, LOG_FILE_NAME, symmetricKey, NUM_MAX_BACKUP_FILES);
-        }
+        if (appendLog == null) appendLog = migrateLog(OLD_LOG_FILE_NAME, STORE_FILE_NAME, NUM_MAX_BACKUP_FILES);
         return appendLog;
     }
 
     private synchronized EncryptedAppendLog pendingLog() {
-        if (pendingLog == null) {
-            SecretKey symmetricKey = keyRing.getSymmetricKey();
-            if (symmetricKey == null) throw new IllegalStateException("Cannot use ClosedTradesStore before the key ring is unlocked");
-            pendingLog = new EncryptedAppendLog(dir, PENDING_FILE_NAME, symmetricKey, 1);
-        }
+        if (pendingLog == null) pendingLog = migrateLog(OLD_PENDING_FILE_NAME, PENDING_FILE_NAME, 1);
         return pendingLog;
+    }
+
+    // Migrate each file before exposing it for writes, including when append precedes load.
+    // On failure, retry before accepting newer writes that a repeated merge could overwrite.
+    private EncryptedAppendLog migrateLog(String oldName, String newName, int numMaxBackupFiles) {
+        SecretKey symmetricKey = keyRing.getSymmetricKey();
+        if (symmetricKey == null) throw new IllegalStateException("Cannot use ClosedTradesStore before the key ring is unlocked");
+        EncryptedAppendLog targetLog = new EncryptedAppendLog(dir, newName, symmetricKey, numMaxBackupFiles);
+        File source = new File(dir, oldName);
+        File sourceTemp = new File(dir, oldName + ".tmp");
+        File target = new File(dir, newName);
+        try {
+            if (source.exists()) {
+                // Remove a stale temp first, so a crash after the move cannot resurrect it.
+                FileUtil.deleteFileIfExists(sourceTemp, false);
+                FileUtil.syncDirectory(dir.toPath());
+            } else {
+                source = sourceTemp;
+            }
+            if (!source.exists()) {
+                // A previous attempt may have moved or deleted the source before its sync failed.
+                if (migratedLogs.contains(oldName)) FileUtil.syncFileAndDirectory(target.toPath());
+                return targetLog;
+            }
+            if (!target.exists() && !new File(dir, newName + ".tmp").exists()) {
+                migratedLogs.add(oldName);
+                FileUtil.atomicReplace(source, target);
+                FileUtil.syncFileAndDirectory(target.toPath());
+            } else {
+                EncryptedAppendLog sourceLog = new EncryptedAppendLog(dir, source.getName(), symmetricKey, 0);
+                try {
+                    // Recover a target temp before merging writes made during a downgrade.
+                    if (!migratedLogs.contains(oldName)) {
+                        targetLog.readAllValidRecords();
+                        targetLog.appendAll(sourceLog.readAllValidRecords());
+                        migratedLogs.add(oldName);
+                    }
+                    FileUtil.syncFileAndDirectory(target.toPath());
+                    FileUtil.deleteFileIfExists(source, false);
+                    FileUtil.syncDirectory(dir.toPath());
+                } finally {
+                    legacyCleanupDeferred |= sourceLog.wasRepaired() || targetLog.wasRepaired();
+                }
+            }
+            return targetLog;
+        } catch (IOException | CryptoException e) {
+            legacyCleanupDeferred = true;
+            throw new RuntimeException("Migration of " + oldName + " to " + newName + " deferred", e);
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -182,7 +231,7 @@ public class ClosedTradesStore {
             } catch (Throwable t) {
                 failedEntries.addAll(newEntries);
                 log.error("Could not append {} record(s) to {}; queueing them for retry.",
-                        failedEntries.size(), LOG_FILE_NAME, t);
+                        failedEntries.size(), STORE_FILE_NAME, t);
                 // Preserve the combined queue even when main-log reads fail, but never replace an
                 // unreadable pending file. Receipts are checked once the main log can be read.
                 if (pendingEntriesLoaded) {
@@ -230,7 +279,7 @@ public class ClosedTradesStore {
             } catch (OutOfMemoryError e) {
                 throw e;
             } catch (Throwable t) {
-                log.warn("Could not remove superseded records from {}", LOG_FILE_NAME, t);
+                log.warn("Could not remove superseded records from {}", STORE_FILE_NAME, t);
                 scheduleRedaction();
             }
         }
@@ -393,6 +442,8 @@ public class ClosedTradesStore {
         loadPendingEntries();
         List<byte[]> records = appendLog().readAllValidRecords();
         reconcilePendingEntries(records);
+        // An absent or empty history is not evidence that its recovery copies are obsolete.
+        legacyCleanupDeferred |= records.isEmpty() && !new File(dir, LEGACY_FILE_NAME).exists();
 
         // Merge in records whose append failed in a previous session; they replay after the log
         // and are re-appended to it below.
@@ -435,7 +486,7 @@ public class ClosedTradesStore {
                         break;
                     default:
                         // An unknown entry type is most likely from a newer version; keep it on disk.
-                        log.warn("Skipping {} record with unknown entry type", LOG_FILE_NAME);
+                        log.warn("Skipping {} record with unknown entry type", STORE_FILE_NAME);
                         skipped++;
                 }
             } catch (OutOfMemoryError e) {
@@ -443,20 +494,22 @@ public class ClosedTradesStore {
             } catch (Throwable t) {
                 // Authenticated but undecodable (e.g. written by a newer version). Skip just this
                 // record instead of hiding the whole history; it stays on disk for recovery.
-                log.error("Skipping an undecodable record in {}", LOG_FILE_NAME, t);
+                log.error("Skipping an undecodable record in {}", STORE_FILE_NAME, t);
                 skipped++;
             }
         }
         if (skipped > 0) {
             log.error("Skipped {} undecodable record(s) while loading {}. They remain on disk; compaction is suppressed.",
-                    skipped, LOG_FILE_NAME);
-            corruptedStorageFileHandler.addFile(LOG_FILE_NAME);
+                    skipped, STORE_FILE_NAME);
+            corruptedStorageFileHandler.addFile(STORE_FILE_NAME);
         }
 
         // Re-append the recovered pending records to the log (clears the pending file on success),
         // so the on-disk log replays to this same state.
         flushFailedEntries();
 
+        legacyCleanupDeferred |= skipped > 0 || pendingClearRequired || !failedEntries.isEmpty()
+                || appendLog().wasRepaired() || pendingLog().wasRepaired();
         maybeMergeLegacy(byKey, seenKeys, legacyDeletedIds);
 
         List<Tradable> result = new ArrayList<>(byKey.values());
@@ -467,6 +520,7 @@ public class ClosedTradesStore {
         }
         redactionAllowed = skipped == 0; // undecodable records would fail every rewrite
         scheduleRedaction();
+        if (!legacyCleanupDeferred) deleteLegacyFiles();
         return result;
     }
 
@@ -475,13 +529,13 @@ public class ClosedTradesStore {
     private void maybeCompact(int recordsRead, List<Tradable> liveTrades, Set<String> deletedKeys) {
         int compactedSize = liveTrades.size() + deletedKeys.size();
         if (!shouldCompact(recordsRead, compactedSize)) return;
-        log.info("Compacting {}: {} records -> {} live trades + {} tombstones", LOG_FILE_NAME, recordsRead, liveTrades.size(), deletedKeys.size());
+        log.info("Compacting {}: {} records -> {} live trades + {} tombstones", STORE_FILE_NAME, recordsRead, liveTrades.size(), deletedKeys.size());
         try {
             compactLog();
         } catch (OutOfMemoryError e) {
             throw e;
         } catch (Throwable t) {
-            log.error("Compaction of {} failed; keeping the existing log.", LOG_FILE_NAME, t);
+            log.error("Compaction of {} failed; keeping the existing log.", STORE_FILE_NAME, t);
         }
     }
 
@@ -516,7 +570,7 @@ public class ClosedTradesStore {
                     deleted.put(entry.getDeleteKey(), record);
                     break;
                 default:
-                    throw new IllegalStateException("Unknown record type in " + LOG_FILE_NAME);
+                    throw new IllegalStateException("Unknown record type in " + STORE_FILE_NAME);
             }
         }
         int retainedRecords = live.size() + deleted.size();
@@ -543,17 +597,18 @@ public class ClosedTradesStore {
     // Merges a legacy monolithic ClosedTrades file into the log whenever one is present (it can
     // reappear after a downgrade/upgrade cycle or a deferred first migration). Only ids the log
     // has never mentioned are merged, so tombstoned or updated trades are not resurrected. The
-    // legacy file is renamed to a backup only after the merge is durably appended.
+    // legacy file is deleted only after the merge is durable and replay was clean.
     private void maybeMergeLegacy(LinkedHashMap<String, Tradable> byKey, Set<String> seenKeys, Set<String> legacyDeletedIds) {
         File legacyFile = new File(dir, LEGACY_FILE_NAME);
         if (!legacyFile.exists()) return;
 
-        log.info("Merging legacy monolithic {} into append-only {}", LEGACY_FILE_NAME, LOG_FILE_NAME);
+        log.info("Merging legacy monolithic {} into append-only {}", LEGACY_FILE_NAME, STORE_FILE_NAME);
         TradableList<Tradable> legacy = legacyPersistenceManager.getPersisted(LEGACY_FILE_NAME);
         if (legacy == null) {
             // Transient failure (key ring not ready, shutting down) - retry on a later start - or
             // genuine corruption, in which case getPersisted already moved the file to backup.
-            // Either way never rename the legacy file: that would strand real history.
+            // Keep the remaining copies available for recovery.
+            legacyCleanupDeferred = true;
             log.warn("Legacy {} present but could not be read; deferring migration", LEGACY_FILE_NAME);
             return;
         }
@@ -573,17 +628,53 @@ public class ClosedTradesStore {
         } catch (OutOfMemoryError e) {
             throw e;
         } catch (Throwable t) {
-            log.warn("Could not append legacy {} trades to {}; deferring migration", LEGACY_FILE_NAME, LOG_FILE_NAME, t);
+            legacyCleanupDeferred = true;
+            log.warn("Could not append legacy {} trades to {}; deferring migration", LEGACY_FILE_NAME, STORE_FILE_NAME, t);
+        }
+    }
+
+    // Called only after legacy merging and a clean replay with no outstanding writes.
+    private void deleteLegacyFiles() {
+        boolean mergedLegacy = new File(dir, LEGACY_FILE_NAME).exists();
+        // A nonempty store alone does not prove that older history was migrated.
+        if (!mergedLegacy && migratedLogs.isEmpty()) return;
+        try {
+            // Replayed records may come from an unsynced append, even when the merge added none.
+            if (appendLog().exists()) FileUtil.syncFileAndDirectory(new File(dir, STORE_FILE_NAME).toPath());
+            FileUtil.deleteFileIfExists(new File(dir, LEGACY_FILE_NAME), false);
+        } catch (IOException e) {
+            legacyCleanupDeferred = true;
+            log.warn("Could not finish legacy cleanup for {}; leaving recovery copies in place", STORE_FILE_NAME, e);
             return;
         }
-
-        try {
-            File backupFile = new File(dir, LEGACY_BACKUP_NAME);
-            // Keep any earlier backup (it may hold the original pre-migration history).
-            if (backupFile.exists()) backupFile = new File(dir, LEGACY_BACKUP_NAME + "." + System.currentTimeMillis());
-            FileUtil.renameFile(legacyFile, backupFile);
-        } catch (IOException e) {
-            log.warn("Could not rename legacy {} to a backup; leaving it in place", LEGACY_FILE_NAME, e);
+        File corruptedDir = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER);
+        // Even an unmarked or pending-log repair may have lost records held only in these copies.
+        if (hasCorruptedCopy(corruptedDir, (parent, name) -> name.equals(LEGACY_FILE_NAME)
+                || name.startsWith(LEGACY_FILE_NAME + ".")
+                || name.contains("_" + OLD_LOG_FILE_NAME) || name.contains("_" + STORE_FILE_NAME))) {
+            log.warn("Keeping legacy closed-trade copies because {} may be needed for recovery", corruptedDir);
+            return;
         }
+        if (mergedLegacy || migratedLogs.contains(OLD_LOG_FILE_NAME)) {
+            File[] backups = dir.listFiles((parent, name) -> name.equals(LEGACY_BACKUP_NAME) || name.startsWith(LEGACY_BACKUP_NAME + "."));
+            if (backups == null) return;
+            for (File backup : backups) {
+                try {
+                    FileUtil.deleteFileIfExists(backup, false);
+                } catch (IOException e) {
+                    log.warn("Could not delete legacy closed-trade copy {}", backup, e);
+                }
+            }
+            FileUtil.deleteRollingBackup(dir, LEGACY_FILE_NAME);
+        }
+        if (migratedLogs.contains(OLD_LOG_FILE_NAME)) FileUtil.deleteRollingBackup(dir, OLD_LOG_FILE_NAME);
+        if (migratedLogs.contains(OLD_PENDING_FILE_NAME)) FileUtil.deleteRollingBackup(dir, OLD_PENDING_FILE_NAME);
+    }
+
+    // An unlistable folder counts as holding a copy, so cleanup errs toward keeping recovery data.
+    private static boolean hasCorruptedCopy(File corruptedDir, FilenameFilter filter) {
+        if (!corruptedDir.exists()) return false;
+        File[] copies = corruptedDir.listFiles(filter);
+        return copies == null || copies.length > 0;
     }
 }

@@ -48,7 +48,8 @@ import lombok.extern.slf4j.Slf4j;
  * <p>Replay ({@link #readAllValidRecords()}) self-repairs: a torn tail is truncated back to the
  * last good frame, and mid-log corruption (bad length prefix or hmac) rebuilds the log from the
  * valid prefix so the maximum recoverable history survives. The dropped bytes are always preserved
- * first in a timestamped copy under {@code backup_of_corrupted_data/}.
+ * first in a timestamped copy under {@code backup_of_corrupted_data/}, suffixed
+ * {@link #CORRUPT_BACKUP_SUFFIX} when the damage was not a torn tail.
  *
  * <p>Records are opaque {@code byte[]}; domain encoding is the caller's responsibility. Appends are
  * serialized on the instance monitor; callers that need the log to match an in-memory order must
@@ -56,6 +57,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class EncryptedAppendLog {
+
+    public static final String CORRUPT_BACKUP_SUFFIX = ".corrupt";
 
     private final File dir;
     private final String fileName;
@@ -65,6 +68,7 @@ public class EncryptedAppendLog {
     // File length up to which all frames are known intact (-1 until the first replay establishes
     // it), so a failed append's partial frame is truncated before the next write can bury it.
     private long knownGoodLength = -1;
+    private volatile boolean repaired;
 
     public EncryptedAppendLog(File dir, String fileName, SecretKey secretKey, int numMaxBackupFiles) {
         this.dir = dir;
@@ -83,6 +87,10 @@ public class EncryptedAppendLog {
 
     public boolean exists() {
         return logFile().exists();
+    }
+
+    public boolean wasRepaired() {
+        return repaired;
     }
 
     /**
@@ -149,6 +157,7 @@ public class EncryptedAppendLog {
         log.warn("Truncating {} bytes of torn/unknown tail from {} before appending (known-good length {}).",
                 fileLength - knownGoodLength, fileName, knownGoodLength);
         try {
+            repaired = true;
             truncateTo(logFile, knownGoodLength);
         } catch (IOException e) {
             throw new RuntimeException("Could not repair " + fileName + " before append", e);
@@ -228,7 +237,8 @@ public class EncryptedAppendLog {
                     // Preserve the dropped bytes before truncating back to the valid prefix - they
                     // may still be recoverable. Copy-then-truncate means a failure at any point
                     // leaves the log or its full backup on disk.
-                    File backupFile = corruptedBackupFile();
+                    repaired = true;
+                    File backupFile = corruptedBackupFile(corrupt);
                     if (corrupt) {
                         log.error("Corrupt record in {} at offset {} (file length {}). Backing up to {} and " +
                                         "keeping the {} valid leading record(s).",
@@ -239,6 +249,9 @@ public class EncryptedAppendLog {
                                 fileName, goodLength, records.size(), fileLength - goodLength, backupFile);
                     }
                     FileUtil.copyFile(logFile, backupFile);
+                    // Persist the copy and its new directory entries before the truncation can.
+                    FileUtil.syncFileAndDirectory(backupFile.toPath());
+                    FileUtil.syncDirectory(dir.toPath());
                     truncateTo(logFile, goodLength);
                     knownGoodLength = goodLength;
                 } else {
@@ -316,11 +329,12 @@ public class EncryptedAppendLog {
         out.write(ciphertext);
     }
 
-    // Timestamped so successive incidents never overwrite an earlier backup.
-    private File corruptedBackupFile() {
+    // Timestamped so successive incidents never overwrite an earlier backup. Mid-log damage is
+    // marked, since a torn tail only drops an unfinished append rather than acknowledged history.
+    private File corruptedBackupFile(boolean corrupt) {
         File backupDir = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER);
         if (!backupDir.exists() && !backupDir.mkdir()) log.warn("make dir failed {}", backupDir);
-        return new File(backupDir, System.currentTimeMillis() + "_" + fileName);
+        return new File(backupDir, System.currentTimeMillis() + "_" + fileName + (corrupt ? CORRUPT_BACKUP_SUFFIX : ""));
     }
 
     private static void truncateTo(File file, long length) throws IOException {
