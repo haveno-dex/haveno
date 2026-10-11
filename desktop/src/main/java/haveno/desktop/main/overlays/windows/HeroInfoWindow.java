@@ -18,12 +18,8 @@
 package haveno.desktop.main.overlays.windows;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import haveno.desktop.components.ExternalHyperlink;
-import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.PopupManager;
-import haveno.desktop.util.FormBuilder;
-import haveno.desktop.util.GUIUtil;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -43,6 +39,8 @@ import javax.annotation.Nullable;
  * divider, then icon-chip feature rows separated by thin lines.
  */
 public abstract class HeroInfoWindow<T extends HeroInfoWindow<T>> extends Overlay<T> {
+
+    protected Label headerTitle;
 
     protected static final String MATRIX_URL = "https://matrix.to/#/#haveno:monero.social";
 
@@ -107,6 +105,7 @@ public abstract class HeroInfoWindow<T extends HeroInfoWindow<T>> extends Overla
         iconBox.setMaxWidth(50);
 
         Label title = new Label(titleText);
+        headerTitle = title;
         title.getStyleClass().add("hero-header-title");
         title.setWrapText(true);
 
@@ -158,35 +157,7 @@ public abstract class HeroInfoWindow<T extends HeroInfoWindow<T>> extends Overla
         double textWidth = width - WINDOW_HORIZONTAL_PADDING - FEATURE_HORIZONTAL_PADDING
                 - FEATURE_ICON_BOX_WIDTH - FEATURE_TEXT_GAP;
 
-        StackPane iconBox = new StackPane(icon);
-        iconBox.getStyleClass().addAll("hero-feature-icon-box", accentClass);
-
-        Label title = new Label(titleText);
-        title.getStyleClass().add("hero-feature-title");
-        title.setWrapText(true);
-        title.setPrefWidth(textWidth);
-
-        Label body = new Label(bodyText);
-        body.getStyleClass().add("hero-feature-body");
-        body.setWrapText(true);
-        body.setPrefWidth(textWidth);
-
-        VBox textBox = new VBox(3, title, body);
-        textBox.setMinHeight(Region.USE_PREF_SIZE);
-        HBox.setHgrow(textBox, Priority.ALWAYS);
-
-        if (linkText != null) {
-            HyperlinkWithIcon link = new ExternalHyperlink(linkText);
-            link.setOnAction(e -> GUIUtil.openWebPage(linkUrl));
-            textBox.getChildren().add(link);
-        }
-
-        HBox row = new HBox(FEATURE_TEXT_GAP, iconBox, textBox);
-        row.getStyleClass().add("hero-feature-row");
-        row.setAlignment(Pos.TOP_LEFT);
-        row.setFillHeight(false);
-        row.setMinHeight(Region.USE_PREF_SIZE);
-        return row;
+        return HeroWindowComponents.featureRow(icon, accentClass, titleText, bodyText, linkText, linkUrl, textWidth);
     }
 
     protected Region createSeparator() {
@@ -196,9 +167,6 @@ public abstract class HeroInfoWindow<T extends HeroInfoWindow<T>> extends Overla
     }
 
     protected static Text createIcon(MaterialDesignIcon icon, String size, String styleClass) {
-        Text textIcon = FormBuilder.getIcon(icon, size);
-        textIcon.getStyleClass().add(styleClass);
-        textIcon.setMouseTransparent(true);
-        return textIcon;
+        return HeroWindowComponents.icon(icon, size, styleClass);
     }
 }

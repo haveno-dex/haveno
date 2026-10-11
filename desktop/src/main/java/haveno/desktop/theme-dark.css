@@ -729,3 +729,11 @@
     -network-red: #ec7a76;
     -network-warning-background: rgba(234,192,135,0.07);
 }
+
+.review-popup {
+    -review-red: #e0504d;
+    -review-green: #4cb858;
+    -review-amber: rgb(248, 178, 73);
+    -review-gated-background: #2a2a2c;
+    -review-gated-text: #a0a0a0;
+}

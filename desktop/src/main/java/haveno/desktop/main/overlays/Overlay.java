@@ -55,6 +55,7 @@ import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
@@ -198,9 +199,10 @@ public abstract class Overlay<T extends Overlay<T>> {
     private ArrayList<String> messageHyperlinks;
     private String headlineStyle;
     protected Button actionButton, secondaryActionButton;
-    private HBox buttonBox;
+    protected HBox buttonBox;
     protected AutoTooltipButton closeButton;
     protected ScrollPane scrollPane;
+    protected ScrollPane pinnedScrollPane;
 
     private HPos buttonAlignment = HPos.RIGHT;
 
@@ -764,6 +766,24 @@ public abstract class Overlay<T extends Overlay<T>> {
         return new Insets(CARD_INSET);
     }
 
+    // opt-in scrolling for review windows whose header and actions stay visible
+    protected ScrollPane createPinnedScrollPane(Region content) {
+        // report a horizontal bias so containers measure the pane's height at its width, like the wrapping rows it holds
+        pinnedScrollPane = new ScrollPane(content) {
+            @Override
+            public Orientation getContentBias() {
+                return Orientation.HORIZONTAL;
+            }
+        };
+        pinnedScrollPane.getStyleClass().add("review-scroll");
+        pinnedScrollPane.setFitToWidth(true);
+        pinnedScrollPane.setHbarPolicy(ScrollBarPolicy.NEVER);
+        pinnedScrollPane.setVbarPolicy(ScrollBarPolicy.NEVER);
+        pinnedScrollPane.setFocusTraversable(false);
+        pinnedScrollPane.setMaxHeight(Region.USE_PREF_SIZE);
+        return pinnedScrollPane;
+    }
+
     // the outermost visible popup node: the scroll shell when capped, else the content itself
     protected Region getDisplayContainer() {
         return capShell != null ? capShell : getRootContainer();
@@ -778,6 +798,19 @@ public abstract class Overlay<T extends Overlay<T>> {
         // budget the whole stage against the viewport: subclass styling (e.g. grid-pane's background)
         // can paint well outside the standard card inset, so no invisible-margin grace is assumed
         Region rootContainer = getRootContainer();
+        if (pinnedScrollPane != null) {
+            double fittedWidth = Math.min(width, maxWidth);
+            rootContainer.setPrefWidth(fittedWidth);
+            double bodyWidth = fittedWidth - rootContainer.getInsets().getLeft() - rootContainer.getInsets().getRight();
+            double fixedHeight = rootContainer.prefHeight(fittedWidth) - pinnedScrollPane.prefHeight(bodyWidth);
+            double available = maxHeight - fixedHeight;
+            double natural = pinnedScrollPane.getContent().prefHeight(Math.max(0, bodyWidth));
+            // pick the bar policy explicitly: under AS_NEEDED a transient bar narrows the rows, which re-wrap taller and keep it
+            boolean scrolls = natural > available && available >= 80;
+            pinnedScrollPane.setVbarPolicy(scrolls ? ScrollBarPolicy.ALWAYS : ScrollBarPolicy.NEVER);
+            pinnedScrollPane.setMinHeight(scrolls ? 0 : Region.USE_PREF_SIZE);
+            pinnedScrollPane.setPrefHeight(scrolls ? available : Region.USE_COMPUTED_SIZE);
+        }
         double stageWidth = rootContainer.prefWidth(-1);
         double stageHeight = rootContainer.prefHeight(stageWidth);
         if (stageWidth <= maxWidth + 2 * CAP_MARGIN && stageHeight <= maxHeight + 2 * CAP_MARGIN) return;
@@ -864,6 +897,10 @@ public abstract class Overlay<T extends Overlay<T>> {
         if (!isDisplayed) return;
         Region rootContainer = getRootContainer();
         double demand = rootContainer.prefHeight(rootContainer.prefWidth(-1));
+        if (pinnedScrollPane != null) {
+            Region content = (Region) pinnedScrollPane.getContent();
+            demand += content.prefHeight(pinnedScrollPane.getViewportBounds().getWidth());
+        }
         if (Math.abs(demand - lastContentDemand) < 0.5) return;
         lastContentDemand = demand;
         refitToContent();
