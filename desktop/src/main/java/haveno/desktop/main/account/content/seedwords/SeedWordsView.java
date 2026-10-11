@@ -172,13 +172,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
                 () -> !seedWordsValid.get() || !seedWordsEdited.get() || !restoreHeightInputTextField.validationResultProperty().get().isValid,
                 seedWordsValid, seedWordsEdited, restoreHeightInputTextField.validationResultProperty()));
 
-        restoreButton.setOnAction(e -> {
-            new Popup().information(Res.get("account.seed.restore.info"))
-                    .closeButtonText(Res.get("shared.cancel"))
-                    .actionButtonText(Res.get("account.seed.restore.ok"))
-                    .onAction(this::onRestore)
-                    .show();
-        });
+        restoreButton.setOnAction(e -> onRestore());
 
         seedWordsTextArea.getStyleClass().remove("validation-error");
 
@@ -302,23 +296,7 @@ public class SeedWordsView extends ActivatableView<GridPane, Void> {
             new Popup().warning(Res.get("seed.restore.height.invalid")).show();
             return;
         }
-        new Popup().warning(Res.get("seed.restore.walletReplacement.warn"))
-                .actionButtonText(Res.get("seed.warn.walletNotEmpty.restore"))
-                .onAction(() -> confirmRestoreHeight(restoreHeight, restoreDate))
-                .closeButtonText(Res.get("shared.cancel"))
-                .show();
-    }
-
-    private void confirmRestoreHeight(Long restoreHeight, LocalDate restoreDate) {
-        if (restoreHeight == null && restoreDate == null) {
-            new Popup().information(Res.get("seed.warn.emptyRestoreHeight"))
-                    .closeButtonText(Res.get("shared.no"))
-                    .actionButtonText(Res.get("shared.yes"))
-                    .onAction(() -> doRestore(null, null))
-                    .show();
-        } else {
-            doRestore(restoreHeight, restoreDate);
-        }
+        doRestore(restoreHeight, restoreDate);
     }
 
     // Parse the restore height, or null if blank or a date was entered.

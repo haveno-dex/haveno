@@ -35,10 +35,8 @@ import haveno.desktop.components.AutoTooltipSlideToggleButton;
 import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InputTextField;
-import haveno.desktop.main.MainView;
-import haveno.desktop.main.funds.FundsView;
-import haveno.desktop.main.funds.withdrawal.WithdrawalView;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.RemoveOfferWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.presentation.PortfolioUtil;
@@ -467,12 +465,8 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
         if (model.isBootstrappedOrShowPopup()) {
             String key = "RemoveOfferWarning";
             if (DontShowAgainLookup.showAgain(key)) {
-                new Popup().warning(Res.get("popup.warning.removeOffer"))
-                        .actionButtonText(Res.get("shared.removeOffer"))
-                        .onAction(() -> doRemoveOpenOffer(openOffer))
-                        .closeButtonText(Res.get("shared.dontRemoveOffer"))
-                        .dontShowAgainId(key)
-                        .show();
+                RemoveOfferWindow.show(openOffer.getOffer(), openOfferManager.hasClonedOffer(openOffer.getId()),
+                        () -> doRemoveOpenOffer(openOffer));
             } else {
                 doRemoveOpenOffer(openOffer);
             }
@@ -481,26 +475,11 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     }
 
     private void doRemoveOpenOffer(OpenOffer openOffer) {
-        boolean hasClonedOffer = openOfferManager.hasClonedOffer(openOffer.getId());
         model.onRemoveOpenOffer(openOffer,
                 () -> {
                     log.debug("Remove offer was successful");
 
                     tableView.refresh();
-
-                    // We do not show the popup if it's a cloned offer with shared maker reserve tx
-                    if (hasClonedOffer) {
-                        return;
-                    }
-
-                    String key = "WithdrawFundsAfterRemoveOfferInfo";
-                    if (DontShowAgainLookup.showAgain(key)) {
-                        new Popup().instruction(Res.get("offerbook.withdrawFundsHint", Res.get("funds.tab.withdrawal")))
-                                .actionButtonTextWithGoTo("funds.tab.withdrawal")
-                                .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, WithdrawalView.class))
-                                .dontShowAgainId(key)
-                                .show();
-                    }
                 },
                 (message) -> {
                     log.error(message);
