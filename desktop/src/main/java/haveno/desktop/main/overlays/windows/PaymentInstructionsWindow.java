@@ -77,9 +77,10 @@ public class PaymentInstructionsWindow extends ReviewInfoWindow<PaymentInstructi
     @Override
     protected void addMessage() {
         rows.clear();
-        String method = Res.get(trade.getOffer().getPaymentMethod().getId());
         String amount = HeroWindowComponents.volume(trade.getVolume()) + " " + trade.getOffer().getCounterCurrencyCode();
         String currency = CurrencyUtil.getNameByCode(trade.getOffer().getCounterCurrencyCode());
+        boolean crypto = account instanceof AssetAccountPayload;
+        String method = crypto ? currency : Res.get(trade.getOffer().getPaymentMethod().getId());
         if (sending) addSendingRows(amount, currency);
         else addReceivingRows(amount, currency, method);
         boolean periodStarted = trade.isDepositsFinalized();
@@ -95,18 +96,19 @@ public class PaymentInstructionsWindow extends ReviewInfoWindow<PaymentInstructi
             rightValue = HeroWindowComponents.amount(HavenoUtils.formatXmr(trade.getAmount()), "XMR", "review-small-amount", false);
         }
         VBox right = new VBox(3, rightLabel, rightValue);
-        right.setAlignment(Pos.CENTER_RIGHT);
+        right.setAlignment(Pos.TOP_RIGHT);
         VBox left = new VBox(3, HeroWindowComponents.label(sending && account instanceof CashDepositAccountPayload ? text("send.cash") :
-                text(sending ? "send.amount" : "received.amount", method), "review-strip-label"),
+                text((sending ? "send.amount" : "received.amount") + (crypto ? ".crypto" : ""), method), "review-strip-label"),
                 HeroWindowComponents.amount(HeroWindowComponents.volume(trade.getVolume()), trade.getOffer().getCounterCurrencyCode(), "review-strip-amount", false));
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox strip = new HBox(12, left, spacer, right);
         strip.setAlignment(Pos.CENTER_LEFT);
         strip.getStyleClass().add("review-strip");
+        MaterialDesignIcon icon = account instanceof AssetAccountPayload ? MaterialDesignIcon.WALLET : !sending ? MaterialDesignIcon.CASH_MULTIPLE :
+                account instanceof CashDepositAccountPayload ? MaterialDesignIcon.CASH : MaterialDesignIcon.BANK;
         addReview(sending ? ACCENT_PRIMARY : ACCENT_GREEN,
-                createHeader(sending ? account instanceof CashDepositAccountPayload ? MaterialDesignIcon.CASH : MaterialDesignIcon.BANK : MaterialDesignIcon.CASH_MULTIPLE,
-                        headLine, text(sending ? "send.subtitle" : "received.subtitle", trade.getShortId())),
+                createHeader(icon, headLine, text(sending ? "send.subtitle" : "received.subtitle", trade.getShortId())),
                 strip, HeroWindowComponents.rows(rows.toArray(new Node[0])));
     }
 
@@ -155,8 +157,7 @@ public class PaymentInstructionsWindow extends ReviewInfoWindow<PaymentInstructi
 
     private void addReceivingRows(String amount, String currency, String method) {
         if (account instanceof AssetAccountPayload asset) {
-            HBox row = row(MaterialDesignIcon.SWAP_HORIZONTAL, ACCENT_PRIMARY, text("received.crypto.title", currency), text("received.crypto.body", amount, Res.get("portfolio.pending.step3_seller.crypto." +
-                    ("XMR".equals(trade.getOffer().getCounterCurrencyCode()) ? "wallet" : "explorer"), currency)));
+            HBox row = row(MaterialDesignIcon.MAGNIFY, ACCENT_PRIMARY, text("received.crypto.title"), text("received.crypto.body", currency));
             HeroWindowComponents.rowText(row).getChildren().add(HeroWindowComponents.copyValue(asset.getAddress(), true));
         } else {
             String methodBody = null;

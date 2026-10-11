@@ -75,10 +75,12 @@ public class PaymentConfirmationWindow extends ConfirmationWindow<PaymentConfirm
     @Override
     protected void addContent() {
         String method = Res.get(trade.getOffer().getPaymentMethod().getId());
-        VBox header = hero(sent ? MaterialDesignIcon.SEND : MaterialDesignIcon.CHECK_ALL, "confirm-send-icon", headLine,
+        boolean crypto = account instanceof AssetAccountPayload;
+        String xmrAmount = HavenoUtils.formatXmr(trade.getAmount(), true);
+        VBox header = hero(sent ? MaterialDesignIcon.SEND : MaterialDesignIcon.CHECK, "confirm-send-icon", headLine,
                 HeroWindowComponents.amount(HeroWindowComponents.volume(trade.getVolume()), trade.getOffer().getCounterCurrencyCode(), "review-hero-amount", true),
-                sent ? Res.get("portfolio.pending.confirmSent.subtitle", method, HavenoUtils.formatXmr(trade.getAmount(), true, 8)) :
-                        Res.get("portfolio.pending.confirmReceived.subtitle", method));
+                sent ? crypto ? Res.get("portfolio.pending.confirmSent.subtitle.crypto", xmrAmount) : Res.get("portfolio.pending.confirmSent.subtitle", method, xmrAmount) :
+                        crypto ? Res.get("portfolio.pending.confirmReceived.subtitle.crypto") : Res.get("portfolio.pending.confirmReceived.subtitle", method));
         header.getStyleClass().add(sent ? "hero-accent-primary" : "hero-accent-green");
         VBox content = new VBox(14);
         if (sent) {
@@ -92,8 +94,12 @@ public class PaymentConfirmationWindow extends ConfirmationWindow<PaymentConfirm
                 } else if (account instanceof SepaInstantAccountPayload sepa) {
                     value = new VBox(3, selectableLabel(sepa.getHolderName(), "confirm-send-row-value", true), selectableLabel(sepa.getIban(), "review-mono", true));
                     recipient = sepa.getHolderName() + "\n" + sepa.getIban();
+                } else if (account instanceof AssetAccountPayload asset) {
+                    value = new VBox(3, selectableLabel(Res.get("portfolio.pending.step2_buyer.sellersAddress", trade.getOffer().getCounterCurrencyCode()), "confirm-send-row-value", true),
+                            selectableLabel(asset.getAddress(), "review-mono", true));
+                    recipient = asset.getAddress();
                 } else {
-                    value = selectableLabel(recipient, account instanceof AssetAccountPayload ? "review-mono" : "confirm-send-row-value", true);
+                    value = selectableLabel(recipient, "confirm-send-row-value", true);
                 }
                 details.getChildren().add(sheetGroup(Res.get("portfolio.pending.confirmSent.paidTo"), value, copyIcon(recipient)));
             }
