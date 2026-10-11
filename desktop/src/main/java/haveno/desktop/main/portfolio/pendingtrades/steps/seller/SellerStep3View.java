@@ -25,26 +25,18 @@ import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountUtil;
-import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
 import haveno.core.payment.payload.AssetAccountPayload;
 import haveno.core.payment.payload.BankAccountPayload;
-import haveno.core.payment.payload.BlikAccountPayload;
-import haveno.core.payment.payload.PayByMailAccountPayload;
-import haveno.core.payment.payload.CashDepositAccountPayload;
-import haveno.core.payment.payload.F2FAccountPayload;
-import haveno.core.payment.payload.HalCashAccountPayload;
-import haveno.core.payment.payload.MoneyGramAccountPayload;
 import haveno.core.payment.payload.MbWayAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.SepaAccountPayload;
 import haveno.core.payment.payload.SepaInstantAccountPayload;
-import haveno.core.payment.payload.USPostalMoneyOrderAccountPayload;
-import haveno.core.payment.payload.WesternUnionAccountPayload;
 import haveno.core.payment.payload.ZelleAccountPayload;
 import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
 import haveno.core.user.DontShowAgainLookup;
-import haveno.core.util.VolumeUtil;
+import haveno.desktop.main.overlays.windows.PaymentInstructionsWindow;
+import haveno.desktop.main.overlays.windows.PaymentConfirmationWindow;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.InfoTextField;
 import haveno.desktop.components.TextFieldWithCopyIcon;
@@ -377,26 +369,9 @@ public class SellerStep3View extends TradeStepView {
         if (model.dataModel.isReadyForTxBroadcast()) {
             String key = "confirmPaymentReceived";
             if (!DevEnv.isDevMode() && DontShowAgainLookup.showAgain(key)) {
-                PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
-                String message = Res.get("portfolio.pending.step3_seller.onPaymentReceived.part1", getCurrencyName(trade));
-                if (!(paymentAccountPayload instanceof AssetAccountPayload)) {
-                    Optional<String> optionalHolderName = getOptionalHolderName();
-                    if (optionalHolderName.isPresent()) {
-                        message += Res.get("portfolio.pending.step3_seller.onPaymentReceived.name", optionalHolderName.get());
-                    }
-                }
-
-                message += Res.get("portfolio.pending.step3_seller.onPaymentReceived.note");
-                if (model.dataModel.isSignWitnessTrade()) {
-                    message += Res.get("portfolio.pending.step3_seller.onPaymentReceived.signer");
-                }
-                new Popup()
-                        .headLine(Res.get("portfolio.pending.step3_seller.onPaymentReceived.confirm.headline"))
-                        .confirmation(message)
-                        .width(700)
-                        .actionButtonText(Res.get("portfolio.pending.step3_seller.onPaymentReceived.confirm.yes"))
+                new PaymentConfirmationWindow(trade, model.dataModel.getSellersPaymentAccountPayload(),
+                        getOptionalHolderName().orElse(null), model.dataModel.isSignWitnessTrade())
                         .onAction(this::confirmPaymentReceived)
-                        .closeButtonText(Res.get("shared.cancel"))
                         .show();
             } else {
                 confirmPaymentReceived();
@@ -407,65 +382,11 @@ public class SellerStep3View extends TradeStepView {
     @Override
     protected void showPaymentReminder() {
         if (!trade.isPaymentSent() || trade.isPaymentReceived() || trade.isPayoutPublished()) return;
-        PaymentAccountPayload paymentAccountPayload = model.dataModel.getSellersPaymentAccountPayload();
         String key = "confirmPayment" + trade.getId();
-        String message = "";
-        String tradeVolumeWithCode = VolumeUtil.formatVolumeWithCode(trade.getVolume());
-        String currencyName = getCurrencyName(trade);
-        String part1 = Res.get("portfolio.pending.step3_seller.part", currencyName);
-        if (paymentAccountPayload instanceof AssetAccountPayload) {
-            String address = ((AssetAccountPayload) paymentAccountPayload).getAddress();
-            String explorerOrWalletString = isXmrTrade() ?
-                    Res.get("portfolio.pending.step3_seller.crypto.wallet", currencyName) :
-                    Res.get("portfolio.pending.step3_seller.crypto.explorer", currencyName);
-            message = Res.get("portfolio.pending.step3_seller.crypto",
-                    part1,
-                    explorerOrWalletString,
-                    address,
-                    tradeVolumeWithCode,
-                    currencyName);
-        } else {
-            if (paymentAccountPayload instanceof USPostalMoneyOrderAccountPayload) {
-                message = Res.get("portfolio.pending.step3_seller.postal", part1, tradeVolumeWithCode);
-            } else if (paymentAccountPayload instanceof PayByMailAccountPayload) {
-                    message = Res.get("portfolio.pending.step3_seller.payByMail", part1, tradeVolumeWithCode);
-            } else if (paymentAccountPayload instanceof BlikAccountPayload) {
-                message = Res.get("portfolio.pending.step3_seller.part.blik");
-            } else if (!(paymentAccountPayload instanceof WesternUnionAccountPayload) &&
-                    !(paymentAccountPayload instanceof HalCashAccountPayload) &&
-                    !(paymentAccountPayload instanceof F2FAccountPayload) &&
-                    !(paymentAccountPayload instanceof AmazonGiftCardAccountPayload)) {
-                message = Res.get("portfolio.pending.step3_seller.bank", currencyName, tradeVolumeWithCode);
-            }
-
-            String part = Res.get("portfolio.pending.step3_seller.openDispute");
-            if (paymentAccountPayload instanceof CashDepositAccountPayload)
-                message = message + Res.get("portfolio.pending.step3_seller.cash", part);
-            else if (paymentAccountPayload instanceof WesternUnionAccountPayload)
-                message = message + Res.get("portfolio.pending.step3_seller.westernUnion");
-            else if (paymentAccountPayload instanceof MoneyGramAccountPayload)
-                message = message + Res.get("portfolio.pending.step3_seller.moneyGram");
-            else if (paymentAccountPayload instanceof HalCashAccountPayload)
-                message = message + Res.get("portfolio.pending.step3_seller.halCash");
-            else if (paymentAccountPayload instanceof F2FAccountPayload)
-                message = part1;
-            else if (paymentAccountPayload instanceof AmazonGiftCardAccountPayload)
-                message = Res.get("portfolio.pending.step3_seller.amazonGiftCard");
-
-            Optional<String> optionalHolderName = getOptionalHolderName();
-            if (optionalHolderName.isPresent()) {
-                message += Res.get("portfolio.pending.step3_seller.bankCheck", optionalHolderName.get(), part);
-            }
-
-            if (model.dataModel.isSignWitnessTrade()) {
-                message += "\n\n" + Res.get("portfolio.pending.step3_seller.onPaymentReceived.signer");
-            }
-        }
         if (!DevEnv.isDevMode() && DontShowAgainLookup.showAgain(key)) {
             DontShowAgainLookup.dontShowAgain(key, true);
-            new Popup().headLine(Res.get("popup.attention.forTradeWithId", trade.getShortId()))
-                    .attention(message)
-                    .show();
+            new PaymentInstructionsWindow(trade, model.dataModel.getSellersPaymentAccountPayload(), false,
+                    getOptionalHolderName().orElse(null), model.dataModel.isSignWitnessTrade()).show();
         }
     }
 
@@ -475,7 +396,7 @@ public class SellerStep3View extends TradeStepView {
         setPreparingConfirmation();
         disableConfirmationButton(confirmButton);
 
-        model.dataModel.onPaymentReceived(() -> {
+        model.dataModel.onPaymentReceived(trade, () -> {
         }, errorMessage -> UserThread.execute(() -> {
             busyAnimation.stop();
             new Popup().warning(Res.get("popup.warning.sendMsgFailed") + "\n\n" + errorMessage).show();

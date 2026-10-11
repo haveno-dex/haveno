@@ -181,15 +181,13 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         doSelectItem(item);
     }
 
-    public void onPaymentSent(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        Trade trade = getTrade();
+    public void onPaymentSent(Trade trade, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         checkNotNull(trade, "trade must not be null");
         checkArgument(trade instanceof BuyerTrade, "Check failed: trade instanceof BuyerTrade. Was: " + trade.getClass().getSimpleName());
         ((BuyerProtocol) tradeManager.getTradeProtocol(trade)).onPaymentSent(resultHandler, errorMessageHandler);
     }
 
-    public void onPaymentReceived(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
-        Trade trade = getTrade();
+    public void onPaymentReceived(Trade trade, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
         checkNotNull(trade, "trade must not be null");
         checkArgument(trade instanceof SellerTrade, "Trade must be instance of SellerTrade");
         ((SellerProtocol) tradeManager.getTradeProtocol(trade)).onPaymentReceived(resultHandler, errorMessageHandler);
