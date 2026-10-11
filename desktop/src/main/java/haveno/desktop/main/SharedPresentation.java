@@ -21,6 +21,7 @@ import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.desktop.main.overlays.windows.RestoreSeedWindow;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.main.overlays.popups.Popup;
 import lombok.extern.slf4j.Slf4j;
@@ -51,15 +52,17 @@ public class SharedPresentation {
             UserThread.execute(() -> {
                 if (!valid) {
                     new Popup().warning(Res.get("seed.restore.seedInvalid")).show();
-                } else if (!openOfferManager.getObservableList().isEmpty()) {
-                    new Popup().warning(Res.get("seed.restore.openOffers.warn"))
-                            .actionButtonText(Res.get("shared.yes"))
-                            .onAction(() -> openOfferManager.removeAllOpenOffers(() ->
-                                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate),
-                                    errorMessage -> new Popup().error(errorMessage).show()))
-                            .show();
                 } else {
-                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);
+                    new RestoreSeedWindow(openOfferManager.getObservableList().size(), restoreHeight == null && restoreDate == null)
+                            .onAction(() -> {
+                                if (openOfferManager.getObservableList().isEmpty()) {
+                                    doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);
+                                } else {
+                                    openOfferManager.removeAllOpenOffers(() ->
+                                            doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate),
+                                            errorMessage -> new Popup().error(errorMessage).show());
+                                }
+                            }).show();
                 }
             });
         }, "ValidateSeedWords").start();

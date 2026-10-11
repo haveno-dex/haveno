@@ -50,6 +50,7 @@ import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.ArbitratorTrade;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.Trade;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
 import haveno.core.user.Preferences.UseTorForXmr;
@@ -57,6 +58,9 @@ import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
+import haveno.desktop.main.overlays.windows.TradePeriodWindow;
+import haveno.desktop.main.portfolio.PortfolioView;
+import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.app.HavenoApp;
 import haveno.desktop.common.model.ViewModel;
 import haveno.desktop.components.TxIdTextField;
@@ -77,7 +81,6 @@ import haveno.desktop.main.presentation.AccountPresentation;
 import haveno.desktop.main.presentation.MarketPricePresentation;
 import haveno.desktop.main.presentation.SettingsPresentation;
 import haveno.desktop.main.shared.PriceFeedComboBoxItem;
-import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
@@ -102,7 +105,6 @@ import org.fxmisc.easybind.monadic.MonadicBinding;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.PriorityQueue;
@@ -239,31 +241,22 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                         }
 
                         // check trade period
-                        Date maxTradePeriodDate = trade.getMaxTradePeriodDate();
                         String key;
                         switch (trade.getPeriodState()) {
                             case FIRST_HALF:
                                 break;
                             case SECOND_HALF:
-                                key = "displayHalfTradePeriodOver" + trade.getId();
-                                if (DontShowAgainLookup.showAgain(key)) {
-                                    DontShowAgainLookup.dontShowAgain(key, true);
-                                    if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
-                                    new Popup().warning(Res.get("popup.warning.tradePeriod.halfReached",
-                                            trade.getShortId(),
-                                            DisplayUtils.formatDateTime(maxTradePeriodDate)))
-                                            .show();
-                                }
-                                break;
                             case TRADE_PERIOD_OVER:
-                                key = "displayTradePeriodOver" + trade.getId();
+                                key = (trade.getPeriodState() == Trade.TradePeriodState.SECOND_HALF ?
+                                        "displayHalfTradePeriodOver" : "displayTradePeriodOver") + trade.getId();
                                 if (DontShowAgainLookup.showAgain(key)) {
                                     DontShowAgainLookup.dontShowAgain(key, true);
                                     if (trade instanceof ArbitratorTrade) break; // skip popup if arbitrator trade
-                                    new Popup().warning(Res.get("popup.warning.tradePeriod.ended",
-                                            trade.getShortId(),
-                                            DisplayUtils.formatDateTime(maxTradePeriodDate)))
-                                            .show();
+                                    UserThread.execute(() -> {
+                                        if (trade.isPayoutPublished()) return;
+                                        new TradePeriodWindow(trade).onAction(() -> navigation.navigateToWithData(trade,
+                                                MainView.class, PortfolioView.class, PendingTradesView.class)).show();
+                                    });
                                 }
                                 break;
                         }

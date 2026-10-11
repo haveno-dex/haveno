@@ -18,6 +18,17 @@
 package haveno.desktop.main.overlays;
 
 import haveno.common.ClockWatcher;
+import haveno.desktop.main.overlays.windows.PaymentConfirmationWindow;
+import haveno.desktop.main.overlays.windows.PaymentInstructionsWindow;
+import haveno.desktop.main.overlays.windows.TradePeriodWindow;
+import haveno.core.payment.payload.AssetAccountPayload;
+import haveno.core.payment.payload.CashDepositAccountPayload;
+import haveno.core.payment.payload.WesternUnionAccountPayload;
+import haveno.core.payment.payload.MoneyGramAccountPayload;
+import haveno.core.payment.payload.HalCashAccountPayload;
+import haveno.core.payment.payload.SepaAccountPayload;
+import haveno.core.payment.payload.BlikAccountPayload;
+import java.util.Date;
 import haveno.common.ThreadUtils;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
@@ -35,6 +46,7 @@ import haveno.core.filter.FilterManager;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
+import haveno.core.monetary.Volume;
 import haveno.core.support.SupportSession;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
@@ -47,6 +59,10 @@ import haveno.core.support.traderchat.TraderChatManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.BuyerTrade;
+import haveno.core.trade.SellerTrade;
+import haveno.core.trade.protocol.BuyerProtocol;
+import haveno.core.trade.protocol.SellerProtocol;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.user.Preferences;
 import haveno.core.user.Preferences.UseTorForXmr;
@@ -162,6 +178,7 @@ import org.mockito.MockedStatic;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -175,6 +192,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -365,6 +383,76 @@ public class OverlayTest {
         @SuppressWarnings("unchecked")
         private ComboBox<MoneroNodesOption> source() {
             return (ComboBox<MoneroNodesOption>) controls.get("source");
+        }
+    }
+
+    @Nested
+    class RedesignedPopups {
+        @Test
+        void tradeRemindersAndConfirmationsHaveDistinctQueueIdentities() {
+            Trade first = mock(Trade.class);
+            Trade second = mock(Trade.class);
+            when(first.getId()).thenReturn("first-trade");
+            when(second.getId()).thenReturn("second-trade");
+            when(first.getMaxTradePeriodDate()).thenReturn(new Date(Long.MAX_VALUE));
+            when(second.getMaxTradePeriodDate()).thenReturn(new Date(Long.MAX_VALUE));
+            assertNotEquals(new PaymentConfirmationWindow(first, null).toString(), new PaymentConfirmationWindow(second, null).toString());
+            assertNotEquals(new PaymentConfirmationWindow(first, null).toString(), new PaymentConfirmationWindow(first, null, null, false).toString());
+            assertNotEquals(new PaymentInstructionsWindow(first, null, true, null, false).toString(),
+                    new PaymentInstructionsWindow(second, null, true, null, false).toString());
+            assertNotEquals(new TradePeriodWindow(first).toString(), new TradePeriodWindow(second).toString());
+        }
+
+        @Test
+        void reviewAmountsPreserveMetalAndCryptoPrecision() throws ReflectiveOperationException {
+            var formatter = Class.forName("haveno.desktop.main.overlays.windows.HeroWindowComponents")
+                    .getDeclaredMethod("volume", Volume.class);
+            formatter.setAccessible(true);
+            assertEquals("0.1234", formatter.invoke(null, Volume.parse("0.1234", "XAU")));
+            assertEquals("0.0001", formatter.invoke(null, Volume.parse("0.0001", "XAG")));
+            assertEquals("0.01234567", formatter.invoke(null, Volume.parse("0.01234567", "BTC")));
+            assertEquals("506.00", formatter.invoke(null, Volume.parse("506", "EUR")));
+            assertEquals(Res.get("shared.na"), formatter.invoke(null, new Object[]{null}));
+        }
+
+        @Test
+        void paymentActionsUseTheReviewedTradeAfterSelectionChanges() {
+            TradeManager manager = mock(TradeManager.class);
+            PendingTradesDataModel dataModel = spy(new PendingTradesDataModel(manager, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, null));
+            BuyerTrade buyer = mock(BuyerTrade.class);
+            SellerTrade seller = mock(SellerTrade.class);
+            BuyerProtocol buyerProtocol = mock(BuyerProtocol.class);
+            SellerProtocol sellerProtocol = mock(SellerProtocol.class);
+            when(manager.getTradeProtocol(buyer)).thenReturn(buyerProtocol);
+            when(manager.getTradeProtocol(seller)).thenReturn(sellerProtocol);
+
+            when(dataModel.getTrade()).thenReturn(seller);
+            dataModel.onPaymentSent(buyer, () -> {}, error -> {});
+            verify(buyerProtocol).onPaymentSent(any(), any());
+
+            when(dataModel.getTrade()).thenReturn(buyer);
+            dataModel.onPaymentReceived(seller, () -> {}, error -> {});
+            verify(sellerProtocol).onPaymentReceived(any(), any());
+        }
+
+        @Test
+        void methodSpecificConfirmationPreferencesArePreserved() {
+            assertEquals("confirmPaperReceiptSent", PaymentConfirmationWindow.methodConfirmationKey(mock(CashDepositAccountPayload.class)));
+            assertEquals("westernUnionMTCNSent", PaymentConfirmationWindow.methodConfirmationKey(mock(WesternUnionAccountPayload.class)));
+            assertEquals("moneyGramMTCNSent", PaymentConfirmationWindow.methodConfirmationKey(mock(MoneyGramAccountPayload.class)));
+            assertEquals("halCashCodeInfo", PaymentConfirmationWindow.methodConfirmationKey(mock(HalCashAccountPayload.class)));
+            assertNull(PaymentConfirmationWindow.methodConfirmationKey(mock(SepaAccountPayload.class)));
+        }
+
+        @Test
+        void referenceWarningsRemainMethodSpecific() {
+            assertTrue(PaymentInstructionsWindow.shouldShowReferenceWarning(mock(SepaAccountPayload.class)));
+            assertTrue(PaymentInstructionsWindow.shouldShowReferenceWarning(mock(CashDepositAccountPayload.class)));
+            assertFalse(PaymentInstructionsWindow.shouldShowReferenceWarning(mock(AssetAccountPayload.class)));
+            assertFalse(PaymentInstructionsWindow.shouldShowReferenceWarning(mock(BlikAccountPayload.class)));
+            assertFalse(PaymentInstructionsWindow.shouldShowReferenceWarning(mock(WesternUnionAccountPayload.class)));
+            assertFalse(PaymentInstructionsWindow.shouldShowReferenceWarning(mock(HalCashAccountPayload.class)));
         }
     }
 

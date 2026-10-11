@@ -335,23 +335,7 @@ public class WalletPasswordWindow extends Overlay<WalletPasswordWindow> {
             new Popup().warning(Res.get("seed.restore.height.invalid")).show();
             return;
         }
-        new Popup().warning(Res.get("seed.restore.walletReplacement.warn"))
-                .actionButtonText(Res.get("seed.warn.walletNotEmpty.restore"))
-                .onAction(() -> confirmRestoreHeight(restoreHeight, restoreDate))
-                .closeButtonText(Res.get("shared.cancel"))
-                .show();
-    }
-
-    private void confirmRestoreHeight(Long restoreHeight, LocalDate restoreDate) {
-        if (restoreHeight == null && restoreDate == null) {
-            new Popup().information(Res.get("seed.warn.emptyRestoreHeight"))
-                    .closeButtonText(Res.get("shared.no"))
-                    .actionButtonText(Res.get("shared.yes"))
-                    .onAction(() -> doRestore(null, null))
-                    .show();
-        } else {
-            doRestore(restoreHeight, restoreDate);
-        }
+        doRestore(restoreHeight, restoreDate);
     }
 
     // Parse the restore height, or null if blank or a date was entered.

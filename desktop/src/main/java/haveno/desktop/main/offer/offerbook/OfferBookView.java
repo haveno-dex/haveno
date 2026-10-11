@@ -57,11 +57,10 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.cryptoaccounts.CryptoAccountsView;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
-import haveno.desktop.main.funds.FundsView;
-import haveno.desktop.main.funds.withdrawal.WithdrawalView;
 import haveno.desktop.main.offer.OfferView;
 import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.RemoveOfferWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.editoffer.EditOfferView;
@@ -831,13 +830,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         if (model.isBootstrappedOrShowPopup()) {
             String key = "RemoveOfferWarning";
             if (DontShowAgainLookup.showAgain(key)) {
-                String message = Res.get("popup.warning.removeOffer");
-                new Popup().warning(message)
-                        .actionButtonText(Res.get("shared.removeOffer"))
-                        .onAction(() -> doRemoveOffer(offer))
-                        .closeButtonText(Res.get("shared.dontRemoveOffer"))
-                        .dontShowAgainId(key)
-                        .show();
+                RemoveOfferWindow.show(offer, model.hasClonedOffer(offer), () -> doRemoveOffer(offer));
             } else {
                 doRemoveOffer(offer);
             }
@@ -852,17 +845,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     }
 
     private void doRemoveOffer(Offer offer) {
-        String key = "WithdrawFundsAfterRemoveOfferInfo";
         model.onRemoveOpenOffer(offer,
-                () -> {
-                    log.debug(Res.get("offerbook.removeOffer.success"));
-                    if (DontShowAgainLookup.showAgain(key))
-                        new Popup().instruction(Res.get("offerbook.withdrawFundsHint", Res.get("funds.tab.withdrawal")))
-                                .actionButtonTextWithGoTo("funds.tab.withdrawal")
-                                .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, WithdrawalView.class))
-                                .dontShowAgainId(key)
-                                .show();
-                },
+                () -> log.debug(Res.get("offerbook.removeOffer.success")),
                 (message) -> {
                     log.error(message);
                     new Popup().warning(Res.get("offerbook.removeOffer.failed", message)).show();
