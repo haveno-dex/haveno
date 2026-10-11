@@ -4,7 +4,9 @@ This document is a guide for Haveno users.
 
 ## Clearing Old Trade Details
 
-The "Clear sensitive data after (days)" preference removes payment details from eligible completed trades in active history. Recovery backups are retained, as in Bisq, and can still contain those details. This includes rolling backups under `db/backup`, migrated `db/ClosedTrades.legacy-backup*` files, and backups you created separately.
+The "Clear sensitive data after (days)" preference removes payment details from eligible completed trades in active history. Haveno automatically migrates older history files to `db/ClosedTradesStore` and removes obsolete copies after successful migration, retaining copies that may be needed for recovery.
+
+Rolling backups remain enabled and can contain details cleared from active history, as can corruption backups and backups you create yourself. Avoid using older Haveno releases with the same data directory after migration, as they cannot read `ClosedTradesStore`.
 
 ## Diagnosing Out-of-Memory Shutdowns
 

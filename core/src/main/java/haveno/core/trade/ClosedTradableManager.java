@@ -96,13 +96,13 @@ public class ClosedTradableManager implements PersistedDataHost {
                 // appends never rewrite the log from memory, so the history is recovered on a
                 // next start with a larger heap.
                 log.error("Out of memory loading closed trades; continuing with an empty list. Increase the heap (-Xmx) to recover the history.", e);
-                corruptedStorageFileHandler.addFile(ClosedTradesStore.LOG_FILE_NAME);
+                corruptedStorageFileHandler.addFile(ClosedTradesStore.STORE_FILE_NAME);
                 loaded = List.of();
             } catch (Throwable t) {
                 // A decode fault must not hang startup. The log is left intact for recovery;
                 // proceed empty but surface the problem.
                 log.error("Could not load closed trades; continuing with an empty list. The log on disk is left intact for recovery.", t);
-                corruptedStorageFileHandler.addFile(ClosedTradesStore.LOG_FILE_NAME);
+                corruptedStorageFileHandler.addFile(ClosedTradesStore.STORE_FILE_NAME);
                 loaded = List.of();
             }
             List<Tradable> result = loaded;

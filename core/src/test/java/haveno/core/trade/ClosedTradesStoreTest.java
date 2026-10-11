@@ -41,7 +41,9 @@ import haveno.core.xmr.wallet.XmrWalletService;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -195,15 +197,506 @@ public class ClosedTradesStoreTest {
     @Test
     public void testMigrationFromLegacyMonolithicFile() throws Exception {
         writeLegacyFile(openOffer("legacy-1", 0), openOffer("legacy-2", 0));
+        writeLegacyCopies();
 
         List<Tradable> loaded = newStore().load();
 
         assertEquals(List.of("legacy-1", "legacy-2"), ids(loaded));
-        assertTrue(new File(dir, ClosedTradesStore.LOG_FILE_NAME).exists(), "log should be created");
-        assertTrue(new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME).exists(), "legacy file should be frozen as backup");
-        assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists(), "legacy file should be moved");
+        assertTrue(new File(dir, ClosedTradesStore.STORE_FILE_NAME).exists(), "log should be created");
+        assertFalse(new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME).exists(), "migration must not keep a legacy copy");
+        assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists(), "legacy file should be deleted");
+        assertOnlyMonolithicCopiesRemoved();
         // A second start does not re-migrate (log already present) and reads identically.
         assertEquals(List.of("legacy-1", "legacy-2"), ids(newStore().load()));
+    }
+
+    private List<File> legacyCopies() {
+        return List.of(new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME),
+                new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME + ".123"),
+                new File(dir, "backup/backups_ClosedTrades"),
+                new File(dir, "backup/backups_ClosedTrades_log"),
+                new File(dir, "backup/backups_ClosedTrades_log_pending"));
+    }
+
+    private void writeLegacyCopies() throws IOException {
+        for (File file : legacyCopies()) {
+            if (file.getParentFile().equals(dir)) {
+                Files.write(file.toPath(), new byte[]{1});
+            } else {
+                Files.createDirectories(file.toPath());
+                Files.write(new File(file, "snapshot").toPath(), new byte[]{1});
+            }
+        }
+    }
+
+    private void assertOnlyMonolithicCopiesRemoved() {
+        for (File file : legacyCopies()) {
+            boolean unmigratedLogBackup = file.getName().startsWith("backups_ClosedTrades_log");
+            assertEquals(unmigratedLogBackup, file.exists(), file.toString());
+        }
+    }
+
+    private EncryptedAppendLog oldLog(String suffix) {
+        return new EncryptedAppendLog(dir, ClosedTradesStore.OLD_LOG_FILE_NAME + suffix, keyRing.getSymmetricKey(), 0);
+    }
+
+    @Test
+    public void testOldLogAndPendingMigrateAndRemoveLegacyCopies() throws Exception {
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+        oldLog(".pending").append(ClosedTradesStore.upsertBytes(openOffer("pending", 2)));
+        writeLegacyCopies();
+        File unrelated = new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME + "-unrelated");
+        Files.write(unrelated.toPath(), new byte[]{1});
+        File corruptBackup = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER + "/saved_UnrelatedStore");
+        Files.createDirectories(corruptBackup.getParentFile().toPath());
+        Files.write(corruptBackup.toPath(), new byte[]{1});
+
+        assertEquals(List.of("main", "pending"), ids(newStore().load()));
+        assertTrue(new File(dir, ClosedTradesStore.STORE_FILE_NAME).exists());
+        assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME).exists());
+        assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME + ".pending").exists());
+        assertTrue(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 0)
+                .readAllValidRecords().isEmpty());
+        for (File file : legacyCopies()) assertFalse(file.exists(), file.toString());
+        assertTrue(unrelated.exists());
+        assertTrue(corruptBackup.exists());
+        assertEquals(List.of("main", "pending"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testBothLogNamesMergeWithDowngradedWritesLast() throws Exception {
+        rawLog().appendAll(List.of(ClosedTradesStore.upsertBytes(openOffer("original", 1)),
+                ClosedTradesStore.upsertBytes(openOffer("shared", 1)),
+                ClosedTradesStore.upsertBytes(openOffer("deleted", 1))));
+        byte[] committed = ClosedTradesStore.upsertBytes(openOffer("shared", 2));
+        oldLog("").appendAll(List.of(committed, ClosedTradesStore.upsertBytes(openOffer("downgraded", 3)),
+                ClosedTradesStore.deleteBytes(openOffer("deleted", 1)),
+                ClosedTradesStore.upsertBytes(openOffer("shared", 4))));
+        // A committed pending receipt must not overwrite the later update when both names merge.
+        oldLog(".pending").appendAll(List.of(committed, ClosedTradesStore.upsertBytes(openOffer("queued-old", 5))));
+        new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 0)
+                .append(ClosedTradesStore.upsertBytes(openOffer("queued-new", 6)));
+
+        List<Tradable> loaded = newStore().load();
+        assertEquals(List.of("original", "shared", "downgraded", "queued-new", "queued-old"), ids(loaded));
+        assertEquals(4, ((OpenOffer) loaded.get(1)).getTriggerPrice());
+        assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME).exists());
+        assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME + ".pending").exists());
+        assertEquals(ids(loaded), ids(newStore().load()));
+    }
+
+    @Test
+    public void testMigrationRecoversOldTempsAndPreservesNewTemp() throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("new-temp", 1)));
+        Files.move(new File(dir, ClosedTradesStore.STORE_FILE_NAME).toPath(),
+                new File(dir, ClosedTradesStore.STORE_FILE_NAME + ".tmp").toPath());
+        oldLog(".tmp").append(ClosedTradesStore.upsertBytes(openOffer("old-temp", 2)));
+        oldLog(".pending.tmp").append(ClosedTradesStore.upsertBytes(openOffer("pending-temp", 3)));
+
+        assertEquals(List.of("new-temp", "old-temp", "pending-temp"), ids(newStore().load()));
+        assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME + ".tmp").exists());
+        assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME + ".pending.tmp").exists());
+        assertFalse(new File(dir, ClosedTradesStore.STORE_FILE_NAME + ".tmp").exists());
+        assertEquals(List.of("new-temp", "old-temp", "pending-temp"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testStaleOldTempIsDeletedBeforeLiveFileMoves() throws Exception {
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("current", 1)));
+        oldLog(".tmp").append(ClosedTradesStore.upsertBytes(openOffer("stale", 2)));
+        File source = new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME);
+        try (var files = mockStatic(FileUtil.class, invocation -> {
+            if (invocation.getMethod().getName().equals("atomicReplace") && source.equals(invocation.getArgument(0))) {
+                assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME + ".tmp").exists());
+                invocation.callRealMethod();
+                throw new OutOfMemoryError("Simulated termination immediately after rename");
+            }
+            return invocation.callRealMethod();
+        })) {
+            assertThrows(OutOfMemoryError.class, () -> newStore().load());
+        }
+        assertEquals(List.of("current"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testStaleTempDeletionSyncIsRetriedBeforeRename() throws Exception {
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("current", 1)));
+        oldLog(".tmp").append(ClosedTradesStore.upsertBytes(openOffer("stale", 2)));
+        File source = new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME);
+        ClosedTradesStore store = newStore();
+        int[] syncAttempts = {0};
+        try (var files = mockStatic(FileUtil.class, invocation -> {
+            if (invocation.getMethod().getName().equals("syncDirectory") && source.exists()) {
+                if (++syncAttempts[0] == 1) throw new IOException("Simulated stale-temp deletion sync failure");
+            }
+            if (invocation.getMethod().getName().equals("atomicReplace") && source.equals(invocation.getArgument(0))) {
+                assertEquals(2, syncAttempts[0], "the temp deletion must be durable before renaming on retry");
+            }
+            return invocation.callRealMethod();
+        })) {
+            assertThrows(RuntimeException.class, store::load);
+            assertTrue(source.exists());
+            assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME + ".tmp").exists());
+            assertEquals(List.of("current"), ids(store.load()));
+        }
+        assertEquals(List.of("current"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testAppendBeforeLoadMigratesOldHistoryAndQueue() throws Exception {
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+        oldLog(".pending").append(ClosedTradesStore.upsertBytes(openOffer("queued", 2)));
+
+        newStore().appendUpsert(openOffer("queued", 3));
+
+        List<Tradable> loaded = newStore().load();
+        assertEquals(List.of("main", "queued"), ids(loaded));
+        assertEquals(3, ((OpenOffer) loaded.get(1)).getTriggerPrice());
+        assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME).exists());
+    }
+
+    @Test
+    public void testFailedMainRenameAfterPendingMigrationKeepsDurableQueue() throws Exception {
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+        oldLog(".pending").append(ClosedTradesStore.upsertBytes(openOffer("queued", 2)));
+        writeLegacyCopies();
+        ClosedTradesStore store = newStore();
+        File source = new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME);
+        File target = new File(dir, ClosedTradesStore.STORE_FILE_NAME);
+        try (var userThread = mockStatic(UserThread.class);
+             var files = mockStatic(FileUtil.class, invocation -> {
+                 if (invocation.getMethod().getName().equals("atomicReplace") && source.equals(invocation.getArgument(0))) {
+                     throw new IOException("Simulated rename failure");
+                 }
+                 return invocation.callRealMethod();
+             })) {
+            assertThrows(RuntimeException.class, store::load);
+            store.appendUpsert(openOffer("later", 3));
+            assertTrue(source.exists());
+            assertFalse(target.exists());
+            assertFalse(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME + ".pending").exists());
+            for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+            assertEquals(2, new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 0)
+                    .readAllValidRecords().size());
+        }
+        assertEquals(List.of("main", "queued", "later"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testFailedSourceDeletionBlocksNewWritesUntilMergeCanFinish() throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("shared", 1)));
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("shared", 2)));
+        File source = new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME);
+        ClosedTradesStore store = newStore();
+        try (var userThread = mockStatic(UserThread.class);
+             var files = mockStatic(FileUtil.class, invocation -> {
+                 if (invocation.getMethod().getName().equals("deleteFileIfExists") && source.equals(invocation.getArgument(0))) {
+                     throw new IOException("Simulated source deletion failure");
+                 }
+                 return invocation.callRealMethod();
+             })) {
+            assertThrows(RuntimeException.class, store::load);
+            long mergedLength = new File(dir, ClosedTradesStore.STORE_FILE_NAME).length();
+            store.appendUpsert(openOffer("shared", 3));
+            store.flushFailedEntries();
+            assertEquals(mergedLength, new File(dir, ClosedTradesStore.STORE_FILE_NAME).length());
+            assertTrue(source.exists());
+        }
+        List<Tradable> loaded = newStore().load();
+        assertEquals(List.of("shared"), ids(loaded));
+        assertEquals(3, ((OpenOffer) loaded.getFirst()).getTriggerPrice());
+        assertFalse(source.exists());
+        assertEquals(3, ((OpenOffer) newStore().load().getFirst()).getTriggerPrice());
+    }
+
+    @Test
+    public void testRepairedMigrationRetainsLegacyCopiesAcrossRestarts() throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("old", 2)));
+        Files.write(new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME).toPath(), new byte[]{1},
+                StandardOpenOption.APPEND);
+        writeLegacyFile(openOffer("legacy", 3));
+        writeLegacyCopies();
+        ClosedTradesStore store = newStore();
+
+        assertEquals(List.of("main", "old", "legacy"), ids(store.load()));
+        assertTrue(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+        store.load();
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+        assertEquals(List.of("main", "old", "legacy"), ids(newStore().load()));
+        assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+    }
+
+    @Test
+    public void testRepairedMainLogRetainsCopies() throws Exception {
+        assertRepairedLogRetainsCopies(ClosedTradesStore.STORE_FILE_NAME);
+    }
+
+    @Test
+    public void testRepairedPendingLogRetainsCopies() throws Exception {
+        assertRepairedLogRetainsCopies(ClosedTradesStore.PENDING_FILE_NAME);
+    }
+
+    @Test
+    public void testRepairedOldPendingLogRetainsCopies() throws Exception {
+        assertRepairedLogRetainsCopies(ClosedTradesStore.OLD_LOG_FILE_NAME + ".pending");
+    }
+
+    private void assertRepairedLogRetainsCopies(String fileName) throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+        new EncryptedAppendLog(dir, fileName, keyRing.getSymmetricKey(), 0)
+                .append(ClosedTradesStore.upsertBytes(openOffer("recovered", 2)));
+        Files.write(new File(dir, fileName).toPath(), new byte[]{1}, StandardOpenOption.APPEND);
+        writeLegacyCopies();
+
+        assertEquals(List.of("main", "recovered"), ids(newStore().load()));
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+        assertEquals(List.of("main", "recovered"), ids(newStore().load()));
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+    }
+
+    @Test
+    public void testEarlierMidLogCorruptionRetainsCopiesAcrossRestarts() throws Exception {
+        rawLog().appendAll(List.of(ClosedTradesStore.upsertBytes(openOffer("kept", 1)),
+                ClosedTradesStore.upsertBytes(openOffer("damaged", 2)),
+                ClosedTradesStore.upsertBytes(openOffer("lost", 3))));
+        corruptFrame(new File(dir, ClosedTradesStore.STORE_FILE_NAME), 1);
+        writeLegacyCopies();
+
+        assertEquals(List.of("kept"), ids(newStore().load()));
+        File[] marked = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER).listFiles((d, name) ->
+                name.endsWith("_" + ClosedTradesStore.STORE_FILE_NAME + EncryptedAppendLog.CORRUPT_BACKUP_SUFFIX));
+        assertEquals(1, marked.length, "mid-log damage must leave a marked copy");
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+        // The repair copy keeps recovery snapshots available after a clean restart.
+        assertEquals(List.of("kept"), ids(newStore().load()));
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+    }
+
+    // Flips a byte inside the given frame's ciphertext, so replay sees mid-log damage rather than a torn tail.
+    private static void corruptFrame(File file, int frame) throws IOException {
+        byte[] bytes = Files.readAllBytes(file.toPath());
+        int offset = 0;
+        for (int i = 0; i < frame; i++) offset += 4 + ByteBuffer.wrap(bytes, offset, 4).getInt();
+        int len = ByteBuffer.wrap(bytes, offset, 4).getInt();
+        bytes[offset + 4 + len / 2] ^= 0x5a;
+        Files.write(file.toPath(), bytes);
+    }
+
+    @Test
+    public void testMissingOrEmptyStoreRetainsRecoveryCopies() throws Exception {
+        writeLegacyCopies();
+        assertTrue(newStore().load().isEmpty());
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+        rawLog().rewrite(List.of());
+        assertTrue(newStore().load().isEmpty());
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+
+        newStore().appendUpsert(openOffer("recent", 1));
+        assertEquals(List.of("recent"), ids(newStore().load()));
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+    }
+
+    @Test
+    public void testNewTradesRetainReadableSnapshotsOfMissingHistory() throws Exception {
+        writeLegacyFile(openOffer("historical", 1));
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("historical", 1)));
+        oldLog(".pending").append(ClosedTradesStore.upsertBytes(openOffer("queued", 2)));
+        List<File> backups = new ArrayList<>();
+        for (String fileName : List.of(ClosedTradesStore.LEGACY_FILE_NAME,
+                ClosedTradesStore.OLD_LOG_FILE_NAME, ClosedTradesStore.OLD_PENDING_FILE_NAME)) {
+            assertTrue(FileUtil.rollingBackup(dir, fileName, 1));
+            backups.addAll(FileUtil.getBackupFiles(dir, fileName));
+            Files.delete(new File(dir, fileName).toPath());
+        }
+        assertEquals(3, backups.size());
+
+        ClosedTradesStore store = newStore();
+        assertTrue(store.load().isEmpty());
+        store.appendUpsert(openOffer("recent", 3));
+
+        assertEquals(List.of("recent"), ids(newStore().load()));
+        for (File backup : backups) assertTrue(backup.exists(), backup.toString());
+    }
+
+    @Test
+    public void testUnmarkedEarlierRepairRetainsReadableBackup() throws Exception {
+        assertEarlierRepairRetainsBackup(ClosedTradesStore.OLD_LOG_FILE_NAME, false);
+    }
+
+    @Test
+    public void testEarlierPendingRepairRetainsReadableBackup() throws Exception {
+        assertEarlierRepairRetainsBackup(ClosedTradesStore.OLD_PENDING_FILE_NAME, false);
+    }
+
+    @Test
+    public void testDamagedLengthRetainsReadableBackup() throws Exception {
+        assertEarlierRepairRetainsBackup(ClosedTradesStore.OLD_LOG_FILE_NAME, true);
+    }
+
+    private void assertEarlierRepairRetainsBackup(String fileName, boolean damageLength) throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+        EncryptedAppendLog log = new EncryptedAppendLog(dir, fileName, keyRing.getSymmetricKey(), 0);
+        log.appendAll(List.of(ClosedTradesStore.upsertBytes(openOffer("kept", 1)),
+                ClosedTradesStore.upsertBytes(openOffer("damaged", 2)),
+                ClosedTradesStore.upsertBytes(openOffer("lost", 3))));
+        assertTrue(FileUtil.rollingBackup(dir, fileName, 1));
+        File backup = FileUtil.getBackupFiles(dir, fileName).getFirst();
+        File source = new File(dir, fileName);
+        if (damageLength) {
+            byte[] bytes = Files.readAllBytes(source.toPath());
+            int secondFrame = 4 + ByteBuffer.wrap(bytes, 0, 4).getInt();
+            ByteBuffer.wrap(bytes, secondFrame, 4).putInt(Integer.MAX_VALUE);
+            Files.write(source.toPath(), bytes);
+        } else {
+            corruptFrame(source, 1);
+        }
+        assertEquals(1, log.readAllValidRecords().size());
+        if (!damageLength && fileName.equals(ClosedTradesStore.OLD_LOG_FILE_NAME)) {
+            // Earlier builds saved corruption copies without the suffix.
+            File corruptedDir = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER);
+            File[] copies = corruptedDir.listFiles();
+            assertEquals(1, copies.length);
+            Files.move(copies[0].toPath(), new File(corruptedDir, "earlier_" + fileName).toPath());
+        }
+
+        assertEquals(List.of("main", "kept"), ids(newStore().load()));
+        assertEquals(List.of("main", "kept"), ids(newStore().load()));
+        assertTrue(backup.exists());
+        assertEquals(3, new EncryptedAppendLog(backup.getParentFile(), backup.getName(), keyRing.getSymmetricKey(), 0)
+                .readAllValidRecords().size());
+    }
+
+    @Test
+    public void testFailedLegacyAppendKeepsSourceAndCopies() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            rawLog().append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+            writeLegacyFile(openOffer("legacy", 2));
+            writeLegacyCopies();
+            EncryptedAppendLog main = spy(rawLog());
+            doThrow(new IllegalStateException("Simulated legacy append failure")).when(main).appendAll(anyList());
+            ClosedTradesStore store = newStore();
+            setLog(store, "appendLog", main);
+
+            assertEquals(List.of("main", "legacy"), ids(store.load()));
+            assertEquals(1, rawLog().readAllValidRecords().size());
+            assertTrue(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+            for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+            assertEquals(List.of("main", "legacy"), ids(newStore().load()));
+            assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+            assertOnlyMonolithicCopiesRemoved();
+        }
+    }
+
+    @Test
+    public void testEarlierFailedLegacyImportKeepsReadableRollingBackup() throws Exception {
+        writeLegacyFile(openOffer("original", 1));
+        assertTrue(FileUtil.rollingBackup(dir, ClosedTradesStore.LEGACY_FILE_NAME, 1));
+        Files.write(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).toPath(), new byte[]{1});
+        PersistenceManager<TradableList<Tradable>> legacy = new PersistenceManager<>(dir, resolver, null, keyRing);
+        assertNull(legacy.getPersisted(ClosedTradesStore.LEGACY_FILE_NAME));
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("recent", 2)));
+
+        assertEquals(List.of("recent"), ids(newStore().load()));
+        assertEquals(1, FileUtil.getBackupFiles(dir, ClosedTradesStore.LEGACY_FILE_NAME).size());
+        File corrupted = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER + "/" + ClosedTradesStore.LEGACY_FILE_NAME);
+        Files.move(corrupted.toPath(), new File(corrupted.getParentFile(), ClosedTradesStore.LEGACY_FILE_NAME + ".earlier").toPath());
+        assertEquals(List.of("recent"), ids(newStore().load()));
+        assertEquals(1, FileUtil.getBackupFiles(dir, ClosedTradesStore.LEGACY_FILE_NAME).size());
+    }
+
+    @Test
+    public void testEarlierCorruptionKeepsRecoveryCopiesAfterMerge() throws Exception {
+        writeLegacyFile(openOffer("recreated", 1));
+        writeLegacyCopies();
+        File corrupted = new File(dir, FileUtil.CORRUPTED_BACKUP_FOLDER + "/" + ClosedTradesStore.LEGACY_FILE_NAME);
+        Files.createDirectories(corrupted.getParentFile().toPath());
+        Files.write(corrupted.toPath(), new byte[]{1});
+
+        assertEquals(List.of("recreated"), ids(newStore().load()));
+        assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+        assertTrue(corrupted.exists());
+        assertEquals(List.of("recreated"), ids(newStore().load()));
+    }
+
+    @Test
+    public void testExistingStoreRemainsReadableWhenCleanupCannotSync() throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+        writeLegacyFile(openOffer("main", 1));
+        try (var files = mockStatic(FileUtil.class, invocation -> {
+            if (invocation.getMethod().getName().equals("syncFileAndDirectory")) {
+                throw new IOException("Simulated read-only store");
+            }
+            return invocation.callRealMethod();
+        })) {
+            assertEquals(List.of("main"), ids(newStore().load()));
+            assertFalse(corruptedStorageFileHandler.getFiles().isPresent());
+            assertTrue(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+        }
+    }
+
+    @Test
+    public void testAlreadyMergedLegacyIsKeptWhenSyncFails() throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("same", 1)));
+        writeLegacyFile(openOffer("same", 0));
+        writeLegacyCopies();
+        ClosedTradesStore store = newStore();
+        setLog(store, "appendLog", rawLog());
+        try (var files = mockStatic(FileUtil.class, invocation -> {
+            if (invocation.getMethod().getName().equals("syncFileAndDirectory")) {
+                throw new IOException("Simulated sync failure before legacy cleanup");
+            }
+            return invocation.callRealMethod();
+        })) {
+            assertEquals(1, ((OpenOffer) store.load().getFirst()).getTriggerPrice());
+            assertTrue(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+            for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+        }
+        assertEquals(1, ((OpenOffer) newStore().load().getFirst()).getTriggerPrice());
+        assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+        assertOnlyMonolithicCopiesRemoved();
+    }
+
+    @Test
+    public void testSourceDeletionSyncFailureStillBlocksWritesOnRetry() throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("shared", 1)));
+        oldLog("").append(ClosedTradesStore.upsertBytes(openOffer("shared", 2)));
+        File source = new File(dir, ClosedTradesStore.OLD_LOG_FILE_NAME);
+        ClosedTradesStore store = newStore();
+        try (var userThread = mockStatic(UserThread.class);
+             var files = mockStatic(FileUtil.class, invocation -> {
+                 if (invocation.getMethod().getName().equals("syncDirectory") && !source.exists()) {
+                     throw new IOException("Simulated directory sync failure after deletion");
+                 }
+                 return invocation.callRealMethod();
+             })) {
+            assertThrows(RuntimeException.class, store::load);
+            assertFalse(source.exists());
+            long mergedLength = new File(dir, ClosedTradesStore.STORE_FILE_NAME).length();
+            store.appendUpsert(openOffer("shared", 3));
+            assertEquals(mergedLength, new File(dir, ClosedTradesStore.STORE_FILE_NAME).length());
+        }
+        store.flushFailedEntries();
+        assertEquals(3, ((OpenOffer) newStore().load().getFirst()).getTriggerPrice());
+    }
+
+    @Test
+    public void testUnreadableLegacyRetainsCopies() throws Exception {
+        rawLog().append(ClosedTradesStore.upsertBytes(openOffer("main", 1)));
+        writeLegacyFile(openOffer("legacy", 2));
+        writeLegacyCopies();
+        PersistenceManager<TradableList<Tradable>> legacy = spy(new PersistenceManager<>(dir, resolver, null, keyRing));
+        doReturn(null).when(legacy).getPersisted(ClosedTradesStore.LEGACY_FILE_NAME);
+        ClosedTradesStore store = new ClosedTradesStore(dir, keyRing, resolver, () -> null, corruptedStorageFileHandler, legacy);
+
+        assertEquals(List.of("main"), ids(store.load()));
+        assertTrue(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+        assertEquals(List.of("main", "legacy"), ids(newStore().load()));
+        assertOnlyMonolithicCopiesRemoved();
     }
 
     @Test
@@ -367,7 +860,7 @@ public class ClosedTradesStoreTest {
         // Ids the log has ever mentioned are not resurrected or overwritten; unseen ones are merged.
         assertEquals(List.of("log-a", "shared", "legacy-only"), ids(loaded));
         assertEquals(11, ((OpenOffer) loaded.get(1)).getTriggerPrice(), "log version must win over stale legacy copy");
-        assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists(), "legacy file should be moved after merge");
+        assertFalse(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists(), "legacy file should be deleted after merge");
         // Durable across restarts.
         assertEquals(List.of("log-a", "shared", "legacy-only"), ids(newStore().load()));
     }
@@ -390,20 +883,22 @@ public class ClosedTradesStoreTest {
     }
 
     @Test
-    public void testSecondMergeDoesNotOverwriteEarlierLegacyBackup() throws Exception {
+    public void testSecondLegacyMergeLeavesNoBackup() throws Exception {
         writeLegacyFile(openOffer("first", 0));
         newStore().load();
-        assertTrue(new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME).exists());
+        assertFalse(new File(dir, ClosedTradesStore.LEGACY_BACKUP_NAME).exists());
 
         writeLegacyFile(openOffer("second", 0));
         newStore().load();
 
         File[] backups = dir.listFiles((d, name) -> name.startsWith(ClosedTradesStore.LEGACY_BACKUP_NAME));
-        assertEquals(2, backups.length, "an earlier legacy backup must never be overwritten");
+        assertEquals(0, backups.length, "legacy migration must not retain sensitive copies");
     }
 
     @Test
     public void testUndecodableRecordIsSkippedAndSurfaced() throws Exception {
+        writeLegacyFile(openOffer("a", 99));
+        writeLegacyCopies();
         ClosedTradesStore store = newStore();
         store.appendUpsert(openOffer("a", 0));
         store.appendUpsert(openOffer("b", 0));
@@ -411,7 +906,7 @@ public class ClosedTradesStoreTest {
         // Append two authenticated but undecodable records directly to the log: one that is not a
         // valid TradableLogEntry at all, and one whose upsert has no known tradable type (as a newer
         // version would write). Neither may hide the rest of the history.
-        EncryptedAppendLog rawLog = new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME, keyRing.getSymmetricKey(), 3);
+        EncryptedAppendLog rawLog = new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME, keyRing.getSymmetricKey(), 3);
         rawLog.append(new byte[]{0x0a}); // truncated protobuf
         rawLog.append(protobuf.TradableLogEntry.newBuilder()
                 .setUpsert(protobuf.Tradable.newBuilder().build())
@@ -422,10 +917,12 @@ public class ClosedTradesStoreTest {
 
         assertEquals(List.of("a", "b"), ids(loaded), "decodable records must survive an undecodable one");
         assertTrue(corruptedStorageFileHandler.getFiles().isPresent(), "user must be notified of skipped records");
-        assertTrue(corruptedStorageFileHandler.getFiles().get().contains(ClosedTradesStore.LOG_FILE_NAME));
+        assertTrue(corruptedStorageFileHandler.getFiles().get().contains(ClosedTradesStore.STORE_FILE_NAME));
         // The undecodable records stay on disk (no compaction while they exist): a later read with a
         // build that understands them would still see them; here we just prove the load is stable.
         assertEquals(List.of("a", "b"), ids(newStore().load()));
+        assertTrue(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+        for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
     }
 
     @Test
@@ -439,6 +936,7 @@ public class ClosedTradesStoreTest {
         pending.appendAll(List.of(
                 ClosedTradesStore.upsertBytes(openOffer("b", 7)),
                 ClosedTradesStore.deleteBytes("a")));
+        byte[] pendingBeforeClear = Files.readAllBytes(new File(dir, ClosedTradesStore.PENDING_FILE_NAME).toPath());
 
         List<Tradable> loaded = newStore().load();
 
@@ -448,14 +946,18 @@ public class ClosedTradesStoreTest {
         // reads the same state from the log alone.
         EncryptedAppendLog clearedPending = new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1);
         assertTrue(clearedPending.readAllValidRecords().isEmpty(), "pending queue must be cleared after recovery");
+        List<File> backups = FileUtil.getBackupFiles(dir, ClosedTradesStore.PENDING_FILE_NAME);
+        assertEquals(1, backups.size());
+        assertArrayEquals(pendingBeforeClear, Files.readAllBytes(backups.get(0).toPath()));
         assertEquals(List.of("b"), ids(newStore().load()));
+        assertTrue(backups.get(0).exists(), "legacy cleanup must preserve current rolling backups");
     }
 
     @Test
     public void testCommittedPendingUpdateCannotOverwriteNewerUpdateOnRestart() throws Exception {
         try (var userThread = mockStatic(UserThread.class)) {
             ClosedTradesStore store = newStore();
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
                     keyRing.getSymmetricKey(), 1));
@@ -482,7 +984,7 @@ public class ClosedTradesStoreTest {
         try (var userThread = mockStatic(UserThread.class)) {
             ClosedTradesStore store = newStore();
             store.appendUpsert(openOffer("same", 1));
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
                     keyRing.getSymmetricKey(), 1));
@@ -507,11 +1009,11 @@ public class ClosedTradesStoreTest {
     public void testCommittedReceiptsAreSyncedBeforeQueueIsCleared() throws Exception {
         try (var userThread = mockStatic(UserThread.class)) {
             newStore().appendUpsert(openOffer("same", 1));
-            byte[] committed = new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            byte[] committed = new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3).readAllValidRecords().get(0);
             new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1)
                     .rewrite(List.of(committed));
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
                     keyRing.getSymmetricKey(), 1));
@@ -533,11 +1035,11 @@ public class ClosedTradesStoreTest {
     public void testCommittedReceiptsAreSyncedBeforePendingSnapshotIsReplaced() throws Exception {
         try (var userThread = mockStatic(UserThread.class)) {
             newStore().appendUpsert(openOffer("a", 1));
-            byte[] committed = new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            byte[] committed = new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3).readAllValidRecords().get(0);
             new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME, keyRing.getSymmetricKey(), 1)
                     .rewrite(List.of(committed, ClosedTradesStore.upsertBytes(openOffer("b", 1))));
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
                     keyRing.getSymmetricKey(), 1));
@@ -568,7 +1070,7 @@ public class ClosedTradesStoreTest {
             store.appendUpsert(openOffer("same", 1));
             store.appendDelete("same");
             store.appendUpsert(openOffer("same", 2));
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             setLog(store, "appendLog", main);
             doThrow(new IllegalStateException("Simulated append failure")).when(main).appendAll(anyList());
@@ -585,7 +1087,7 @@ public class ClosedTradesStoreTest {
             ClosedTradesStore store = newStore();
             store.appendUpsert(openOffer("a", 0));
             store.appendUpsert(openOffer("b", 0));
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             setLog(store, "appendLog", main);
             doThrow(new IllegalStateException("Simulated append failure")).when(main).appendAll(anyList());
@@ -594,7 +1096,7 @@ public class ClosedTradesStoreTest {
                     ClosedTradesStore.upsertBytes(openOffer("c", 0))));
             doAnswer(invocation -> {
                 List<byte[]> batch = invocation.getArgument(0);
-                new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME, keyRing.getSymmetricKey(), 3)
+                new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME, keyRing.getSymmetricKey(), 3)
                         .appendAll(batch.subList(0, 2));
                 throw new OutOfMemoryError("Simulated process termination during batch append");
             }).when(main).appendAll(anyList());
@@ -602,7 +1104,7 @@ public class ClosedTradesStoreTest {
 
             assertEquals(List.of("b", "a", "c"), ids(newStore().load()));
             assertEquals(List.of("b", "a", "c"), ids(newStore().load()));
-            assertEquals(5, new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            assertEquals(5, new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3).readAllValidRecords().size());
         }
     }
@@ -611,7 +1113,7 @@ public class ClosedTradesStoreTest {
     public void testFailedPendingClearDefersCompactionUntilRestartRecovery() throws Exception {
         try (var userThread = mockStatic(UserThread.class)) {
             ClosedTradesStore store = newStore();
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
                     keyRing.getSymmetricKey(), 1));
@@ -632,7 +1134,7 @@ public class ClosedTradesStoreTest {
             verify(main, never()).rewrite(anyList());
 
             assertEquals(600, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
-            assertEquals(1, new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            assertEquals(1, new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3).readAllValidRecords().size());
             assertEquals(600, ((OpenOffer) newStore().load().get(0)).getTriggerPrice());
         }
@@ -645,7 +1147,7 @@ public class ClosedTradesStoreTest {
                     keyRing.getSymmetricKey(), 1));
             pending.rewrite(List.of(protobuf.TradableLogEntry.newBuilder()
                     .setUpsert((protobuf.Tradable) openOffer("same", 1).toProtoMessage()).build().toByteArray()));
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             doAnswer(invocation -> {
                 List<byte[]> batch = invocation.getArgument(0);
@@ -672,6 +1174,8 @@ public class ClosedTradesStoreTest {
     public void testFailedLegacyPendingMigrationDefersAppendWithoutHidingHistory() throws Exception {
         try (var userThread = mockStatic(UserThread.class)) {
             newStore().appendUpsert(openOffer("main", 0));
+            writeLegacyFile(openOffer("queued", 0));
+            writeLegacyCopies();
             EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
                     keyRing.getSymmetricKey(), 1));
             pending.rewrite(List.of(protobuf.TradableLogEntry.newBuilder()
@@ -683,7 +1187,9 @@ public class ClosedTradesStoreTest {
             setLog(store, "pendingLog", pending);
 
             assertEquals(List.of("main", "queued"), ids(store.load()));
-            assertEquals(1, new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            assertTrue(new File(dir, ClosedTradesStore.LEGACY_FILE_NAME).exists());
+            for (File file : legacyCopies()) assertTrue(file.exists(), file.toString());
+            assertEquals(1, new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3).readAllValidRecords().size());
             assertArrayEquals(originalPending,
                     Files.readAllBytes(new File(dir, ClosedTradesStore.PENDING_FILE_NAME).toPath()));
@@ -730,7 +1236,7 @@ public class ClosedTradesStoreTest {
     public void testOlderPendingSnapshotCannotOverwriteNewerBatchOnRestart() throws Exception {
         try (var userThread = mockStatic(UserThread.class)) {
             ClosedTradesStore store = newStore();
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             EncryptedAppendLog pending = spy(new EncryptedAppendLog(dir, ClosedTradesStore.PENDING_FILE_NAME,
                     keyRing.getSymmetricKey(), 1));
@@ -753,7 +1259,7 @@ public class ClosedTradesStoreTest {
         try (var userThread = mockStatic(UserThread.class)) {
             ClosedTradesStore writer = newStore();
             writer.appendUpsert(openOffer("committed", 1));
-            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME,
+            EncryptedAppendLog main = spy(new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME,
                     keyRing.getSymmetricKey(), 3));
             byte[] committed = main.readAllValidRecords().get(0);
             writer.appendUpsert(openOffer("committed", 2));
@@ -876,6 +1382,7 @@ public class ClosedTradesStoreTest {
                             .addField(99, UnknownFieldSet.Field.newBuilder().addVarint(123).build()).build())
                     .build().toByteArray();
             store.appendEntries(List.of(cleared));
+            byte[] beforeRedaction = Files.readAllBytes(new File(dir, ClosedTradesStore.STORE_FILE_NAME).toPath());
 
             store.requestRedaction();
             store.flushRedaction();
@@ -884,9 +1391,12 @@ public class ClosedTradesStoreTest {
             assertEquals(2, records.size());
             assertArrayEquals(cleared, records.get(1), "retain raw fields and mutation identity");
             assertEquals("deleted", protobuf.TradableLogEntry.parseFrom(records.get(0)).getDeleteId());
-            assertEquals(1, FileUtil.getBackupFiles(dir, ClosedTradesStore.LOG_FILE_NAME).size());
+            List<File> backups = FileUtil.getBackupFiles(dir, ClosedTradesStore.STORE_FILE_NAME);
+            assertEquals(1, backups.size());
+            assertArrayEquals(beforeRedaction, Files.readAllBytes(backups.get(0).toPath()));
             writeLegacyFile(openOffer("deleted", 99));
             assertEquals(List.of("keep"), ids(newStore().load()), "redaction must retain deletion markers");
+            assertTrue(backups.get(0).exists(), "legacy cleanup must preserve current rolling backups");
         }
     }
 
@@ -1019,7 +1529,7 @@ public class ClosedTradesStoreTest {
     }
 
     private EncryptedAppendLog rawLog() {
-        return new EncryptedAppendLog(dir, ClosedTradesStore.LOG_FILE_NAME, keyRing.getSymmetricKey(), 0);
+        return new EncryptedAppendLog(dir, ClosedTradesStore.STORE_FILE_NAME, keyRing.getSymmetricKey(), 0);
     }
 
     @Test
