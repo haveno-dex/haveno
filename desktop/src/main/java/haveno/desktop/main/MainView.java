@@ -72,11 +72,13 @@ import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
+import javafx.css.PseudoClass;
 import javafx.event.EventTarget;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -116,6 +118,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.PopupWindow;
 import javafx.util.Duration;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -205,10 +208,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         ToggleButton accountButton = new SecondaryNavButton(AccountView.class, Res.get("mainView.menu.account"), "image-account");
         ToggleButton settingsButton = new SecondaryNavButton(SettingsView.class, Res.get("mainView.menu.settings"), "image-settings");
 
-        StackPane portfolioButtonWithDot = createNotificationButton(portfolioButton, model.getUnreadPortfolio(),
-                Res.get("notification.trade.unreadUpdates"));
+        StackPane portfolioButtonWithBadge = createNotificationButton(portfolioButton, model.getUnreadPortfolio(),
+                Res.get("notification.trade.unreadUpdates"), model.getOpenTradeCount());
         StackPane supportButtonWithDot = createNotificationButton(supportButton, model.getShowOpenSupportTicketsNotification(),
-                Res.get("notification.chat.unreadSupportTickets"));
+                Res.get("notification.chat.unreadSupportTickets"), null);
         JFXBadge settingsButtonWithBadge = new JFXBadge(settingsButton);
 
         root.sceneProperty().addListener((observable, oldValue, newValue) -> {
@@ -263,7 +266,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         HBox.setHgrow(rightSpacer, Priority.ALWAYS);
 
         HBox primaryNav = new HBox(getLogoPane(), marketButton, getNavigationSpacer(), buyButton, getNavigationSpacer(),
-                sellButton, getNavigationSpacer(), portfolioButtonWithDot, getNavigationSpacer(), fundsButton, rightSpacer);
+                sellButton, getNavigationSpacer(), portfolioButtonWithBadge, getNavigationSpacer(), fundsButton, rightSpacer);
 
         primaryNav.setAlignment(Pos.CENTER_LEFT);
         primaryNav.getStyleClass().add("nav-primary");
@@ -950,13 +953,25 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         }};
     }
 
-    private static StackPane createNotificationButton(ToggleButton button, ReadOnlyBooleanProperty showNotification, String helpText) {
+    private static StackPane createNotificationButton(ToggleButton button, ReadOnlyBooleanProperty showNotification,
+                                                       String helpText, @Nullable ReadOnlyLongProperty count) {
         Circle dot = new Circle(4);
         dot.getStyleClass().add("nav-unread-dot");
-        // keep the indicator outside layout so the pill and label never shift
+        // preserve unread chat before a trade's deposits are published
+        dot.visibleProperty().bind(count == null ? showNotification : showNotification.and(count.isEqualTo(0)));
+        // keep the indicators outside layout so the pill and label never shift
         dot.setManaged(false);
         dot.setMouseTransparent(true);
-        dot.visibleProperty().bind(showNotification);
+
+        Label badge = count == null ? null : new Label();
+        if (badge != null) {
+            badge.getStyleClass().add("nav-count-badge");
+            badge.textProperty().bind(Bindings.createStringBinding(() -> DisplayUtils.formatBadgeCount(count.get()), count));
+            badge.visibleProperty().bind(count.greaterThan(0));
+            badge.setManaged(false);
+            badge.setMouseTransparent(true);
+            Accessibility.mute(badge);
+        }
         StackPane container = new StackPane(button, dot) {
             @Override
             protected void layoutChildren() {
@@ -967,20 +982,33 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                     Bounds bounds = sceneToLocal(label.localToScene(label.getLayoutBounds()));
                     dot.setCenterX(bounds.getMaxX() + 8);
                     dot.setCenterY(bounds.getMinY());
+                    if (badge != null) {
+                        badge.autosize();
+                        badge.relocate(Math.round(bounds.getMaxX() + 3), Math.round(bounds.getMinY() - badge.getHeight() / 2 - 2));
+                    }
                 }
             }
         };
+        if (badge != null) container.getChildren().add(badge);
         container.getStyleClass().add("nav-notification");
         container.setMinHeight(34);
         container.setMaxHeight(34);
 
         Tooltip tooltip = new Tooltip(helpText);
         Runnable updateHelp = () -> {
-            button.setAccessibleHelp(showNotification.get() ? tooltip.getText() : null);
-            if (showNotification.get()) Tooltip.install(container, tooltip);
+            boolean unread = showNotification.get();
+            String help = count != null && count.get() > 0 ? Res.get("portfolio.tab.pendingTrades") + ": " + count.get() : null;
+            if (unread) help = help == null ? tooltip.getText() : help + ". " + tooltip.getText();
+            button.setAccessibleHelp(help);
+            if (badge != null) badge.pseudoClassStateChanged(PseudoClass.getPseudoClass("unread"), unread);
+            if (unread) Tooltip.install(container, tooltip);
             else Tooltip.uninstall(container, tooltip);
         };
         showNotification.addListener((observable, oldValue, newValue) -> updateHelp.run());
+        if (count != null) count.addListener((observable, oldValue, newValue) -> {
+            container.requestLayout();
+            updateHelp.run();
+        });
         updateHelp.run();
         return container;
     }
