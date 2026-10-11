@@ -3702,6 +3702,23 @@ textfield */
     -fx-text-fill: -bs-rd-font-dark-gray;
 }
 
+.action-button.busy-button:busy {
+    -fx-background-color: -bs-color-background-form-field;
+    -fx-text-fill: -bs-text-color;
+    -fx-opacity: 1;
+    -fx-cursor: default;
+}
+
+.busy-button .busyanimation,
+.busy-button .label {
+    -fx-opacity: 1;
+}
+
+.busy-button .busyanimation .arc {
+    -fx-stroke: -bs-hero-primary;
+    -fx-stroke-width: 2;
+}
+
 /********************************************************************************************************************
  *                                                                                                                  *
  * Popups                                                                                                           *

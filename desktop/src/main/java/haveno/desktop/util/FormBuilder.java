@@ -53,6 +53,7 @@ import haveno.desktop.components.TextFieldWithCopyIcon;
 import haveno.desktop.components.TextFieldWithIcon;
 import haveno.desktop.components.TitledGroupBg;
 import haveno.desktop.components.TxIdTextField;
+import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -79,6 +80,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import org.jetbrains.annotations.NotNull;
@@ -2260,6 +2262,41 @@ public class FormBuilder {
         gridPane.getChildren().add(hBox);
 
         return new Tuple4<>(button, busyAnimation, label, hBox);
+    }
+
+    // show the busy animation with a status inside the button, returning the status label
+    public static Label setButtonBusyContent(Button button, BusyAnimation busyAnimation) {
+        button.getStyleClass().add("busy-button");
+        Label idleText = new AutoTooltipLabel();
+        Label busyText = new AutoTooltipLabel();
+        idleText.textProperty().bind(button.textProperty());
+        idleText.setMinWidth(0);
+        busyText.setMinWidth(0);
+        idleText.fontProperty().bind(button.fontProperty());
+        busyText.fontProperty().bind(button.fontProperty());
+        idleText.textFillProperty().bind(button.textFillProperty());
+        busyText.textFillProperty().bind(button.textFillProperty());
+        busyAnimation.setMinSize(14, 14);
+        busyAnimation.setPrefSize(14, 14);
+        busyAnimation.setMaxSize(14, 14);
+        StackPane spinner = new StackPane(busyAnimation);
+        spinner.setMinSize(14, 14);
+        spinner.setPrefSize(14, 14);
+        spinner.setMaxSize(14, 14);
+        HBox progress = new HBox(8, spinner, busyText);
+        progress.setAlignment(Pos.CENTER);
+
+        // measure both states so the busy state never changes the button's size
+        StackPane content = new StackPane(idleText, progress);
+        idleText.visibleProperty().bind(busyAnimation.isRunningProperty().not());
+        progress.visibleProperty().bind(busyAnimation.isRunningProperty());
+        button.setGraphic(content);
+        button.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        button.accessibleTextProperty().bind(Bindings.when(busyAnimation.isRunningProperty())
+                .then(busyText.textProperty()).otherwise(button.textProperty()));
+        busyAnimation.isRunningProperty().addListener((observable, oldValue, running) ->
+                button.pseudoClassStateChanged(PseudoClass.getPseudoClass("busy"), running));
+        return busyText;
     }
 
 
