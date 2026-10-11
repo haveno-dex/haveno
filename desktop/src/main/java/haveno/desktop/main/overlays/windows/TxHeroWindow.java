@@ -38,6 +38,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -114,6 +115,14 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
     }
 
     protected static VBox hero(MaterialDesignIcon glyph, String badgeStyle, String titleText, String amountText, String fiat) {
+        Label amountLabel = new AutoTooltipLabel(amountText);
+        amountLabel.getStyleClass().add("confirm-send-amount");
+        VBox hero = hero(glyph, badgeStyle, titleText, amountLabel, fiat);
+        VBox.setMargin(amountLabel, new Insets(8, 0, 0, 0));
+        return hero;
+    }
+
+    protected static VBox hero(MaterialDesignIcon glyph, String badgeStyle, String titleText, Node amount, String fiat) {
         Label badge = new Label();
         badge.setGraphic(GlyphsDude.createIcon(glyph, "1.6em"));
         badge.getStyleClass().add(badgeStyle);
@@ -123,16 +132,18 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
 
         Label title = new AutoTooltipLabel(titleText);
         title.getStyleClass().add("confirm-send-title");
-        Label amountLabel = new AutoTooltipLabel(amountText);
-        amountLabel.getStyleClass().add("confirm-send-amount");
-
-        VBox hero = new VBox(badge, title, amountLabel);
+        title.setWrapText(true);
+        title.setTextAlignment(TextAlignment.CENTER);
+        VBox hero = new VBox(badge, title);
+        if (amount != null) hero.getChildren().add(amount);
         hero.setAlignment(Pos.CENTER);
         VBox.setMargin(title, new Insets(16, 0, 0, 0));
-        VBox.setMargin(amountLabel, new Insets(8, 0, 0, 0));
+        if (amount != null) VBox.setMargin(amount, new Insets(6, 0, 0, 0));
         if (fiat != null) {
             Label fiatLabel = new AutoTooltipLabel(fiat);
             fiatLabel.getStyleClass().add("confirm-send-fiat");
+            fiatLabel.setWrapText(true);
+            fiatLabel.setTextAlignment(TextAlignment.CENTER);
             VBox.setMargin(fiatLabel, new Insets(3, 0, 0, 0));
             hero.getChildren().add(fiatLabel);
         }
@@ -207,12 +218,16 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
 
     // read-only text area styled as a plain label so the value text can be selected
     protected static TextArea selectableLabel(String text, String styleClass) {
+        return selectableLabel(text, styleClass, false);
+    }
+
+    protected static TextArea selectableLabel(String text, String styleClass, boolean compact) {
         TextArea area = new TextArea(text);
         area.setEditable(false);
         area.setWrapText(true);
         area.setFocusTraversable(false);
         area.getStyleClass().addAll("selectable-label", styleClass);
-        GUIUtil.adjustHeightAutomatically(area);
+        GUIUtil.adjustHeightAutomatically(area, null, !compact, compact ? 0d : null);
         return area;
     }
 

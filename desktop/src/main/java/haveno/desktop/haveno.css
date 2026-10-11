@@ -4440,3 +4440,149 @@ textfield */
 .popup-with-input {
     -fx-background-color: -bs-color-background-popup-input;
 }
+
+/* Confirmation and payment instruction popups */
+.review-popup {
+    -fx-font-size: 14px;
+    -review-red: #d73030;
+    -review-green: #3ea34a;
+    -review-amber: #c98a1c;
+    -review-gated-background: #e7eaef;
+    -review-gated-text: #53657f;
+}
+.review-popup.hero-accent-green, .review-popup .hero-accent-green { -hero-accent: -review-green; }
+.review-popup.hero-accent-amber, .review-popup .hero-accent-amber { -hero-accent: -review-amber; }
+.review-popup.hero-accent-red, .review-popup .hero-accent-red {
+    -hero-accent: -review-red;
+    -hero-accent-strong: rgba(215, 48, 48, 0.20);
+    -hero-accent-faint: rgba(215, 48, 48, 0.07);
+}
+.review-popup .confirm-send-icon {
+    -fx-background-color: linear-gradient(to bottom right, -hero-accent-strong, -hero-accent-faint);
+}
+.review-popup .confirm-send-icon .glyph-icon { -fx-fill: -hero-accent; }
+.review-popup .confirm-send-title { -fx-font-size: 16px; }
+.review-popup .confirm-send-fiat { -fx-font-size: 14px; }
+.review-popup .confirm-send-sheet {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 14 18;
+    -fx-spacing: 12;
+}
+.review-popup .confirm-send-row-label,
+.review-popup .confirm-send-row-value { -fx-font-size: 13px; }
+.review-popup .confirm-send-row-fiat { -fx-font-size: 12px; }
+.review-popup .confirm-send-address { -fx-font-size: 12.5px; }
+.review-popup .review-mono { -fx-font-family: "IBM Plex Mono"; -fx-font-size: 12.5px; -fx-text-fill: -bs-text-color; }
+.review-popup .review-name { -fx-font-size: 15px; -fx-font-family: "IBM Plex Sans Medium"; -fx-text-fill: -bs-text-color; }
+.review-popup .review-amount-number { -fx-fill: -bs-text-color; -fx-font-family: "IBM Plex Sans Medium"; }
+.review-popup .review-amount-currency { -fx-fill: -bs-color-gray-6; -fx-font-family: "IBM Plex Sans Medium"; }
+.review-popup .review-hero-amount .review-amount-number { -fx-font-size: 28px; }
+.review-popup .review-hero-amount .review-amount-currency { -fx-font-size: 20px; }
+.review-popup .review-strip-amount .review-amount-number { -fx-font-size: 22px; }
+.review-popup .review-strip-amount .review-amount-currency { -fx-font-size: 16px; }
+.review-popup .review-small-amount .review-amount-number { -fx-font-size: 16px; }
+.review-popup .review-small-amount .review-amount-currency { -fx-font-size: 13px; }
+.review-popup .review-footer { -fx-font-size: 12.5px; -fx-text-fill: -bs-color-gray-6; }
+.review-popup .review-footer-icon { -fx-fill: -bs-color-gray-6; }
+.review-popup .action-button { -fx-font-family: "IBM Plex Sans Medium"; -fx-font-size: 14px; -fx-min-height: 40; -fx-padding: 8 28; }
+.review-popup .confirm-send-cancel { -fx-font-size: 13px; -fx-min-height: 36; }
+.review-popup .review-danger { -fx-background-color: -review-red; }
+.review-popup .review-danger:hover { -fx-background-color: derive(-review-red, -10%); }
+.review-popup .action-button-gated:disabled {
+    -fx-opacity: 1;
+    -fx-background-color: -review-gated-background;
+    -fx-text-fill: -review-gated-text;
+}
+.review-popup .review-dont-show { -fx-font-size: 13px; -fx-text-fill: -bs-color-gray-6; }
+.review-popup .review-acknowledgement { -fx-font-size: 13.5px; -fx-text-fill: -bs-text-color; }
+.review-popup .hero-header-title { -fx-font-size: 19.5px; }
+.review-popup .hero-header-subtitle { -fx-font-size: 13px; }
+.review-popup .hero-feature-title { -fx-font-size: 14px; -fx-text-fill: -bs-text-color; }
+.review-popup .hero-feature-body { -fx-font-size: 13.5px; }
+.review-popup .hero-feature-row { -fx-padding: 12 20; }
+.review-popup .review-callout {
+    -fx-background-color: -hero-accent-faint;
+    -fx-border-color: -hero-accent-border;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 14 16;
+    -fx-spacing: 14;
+}
+.review-popup .review-callout.hero-accent-amber { -hero-accent-border: rgba(248, 178, 73, 0.30); }
+.review-popup .review-callout.hero-accent-purple { -hero-accent-border: rgba(126, 87, 194, 0.30); }
+.review-popup .review-callout .hero-feature-body { -fx-font-size: 13px; }
+.review-popup .review-callout .hero-feature-icon-box,
+.review-popup .review-compact-rows .hero-feature-icon-box {
+    -fx-min-width: 36; -fx-pref-width: 36; -fx-max-width: 36;
+    -fx-min-height: 36; -fx-pref-height: 36; -fx-max-height: 36;
+}
+.review-popup .review-callout .hero-feature-icon,
+.review-popup .review-compact-rows .hero-feature-icon { -fx-font-size: 18px; }
+.review-popup .review-copy-value {
+    -fx-background-color: -bs-confirm-sheet-background;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-padding: 4 9;
+}
+.review-popup .review-callout .review-copy-value { -fx-background-color: -bs-color-background-popup-blur; -fx-padding: 5 10; }
+.review-popup .review-compact-rows .hero-feature-row { -fx-padding: 12 4; -fx-spacing: 14; }
+.review-popup .review-compact-rows .hero-feature-body { -fx-font-size: 13px; }
+.review-popup .review-restore-sheet { -fx-padding: 6 4; -fx-spacing: 0; }
+.review-popup .review-restore-sheet .hero-feature-row { -fx-padding: 10 14; }
+.review-popup .review-restore-sheet .hero-feature-icon-box {
+    -fx-min-width: 38; -fx-pref-width: 38; -fx-max-width: 38;
+    -fx-min-height: 38; -fx-pref-height: 38; -fx-max-height: 38;
+}
+.review-popup .review-restore-sheet .hero-feature-icon { -fx-font-size: 18px; }
+.review-popup .review-strip,
+.review-popup .review-timeline {
+    -fx-background-color: -bs-confirm-sheet-background;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 12 16;
+}
+.review-popup .review-strip-label { -fx-font-size: 12.5px; -fx-text-fill: -bs-color-gray-6; }
+.review-popup .review-pill {
+    -fx-background-color: -hero-accent-faint;
+    -fx-background-radius: 999;
+    -fx-padding: 3 10;
+    -fx-font-size: 12.5px;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -hero-accent;
+}
+.review-popup .review-pill .glyph-icon { -fx-fill: -hero-accent; }
+.review-popup .review-info-buttons .button { -fx-font-size: 13px; -fx-min-height: 36; -fx-padding: 6 28; }
+.review-popup .review-track { -fx-background-color: -bs-offer-card-border; -fx-background-radius: 4; }
+.review-popup .review-track-fill { -fx-background-color: linear-gradient(to right, -hero-accent-strong, -hero-accent); -fx-background-radius: 4; }
+.review-popup .review-track-mid { -fx-background-color: -bs-color-background-popup-blur; }
+.review-popup .review-track-marker {
+    -fx-background-color: -bs-color-background-popup-blur;
+    -fx-background-radius: 7;
+    -fx-border-color: -hero-accent;
+    -fx-border-width: 3;
+    -fx-border-radius: 7;
+}
+.review-popup .review-time-left { -fx-font-size: 20px; -fx-font-family: "IBM Plex Sans Medium"; -fx-text-fill: -bs-text-color; }
+.review-popup .review-timeline-caption { -fx-font-size: 12px; -fx-text-fill: -bs-color-gray-6; }
+.review-popup .review-count { -fx-fill: -bs-text-color; -fx-font-family: "IBM Plex Sans Medium"; }
+.review-popup .review-subtitle-text { -fx-fill: -bs-color-gray-6; -fx-font-size: 14px; }
+.review-popup .review-scroll,
+.review-popup .review-scroll > .viewport { -fx-background-color: transparent; -fx-padding: 0; }
+/* the inner borders are outside the text area's insets, so its auto height would leave the text scrollable by their width */
+.review-popup .selectable-label .scroll-pane,
+.review-popup .selectable-label .content { -fx-border-width: 0; }
+
+.review-popup .jfx-check-box .box {
+    -fx-pref-width: 16;
+    -fx-pref-height: 16;
+    -fx-border-radius: 3;
+    -fx-border-width: 1.5;
+}
+
+.review-popup.hero-accent-amber .review-track-fill { -fx-background-color: linear-gradient(to right, rgba(248, 178, 73, 0.55), -hero-accent); }
+.review-popup.hero-accent-red .review-track-fill { -fx-background-color: linear-gradient(to right, rgba(215, 48, 48, 0.55), -hero-accent); }
+
+.review-popup .review-strong-value { -fx-font-family: "IBM Plex Sans Medium"; }
