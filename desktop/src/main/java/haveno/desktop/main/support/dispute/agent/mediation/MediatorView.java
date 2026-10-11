@@ -82,9 +82,7 @@ public class MediatorView extends DisputeAgentView {
         super.activate();
         activateReOpenDisputeListener();
 
-        // We need to call applyFilteredListPredicate after we called activateReOpenDisputeListener as we use the
-        // "open" string by default and it was applied in the super call but the disputes got set in
-        // activateReOpenDisputeListener
+        // Reapply the ticket filter after potentially reopening disputes
         applyFilteredListPredicate(filterTextField.getText());
     }
 
