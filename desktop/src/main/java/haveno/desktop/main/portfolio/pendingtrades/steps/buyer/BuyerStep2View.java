@@ -547,7 +547,8 @@ public class BuyerStep2View extends TradeStepView {
 
         paymentFields.finish(model.isBlockChainMethod());
         paymentAccountGridPane = createGridPane();
-        Label title = new Label(Res.get("portfolio.pending.tradeView.sendAmount", model.getFiatVolume(), Res.get(paymentMethodId)));
+        Label title = new Label(model.isBlockChainMethod() ? Res.get("portfolio.pending.tradeView.sendCryptoAmount", model.getFiatVolume()) :
+                Res.get("portfolio.pending.tradeView.sendAmount", model.getFiatVolume(), Res.get(paymentMethodId)));
         title.setWrapText(true);
         title.getStyleClass().add("trade-action-title");
         paymentAccountGridPane.add(title, 0, 0, 2, 1);
