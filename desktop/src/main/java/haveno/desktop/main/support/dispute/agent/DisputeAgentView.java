@@ -97,7 +97,7 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
     public void initialize() {
         super.initialize();
 
-        filterTextField.setText("open");
+        ticketFilterComboBox.setValue(TicketFilter.OPEN);
 
         sendPrivateNotificationButton.setVisible(true);
         sendPrivateNotificationButton.setManaged(true);
@@ -327,7 +327,7 @@ public abstract class DisputeAgentView extends DisputeView implements MultipleHo
                 "be a case of a stolen bank account or money laundering.\n\n" +
                 "Please check below the list of the names which have been detected. " +
                 "Search with the trade ID for the dispute case or check out the alert icon at each dispute in " +
-                "the list (you might need to remove the 'open' filter) and evaluate " +
+                "the list (you might need to select '" + Res.get("shared.all") + "' in the ticket filter) and evaluate " +
                 "if it might be a fraudulent account (buyer role is more likely to be fraudulent). " +
                 "If you find suspicious disputes, please notify the developers and provide the contract json data " +
                 "to them so they can ban those traders.\n\n" +

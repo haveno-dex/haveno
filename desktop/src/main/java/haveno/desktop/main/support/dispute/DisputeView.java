@@ -36,6 +36,7 @@ package haveno.desktop.main.support.dispute;
 
 import com.google.inject.Inject;
 import com.jfoenix.controls.JFXBadge;
+import com.jfoenix.controls.JFXComboBox;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.crypto.KeyRing;
@@ -96,6 +97,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -120,9 +122,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -134,9 +138,6 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     public enum FilterResult {
         NO_MATCH("No Match"),
         NO_FILTER("No filter text"),
-        OPEN_DISPUTES("Open disputes"),
-        CLOSED_DISPUTES("Closed disputes"),
-        UNREAD_MESSAGES("Unread messages"),
         TRADE_ID("Trade ID"),
         OPENING_DATE("Opening date"),
         BUYER_NODE_ADDRESS("Buyer node address"),
@@ -157,6 +158,24 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         FilterResult(String displayString) {
 
             this.displayString = displayString;
+        }
+    }
+
+    protected enum TicketFilter {
+        OPEN("support.filter.open"),
+        CLOSED("support.closed"),
+        UNREAD("support.filter.unread"),
+        ALL("shared.all");
+
+        private final String resourceKey;
+
+        TicketFilter(String resourceKey) {
+            this.resourceKey = resourceKey;
+        }
+
+        @Override
+        public String toString() {
+            return Res.get(resourceKey);
         }
     }
 
@@ -187,15 +206,21 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     private Subscription selectedDisputeSubscription;
     protected FilteredList<Dispute> filteredList;
     protected InputTextField filterTextField;
-    private ChangeListener<String> filterTextFieldListener;
+    protected ComboBox<TicketFilter> ticketFilterComboBox;
+    private final ChangeListener<String> filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(newValue);
+    private final ChangeListener<TicketFilter> ticketFilterListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
+    private final Set<Dispute> visibleDisputes = new HashSet<>();
     private final AtomicBoolean filterRefreshPending = new AtomicBoolean();
     private final ChangeListener<Object> filterDisputeListener = (observable, oldValue, newValue) -> refreshFilteredList();
     private final ListChangeListener<ChatMessage> filterChatMessagesListener = change -> refreshFilteredList();
     private final ListChangeListener<Dispute> filterDisputesListener = change -> {
         while (change.next()) {
+            // prune by source membership so an equal replacement keeps its retention
+            visibleDisputes.retainAll(change.getList());
             removeFilterListeners(change.getRemoved());
             addFilterListeners(change.getAddedSubList());
         }
+        refreshFilteredList(); // keep the placeholder and tooltip current after arrivals and removals
     };
     protected AutoTooltipButton sigCheckButton, reOpenButton, closeButton, sendPrivateNotificationButton, reportButton, fullReportButton;
     private final Map<String, ListChangeListener<ChatMessage>> disputeChatMessagesListeners = new HashMap<>();
@@ -257,10 +282,17 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         tooltip.setShowDelay(Duration.millis(100));
         tooltip.setShowDuration(Duration.seconds(10));
         filterTextField.setTooltip(tooltip);
-        filterTextFieldListener = (observable, oldValue, newValue) -> applyFilteredListPredicate(filterTextField.getText());
         filterTextField.setMinWidth(80);
         filterTextField.setPrefWidth(220);
         filterTextField.setMaxWidth(220);
+
+        ticketFilterComboBox = new JFXComboBox<>();
+        ticketFilterComboBox.getItems().setAll(TicketFilter.values());
+        ticketFilterComboBox.setValue(TicketFilter.ALL);
+        ticketFilterComboBox.setMinWidth(Region.USE_PREF_SIZE);
+        ticketFilterComboBox.setAccessibleText(Res.get("support.filter"));
+        ticketFilterComboBox.setTooltip(new Tooltip(Res.get("support.filter.tooltip")));
+        GUIUtil.applyFilledStyle(ticketFilterComboBox);
 
         alertIconLabel = new Label();
         Text icon = getIconForLabel(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE, "2em", alertIconLabel);
@@ -313,22 +345,16 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         });
 
         sigCheckButton = new AutoTooltipButton(Res.get("support.sigCheck.button"));
-        sigCheckButton.getStyleClass().add("compact-button");
-        sigCheckButton.setMinWidth(Region.USE_PREF_SIZE);
         HBox.setHgrow(sigCheckButton, Priority.NEVER);
         sigCheckButton.setOnAction(e -> {
             new VerifyDisputeResultSignatureWindow(arbitratorManager).show();
         });
 
-        headerControls = new HBox(16, sigCheckButton, alertIconLabel, filterTextField);
+        headerControls = new HBox(16, alertIconLabel, ticketFilterComboBox, filterTextField);
         headerControls.setAlignment(Pos.CENTER_LEFT);
 
-        HBox actionBox = new HBox(5, reOpenButton, closeButton, sendPrivateNotificationButton, reportButton, fullReportButton);
+        HBox actionBox = new HBox(5, sigCheckButton, reOpenButton, closeButton, sendPrivateNotificationButton, reportButton, fullReportButton);
         actionBox.setAlignment(Pos.CENTER_RIGHT);
-        actionBox.visibleProperty().bind(reOpenButton.visibleProperty().or(closeButton.visibleProperty())
-                .or(sendPrivateNotificationButton.visibleProperty()).or(reportButton.visibleProperty())
-                .or(fullReportButton.visibleProperty()));
-        actionBox.managedProperty().bind(actionBox.visibleProperty());
         VBox.setVgrow(actionBox, Priority.NEVER);
 
         tableView = new TableView<>();
@@ -348,6 +374,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     @Override
     protected void activate() {
         filterTextField.textProperty().addListener(filterTextFieldListener);
+        ticketFilterComboBox.valueProperty().addListener(ticketFilterListener);
 
         ObservableList<Dispute> disputesAsObservableList = disputeManager.getDisputesAsObservableList();
         filteredList = new FilteredList<>(disputesAsObservableList);
@@ -387,12 +414,16 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     @Override
     protected void deactivate() {
         filterTextField.textProperty().removeListener(filterTextFieldListener);
+        ticketFilterComboBox.valueProperty().removeListener(ticketFilterListener);
         sortedList.comparatorProperty().unbind();
         selectedDisputeSubscription.unsubscribe();
         ObservableList<Dispute> disputesAsObservableList = disputeManager.getDisputesAsObservableList();
         disputesAsObservableList.removeListener(filterDisputesListener);
         removeFilterListeners(disputesAsObservableList);
+        // freeze the inactive list without clearing the table selection or retaining new tickets
+        filteredList.setPredicate(new HashSet<>(filteredList)::contains);
         filteredList = null;
+        visibleDisputes.clear();
         tradeIdToSelect = null;
         traderIdToSelect = null;
     }
@@ -418,7 +449,10 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                 .filter(dispute -> traderId == null || dispute.getTraderId() == traderId)
                 .filter(dispute -> getFilterResult(dispute, "") != FilterResult.NO_MATCH)
                 .findFirst().ifPresent(dispute -> {
-                    if (!sortedList.contains(dispute)) filterTextField.clear();
+                    if (!sortedList.contains(dispute)) {
+                        ticketFilterComboBox.setValue(TicketFilter.ALL);
+                        filterTextField.clear();
+                    }
                     tableView.getSelectionModel().select(dispute);
                     tableView.scrollTo(dispute);
                 });
@@ -475,46 +509,58 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
     protected abstract boolean senderFlag();    // implemented in the agent / client views
 
     protected void applyFilteredListPredicate(String filterString) {
+        visibleDisputes.clear();
+        updateFilteredList(filterString);
+    }
+
+    private void updateFilteredList(String filterString) {
         AtomicReference<FilterResult> filterResult = new AtomicReference<>(FilterResult.NO_FILTER);
         filteredList.setPredicate(dispute -> {
-            filterResult.set(getFilterResult(dispute, filterString));
-            return filterResult.get() != FilterResult.NO_MATCH;
+            // retain visible tickets until a filter adjustment or the next visit, respecting role eligibility
+            if (getFilterResult(dispute, "") == FilterResult.NO_MATCH) return false;
+            FilterResult result = getFilterResult(dispute, filterString);
+            if (!visibleDisputes.contains(dispute) && (result == FilterResult.NO_MATCH || !matchesTicketFilter(dispute))) return false;
+            filterResult.set(result);
+            visibleDisputes.add(dispute);
+            return true;
         });
 
-        if (filterString.trim().equalsIgnoreCase("open")) {
-            filterTextField.getTooltip().setText("Show all open disputes. Use 'closed' for closed disputes or 'unread' for unread messages.");
-        } else if (filterString.trim().equalsIgnoreCase("closed")) {
-            filterTextField.getTooltip().setText("Show all closed disputes");
-        } else if (filterString.trim().equalsIgnoreCase("unread")) {
-            filterTextField.getTooltip().setText("Show open or closed disputes with unread chat or system messages");
-        } else if (filterResult.get() == FilterResult.NO_MATCH) {
-            filterTextField.getTooltip().setText("No matches found");
-        } else if (filterResult.get() == FilterResult.NO_FILTER) {
+        if (filterString.trim().isEmpty()) {
             filterTextField.getTooltip().setText("No filter applied");
+        } else if (filteredList.isEmpty()) {
+            filterTextField.getTooltip().setText("No matches found");
+        } else if (filterResult.get() == FilterResult.NO_MATCH) {
+            filterTextField.getTooltip().setText(Res.get("support.filter.tooltip"));
         } else {
             filterTextField.getTooltip().setText("Data matching filter string: " + filterResult.get().getDisplayString());
         }
 
-        GUIUtil.updateFilterPlaceholder(tableView, filteredList, filterString);
+        boolean hasFilter = !filterString.trim().isEmpty() || ticketFilterComboBox.getValue() != TicketFilter.ALL;
+        GUIUtil.updateFilterPlaceholder(tableView, hasFilter && filteredList.isEmpty() && !filteredList.getSource().isEmpty());
+    }
+
+    private boolean matchesTicketFilter(Dispute dispute) {
+        switch (ticketFilterComboBox.getValue()) {
+            case ALL:
+                return true;
+            case CLOSED:
+                return dispute.isClosed();
+            case OPEN:
+                if (!dispute.isClosed()) return true;
+                // closed tickets with unread messages also need attention
+            case UNREAD:
+                synchronized (dispute.getChatMessages()) {
+                    return dispute.unreadMessageCount(senderFlag()) > 0;
+                }
+            default:
+                return false;
+        }
     }
 
     protected FilterResult getFilterResult(Dispute dispute, String filterTerm) {
         String filter = filterTerm.trim().toLowerCase();
         if (filter.isEmpty()) {
             return FilterResult.NO_FILTER;
-        }
-
-        // Handle ticket filters before searching text that could also contain these words
-        if (filter.equals("open")) {
-            return !dispute.isClosed() ? FilterResult.OPEN_DISPUTES : FilterResult.NO_MATCH;
-        }
-        if (filter.equals("closed")) {
-            return dispute.isClosed() ? FilterResult.CLOSED_DISPUTES : FilterResult.NO_MATCH;
-        }
-        if (filter.equals("unread")) {
-            synchronized (dispute.getChatMessages()) {
-                return dispute.unreadMessageCount(senderFlag()) > 0 ? FilterResult.UNREAD_MESSAGES : FilterResult.NO_MATCH;
-            }
         }
 
         if (dispute.getTradeId().toLowerCase().contains(filter)) {
@@ -633,7 +679,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         if (!filterRefreshPending.compareAndSet(false, true)) return;
         UserThread.execute(() -> {
             filterRefreshPending.set(false);
-            if (filteredList != null) applyFilteredListPredicate(filterTextField.getText());
+            if (filteredList != null) updateFilteredList(filterTextField.getText());
         });
     }
 
@@ -992,7 +1038,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
     protected void setupTable() {
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        Label placeholder = new AutoTooltipLabel(Res.get("support.noTickets"));
+        Label placeholder = new AutoTooltipLabel(Res.get("support.noDisputes"));
         placeholder.setWrapText(true);
         tableView.setPlaceholder(placeholder);
         tableView.getSelectionModel().clearSelection();
@@ -1514,15 +1560,16 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
                                         };
                                         closedProperty = item.isClosedProperty();
                                         closedProperty.addListener(listener);
-                                        boolean isClosed = item.isClosed();
                                         setText(getDisputeStateText(item));
-                                        if (getTableRow() != null)
-                                            getTableRow().setOpacity(isClosed && item.getBadgeCountProperty().get() == 0  ? 0.4 : 1);
+                                        subscription = EasyBind.subscribe(item.getBadgeCountProperty(), badgeCount -> {
+                                            if (getTableRow() != null)
+                                                getTableRow().setOpacity(item.isClosed() && badgeCount.intValue() == 0 ? 0.4 : 1);
+                                        });
 
                                         // subscribe to trade's dispute state
                                         Trade trade = tradeManager.getTrade(item.getTradeId());
                                         if (trade == null) log.warn("Dispute's trade is null for trade {}", item.getTradeId());
-                                        else subscription = EasyBind.subscribe(trade.disputeStateProperty(), disputeState -> setText(getDisputeStateText(item)));
+                                        else subscription = subscription.and(EasyBind.subscribe(trade.disputeStateProperty(), disputeState -> setText(getDisputeStateText(item))));
                                     } else {
                                         if (closedProperty != null) {
                                             closedProperty.removeListener(listener);

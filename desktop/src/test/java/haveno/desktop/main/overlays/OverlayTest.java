@@ -21,6 +21,7 @@ import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
+import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
 import haveno.core.api.CoreNotificationService;
@@ -30,6 +31,7 @@ import haveno.core.monetary.Price;
 import haveno.core.support.SupportSession;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
+import haveno.core.support.dispute.DisputeSession;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
@@ -60,6 +62,8 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.shared.ChatView;
 import haveno.desktop.main.support.SupportView;
+import haveno.desktop.main.support.dispute.DisputeChatPopup;
+import haveno.desktop.main.support.dispute.agent.DisputeAgentView;
 import haveno.desktop.main.support.dispute.client.arbitration.ArbitrationClientView;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.CssTheme;
@@ -84,6 +88,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ObjectProperty;
@@ -102,6 +107,10 @@ import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.effect.BoxBlur;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.GaussianBlur;
@@ -240,6 +249,387 @@ public class OverlayTest {
             var method = SupportView.class.getDeclaredMethod("onNavigationRequested", ViewPath.class, Object.class);
             method.setAccessible(true);
             method.invoke(support, path, null);
+        }
+    }
+
+    @Nested
+    class DisputeFilters {
+        private final ObservableList<Dispute> disputes = FXCollections.observableArrayList();
+        private final ArbitrationManager manager = mock(ArbitrationManager.class);
+        private final TradeManager tradeManager = mock(TradeManager.class);
+        private final KeyRing keyRing = mock(KeyRing.class);
+        private final PubKeyRing agent = mock(PubKeyRing.class);
+        private Executor originalExecutor;
+        private MockedStatic<Application> application;
+        private MockedStatic<GUIUtil> gui;
+        private MockedConstruction<Tooltip> tooltips;
+        private TicketView view;
+
+        @BeforeEach
+        void setUp() {
+            Res.setup();
+            originalExecutor = UserThread.getExecutor();
+            UserThread.setExecutor(Runnable::run);
+            // avoid starting the JavaFX toolkit; these tests exercise controls without rendering them
+            application = mockStatic(Application.class);
+            application.when(Application::getUserAgentStylesheet).thenReturn(Application.STYLESHEET_MODENA);
+            gui = mockStatic(GUIUtil.class);
+            tooltips = mockConstruction(Tooltip.class);
+            when(keyRing.getPubKeyRing()).thenReturn(agent);
+            when(manager.getDisputesAsObservableList()).thenReturn(disputes);
+            when(manager.getValidationExceptions()).thenReturn(FXCollections.observableArrayList());
+            view = new TicketView();
+            view.initialize();
+            view.activate();
+        }
+
+        @AfterEach
+        void tearDown() {
+            if (view != null && view.isActive()) view.deactivate();
+            if (tooltips != null) tooltips.close();
+            if (gui != null) gui.close();
+            if (application != null) application.close();
+            UserThread.setExecutor(originalExecutor);
+        }
+
+        @Test
+        void agentDefaultsToOpenAndUnreadWithIndependentTextSearch() {
+            Dispute open = addDispute("trade-open", false, agent);
+            Dispute closed = addDispute("trade-closed", true, agent);
+            reply(closed);
+            addDispute("trade-read", true, agent);
+            assertEquals(List.of(open, closed), view.items());
+            assertEquals("Open or unread", view.filterName());
+            assertEquals("", view.searchText());
+
+            view.search("closed");
+            assertEquals(List.of(closed), view.items());
+            view.selectFilter("ALL");
+            assertEquals(List.of(closed), view.items());
+            view.search("trade-open");
+            assertEquals(List.of(open), view.items());
+        }
+
+        @Test
+        void traderDefaultsToAllAndHidesTicketsWhereItIsTheAgent() {
+            addDispute("own-agent-ticket", false, agent);
+            PubKeyRing otherAgent = mock(PubKeyRing.class);
+            Dispute open = addDispute("trader-open", false, otherAgent);
+            Dispute closed = addDispute("trader-closed", true, otherAgent);
+            var client = new ArbitrationClientView(manager, keyRing, tradeManager, null, null, null,
+                    null, null, null, null, null, false) {
+                {
+                    root = mock(VBox.class);
+                    when(root.getChildren()).thenReturn(FXCollections.observableArrayList());
+                }
+
+                void checkDefaultView() {
+                    initialize();
+                    activate();
+                    try {
+                        assertEquals("All", ticketFilterComboBox.getValue().toString());
+                        assertEquals(List.of(open, closed), new ArrayList<>(filteredList));
+                    } finally {
+                        deactivate();
+                    }
+                }
+            };
+            client.checkDefaultView();
+        }
+
+        @Test
+        void closedAndUnreadViewsApplyTheirOwnPredicates() {
+            Dispute open = addDispute("open", false, agent);
+            Dispute closed = addDispute("closed", true, agent);
+            Dispute unread = addDispute("unread", true, agent);
+            reply(open);
+            reply(unread);
+            view.selectFilter("CLOSED");
+            assertEquals(List.of(closed, unread), view.items());
+            view.selectFilter("UNREAD");
+            assertEquals(List.of(open, unread), view.items());
+            view.selectFilter("ALL");
+            assertEquals(List.of(open, closed, unread), view.items());
+        }
+
+        @Test
+        void closingAndReadingRetainRowsUntilFilterAdjustmentOrRevisit() {
+            Dispute closing = addDispute("closing", false, agent);
+            Dispute unread = addDispute("unread", true, agent);
+            reply(unread);
+            closing.setIsClosed();
+            unread.setChatMessagesSeen(true);
+            assertEquals(List.of(closing, unread), view.items());
+            assertTrue(closing.isClosed());
+            assertEquals(0, unread.unreadMessageCount(true));
+
+            view.search(" ");
+            assertTrue(view.items().isEmpty());
+            closing.reOpen();
+            assertEquals(List.of(closing), view.items());
+            closing.setIsClosed();
+            view.deactivate();
+            view.activate();
+            assertTrue(view.items().isEmpty());
+        }
+
+        @Test
+        void unreadViewRetainsReadTicketsUntilDropdownChanges() {
+            Dispute dispute = addDispute("trade", true, agent);
+            reply(dispute);
+            view.selectFilter("UNREAD");
+            dispute.setChatMessagesSeen(true);
+            assertEquals(List.of(dispute), view.items());
+            view.selectFilter("CLOSED");
+            view.selectFilter("UNREAD");
+            assertTrue(view.items().isEmpty());
+        }
+
+        @Test
+        void inactiveViewDoesNotRetainRowsForTheNextVisit() {
+            view.selectFilter("ALL");
+            view.deactivate();
+            view.selectFilter("OPEN");
+            addDispute("closed-while-away", true, agent);
+            view.activate();
+            assertTrue(view.items().isEmpty());
+            addDispute("closed-after-return", true, agent);
+            assertTrue(view.items().isEmpty());
+            Dispute open = addDispute("new-open", false, agent);
+            assertEquals(List.of(open), view.items());
+        }
+
+        @Test
+        void revisitingPreservesSelectionWhenTheTicketStillMatches() {
+            addDispute("first", false, agent);
+            Dispute selected = addDispute("selected", false, agent);
+            view.selectDispute(selected);
+            view.deactivate();
+            view.activate();
+            assertEquals(selected, view.getSelectedDispute());
+        }
+
+        @Test
+        void retainedIdentityCannotAdmitAReplacementFromAnotherAgent() {
+            Dispute visible = addDispute("trade", false, agent);
+            Dispute foreign = createDispute("trade", false, mock(PubKeyRing.class));
+            disputes.set(0, foreign);
+            assertEquals(visible, foreign);
+            assertTrue(view.items().isEmpty());
+        }
+
+        @Test
+        void replacingATicketInPlaceKeepsItRetained() {
+            Dispute dispute = addDispute("trade", false, agent);
+            Dispute other = addDispute("other", false, agent);
+            dispute.setIsClosed();
+            Dispute replacement = createDispute("trade", true, agent);
+            disputes.set(0, replacement);
+            reply(other);
+            assertEquals(List.of(replacement, other), view.items());
+        }
+
+        @Test
+        void placeholderTracksTicketsHiddenByTheView() {
+            view.selectFilter("CLOSED");
+            gui.clearInvocations();
+            Dispute open = addDispute("open", false, agent);
+            gui.verify(() -> GUIUtil.updateFilterPlaceholder(any(TableView.class), eq(true)));
+            disputes.remove(open);
+            gui.verify(() -> GUIUtil.updateFilterPlaceholder(any(TableView.class), eq(false)));
+
+            view.selectFilter("ALL");
+            gui.clearInvocations();
+            addDispute("foreign", false, mock(PubKeyRing.class));
+            gui.verify(() -> GUIUtil.updateFilterPlaceholder(any(TableView.class), eq(false)));
+            gui.clearInvocations();
+            view.search("foreign");
+            gui.verify(() -> GUIUtil.updateFilterPlaceholder(any(TableView.class), eq(true)));
+            gui.clearInvocations();
+            view.search(" ");
+            gui.verify(() -> GUIUtil.updateFilterPlaceholder(any(TableView.class), eq(false)));
+        }
+
+        @Test
+        void liveArrivalsRespectTextAndRoleFilters() {
+            view.search("target");
+            Dispute target = addDispute("target", true, agent);
+            Dispute other = addDispute("other", true, agent);
+            Dispute foreign = addDispute("target-foreign", true, mock(PubKeyRing.class));
+            reply(other);
+            reply(foreign);
+            assertTrue(view.items().isEmpty());
+            reply(target);
+            assertEquals(List.of(target), view.items());
+            target.setChatMessagesSeen(true);
+            Dispute incoming = addDispute("target-new", false, agent);
+            assertEquals(List.of(target, incoming), view.items());
+        }
+
+        @Test
+        void removingTicketsClearsRetentionAndDetachesListeners() {
+            Dispute dispute = addDispute("trade", false, agent);
+            dispute.setIsClosed();
+            disputes.remove(dispute);
+            assertTrue(view.items().isEmpty());
+            disputes.add(dispute);
+            assertTrue(view.items().isEmpty());
+            reply(dispute);
+            assertEquals(List.of(dispute), view.items());
+            disputes.remove(dispute);
+
+            List<Runnable> updates = new ArrayList<>();
+            UserThread.setExecutor(updates::add);
+            reply(dispute);
+            assertTrue(updates.isEmpty());
+        }
+
+        @Test
+        void queuedRefreshDoesNotUndoAnExplicitFilterChangeOrRevisit() {
+            Dispute dispute = addDispute("trade", false, agent);
+            List<Runnable> updates = new ArrayList<>();
+            UserThread.setExecutor(updates::add);
+            reply(dispute);
+            view.selectFilter("CLOSED");
+            List.copyOf(updates).forEach(Runnable::run);
+            assertTrue(view.items().isEmpty());
+            updates.clear();
+            reply(dispute);
+            view.deactivate();
+            List.copyOf(updates).forEach(Runnable::run);
+            UserThread.setExecutor(Runnable::run);
+            view.activate();
+            assertTrue(view.items().isEmpty());
+            dispute.setIsClosed();
+            assertEquals(List.of(dispute), view.items());
+        }
+
+        @Test
+        void navigationToHiddenTicketClearsBothFilters() {
+            Dispute dispute = addDispute("target", true, agent);
+            view.search("other");
+            view.deactivate();
+            view.setDisputeToSelect(dispute);
+            view.activate();
+            assertEquals(List.of(dispute), view.items());
+            assertEquals("All", view.filterName());
+            assertEquals("", view.searchText());
+            assertEquals(dispute, view.getSelectedDispute());
+        }
+
+        @Test
+        void closedRowBecomesGreyWhenItsLastUnreadMessageIsRead() throws ReflectiveOperationException {
+            Dispute dispute = addDispute("trade", true, agent);
+            reply(dispute);
+            Trade trade = mock(Trade.class);
+            SimpleObjectProperty<Trade.DisputeState> tradeState = new SimpleObjectProperty<>(Trade.DisputeState.DISPUTE_REQUESTED);
+            when(tradeManager.getTrade(dispute.getTradeId())).thenReturn(trade);
+            when(trade.disputeStateProperty()).thenReturn(tradeState);
+            TableRow<Dispute> row = new TableRow<>();
+            TableCell<Dispute, Dispute> cell = view.stateCell();
+            cell.updateTableRow(row);
+            var update = cell.getClass().getDeclaredMethod("updateItem", Dispute.class, boolean.class);
+            update.setAccessible(true);
+            update.invoke(cell, dispute, false);
+            assertEquals(1, row.getOpacity());
+            dispute.setChatMessagesSeen(true);
+            assertEquals(0.4, row.getOpacity());
+            assertEquals(List.of(dispute), view.items());
+            update.invoke(cell, null, true);
+            reply(dispute);
+            tradeState.set(Trade.DisputeState.DISPUTE_CLOSED);
+            assertEquals(0.4, row.getOpacity());
+            assertEquals("", cell.getText());
+        }
+
+        private Dispute addDispute(String tradeId, boolean closed, PubKeyRing disputeAgent) {
+            Dispute dispute = createDispute(tradeId, closed, disputeAgent);
+            disputes.add(dispute);
+            return dispute;
+        }
+
+        private Dispute createDispute(String tradeId, boolean closed, PubKeyRing disputeAgent) {
+            Contract contract = mock(Contract.class);
+            when(contract.getBuyerNodeAddress()).thenReturn(new NodeAddress("buyer:9999"));
+            when(contract.getSellerNodeAddress()).thenReturn(new NodeAddress("seller:9999"));
+            Dispute dispute = new Dispute(0L, tradeId, 1, true, true, true, null, 0L, 0L,
+                    contract, null, null, null, "{}", null, null, null, null, disputeAgent, false, SupportType.ARBITRATION);
+            dispute.setState(closed ? Dispute.State.CLOSED : Dispute.State.OPEN);
+            dispute.refreshAlertLevel(true);
+            return dispute;
+        }
+
+        private void reply(Dispute dispute) {
+            dispute.getChatMessages().add(new ChatMessage(SupportType.ARBITRATION, dispute.getTradeId(), 1,
+                    true, "Trader reply", new NodeAddress("trader:9999")));
+            dispute.refreshAlertLevel(true);
+        }
+
+        private class TicketView extends DisputeAgentView {
+            TicketView() {
+                super(manager, DisputeFilters.this.keyRing, DisputeFilters.this.tradeManager, null, null, null,
+                        null, null, null, null, null, false);
+                root = mock(VBox.class);
+                when(root.getChildren()).thenReturn(FXCollections.observableArrayList());
+                when(root.getScene()).thenReturn(mock(Scene.class));
+                chatPopup = mock(DisputeChatPopup.class);
+            }
+
+            @Override
+            public void activate() {
+                super.activate();
+            }
+
+            @Override
+            public void deactivate() {
+                super.deactivate();
+            }
+
+            @Override
+            protected SupportType getType() {
+                return SupportType.ARBITRATION;
+            }
+
+            @Override
+            protected DisputeSession getConcreteDisputeChatSession(Dispute dispute) {
+                return mock(DisputeSession.class);
+            }
+
+            @Override
+            protected void onCloseDispute(Dispute dispute) {
+            }
+
+            void selectFilter(String filter) {
+                ticketFilterComboBox.setValue(TicketFilter.valueOf(filter));
+            }
+
+            void search(String text) {
+                filterTextField.setText(text);
+            }
+
+            void selectDispute(Dispute dispute) {
+                tableView.getSelectionModel().select(dispute);
+            }
+
+            List<Dispute> items() {
+                return new ArrayList<>(filteredList);
+            }
+
+            boolean isActive() {
+                return filteredList != null;
+            }
+
+            String filterName() {
+                return ticketFilterComboBox.getValue().toString();
+            }
+
+            String searchText() {
+                return filterTextField.getText();
+            }
+
+            TableCell<Dispute, Dispute> stateCell() {
+                return stateColumn.getCellFactory().call(stateColumn);
+            }
         }
     }
 
