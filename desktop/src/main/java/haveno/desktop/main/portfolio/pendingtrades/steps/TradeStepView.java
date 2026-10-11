@@ -43,7 +43,6 @@ import haveno.core.trade.TakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.XmrWalletService;
-import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
 import haveno.desktop.components.PopOverWrapper;
 import haveno.desktop.components.controlsfx.control.PopOver;
@@ -67,6 +66,7 @@ import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.TradeStepInfo;
 import haveno.desktop.main.portfolio.pendingtrades.TradeSubView;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
+import static haveno.desktop.util.FormBuilder.setButtonBusyContent;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 
 import haveno.network.p2p.BootstrapListener;
@@ -87,7 +87,6 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -752,35 +751,8 @@ public abstract class TradeStepView extends VBox {
         Button button = action.first;
         BusyAnimation busy = action.second;
         action.fourth.getChildren().remove(busy);
-        button.getStyleClass().add("trade-confirmation-button");
-
-        Label idleText = new AutoTooltipLabel(title);
-        Label busyText = new AutoTooltipLabel(Res.get("portfolio.pending.tradeView.confirmingAction"));
-        idleText.setMinWidth(0);
-        busyText.setMinWidth(0);
-        idleText.fontProperty().bind(button.fontProperty());
-        busyText.fontProperty().bind(button.fontProperty());
-        idleText.textFillProperty().bind(button.textFillProperty());
-        busyText.textFillProperty().bind(button.textFillProperty());
-        busy.setMinSize(14, 14);
-        busy.setPrefSize(14, 14);
-        busy.setMaxSize(14, 14);
-        StackPane spinner = new StackPane(busy);
-        spinner.setMinSize(14, 14);
-        spinner.setPrefSize(14, 14);
-        spinner.setMaxSize(14, 14);
-        HBox progress = new HBox(8, spinner, busyText);
-        progress.setAlignment(Pos.CENTER);
-
-        // measure both states so confirmation never changes the button's size
-        StackPane content = new StackPane(idleText, progress);
-        idleText.visibleProperty().bind(busy.isRunningProperty().not());
-        progress.visibleProperty().bind(busy.isRunningProperty());
-        button.setGraphic(content);
-        button.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-        button.textProperty().bind(Bindings.when(busy.isRunningProperty()).then(busyText.getText()).otherwise(title));
+        setButtonBusyContent(button, busy).setText(Res.get("portfolio.pending.tradeView.confirmingAction"));
         busy.isRunningProperty().addListener((observable, oldValue, running) -> {
-            button.pseudoClassStateChanged(PseudoClass.getPseudoClass("busy"), running);
             confirmationInProgress = running;
             updateStatus();
         });

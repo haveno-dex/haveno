@@ -22,7 +22,6 @@ import com.google.inject.Inject;
 import com.jfoenix.validation.RequiredFieldValidator;
 import com.jfoenix.validation.base.ValidatorBase;
 import haveno.common.UserThread;
-import haveno.common.util.Tuple4;
 import haveno.core.api.CoreAccountService;
 import haveno.core.locale.Res;
 import haveno.core.xmr.wallet.WalletsManager;
@@ -38,19 +37,18 @@ import haveno.desktop.main.MainView;
 import haveno.desktop.main.account.AccountView;
 import haveno.desktop.main.account.content.backup.BackupView;
 import haveno.desktop.main.overlays.popups.Popup;
-import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addPasswordTextField;
+import static haveno.desktop.util.FormBuilder.addPrimaryActionButton;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
+import static haveno.desktop.util.FormBuilder.setButtonBusyContent;
 import haveno.desktop.util.Layout;
 import haveno.desktop.util.validation.PasswordValidator;
 import javafx.beans.value.ChangeListener;
-import javafx.scene.control.Button;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 
 @FxmlView
 public class PasswordView extends ActivatableView<GridPane, Void> {
@@ -65,6 +63,8 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     private PasswordTextField passwordField;
     private PasswordTextField repeatedPasswordField;
     private AutoTooltipButton pwButton;
+    private BusyAnimation busyAnimation;
+    private Label busyText;
     private Hyperlink recoveryLink;
     private TitledGroupBg headline;
     private int gridRow = 0;
@@ -112,10 +112,9 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
             }
         };
 
-        Tuple4<Button, BusyAnimation, Label, HBox> tuple = addButtonBusyAnimationLabel(root, ++gridRow, 0, "", 10);
-        pwButton = (AutoTooltipButton) tuple.first;
-        BusyAnimation busyAnimation = tuple.second;
-        Label statusLabel = tuple.third;
+        pwButton = (AutoTooltipButton) addPrimaryActionButton(root, ++gridRow, "", 10);
+        busyAnimation = new BusyAnimation(false);
+        busyText = setButtonBusyContent(pwButton, busyAnimation);
         pwButton.setDisable(true);
 
         setText();
@@ -125,7 +124,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
             if (!walletsManager.areWalletsEncrypted()) {
                 new Popup().backgroundInfo(Res.get("password.backupReminder"))
                         .actionButtonText(Res.get("password.setPassword"))
-                        .onAction(() -> onApplyPassword(busyAnimation, statusLabel))
+                        .onAction(this::onApplyPassword)
                         .secondaryActionButtonText(Res.get("password.makeBackup"))
                         .onSecondaryAction(() -> {
                             navigation.setReturnPath(navigation.getCurrentPath());
@@ -134,7 +133,7 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
                         .width(800)
                         .show();
             } else {
-                onApplyPassword(busyAnimation, statusLabel);
+                onApplyPassword();
             }
         });
 
@@ -146,14 +145,13 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
         root.add(recoveryLink, 0, ++gridRow, 2, 1);
     }
 
-    private void onApplyPassword(BusyAnimation busyAnimation, Label statusLabel) {
+    private void onApplyPassword() {
         if (!validatePasswords()) return;
         String password = passwordField.getText();
         checkArgument(password.length() < 500, Res.get("password.tooLong"));
 
         boolean removingPassword = walletsManager.areWalletsEncrypted();
         pwButton.setDisable(true);
-        statusLabel.setText(Res.get(removingPassword ? "password.removing" : "password.setting"));
         busyAnimation.play();
         changingPassword = true;
         recoveryLink.setDisable(true);
@@ -186,7 +184,6 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
                     repeatedPasswordField.setDisable(accountService.isPasswordRecoveryRequired());
                     setText();
                     updatePasswordButton();
-                    statusLabel.setText("");
                     busyAnimation.stop();
                 });
             }
@@ -202,12 +199,14 @@ public class PasswordView extends ActivatableView<GridPane, Void> {
     private void setText() {
         if (walletsManager.areWalletsEncrypted()) {
             pwButton.updateText(Res.get("account.password.removePw.button"));
+            busyText.setText(Res.get("password.removing"));
             headline.setText(Res.get("account.password.removePw.headline"));
 
             repeatedPasswordField.setVisible(false);
             repeatedPasswordField.setManaged(false);
         } else {
             pwButton.updateText(Res.get("account.password.setPw.button"));
+            busyText.setText(Res.get("password.setting"));
             headline.setText(Res.get("account.password.setPw.headline"));
 
             repeatedPasswordField.setVisible(true);

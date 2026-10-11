@@ -120,23 +120,9 @@
     -fx-font-family: "IBM Plex Sans Medium";
     -fx-text-fill: -bs-text-color;
 }
-.trade-detail-view .trade-confirmation-button:busy {
-    -fx-background-color: -bs-color-background-form-field;
-    -fx-text-fill: -bs-text-color;
-    -fx-opacity: 1;
-    -fx-cursor: default;
-}
 .trade-detail-view .trade-action-panel .action-button {
     -fx-font-size: 14px;
     -fx-padding: 10 22;
-}
-.trade-detail-view .trade-confirmation-button .busyanimation,
-.trade-detail-view .trade-confirmation-button .label {
-    -fx-opacity: 1;
-}
-.trade-detail-view .trade-confirmation-button .busyanimation .arc {
-    -fx-stroke: -bs-hero-primary;
-    -fx-stroke-width: 2;
 }
 .trade-detail-view .trade-section-heading {
     -fx-font-size: 14px;
