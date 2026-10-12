@@ -33,6 +33,7 @@ import haveno.core.support.SupportSession;
 import haveno.core.support.dispute.Attachment;
 import haveno.core.support.dispute.DisputeSession;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.support.traderchat.TraderChatManager;
 
 import haveno.network.p2p.network.Connection;
 
@@ -586,7 +587,8 @@ public class ChatView extends AnchorPane {
                         } else if (message.ackErrorProperty().get() != null) {
                             visible = true;
                             icon = FontAwesomeIcon.EXCLAMATION_CIRCLE;
-                            text = Res.get("support.error", message.ackErrorProperty().get());
+                            String ackError = message.ackErrorProperty().get();
+                            text = TraderChatManager.TRADE_COMPLETED_ERROR.equals(ackError) ? Res.get("support.errorTradeCompleted") : Res.get("support.error", ackError);
                             statusIcon.getStyleClass().add("error-text");
                             statusInfoLabel.getStyleClass().add("error-text");
                         } else if (message.sendMessageErrorProperty().get() != null) {

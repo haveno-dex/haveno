@@ -47,6 +47,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Slf4j
 @Singleton
 public class TraderChatManager extends SupportManager {
+    public static final String TRADE_COMPLETED_ERROR = "Trade is already completed";
     private final PubKeyRingProvider pubKeyRingProvider;
 
 
@@ -184,7 +185,7 @@ public class TraderChatManager extends SupportManager {
                     if (trade != null && trade.isCompleted()) {
                         log.info("Rejecting trader chat message for completed trade. TradeId = {}, uid = {}", message.getTradeId(), message.getUid());
                         mailboxMessageService.removeMailboxMsg(message);
-                        sendAckMessage(message, trade.getVerifiedTradePeer(decryptedMessageWithPubKey).getPubKeyRing(), false, "Trade is already completed");
+                        sendAckMessage(message, trade.getVerifiedTradePeer(decryptedMessageWithPubKey).getPubKeyRing(), false, TRADE_COMPLETED_ERROR);
                         return;
                     }
                     handle((ChatMessage) message);
