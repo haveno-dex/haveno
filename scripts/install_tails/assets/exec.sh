@@ -59,4 +59,5 @@ fi
 
 
 echo_blue "Starting Haveno..."
-/opt/haveno/bin/Haveno --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --userDataDir=${data_dir} --useTorForXmr=on --socks5ProxyXmrAddress=127.0.0.1:9062
+# onion-grater only matches IPv4 loopback clients, so keep the JVM on the IPv4 stack
+JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:+${JAVA_TOOL_OPTIONS} }-Djava.net.preferIPv4Stack=true" /opt/haveno/bin/Haveno --torControlPort 951 --torControlCookieFile=/var/run/tor/control.authcookie --torControlUseSafeCookieAuth --userDataDir=${data_dir} --useTorForXmr=on --socks5ProxyXmrAddress=127.0.0.1:9062
