@@ -684,6 +684,10 @@
     -fx-image: url("../../images/fiat_logo_dark_mode.png");
 }
 
+#message-list-view.list-view {
+    -fx-background-image: url("../../images/chatbg_dark.png");
+}
+
 /* brighten the withdraw-confirmation badges against the dark popup */
 .confirm-send-icon {
     -fx-background-color: rgba(28, 96, 220, 0.28);

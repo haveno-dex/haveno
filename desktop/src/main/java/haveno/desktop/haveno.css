@@ -3329,6 +3329,10 @@ textfield */
     -fx-background-insets: 0;
     -fx-border-width: 0;
     -fx-padding: 0;
+    -fx-background-image: url("../../images/chatbg_light.png");
+    -fx-background-repeat: repeat;
+    -fx-background-position: 0 0;
+    -fx-background-size: 700px;
 }
 
 #message-list-view.list-view:focused {
