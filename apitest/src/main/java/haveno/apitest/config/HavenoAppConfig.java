@@ -92,7 +92,6 @@ public enum HavenoAppConfig {
     private static final String COMMON_JVM_OPTS =
             "-XX:+ExitOnOutOfMemoryError"
             + " -XX:+EnableDynamicAgentLoading"
-            + " -Djava.net.preferIPv4Stack=true"
             + " -Dfile.encoding=UTF-8"
             + " -Dstdout.encoding=UTF-8"
             + " -Dstderr.encoding=UTF-8";
