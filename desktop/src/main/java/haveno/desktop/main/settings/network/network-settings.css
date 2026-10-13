@@ -128,18 +128,4 @@
 .network-settings .network-tor-pending .glyph-icon { -fx-fill: -network-amber; }
 .network-settings .progress-indicator { -fx-progress-color: -network-blue; }
 
-.network-node-menu {
-    -fx-min-width: 190; -fx-padding: 5;
-    -fx-background-color: -network-menu; -fx-background-insets: 0; -fx-background-radius: 9;
-    -fx-border-color: -bs-color-border-form-field; -fx-border-width: 1; -fx-border-radius: 9;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 35, 0, 0, 10);
-}
-.network-node-menu .menu-item { -fx-padding: 8 10; -fx-background-radius: 6; }
-#network-node-menu .menu-item .label { -fx-text-fill: -network-text; -fx-font-size: 13.5; }
-.network-node-menu .menu-item:focused { -fx-background-color: -network-active; }
-.network-node-menu .menu-item, .network-node-menu .menu-item * { -fx-cursor: hand; }
-.network-node-menu .menu-item:disabled, .network-node-menu .menu-item:disabled * { -fx-cursor: default; }
-.network-node-menu .separator { -fx-padding: 4; }
-.network-node-menu .separator .line { -fx-border-color: -network-line; -fx-border-width: 1 0 0 0; }
-
 #network-node-menu .network-menu-caption { -fx-text-fill: -network-faint; -fx-font-size: 12; }

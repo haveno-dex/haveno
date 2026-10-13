@@ -91,10 +91,12 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
@@ -1348,6 +1350,7 @@ public class GUIUtil {
     }
 
     private static final String CURSOR_REFRESH = "haveno.cursorRefresh";
+    private static final String SHADOW_DISMISS = "haveno.shadowDismiss";
     private static Field mouseHandlerField, currCursorField, currCursorFrameField;
     private static boolean cursorCacheUnavailable;
 
@@ -1357,6 +1360,22 @@ public class GUIUtil {
         Window.getWindows().forEach(GUIUtil::installWindowCursorRefresh);
         Window.getWindows().addListener((ListChangeListener<Window>) change -> {
             while (change.next()) change.getAddedSubList().forEach(GUIUtil::installWindowCursorRefresh);
+        });
+    }
+
+    // A popup window covers its drop shadow, so a press on the shadow reaches the menu's own scene
+    // instead of auto-hiding it; dismiss any context menu on presses outside its card.
+    public static void dismissContextMenusOnShadowPress() {
+        Window.getWindows().addListener((ListChangeListener<Window>) change -> {
+            while (change.next()) change.getAddedSubList().forEach(GUIUtil::installShadowDismiss);
+        });
+    }
+
+    private static void installShadowDismiss(Window window) {
+        if (!(window instanceof ContextMenu menu) || menu.getProperties().put(SHADOW_DISMISS, Boolean.TRUE) != null) return;
+        menu.getScene().addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+            Parent card = menu.getScene().getRoot();
+            if (!card.getLayoutBounds().contains(card.sceneToLocal(event.getSceneX(), event.getSceneY()))) menu.hide();
         });
     }
 
