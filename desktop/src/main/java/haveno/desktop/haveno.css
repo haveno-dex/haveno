@@ -328,6 +328,52 @@
     -fx-shape: "M 0 0 l 3.5 4 l 3.5 -4";
 }
 
+/* Context menus: rounded card with a soft hover tint on items */
+.context-menu {
+    -fx-min-width: 190;
+    -fx-padding: 5;
+    -fx-background-color: -bs-context-menu-background;
+    -fx-background-insets: 0;
+    -fx-background-radius: 9;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-width: 1;
+    -fx-border-radius: 9;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 35, 0, 0, 10);
+}
+
+.context-menu .menu-item {
+    -fx-padding: 8 10;
+    -fx-background-radius: 6;
+}
+
+.context-menu .menu-item .label {
+    -fx-text-fill: -bs-text-color;
+    -fx-font-size: 13.5;
+}
+
+.context-menu .menu-item:focused {
+    -fx-background-color: -bs-context-menu-hover;
+}
+
+.context-menu .menu-item,
+.context-menu .menu-item * {
+    -fx-cursor: hand;
+}
+
+.context-menu .menu-item:disabled,
+.context-menu .menu-item:disabled * {
+    -fx-cursor: default;
+}
+
+.context-menu .separator {
+    -fx-padding: 4;
+}
+
+.context-menu .separator .line {
+    -fx-border-color: -bs-color-gray-1;
+    -fx-border-width: 1 0 0 0;
+}
+
 .combo-box-popup {
     -fx-background-color: -bs-color-background-pane;
     -fx-background-radius: 8;

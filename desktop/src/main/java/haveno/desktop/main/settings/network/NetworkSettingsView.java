@@ -883,16 +883,10 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         }
         ContextMenu menu = nodeMenu;
         menu.setId("network-node-menu");
-        menu.getStyleClass().add("network-node-menu");
         Scene scene = anchor.getScene();
         menu.setConsumeAutoHidingEvents(false);
         // JavaFX auto-hide ignores clicks on the owner row, so also dismiss from the page scene
         EventHandler<MouseEvent> dismiss = event -> menu.hide();
-        // presses on the drop shadow land in the menu's own window, so dismiss those too
-        menu.getScene().addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
-            Node content = menu.getSkin().getNode();
-            if (!content.getLayoutBounds().contains(content.sceneToLocal(event.getSceneX(), event.getSceneY()))) menu.hide();
-        });
         menu.setOnShown(event -> scene.addEventFilter(MouseEvent.MOUSE_PRESSED, dismiss));
         menu.setOnHidden(event -> {
             scene.removeEventFilter(MouseEvent.MOUSE_PRESSED, dismiss);
