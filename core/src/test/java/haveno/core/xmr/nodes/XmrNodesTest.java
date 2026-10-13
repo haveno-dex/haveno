@@ -28,6 +28,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class XmrNodesTest {
 
     @Test
+    public void testOnionSchemeSurvivesNodeConfiguration() {
+        String address = "https://" + "a".repeat(56) + ".onion:18089";
+        assertEquals(address, XmrNode.fromFullAddress(address).getUri());
+    }
+
+    @Test
+    public void testDomainContainingOnionIsClearnet() {
+        XmrNode node = XmrNode.fromFullAddress("https://foo.onion.example:18089");
+        assertEquals("https://foo.onion.example:18089", node.getClearNetUri());
+    }
+
+    @Test
     public void testFromFullAddressParsesHostNameWithPort() {
         XmrNode node = XmrNode.fromFullAddress("feder8.me:18089");
 

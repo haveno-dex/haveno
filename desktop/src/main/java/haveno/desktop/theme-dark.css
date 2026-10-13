@@ -710,3 +710,22 @@
 .qr-code-pane {
     -fx-opacity: 0.9;
 }
+
+.network-settings {
+    -network-menu: #1e1e1f;
+    -network-purple: #b29ae4;
+    -network-text: #ececef;
+    -network-dim: #afaeb0;
+    -network-faint: #7d7c80;
+    -network-line: #29292a;
+    -network-soft-line: rgba(255,255,255,0.05);
+    -network-blue: #5c94f0;
+    -network-active: rgba(92,148,240,0.08);
+    -network-selected: rgba(92,148,240,0.16);
+    -network-hover: rgba(255,255,255,0.035);
+    -network-green: #82c58d;
+    -network-green-background: rgba(130,197,141,0.14);
+    -network-amber: #eac087;
+    -network-red: #ec7a76;
+    -network-warning-background: rgba(234,192,135,0.07);
+}

@@ -27,6 +27,10 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
+import haveno.core.user.Preferences.NetworkSettings;
+import haveno.core.user.Preferences.UseTorForXmr;
+import haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import javafx.collections.ObservableList;
@@ -40,6 +44,12 @@ import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -51,6 +61,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -74,6 +85,203 @@ public class PreferencesTest {
                 persistenceManager, config, null, null);
         xmrNodes = new XmrNodes();
         XmrLocalNode xmrLocalNode = new XmrLocalNode(config, preferences, xmrNodes);
+    }
+
+    @Test
+    public void testConcurrentFallbackDoesNotOverwriteSavedNetworkSettings() throws Exception {
+        PreferencesPayload payload = spy(new PreferencesPayload());
+        payload.setMoneroNodesOptionOrdinal(MoneroNodesOption.PUBLIC.ordinal());
+        payload.setUseTorForXmrOrdinal(UseTorForXmr.ON.ordinal());
+        preferences.setPrefPayload(payload);
+        preferences.captureEffectiveNetworkSettings();
+        CountDownLatch fallbackWriting = new CountDownLatch(1);
+        CountDownLatch releaseFallback = new CountDownLatch(1);
+        CountDownLatch saveStarted = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            fallbackWriting.countDown();
+            assertTrue(releaseFallback.await(5, TimeUnit.SECONDS));
+            return invocation.callRealMethod();
+        }).when(payload).setMoneroNodesOptionOrdinal(MoneroNodesOption.PROVIDED.ordinal());
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        NetworkSettings saved = new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.OFF, "custom.example:18081");
+        try {
+            Future<?> fallback = executor.submit(() -> preferences.setEffectiveMoneroNodesOption(MoneroNodesOption.PROVIDED));
+            assertTrue(fallbackWriting.await(5, TimeUnit.SECONDS));
+            Future<?> saving = executor.submit(() -> {
+                saveStarted.countDown();
+                preferences.setNetworkSettingsForNextStart(saved);
+            });
+            assertTrue(saveStarted.await(5, TimeUnit.SECONDS));
+            try {
+                saving.get(100, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException expected) {
+                // saving waits for the in-progress fallback write
+            }
+            releaseFallback.countDown();
+            fallback.get(5, TimeUnit.SECONDS);
+            saving.get(5, TimeUnit.SECONDS);
+            assertEquals(saved, preferences.getNetworkSettings());
+            assertEquals(MoneroNodesOption.PROVIDED, preferences.getEffectiveNetworkSettings().nodes());
+            assertEquals(UseTorForXmr.ON, preferences.getEffectiveNetworkSettings().tor());
+        } finally {
+            releaseFallback.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testSavedNetworkSettingsBecomeEffectiveAfterReload() throws IOException {
+        PreferencesPayload payload = PreferencesPayload.fromProto(protobuf.PreferencesPayload.newBuilder()
+                .setBlockChainExplorerMainNet((protobuf.BlockChainExplorer) new BlockChainExplorer("main", "https://example.com/").toProtoMessage())
+                .setBlockChainExplorerTestNet((protobuf.BlockChainExplorer) new BlockChainExplorer("test", "https://example.com/").toProtoMessage())
+                .build(), null);
+        payload.setUserLanguage("en");
+        payload.setUserCountry(CountryUtil.getDefaultCountry());
+        payload.setPreferredTradeCurrency(new TraditionalCurrency("USD"));
+        payload.setMoneroNodesOptionOrdinal(MoneroNodesOption.CUSTOM.ordinal());
+        payload.setMoneroNodes("old.example:18081");
+        payload.setUseTorForXmrOrdinal(UseTorForXmr.ON.ordinal());
+        PersistenceManager<PreferencesPayload> manager = mock(PersistenceManager.class);
+        Preferences original = new Preferences(manager, config, null, xmrNodes);
+        doAnswer(invocation -> {
+            Consumer<PreferencesPayload> resultHandler = invocation.getArgument(1);
+            resultHandler.accept(payload);
+            return null;
+        }).when(manager).readPersisted(eq("PreferencesPayload"), any(), any());
+        original.readPersisted(() -> {});
+        original.captureEffectiveNetworkSettings();
+        NetworkSettings saved = new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.OFF, "new.example:18089");
+        original.setNetworkSettingsForNextStart(saved);
+        assertEquals(UseTorForXmr.ON, original.getUseTorForXmr());
+
+        protobuf.PersistableEnvelope persisted = (protobuf.PersistableEnvelope) payload.toProtoMessage();
+        PreferencesPayload reloadedPayload = PreferencesPayload.fromProto(
+                protobuf.PersistableEnvelope.parseFrom(persisted.toByteArray()).getPreferencesPayload(), null);
+        PersistenceManager<PreferencesPayload> reloadedManager = mock(PersistenceManager.class);
+        Preferences reloaded = new Preferences(reloadedManager, config, null, xmrNodes);
+        doAnswer(invocation -> {
+            Consumer<PreferencesPayload> resultHandler = invocation.getArgument(1);
+            resultHandler.accept(reloadedPayload);
+            return null;
+        }).when(reloadedManager).readPersisted(eq("PreferencesPayload"), any(), any());
+        reloaded.readPersisted(() -> {});
+        reloaded.captureEffectiveNetworkSettings();
+        assertEquals(saved, reloaded.getEffectiveNetworkSettings());
+        assertFalse(reloaded.isProxyApplied(true));
+    }
+
+    @Test
+    public void testNetworkSettingsWaitForNextStart() {
+        preferences.setMoneroNodesOptionOrdinal(MoneroNodesOption.PUBLIC.ordinal());
+        preferences.setUseTorForXmrOrdinal(UseTorForXmr.ON.ordinal());
+        preferences.setMoneroNodes("old.example:18081");
+        preferences.captureEffectiveNetworkSettings();
+        NetworkSettings running = preferences.getEffectiveNetworkSettings();
+        NetworkSettings saved = new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.OFF, "new.example:18089");
+        preferences.setNetworkSettingsForNextStart(saved);
+
+        assertEquals(saved, preferences.getNetworkSettings());
+        assertEquals(running, preferences.getEffectiveNetworkSettings());
+        assertEquals(UseTorForXmr.ON, preferences.getUseTorForXmr());
+        assertTrue(preferences.isProxyApplied(false));
+        assertTrue(preferences.isProxyApplied(true));
+        assertEquals(MoneroNodesOption.PUBLIC, preferences.getMoneroNodesOption());
+        assertFalse(new XmrNodesSetupPreferences(preferences).isUseCustomNodes());
+
+        preferences.setNetworkSettingsForNextStart(running);
+        assertTrue(preferences.getNetworkSettings().sameConfiguration(preferences.getEffectiveNetworkSettings()));
+    }
+
+    @Test
+    public void testSavedCustomNodesDoNotChangeRunningNodeSelection() {
+        preferences.setMoneroNodesOptionOrdinal(MoneroNodesOption.CUSTOM.ordinal());
+        preferences.setMoneroNodes("127.0.0.1:18081,https://old.example:18089");
+        preferences.setUseTorForXmrOrdinal(UseTorForXmr.AFTER_SYNC.ordinal());
+        preferences.captureEffectiveNetworkSettings();
+        preferences.setNetworkSettingsForNextStart(new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.ON, "new.example:18081"));
+
+        List<XmrNodes.XmrNode> selected = new XmrNodesSetupPreferences(preferences).selectPreferredNodes(xmrNodes);
+        assertEquals(2, selected.size());
+        assertTrue(selected.stream().anyMatch(node -> "127.0.0.1".equals(node.getAddress())));
+        assertTrue(selected.stream().anyMatch(node -> "https://old.example:18089".equals(node.getUri())));
+        assertFalse(preferences.isProxyApplied(false));
+        assertTrue(preferences.isProxyApplied(true));
+    }
+
+    @Test
+    public void testRuntimeFallbackPreservesPendingNetworkSettings() {
+        preferences.setMoneroNodesOptionOrdinal(MoneroNodesOption.CUSTOM.ordinal());
+        preferences.setMoneroNodes("old.example:18081");
+        preferences.captureEffectiveNetworkSettings();
+        NetworkSettings saved = new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.ON, "new.example:18089");
+        preferences.setNetworkSettingsForNextStart(saved);
+        preferences.setEffectiveMoneroNodesOption(MoneroNodesOption.PROVIDED);
+        assertEquals(MoneroNodesOption.PROVIDED, preferences.getMoneroNodesOption());
+        preferences.setEffectiveMoneroNodesOption(MoneroNodesOption.PUBLIC);
+        assertEquals(MoneroNodesOption.PUBLIC, preferences.getMoneroNodesOption());
+        assertEquals(saved, preferences.getNetworkSettings());
+    }
+
+    @Test
+    public void testRuntimeFallbackPersistsWhenThereIsNoPendingSave() {
+        preferences.setMoneroNodesOptionOrdinal(MoneroNodesOption.CUSTOM.ordinal());
+        preferences.setMoneroNodes("old.example:18081");
+        preferences.captureEffectiveNetworkSettings();
+        preferences.setEffectiveMoneroNodesOption(MoneroNodesOption.PROVIDED);
+        assertEquals(MoneroNodesOption.PROVIDED, preferences.getNetworkSettings().nodes());
+        assertEquals(MoneroNodesOption.PROVIDED, preferences.getMoneroNodesOption());
+        preferences.setEffectiveMoneroNodesOption(MoneroNodesOption.PUBLIC);
+        assertEquals(MoneroNodesOption.PUBLIC, preferences.getNetworkSettings().nodes());
+        assertEquals(MoneroNodesOption.PUBLIC, preferences.getMoneroNodesOption());
+    }
+
+    @Test
+    public void testFilterStillOverridesSavedPublicNodes() {
+        preferences.setMoneroNodesOptionOrdinal(MoneroNodesOption.PUBLIC.ordinal());
+        preferences.captureEffectiveNetworkSettings();
+        preferences.setNetworkSettingsForNextStart(new NetworkSettings(MoneroNodesOption.PUBLIC, UseTorForXmr.ON, ""));
+        preferences.preventPublicMoneroNodes();
+        assertEquals(MoneroNodesOption.PROVIDED, preferences.getNetworkSettings().nodes());
+        assertEquals(MoneroNodesOption.PROVIDED, preferences.getMoneroNodesOption());
+        assertEquals(UseTorForXmr.ON, preferences.getNetworkSettings().tor());
+    }
+
+    @Test
+    public void testFilterPreservesRunningCustomNodesAndPendingTorMode() {
+        preferences.setMoneroNodesOptionOrdinal(MoneroNodesOption.CUSTOM.ordinal());
+        preferences.setMoneroNodes("custom.example:18081");
+        preferences.setUseTorForXmrOrdinal(UseTorForXmr.ON.ordinal());
+        preferences.captureEffectiveNetworkSettings();
+        preferences.setNetworkSettingsForNextStart(new NetworkSettings(MoneroNodesOption.PUBLIC, UseTorForXmr.OFF, "custom.example:18081"));
+        preferences.preventPublicMoneroNodes();
+        assertEquals(MoneroNodesOption.CUSTOM, preferences.getEffectiveNetworkSettings().nodes());
+        assertEquals(UseTorForXmr.ON, preferences.getEffectiveNetworkSettings().tor());
+        assertEquals(MoneroNodesOption.PROVIDED, preferences.getNetworkSettings().nodes());
+        assertEquals(UseTorForXmr.OFF, preferences.getNetworkSettings().tor());
+    }
+
+    @Test
+    public void testFilterPreservesPendingCustomNodes() {
+        preferences.setMoneroNodesOptionOrdinal(MoneroNodesOption.PUBLIC.ordinal());
+        preferences.captureEffectiveNetworkSettings();
+        NetworkSettings saved = new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.ON, "custom.example:18081");
+        preferences.setNetworkSettingsForNextStart(saved);
+        preferences.preventPublicMoneroNodes();
+        assertEquals(MoneroNodesOption.PROVIDED, preferences.getEffectiveNetworkSettings().nodes());
+        assertEquals(saved, preferences.getNetworkSettings());
+    }
+
+    @Test
+    public void testEquivalentNetworkSettingsIgnoreNodeOrderAndDefaultScheme() {
+        NetworkSettings first = new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.ON,
+                "A.example:18081, b.example:18089");
+        NetworkSettings second = new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.ON,
+                "http://b.example:18089,http://a.example:18081");
+        assertTrue(first.sameConfiguration(second));
+        assertFalse(first.sameConfiguration(new NetworkSettings(MoneroNodesOption.CUSTOM, UseTorForXmr.ON,
+                "https://b.example:18089,http://a.example:18081")));
+        assertTrue(new NetworkSettings(MoneroNodesOption.PUBLIC, UseTorForXmr.ON, "a.example")
+                .sameConfiguration(new NetworkSettings(MoneroNodesOption.PUBLIC, UseTorForXmr.ON, "b.example")));
     }
 
     @Test

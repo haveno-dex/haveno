@@ -970,21 +970,6 @@ public class GUIUtil {
         UserThread.execute(node::requestFocus);
     }
 
-    public static void rescanOutputs(Preferences preferences) {
-        try {
-            new Popup().information(Res.get("settings.net.rescanOutputsSuccess"))
-                    .actionButtonText(Res.get("shared.yes"))
-                    .onAction(() -> {
-                        throw new RuntimeException("Rescanning wallet outputs not yet implemented");
-                        //UserThread.runAfter(HavenoApp.getShutDownHandler(), 100, TimeUnit.MILLISECONDS);
-                    })
-                    .closeButtonText(Res.get("shared.cancel"))
-                    .show();
-        } catch (Throwable t) {
-            new Popup().error(Res.get("settings.net.rescanOutputsFailed", t)).show();
-        }
-    }
-
     // apply the theme to a window's scene and follow theme toggles until the window hides
     public static void loadWindowStyles(Stage stage, Preferences preferences, boolean devHeader) {
         Scene scene = stage.getScene();

@@ -169,7 +169,7 @@ public class XmrNodes {
             int port = hostAndPort.getPort();
 
             checkArgument(host.length() > 0, "XmrNode address format not recognised");
-            return host.contains(".onion") ? new XmrNode(MoneroNodesOption.CUSTOM, null, host, null, port, null, null, scheme) : new XmrNode(MoneroNodesOption.CUSTOM, null, null, host, port, null, null, scheme);
+            return host.endsWith(".onion") ? new XmrNode(MoneroNodesOption.CUSTOM, null, host, null, port, null, null, scheme) : new XmrNode(MoneroNodesOption.CUSTOM, null, null, host, port, null, null, scheme);
         }
 
         public XmrNode(MoneroNodesOption type,
@@ -223,6 +223,10 @@ public class XmrNodes {
 
         public boolean hasClearNetAddress() {
             return hostName != null || address != null;
+        }
+
+        public String getUri() {
+            return scheme + "://" + (hasOnionAddress() ? getOnionAddressWithPort() : getHostNameOrAddressWithPort());
         }
 
         public String getClearNetUri() {

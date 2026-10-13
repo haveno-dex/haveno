@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <!--
   ~ This file is part of Haveno.
   ~
@@ -17,159 +16,138 @@
   ~ along with Haveno. If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<?import haveno.desktop.components.AutoTooltipButton?>
-<?import haveno.desktop.components.AutoTooltipCheckBox?>
-<?import haveno.desktop.components.AutoTooltipLabel?>
-<?import haveno.desktop.components.AutoTooltipRadioButton?>
-<?import haveno.desktop.components.HavenoTextField?>
-<?import haveno.desktop.components.InputTextField?>
-<?import haveno.desktop.components.TitledGroupBg?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
-<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.text.Text?>
+<?import javafx.scene.text.TextFlow?>
 <?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import haveno.desktop.components.AutoTooltipLabel?>
 <GridPane fx:id="root" fx:controller="haveno.desktop.main.settings.network.NetworkSettingsView"
-          hgap="5.0" vgap="20.0"
-          AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-          AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"
-          xmlns:fx="http://javafx.com/fxml">
-
-    <padding>
-        <Insets bottom="10.0" left="15.0" top="30.0" right="15"/>
-    </padding>
-
-    <TitledGroupBg fx:id="btcHeader" GridPane.rowSpan="5"/>
-    <VBox GridPane.rowIndex="0" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
-        <GridPane.margin>
-            <Insets top="10.0"/>
-        </GridPane.margin>
-        <AutoTooltipLabel fx:id="moneroConnectionsLabel" styleClass="small-text"/>
-        <TableView fx:id="moneroConnectionsTableView">
-            <columns>
-                <TableColumn fx:id="moneroConnectionAddressColumn" minWidth="220">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="address"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="moneroConnectionConnectedColumn" minWidth="80" maxWidth="110">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="connected"/>
-                    </cellValueFactory>
-                </TableColumn>
-            </columns>
-        </TableView>
-        <AutoTooltipLabel fx:id="localhostXmrNodeInfoLabel" styleClass="small-text"/>
+          styleClass="network-settings" xmlns:fx="http://javafx.com/fxml">
+    <columnConstraints><ColumnConstraints hgrow="ALWAYS" minWidth="0"/></columnConstraints>
+    <VBox spacing="30" GridPane.hgrow="ALWAYS">
+        <VBox>
+            <HBox styleClass="network-heading" alignment="CENTER_LEFT" spacing="12">
+                <Label fx:id="moneroHeading" styleClass="network-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="moneroStatus" styleClass="network-health"/>
+                <Label text="│" styleClass="network-divider"/>
+                <Label fx:id="blockHeight" styleClass="network-help"/>
+                <Label fx:id="routeDivider" text="│" styleClass="network-divider"/>
+                <Label fx:id="route" styleClass="network-help"/>
+            </HBox>
+            <VBox fx:id="statusNote" styleClass="network-status-note" spacing="2">
+                <VBox.margin><Insets bottom="14"/></VBox.margin>
+                <Label fx:id="statusTitle" styleClass="network-setting-title" wrapText="true"/>
+                <Label fx:id="statusDetail" styleClass="network-help" wrapText="true"/>
+            </VBox>
+            <StackPane styleClass="network-table-frame">
+                <TableView fx:id="moneroConnectionsTableView" styleClass="network-table,network-nodes">
+                    <columns>
+                        <TableColumn fx:id="nodeAddressColumn" minWidth="180"/>
+                        <TableColumn fx:id="nodeLatencyColumn" minWidth="130" prefWidth="130" maxWidth="130" styleClass="network-number"/>
+                        <TableColumn fx:id="nodeStatusColumn" minWidth="150" prefWidth="150" maxWidth="150"/>
+                        <TableColumn fx:id="nodeActionsColumn" minWidth="46" prefWidth="46" maxWidth="46" sortable="false"/>
+                    </columns>
+                </TableView>
+            </StackPane>
+            <Label fx:id="selectionNote" styleClass="network-selection-note" wrapText="true"/>
+            <VBox styleClass="network-settings-rows">
+                <VBox styleClass="network-source-row" spacing="12">
+                    <HBox alignment="CENTER_LEFT" spacing="32">
+                        <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
+                            <Label fx:id="sourceLabel" styleClass="network-setting-title"/>
+                            <TextFlow>
+                                <Text fx:id="sourceHelp" styleClass="network-source-help"/>
+                                <Hyperlink fx:id="remoteNodeLink" styleClass="network-link"/>
+                            </TextFlow>
+                        </VBox>
+                        <ComboBox fx:id="source" styleClass="network-select" minWidth="300" prefWidth="300" maxWidth="300"/>
+                    </HBox>
+                    <VBox fx:id="customEditor" styleClass="network-custom-editor">
+                        <VBox fx:id="customList"/>
+                        <HBox spacing="10" styleClass="network-add-row">
+                            <TextField fx:id="addInput" styleClass="network-input" HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="addButton" styleClass="network-button"/>
+                        </HBox>
+                        <Label fx:id="addHint" styleClass="network-hint" wrapText="true"/>
+                    </VBox>
+                </VBox>
+                <HBox styleClass="network-tor-row" alignment="CENTER_LEFT" spacing="32">
+                    <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
+                        <Label fx:id="torLabel" styleClass="network-setting-title"/>
+                        <Label fx:id="torHelp" styleClass="network-help" wrapText="true"/>
+                    </VBox>
+                    <ComboBox fx:id="tor" styleClass="network-select" minWidth="300" prefWidth="300" maxWidth="300"/>
+                </HBox>
+            </VBox>
+            <HBox fx:id="draftBar" styleClass="network-draft" spacing="10" alignment="CENTER_LEFT">
+                <Label fx:id="draftText" styleClass="network-warning" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button fx:id="cancelButton" styleClass="network-button"/>
+                <Button fx:id="saveButton" styleClass="network-button,network-primary"/>
+            </HBox>
+            <HBox fx:id="pendingBar" styleClass="network-draft" spacing="10" alignment="CENTER_LEFT">
+                <Label fx:id="pendingText" styleClass="network-warning" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button fx:id="shutdownButton" styleClass="network-button,network-primary"/>
+            </HBox>
+        </VBox>
+        <VBox styleClass="network-p2p-section">
+            <HBox styleClass="network-heading" alignment="CENTER_LEFT" spacing="12">
+                <Label fx:id="havenoHeading" styleClass="network-title"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="havenoStatus" styleClass="network-health"/>
+                <Label text="│" styleClass="network-divider"/>
+                <Hyperlink fx:id="openTorSettingsButton" styleClass="network-link"/>
+            </HBox>
+            <HBox styleClass="network-stats" spacing="28">
+                <VBox spacing="4" minWidth="0" HBox.hgrow="ALWAYS">
+                    <Label fx:id="ownAddressLabel" styleClass="network-stat-label"/>
+                    <HBox alignment="CENTER_LEFT" spacing="8">
+                        <AutoTooltipLabel fx:id="ownAddress" minWidth="0"/>
+                        <Button fx:id="copyAddressButton" styleClass="network-icon-button"/>
+                    </HBox>
+                </VBox>
+                <VBox spacing="4" minWidth="190" prefWidth="240" maxWidth="240">
+                    <Label fx:id="sentLabel" styleClass="network-stat-label"/>
+                    <FlowPane hgap="8" vgap="2">
+                        <Label fx:id="sentTotal" styleClass="network-stat-value"/>
+                        <Label fx:id="sentMessages" styleClass="network-stat-detail"/>
+                    </FlowPane>
+                </VBox>
+                <VBox spacing="4" minWidth="190" prefWidth="240" maxWidth="240">
+                    <Label fx:id="receivedLabel" styleClass="network-stat-label"/>
+                    <FlowPane hgap="8" vgap="2">
+                        <Label fx:id="receivedTotal" styleClass="network-stat-value"/>
+                        <Label fx:id="receivedMessages" styleClass="network-stat-detail"/>
+                    </FlowPane>
+                </VBox>
+            </HBox>
+            <Label fx:id="peersLabel" styleClass="network-table-label"/>
+            <StackPane styleClass="network-table-frame">
+                <TableView fx:id="p2pPeersTableView" styleClass="network-table" fixedCellSize="40">
+                    <columns>
+                        <TableColumn fx:id="peerAddressColumn" minWidth="100"/>
+                        <TableColumn fx:id="peerTypeColumn" minWidth="190" prefWidth="190" maxWidth="190"/>
+                        <TableColumn fx:id="peerDirectionColumn" minWidth="110" prefWidth="110" maxWidth="110"/>
+                        <TableColumn fx:id="peerSinceColumn" minWidth="110" prefWidth="110" maxWidth="110"/>
+                        <TableColumn fx:id="peerLatencyColumn" minWidth="100" prefWidth="100" maxWidth="100" styleClass="network-number"/>
+                        <TableColumn fx:id="peerSentColumn" minWidth="96" prefWidth="96" maxWidth="96" styleClass="network-number"/>
+                        <TableColumn fx:id="peerReceivedColumn" minWidth="104" prefWidth="104" maxWidth="104" styleClass="network-number"/>
+                    </columns>
+                </TableView>
+            </StackPane>
+        </VBox>
     </VBox>
-
-    <VBox GridPane.rowIndex="1">
-        <AutoTooltipLabel fx:id="useTorForXmrLabel" styleClass="small-text"/>
-        <HBox spacing="10">
-            <AutoTooltipRadioButton fx:id="useTorForXmrAfterSyncRadio"/>
-            <AutoTooltipRadioButton fx:id="useTorForXmrOnRadio"/>
-            <AutoTooltipRadioButton fx:id="useTorForXmrOffRadio"/>
-        </HBox>
-    </VBox>
-
-    <VBox GridPane.rowIndex="2">
-        <AutoTooltipLabel fx:id="moneroNodesLabel" styleClass="small-text"/>
-        <HBox spacing="10">
-            <AutoTooltipRadioButton fx:id="useProvidedNodesRadio"/>
-            <AutoTooltipRadioButton fx:id="useCustomNodesRadio"/>
-            <AutoTooltipRadioButton fx:id="usePublicNodesRadio"/>
-        </HBox>
-    </VBox>
-
-    <VBox GridPane.rowIndex="3">
-        <AutoTooltipLabel fx:id="xmrNodesLabel" styleClass="small-text"/>
-        <InputTextField fx:id="xmrNodesInputTextField"/>
-    </VBox>
-
-    <VBox GridPane.rowIndex="4">
-        <AutoTooltipLabel fx:id="rescanOutputsLabel" styleClass="small-text"/>
-        <AutoTooltipButton fx:id="rescanOutputsButton"/>
-    </VBox>
-
-    <TitledGroupBg fx:id="p2pHeader" GridPane.rowIndex="5" GridPane.rowSpan="6">
-        <padding>
-            <Insets top="50.0"/>
-        </padding>
-        <GridPane.margin>
-            <Insets bottom="-10" left="-10" right="-10" top="30"/>
-        </GridPane.margin>
-    </TitledGroupBg>
-
-    <HavenoTextField fx:id="onionAddress" GridPane.rowIndex="5"
-                   editable="false" focusTraversable="false" labelFloat="true">
-        <GridPane.margin>
-            <Insets top="60.0"/>
-        </GridPane.margin>
-    </HavenoTextField>
-
-    <VBox GridPane.rowIndex="6" GridPane.hgrow="ALWAYS" GridPane.vgrow="SOMETIMES">
-        <GridPane.margin>
-            <Insets top="0" right="0" bottom="10" left="0"/>
-        </GridPane.margin>
-        <AutoTooltipLabel fx:id="p2PPeersLabel" styleClass="small-text"/>
-        <TableView fx:id="p2pPeersTableView">
-            <columns>
-                <TableColumn fx:id="onionAddressColumn" minWidth="220">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="onionAddress"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="connectionTypeColumn" minWidth="80" maxWidth="90">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="connectionType"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="creationDateColumn" minWidth="180" maxWidth="180">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="creationDate"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="roundTripTimeColumn" minWidth="80" maxWidth="80">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="roundTripTime"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="sentBytesColumn" minWidth="100" maxWidth="120">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="sentBytes"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="receivedBytesColumn" minWidth="100" maxWidth="120">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="receivedBytes"/>
-                    </cellValueFactory>
-                </TableColumn>
-                <TableColumn fx:id="peerTypeColumn" minWidth="170" maxWidth="170">
-                    <cellValueFactory>
-                        <PropertyValueFactory property="peerType"/>
-                    </cellValueFactory>
-                </TableColumn>
-            </columns>
-        </TableView>
-    </VBox>
-
-    <HavenoTextField fx:id="sentDataTextField" GridPane.rowIndex="7" editable="false"
-                   focusTraversable="false" labelFloat="true"/>
-
-    <HavenoTextField fx:id="receivedDataTextField" GridPane.rowIndex="8" editable="false"
-                   focusTraversable="false" labelFloat="true"/>
-
-    <HavenoTextField fx:id="chainHeightTextField" GridPane.rowIndex="9" editable="false"
-                   focusTraversable="false" labelFloat="true"/>
-
-    <AutoTooltipButton fx:id="openTorSettingsButton" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
-
-    <columnConstraints>
-        <ColumnConstraints hgrow="ALWAYS" minWidth="500"/>
-    </columnConstraints>
 </GridPane>
-
-
