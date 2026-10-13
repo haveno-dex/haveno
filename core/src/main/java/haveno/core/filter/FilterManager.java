@@ -546,6 +546,7 @@ public class FilterManager {
         // We do not require strict guarantees here (e.g. clocks not synced) as only trusted developers have the key
         // for deploying filters and this is only in place to avoid unintended situations of multiple filters
         // from multiple devs or if same dev publishes new filter from different app without the persisted devFilter.
+        preferences.setPublicMoneroNodesBlocked(newFilter.isPreventPublicXmrNetwork());
         filterProperty.set(newFilter);
 
         // Seed nodes are requested at startup before we get the filter so we only apply the banned
@@ -560,11 +561,6 @@ public class FilterManager {
 
         //TODO should be moved to client with listening on onFilterAdded
         providersRepository.applyBannedNodes(priceRelayNodes);
-
-        //TODO should be moved to client with listening on onFilterAdded
-        if (newFilter.isPreventPublicXmrNetwork()) {
-            preferences.preventPublicMoneroNodes();
-        }
 
         listeners.forEach(e -> e.onFilterAdded(newFilter));
     }
@@ -590,6 +586,7 @@ public class FilterManager {
         if (filter.equals(user.getDevelopersFilter())) {
             user.setDevelopersFilter(null);
         }
+        preferences.setPublicMoneroNodesBlocked(false);
         filterProperty.set(null);
     }
 

@@ -30,8 +30,10 @@ import monero.common.NetworkUtils;
 import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
+import haveno.core.user.Preferences.NetworkSettings;
 import haveno.core.xmr.model.EncryptedConnectionList;
 import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption;
 import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
 import haveno.core.xmr.setup.DownloadListener;
@@ -47,6 +49,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -59,6 +62,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -133,7 +137,7 @@ public final class XmrConnectionService {
 
     private boolean isInitialized;
     private boolean pollInProgress;
-    private MoneroDaemonRpc monerod;
+    private volatile MoneroDaemonRpc monerod;
     private Long connectionTimeout;
     private Boolean isConnected = false;
     @Getter
@@ -146,7 +150,9 @@ public final class XmrConnectionService {
     private long lastRefreshPeriodMs;
     private boolean wasMonerodSynced;
     @Getter
-    private boolean isShutDownStarted;
+    private volatile boolean isShutDownStarted;
+    @Getter
+    private volatile boolean reloadingConnections;
     private List<XmrConnectionListener> listeners = new ArrayList<>();
     private XmrKeyImagePoller keyImagePoller;
     private final Map<String, Optional<MoneroTx>> txCache = new HashMap<String, Optional<MoneroTx>>();
@@ -163,9 +169,10 @@ public final class XmrConnectionService {
     private final Map<XmrWalletBase, Long> walletSyncProgressTimestamps = new ConcurrentHashMap<>();
     private long firstSkippedSwitchTimestamp;
     private long lastSkippedSwitchTimestamp;
-    private Set<MoneroRpcConnection> excludedConnections = new HashSet<>();
+    private final Set<MoneroRpcConnection> excludedConnections = ConcurrentHashMap.newKeySet();
     private static final long FALLBACK_INVOCATION_PERIOD_MS = 1000 * 30 * 1; // offer to fallback up to once every 30s
-    private boolean fallbackApplied;
+    @Getter
+    private volatile boolean fallbackApplied;
     private boolean usedSyncingLocalNodeBeforeStartup;
     private boolean localNodeStartedFromPrompt = false;
     private final Set<String> warnedInsecureConnections = new HashSet<>(); // tracks remote https uris already warned about
@@ -294,6 +301,107 @@ public final class XmrConnectionService {
         if (addToEncryptedList && coreContext.isApiUser()) connectionList.addConnection(connection);
     }
 
+    // whether the source has a node that is not an ignored local node
+    public boolean hasUsableNodes(MoneroNodesOption option, String customNodes) {
+        List<XmrNode> selected = switch (option) {
+            case CUSTOM -> XmrNodes.toCustomXmrNodesList(customNodes);
+            case PROVIDED -> xmrNodes.getProvidedXmrNodes();
+            case PUBLIC -> xmrNodes.getAllXmrNodes();
+        };
+        return selected.stream().anyMatch(node -> !(config.ignoreLocalXmrNode && xmrLocalNode.equalsUri(node.getUri())));
+    }
+
+    // serialize node edits with polling; callers must stay off the user thread
+    public void setNodeSettings(MoneroNodesOption option, String customNodes) {
+        accountService.checkAccountOpen();
+        synchronized (pollLock) {
+            requireEditableNodes();
+            if (!hasUsableNodes(option, customNodes)) throw new IllegalArgumentException("No usable nodes are configured");
+            NetworkSettings previous = preferences.getEffectiveNetworkSettings();
+            List<MoneroRpcConnection> previousConnections = getConnections();
+            MoneroRpcConnection previousConnection = getConnection();
+            if (!preferences.applyNodeSettingsUnlessBlocked(option, customNodes)) throw new IllegalStateException("Public nodes are blocked by filter");
+            reloadingConnections = true;
+            try {
+                stopPolling();
+                excludedConnections.clear();
+                numConsecutiveErrors = 0;
+                lastFallbackInvocation = null;
+                UserThread.execute(() -> connectionServiceFallbackType.set(null));
+                initializeConnections(new NetworkSettings(option, previous.tor(), customNodes));
+            } catch (Exception e) {
+                preferences.restoreNodeSettings(previous);
+                synchronized (connections) {
+                    connections.clear();
+                    connections.addAll(previousConnections);
+                }
+                stopPolling();
+                setConnection(previousConnection, previousConnection == null ? null : getCachedDaemonInfo(previousConnection));
+                throw e;
+            } finally {
+                if (!isShutDownStarted && !isPolling()) updatePolling(null);
+                reloadingConnections = false;
+            }
+        }
+    }
+
+    public MoneroRpcConnection addCustomNode(String address) {
+        accountService.checkAccountOpen();
+        synchronized (pollLock) {
+            requireEditableNodes();
+            if (!isCustomConnections()) throw new IllegalStateException("Custom nodes are not in use");
+            MoneroRpcConnection connection = new MoneroRpcConnection(XmrNode.fromFullAddress(address.toLowerCase(Locale.ROOT)).getUri()).setPriority(0);
+            if (config.ignoreLocalXmrNode && xmrLocalNode.equalsUri(connection.getUri())) throw new IllegalArgumentException("Local node is ignored by a startup option");
+            String customNodes = XmrNodes.appendAddress(preferences.getEffectiveNetworkSettings().customNodes(), address);
+            if (isProxyApplied(connection)) connection.setProxyUri(getProxyUri());
+            addConnection(connection);
+            preferences.applyNodeSettings(MoneroNodesOption.CUSTOM, customNodes);
+            return connection;
+        }
+    }
+
+    public void removeCustomNode(String uri) {
+        accountService.checkAccountOpen();
+        synchronized (pollLock) {
+            requireEditableNodes();
+            if (!isCustomConnections()) throw new IllegalStateException("Custom nodes are not in use");
+            MoneroRpcConnection removed = getConnection(uri);
+            if (removed == null) return;
+            List<MoneroRpcConnection> remaining = getConnections();
+            remaining.remove(removed);
+            if (remaining.isEmpty()) throw new IllegalStateException("Cannot remove the only node");
+            String customNodes = XmrNodes.removeUri(preferences.getEffectiveNetworkSettings().customNodes(), uri);
+            boolean current = removed == getConnection();
+            reloadingConnections = current;
+            try {
+                MoneroRpcConnection best = current ? getBestConnection(List.of(removed)) : null;
+                if (isShutDownStarted) return;
+                synchronized (lock) {
+                    current = removed == getConnection();
+                    reloadingConnections = current;
+                    if (current && (best == null || getConnection(best.getUri()) != best)) best = remaining.get(0);
+                    preferences.applyNodeSettings(MoneroNodesOption.CUSTOM, customNodes);
+                    removeConnection(uri); // automatic selection must no longer see the removed node
+                }
+                if (current) {
+                    MoneroRpcConnection replacement = best;
+                    setConnection(replacement, getCachedDaemonInfo(replacement), null, null,
+                            () -> getConnection() == removed && getConnection(replacement.getUri()) == replacement);
+                }
+            } finally {
+                reloadingConnections = false;
+            }
+        }
+    }
+
+    private void requireEditableNodes() {
+        if (isShutDownStarted || !isInitialized) throw new IllegalStateException("Connection service is not running");
+        if (coreContext.isApiUser() || !config.xmrNodes.isEmpty() || !config.xmrNode.isEmpty() &&
+                (!NetworkUtils.isLocalHost(config.xmrNode) || !config.ignoreLocalXmrNode)) {
+            throw new IllegalStateException("Node settings are set by a startup option");
+        }
+    }
+
     public void removeConnection(String uri) {
         accountService.checkAccountOpen();
         connectionList.removeConnection(uri);
@@ -311,6 +419,8 @@ public final class XmrConnectionService {
 
     public MoneroRpcConnection getConnection() {
         accountService.checkAccountOpen();
+        MoneroDaemonRpc currentDaemon = monerod;
+        if (reloadingConnections && currentDaemon != null) return currentDaemon.getRpcConnection(); // keep serving the active node until the replacement is selected
         Optional<String> currentConnectionUri = connectionList.getCurrentConnectionUri();
         return currentConnectionUri.isPresent() ? getConnection(currentConnectionUri.get()) : null;
     }
@@ -351,47 +461,69 @@ public final class XmrConnectionService {
     }
 
     private void setConnection(MoneroRpcConnection connection, MoneroDaemonInfo info) {
-        setConnection(connection, info, null);
+        setConnection(connection, info, null, null, null);
     }
 
-    private void setConnection(MoneroRpcConnection connection, MoneroDaemonInfo info, MoneroRpcConnection expectedConnection) {
+    // automatic switches must not use a pool while a live node edit is pending
+    private boolean setConnectionIfCurrent(MoneroRpcConnection connection, MoneroDaemonInfo info, MoneroRpcConnection expectedCurrent) {
+        return setConnection(connection, info, null, null, () -> !reloadingConnections && getConnection() == expectedCurrent && getConnection(connection.getUri()) == connection);
+    }
+
+    private boolean setConnection(MoneroRpcConnection connection, MoneroDaemonInfo info, MoneroRpcConnection expectedConnection, NetworkSettings expectedSettings, BooleanSupplier isCurrent) {
         log.info("XmrConnectionService.setConnection() called with connection: " + connection);
 
-        if (isShutDownStarted || !accountService.isAccountOpen()) return;
+        if (isShutDownStarted || !accountService.isAccountOpen()) return false;
         if (connection == null) {
             log.warn("Setting monerod connection to null", new Throwable("Stack trace"));
         }
         applySslPolicy(connection, true);
 
         // update internals if applicable
-        boolean isInitializing = monerod == null && connection != null;
-        if (expectedConnection != null || isInitializing || !HavenoUtils.connectionConfigsEqual(connection, getConnection()) || !isPolling() || lastRefreshPeriodMs != getRefreshPeriodMs()) {
-            synchronized (lock) {
-                if (expectedConnection != null && (isShutDownStarted || isFixedConnection() ||
-                        getConnection(connection.getUri()) != expectedConnection ||
-                        !preferences.getEffectiveNetworkSettings().equals(connection.getAttribute(CHECKED_SETTINGS_KEY)))) {
+        boolean changed;
+        synchronized (lock) {
+            // serialize the configuration check and commit with filter updates
+            synchronized (preferences) {
+                if (isShutDownStarted || isCurrent != null && !isCurrent.getAsBoolean()) return false;
+                if (expectedSettings != null && !expectedSettings.equals(preferences.getEffectiveNetworkSettings())) {
                     throw new IllegalStateException("Node configuration has changed");
                 }
-                if (connection == null) {
-                    monerod = null;
-                    isConnected = false;
-                    connectionList.setCurrentConnectionUri(null);
-                } else {
-                    monerod = new MoneroDaemonRpc(connection);
-                    isConnected = connection.isConnected();
-                    synchronized (connections) {
-                        removeConnection(connection.getUri());
-                        addConnection(connection);
+                boolean isInitializing = monerod == null && connection != null;
+                changed = expectedConnection != null || isInitializing || !HavenoUtils.connectionConfigsEqual(connection, getConnection()) || !isPolling() || lastRefreshPeriodMs != getRefreshPeriodMs();
+                if (changed) {
+                    if (expectedConnection != null && (isFixedConnection() ||
+                            getConnection(connection.getUri()) != expectedConnection ||
+                            !preferences.getEffectiveNetworkSettings().equals(connection.getAttribute(CHECKED_SETTINGS_KEY)) ||
+                            preferences.getMoneroNodesOption() == MoneroNodesOption.PROVIDED && xmrNodes.getProvidedXmrNodes().stream().noneMatch(node ->
+                                    node.hasClearNetAddress() && connection.getUri().equals(node.getClearNetUri()) ||
+                                    node.hasOnionAddress() && connection.getUri().equals(node.getUri())))) {
+                        throw new IllegalStateException("Node configuration has changed");
                     }
-                    connectionList.setCurrentConnectionUri(connection.getUri());
+                    if (connection == null) {
+                        monerod = null;
+                        isConnected = false;
+                        connectionList.setCurrentConnectionUri(null);
+                    } else {
+                        monerod = new MoneroDaemonRpc(connection);
+                        isConnected = connection.isConnected();
+                        synchronized (connections) {
+                            removeConnection(connection.getUri());
+                            addConnection(connection);
+                        }
+                        connectionList.setCurrentConnectionUri(connection.getUri());
+                    }
                 }
+            }
 
-                // set connection property on user thread
+            // set connection property on user thread
+            if (changed) {
                 UserThread.execute(() -> {
                     connectionProperty.set(connection);
                     numUpdates.set(numUpdates.get() + 1);
                 });
             }
+        }
+
+        if (changed) {
 
             // update key image poller
             keyImagePoller.setMonerod(getMonerod());
@@ -403,7 +535,7 @@ public final class XmrConnectionService {
                 updatePolling(info); // restart polling off thread after connection established
             } else {
                 tryPollMonerod(info); // poll immediately before connection established
-                if (connection != getConnection()) return; // polling can change connection
+                if (connection != getConnection()) return true; // polling can change connection
                 UserThread.runAfter(() -> updatePolling(null), getInternalRefreshPeriodMs() / 1000);
             }
         }
@@ -418,6 +550,7 @@ public final class XmrConnectionService {
                 }
             }
         }
+        return true;
     }
 
     public MoneroRpcConnection checkConnection() {
@@ -428,15 +561,11 @@ public final class XmrConnectionService {
     }
 
     public MoneroRpcConnection probeConnection(MoneroRpcConnection connection) {
-        return probeConnection(connection, false);
-    }
-
-    public MoneroRpcConnection probeConnection(MoneroRpcConnection connection, boolean useTor) {
         accountService.checkAccountOpen();
         MoneroRpcConnection candidate = new MoneroRpcConnection(connection);
         candidate.setAttribute(CHECKED_SETTINGS_KEY, preferences.getEffectiveNetworkSettings());
         applySslPolicy(candidate, false);
-        boolean useProxy = isProxyApplied(candidate) || useTor && !NetworkUtils.isPrivateIp(candidate.getUri());
+        boolean useProxy = isProxyApplied(candidate);
         String proxyUri = useProxy ? getProxyUri() : null;
         if (useProxy && proxyUri == null) throw new IllegalStateException("Tor is not ready");
         candidate.setProxyUri(proxyUri);
@@ -444,18 +573,24 @@ public final class XmrConnectionService {
         return candidate;
     }
 
-    public void connectToNode(MoneroRpcConnection original, MoneroRpcConnection checked) {
+    // isCurrent is checked under the lock so a stale request cannot replace a newer selection
+    public void connectToNode(MoneroRpcConnection original, MoneroRpcConnection checked, BooleanSupplier isCurrent) {
         accountService.checkAccountOpen();
         if (isShutDownStarted || isFixedConnection()) throw new IllegalStateException("Connection cannot be changed");
         MoneroDaemonInfo info = getCachedDaemonInfo(checked);
         if (!Boolean.TRUE.equals(checked.isConnected()) || info == null || !isSyncedWithinTolerance(info)) {
             throw new IllegalStateException("Node is unavailable or is not synchronized");
         }
-        setConnection(checked, info, original);
+        setConnection(checked, info, original, null, isCurrent);
     }
 
-    public boolean hasSyncingWallets() {
-        return walletSyncProgressTimestamps.keySet().stream().anyMatch(XmrWalletBase::isSyncing);
+    public void connectToNodeIfDisconnected(MoneroRpcConnection original, MoneroRpcConnection checked) {
+        synchronized (pollLock) {
+            MoneroRpcConnection current = getConnection();
+            if (current == null || !Boolean.TRUE.equals(isConnected())) {
+                connectToNode(original, checked, () -> getConnection() == current && (current == null || !Boolean.TRUE.equals(isConnected())));
+            }
+        }
     }
 
     public MoneroRpcConnection getBestConnection() {
@@ -566,8 +701,9 @@ public final class XmrConnectionService {
     }
 
     private void addLocalNodeIfIgnored(Collection<MoneroRpcConnection> ignoredConnections) {
+        if (!xmrLocalNode.shouldBeIgnored()) return; // may update preferences, so decide before locking connections
         synchronized (connections) {
-            if (xmrLocalNode.shouldBeIgnored() && hasConnection(xmrLocalNode.getUri())) ignoredConnections.add(getConnection(xmrLocalNode.getUri()));
+            if (hasConnection(xmrLocalNode.getUri())) ignoredConnections.add(getConnection(xmrLocalNode.getUri()));
         }
     }
 
@@ -576,17 +712,16 @@ public final class XmrConnectionService {
     }
 
     private MoneroRpcConnection switchToBestConnection() {
-        return switchToBestConnection(null, true);
+        return switchToBestConnection(null, true, getConnection());
     }
 
-    private MoneroRpcConnection switchToBestConnection(Collection<MoneroRpcConnection> ignoredConnections, boolean logWarning) {
+    private MoneroRpcConnection switchToBestConnection(Collection<MoneroRpcConnection> ignoredConnections, boolean logWarning, MoneroRpcConnection expectedCurrent) {
         if (!canSwitchToBestConnection()) {
             if (logWarning) log.warn("Cannot switch to best Monero connection because connection is fixed, auto switch is disabled, or fallback is required");
             return null;
         }
         MoneroRpcConnection bestConnection = getBestConnection(ignoredConnections);
-        if (bestConnection != null) setConnection(bestConnection, getCachedDaemonInfo(bestConnection));
-        return bestConnection;
+        return bestConnection != null && setConnectionIfCurrent(bestConnection, getCachedDaemonInfo(bestConnection), expectedCurrent) ? bestConnection : null;
     }
 
     public void reportWalletSyncProgress(XmrWalletBase wallet) {
@@ -684,10 +819,10 @@ public final class XmrConnectionService {
             return false;
         }
 
-        // switch to best connection
+        // switch to best connection, or report a concurrent switch so the requester adopts the current connection
+        if (!setConnectionIfCurrent(bestConnection, getCachedDaemonInfo(bestConnection), currentConnection)) return currentConnection != getConnection();
         lastSwitchTimestamp = System.currentTimeMillis();
         firstSkippedSwitchTimestamp = 0;
-        setConnection(bestConnection, getCachedDaemonInfo(bestConnection));
         return true;
     }
 
@@ -817,6 +952,17 @@ public final class XmrConnectionService {
     }
 
     public void fallbackToBestConnection() {
+        synchronized (pollLock) {
+            reloadingConnections = true;
+            try {
+                doFallbackToBestConnection();
+            } finally {
+                reloadingConnections = false;
+            }
+        }
+    }
+
+    private void doFallbackToBestConnection() {
         stopPolling();
         if (isShutDownStarted) return;
         fallbackApplied = true;
@@ -830,7 +976,7 @@ public final class XmrConnectionService {
             initializeConnections();
             if (getConnection() == null) {
                 log.warn("No provided nodes available, falling back to public nodes");
-                fallbackToBestConnection();
+                doFallbackToBestConnection();
             }
         }
     }
@@ -1037,6 +1183,16 @@ public final class XmrConnectionService {
     }
 
     private void initializeConnections() {
+        initializeConnections(null);
+    }
+
+    private void initializeConnections(NetworkSettings expectedSettings) {
+        synchronized (pollLock) {
+            if (!isShutDownStarted) doInitializeConnections(expectedSettings);
+        }
+    }
+
+    private void doInitializeConnections(NetworkSettings expectedSettings) {
         preferences.captureEffectiveNetworkSettings();
         MoneroRpcConnection initialConnection = null;
         MoneroDaemonInfo initialInfo = null;
@@ -1064,31 +1220,33 @@ public final class XmrConnectionService {
 
                     @Override
                     public void onConnectionChanged(MoneroRpcConnection connection) {
-                        log.info("Local monerod connection changed: " + connection);
+                        synchronized (pollLock) {
+                            log.info("Local monerod connection changed: " + connection);
 
-                        // skip if ignored
-                        if (isShutDownStarted || !isAutoSwitch() || !accountService.isAccountOpen() ||
-                            !hasConnection(connection.getUri()) || xmrLocalNode.shouldBeIgnored()) return;
+                            // skip if ignored
+                            if (isShutDownStarted || !isAutoSwitch() || !accountService.isAccountOpen() ||
+                                !hasConnection(connection.getUri()) || xmrLocalNode.shouldBeIgnored()) return;
 
-                        // check connection
-                        boolean isConnectedAndSynced = false;
-                        if (xmrLocalNode.isConnected()) {
-                            MoneroRpcConnection conn = getConnection(connection.getUri());
-                            checkConnection(conn);
-                            isConnectedAndSynced = Boolean.TRUE.equals(conn.isConnected()) && isSyncedWithinTolerance(getCachedDaemonInfo(conn));
-                        }
-
-                        // update connection
-                        boolean isCurrentConnection = getConnection() != null && getConnection().getUri().equals(connection.getUri());
-                        if (isConnectedAndSynced) {
-                            setConnection(connection.getUri());
-
-                            // reset error connecting to local node
-                            if (connectionServiceFallbackType.get() == XmrConnectionFallbackType.LOCAL && isConnectionLocalHost()) {
-                                connectionServiceFallbackType.set(null);
+                            // check connection
+                            boolean isConnectedAndSynced = false;
+                            if (xmrLocalNode.isConnected()) {
+                                MoneroRpcConnection conn = getConnection(connection.getUri());
+                                checkConnection(conn);
+                                isConnectedAndSynced = Boolean.TRUE.equals(conn.isConnected()) && isSyncedWithinTolerance(getCachedDaemonInfo(conn));
                             }
-                        } else if (isCurrentConnection && !promptToStartLocalNode() && !localNodeStartedFromPrompt) {
-                            switchToBestConnection(); // TODO: what if this is called before initialized?
+
+                            // update connection
+                            boolean isCurrentConnection = getConnection() != null && getConnection().getUri().equals(connection.getUri());
+                            if (isConnectedAndSynced) {
+                                setConnection(connection.getUri());
+
+                                // reset error connecting to local node
+                                if (connectionServiceFallbackType.get() == XmrConnectionFallbackType.LOCAL && isConnectionLocalHost()) {
+                                    connectionServiceFallbackType.set(null);
+                                }
+                            } else if (isCurrentConnection && !promptToStartLocalNode() && !localNodeStartedFromPrompt) {
+                                switchToBestConnection(); // TODO: what if this is called before initialized?
+                            }
                         }
                     }
                 });
@@ -1153,13 +1311,6 @@ public final class XmrConnectionService {
                         if (isProxyApplied(connection)) connection.setProxyUri(getProxyUri());
                     }
                 }
-
-                // update connection
-                if (canSwitchToBestConnection()) {
-                    MoneroRpcConnection bestConnection = getBestConnection();
-                    if (bestConnection != null) initialConnection = bestConnection;
-                    if (initialConnection != null) initialInfo = getCachedDaemonInfo(initialConnection);
-                }
             } else if (!isInitialized) {
 
                 // set connection from startup argument if given
@@ -1172,9 +1323,21 @@ public final class XmrConnectionService {
             isInitialized = true;
         }
 
+        // check nodes outside the state lock so shutdown does not wait for network requests
+        if (canSwitchToBestConnection()) {
+            MoneroRpcConnection bestConnection = getBestConnection();
+            if (bestConnection != null) initialConnection = bestConnection;
+        }
+        if (isShutDownStarted) return;
+        if (expectedSettings != null && initialConnection == null && !getConnections().isEmpty()) {
+            initialConnection = getConnections().get(0); // keep wallets on the configured set while polling recovers
+        }
+        if (initialConnection != null) initialInfo = getCachedDaemonInfo(initialConnection);
+
         // notify initial connection
+        if (reloadingConnections) stopPolling(); // a delayed startup callback may have restarted the old poller
         lastRefreshPeriodMs = getRefreshPeriodMs();
-        setConnection(initialConnection, initialInfo);
+        setConnection(initialConnection, initialInfo, null, expectedSettings, null);
 
         // start background polling local node manager
         xmrLocalNode.startPolling();
@@ -1207,13 +1370,16 @@ public final class XmrConnectionService {
     private void startPolling(MoneroDaemonInfo applyInfo) {
         synchronized (lock) {
             stopPolling();
+            if (isShutDownStarted) return;
             numConsecutiveErrors = 0;
             AtomicBoolean firstPoll = new AtomicBoolean(true);
+            MoneroDaemonRpc polledDaemon = monerod;
             monerodPoller = new TaskLooper(() -> {
-                if (!pollInProgress) {
-                    tryPollMonerod(firstPoll.get() ? applyInfo : null);
+                synchronized (pollLock) {
+                    if (polledDaemon != monerod || !isPolling()) return; // discard a stopped poll waiting behind a connection change
+                    if (!pollInProgress) tryPollMonerod(firstPoll.get() ? applyInfo : null);
+                    firstPoll.set(false);
                 }
-                firstPoll.set(false);
             });
             monerodPoller.start(getInternalRefreshPeriodMs());
         }
@@ -1250,6 +1416,8 @@ public final class XmrConnectionService {
     private void doPollMonerod(MoneroDaemonInfo applyInfo) {
         synchronized (pollLock) {
             if (isShutDownStarted) return;
+            MoneroRpcConnection connection = getConnection();
+            if (applyInfo != null && (connection == null || applyInfo != getCachedDaemonInfo(connection))) applyInfo = null; // info is stale or from a replaced node
 
             // skip fetching info while main wallet syncs so it has uninterfered access to monerod
             if (applyInfo == null && HavenoUtils.xmrWalletService != null && HavenoUtils.xmrWalletService.isSyncingWithProgress()) return;
@@ -1258,7 +1426,6 @@ public final class XmrConnectionService {
             try {
 
                 // check monero connection with error tolerance
-                MoneroRpcConnection connection = getConnection();
                 try {
 
                     // throw if no monerod
@@ -1267,6 +1434,7 @@ public final class XmrConnectionService {
                     // check the monero connection or use applied info
                     if (applyInfo == null) {
                         checkConnection(connection);
+                        if (isShutDownStarted || connection != getConnection()) return; // a normal switch may finish while this probe is waiting
                         MoneroDaemonInfo info = getCachedDaemonInfo(connection);
                         if (info == null) {
                             Exception cause = getCachedDaemonError(connection);
@@ -1296,7 +1464,7 @@ public final class XmrConnectionService {
 
                         // attempt to switch if never synced unless polling stopped
                         if (!wasMonerodSynced && canSwitchToBestConnection() && isPolling()) {
-                            switchToBestConnection();
+                            switchToBestConnection(null, true, connection);
                         }
                         return;
                     } else {
@@ -1335,7 +1503,8 @@ public final class XmrConnectionService {
 
                     // try switching to next best connection unless polling stopped
                     if (canSwitchToBestConnection() && isPolling()) {
-                        MoneroRpcConnection newConnection = switchToBestConnection(Arrays.asList(connection), lastWarningOutsidePeriod);
+                        MoneroRpcConnection newConnection = switchToBestConnection(Arrays.asList(connection), lastWarningOutsidePeriod, connection);
+                        if (connection != getConnection()) return;
                         if (newConnection == null) throw e;
                         return;
                     } else {

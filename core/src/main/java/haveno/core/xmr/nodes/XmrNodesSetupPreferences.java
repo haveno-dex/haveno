@@ -18,13 +18,11 @@
 package haveno.core.xmr.nodes;
 
 import haveno.common.config.Config;
-import haveno.common.util.Utilities;
 import haveno.core.user.Preferences;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Set;
 
 
 public class XmrNodesSetupPreferences {
@@ -42,8 +40,7 @@ public class XmrNodesSetupPreferences {
         Preferences.NetworkSettings settings = preferences.getEffectiveNetworkSettings(); // one snapshot so a concurrent switch cannot pair the old source with the new address list
         switch (settings.nodes()) {
             case CUSTOM:
-                Set<String> distinctNodes = Utilities.commaSeparatedListToSet(settings.customNodes(), false);
-                result = XmrNodes.toCustomXmrNodesList(distinctNodes);
+                result = XmrNodes.toCustomXmrNodesList(settings.customNodes());
                 if (result.isEmpty()) {
                     log.warn("Custom nodes is set but no valid nodes are provided. " +
                             "We fall back to provided nodes option.");

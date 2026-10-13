@@ -36,6 +36,7 @@ package haveno.core.xmr.nodes;
 
 import haveno.common.config.Config;
 import monero.common.NetworkUtils;
+import org.apache.commons.lang3.StringUtils;
 import haveno.core.trade.HavenoUtils;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -46,6 +47,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -124,11 +130,39 @@ public class XmrNodes {
         return nodes;
     }
 
+    public static List<XmrNodes.XmrNode> toCustomXmrNodesList(String csv) {
+        return toCustomXmrNodesList(customNodeAddresses(csv));
+    }
+
     public static List<XmrNodes.XmrNode> toCustomXmrNodesList(Collection<String> nodes) {
-        return nodes.stream()
-                .filter(e -> !e.isEmpty())
-                .map(XmrNodes.XmrNode::fromFullAddress)
-                .collect(Collectors.toList());
+        Map<String, XmrNode> distinctNodes = new LinkedHashMap<>();
+        for (String address : nodes) {
+            if (address.isEmpty()) continue;
+            XmrNode node = XmrNode.fromFullAddress(address.toLowerCase(Locale.ROOT));
+            distinctNodes.putIfAbsent(node.getUri(), node);
+        }
+        return new ArrayList<>(distinctNodes.values());
+    }
+
+    public static String appendAddress(String csv, String address) {
+        Set<String> addresses = customNodeAddresses(csv);
+        String uri = XmrNode.fromFullAddress(address.toLowerCase(Locale.ROOT)).getUri();
+        checkArgument(addresses.stream().noneMatch(entry -> XmrNode.fromFullAddress(entry.toLowerCase(Locale.ROOT)).getUri().equals(uri)),
+                "Connection already exists with URI: " + uri);
+        addresses.add(address.trim());
+        return String.join(",", addresses);
+    }
+
+    public static String removeUri(String csv, String uri) {
+        Set<String> addresses = customNodeAddresses(csv);
+        String normalized = XmrNode.fromFullAddress(uri.toLowerCase(Locale.ROOT)).getUri();
+        addresses.removeIf(entry -> XmrNode.fromFullAddress(entry.toLowerCase(Locale.ROOT)).getUri().equals(normalized));
+        return String.join(",", addresses);
+    }
+
+    private static Set<String> customNodeAddresses(String csv) {
+        return Arrays.stream(StringUtils.deleteWhitespace(csv == null ? "" : csv).split(","))
+                .filter(address -> !address.isEmpty()).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @EqualsAndHashCode

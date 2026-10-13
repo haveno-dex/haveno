@@ -23,7 +23,7 @@ import monero.common.NetworkUtils;
 
 public class MoneroNetworkListItem {
     private final MoneroRpcConnection connection;
-    private final boolean current, checking, reachable, unchecked;
+    private final boolean current, checking, unchecked;
     private final Boolean connected;
     private final String owner, status;
     private final Long responseTime;
@@ -41,7 +41,6 @@ public class MoneroNetworkListItem {
         this.checking = checking;
         this.owner = owner;
         boolean online = Boolean.TRUE.equals(connection.isConnected());
-        reachable = current ? isConnected() : online;
         unchecked = !current && !checking && connection.isOnline() == null;
         responseTime = online && (!current || isConnected()) ? connection.getResponseTime() : null;
         rank = current ? 0 : checking ? 1 : online ? 2 : unchecked ? 3 : 4;
@@ -84,10 +83,6 @@ public class MoneroNetworkListItem {
 
     public boolean isConnected() {
         return Boolean.TRUE.equals(connected);
-    }
-
-    public boolean isReachable() {
-        return reachable;
     }
 
     public boolean isUnavailable() {

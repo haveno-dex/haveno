@@ -57,10 +57,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -83,6 +83,7 @@ import javafx.scene.text.Text;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.CustomMenuItem;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -98,7 +99,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
@@ -106,20 +106,23 @@ import javafx.stage.PopupWindow.AnchorLocation;
 import javafx.util.StringConverter;
 import monero.common.MoneroRpcConnection;
 import monero.common.NetworkUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @FxmlView
 public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
+    private static final Logger log = LoggerFactory.getLogger(NetworkSettingsView.class);
     @FXML private Label moneroHeading, moneroStatus, blockHeight, routeDivider, route, statusTitle, statusDetail, selectionNote;
-    @FXML private Label sourceLabel, torLabel, torHelp, addHint, draftText, pendingText;
+    @FXML private Label sourceLabel, torLabel, torHelp, addHint, pendingText;
     @FXML private Label havenoHeading, havenoStatus, ownAddressLabel, ownAddress, sentLabel, receivedLabel;
     @FXML private Label sentTotal, sentMessages, receivedTotal, receivedMessages, peersLabel;
     @FXML private Text sourceHelp;
-    @FXML private VBox statusNote, customEditor, customList;
-    @FXML private HBox draftBar, pendingBar;
+    @FXML private VBox statusNote, nodeCard;
+    @FXML private HBox addRow, torPending;
     @FXML private ComboBox<MoneroNodesOption> source;
     @FXML private ComboBox<UseTorForXmr> tor;
     @FXML private TextField addInput;
-    @FXML private Button addButton, cancelButton, saveButton, shutdownButton, copyAddressButton;
+    @FXML private Button addButton, shutdownButton, copyAddressButton;
     @FXML private Hyperlink remoteNodeLink, openTorSettingsButton;
     @FXML private TableView<MoneroNetworkListItem> moneroConnectionsTableView;
     @FXML private TableColumn<MoneroNetworkListItem, MoneroNetworkListItem> nodeAddressColumn, nodeLatencyColumn, nodeStatusColumn, nodeActionsColumn;
@@ -131,7 +134,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private static final PseudoClass ACTIVE = PseudoClass.getPseudoClass("active");
     private static final PseudoClass WARNING = PseudoClass.getPseudoClass("warning");
     private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
-    private static final PseudoClass ONLINE = PseudoClass.getPseudoClass("online");
+    private static final PseudoClass EMPTY = PseudoClass.getPseudoClass("empty");
     private static final PseudoClass UNCHECKED = PseudoClass.getPseudoClass("unchecked");
     private static final int TABLE_CHROME_HEIGHT = 32; // header bar
     private final Config config;
@@ -148,11 +151,12 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private final ObservableList<P2pNetworkListItem> peers = FXCollections.observableArrayList();
     private final SortedList<MoneroNetworkListItem> sortedNodes = new SortedList<>(nodes);
     private final SortedList<P2pNetworkListItem> sortedPeers = new SortedList<>(peers);
-    private final List<CustomNode> customNodes = new ArrayList<>();
+    private final Set<String> checkingUris = new HashSet<>();
     private final Map<String, MoneroRpcConnection> probeResults = new HashMap<>();
-    private List<CustomStatus> renderedCustomStatuses = List.of();
     private final Map<String, Integer> nodeOrder = new HashMap<>();
-    private NetworkSettings loadedSettings;
+    private int nextNodeOrder;
+    private boolean pendingCustom, switching, editingNodes;
+    private SourceChange sourceChange, queuedSourceChange;
     private Timer refreshTimer;
     private volatile boolean active;
     private final ChangeListener<Filter> filterListener = (observable, oldValue, newValue) -> UserThread.execute(() -> {
@@ -202,23 +206,22 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         addButton.setText(text("add"));
         addButton.setOnAction(event -> addNodes());
         addInput.setOnAction(event -> addNodes());
-        addInput.textProperty().addListener((observable, oldValue, newValue) -> setHint(null));
-        cancelButton.setText(Res.get("shared.cancel"));
-        cancelButton.setOnAction(event -> loadSavedSettings());
-        saveButton.setText(text("save"));
-        saveButton.setOnAction(event -> saveSettings());
+        addInput.textProperty().addListener((observable, oldValue, newValue) -> {
+            setHint(null);
+            addButton.pseudoClassStateChanged(EMPTY, newValue.isBlank());
+        });
+        addButton.pseudoClassStateChanged(EMPTY, true);
         shutdownButton.setText(text("shutdown"));
         shutdownButton.setOnAction(event -> HavenoApp.getShutDownHandler().run());
-        pendingText.setText(text("pending"));
+        pendingText.setText(text("torPending"));
         selectionNote.setGraphic(new MaterialDesignIconView(MaterialDesignIcon.INFORMATION_OUTLINE, "14"));
         selectionNote.setGraphicTextGap(8);
-        draftText.setGraphic(new MaterialDesignIconView(MaterialDesignIcon.REFRESH, "15"));
         pendingText.setGraphic(new MaterialDesignIconView(MaterialDesignIcon.REFRESH, "15"));
         GUIUtil.configureCopyIcon(copyAddressButton, () -> {
             var address = p2PService.getNetworkNode().getNodeAddress();
             return address == null ? null : address.getFullAddress();
         });
-        for (Node node : List.of(statusNote, customEditor, draftBar, pendingBar, remoteNodeLink)) {
+        for (Node node : List.of(statusNote, addRow, addHint, torPending, remoteNodeLink, selectionNote, source)) {
             node.managedProperty().bind(node.visibleProperty());
         }
         source.setItems(FXCollections.observableArrayList(Stream.of(MoneroNodesOption.PROVIDED, MoneroNodesOption.PUBLIC, MoneroNodesOption.CUSTOM)
@@ -235,26 +238,37 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         tor.setConverter(converter(option -> Res.get("settings.net.useTorForXmr" +
                 (option == UseTorForXmr.ON ? "On" : option == UseTorForXmr.OFF ? "Off" : "AfterSync") + "Radio")));
         source.valueProperty().addListener((observable, oldValue, newValue) -> {
-            if (!loading && newValue != null && newValue != oldValue && !sourceAvailable(newValue)) {
-                loading = true;
-                source.setValue(oldValue);
-                loading = false;
-                updateDraft();
+            if (loading || newValue == null || newValue == oldValue) return;
+            if (!canSelectSource() || !sourceAvailable(newValue)) {
+                revertSource(oldValue);
                 return;
             }
-            updateDraft();
+            if (newValue == (sourceChange == null ? preferences.getEffectiveNetworkSettings().nodes() : sourceChange.option())) {
+                queuedSourceChange = null;
+                pendingCustom = false;
+                refresh();
+            } else if (newValue == MoneroNodesOption.CUSTOM && (sourceChange == null ? customNodesCsv() : sourceChange.customNodes()).isBlank()) {
+                queuedSourceChange = null;
+                pendingCustom = true;
+                refresh();
+                addInput.requestFocus();
+            } else {
+                applySource(newValue, null);
+            }
         });
-        tor.valueProperty().addListener((observable, oldValue, newValue) -> updateDraft());
-        source.setDisable(!config.xmrNodes.isEmpty() || !config.xmrNode.isEmpty() &&
-                (!NetworkUtils.isLocalHost(config.xmrNode) || !config.ignoreLocalXmrNode));
-        customEditor.setDisable(source.isDisabled());
+        tor.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (loading || newValue == null || newValue == oldValue) return;
+            preferences.setTorForNextStart(newValue);
+            refresh();
+        });
         tor.setDisable(config.useTorForXmrOptionSetExplicitly);
         setupTables();
-        loadSavedSettings();
+        updateSettings();
     }
 
     private void setupTables() {
-        GUIUtil.applyTableStyle(moneroConnectionsTableView);
+        GUIUtil.applyTableStyle(moneroConnectionsTableView, false);
+        GUIUtil.applyRoundedArc(nodeCard); // round the card so the add row, not the last node, takes the bottom corners
         GUIUtil.applyTableStyle(p2pPeersTableView);
         moneroConnectionsTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         moneroConnectionsTableView.setPlaceholder(new Label(text("loadingNodes")));
@@ -267,7 +281,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             address.getStyleClass().add("network-node-address");
             address.setMinWidth(0);
             address.setMaxWidth(Double.MAX_VALUE);
-            if (operator) return address;
+            if (operator || item.getOwner() == null) return address;
             Label owner = new Label(item.getOwner());
             owner.getStyleClass().add("network-node-owner");
             VBox box = new VBox(1, address, owner);
@@ -302,7 +316,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             @Override protected void updateItem(MoneroNetworkListItem item, boolean empty) {
                 super.updateItem(item, empty);
                 pseudoClassStateChanged(ACTIVE, !empty && item != null && item.isCurrent());
-                setPrefHeight(!empty && item != null && hasOperator(item.getConnection()) ? 40 : 54);
+                setPrefHeight(!empty && item != null && hasSubtitle(item) ? 54 : 40);
             }
         });
         moneroConnectionsTableView.setOnContextMenuRequested(event -> {
@@ -397,7 +411,9 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     public void activate() {
         active = true;
         activation++;
-        loadSavedSettings();
+        addInput.clear();
+        setHint(null);
+        updateSettings();
         applyFilter();
         filterManager.filterProperty().addListener(filterListener);
         refresh();
@@ -409,6 +425,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         active = false;
         activation++;
         checkingUri = null;
+        checkingUris.clear();
+        pendingCustom = false;
         if (refreshTimer != null) refreshTimer.stop();
         if (nodeMenu != null) nodeMenu.hide();
         filterManager.filterProperty().removeListener(filterListener);
@@ -418,17 +436,31 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
 
     private void refresh() {
         if (!active || connectionService.isShutDownStarted()) return;
+        updateSettings();
         MoneroRpcConnection current = connectionService.getConnection();
         Boolean connectionStatus = current == null ? null : connectionService.isConnected();
-        boolean connected = Boolean.TRUE.equals(connectionStatus);
-        List<MoneroRpcConnection> connections = connectionService.getConnections();
-        for (MoneroRpcConnection connection : connections) nodeOrder.computeIfAbsent(connection.getUri(), key -> nodeOrder.size());
-        moneroConnectionsTableView.setPlaceholder(new Label(text(connections.isEmpty() && isPublicBlocked() ? "noConfiguredNodes" : "loadingNodes")));
+        boolean changingConnection = switching || connectionService.isReloadingConnections();
+        boolean connected = !changingConnection && Boolean.TRUE.equals(connectionStatus);
+        List<MoneroRpcConnection> liveConnections = connectionService.getConnections();
+        List<MoneroRpcConnection> connections = pendingCustom ? List.of() : liveConnections;
+        for (MoneroRpcConnection connection : connections) nodeOrder.computeIfAbsent(connection.getUri(), key -> nextNodeOrder++);
+        if (pendingCustom) {
+            Label title = new Label(text("noCustomNodesTitle"));
+            title.getStyleClass().add("network-empty-title");
+            Label detail = new Label(text("noCustomNodesDetail"));
+            detail.getStyleClass().add("network-empty-detail");
+            detail.setWrapText(true);
+            VBox empty = new VBox(4, title, detail);
+            empty.setAlignment(Pos.CENTER);
+            moneroConnectionsTableView.setPlaceholder(empty);
+        } else {
+            moneroConnectionsTableView.setPlaceholder(new Label(text(connections.isEmpty() && isPublicBlocked() ? "noConfiguredNodes" : "loadingNodes")));
+        }
         if (nodeMenu == null || !nodeMenu.isShowing()) {
             MoneroNetworkListItem selected = moneroConnectionsTableView.getSelectionModel().getSelectedItem();
             List<MoneroNetworkListItem> updated = connections.stream().sorted(Comparator.comparingInt(connection -> nodeOrder.get(connection.getUri())))
                     .map(connection -> new MoneroNetworkListItem(displayConnection(connection, current), current != null && connection.getUri().equals(current.getUri()),
-                            connectionStatus, connection.getUri().equals(checkingUri), owner(connection)))
+                            connectionService.isReloadingConnections() ? null : connectionStatus, connection.getUri().equals(checkingUri) || checkingUris.contains(connection.getUri()) || connectionService.isReloadingConnections(), owner(connection)))
                     .collect(Collectors.toList());
             if (updated.size() != nodes.size()) nodes.setAll(updated);
             else for (int i = 0; i < updated.size(); i++) {
@@ -439,13 +471,13 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                         .filter(item -> item.getConnection().getUri().equals(selected.getConnection().getUri())).findFirst().orElse(null));
             }
         }
-        fitTable(moneroConnectionsTableView, nodes.stream().mapToInt(item -> hasOperator(item.getConnection()) ? 40 : 54).sum(), 212); // cap on a half row so the scroll is visible
-        moneroStatus.setText("●  " + text(connected ? "connected" : Boolean.FALSE.equals(connectionStatus) ? "notResponding" : "connecting"));
+        fitTable(moneroConnectionsTableView, nodes.stream().mapToInt(item -> hasSubtitle(item) ? 54 : 40).sum(), 212); // cap on a half row so the scroll is visible
+        moneroStatus.setText("●  " + text(queuedSourceChange != null || pendingCustom && sourceChange != null ? "waitingForNodeCheck" : changingConnection ? "connecting" : connected ? "connected" : Boolean.FALSE.equals(connectionStatus) ? "notResponding" : "connecting"));
         moneroStatus.pseudoClassStateChanged(WARNING, !connected);
         long height = connectionService.chainHeightProperty().get();
         blockHeight.setText(text(height <= 0 ? "unknownBlock" : connected ? "block" : "lastBlock", String.format(Locale.getDefault(), "%,d", height)));
         boolean local = current != null && NetworkUtils.isLocalHost(current.getUri());
-        boolean showRoute = current != null; // the route still applies while the node is not responding
+        boolean showRoute = current != null && !changingConnection; // the route still applies while the node is not responding
         routeDivider.setVisible(showRoute);
         routeDivider.setManaged(showRoute);
         route.setVisible(showRoute);
@@ -453,13 +485,16 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         route.setText(!showRoute ? "" : text(local ? "directLocal" : walletService.isProxyApplied() ? "viaTor" :
                 preferences.getEffectiveNetworkSettings().tor() == UseTorForXmr.AFTER_SYNC && !walletService.wasWalletSynced() &&
                         !NetworkUtils.isPrivateIp(current.getUri()) ? "directUntilSynced" : "direct"));
+        if (pendingCustom && showRoute) {
+            route.setText(route.getText() + " · " + text(preferences.getEffectiveNetworkSettings().nodes() == MoneroNodesOption.PUBLIC ? "runningPublic" : "runningProvided"));
+        }
         route.setGraphic(showRoute && !local && walletService.isProxyApplied() ? routeIcon : null);
-        updateStatus(current, connectionStatus, connections.size());
-        if (!customNodes.stream().map(this::customStatus).collect(Collectors.toList()).equals(renderedCustomStatuses)) renderCustomNodes();
+        updateStatus(current, connectionStatus, liveConnections);
         if (manualUri != null && (current == null || !manualUri.equals(current.getUri()))) manualUri = null;
         boolean localNode = !xmrLocalNode.shouldBeIgnored();
-        selectionNote.setText(text(connectionService.isFixedConnection() ? "fixedNode" : connections.isEmpty() ? "checkingNodes" : connections.size() == 1 ? "onlyNode" :
+        selectionNote.setText(text(connections.isEmpty() ? "checkingNodes" :
                 manualUri != null ? (localNode ? "manualNodeLocal" : "manualNode") : localNode ? "automaticNodesLocal" : "automaticNodes"));
+        selectionNote.setVisible(!pendingCustom && !connectionService.isFixedConnection() && (source.getValue() != MoneroNodesOption.CUSTOM || manualUri != null)); // the source help names the startup option
         Set<Connection> livePeers = p2PService.getNetworkNode().getAllConnections();
         List<P2pNetworkListItem> removed = peers.stream().filter(item -> !livePeers.contains(item.getConnection())).collect(Collectors.toList());
         removed.forEach(P2pNetworkListItem::cleanup);
@@ -478,7 +513,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         receivedTotal.setText(FormattingUtils.formatBytes(Statistic.totalReceivedBytesProperty().get()));
         sentMessages.setText(text("messages", Statistic.numTotalSentMessagesProperty().get(), String.format(Locale.getDefault(), "%.2f", Statistic.numTotalSentMessagesPerSecProperty().get())));
         receivedMessages.setText(text("messages", Statistic.numTotalReceivedMessagesProperty().get(), String.format(Locale.getDefault(), "%.2f", Statistic.numTotalReceivedMessagesPerSecProperty().get())));
-        updateDraft();
     }
 
     private MoneroRpcConnection displayConnection(MoneroRpcConnection connection, MoneroRpcConnection current) {
@@ -489,15 +523,20 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         return probed != null && (checked == null || probed > checked) ? probe : connection;
     }
 
-    private void updateStatus(MoneroRpcConnection current, Boolean connectionStatus, int numConnections) {
-        boolean noNodes = isPublicBlocked() && numConnections == 0;
+    private void updateStatus(MoneroRpcConnection current, Boolean connectionStatus, List<MoneroRpcConnection> connections) {
+        boolean noNodes = isPublicBlocked() && connections.isEmpty();
+        boolean pendingFilter = isPublicBlocked() && (!hasStartupOverride() || connectionService.isFallbackApplied()) &&
+                !connectionService.isReloadingConnections() && connections.stream().anyMatch(connection -> !isNodeAllowed(connection));
         boolean notResponding = current != null && Boolean.FALSE.equals(connectionStatus); // shown by the node row
         boolean syncing = !notResponding && walletService.isSyncing() && !walletService.wasWalletSynced();
-        statusNote.setVisible(noNodes || syncing);
-        statusNote.pseudoClassStateChanged(WARNING, noNodes);
+        statusNote.setVisible(noNodes || pendingFilter || syncing);
+        statusNote.pseudoClassStateChanged(WARNING, noNodes || pendingFilter);
         if (noNodes) {
             statusTitle.setText(text("noUsableNodes"));
             statusDetail.setText(text("addCustomNodes"));
+        } else if (pendingFilter) {
+            statusTitle.setText(text("filterPending"));
+            statusDetail.setText(text("filterPendingDetail"));
         } else if (syncing) {
             long percentage = Math.round(walletService.downloadPercentageProperty().get() * 100);
             statusTitle.setText(percentage > 0 ? text("syncing", percentage) : text("syncingStarting"));
@@ -515,12 +554,16 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                         text(node.getType() == MoneroNodesOption.PROVIDED ? "providedNode" : node.getType() == MoneroNodesOption.PUBLIC ? "publicNode" : "customNode");
             }
         }
-        return text("customNode");
+        return null;
     }
 
     private boolean hasOperator(MoneroRpcConnection connection) {
         return !NetworkUtils.isLocalHost(connection.getUri()) && xmrNodes.getAllXmrNodes().stream()
                 .anyMatch(node -> node.getOperator() != null && matchesNode(node, connection));
+    }
+
+    private boolean hasSubtitle(MoneroNetworkListItem item) {
+        return item.getOwner() != null && !hasOperator(item.getConnection());
     }
 
     private static void fitTable(TableView<?> table, int contentHeight, int cap) {
@@ -530,64 +573,110 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         table.setMaxHeight(height);
     }
 
-    private void loadSavedSettings() {
+    private boolean isChangingNodes() {
+        return switching || editingNodes || checkingUri != null || connectionService.isReloadingConnections();
+    }
+
+    private boolean canSelectSource() {
+        return !hasStartupOverride() && !editingNodes && checkingUri == null && (sourceChange != null || !connectionService.isReloadingConnections());
+    }
+
+    private boolean hasStartupOverride() {
+        return !config.xmrNodes.isEmpty() || !config.xmrNode.isEmpty() &&
+                (!NetworkUtils.isLocalHost(config.xmrNode) || !config.ignoreLocalXmrNode);
+    }
+
+    // after a startup fallback the startup option no longer selects this session's nodes
+    private String startupOverrideKey() {
+        if (!connectionService.isFallbackApplied()) return "startupOverride";
+        return preferences.getEffectiveNetworkSettings().nodes() == MoneroNodesOption.PUBLIC ? "startupFallbackPublic" : "startupFallbackProvided";
+    }
+
+    private String customNodesCsv() {
+        String addresses = preferences.getEffectiveNetworkSettings().customNodes();
+        return addresses == null ? "" : addresses;
+    }
+
+    private void revertSource(MoneroNodesOption option) {
         loading = true;
-        NetworkSettings saved = preferences.getNetworkSettings();
-        loadedSettings = saved;
-        source.setValue(saved.nodes());
-        tor.setValue(saved.tor());
-        customNodes.clear();
-        if (saved.customNodes() != null && !saved.customNodes().isBlank()) {
-            for (String address : saved.customNodes().split(",\\s*")) customNodes.add(new CustomNode(address.trim()));
-        }
-        addInput.clear();
+        source.setValue(option);
         loading = false;
-        setHint(null);
-        renderCustomNodes();
-        updateDraft();
     }
 
-    private NetworkSettings draftSettings() {
-        return new NetworkSettings(source.getValue(), tor.getValue(), source.getValue() == MoneroNodesOption.CUSTOM ?
-                customNodes.stream().map(node -> node.address).collect(Collectors.joining(",")) : preferences.getNetworkSettings().customNodes());
-    }
-
-    private void updateDraft() {
-        if (loading || source.getValue() == null || tor.getValue() == null) return;
-        if (loadedSettings != null && draftSettings().sameConfiguration(loadedSettings) &&
-                !preferences.getNetworkSettings().sameConfiguration(loadedSettings)) {
-            loadSavedSettings();
-            return;
-        }
+    private void updateSettings() {
+        NetworkSettings saved = preferences.getNetworkSettings();
+        NetworkSettings effective = preferences.getEffectiveNetworkSettings();
+        loading = true;
+        if (!pendingCustom) source.setValue(queuedSourceChange != null ? queuedSourceChange.option() : sourceChange != null ? sourceChange.option() : effective.nodes());
+        tor.setValue(saved.tor());
+        loading = false;
+        source.setVisible(!hasStartupOverride()); // the saved choice is not in effect, so only the help text shows
+        source.setDisable(!canSelectSource());
         MoneroNodesOption option = source.getValue();
-        customEditor.setVisible(option == MoneroNodesOption.CUSTOM);
-        remoteNodeLink.setVisible(option == MoneroNodesOption.PUBLIC);
-        sourceHelp.setText(text(option == MoneroNodesOption.CUSTOM ? isPublicBlocked() ? "customHelpTrusted" : "customHelp" :
+        addRow.setVisible(option == MoneroNodesOption.CUSTOM && !hasStartupOverride() && !switching && !connectionService.isReloadingConnections());
+        addInput.setDisable(isChangingNodes());
+        addButton.setDisable(isChangingNodes());
+        addHint.setVisible(addRow.isVisible());
+        remoteNodeLink.setVisible(option == MoneroNodesOption.PUBLIC && !hasStartupOverride());
+        sourceHelp.setText(text(hasStartupOverride() ? startupOverrideKey() : option == MoneroNodesOption.CUSTOM ? isPublicBlocked() ? "customHelpTrusted" : "customHelp" :
                 option == MoneroNodesOption.PUBLIC ? "publicHelp" : "providedHelp") + " ");
-        if (source.isDisabled()) sourceHelp.setText(text("startupOverride"));
         boolean local = connectionService.isConnectionLocalHost();
-        torHelp.setText(text(local ? "torHelpLocal" : tor.getValue() == UseTorForXmr.AFTER_SYNC ? "torHelpAfter" : tor.getValue() == UseTorForXmr.ON ? "torHelpAlways" : "torHelpNever"));
-        if (tor.isDisabled()) torHelp.setText(text("startupOverride"));
-        boolean dirty = !draftSettings().sameConfiguration(preferences.getNetworkSettings());
-        boolean blocked = !canSaveSettings();
-        draftBar.setVisible(dirty);
-        pendingBar.setVisible(!dirty && !preferences.getNetworkSettings().sameConfiguration(preferences.getEffectiveNetworkSettings()));
-        draftText.setText(text(option == MoneroNodesOption.CUSTOM && customNodes.isEmpty() ? "emptyCustom" :
-                option == MoneroNodesOption.CUSTOM && blocked ? "invalidCustom" : "draft"));
-        saveButton.setDisable(blocked);
+        torHelp.setText(text(tor.isDisabled() ? "startupOverride" : local ? "torHelpLocal" : tor.getValue() == UseTorForXmr.AFTER_SYNC ? "torHelpAfter" : tor.getValue() == UseTorForXmr.ON ? "torHelpAlways" : "torHelpNever"));
+        torPending.setVisible(saved.tor() != effective.tor());
     }
 
-    private boolean canSaveSettings() {
-        MoneroNodesOption option = source.getValue();
-        if (!sourceAvailable(option) && (option != preferences.getNetworkSettings().nodes() || option == MoneroNodesOption.PUBLIC)) return false;
-        return option != MoneroNodesOption.CUSTOM || customEditor.isDisabled() || !customNodes.isEmpty() && customNodes.stream().allMatch(node -> validateAddress(node.address) == null);
+    private boolean applySource(MoneroNodesOption option, String customNodes) {
+        if (!active || !canSelectSource() || !sourceAvailable(option)) {
+            if (pendingCustom) revertSource(MoneroNodesOption.CUSTOM);
+            refresh();
+            return false;
+        }
+        pendingCustom = false;
+        SourceChange change = new SourceChange(option, customNodes, activation);
+        if (sourceChange != null) {
+            queuedSourceChange = option == sourceChange.option() && customNodes == null ? null : change; // only the latest selection needs to run after the current check
+            refresh();
+        } else {
+            startSourceChange(change);
+        }
+        return true;
     }
 
-    private void saveSettings() {
-        if (!canSaveSettings()) return;
-        preferences.setNetworkSettingsForNextStart(draftSettings());
-        loadSavedSettings();
+    private void startSourceChange(SourceChange change) {
+        // resolve retained addresses after the previous change has succeeded or rolled back
+        SourceChange request = new SourceChange(change.option(), change.customNodes() == null ? customNodesCsv() : change.customNodes(), change.activation());
+        sourceChange = request;
+        switching = true;
+        if (nodeMenu != null) nodeMenu.hide();
+        refresh();
+        ThreadUtils.submitToPool(() -> {
+            String error = null;
+            try {
+                if (!sourceAvailable(request.option())) throw new IllegalStateException(sourceName(request.option()));
+                connectionService.setNodeSettings(request.option(), request.customNodes());
+            } catch (Exception e) {
+                log.warn("Could not switch Monero node source to {}", request.option(), e);
+                error = e.getMessage() == null ? e.toString() : e.getMessage();
+            }
+            String failure = error;
+            UserThread.execute(() -> {
+                sourceChange = null;
+                switching = false;
+                manualUri = null;
+                probeResults.clear();
+                SourceChange next = queuedSourceChange;
+                queuedSourceChange = null;
+                if (next != null) {
+                    startSourceChange(next);
+                } else {
+                    if (active && activation == request.activation() && failure != null) new Popup().warning(text("switchFailed", sourceName(request.option()), nodeErrorMessage(failure))).show();
+                    refresh();
+                }
+            });
+        });
     }
+
+    private record SourceChange(MoneroNodesOption option, String customNodes, long activation) {}
 
     private boolean isPublicBlocked() {
         return filterManager.getFilter() != null && filterManager.getFilter().isPreventPublicXmrNetwork();
@@ -607,6 +696,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void applyFilter() {
+        if (isPublicBlocked() && queuedSourceChange != null && queuedSourceChange.option() == MoneroNodesOption.PUBLIC) queuedSourceChange = null;
         if (isPublicBlocked() && source.getValue() == MoneroNodesOption.PUBLIC) {
             loading = true;
             source.setValue(MoneroNodesOption.PROVIDED);
@@ -618,32 +708,83 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 setText(empty || option == null ? null : sourceName(option));
             }
         });
-        updateDraft();
+        updateSettings();
     }
 
     private void addNodes() {
+        if (!active || isChangingNodes() || hasStartupOverride() || source.getValue() != MoneroNodesOption.CUSTOM) return;
         List<String> rejected = new ArrayList<>();
         List<String> errors = new ArrayList<>();
-        int added = 0;
+        List<String> addresses = new ArrayList<>();
+        Set<String> uris = pendingCustom ? new HashSet<>() : connectionService.getConnections().stream()
+                .map(connection -> connection.getUri().toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
         for (String address : addInput.getText().trim().split("[\\s,]+")) {
             if (address.isEmpty()) continue;
             String error = validateAddress(address);
-            String uri = error == null ? nodeUri(address) : null;
-            if (error == null && customNodes.stream().anyMatch(node -> Objects.equals(node.uri, uri))) error = text("duplicate");
+            if (error == null && !uris.add(nodeUri(address))) error = text("duplicate");
             if (error != null) {
                 rejected.add(address);
                 errors.add(address + ": " + error);
             } else {
-                CustomNode node = new CustomNode(address.toLowerCase(Locale.ROOT));
-                customNodes.add(node);
-                checkCustomNode(node);
-                added++;
+                addresses.add(address);
             }
         }
-        addInput.setText(String.join(", ", rejected));
-        setHint(errors.isEmpty() ? null : (added == 0 ? "" : text("added", added) + " ") + String.join("\n", errors));
-        renderCustomNodes();
-        updateDraft();
+        if (addresses.isEmpty()) {
+            setHint(errors.isEmpty() ? null : String.join("\n", errors));
+            return;
+        }
+        if (pendingCustom) {
+            if (applySource(MoneroNodesOption.CUSTOM, String.join(",", addresses))) {
+                addInput.setText(String.join(", ", rejected));
+                setHint(errors.isEmpty() ? null : String.join("\n", errors));
+            }
+            return;
+        }
+        editingNodes = true;
+        refresh();
+        long generation = activation;
+        ThreadUtils.submitToPool(() -> {
+            List<MoneroRpcConnection> added = new ArrayList<>();
+            for (String address : addresses) {
+                try {
+                    added.add(connectionService.addCustomNode(address));
+                } catch (Exception e) {
+                    rejected.add(address);
+                    errors.add(address + ": " + nodeErrorMessage(e.getMessage() == null ? e.toString() : e.getMessage()));
+                }
+            }
+            UserThread.execute(() -> {
+                editingNodes = false;
+                if (active && activation == generation) {
+                    for (MoneroRpcConnection connection : added) checkingUris.add(connection.getUri());
+                    addInput.setText(String.join(", ", rejected));
+                    setHint(errors.isEmpty() ? null : (added.isEmpty() ? "" : text("added", added.size()) + " ") + String.join("\n", errors));
+                }
+                refresh();
+                if (active && activation == generation) addInput.requestFocus();
+            });
+            for (MoneroRpcConnection connection : added) probeNode(connection, generation); // capture settings only after the entire paste is saved
+        });
+    }
+
+    private void probeNode(MoneroRpcConnection connection, long generation) {
+        ThreadUtils.submitToPool(() -> {
+            MoneroRpcConnection checked = null;
+            try {
+                checked = connectionService.probeConnection(connection);
+                connectionService.connectToNodeIfDisconnected(connection, checked);
+            } catch (Exception ignored) {
+                // a concurrent edit or an unavailable node can prevent switching
+            }
+            MoneroRpcConnection result = checked;
+            UserThread.execute(() -> {
+                if (!active || activation != generation) return;
+                checkingUris.remove(connection.getUri());
+                MoneroRpcConnection live = connectionService.getConnection(connection.getUri());
+                if (result != null && (live == connection || live == result)) probeResults.put(connection.getUri(), result);
+                refresh();
+            });
+        });
     }
 
     static String validateAddress(String address) {
@@ -678,93 +819,28 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         return uri.startsWith("http://") ? uri.substring(7) : uri;
     }
 
+    private static String nodeErrorMessage(String message) {
+        String key = switch (message) {
+            case "No usable nodes are configured" -> "noUsableNodes";
+            case "Public nodes are blocked by filter" -> "publicNodesBlocked";
+            case "Custom nodes are not in use" -> "customNodesNotSelected";
+            case "Local node is ignored by a startup option" -> "localNodeIgnored";
+            case "Cannot remove the only node" -> "removeLastNode";
+            case "Connection service is not running" -> "serviceNotRunning";
+            case "Node settings are set by a startup option" -> "startupOverride";
+            case "Node configuration has changed" -> "configurationChanged";
+            case "Tor is not ready" -> "torNotReady";
+            case "Connection cannot be changed" -> "connectionLocked";
+            case "Node is unavailable or is not synchronized" -> "nodeUnavailable";
+            default -> null;
+        };
+        return key == null ? message : text(key);
+    }
+
     private void setHint(String error) {
         addHint.setText(error == null ? text("addHint", HavenoUtils.getDefaultMoneroPort()) : error);
         addHint.pseudoClassStateChanged(INVALID, error != null);
         addInput.pseudoClassStateChanged(INVALID, error != null);
-    }
-
-    private void renderCustomNodes() {
-        customList.getChildren().clear();
-        List<CustomStatus> statuses = new ArrayList<>();
-        if (customNodes.isEmpty()) {
-            Label empty = new Label(text("noCustomNodes"));
-            empty.getStyleClass().addAll("network-help", "network-custom-entry");
-            customList.getChildren().add(empty);
-        }
-        for (CustomNode node : customNodes) {
-            Label address = new AutoTooltipLabel(node.address);
-            address.getStyleClass().add("network-mono");
-            if (node.uri != null && node.uri.matches("https?://[a-z2-7]{56}\\.onion:[0-9]+")) address.setGraphic(torIcon());
-            address.setMinWidth(0);
-            address.setMaxWidth(Double.MAX_VALUE);
-            HBox.setHgrow(address, Priority.ALWAYS);
-            String validation = validateAddress(node.address);
-            CustomStatus status = customStatus(node);
-            statuses.add(status);
-            HBox row = new HBox(14, address);
-            if (status != null) {
-                Label result = new Label(status.text());
-                result.getStyleClass().add("network-result");
-                if (node.checking) result.setGraphic(checkingIndicator());
-                if (node.checkError != null) result.setTooltip(new Tooltip(node.checkError));
-                result.setMinWidth(Label.USE_PREF_SIZE);
-                if (status.tone() != null) result.pseudoClassStateChanged(status.tone(), true);
-                if (validation != null) result.setTooltip(new Tooltip(validation));
-                row.getChildren().add(result);
-            }
-            Button remove = new Button("×");
-            remove.getStyleClass().add("network-icon-button");
-            remove.setMinWidth(30);
-            remove.setAccessibleText(text("removeNode", node.address));
-            remove.setOnAction(event -> {
-                customNodes.remove(node);
-                renderCustomNodes();
-                updateDraft();
-            });
-            row.getChildren().add(remove);
-            row.setAlignment(Pos.CENTER_LEFT);
-            row.getStyleClass().add("network-custom-entry");
-            customList.getChildren().add(row);
-        }
-        renderedCustomStatuses = statuses;
-    }
-
-    // status of a node not yet in the node table, which shows the status of the others
-    private CustomStatus customStatus(CustomNode node) {
-        if (validateAddress(node.address) != null) return new CustomStatus(text("invalidNode"), INVALID);
-        if (connectionService.getConnections().stream().anyMatch(connection -> connection.getUri().equalsIgnoreCase(node.uri))) return null; // hosts are case-insensitive
-        if (node.checking) return new CustomStatus(text("checking"), null);
-        if (node.checkError != null) return new CustomStatus(text("checkFailed"), null);
-        MoneroRpcConnection connection = probeResults.get(node.uri);
-        if (connection == null) return new CustomStatus(text("notChecked"), null);
-        MoneroNetworkListItem item = new MoneroNetworkListItem(connection, false, connectionService.isConnected(), false, null);
-        return new CustomStatus(item.getStatus(), item.isUnavailable() ? WARNING : item.isReachable() ? ONLINE : null);
-    }
-
-    private void checkCustomNode(CustomNode node) {
-        long generation = activation;
-        node.checking = true;
-        boolean useTor = tor.getValue() != UseTorForXmr.OFF;
-        ThreadUtils.submitToPool(() -> {
-            if (!active || activation != generation || connectionService.isShutDownStarted()) return;
-            MoneroRpcConnection checked = null;
-            String error = null;
-            try {
-                checked = connectionService.probeConnection(new MoneroRpcConnection(node.uri), useTor);
-            } catch (Exception e) {
-                error = e.getMessage() == null ? e.toString() : e.getMessage();
-            }
-            MoneroRpcConnection result = checked;
-            String checkError = error;
-            UserThread.execute(() -> {
-                if (!active || activation != generation || !customNodes.contains(node)) return;
-                node.checking = false;
-                if (result != null) probeResults.put(node.uri, result);
-                node.checkError = checkError;
-                renderCustomNodes();
-            });
-        });
     }
 
     private static boolean matchesNode(XmrNode node, MoneroRpcConnection connection) {
@@ -780,19 +856,31 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private void showNodeMenu(MoneroNetworkListItem item, Node anchor, double x, double y) {
         if (nodeMenu != null) nodeMenu.hide();
         MenuItem connect = new MenuItem(text("connectNow"));
-        connect.setDisable(!isNodeAllowed(item.getConnection()) || checkingUri != null || item.isConnected() || connectionService.isFixedConnection());
-        connect.setOnAction(event -> {
-            if (walletService.isSyncing() || connectionService.hasSyncingWallets()) {
-                new Popup().information(text("switchWhileSyncing"))
-                        .actionButtonText(text("switchNode")).onAction(() -> connectNow(item))
-                        .closeButtonText(Res.get("shared.cancel")).show();
-            } else {
-                connectNow(item);
-            }
-        });
+        connect.setDisable(!isNodeAllowed(item.getConnection()) || isChangingNodes() || checkingUris.contains(item.getConnection().getUri()) || item.isConnected() || connectionService.isFixedConnection());
+        connect.setOnAction(event -> connectNow(item));
         MenuItem copy = new MenuItem(text("copyAddress"));
         copy.setOnAction(event -> Utilities.copyToClipboard(item.getAddress()));
         nodeMenu = new ContextMenu(connect, new SeparatorMenuItem(), copy);
+        if (source.getValue() == MoneroNodesOption.CUSTOM && !hasStartupOverride() && !pendingCustom) {
+            MenuItem remove;
+            MoneroNodesOption fallback = Stream.of(MoneroNodesOption.PROVIDED, MoneroNodesOption.PUBLIC)
+                    .filter(option -> sourceAvailable(option) && connectionService.hasUsableNodes(option, null)).findFirst().orElse(null);
+            boolean onlyNode = connectionService.getConnections().size() <= 1;
+            if (onlyNode && fallback == null) {
+                Label caption = new Label(text("removeLastNode"));
+                caption.getStyleClass().add("network-menu-caption");
+                remove = new CustomMenuItem(new VBox(2, new Label(text("remove")), caption), false);
+                remove.setDisable(true);
+            } else {
+                remove = new MenuItem(text("remove"));
+                remove.setDisable(isChangingNodes() || checkingUris.contains(item.getConnection().getUri()));
+                remove.setOnAction(event -> {
+                    if (onlyNode) removeOnlyNode(item, fallback);
+                    else removeNode(item);
+                });
+            }
+            nodeMenu.getItems().addAll(new SeparatorMenuItem(), remove);
+        }
         ContextMenu menu = nodeMenu;
         menu.setId("network-node-menu");
         menu.getStyleClass().add("network-node-menu");
@@ -822,7 +910,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     }
 
     private void connectNow(MoneroNetworkListItem item) {
-        if (!active || checkingUri != null || !isNodeAllowed(item.getConnection())) return;
+        if (!active || isChangingNodes() || !isNodeAllowed(item.getConnection())) return;
         long generation = activation;
         MoneroRpcConnection original = connectionService.getConnection(item.getConnection().getUri());
         if (original == null) return;
@@ -836,7 +924,7 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
                 checked = connectionService.probeConnection(original);
                 if (!Boolean.TRUE.equals(checked.isConnected())) throw new IllegalStateException(text(Boolean.FALSE.equals(checked.isAuthenticated()) ? "requiresLogin" : "notReachable"));
                 if (!active || activation != generation) return;
-                connectionService.connectToNode(original, checked);
+                connectionService.connectToNode(original, checked, () -> active && activation == generation);
             } catch (Exception e) {
                 error = e.getMessage() == null ? e.toString() : e.getMessage();
             }
@@ -845,9 +933,49 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
             UserThread.execute(() -> {
                 if (!active || activation != generation) return;
                 checkingUri = null;
-                if (result != null) probeResults.put(result.getUri(), result);
+                if (result != null && (connectionService.getConnection(original.getUri()) == original || connectionService.getConnection(original.getUri()) == result)) probeResults.put(result.getUri(), result);
                 if (failure == null) manualUri = item.getConnection().getUri();
-                else new Popup().warning(text("connectFailed", item.getAddress(), failure)).show();
+                else if (!"Node configuration has changed".equals(failure)) new Popup().warning(text("connectFailed", item.getAddress(), nodeErrorMessage(failure))).show();
+                refresh();
+            });
+        });
+    }
+
+    // the last custom node can only go by switching to another source, so confirm where Haveno connects next
+    private void removeOnlyNode(MoneroNetworkListItem item, MoneroNodesOption fallback) {
+        boolean usePublic = fallback == MoneroNodesOption.PUBLIC;
+        new Popup().information(text(usePublic ? "removeOnlyNodePublic" : "removeOnlyNodeProvided"))
+                .actionButtonText(text(usePublic ? "removeAndUsePublic" : "removeAndUseProvided"))
+                .onAction(() -> {
+                    if (connectionService.getConnections().size() > 1) removeNode(item); // another node was added meanwhile
+                    else applySource(fallback, XmrNodes.removeUri(customNodesCsv(), item.getConnection().getUri()));
+                })
+                .closeButtonText(Res.get("shared.cancel")).show();
+    }
+
+    private void removeNode(MoneroNetworkListItem item) {
+        if (!active || isChangingNodes() || hasStartupOverride()) return;
+        String uri = item.getConnection().getUri();
+        editingNodes = true;
+        switching = item.isCurrent();
+        if (nodeMenu != null) nodeMenu.hide();
+        refresh();
+        long generation = activation;
+        ThreadUtils.submitToPool(() -> {
+            String error = null;
+            try {
+                connectionService.removeCustomNode(uri);
+            } catch (Exception e) {
+                error = e.getMessage() == null ? e.toString() : e.getMessage();
+            }
+            String failure = error;
+            UserThread.execute(() -> {
+                switching = false;
+                editingNodes = false;
+                probeResults.remove(uri);
+                nodeOrder.remove(uri);
+                if (uri.equals(manualUri)) manualUri = null;
+                if (active && activation == generation && failure != null) new Popup().warning(text("removeFailed", item.getAddress(), nodeErrorMessage(failure))).show();
                 refresh();
             });
         });
@@ -884,23 +1012,4 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         return Res.get("settings.net." + key, arguments);
     }
 
-    private record CustomStatus(String text, PseudoClass tone) {} // tone matches the node table; red is only for invalid input
-
-    private static class CustomNode {
-        private final String address;
-        private final String uri;
-        private String checkError;
-        private boolean checking;
-
-        private CustomNode(String address) {
-            this.address = address;
-            String parsed;
-            try {
-                parsed = nodeUri(address);
-            } catch (IllegalArgumentException e) {
-                parsed = null;
-            }
-            uri = parsed;
-        }
-    }
 }

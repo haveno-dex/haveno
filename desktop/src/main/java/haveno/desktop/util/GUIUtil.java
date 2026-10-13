@@ -1525,12 +1525,12 @@ public class GUIUtil {
         skinListener.invalidated(null);
     }
 
-    private static void applyRoundedArc(TableView<?> tableView) {
+    public static void applyRoundedArc(Region region) {
         Rectangle clip = new Rectangle();
         clip.setArcWidth(Layout.ROUNDED_ARC);
         clip.setArcHeight(Layout.ROUNDED_ARC);
-        tableView.setClip(clip);
-        tableView.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
+        region.setClip(clip);
+        region.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
             clip.setWidth(newVal.getWidth());
             clip.setHeight(newVal.getHeight());
         });

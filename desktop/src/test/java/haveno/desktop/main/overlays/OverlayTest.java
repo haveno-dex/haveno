@@ -17,7 +17,10 @@
 
 package haveno.desktop.main.overlays;
 
+import haveno.common.ClockWatcher;
 import haveno.common.ThreadUtils;
+import haveno.common.config.Config;
+import haveno.common.persistence.PersistenceManager;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
@@ -25,6 +28,10 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.api.XmrConnectionService;
+import haveno.core.api.XmrLocalNode;
+import haveno.core.filter.Filter;
+import haveno.core.filter.FilterManager;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -42,6 +49,10 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.user.Preferences;
+import haveno.core.user.Preferences.UseTorForXmr;
+import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.nodes.XmrNodes.MoneroNodesOption;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.WithDataModel;
 import haveno.desktop.common.view.AbstractView;
@@ -49,6 +60,8 @@ import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewPath;
 import haveno.desktop.main.MainView;
+import haveno.desktop.main.settings.network.NetworkSettingsView;
+import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.notifications.NotificationCenter;
 import haveno.desktop.main.overlays.notifications.NotificationManager;
@@ -96,17 +109,23 @@ import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
@@ -131,6 +150,7 @@ import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
+import monero.common.MoneroRpcConnection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -152,6 +172,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
@@ -176,6 +197,175 @@ public class OverlayTest {
     @Test
     public void typeUnsafeCreation() {
         assertThrows(RuntimeException.class, () -> new B());
+    }
+
+    @Nested
+    class NetworkSettings {
+        private final XmrConnectionService connections = mock(XmrConnectionService.class);
+        private final SimpleObjectProperty<Filter> filter = new SimpleObjectProperty<>();
+        private final List<MoneroRpcConnection> live = new ArrayList<>();
+        private final List<Runnable> background = new ArrayList<>();
+        private final String customAddress = "custom.example:18081";
+        private Executor originalExecutor;
+        private MockedStatic<Application> application;
+        private MockedStatic<GUIUtil> gui;
+        private MockedStatic<ThreadUtils> tasks;
+        private MockedStatic<UserThread> userThread;
+        private Preferences preferences;
+        private NetworkSettingsView view;
+        private Map<String, Object> controls;
+        private Runnable refresh;
+
+        @BeforeEach
+        void setUp() throws IOException {
+            Res.setup();
+            originalExecutor = UserThread.getExecutor();
+            UserThread.setExecutor(Runnable::run);
+            application = mockStatic(Application.class);
+            application.when(Application::getUserAgentStylesheet).thenReturn(Application.STYLESHEET_MODENA);
+            gui = mockStatic(GUIUtil.class);
+            tasks = mockStatic(ThreadUtils.class);
+            tasks.when(() -> ThreadUtils.submitToPool(any(Runnable.class))).thenAnswer(invocation -> {
+                background.add(invocation.getArgument(0));
+                return CompletableFuture.completedFuture(null);
+            });
+            userThread = mockStatic(UserThread.class, CALLS_REAL_METHODS);
+            userThread.when(() -> UserThread.runPeriodically(any(Runnable.class), anyLong())).thenAnswer(invocation -> {
+                refresh = invocation.getArgument(0);
+                return mock(Timer.class);
+            });
+            Config config = new Config();
+            XmrNodes nodes = mock(XmrNodes.class);
+            var provided = new XmrNodes.XmrNode(MoneroNodesOption.PROVIDED, null, null, "provided.example", 18081, 1, null);
+            var publicNode = new XmrNodes.XmrNode(MoneroNodesOption.PUBLIC, null, null, "public.example", 18081, 2, null);
+            when(nodes.getProvidedXmrNodes()).thenReturn(List.of(provided));
+            when(nodes.getPublicXmrNodes()).thenReturn(List.of(publicNode));
+            when(nodes.getAllXmrNodes()).thenReturn(List.of(provided, publicNode));
+            preferences = new Preferences(mock(PersistenceManager.class), config, null, nodes);
+            preferences.setUseTorForXmrOrdinal(UseTorForXmr.OFF.ordinal());
+            preferences.applyNodeSettings(MoneroNodesOption.PUBLIC, customAddress);
+            live.add(new MoneroRpcConnection(publicNode.getUri()));
+            when(connections.getConnections()).thenAnswer(invocation -> new ArrayList<>(live));
+            when(connections.getConnection()).thenAnswer(invocation -> live.isEmpty() ? null : live.get(0));
+            when(connections.isConnected()).thenReturn(true);
+            when(connections.chainHeightProperty()).thenReturn(new SimpleLongProperty(1000));
+            doAnswer(invocation -> {
+                preferences.applyNodeSettings(invocation.getArgument(0), invocation.getArgument(1));
+                return null;
+            }).when(connections).setNodeSettings(any(), any());
+            XmrLocalNode local = mock(XmrLocalNode.class);
+            when(local.shouldBeIgnored()).thenReturn(true);
+            FilterManager filters = mock(FilterManager.class);
+            when(filters.filterProperty()).thenReturn(filter);
+            when(filters.getFilter()).thenAnswer(invocation -> filter.get());
+            P2PService p2p = mock(P2PService.class, RETURNS_DEEP_STUBS);
+            when(p2p.getNetworkNode().getNodeAddress()).thenReturn(null);
+            view = new NetworkSettingsView(config, p2p, connections, preferences, nodes, filters,
+                    mock(TorNetworkSettingsWindow.class), mock(ClockWatcher.class), mock(XmrWalletService.class), local);
+            FXMLLoader loader = new FXMLLoader(NetworkSettingsView.class.getResource("NetworkSettingsView.fxml"));
+            loader.setControllerFactory(type -> view);
+            loader.load();
+            controls = loader.getNamespace();
+            view.activate();
+        }
+
+        @AfterEach
+        void tearDown() {
+            if (view != null) view.deactivate();
+            if (userThread != null) userThread.close();
+            if (tasks != null) tasks.close();
+            if (gui != null) gui.close();
+            if (application != null) application.close();
+            UserThread.setExecutor(originalExecutor);
+        }
+
+        @Test
+        void queuedSourceChangesApplyOnlyTheLatestSelection() {
+            source().setValue(MoneroNodesOption.CUSTOM);
+            source().setValue(MoneroNodesOption.PROVIDED);
+            source().setValue(MoneroNodesOption.PUBLIC);
+            assertEquals(1, background.size());
+            assertEquals(MoneroNodesOption.PUBLIC, source().getValue());
+
+            background.remove(0).run();
+            assertEquals(1, background.size());
+            background.remove(0).run();
+
+            var order = inOrder(connections);
+            order.verify(connections).setNodeSettings(MoneroNodesOption.CUSTOM, customAddress);
+            order.verify(connections).setNodeSettings(MoneroNodesOption.PUBLIC, customAddress);
+            verify(connections, never()).setNodeSettings(eq(MoneroNodesOption.PROVIDED), any());
+            assertEquals(MoneroNodesOption.PUBLIC, preferences.getMoneroNodesOption());
+            assertFalse(source().isDisabled());
+        }
+
+        @Test
+        void emptyCustomSelectionAndTorChangesDoNotChangeTheRunningSettings() {
+            preferences.applyNodeSettings(MoneroNodesOption.PUBLIC, "");
+            refresh.run();
+            source().setValue(MoneroNodesOption.CUSTOM);
+            assertEquals(MoneroNodesOption.PUBLIC, preferences.getMoneroNodesOption());
+            assertTrue(((TableView<?>) controls.get("moneroConnectionsTableView")).getItems().isEmpty());
+            source().setValue(MoneroNodesOption.PUBLIC);
+            assertEquals(1, ((TableView<?>) controls.get("moneroConnectionsTableView")).getItems().size());
+
+            @SuppressWarnings("unchecked")
+            ComboBox<UseTorForXmr> tor = (ComboBox<UseTorForXmr>) controls.get("tor");
+            tor.setValue(UseTorForXmr.ON);
+            assertEquals(UseTorForXmr.ON, preferences.getNetworkSettings().tor());
+            assertEquals(UseTorForXmr.OFF, preferences.getUseTorForXmr());
+            assertTrue(((Node) controls.get("torPending")).isVisible());
+            tor.setValue(UseTorForXmr.OFF);
+            assertFalse(((Node) controls.get("torPending")).isVisible());
+            assertTrue(background.isEmpty());
+        }
+
+        @Test
+        void filterNoticePersistsUntilTheRunningListIsAllowed() {
+            Filter restriction = mock(Filter.class);
+            when(restriction.isPreventPublicXmrNetwork()).thenReturn(true);
+            preferences.setPublicMoneroNodesBlocked(true);
+            filter.set(restriction);
+            refresh.run();
+
+            assertEquals(MoneroNodesOption.PROVIDED, source().getValue());
+            assertTrue(((Node) controls.get("statusNote")).isVisible());
+            assertEquals(Res.get("settings.net.filterPending"), ((Label) controls.get("statusTitle")).getText());
+            verify(connections, never()).setNodeSettings(any(), any());
+
+            live.clear();
+            refresh.run();
+            assertEquals(Res.get("settings.net.noUsableNodes"), ((Label) controls.get("statusTitle")).getText());
+            live.add(new MoneroRpcConnection("http://provided.example:18081"));
+            refresh.run();
+            assertFalse(((Node) controls.get("statusNote")).isVisible());
+            live.set(0, new MoneroRpcConnection("http://custom.example:18081"));
+            preferences.applyNodeSettings(MoneroNodesOption.CUSTOM, customAddress);
+            refresh.run();
+            assertFalse(((Node) controls.get("statusNote")).isVisible());
+        }
+
+        @Test
+        void rejectedNodeEditsShowLocalizedErrorsAndKeepTheInput() {
+            preferences.applyNodeSettings(MoneroNodesOption.CUSTOM, customAddress);
+            refresh.run();
+            TextField input = (TextField) controls.get("addInput");
+            input.setText("another.example:18081");
+            doThrow(new IllegalStateException("Connection service is not running")).when(connections).addCustomNode(anyString());
+
+            ((Button) controls.get("addButton")).fire();
+            background.remove(0).run();
+
+            assertEquals("another.example:18081", input.getText());
+            assertEquals("another.example:18081: " + Res.get("settings.net.serviceNotRunning"), ((Label) controls.get("addHint")).getText());
+            assertFalse(input.isDisabled());
+            verify(connections, never()).probeConnection(any());
+        }
+
+        @SuppressWarnings("unchecked")
+        private ComboBox<MoneroNodesOption> source() {
+            return (ComboBox<MoneroNodesOption>) controls.get("source");
+        }
     }
 
     @Nested

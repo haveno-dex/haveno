@@ -47,11 +47,11 @@ public class XmrNodesSetupPreferencesTest {
     public void testSelectPreferredNodesWhenCustomOption() {
         Preferences delegate = mock(Preferences.class);
         when(delegate.getEffectiveNetworkSettings()).thenReturn(
-                new Preferences.NetworkSettings(CUSTOM, Preferences.UseTorForXmr.ON, "aaa.onion,bbb.onion"));
+                new Preferences.NetworkSettings(CUSTOM, Preferences.UseTorForXmr.ON, "ccc.onion,aaa.onion,bbb.onion,http://aaa.onion"));
 
         XmrNodesSetupPreferences preferences = new XmrNodesSetupPreferences(delegate);
         List<XmrNode> nodes = preferences.selectPreferredNodes(mock(XmrNodes.class));
 
-        assertEquals(2, nodes.size());
+        assertEquals(List.of("ccc.onion", "aaa.onion", "bbb.onion"), nodes.stream().map(XmrNode::getOnionAddress).toList());
     }
 }
