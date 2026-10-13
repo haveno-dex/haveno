@@ -718,7 +718,6 @@
     -network-dim: #afaeb0;
     -network-faint: #7d7c80;
     -network-line: #29292a;
-    -network-soft-line: rgba(255,255,255,0.05);
     -network-blue: #5c94f0;
     -network-active: rgba(92,148,240,0.08);
     -network-selected: rgba(92,148,240,0.16);

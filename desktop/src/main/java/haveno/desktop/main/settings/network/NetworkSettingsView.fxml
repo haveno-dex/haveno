@@ -53,55 +53,48 @@
                 <Label fx:id="statusTitle" styleClass="network-setting-title" wrapText="true"/>
                 <Label fx:id="statusDetail" styleClass="network-help" wrapText="true"/>
             </VBox>
+            <HBox styleClass="network-source-row" alignment="CENTER_LEFT" spacing="32">
+                <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
+                    <Label fx:id="sourceLabel" styleClass="network-setting-title"/>
+                    <TextFlow>
+                        <Text fx:id="sourceHelp" styleClass="network-source-help"/>
+                        <Hyperlink fx:id="remoteNodeLink" styleClass="network-link"/>
+                    </TextFlow>
+                </VBox>
+                <ComboBox fx:id="source" styleClass="network-select" minWidth="300" prefWidth="300" maxWidth="300"/>
+            </HBox>
             <StackPane styleClass="network-table-frame">
-                <TableView fx:id="moneroConnectionsTableView" styleClass="network-table,network-nodes">
-                    <columns>
-                        <TableColumn fx:id="nodeAddressColumn" minWidth="180"/>
-                        <TableColumn fx:id="nodeLatencyColumn" minWidth="130" prefWidth="130" maxWidth="130" styleClass="network-number"/>
-                        <TableColumn fx:id="nodeStatusColumn" minWidth="150" prefWidth="150" maxWidth="150"/>
-                        <TableColumn fx:id="nodeActionsColumn" minWidth="46" prefWidth="46" maxWidth="46" sortable="false"/>
-                    </columns>
-                </TableView>
+                <VBox fx:id="nodeCard">
+                    <TableView fx:id="moneroConnectionsTableView" styleClass="network-table,network-nodes">
+                        <columns>
+                            <TableColumn fx:id="nodeAddressColumn" minWidth="180"/>
+                            <TableColumn fx:id="nodeLatencyColumn" minWidth="130" prefWidth="130" maxWidth="130" styleClass="network-number"/>
+                            <TableColumn fx:id="nodeStatusColumn" minWidth="150" prefWidth="150" maxWidth="150"/>
+                            <TableColumn fx:id="nodeActionsColumn" minWidth="46" prefWidth="46" maxWidth="46" sortable="false"/>
+                        </columns>
+                    </TableView>
+                    <HBox fx:id="addRow" styleClass="network-add-row">
+                        <TextField fx:id="addInput" styleClass="network-add-field" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="addButton" styleClass="network-button"/>
+                    </HBox>
+                </VBox>
             </StackPane>
+            <Label fx:id="addHint" styleClass="network-hint" wrapText="true"/>
             <Label fx:id="selectionNote" styleClass="network-selection-note" wrapText="true"/>
             <VBox styleClass="network-settings-rows">
-                <VBox styleClass="network-source-row" spacing="12">
-                    <HBox alignment="CENTER_LEFT" spacing="32">
-                        <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
-                            <Label fx:id="sourceLabel" styleClass="network-setting-title"/>
-                            <TextFlow>
-                                <Text fx:id="sourceHelp" styleClass="network-source-help"/>
-                                <Hyperlink fx:id="remoteNodeLink" styleClass="network-link"/>
-                            </TextFlow>
-                        </VBox>
-                        <ComboBox fx:id="source" styleClass="network-select" minWidth="300" prefWidth="300" maxWidth="300"/>
-                    </HBox>
-                    <VBox fx:id="customEditor" styleClass="network-custom-editor">
-                        <VBox fx:id="customList"/>
-                        <HBox spacing="10" styleClass="network-add-row">
-                            <TextField fx:id="addInput" styleClass="network-input" HBox.hgrow="ALWAYS"/>
-                            <Button fx:id="addButton" styleClass="network-button"/>
-                        </HBox>
-                        <Label fx:id="addHint" styleClass="network-hint" wrapText="true"/>
-                    </VBox>
-                </VBox>
-                <HBox styleClass="network-tor-row" alignment="CENTER_LEFT" spacing="32">
+                <HBox alignment="CENTER_LEFT" spacing="32">
                     <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
                         <Label fx:id="torLabel" styleClass="network-setting-title"/>
                         <Label fx:id="torHelp" styleClass="network-help" wrapText="true"/>
                     </VBox>
                     <ComboBox fx:id="tor" styleClass="network-select" minWidth="300" prefWidth="300" maxWidth="300"/>
                 </HBox>
+                <HBox fx:id="torPending" styleClass="network-tor-pending">
+                    <VBox.margin><Insets top="12"/></VBox.margin>
+                    <Label fx:id="pendingText" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Button fx:id="shutdownButton" styleClass="network-button"/>
+                </HBox>
             </VBox>
-            <HBox fx:id="draftBar" styleClass="network-draft" spacing="10" alignment="CENTER_LEFT">
-                <Label fx:id="draftText" styleClass="network-warning" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-                <Button fx:id="cancelButton" styleClass="network-button"/>
-                <Button fx:id="saveButton" styleClass="network-button,network-primary"/>
-            </HBox>
-            <HBox fx:id="pendingBar" styleClass="network-draft" spacing="10" alignment="CENTER_LEFT">
-                <Label fx:id="pendingText" styleClass="network-warning" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-                <Button fx:id="shutdownButton" styleClass="network-button,network-primary"/>
-            </HBox>
         </VBox>
         <VBox styleClass="network-p2p-section">
             <HBox styleClass="network-heading" alignment="CENTER_LEFT" spacing="12">

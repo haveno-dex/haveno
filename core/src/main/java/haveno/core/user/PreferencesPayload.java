@@ -170,8 +170,9 @@ public final class PreferencesPayload implements PersistableEnvelope {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    // node settings are written from worker threads under this lock, so the snapshot stays coherent
     @Override
-    public Message toProtoMessage() {
+    public synchronized Message toProtoMessage() {
         protobuf.PreferencesPayload.Builder builder = protobuf.PreferencesPayload.newBuilder()
                 .setUserLanguage(userLanguage)
                 .setUserCountry((protobuf.Country) userCountry.toProtoMessage())

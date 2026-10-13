@@ -18,6 +18,7 @@
 package haveno.core.xmr.nodes;
 
 import haveno.core.trade.HavenoUtils;
+import java.util.List;
 import haveno.core.xmr.nodes.XmrNodes.XmrNode;
 import monero.common.MoneroRpcConnection;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,34 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class XmrNodesTest {
+
+    @Test
+    public void testAppendAddressPreservesSpellingAndRejectsEquivalentNodes() {
+        assertEquals("First.Example,HTTPS://Second.Example:18089",
+                XmrNodes.appendAddress("First.Example", "HTTPS://Second.Example:18089"));
+        assertEquals("z.example,a.example,m.example", XmrNodes.appendAddress(" z.example, a.example ", "m.example"));
+        assertEquals("First.Example", XmrNodes.appendAddress(null, "First.Example"));
+        assertThrows(IllegalArgumentException.class, () -> XmrNodes.appendAddress("First.Example", "http://first.example:" + HavenoUtils.getDefaultMoneroPort()));
+        assertThrows(IllegalArgumentException.class, () -> XmrNodes.appendAddress("[::1]", "http://[::1]:" + HavenoUtils.getDefaultMoneroPort()));
+    }
+
+    @Test
+    public void testRemoveUriRemovesAliasesAndPreservesOtherSchemes() {
+        assertEquals("https://First.Example", XmrNodes.removeUri("First.Example,http://first.example,https://First.Example", "HTTP://FIRST.EXAMPLE:" + HavenoUtils.getDefaultMoneroPort()));
+        assertEquals("Second.Example", XmrNodes.removeUri("[::1],Second.Example", "http://[::1]:" + HavenoUtils.getDefaultMoneroPort()));
+        assertEquals("", XmrNodes.removeUri(null, "first.example"));
+        assertEquals("z.example,m.example", XmrNodes.removeUri("z.example,a.example,m.example", "a.example"));
+    }
+
+    @Test
+    public void testCustomNodesNormalizeHostsAndRemoveAliases() {
+        List<XmrNode> nodes = XmrNodes.toCustomXmrNodesList(List.of("First.Example", "http://first.example:" + HavenoUtils.getDefaultMoneroPort(), "https://first.example"));
+        assertEquals(2, nodes.size());
+        assertEquals("http://first.example:" + HavenoUtils.getDefaultMoneroPort(), nodes.get(0).getUri());
+        assertEquals("https://first.example:" + HavenoUtils.getDefaultMoneroPort(), nodes.get(1).getUri());
+        assertEquals("http://" + "a".repeat(56) + ".onion:" + HavenoUtils.getDefaultMoneroPort(),
+                XmrNodes.toCustomXmrNodesList(List.of("A".repeat(56) + ".ONION")).get(0).getUri());
+    }
 
     @Test
     public void testOnionSchemeSurvivesNodeConfiguration() {
