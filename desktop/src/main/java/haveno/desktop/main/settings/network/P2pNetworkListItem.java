@@ -18,6 +18,7 @@
 package haveno.desktop.main.settings.network;
 
 import haveno.common.ClockWatcher;
+import haveno.common.UserThread;
 import haveno.core.locale.Res;
 import haveno.core.util.FormattingUtils;
 import haveno.desktop.util.DisplayUtils;
@@ -26,51 +27,49 @@ import haveno.network.p2p.network.ConnectionState;
 import haveno.network.p2p.network.OutboundConnection;
 import haveno.network.p2p.network.PeerType;
 import haveno.network.p2p.network.Statistic;
+import haveno.network.p2p.peers.PeerManager;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class P2pNetworkListItem {
-    private static final Logger log = LoggerFactory.getLogger(P2pNetworkListItem.class);
-
     private final Statistic statistic;
     private final Connection connection;
+    private final PeerManager peerManager;
     private final Subscription sentBytesSubscription, receivedBytesSubscription, onionAddressSubscription, roundTripTimeSubscription;
     private final ClockWatcher clockWatcher;
 
-    private final StringProperty lastActivity = new SimpleStringProperty();
+    private final StringProperty since = new SimpleStringProperty();
     private final StringProperty sentBytes = new SimpleStringProperty();
     private final StringProperty receivedBytes = new SimpleStringProperty();
     private final StringProperty peerType = new SimpleStringProperty();
-    private final StringProperty connectionType = new SimpleStringProperty();
     private final StringProperty roundTripTime = new SimpleStringProperty();
     private final StringProperty onionAddress = new SimpleStringProperty();
     private final ClockWatcher.Listener listener;
+    private boolean cleanedUp;
 
-    P2pNetworkListItem(Connection connection, ClockWatcher clockWatcher) {
+    P2pNetworkListItem(Connection connection, PeerManager peerManager, ClockWatcher clockWatcher) {
         this.connection = connection;
+        this.peerManager = peerManager;
         this.clockWatcher = clockWatcher;
         this.statistic = connection.getStatistic();
 
         sentBytesSubscription = EasyBind.subscribe(statistic.sentBytesProperty(),
-                e -> sentBytes.set(FormattingUtils.formatBytes((long) e)));
+                e -> updateProperty(sentBytes, FormattingUtils.formatBytes((long) e)));
         receivedBytesSubscription = EasyBind.subscribe(statistic.receivedBytesProperty(),
-                e -> receivedBytes.set(FormattingUtils.formatBytes((long) e)));
+                e -> updateProperty(receivedBytes, FormattingUtils.formatBytes((long) e)));
         onionAddressSubscription = EasyBind.subscribe(connection.getPeersNodeAddressProperty(),
-                nodeAddress -> onionAddress.set(nodeAddress != null ? nodeAddress.getFullAddress() : Res.get("settings.net.notKnownYet")));
+                nodeAddress -> updateProperty(onionAddress, nodeAddress != null ? nodeAddress.getFullAddress() : Res.get("settings.net.notKnownYet")));
         roundTripTimeSubscription = EasyBind.subscribe(statistic.roundTripTimeProperty(),
-                roundTripTime -> this.roundTripTime.set((int) roundTripTime == 0 ? "-" : roundTripTime + " ms"));
+                roundTripTime -> updateProperty(this.roundTripTime, NetworkSettingsView.formatResponseTime(roundTripTime.intValue() <= 0 ? null : roundTripTime.longValue())));
 
         listener = new ClockWatcher.Listener() {
             @Override
             public void onSecondTick() {
-                onLastActivityChanged(statistic.getLastActivityTimestamp());
+                updateSince();
                 updatePeerType();
-                updateConnectionType();
             }
 
             @Override
@@ -78,19 +77,29 @@ public class P2pNetworkListItem {
             }
         };
         clockWatcher.addListener(listener);
-        onLastActivityChanged(statistic.getLastActivityTimestamp());
+        updateSince();
         updatePeerType();
-        updateConnectionType();
     }
 
-    private void onLastActivityChanged(long timeStamp) {
-        // TODO
-        // Got one case where System.currentTimeMillis() - timeStamp resulted in a negative value,
-        // probably caused by a threading issue. Protect it with Math.abs for a quick fix...
-        lastActivity.set(DurationFormatUtils.formatDuration(Math.abs(System.currentTimeMillis() - timeStamp), "mm:ss.SSS"));
+    private void updateProperty(StringProperty property, String value) {
+        Runnable update = () -> {
+            if (!cleanedUp) property.set(value);
+        };
+        if (Platform.isFxApplicationThread()) update.run();
+        else UserThread.execute(update);
+    }
+
+    private void updateSince() {
+        long minutes = Math.max(0, (System.currentTimeMillis() - getCreationTimestamp()) / 60000);
+        since.set(NetworkSettingsView.text(minutes == 0 ? "justNow" : "minutesAgo", minutes));
+    }
+
+    public StringProperty sinceProperty() {
+        return since;
     }
 
     public void cleanup() {
+        cleanedUp = true;
         sentBytesSubscription.unsubscribe();
         receivedBytesSubscription.unsubscribe();
         onionAddressSubscription.unsubscribe();
@@ -98,23 +107,44 @@ public class P2pNetworkListItem {
         clockWatcher.removeListener(listener);
     }
 
-    public void updateConnectionType() {
-        connectionType.set(connection instanceof OutboundConnection ?
-                Res.get("settings.net.outbound") : Res.get("settings.net.inbound"));
-    }
-
     public void updatePeerType() {
         ConnectionState connectionState = connection.getConnectionState();
         if (connectionState.getPeerType() == PeerType.DIRECT_MSG_PEER) {
-            peerType.set(Res.get("settings.net.directPeer"));
+            peerType.set(Res.get("settings.net.peer") + " · " + NetworkSettingsView.text("directPeerSuffix"));
         } else {
-            String peerOrSeed = connectionState.isSeedNode() ? Res.get("settings.net.seedNode") : Res.get("settings.net.peer");
+            // check the seed list directly since the state flag is set before an inbound peer announces its address
+            String peerOrSeed = peerManager.isSeedNode(connection) ? Res.get("settings.net.seedNode") : Res.get("settings.net.peer");
             if (connectionState.getPeerType() == PeerType.INITIAL_DATA_EXCHANGE) {
                 peerType.set(Res.get("settings.net.initialDataExchange", peerOrSeed));
             } else {
                 peerType.set(peerOrSeed);
             }
         }
+    }
+
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public boolean isInbound() {
+        return !(connection instanceof OutboundConnection);
+    }
+
+    public long getCreationTimestamp() {
+        return statistic.getCreationDate().getTime();
+    }
+
+    public Long getResponseTime() {
+        int time = statistic.roundTripTimeProperty().get();
+        return time <= 0 ? null : (long) time;
+    }
+
+    public long getSentBytesValue() {
+        return statistic.sentBytesProperty().get();
+    }
+
+    public long getReceivedBytesValue() {
+        return statistic.receivedBytesProperty().get();
     }
 
     public String getCreationDate() {
@@ -129,14 +159,6 @@ public class P2pNetworkListItem {
         return onionAddress;
     }
 
-    public String getConnectionType() {
-        return connectionType.get();
-    }
-
-    public StringProperty connectionTypeProperty() {
-        return connectionType;
-    }
-
     public String getPeerType() {
         return peerType.get();
     }
@@ -145,32 +167,12 @@ public class P2pNetworkListItem {
         return peerType;
     }
 
-    public String getLastActivity() {
-        return lastActivity.get();
-    }
-
-    public StringProperty lastActivityProperty() {
-        return lastActivity;
-    }
-
-    public String getSentBytes() {
-        return sentBytes.get();
-    }
-
     public StringProperty sentBytesProperty() {
         return sentBytes;
     }
 
-    public String getReceivedBytes() {
-        return receivedBytes.get();
-    }
-
     public StringProperty receivedBytesProperty() {
         return receivedBytes;
-    }
-
-    public String getRoundTripTime() {
-        return roundTripTime.get();
     }
 
     public StringProperty roundTripTimeProperty() {

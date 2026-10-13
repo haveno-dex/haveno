@@ -17,23 +17,100 @@
 
 package haveno.desktop.main.settings.network;
 
-import haveno.core.locale.Res;
+import haveno.core.api.XmrConnectionService;
 import monero.common.MoneroRpcConnection;
+import monero.common.NetworkUtils;
 
 public class MoneroNetworkListItem {
     private final MoneroRpcConnection connection;
-    private final boolean connected;
-    
-    public MoneroNetworkListItem(MoneroRpcConnection connection, boolean connected) {
+    private final boolean current, checking, reachable, unchecked;
+    private final Boolean connected;
+    private final String owner, status;
+    private final Long responseTime;
+    private final int rank;
+    private final DisplayState displayState;
+
+    private record DisplayState(String address, String owner, boolean current, Boolean connected, boolean checking,
+                                String status, Long responseTime, Long lastChecked) {}
+
+    // the connection state is captured once so the sort keys stay fixed while the item is listed
+    public MoneroNetworkListItem(MoneroRpcConnection connection, boolean current, Boolean connected, boolean checking, String owner) {
         this.connection = connection;
-        this.connected = connected;
+        this.current = current;
+        this.connected = current ? connected : Boolean.FALSE;
+        this.checking = checking;
+        this.owner = owner;
+        boolean online = Boolean.TRUE.equals(connection.isConnected());
+        reachable = current ? isConnected() : online;
+        unchecked = !current && !checking && connection.isOnline() == null;
+        responseTime = online && (!current || isConnected()) ? connection.getResponseTime() : null;
+        rank = current ? 0 : checking ? 1 : online ? 2 : unchecked ? 3 : 4;
+        status = NetworkSettingsView.text(statusKey(online));
+        displayState = new DisplayState(getAddress(), owner, current, this.connected, checking, status, responseTime,
+                XmrConnectionService.getLastCheckedTimestamp(connection));
+    }
+
+    private String statusKey(boolean online) {
+        return checking ? "checking" : isConnected() ? "connected" : current && connected == null ? "connecting" : current ? "notResponding" :
+                XmrConnectionService.getCachedDaemonInfo(connection) != null && !Boolean.TRUE.equals(connection.isOnline()) ? "noNodePeers" :
+                Boolean.FALSE.equals(connection.isAuthenticated()) ? "requiresLogin" : online ? "online" :
+                isLocalNotRunning() ? "notRunning" : unchecked ? "notChecked" : "notReachable";
+    }
+
+    private boolean isLocalNotRunning() {
+        return NetworkUtils.isLocalHost(connection.getUri()) && Boolean.FALSE.equals(connection.isOnline()) &&
+                XmrConnectionService.getCachedDaemonInfo(connection) == null;
+    }
+
+    public boolean hasSameDisplay(MoneroNetworkListItem other) {
+        return displayState.equals(other.displayState);
+    }
+
+    public MoneroRpcConnection getConnection() {
+        return connection;
     }
 
     public String getAddress() {
-        return connection.getUri();
+        return NetworkSettingsView.displayAddress(connection.getUri());
     }
 
-    public String getConnected() {
-        return connected ? Res.get("settings.net.connected") : "";
+    public String getOwner() {
+        return owner;
+    }
+
+    public boolean isCurrent() {
+        return current;
+    }
+
+    public boolean isConnected() {
+        return Boolean.TRUE.equals(connected);
+    }
+
+    public boolean isReachable() {
+        return reachable;
+    }
+
+    public boolean isUnavailable() {
+        return current && Boolean.FALSE.equals(connected);
+    }
+
+    public boolean isChecking() {
+        return checking;
+    }
+
+    public boolean isUnchecked() {
+        return unchecked;
+    }
+
+    public Long getResponseTime() {
+        return responseTime;
+    }
+
+    public int getRank() {
+        return rank;
+    }
+
+    public String getStatus() {
+        return status;
     }
 }

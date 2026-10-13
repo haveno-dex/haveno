@@ -1,0 +1,148 @@
+.network-settings {
+    -fx-padding: 15;
+    -fx-background-color: -bs-background-color;
+}
+.network-settings .label { -fx-text-fill: -network-text; }
+.network-settings .network-title { -fx-font-size: 17; -fx-font-family: "IBM Plex Sans Medium"; }
+.network-settings .network-heading { -fx-padding: 0 0 16 0; }
+.network-settings .network-help, .network-settings .network-selection-note {
+    -fx-font-size: 13;
+    -fx-text-fill: -network-dim;
+}
+.network-settings .network-selection-note { -fx-padding: 12 0 14 0; -fx-font-size: 12.5; }
+.network-settings .network-divider { -fx-text-fill: -network-line; }
+.network-settings .network-health { -fx-text-fill: -network-green; -fx-font-size: 13; }
+.network-settings .network-warning, .network-settings .network-health:warning { -fx-text-fill: -network-amber; }
+.network-settings .network-link { -fx-padding: 0; -fx-border-width: 0; -fx-text-fill: -network-blue; -fx-font-size: 13; -fx-underline: false; }
+.network-settings .network-link:hover { -fx-underline: true; }
+.network-settings .network-settings-rows { -fx-border-color: -network-line; -fx-border-width: 1 0 0 0; }
+.network-settings .network-source-row { -fx-padding: 16 0; -fx-border-color: -network-soft-line; -fx-border-width: 0 0 1 0; }
+.network-settings .network-tor-row { -fx-padding: 16 0 0 0; }
+.network-settings .network-setting-title { -fx-font-family: "IBM Plex Sans Medium"; -fx-font-size: 14; }
+.network-settings .network-select, .network-settings .network-input, .network-settings .network-button {
+    -fx-background-color: -bs-color-background-form-field;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-text-fill: -network-text;
+    -fx-font-size: 13;
+    -fx-effect: null;
+}
+.network-settings .network-select { -fx-padding: 0 14; -fx-pref-height: 32; } /* matches the app's 32px form controls */
+.network-settings .network-select > .list-cell { -fx-text-fill: -network-text; -fx-background-color: transparent; -fx-font-size: 13; -fx-padding: 0; } /* button cell only; popup cells keep the app style */
+.network-settings #source .list-cell:disabled { -fx-text-fill: -network-faint; -fx-cursor: default; }
+.network-settings #source .list-cell:disabled * { -fx-cursor: default; }
+.network-settings .network-select .arrow-button { -fx-background-color: transparent; -fx-padding: 0 0 0 10; }
+.network-settings .network-select .arrow { -fx-background-color: -network-dim; }
+.network-settings .network-button { -fx-padding: 0 15; -fx-min-height: 32; -fx-pref-height: 32; }
+.network-settings .network-button:hover { -fx-background-color: -network-hover; }
+.network-settings .network-primary { -fx-background-color: -bs-color-primary; -fx-border-color: -bs-color-primary; -fx-text-fill: white; }
+.network-settings .network-primary:hover { -fx-background-color: derive(-bs-color-primary, 15%); }
+.network-settings .network-button:focused, .network-settings .network-select:focused,
+.network-settings .network-input:focused { -fx-border-color: -network-blue; }
+.network-settings .network-input { -fx-padding: 7 12; -fx-font-family: "IBM Plex Mono"; -fx-prompt-text-fill: -network-faint; }
+.network-settings .network-input:invalid { -fx-border-color: -network-red; }
+.network-settings .network-custom-editor { -fx-padding: 4 14 14 14; -fx-border-color: -network-line; -fx-border-radius: 8; }
+.network-settings .network-custom-entry { -fx-padding: 7 0; -fx-min-height: 44; -fx-border-color: -network-soft-line; -fx-border-width: 0 0 1 0; }
+.network-settings .network-add-row { -fx-padding: 12 0 0 0; }
+.network-settings .network-hint { -fx-padding: 7 0 0 0; -fx-font-size: 12.5; -fx-text-fill: -network-dim; }
+.network-settings .network-hint:invalid, .network-settings .network-result:invalid { -fx-text-fill: -network-red; }
+.network-settings .network-result { -fx-text-fill: -network-dim; -fx-font-size: 13; }
+.network-settings .network-result:online { -fx-text-fill: -network-green; }
+.network-settings .network-result:warning { -fx-text-fill: -network-amber; }
+.network-settings .network-draft { -fx-padding: 32 0 0 0; -fx-border-insets: 16 0 0 0; -fx-border-width: 1 0 0 0; -fx-border-color: -network-line; }
+.network-settings .network-p2p-section { -fx-padding: 30 0 0 0; -fx-border-color: -network-line; -fx-border-width: 1 0 0 0; }
+.network-settings .network-stats { -fx-padding: 0 0 18 0; -fx-border-color: -network-line; -fx-border-width: 0 0 1 0; }
+.network-settings .network-stat-label { -fx-text-fill: -network-dim; -fx-font-size: 12; }
+.network-settings .network-stat-value { -fx-font-size: 15; }
+.network-settings .network-stat-detail { -fx-text-fill: -network-dim; -fx-font-size: 12.5; -fx-padding: 2 0 0 0; }
+.network-settings .network-mono { -fx-font-family: "IBM Plex Mono"; -fx-font-size: 13; }
+.network-settings .network-table-label { -fx-padding: 14 0 6 0; -fx-font-size: 13; -fx-text-fill: -network-dim; }
+.network-settings .network-icon-button {
+    -fx-background-color: transparent; -fx-background-insets: 0; -fx-background-radius: 999;
+    -fx-border-width: 0; -fx-padding: 0; -fx-text-fill: -network-dim; -fx-effect: null;
+    -fx-min-width: 28; -fx-pref-width: 28; -fx-max-width: 28; -fx-min-height: 28; -fx-pref-height: 28; -fx-max-height: 28;
+}
+.network-settings .network-icon-button:hover, .network-settings .network-icon-button:focused { -fx-background-color: -network-hover; }
+.network-settings .network-icon-button, .network-settings .network-icon-button *,
+.network-settings .network-select, .network-settings .network-select *, .network-settings .network-button { -fx-cursor: hand; }
+.network-settings .network-icon-button:disabled, .network-settings .network-icon-button:disabled *,
+.network-settings .network-select:disabled, .network-settings .network-select:disabled *, .network-settings .network-button:disabled { -fx-cursor: default; }
+.network-settings .network-icon-button .glyph-icon { -fx-fill: -network-dim; }
+.network-settings .network-status-note { -fx-padding: 12 14; -fx-background-color: -network-active; -fx-background-radius: 8; }
+.network-settings .network-status-note:warning { -fx-background-color: -network-warning-background; -fx-border-color: -network-amber; -fx-border-width: 0 0 0 2; }
+/* rounded card like the app's other tables: header bar, zebra rows, 1px frame where -fx-box-border shows;
+   the frame sits on a wrapper so the table's rounded clip keeps header and rows off the corners */
+.network-settings .network-table-frame {
+    -fx-background-color: -fx-box-border, -bs-color-background-row-even; -fx-background-insets: 0, 1;
+    -fx-background-radius: 11, 10; -fx-padding: 1;
+}
+.network-settings .network-table { -fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0; -fx-padding: 0; }
+.network-settings .network-table .column-header-background,
+.network-settings .network-table .column-header, .network-settings .network-table .filler {
+    -fx-background-color: -bs-color-table-header-background; -fx-background-radius: 0;
+    -fx-border-width: 0 0 1 0; -fx-border-color: -network-line; -fx-size: 32; -fx-pref-height: 32;
+}
+.network-settings .network-table .column-header .label {
+    -fx-alignment: CENTER_LEFT; -fx-font-size: 12; -fx-font-weight: normal;
+    -fx-font-family: "IBM Plex Sans"; -fx-text-fill: -network-text; -fx-padding: 0 12; -fx-content-display: right;
+}
+.network-settings .network-table .column-header .arrow { -fx-background-color: -network-blue; }
+.network-settings .network-table .table-row-cell,
+.network-settings .network-table .table-row-cell:odd,
+.network-settings .network-table .table-row-cell:even,
+.network-settings .network-table .table-row-cell:filled:selected {
+    -fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0; -fx-padding: 0;
+}
+.network-settings .network-table .table-row-cell:filled:even { -fx-background-color: -bs-color-background-row-even; }
+.network-settings .network-table .table-row-cell:filled:odd { -fx-background-color: -bs-color-background-row-odd; }
+.network-settings .network-table .table-row-cell:filled:hover { -fx-background-color: -bs-color-background-row-hover; }
+.network-settings .network-table .table-row-cell:filled:active { -fx-background-color: -bs-color-background-row-even, -network-active; }
+.network-settings .network-nodes .table-row-cell:filled:selected { -fx-background-color: -bs-color-background-row-even, -network-selected; }
+.network-settings .network-table .table-row-cell:filled .table-cell {
+    -fx-background-color: transparent; -fx-border-width: 0;
+    -fx-padding: 0 12; -fx-alignment: CENTER_LEFT; -fx-text-fill: -network-text; -fx-font-size: 13;
+}
+.network-settings .network-table .table-cell .label { -fx-text-fill: -network-text; }
+.network-settings .network-table .table-row-cell:filled .table-cell.network-number,
+.network-settings .network-table .column-header.network-number .label { -fx-alignment: CENTER_RIGHT; }
+.network-settings .network-table .column-header.network-number .label { -fx-content-display: left; }
+/* edge columns carry the 15px card inset (.first-column/.last-column from GUIUtil.applyTableStyle) */
+.network-settings .network-table .table-row-cell:filled .table-cell.first-column { -fx-padding: 0 12 0 15; }
+.network-settings .network-table .table-row-cell:filled .table-cell.last-column { -fx-padding: 0 15 0 12; }
+.network-settings .network-table .column-header.first-column .label { -fx-padding: 0 12 0 0; }
+.network-settings .network-table .column-header.last-column .label { -fx-padding: 0 0 0 12; }
+.network-settings .network-table .table-row-cell .table-cell .network-node-address { -fx-font-size: 13.5; -fx-text-fill: -network-text; }
+.network-settings .network-table .table-row-cell .table-cell .network-node-owner { -fx-font-size: 12; -fx-text-fill: -network-dim; }
+/* the connected node's status is a green pill */
+.network-settings .network-table .table-row-cell .table-cell .network-node-status:active {
+    -fx-text-fill: -network-green; -fx-font-family: "IBM Plex Sans Medium"; -fx-background-color: -network-green-background;
+    -fx-background-radius: 999; -fx-padding: 2 10 2 8; -fx-graphic-text-gap: 6;
+}
+.network-settings .network-status-dot { -fx-fill: -network-green; }
+.network-settings .network-table .table-row-cell .table-cell .network-node-status:warning { -fx-text-fill: -network-amber; }
+.network-settings .network-table .table-row-cell .table-cell .network-node-status:unchecked { -fx-text-fill: -network-faint; }
+.network-settings .network-table .table-row-cell .table-cell .network-peer-address { -fx-text-fill: -network-text; }
+.network-settings .network-table .scroll-bar:horizontal { -fx-pref-height: 0; -fx-max-height: 0; -fx-opacity: 0; }
+
+.network-settings .network-source-help { -fx-font-size: 13; -fx-fill: -network-dim; }
+.network-settings .network-tor-icon { -fx-fill: -network-purple; }
+.network-settings .network-selection-note .glyph-icon { -fx-fill: -network-dim; }
+.network-settings .network-warning .glyph-icon { -fx-fill: -network-amber; }
+.network-settings .progress-indicator { -fx-progress-color: -network-blue; }
+
+.network-node-menu {
+    -fx-min-width: 190; -fx-padding: 5;
+    -fx-background-color: -network-menu; -fx-background-insets: 0; -fx-background-radius: 9;
+    -fx-border-color: -bs-color-border-form-field; -fx-border-width: 1; -fx-border-radius: 9;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 35, 0, 0, 10);
+}
+.network-node-menu .menu-item { -fx-padding: 8 10; -fx-background-radius: 6; }
+#network-node-menu .menu-item .label { -fx-text-fill: -network-text; -fx-font-size: 13.5; }
+.network-node-menu .menu-item:focused { -fx-background-color: -network-active; }
+.network-node-menu .menu-item, .network-node-menu .menu-item * { -fx-cursor: hand; }
+.network-node-menu .menu-item:disabled, .network-node-menu .menu-item:disabled * { -fx-cursor: default; }
+.network-node-menu .separator { -fx-padding: 4; }
+.network-node-menu .separator .line { -fx-border-color: -network-line; -fx-border-width: 1 0 0 0; }

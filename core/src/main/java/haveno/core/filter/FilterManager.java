@@ -32,7 +32,6 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.ProvidersRepository;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
-import haveno.core.xmr.nodes.XmrNodes;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
@@ -563,9 +562,8 @@ public class FilterManager {
         providersRepository.applyBannedNodes(priceRelayNodes);
 
         //TODO should be moved to client with listening on onFilterAdded
-        if (newFilter.isPreventPublicXmrNetwork() &&
-                preferences.getMoneroNodesOptionOrdinal() == XmrNodes.MoneroNodesOption.PUBLIC.ordinal()) {
-            preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+        if (newFilter.isPreventPublicXmrNetwork()) {
+            preferences.preventPublicMoneroNodes();
         }
 
         listeners.forEach(e -> e.onFilterAdded(newFilter));

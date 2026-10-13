@@ -39,16 +39,15 @@ public class XmrNodesSetupPreferences {
     public List<XmrNodes.XmrNode> selectPreferredNodes(XmrNodes nodes) {
         List<XmrNodes.XmrNode> result;
 
-        XmrNodes.MoneroNodesOption nodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
-        switch (nodesOption) {
+        Preferences.NetworkSettings settings = preferences.getEffectiveNetworkSettings(); // one snapshot so a concurrent switch cannot pair the old source with the new address list
+        switch (settings.nodes()) {
             case CUSTOM:
-                String moneroNodes = preferences.getMoneroNodes();
-                Set<String> distinctNodes = Utilities.commaSeparatedListToSet(moneroNodes, false);
+                Set<String> distinctNodes = Utilities.commaSeparatedListToSet(settings.customNodes(), false);
                 result = XmrNodes.toCustomXmrNodesList(distinctNodes);
                 if (result.isEmpty()) {
                     log.warn("Custom nodes is set but no valid nodes are provided. " +
                             "We fall back to provided nodes option.");
-                    preferences.setMoneroNodesOptionOrdinal(XmrNodes.MoneroNodesOption.PROVIDED.ordinal());
+                    preferences.setEffectiveMoneroNodesOption(XmrNodes.MoneroNodesOption.PROVIDED);
                     result = nodes.getProvidedXmrNodes();
                 }
                 break;
@@ -65,11 +64,11 @@ public class XmrNodesSetupPreferences {
     }
 
     public boolean isUseCustomNodes() {
-        return XmrNodes.MoneroNodesOption.CUSTOM.ordinal() == preferences.getMoneroNodesOptionOrdinal();
+        return XmrNodes.MoneroNodesOption.CUSTOM == preferences.getEffectiveNetworkSettings().nodes();
     }
 
     public int calculateMinBroadcastConnections(List<XmrNodes.XmrNode> nodes) {
-        XmrNodes.MoneroNodesOption nodesOption = XmrNodes.MoneroNodesOption.values()[preferences.getMoneroNodesOptionOrdinal()];
+        XmrNodes.MoneroNodesOption nodesOption = preferences.getEffectiveNetworkSettings().nodes();
         int result;
         switch (nodesOption) {
             case CUSTOM:
