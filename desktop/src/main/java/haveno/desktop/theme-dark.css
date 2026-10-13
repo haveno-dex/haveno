@@ -117,6 +117,8 @@
     -bs-combobox-selected: rgba(21, 188, 29, 0.1);
     -bs-combo-popup-selected: rgba(56, 128, 255, 0.15);
     -bs-combo-popup-hover: rgba(255, 255, 255, 0.06);
+    -bs-context-menu-background: #1e1e1f;
+    -bs-context-menu-hover: rgba(92, 148, 240, 0.08);
     -bs-content-pane-bg-bottom: #29292a;
     -bs-wizard-backdrop: black;
     -bs-wizard-card-bg: #1c1c1e;
