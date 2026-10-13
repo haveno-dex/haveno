@@ -348,4 +348,17 @@ public class CreateOfferViewModelTest {
         model.amount.set("0.5");
         assertNotEquals(Res.get("createOffer.minSecurityDepositUsed"), model.securityDepositLabel.get());
     }
+
+    @Test
+    public void testRejectedVolumeRestoredOnMarginFocusOut() {
+        model.amount.set("0.0901");
+        String volume = model.volume.get();
+
+        // margin unchanged, so the derived volume is unchanged
+        model.volume.set("0");
+        model.onFocusOutPriceAsPercentageTextField(false, true);
+        model.marketPriceMargin.set("0");
+        model.onFocusOutPriceAsPercentageTextField(true, false);
+        assertEquals(volume, model.volume.get());
+    }
 }

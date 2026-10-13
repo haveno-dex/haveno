@@ -925,6 +925,14 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     // revalidate volume only if input was entered, so an untouched field is not flagged prematurely
     private void triggerFocusOutOnVolumeTextField() {
         if (volume.get() == null || volume.get().isEmpty()) return;
+
+        // replace rejected input with the volume derived from amount and price
+        Volume modelVolume = dataModel.getVolume().get();
+        if (modelVolume != null && !isVolumeInputValid(volume.get()).isValid) {
+            ignoreVolumeStringListener = true;
+            volume.set(VolumeUtil.formatVolume(modelVolume));
+            ignoreVolumeStringListener = false;
+        }
         onFocusOutVolumeTextField(true, false);
     }
 
