@@ -43,7 +43,7 @@ public class Profiler {
             thread.setDaemon(true);
             return thread;
         });
-        executor.scheduleAtFixedRate(Profiler::warnIfMemoryHigh, delay, delay, timeUnit);
+        executor.scheduleWithFixedDelay(Profiler::warnIfMemoryHigh, delay, delay, timeUnit);
     }
 
     private static void warnIfMemoryHigh() {
