@@ -64,6 +64,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
@@ -220,7 +221,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         for (Node node : List.of(statusNote, customEditor, draftBar, pendingBar, remoteNodeLink)) {
             node.managedProperty().bind(node.visibleProperty());
         }
-        source.setItems(FXCollections.observableArrayList(MoneroNodesOption.PROVIDED, MoneroNodesOption.PUBLIC, MoneroNodesOption.CUSTOM));
+        source.setItems(FXCollections.observableArrayList(Stream.of(MoneroNodesOption.PROVIDED, MoneroNodesOption.PUBLIC, MoneroNodesOption.CUSTOM)
+                .filter(this::hasNodes).collect(Collectors.toList()))); // options without nodes on this network are hidden
         source.setConverter(converter(this::sourceName));
         source.setCellFactory(list -> new ListCell<>() {
             @Override protected void updateItem(MoneroNodesOption option, boolean empty) {
@@ -591,14 +593,17 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         return filterManager.getFilter() != null && filterManager.getFilter().isPreventPublicXmrNetwork();
     }
 
+    private boolean hasNodes(MoneroNodesOption option) {
+        return option == MoneroNodesOption.CUSTOM || !(option == MoneroNodesOption.PROVIDED ? xmrNodes.getProvidedXmrNodes() : xmrNodes.getPublicXmrNodes()).isEmpty();
+    }
+
     private boolean sourceAvailable(MoneroNodesOption option) {
-        return option == MoneroNodesOption.CUSTOM || (option == MoneroNodesOption.PROVIDED ? !xmrNodes.getProvidedXmrNodes().isEmpty() :
-                !xmrNodes.getPublicXmrNodes().isEmpty() && !isPublicBlocked());
+        return hasNodes(option) && (option != MoneroNodesOption.PUBLIC || !isPublicBlocked());
     }
 
     private String sourceName(MoneroNodesOption option) {
         String name = text(option == MoneroNodesOption.PROVIDED ? "provided" : option == MoneroNodesOption.PUBLIC ? "public" : "custom");
-        return sourceAvailable(option) ? name : name + " · " + text(option == MoneroNodesOption.PUBLIC && isPublicBlocked() ? "blockedByFilter" : "noneOnNetwork");
+        return sourceAvailable(option) || !hasNodes(option) ? name : name + " · " + text("blockedByFilter");
     }
 
     private void applyFilter() {
