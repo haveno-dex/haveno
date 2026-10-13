@@ -2627,7 +2627,7 @@ public class XmrWalletService extends XmrWalletBase {
             // recover the restore height from the wallet creation date, which encodes it
             restoreHeight = estimateTimestampHeight(user.getWalletCreationDate());
             Long targetHeight = xmrConnectionService.getTargetHeight();
-            if (targetHeight != null) restoreHeight = Math.min(restoreHeight, targetHeight);
+            if (targetHeight != null) restoreHeight = Math.min(restoreHeight, targetHeight - 1); // target height is one past the chain height
         }
         return restoreHeight == null ? walletHeight.get() : Math.max(walletHeight.get(), restoreHeight);
     }
