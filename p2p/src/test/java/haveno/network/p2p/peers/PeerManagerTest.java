@@ -45,6 +45,8 @@ import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
 import haveno.network.p2p.peers.peerexchange.Peer;
 import haveno.network.p2p.peers.peerexchange.PeerExchangeManager;
+import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
+import haveno.network.p2p.peers.peerexchange.messages.GetPeersResponse;
 import haveno.network.p2p.seed.SeedNodeRepository;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.messages.BroadcastMessage;
@@ -514,6 +516,60 @@ public class PeerManagerTest {
         reportFailingPeer(manager, address);
         manager.onDisconnect(CloseConnectionReason.RESET, outboundConnection(address, 0));
         assertTrue(manager.getLivePeers(null).isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testPeerExchangeResponseMatchesPeerBeforeOrAfterSendCompletion(boolean completeSendFirst) {
+        NetworkNode networkNode = mock(NetworkNode.class);
+        PeerManager peerManager = mock(PeerManager.class);
+        NodeAddress address = new NodeAddress("peer.onion:9999");
+        Connection connection = mock(Connection.class);
+        when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(address));
+        when(networkNode.getNodeAddress()).thenReturn(new NodeAddress("self.onion:9999"));
+        when(peerManager.hasSufficientConnections()).thenReturn(true);
+        SettableFuture<Connection> sendFuture = SettableFuture.create();
+        when(networkNode.sendMessage(eq(address), any(GetPeersRequest.class))).thenReturn(sendFuture);
+        try (MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class);
+             MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            Timer timeoutTimer = mock(Timer.class);
+            userThread.when(() -> UserThread.runAfter(any(Runnable.class), anyLong(), any(TimeUnit.class)))
+                    .thenReturn(timeoutTimer);
+            PeerExchangeManager exchange = new PeerExchangeManager(networkNode, mock(SeedNodeRepository.class), peerManager);
+            try {
+                exchange.requestReportedPeersFromSeedNodes(address);
+                ArgumentCaptor<Runnable> delayedSend = ArgumentCaptor.forClass(Runnable.class);
+                threadUtils.verify(() -> ThreadUtils.runAfterRandomDelay(delayedSend.capture(), anyLong(), anyLong(), any(TimeUnit.class)));
+                delayedSend.getValue().run();
+                ArgumentCaptor<GetPeersRequest> request = ArgumentCaptor.forClass(GetPeersRequest.class);
+                verify(networkNode).sendMessage(eq(address), request.capture());
+                ArgumentCaptor<MessageListener> listeners = ArgumentCaptor.forClass(MessageListener.class);
+                verify(networkNode, times(2)).addMessageListener(listeners.capture());
+                MessageListener handler = listeners.getValue();
+                if (completeSendFirst) sendFuture.set(connection);
+
+                GetPeersResponse response = new GetPeersResponse(request.getValue().getNonce(), Set.of());
+                Connection otherConnection = mock(Connection.class);
+                when(otherConnection.getPeersNodeAddressOptional()).thenReturn(Optional.of(new NodeAddress("other.onion:9999")));
+                handler.onMessage(response, otherConnection);
+                when(otherConnection.getPeersNodeAddressOptional()).thenReturn(Optional.empty());
+                handler.onMessage(response, otherConnection);
+                handler.onMessage(new GetPeersResponse(request.getValue().getNonce() + 1, Set.of()), connection);
+                verify(peerManager, never()).addToReportedPeers(any(), any(), any());
+                verify(networkNode, never()).removeMessageListener(handler);
+
+                handler.onMessage(response, connection);
+                verify(peerManager).addToReportedPeers(response.getReportedPeers(), connection, response.getSupportedCapabilities());
+                verify(networkNode).removeMessageListener(handler);
+                verify(timeoutTimer).stop();
+                if (!completeSendFirst) sendFuture.set(connection);
+                handler.onMessage(response, connection);
+                verify(peerManager, times(1)).addToReportedPeers(any(), any(), any());
+                verify(networkNode, times(1)).addMessageListener(handler);
+            } finally {
+                exchange.shutDown();
+            }
+        }
     }
 
     @Test

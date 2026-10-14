@@ -70,6 +70,8 @@ public class PrivateNotificationManager implements MessageListener {
     private PrivateNotificationMessage privateNotificationMessage;
     private final NetworkNode networkNode;
     private Consumer<String> pingResponseHandler = null;
+    private Ping pendingPing;
+    private NodeAddress pingPeersNodeAddress;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -200,16 +202,27 @@ public class PrivateNotificationManager implements MessageListener {
     public void sendPing(NodeAddress peersNodeAddress, Consumer<String> resultHandler) {
         Ping ping = new Ping(new Random().nextInt(), 0);
         log.info("Send Ping to peer {}, nonce={}", peersNodeAddress, ping.getNonce());
-        SettableFuture<Connection> future = networkNode.sendMessage(peersNodeAddress, ping);
+        synchronized (this) {
+            pendingPing = ping;
+            pingPeersNodeAddress = peersNodeAddress;
+            pingResponseHandler = resultHandler;
+            networkNode.addMessageListener(this); // listen before sending so an early pong is not missed
+        }
+        SettableFuture<Connection> future;
+        try {
+            future = networkNode.sendMessage(peersNodeAddress, ping);
+        } catch (RuntimeException e) {
+            stopListening(ping);
+            throw e;
+        }
         Futures.addCallback(future, new FutureCallback<>() {
             @Override
             public void onSuccess(Connection connection) {
-                connection.addMessageListener(PrivateNotificationManager.this);
-                pingResponseHandler = resultHandler;
             }
 
             @Override
             public void onFailure(@NotNull Throwable throwable) {
+                stopListening(ping);
                 String errorMessage = "Sending ping to " + peersNodeAddress.getAddressForDisplay() +
                         " failed. That is expected if the peer is offline.\n\tping=" + ping +
                         ".\n\tException=" + throwable.getMessage();
@@ -219,16 +232,27 @@ public class PrivateNotificationManager implements MessageListener {
         }, MoreExecutors.directExecutor());
     }
 
+    // stops listening unless a newer ping has replaced this one
+    private synchronized void stopListening(Ping ping) {
+        if (pendingPing != ping) return;
+        pendingPing = null;
+        networkNode.removeMessageListener(this);
+    }
+
     @Override
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
         if (networkEnvelope instanceof Pong) {
             Pong pong = (Pong) networkEnvelope;
+            Consumer<String> resultHandler;
+            synchronized (this) {
+                if (pendingPing == null || pong.getRequestNonce() != pendingPing.getNonce()) return;
+                if (!connection.getPeersNodeAddressOptional().filter(address -> address.equals(pingPeersNodeAddress)).isPresent()) return;
+                resultHandler = pingResponseHandler;
+                stopListening(pendingPing);
+            }
             String key = connection.getPeersNodeAddressOptional().get().getFullAddress();
             log.info("Received Pong! {} from {}", pong, key);
-            connection.removeMessageListener(this);
-            if (pingResponseHandler != null) {
-                pingResponseHandler.accept("SUCCESS");
-            }
+            resultHandler.accept("SUCCESS");
         }
     }
 }

@@ -17,6 +17,7 @@
 
 package haveno.network.p2p.network;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.Timer;
 import haveno.common.UserThread;
@@ -26,6 +27,8 @@ import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.slf4j.Logger;
@@ -36,19 +39,27 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.net.Socket;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -149,6 +160,50 @@ public class LocalhostNetworkNodeTest {
         node1.shutDown(shutDownLatch::countDown);
         node2.shutDown(shutDownLatch::countDown);
         shutDownLatch.await();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testSendCompletesOnUserThread(boolean connectionAppearsDuringDial) throws Exception {
+        NodeAddress address = new NodeAddress("localhost", 9999);
+        NetworkNode node = spy(new LocalhostNetworkNode(9001, TestUtils.getNetworkProtoResolver(), null, 2));
+        Connection connection = mock(Connection.class);
+        when(connection.hasPeersNodeAddress()).thenReturn(true);
+        when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(address));
+        when(connection.getStatistic()).thenReturn(mock(Statistic.class));
+        if (connectionAppearsDuringDial) {
+            doReturn(Set.of(), Set.of(connection)).when(node).getAllConnections();
+            doReturn(mock(Socket.class)).when(node).createSocket(address);
+        } else {
+            doReturn(Set.of(connection)).when(node).getAllConnections();
+        }
+        Executor originalExecutor = UserThread.getExecutor();
+        BlockingQueue<Runnable> userTasks = new LinkedBlockingQueue<>();
+        AtomicReference<Thread> callbackThread = new AtomicReference<>();
+        CountDownLatch sendAllowed = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            assertTrue(sendAllowed.await(5, TimeUnit.SECONDS));
+            return null;
+        }).when(connection).sendMessage(any(NetworkEnvelope.class));
+        UserThread.setExecutor(userTasks::add);
+        try {
+            SettableFuture<Connection> future = node.sendMessage(address, new Ping(1, 0));
+            future.addListener(() -> callbackThread.set(Thread.currentThread()), MoreExecutors.directExecutor());
+            assertFalse(future.isDone());
+            sendAllowed.countDown();
+            while (!future.isDone()) {
+                Runnable task = userTasks.poll(5, TimeUnit.SECONDS);
+                assertNotNull(task);
+                task.run();
+            }
+            assertSame(connection, future.get(5, TimeUnit.SECONDS));
+            assertSame(Thread.currentThread(), callbackThread.get());
+        } finally {
+            sendAllowed.countDown();
+            UserThread.setExecutor(originalExecutor);
+            doReturn(Set.of()).when(node).getAllConnections();
+            node.shutDown(null);
+        }
     }
 
     @Test

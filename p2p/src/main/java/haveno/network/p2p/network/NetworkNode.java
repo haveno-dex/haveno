@@ -246,7 +246,7 @@ public abstract class NetworkNode implements MessageListener {
                 });
                 return null;
             });
-            future.thenAccept(resultFuture::set);
+            future.thenAccept(newConnection -> UserThread.execute(() -> resultFuture.set(newConnection)));
 
             return resultFuture;
         }

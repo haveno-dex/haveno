@@ -69,6 +69,7 @@ class PeerExchangeHandler implements MessageListener {
     private final PeerManager peerManager;
     private final Listener listener;
     private final int nonce = new Random().nextInt();
+    private NodeAddress peersNodeAddress;
     private Timer timeoutTimer;
     private Connection connection;
     private boolean stopped;
@@ -141,6 +142,11 @@ class PeerExchangeHandler implements MessageListener {
                             TIMEOUT, TimeUnit.SECONDS);
                 }
 
+                synchronized (this) {
+                    if (stopped) return;
+                    peersNodeAddress = nodeAddress;
+                    networkNode.addMessageListener(this);
+                }
                 try {
                     SettableFuture<Connection> future = networkNode.sendMessage(nodeAddress, getPeersRequest);
                     Futures.addCallback(future, new FutureCallback<Connection>() {
@@ -154,7 +160,6 @@ class PeerExchangeHandler implements MessageListener {
                                 }*/
     
                                 PeerExchangeHandler.this.connection = connection;
-                                connection.addMessageListener(PeerExchangeHandler.this);
                             } else {
                                 log.trace("We have stopped that handler already. We ignore that sendGetPeersRequest.onSuccess call.");
                             }
@@ -189,6 +194,7 @@ class PeerExchangeHandler implements MessageListener {
     @Override
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
         if (networkEnvelope instanceof GetPeersResponse) {
+            if (!connection.getPeersNodeAddressOptional().filter(address -> address.equals(peersNodeAddress)).isPresent()) return;
             if (!stopped) {
                 GetPeersResponse getPeersResponse = (GetPeersResponse) networkEnvelope;
                 // Check if the response is for our request
@@ -227,10 +233,9 @@ class PeerExchangeHandler implements MessageListener {
         listener.onFault(errorMessage, connection);
     }
 
-    private void cleanup() {
+    private synchronized void cleanup() {
         stopped = true;
-        if (connection != null)
-            connection.removeMessageListener(this);
+        networkNode.removeMessageListener(this);
 
         if (timeoutTimer != null) {
             timeoutTimer.stop();
