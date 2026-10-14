@@ -124,6 +124,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     
     @Nullable
     private Timer fillCurrenciesTimer;
+    private Timer filtersHideOffersTimer;
 
     private OfferView.OfferActionHandler offerActionHandler;
 
@@ -133,7 +134,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     boolean isTabSelected;
     String filterText = "";
-    final BooleanProperty filterTextHidesOffers = new SimpleBooleanProperty();
+    final BooleanProperty filtersHideOffers = new SimpleBooleanProperty();
     final BooleanProperty showAllTradeCurrenciesProperty = new SimpleBooleanProperty(true);
     final BooleanProperty disableMatchToggle = new SimpleBooleanProperty();
     final IntegerProperty maxPlacesForAmount = new SimpleIntegerProperty();
@@ -195,6 +196,13 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                 fillCurrenciesTimer = UserThread.runAfter(() -> {
                     fillCurrenciesTimer = null;
                     fillCurrencies();
+                }, 100, TimeUnit.MILLISECONDS);
+            }
+
+            if (filtersHideOffersTimer == null) {
+                filtersHideOffersTimer = UserThread.runAfter(() -> {
+                    filtersHideOffersTimer = null;
+                    updateFiltersHideOffers();
                 }, 100, TimeUnit.MILLISECONDS);
             }
 
@@ -714,11 +722,18 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             });
 
             filteredItems.setPredicate(predicate.and(nextPredicate));
-            filterTextHidesOffers.set(filteredItems.isEmpty() && offerBook.getOfferBookListItems().stream().anyMatch(predicate));
         } else {
             filteredItems.setPredicate(predicate);
-            filterTextHidesOffers.set(false);
         }
+        updateFiltersHideOffers();
+    }
+
+    private void updateFiltersHideOffers() {
+        // active filters hide every offer which would otherwise show for the selected currency and payment method
+        boolean filterActive = !filterText.isEmpty() || useOffersMatchingMyAccountsFilter || showPrivateOffers || (direction == OfferDirection.BUY && showNoDepositOffers);
+        Predicate<OfferBookListItem> unfiltered = getCurrencyAndMethodPredicate(direction, selectedTradeCurrency, true);
+        filtersHideOffers.set(filterActive && filteredItems.isEmpty() && offerBook.getOfferBookListItems().stream()
+                .anyMatch(item -> (matchesOfferType(item) || !item.getOffer().isPrivateOffer()) && unfiltered.test(item)));
     }
 
     private boolean matchesOfferType(OfferBookListItem item) {
