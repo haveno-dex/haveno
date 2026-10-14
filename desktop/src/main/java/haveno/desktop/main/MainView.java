@@ -957,7 +957,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                                                        String helpText, @Nullable ReadOnlyLongProperty count) {
         Circle dot = new Circle(4);
         dot.getStyleClass().add("nav-unread-dot");
-        // preserve unread chat before a trade's deposits are published
+        // show unread activity without open trades, such as dispute chat
         dot.visibleProperty().bind(count == null ? showNotification : showNotification.and(count.isEqualTo(0)));
         // keep the indicators outside layout so the pill and label never shift
         dot.setManaged(false);

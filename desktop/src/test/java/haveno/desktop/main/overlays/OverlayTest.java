@@ -2439,32 +2439,32 @@ public class OverlayTest {
         }
 
         @Test
-        void openTradeCountRestoresPublishedTradesAndSurvivesAcknowledgment() {
+        void openTradeCountRestoresTradesAndSurvivesAcknowledgment() {
             Trade maker = addTrade(true);
             Trade taker = addTrade(false);
             addTrade(true);
             setPhase(maker, Trade.Phase.DEPOSITS_PUBLISHED);
             setPhase(taker, Trade.Phase.DEPOSITS_CONFIRMED);
             notificationCenter.onAllServicesAndViewsInitialized();
-            assertEquals(2, notificationCenter.openTradeCountProperty().get());
+            assertEquals(3, notificationCenter.openTradeCountProperty().get());
             assertTrue(notificationCenter.unreadPortfolioProperty().get());
 
             viewTrade(maker);
             viewTrade(taker);
             assertFalse(notificationCenter.unreadPortfolioProperty().get());
-            assertEquals(2, notificationCenter.openTradeCountProperty().get());
+            assertEquals(3, notificationCenter.openTradeCountProperty().get());
 
             trades.remove(maker);
-            assertEquals(1, notificationCenter.openTradeCountProperty().get());
+            assertEquals(2, notificationCenter.openTradeCountProperty().get());
             trades.remove(taker);
-            assertEquals(0, notificationCenter.openTradeCountProperty().get());
+            assertEquals(1, notificationCenter.openTradeCountProperty().get());
         }
 
         @Test
-        void openTradeCountTracksPublicationRemovalAndRestoration() {
+        void openTradeCountTracksTakeRemovalAndRestoration() {
             notificationCenter.onAllServicesAndViewsInitialized();
             Trade trade = addTrade(true);
-            assertEquals(0, notificationCenter.openTradeCountProperty().get());
+            assertEquals(1, notificationCenter.openTradeCountProperty().get());
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 setPhase(trade, Trade.Phase.DEPOSITS_PUBLISHED);
                 assertEquals(1, notificationCenter.openTradeCountProperty().get());
@@ -2486,7 +2486,7 @@ public class OverlayTest {
             Trade trade = addTrade(false);
             when(trade.isArbitrator()).thenReturn(true);
             notificationCenter.onAllServicesAndViewsInitialized();
-            assertEquals(0, notificationCenter.openTradeCountProperty().get());
+            assertEquals(1, notificationCenter.openTradeCountProperty().get());
             setPhase(trade, Trade.Phase.DEPOSITS_PUBLISHED);
             assertEquals(1, notificationCenter.openTradeCountProperty().get());
             assertFalse(notificationCenter.unreadPortfolioProperty().get());
@@ -2497,7 +2497,7 @@ public class OverlayTest {
         }
 
         @Test
-        void queuedOpenTradeCountUsesCurrentListAndPhases() {
+        void queuedOpenTradeCountUsesCurrentList() {
             notificationCenter.onAllServicesAndViewsInitialized();
             List<Runnable> updates = new ArrayList<>();
             UserThread.setExecutor(updates::add);
@@ -2527,7 +2527,7 @@ public class OverlayTest {
             notificationCenter.onAllServicesAndViewsInitialized();
             assertTrue(hasUnreadChat());
             assertTrue(notificationCenter.unreadPortfolioProperty().get());
-            assertEquals(0, notificationCenter.openTradeCountProperty().get());
+            assertEquals(2, notificationCenter.openTradeCountProperty().get());
 
             markRead(maker);
             assertTrue(hasUnreadChat());
