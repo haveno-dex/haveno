@@ -19,7 +19,6 @@ package haveno.desktop.main.offer.offerbook;
 
 import com.google.common.base.Joiner;
 
-import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -123,10 +122,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     final StringProperty tradeCurrencyCode = new SimpleStringProperty();
     
-    private static final Object processOfferBookListItemsLock = new Object();
     @Nullable
-    private static Timer processOfferBookListItemsTimer;
-    private final String THREAD_ID = OfferBookViewModel.class.getSimpleName();
+    private Timer fillCurrenciesTimer;
 
     private OfferView.OfferActionHandler offerActionHandler;
 
@@ -194,18 +191,11 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
         // refresh on offer changes
         offerBook.getOfferBookListItems().addListener((ListChangeListener<OfferBookListItem>) c -> {
-            synchronized (processOfferBookListItemsLock) {
-                if (processOfferBookListItemsTimer == null) {
-                    processOfferBookListItemsTimer = UserThread.runAfter(() -> {
-                        ThreadUtils.execute(() -> {
-                            offerBook.fillOfferCountMaps();
-                            fillCurrencies();
-                            synchronized (processOfferBookListItemsLock) {
-                                processOfferBookListItemsTimer = null;
-                            }
-                        }, THREAD_ID);
-                    }, 100, TimeUnit.MILLISECONDS);
-                }
+            if (fillCurrenciesTimer == null) {
+                fillCurrenciesTimer = UserThread.runAfter(() -> {
+                    fillCurrenciesTimer = null;
+                    fillCurrencies();
+                }, 100, TimeUnit.MILLISECONDS);
             }
 
             // TODO: This is removed because it's expensive to re-filter offers for every change (high cpu for many offers).

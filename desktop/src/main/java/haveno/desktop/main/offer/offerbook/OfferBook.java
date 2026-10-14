@@ -23,11 +23,8 @@ import com.google.inject.Singleton;
 import haveno.common.UserThread;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferBookService;
-import static haveno.core.offer.OfferDirection.BUY;
 import haveno.network.p2p.storage.P2PDataStorage;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
@@ -46,8 +43,6 @@ import lombok.extern.slf4j.Slf4j;
 public class OfferBook {
     private final OfferBookService offerBookService;
     private final ObservableList<OfferBookListItem> offerBookListItems = FXCollections.observableArrayList();
-    private final Map<String, Integer> buyOfferCountMap = new HashMap<>();
-    private final Map<String, Integer> sellOfferCountMap = new HashMap<>();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -224,7 +219,6 @@ public class OfferBook {
                         .collect(Collectors.toList()));
 
                 log.debug("offerBookListItems.size {}", offerBookListItems.size());
-                fillOfferCountMaps();
             } catch (Throwable t) {
                 log.error("Error at fillOfferBookListItems: " + t);
             }
@@ -245,32 +239,5 @@ public class OfferBook {
                 log.debug(stringBuilder.toString());
             }
         }
-    }
-
-    public Map<String, Integer> getBuyOfferCountMap() {
-        return buyOfferCountMap;
-    }
-
-    public Map<String, Integer> getSellOfferCountMap() {
-        return sellOfferCountMap;
-    }
-
-    public void fillOfferCountMaps() {
-        buyOfferCountMap.clear();
-        sellOfferCountMap.clear();
-        final String[] ccyCode = new String[1];
-        final int[] offerCount = new int[1];
-        offerBookListItems.forEach(o -> {
-            ccyCode[0] = o.getOffer().getCounterCurrencyCode();
-            if (o.getOffer().getDirection() == BUY) {
-                offerCount[0] = buyOfferCountMap.getOrDefault(ccyCode[0], 0) + 1;
-                buyOfferCountMap.put(ccyCode[0], offerCount[0]);
-            } else {
-                offerCount[0] = sellOfferCountMap.getOrDefault(ccyCode[0], 0) + 1;
-                sellOfferCountMap.put(ccyCode[0], offerCount[0]);
-            }
-        });
-        log.debug("buyOfferCountMap.size {}   sellOfferCountMap.size {}",
-                buyOfferCountMap.size(), sellOfferCountMap.size());
     }
 }
