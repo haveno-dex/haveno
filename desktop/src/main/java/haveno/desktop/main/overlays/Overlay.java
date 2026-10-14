@@ -84,6 +84,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
@@ -820,6 +821,14 @@ public abstract class Overlay<T extends Overlay<T>> {
         scrollRoot.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT); // keep the scroll bar at the styled right edge; content keeps its own orientation
         scrollRoot.setFitToWidth(true);
         scrollRoot.setFocusTraversable(false);
+
+        // round the viewport to the card corners (.popup-scroll-shell radius) so scrolled content backgrounds cannot square them
+        Rectangle clip = new Rectangle();
+        clip.setArcWidth(16);
+        clip.setArcHeight(16);
+        clip.widthProperty().bind(scrollRoot.widthProperty());
+        clip.heightProperty().bind(scrollRoot.heightProperty());
+        scrollRoot.setClip(clip);
 
         // the shell paints the card with the bar inside it; the popup-bg and dropshadow styles move
         // along to keep their text styling, while the shell style flattens their insets and shadow
