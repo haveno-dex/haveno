@@ -39,6 +39,13 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.network.p2p.network.NetworkNode;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.scene.Scene;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -51,16 +58,19 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_SELF;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
@@ -72,6 +82,70 @@ import static org.mockito.Mockito.withSettings;
 
 
 public class GUIUtilTest {
+
+    @Test
+    public void testRestoreRepaintsCurrentSceneWithoutChangingColor() {
+        for (Color color : List.of(Color.BLACK, Color.WHITE, Color.TRANSPARENT)) {
+            Stage stage = mock(Stage.class);
+            Scene scene = mock(Scene.class);
+            SimpleBooleanProperty iconified = new SimpleBooleanProperty();
+            SimpleObjectProperty<Paint> fill = new SimpleObjectProperty<>(color);
+            AtomicInteger invalidations = new AtomicInteger();
+            AtomicInteger changes = new AtomicInteger();
+            fill.addListener((InvalidationListener) observable -> invalidations.incrementAndGet());
+            fill.addListener((observable, oldValue, newValue) -> changes.incrementAndGet());
+            when(stage.iconifiedProperty()).thenReturn(iconified);
+            when(stage.isIconified()).thenAnswer(invocation -> iconified.get());
+            when(stage.isShowing()).thenReturn(true);
+            when(scene.fillProperty()).thenReturn(fill);
+            when(scene.getFill()).thenAnswer(invocation -> fill.get());
+            doAnswer(invocation -> {
+                fill.set(invocation.getArgument(0));
+                return null;
+            }).when(scene).setFill(any(Paint.class));
+            ArgumentCaptor<Runnable> repaint = ArgumentCaptor.forClass(Runnable.class);
+            try (MockedStatic<Platform> platform = mockStatic(Platform.class)) {
+                GUIUtil.repaintOnRestore(stage);
+                iconified.set(true);
+                platform.verifyNoInteractions();
+                iconified.set(false);
+                platform.verify(() -> Platform.runLater(repaint.capture()));
+                verifyNoInteractions(scene);
+                when(stage.getScene()).thenReturn(scene); // use the scene present when the deferred repaint runs
+                repaint.getValue().run();
+                assertEquals(color, fill.get());
+                assertNotSame(color, fill.get());
+                assertEquals(1, invalidations.get());
+                assertEquals(0, changes.get());
+            }
+        }
+    }
+
+    @Test
+    public void testRestoreSkipsUnavailableWindowAndBoundFill() {
+        for (String state : List.of("hidden", "minimized", "no scene", "bound fill")) {
+            Stage stage = mock(Stage.class);
+            Scene scene = mock(Scene.class);
+            SimpleBooleanProperty iconified = new SimpleBooleanProperty(true);
+            SimpleObjectProperty<Paint> fill = new SimpleObjectProperty<>(Color.BLACK);
+            when(stage.iconifiedProperty()).thenReturn(iconified);
+            when(stage.isIconified()).thenAnswer(invocation -> iconified.get());
+            when(stage.isShowing()).thenReturn(!state.equals("hidden"));
+            when(stage.getScene()).thenReturn(state.equals("no scene") ? null : scene);
+            when(scene.fillProperty()).thenReturn(fill);
+            when(scene.getFill()).thenReturn(Color.BLACK);
+            if (state.equals("bound fill")) fill.bind(new SimpleObjectProperty<>(Color.BLACK));
+            ArgumentCaptor<Runnable> repaint = ArgumentCaptor.forClass(Runnable.class);
+            try (MockedStatic<Platform> platform = mockStatic(Platform.class)) {
+                GUIUtil.repaintOnRestore(stage);
+                iconified.set(false);
+                platform.verify(() -> Platform.runLater(repaint.capture()));
+                if (state.equals("minimized")) iconified.set(true);
+                repaint.getValue().run();
+                verify(scene, never()).setFill(any(Paint.class));
+            }
+        }
+    }
 
     @Test
     @SuppressWarnings("unchecked")

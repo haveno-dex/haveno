@@ -1349,6 +1349,20 @@ public class GUIUtil {
         }
     }
 
+    public static void repaintOnRestore(Stage stage) {
+        stage.iconifiedProperty().addListener((observable, wasIconified, iconified) -> {
+            if (!iconified) Platform.runLater(() -> {
+                Scene scene = stage.getScene();
+                if (!stage.isShowing() || stage.isIconified() || scene == null || scene.fillProperty().isBound()) return;
+                if (scene.getFill() instanceof Color fill) {
+                    // an equal but distinct fill forces a full repaint and refreshes JavaFX's cached minimized state
+                    // after restore (JDK-8351867), without changing the background color
+                    scene.setFill(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), fill.getOpacity()));
+                }
+            });
+        });
+    }
+
     private static final String CURSOR_REFRESH = "haveno.cursorRefresh";
     private static final String SHADOW_DISMISS = "haveno.shadowDismiss";
     private static Field mouseHandlerField, currCursorField, currCursorFrameField;
