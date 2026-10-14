@@ -180,7 +180,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     private final Map<String, PlaceOfferProtocol> placeOfferProtocols = new HashMap<String, PlaceOfferProtocol>();
     private boolean stopped;
     private final ExecutorService signOfferRequestExecutor = Utilities.getThreadPoolExecutor("SignOfferRequests", 1, 1, 16, 60);
-    private final Set<PublicKey> pendingSignOfferRequests = ConcurrentHashMap.newKeySet();
+    private final Set<Tuple2<PublicKey, String>> pendingSignOfferRequests = ConcurrentHashMap.newKeySet();
     private Timer periodicRepublishOffersTimer, periodicRefreshOffersTimer, retryRepublishOffersTimer;
     @Getter
     private final ObservableList<Tuple2<OpenOffer, String>> invalidOffers = FXCollections.observableArrayList();
@@ -1873,17 +1873,19 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
 
         // overload must time out: older makers treat every nack as a permanently invalid offer
-        if (!pendingSignOfferRequests.add(signatureKey)) return;
+        // coalesce redelivered requests only, since one maker may sign several offers concurrently
+        Tuple2<PublicKey, String> pendingRequest = new Tuple2<>(signatureKey, request.getUid());
+        if (!pendingSignOfferRequests.add(pendingRequest)) return;
         try {
             signOfferRequestExecutor.execute(() -> {
                 try {
                     if (!signOfferRequestExecutor.isShutdown()) handleSignOfferRequest(request, peer);
                 } finally {
-                    pendingSignOfferRequests.remove(signatureKey);
+                    pendingSignOfferRequests.remove(pendingRequest);
                 }
             });
         } catch (RejectedExecutionException e) {
-            pendingSignOfferRequests.remove(signatureKey);
+            pendingSignOfferRequests.remove(pendingRequest);
             log.debug("Ignoring SignOfferRequest because signing is busy or shutting down");
         }
     }

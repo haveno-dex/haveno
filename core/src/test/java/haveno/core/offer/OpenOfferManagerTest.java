@@ -1025,7 +1025,7 @@ public class OpenOfferManagerTest {
     }
 
     @Test
-    public void testSigningDoesNotBlockDispatchAndCoalescesAuthenticatedSender() throws Exception {
+    public void testSigningDoesNotBlockDispatchAndCoalescesRedeliveredRequests() throws Exception {
         CountDownLatch release = new CountDownLatch(1);
         try (SigningRequestContext context = new SigningRequestContext()) {
             CountDownLatch verifying = new CountDownLatch(1);
@@ -1044,8 +1044,10 @@ public class OpenOfferManagerTest {
                 PubKeyRing changedEncryptionKey = mock(PubKeyRing.class);
                 PublicKey signatureKey = context.makerKeys.getSignaturePubKey();
                 when(changedEncryptionKey.getSignaturePubKey()).thenReturn(signatureKey);
-                context.receive(context.request("same-signer", changedEncryptionKey));
+                context.receive(context.request("offer", changedEncryptionKey));
                 assertTrue(context.executor.getQueue().isEmpty());
+                context.receive(context.request("same-signer", context.makerKeys));
+                assertEquals(1, context.executor.getQueue().size());
                 verify(context.p2p, never()).sendEncryptedDirectMessage(any(), any(), any(AckMessage.class), any());
 
                 OfferAvailabilityRequest availability = mock(OfferAvailabilityRequest.class);
@@ -1065,7 +1067,7 @@ public class OpenOfferManagerTest {
             context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
             context.receive(request);
             context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
-            verify(context.walletService, times(2)).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+            verify(context.walletService, times(3)).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
         } finally {
             release.countDown();
         }
