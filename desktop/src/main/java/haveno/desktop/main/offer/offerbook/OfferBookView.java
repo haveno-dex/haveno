@@ -145,7 +145,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     private ListChangeListener<OfferBookListItem> offerListListener;
     private ChangeListener<Number> priceFeedUpdateCounterListener;
     private Subscription currencySelectionSubscriber;
-    private Subscription filterTextHidesOffersSubscriber;
+    private Subscription filtersHideOffersSubscriber;
     private static final int SHOW_ALL = 0;
     private Label disabledCreateOfferButtonTooltip;
     protected VBox currencyComboBoxContainer;
@@ -512,7 +512,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         model.getOfferList().addListener(offerListListener);
         nrOfOffersLabel.setText(Res.get("offerbook.nrOffers", model.getOfferList().size()));
-        filterTextHidesOffersSubscriber = EasyBind.subscribe(model.filterTextHidesOffers, hides ->
+        filtersHideOffersSubscriber = EasyBind.subscribe(model.filtersHideOffers, hides ->
                 GUIUtil.updateFilterPlaceholder(tableView, hides));
 
         model.priceFeedService.updateCounterProperty().addListener(priceFeedUpdateCounterListener);
@@ -583,7 +583,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         model.priceFeedService.updateCounterProperty().removeListener(priceFeedUpdateCounterListener);
 
         currencySelectionSubscriber.unsubscribe();
-        filterTextHidesOffersSubscriber.unsubscribe();
+        filtersHideOffersSubscriber.unsubscribe();
     }
 
     static class CurrencyStringConverter extends StringConverter<TradeCurrency> {
