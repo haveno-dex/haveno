@@ -291,7 +291,7 @@ public class NotificationCenter {
     }
 
     private void refreshOpenTradeCount() {
-        openTradeCount.set(snapshot(tradeManager.getObservableList()).stream().filter(Trade::isDepositsPublished).count());
+        openTradeCount.set(snapshot(tradeManager.getObservableList()).size());
     }
 
     private void refreshChatState() {
@@ -476,7 +476,6 @@ public class NotificationCenter {
         Trade.Phase phase = trade.getPhase();
         boolean payoutPublished = trade.isPayoutPublished();
         UserThread.execute(() -> {
-            refreshOpenTradeCount();
             refreshTradeNotification(trade, previousPhase);
             // restored activity keeps its dot without replaying its popup
             // phase changes cannot create a new milestone after payout publication
@@ -488,7 +487,6 @@ public class NotificationCenter {
     }
 
     private void onArbitratorTradePhaseChanged(Trade trade, Trade.Phase phase) {
-        UserThread.execute(this::refreshOpenTradeCount);
         if (!trade.isPayoutPublished() || trade.isCompleted()) return;
         String key = tradeNotificationKey(trade, phase.name());
         UserThread.execute(() -> {
