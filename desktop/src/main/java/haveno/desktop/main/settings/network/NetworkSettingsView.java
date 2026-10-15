@@ -315,7 +315,6 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
         moneroConnectionsTableView.setRowFactory(table -> new TableRow<>() {
             @Override protected void updateItem(MoneroNetworkListItem item, boolean empty) {
                 super.updateItem(item, empty);
-                pseudoClassStateChanged(ACTIVE, !empty && item != null && item.isCurrent());
                 setPrefHeight(!empty && item != null && hasSubtitle(item) ? 54 : 40);
             }
         });

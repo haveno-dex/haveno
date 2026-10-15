@@ -94,7 +94,6 @@
 .network-settings .network-table .table-row-cell:filled:even { -fx-background-color: -bs-color-background-row-even; }
 .network-settings .network-table .table-row-cell:filled:odd { -fx-background-color: -bs-color-background-row-odd; }
 .network-settings .network-table .table-row-cell:filled:hover { -fx-background-color: -bs-color-background-row-hover; }
-.network-settings .network-table .table-row-cell:filled:active { -fx-background-color: -bs-color-background-row-even, -network-active; }
 .network-settings .network-nodes .table-row-cell:filled:selected { -fx-background-color: -bs-color-background-row-even, -network-selected; }
 .network-settings .network-table .table-row-cell:filled .table-cell {
     -fx-background-color: transparent; -fx-border-width: 0;
