@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
@@ -146,6 +147,8 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.Coin;
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -295,9 +298,13 @@ public class GUIUtil {
 
 
     public static byte[] generateQrCodePng(String data, int width, int height) {
+        return generateQrCodePng(data, width, height, Map.of());
+    }
+
+    public static byte[] generateQrCodePng(String data, int width, int height, Map<EncodeHintType, ?> hints) {
         try {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
-            BitMatrix bitMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, width, height);
+            BitMatrix bitMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, width, height, hints);
             ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
             MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
             return pngOutputStream.toByteArray();
@@ -2031,6 +2038,10 @@ public class GUIUtil {
         return getBigXmrQrCodePane(BIG_QR_CODE_SIZE);
     }
 
+    public static Tuple2<StackPane, ImageView> getBigQrCodePane() {
+        return getQrCodePane(BIG_QR_CODE_SIZE, null);
+    }
+
     public static Tuple2<StackPane, ImageView> getBigXmrQrCodePane(int qrCodeSize) {
         int baseLogoSize = disablePaymentUriLabel ? 47 : 45; // logo size at the default code size
         int logoSize = (int) Math.round((double) baseLogoSize * qrCodeSize / BIG_QR_CODE_SIZE);
@@ -2101,14 +2112,17 @@ public class GUIUtil {
     }
 
     private static Tuple2<StackPane, ImageView> getXmrQrCodePane(int qrCodeSize, int logoSize, int logoBorderWidth) {
+        Tuple2<StackPane, ImageView> qrCodeTuple = getQrCodePane(qrCodeSize, GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode(), logoSize, logoBorderWidth));
+        qrCodeTuple.first.setCursor(Cursor.HAND);
+        return qrCodeTuple;
+    }
+
+    private static Tuple2<StackPane, ImageView> getQrCodePane(int qrCodeSize, @Nullable Node logo) {
         ImageView qrCodeImageView = new ImageView();
         qrCodeImageView.setFitHeight(qrCodeSize);
         qrCodeImageView.setFitWidth(qrCodeSize);
-        qrCodeImageView.getStyleClass().add("qr-code");
 
-        StackPane xmrLogo = GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode(), logoSize, logoBorderWidth);
-        StackPane qrCodePane = new StackPane(qrCodeImageView, xmrLogo);
-        qrCodePane.setCursor(Cursor.HAND);
+        StackPane qrCodePane = logo == null ? new StackPane(qrCodeImageView) : new StackPane(qrCodeImageView, logo);
         qrCodePane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         // round the corners, with the shadow on a wrapper so the clip does not cut it off

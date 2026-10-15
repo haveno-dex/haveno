@@ -24,10 +24,13 @@ import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.Res;
+import haveno.core.monetary.Volume;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.AssetAccountPayload;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.payload.SepaAccountPayload;
+import haveno.core.payment.payload.SepaInstantAccountPayload;
 import haveno.core.trade.Trade;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.desktop.main.MainView;
@@ -118,6 +121,7 @@ import haveno.desktop.components.paymentmethods.VippsMobilePayForm;
 import haveno.desktop.components.paymentmethods.WeChatPayForm;
 import haveno.desktop.components.paymentmethods.WesternUnionForm;
 import haveno.desktop.main.overlays.popups.Popup;
+import haveno.desktop.main.overlays.windows.SepaQRCodeWindow;
 import haveno.desktop.main.portfolio.pendingtrades.PendingTradesViewModel;
 import haveno.desktop.main.portfolio.pendingtrades.steps.TradeStepView;
 import haveno.desktop.main.portfolio.pendingtrades.TradeFormPane;
@@ -136,6 +140,8 @@ import javafx.scene.layout.Region;
 
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
+
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static haveno.desktop.util.FormBuilder.addButtonBusyAnimationLabel;
@@ -563,6 +569,7 @@ public class BuyerStep2View extends TradeStepView {
         detailsTitle.setWrapText(true);
         detailsTitle.getStyleClass().add("trade-section-heading");
         copyAll = new Hyperlink(Res.get("portfolio.pending.tradeView.copyAll"));
+        copyAll.setMinWidth(Region.USE_PREF_SIZE);
         copyFeedback = new PauseTransition(Duration.seconds(1));
         copyFeedback.setOnFinished(event -> copyAll.setText(Res.get("portfolio.pending.tradeView.copyAll")));
         copyAll.setOnAction(event -> {
@@ -573,9 +580,15 @@ public class BuyerStep2View extends TradeStepView {
         boolean hasInlineDetails = !paymentMethodId.equals(PaymentMethod.SWIFT_ID) && !paymentFields.getPaymentDetails().isEmpty();
         copyAll.setVisible(hasInlineDetails);
         copyAll.setManaged(hasInlineDetails);
+        String epcPayload = getSepaEpcPayload(paymentAccountPayload, trade.getVolume());
+        Hyperlink showQrCode = new Hyperlink(Res.get("portfolio.pending.tradeView.showQrCode"));
+        showQrCode.setMinWidth(Region.USE_PREF_SIZE);
+        showQrCode.setOnAction(event -> new SepaQRCodeWindow(epcPayload).show());
+        showQrCode.setVisible(epcPayload != null);
+        showQrCode.setManaged(epcPayload != null);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox detailsHeading = new HBox(12, detailsTitle, spacer, copyAll);
+        HBox detailsHeading = new HBox(12, detailsTitle, spacer, showQrCode, copyAll);
         detailsHeading.setAlignment(Pos.CENTER_LEFT);
         paymentAccountGridPane.add(detailsHeading, 0, actionRow++, 2, 1);
         paymentAccountGridPane.add(paymentFields, 0, actionRow++, 2, 1);
@@ -592,6 +605,14 @@ public class BuyerStep2View extends TradeStepView {
         confirmButton.setOnAction(e -> onPaymentSent());
         busyAnimation = tuple3.second;
         paymentDetailsLabel = tuple3.third;
+    }
+
+    // offered only with the matching form, so the encoded details are the displayed ones
+    @Nullable
+    private String getSepaEpcPayload(PaymentAccountPayload payload, Volume volume) {
+        if (payload instanceof SepaAccountPayload sepa && PaymentMethod.SEPA_ID.equals(sepa.getPaymentMethodId())) return SepaQRCodeWindow.getEpcPayload(sepa.getHolderName(), sepa.getBic(), sepa.getIban(), volume);
+        if (payload instanceof SepaInstantAccountPayload sepa && PaymentMethod.SEPA_INSTANT_ID.equals(sepa.getPaymentMethodId())) return SepaQRCodeWindow.getEpcPayload(sepa.getHolderName(), sepa.getBic(), sepa.getIban(), volume);
+        return null;
     }
 
     private void createRecommendationGridPane() {
