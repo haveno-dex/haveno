@@ -2683,10 +2683,6 @@ textfield */
  * Images                                                                      *
  *                                                                             *
  ******************************************************************************/
-.qr-code {
-    -fx-cursor: hand;
-}
-
 .qr-code-pane {
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 12, 0, 0, 3);
 }
