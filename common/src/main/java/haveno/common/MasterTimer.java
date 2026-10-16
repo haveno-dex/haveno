@@ -32,7 +32,8 @@ public class MasterTimer {
     public static final long FRAME_INTERVAL_MS = 100;
 
     static {
-        timer.scheduleAtFixedRate(new TimerTask() {
+        // fixed delay runs once after a clock jump instead of catching up each missed frame
+        timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 UserThread.execute(() -> listeners.forEach(Runnable::run));

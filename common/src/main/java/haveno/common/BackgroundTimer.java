@@ -57,7 +57,8 @@ public class BackgroundTimer implements Timer {
     public Timer runPeriodically(Duration interval, Runnable runnable) {
         if (stopped.get()) return this;
 
-        ScheduledFuture<?> future = SHARED_SCHEDULER.scheduleAtFixedRate(() -> {
+        // fixed delay runs once after a clock jump instead of catching up each missed period
+        ScheduledFuture<?> future = SHARED_SCHEDULER.scheduleWithFixedDelay(() -> {
             ThreadUtils.execute(wrap(runnable), "BackgroundThread");
         }, interval.toMillis(), interval.toMillis(), TimeUnit.MILLISECONDS);
 

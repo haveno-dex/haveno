@@ -1,6 +1,5 @@
 package haveno.common.reactfx;
 
-import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.util.Duration;
@@ -19,7 +18,7 @@ public class FxTimer implements Timer {
      * Prepares a (stopped) timer that lasts for {@code delay} and whose action runs when timer <em>ends</em>.
      */
     public static Timer create(java.time.Duration delay, Runnable action) {
-        return new FxTimer(delay, delay, action, 1);
+        return new FxTimer(delay, delay, action, false);
     }
 
     /**
@@ -36,7 +35,7 @@ public class FxTimer implements Timer {
      * when the timer <em>ends</em>.
      */
     public static Timer createPeriodic(java.time.Duration interval, Runnable action) {
-        return new FxTimer(interval, interval, action, Animation.INDEFINITE);
+        return new FxTimer(interval, interval, action, true);
     }
 
     /**
@@ -53,7 +52,7 @@ public class FxTimer implements Timer {
      * when the timer <em>starts</em>.
      */
     public static Timer createPeriodic0(java.time.Duration interval, Runnable action) {
-        return new FxTimer(java.time.Duration.ZERO, interval, action, Animation.INDEFINITE);
+        return new FxTimer(java.time.Duration.ZERO, interval, action, true);
     }
 
     /**
@@ -68,20 +67,20 @@ public class FxTimer implements Timer {
     private final Duration actionTime;
     private final Timeline timeline;
     private final Runnable action;
+    private final boolean periodic;
 
     private long seq = 0;
 
-    private FxTimer(java.time.Duration actionTime, java.time.Duration period, Runnable action, int cycles) {
+    private FxTimer(java.time.Duration actionTime, java.time.Duration period, Runnable action, boolean periodic) {
         this.actionTime = Duration.millis(actionTime.toMillis());
         this.timeline = new Timeline();
         this.action = action;
+        this.periodic = periodic && period.toMillis() > 0; // a zero period would restart recursively from play()
 
         timeline.getKeyFrames().add(new KeyFrame(this.actionTime)); // used as placeholder
         if (period != actionTime) {
             timeline.getKeyFrames().add(new KeyFrame(Duration.millis(period.toMillis())));
         }
-
-        timeline.setCycleCount(cycles);
     }
 
     @Override
@@ -93,6 +92,11 @@ public class FxTimer implements Timer {
                 action.run();
             }
         }));
+
+        // restart each cycle, as an indefinite timeline fires once per elapsed cycle after a clock jump
+        if (periodic) timeline.setOnFinished(ae -> {
+            if (seq == expected) timeline.playFromStart();
+        });
         timeline.play();
     }
 
