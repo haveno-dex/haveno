@@ -365,6 +365,14 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
                     });
         }
 
+        // add disabled auto-confirm settings for supported crypto payments
+        for (String cryptoCode : List.of("BTC", "LTC", "ETH", "USDT-ERC20", "USDC-ERC20", "DAI-ERC20")) {
+            if (findAutoConfirmSettings(cryptoCode).isEmpty()) {
+                AutoConfirmSettings.getDefault(new ArrayList<>(AutoConfirmSettings.getDefaultCryptoServiceAddresses(cryptoCode)), cryptoCode)
+                        .ifPresent(settings -> getAutoConfirmSettingsList().add(settings));
+            }
+        }
+
         // enable sounds by default for existing clients (protobuf does not express that new field is unset)
         if (!prefPayload.isUseSoundForNotificationsInitialized()) {
             prefPayload.setUseSoundForNotificationsInitialized(true);

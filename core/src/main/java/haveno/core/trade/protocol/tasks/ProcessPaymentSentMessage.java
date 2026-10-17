@@ -21,6 +21,7 @@ import haveno.common.ThreadUtils;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
+import haveno.core.trade.txproof.CryptoAutoConfirmService;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.core.util.Validator;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +71,9 @@ public class ProcessPaymentSentMessage extends TradeTask {
             // update state
             trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
             trade.requestPersistence();
+
+            // start opt-in auto-confirmation of crypto payments if enabled
+            CryptoAutoConfirmService.onPaymentSentMessageProcessed(trade);
             complete();
         } catch (Throwable t) {
             failed(t);
