@@ -18,44 +18,45 @@
 package haveno.desktop.main.overlays.windows.downloadupdate;
 
 import com.google.common.collect.Lists;
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import haveno.common.file.FileUtil;
+import haveno.network.Socks5ProxyProvider;
+import haveno.network.http.Socks5FileDownloader;
 import javafx.concurrent.Task;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
+import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Getter
 public class DownloadTask extends Task<List<HavenoInstaller.FileDescriptor>> {
-    private static final int EOF = -1;
-    private static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
+    private static final int CONNECT_TIMEOUT_MS = 30_000;
+    private static final int READ_TIMEOUT_MS = 60_000;
     private String fileName = null;
     private final List<HavenoInstaller.FileDescriptor> fileDescriptors;
     private final String saveDir;
+    @Nullable
+    private final Socks5ProxyProvider socks5ProxyProvider;
 
     /**
      * Prepares a task to download a file from {@code fileDescriptors} to the system's download dir.
      */
     public DownloadTask(final HavenoInstaller.FileDescriptor fileDescriptor) {
-        this(Lists.newArrayList(fileDescriptor));
+        this(Lists.newArrayList(fileDescriptor), System.getProperty("java.io.tmpdir"), null);
     }
 
     public DownloadTask(final HavenoInstaller.FileDescriptor fileDescriptor, final String saveDir) {
-        this(Lists.newArrayList(fileDescriptor), saveDir);
+        this(Lists.newArrayList(fileDescriptor), saveDir, null);
     }
 
     public DownloadTask(final List<HavenoInstaller.FileDescriptor> fileDescriptors) {
-        this(Lists.newArrayList(fileDescriptors), System.getProperty("java.io.tmpdir"));
+        this(Lists.newArrayList(fileDescriptors), System.getProperty("java.io.tmpdir"), null);
     }
 
     /**
@@ -64,10 +65,12 @@ public class DownloadTask extends Task<List<HavenoInstaller.FileDescriptor>> {
      * @param fileDescriptors HTTP URL of the file to be downloaded
      * @param saveDir         path of the directory to save the file
      */
-    public DownloadTask(final List<HavenoInstaller.FileDescriptor> fileDescriptors, final String saveDir) {
+    public DownloadTask(final List<HavenoInstaller.FileDescriptor> fileDescriptors, final String saveDir,
+                        @Nullable final Socks5ProxyProvider socks5ProxyProvider) {
         super();
         this.fileDescriptors = fileDescriptors;
         this.saveDir = saveDir;
+        this.socks5ProxyProvider = socks5ProxyProvider;
         log.info("Starting DownloadTask with file:{}, saveDir:{}, nr of files: {}", fileDescriptors, saveDir, fileDescriptors.size());
     }
 
@@ -110,32 +113,21 @@ public class DownloadTask extends Task<List<HavenoInstaller.FileDescriptor>> {
             FileUtil.renameFile(outputFile, new File(outputFile.getAbsolutePath() + ".backup"));
         }
 
-        URLConnection urlConnection = url.openConnection();
-        urlConnection.connect();
-        int fileSize = urlConnection.getContentLength();
-        copyInputStreamToFileNew(urlConnection.getInputStream(), outputFile, fileSize);
+        boolean isHttp = Socks5FileDownloader.isHttpOrHttps(url);
+        Socks5Proxy socks5Proxy = isHttp ? getSocks5Proxy() : null;
+        if (isHttp && socks5Proxy == null) {
+            log.warn("No SOCKS5/Tor proxy available; downloading update file directly, which exposes the real IP address.");
+        }
+        Socks5FileDownloader.download(url, outputFile, socks5Proxy, CONNECT_TIMEOUT_MS, READ_TIMEOUT_MS,
+                (bytesRead, totalBytes) -> {
+                    log.trace("Progress: {}/{}", bytesRead, totalBytes);
+                    updateProgress(bytesRead, totalBytes);
+                });
     }
 
-    public void copyInputStreamToFileNew(final InputStream source, final File destination, int fileSize) throws IOException {
-        try {
-            final FileOutputStream output = FileUtils.openOutputStream(destination);
-            try {
-                final byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
-                long count = 0;
-                int n;
-                while (EOF != (n = source.read(buffer))) {
-                    output.write(buffer, 0, n);
-                    count += n;
-                    log.trace("Progress: {}/{}", count, fileSize);
-                    updateProgress(count, fileSize);
-                }
-                output.close(); // don't swallow close Exception if copy completes normally
-            } finally {
-                IOUtils.closeQuietly(output);
-            }
-        } finally {
-            IOUtils.closeQuietly(source);
-        }
+    @Nullable
+    private Socks5Proxy getSocks5Proxy() {
+        return socks5ProxyProvider == null ? null : socks5ProxyProvider.getSocks5ProxyForHttp();
     }
 }
 

@@ -27,6 +27,7 @@ commons-csv = "1.14.1"
 jetbrains-annotations = "26.1.0"
 jfoenix = "9.0.10"
 jopt = "5.0.4"
+jsocks = "8bfc68c58d443b0ea03a8e8ec352e120fd020127"
 jsonrpc4j = "1.6.0.bisq.1"
 jupiter = "6.1.0"
 kotlin = "2.3.21"
@@ -81,6 +82,7 @@ jetbrains-annotations = { module = "org.jetbrains:annotations", version.ref = "j
 javax-annotation-api = { module = "javax.annotation:javax.annotation-api", version.ref = "javax-annotation" }
 jfoenix = { module = "com.jfoenix:jfoenix", version.ref = "jfoenix" }
 jopt-simple = { module = "net.sf.jopt-simple:jopt-simple", version.ref = "jopt" }
+jsocks = { module = "com.github.bisq-network:jsocks", version.ref = "jsocks" }
 jsonrpc4j = { module = "com.github.bisq-network:jsonrpc4j", version.ref = "jsonrpc4j" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "jupiter" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "jupiter" }
