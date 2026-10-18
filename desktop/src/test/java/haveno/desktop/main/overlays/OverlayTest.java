@@ -1547,6 +1547,7 @@ public class OverlayTest {
         void setUp() throws ReflectiveOperationException {
             resetQueue();
             scheduler = mockStatic(UserThread.class);
+            scheduler.when(() -> UserThread.isUserThread(any())).thenReturn(true);
             scheduler.when(() -> UserThread.runAfter(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS))).thenAnswer(invocation -> {
                 timeouts.add(invocation.getArgument(0));
                 delays.add(invocation.getArgument(1));

@@ -403,13 +403,13 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
             }
         });
         
-        havenoSetup.setDisplayTorNetworkSettingsHandler(show -> {
+        havenoSetup.setDisplayTorNetworkSettingsHandler(show -> UserThread.execute(() -> {
             if (show) {
                 torNetworkSettingsWindow.show();
             } else if (torNetworkSettingsWindow.isDisplayed()) {
                 torNetworkSettingsWindow.hide();
             }
-        });
+        }));
 
         havenoSetup.setChainFileLockedExceptionHandler(msg -> new Popup().warning(msg)
                 .useShutDownButton()
