@@ -294,6 +294,11 @@ public abstract class Overlay<T extends Overlay<T>> {
     }
 
     protected void animateHide() {
+        // stage changes must run on the user thread
+        if (!UserThread.isUserThread(Thread.currentThread())) {
+            UserThread.execute(this::animateHide);
+            return;
+        }
         if (hiding) return;
         hiding = true;
         displayGeneration++;

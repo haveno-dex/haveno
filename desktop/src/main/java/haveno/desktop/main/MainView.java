@@ -670,7 +670,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
 
         splashP2PNetworkBusyAnimation = new BusyAnimation(false);
 
-        splashP2PNetworkErrorMsgListener = (ov, oldValue, newValue) -> {
+        splashP2PNetworkErrorMsgListener = (ov, oldValue, newValue) -> UserThread.execute(() -> {
             if (newValue != null) {
                 splashP2PNetworkLabel.setId("splash-error-state-msg");
                 splashP2PNetworkLabel.getStyleClass().remove("sub-info");
@@ -688,7 +688,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                 splashP2PNetworkBusyAnimation.setDisable(false);
                 splashP2PNetworkBusyAnimation.play();
             }
-        };
+        });
         model.getP2pNetworkWarnMsg().addListener(splashP2PNetworkErrorMsgListener);
 
         ImageView splashP2PNetworkIcon = new ImageView();
@@ -722,10 +722,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
         };
         model.getP2PNetworkIconId().addListener(splashP2PNetworkIconIdListener);
 
-        splashP2PNetworkVisibleListener = (ov, oldValue, newValue) -> {
+        splashP2PNetworkVisibleListener = (ov, oldValue, newValue) -> UserThread.execute(() -> {
             splashP2PNetworkBusyAnimation.setDisable(!newValue);
             if (newValue) splashP2PNetworkBusyAnimation.play();
-        };
+        });
 
         model.getSplashP2PNetworkAnimationVisible().addListener(splashP2PNetworkVisibleListener);
 
