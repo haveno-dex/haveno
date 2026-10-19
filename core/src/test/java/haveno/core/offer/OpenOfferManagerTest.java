@@ -80,6 +80,7 @@ import static haveno.core.offer.OfferMaker.btcUsdOffer;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -1297,6 +1298,46 @@ public class OpenOfferManagerTest {
         }
     }
 
+    @Test
+    public void testEditPublishReplacesEqualOpenOffer() throws Exception {
+        keyRing.generateKeys(null);
+        User user = mock(User.class);
+        NodeAddress arbitratorAddress = new NodeAddress("arbitrator:9999");
+        Arbitrator arbitrator = new Arbitrator(arbitratorAddress, keyRing.getPubKeyRing(), List.of("en"), 0, new byte[0], "", null, null, null);
+        when(user.getAcceptedArbitratorByAddress(arbitratorAddress)).thenReturn(arbitrator);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
+        when(xmrConnectionService.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class)) {
+            userThread.when(() -> UserThread.runAfter(any(Runnable.class), anyLong(), any(TimeUnit.class))).thenReturn(mock(Timer.class));
+            threadUtils.when(() -> ThreadUtils.execute(any(Runnable.class), anyString())).thenAnswer(invocation -> {
+                invocation.<Runnable>getArgument(0).run();
+                return null;
+            });
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), mock(OfferBookService.class), xmrConnectionService, null, user);
+            OpenOffer openOffer = new OpenOffer(make(btcUsdOffer.but(with(OfferMaker.pubKeyRing, keyRing.getPubKeyRing()))));
+            OfferPayload payload = openOffer.getOffer().getOfferPayload();
+            payload.setArbitratorSigner(arbitratorAddress);
+            payload.setArbitratorSignature(HavenoUtils.signOffer(payload, keyRing));
+            openOffer.setState(OpenOffer.State.DEACTIVATED);
+            manager.getObservableList().add(openOffer);
+            Offer editedOffer = new Offer(payload);
+            assertEquals(openOffer, new OpenOffer(editedOffer, 0, openOffer)); // an unchanged edit is equal by value
+            ResultHandler success = mock(ResultHandler.class);
+
+            manager.editOpenOfferPublish(editedOffer, 0, OpenOffer.State.DEACTIVATED, success, mock(ErrorMessageHandler.class));
+
+            verify(success).handleResult();
+            List<OpenOffer> openOffers = manager.getOpenOffers();
+            assertEquals(1, openOffers.size());
+            assertSame(editedOffer, openOffers.get(0).getOffer());
+            assertEquals(OpenOffer.State.CANCELED, openOffer.getState());
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
     private OpenOfferManager createOfferManager(P2PService p2PService,
                                                 OfferBookService offerBookService,
                                                 XmrConnectionService xmrConnectionService) {
@@ -1307,9 +1348,17 @@ public class OpenOfferManagerTest {
                                                 OfferBookService offerBookService,
                                                 XmrConnectionService xmrConnectionService,
                                                 XmrWalletService xmrWalletService) {
+        return createOfferManager(p2PService, offerBookService, xmrConnectionService, xmrWalletService, null);
+    }
+
+    private OpenOfferManager createOfferManager(P2PService p2PService,
+                                                OfferBookService offerBookService,
+                                                XmrConnectionService xmrConnectionService,
+                                                XmrWalletService xmrWalletService,
+                                                User user) {
         return new OpenOfferManager(coreContext,
                 null,
-                null,
+                user,
                 p2PService,
                 xmrConnectionService,
                 null,
