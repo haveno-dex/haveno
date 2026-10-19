@@ -17,7 +17,6 @@
 
 package haveno.core.support.messages;
 
-import haveno.core.locale.Res;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Attachment;
 import haveno.core.support.dispute.Dispute;
@@ -86,6 +85,8 @@ public final class ChatMessage extends SupportMessage {
     private final BooleanProperty acknowledgedProperty;
     private final StringProperty sendMessageErrorProperty;
     private final StringProperty ackErrorProperty;
+    // local only, so later delivery results outrank it
+    private final transient BooleanProperty ackTimedOutProperty = new SimpleBooleanProperty();
 
     public ChatMessage(SupportType supportType,
                     String tradeId,
@@ -310,14 +311,17 @@ public final class ChatMessage extends SupportMessage {
     public void startAckTimer() {
         UserThread.runAfter(() -> {
             if (!this.getAcknowledgedProperty().get() && !this.getStoredInMailboxProperty().get() && this.ackErrorProperty.get() == null && this.getSendMessageErrorProperty().get() == null) {
-                this.setArrived(false);
-                this.setAckError(Res.get("support.errorTimeout"));
+                this.ackTimedOutProperty.set(true);
             }
         }, 60, TimeUnit.SECONDS);
     }
 
     public ReadOnlyBooleanProperty acknowledgedProperty() {
         return acknowledgedProperty;
+    }
+
+    public ReadOnlyBooleanProperty ackTimedOutProperty() {
+        return ackTimedOutProperty;
     }
 
     public void setSendMessageError(String sendMessageError) {
