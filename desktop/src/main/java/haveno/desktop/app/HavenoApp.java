@@ -203,20 +203,30 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
     }
 
     public void showLoginFailure(Throwable failure, Runnable onShutdown) {
-        showStartupFailure(Res.get("password.startup.failed",
-                Objects.requireNonNullElse(failure.getMessage(), failure.toString())), onShutdown);
+        showStartupFailure(Res.get("password.startup.failed", getMessage(failure)), onShutdown, true);
     }
 
-    private void showStartupFailure(String text, Runnable onShutdown) {
+    public void showStartupFailure(Throwable failure, Runnable onShutdown) {
+        showStartupFailure(Res.get("startup.failed", getMessage(failure)), onShutdown, false);
+    }
+
+    private static String getMessage(Throwable failure) {
+        return Objects.requireNonNullElse(failure.getMessage(), failure.toString());
+    }
+
+    private void showStartupFailure(String text, Runnable onShutdown, boolean offerPasswordRecovery) {
         Label message = new AutoTooltipLabel(text);
         message.setWrapText(true);
         message.setMaxWidth(StartupWizard.PAGE_WIDTH);
         Button quitButton = new AutoTooltipButton(Res.get("shared.shutDown"));
         quitButton.setOnAction(event -> onShutdown.run());
-        Hyperlink recovery = new Hyperlink(Res.get("password.recovery.link"));
-        recovery.setWrapText(true);
-        recovery.setOnAction(event -> openPasswordRecovery(error -> message.setText(text + "\n\n" + error)));
-        VBox content = new VBox(20, message, quitButton, recovery);
+        VBox content = new VBox(20, message, quitButton);
+        if (offerPasswordRecovery) {
+            Hyperlink recovery = new Hyperlink(Res.get("password.recovery.link"));
+            recovery.setWrapText(true);
+            recovery.setOnAction(event -> openPasswordRecovery(error -> message.setText(text + "\n\n" + error)));
+            content.getChildren().add(recovery);
+        }
         content.setMaxWidth(StartupWizard.PAGE_WIDTH);
         startupShell = getOrCreateShell();
         startupShell.setContent(content);

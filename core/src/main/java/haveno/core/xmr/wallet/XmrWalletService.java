@@ -2228,7 +2228,7 @@ public class XmrWalletService extends XmrWalletBase {
                 getMoneroWalletRpcPath(),
                 "--rpc-login",
                 MONERO_WALLET_RPC_USERNAME + ":" + MONERO_WALLET_RPC_DEFAULT_PASSWORD,
-                "--wallet-dir", walletDir.toString()));
+                "--wallet-dir", walletDir.getAbsolutePath()));
 
         // omit --mainnet flag since it does not exist
         if (MONERO_NETWORK_TYPE != MoneroNetworkType.MAINNET) {

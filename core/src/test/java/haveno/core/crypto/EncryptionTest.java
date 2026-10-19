@@ -22,20 +22,24 @@ import com.google.protobuf.ByteString;
 import com.google.inject.Injector;
 import haveno.common.UserThread;
 import haveno.common.config.BaseCurrencyNetwork;
+import haveno.common.config.Config;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
+import haveno.common.handlers.ResultHandler;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.setup.CommonSetup;
+import haveno.common.util.Utilities;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
 import haveno.core.api.CoreApi;
 import haveno.core.app.AppStartupState;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoExecutable;
+import haveno.core.app.HavenoSetup;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -87,6 +91,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -105,6 +110,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -1774,6 +1780,216 @@ public class EncryptionTest {
                 verify(wallet).changePassword(WalletPasswordChange.normalizePassword(oldPassword), WalletPasswordChange.normalizePassword(newPassword));
             }
             assertFalse(account.isPasswordRecoveryRequired());
+        }
+    }
+
+    @Test
+    public void testRpcStartupIgnoresOtherWalletDirectoriesAndExecutables() {
+        File executable = new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME);
+        ProcessHandle otherDir = walletRpcProcess(executable, new File(dir, "other-wallets"), null);
+        ProcessHandle otherExecutable = walletRpcProcess(new File(dir, "other/" + executable.getName()), walletDir, null);
+        ProcessHandle exited = walletRpcProcess(executable, walletDir, null);
+        doReturn(false).when(exited).isAlive();
+        ProcessHandle undescribed = mock(ProcessHandle.class);
+        doThrow(new RuntimeException("sysctl failed")).when(undescribed).info();
+        assertDoesNotThrow(() -> checkWalletRpcProcesses(executable, undescribed, otherDir, otherExecutable, exited));
+    }
+
+    @Test
+    public void testRpcStartupRecognizesReplacedLinuxExecutables() {
+        File executable = new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME);
+        ProcessHandle process = walletRpcProcess(executable, walletDir, null);
+        ProcessHandle.Info info = process.info();
+        doReturn(Optional.of(executable.getAbsolutePath() + " (deleted)")).when(info).command();
+        try (var utilities = mockStatic(Utilities.class)) {
+            utilities.when(Utilities::isLinux).thenReturn(true);
+            assertThrows(IllegalStateException.class, () -> checkWalletRpcProcesses(executable, process));
+        }
+    }
+
+    @Test
+    public void testApplicationChecksProcessesWithoutRepeatingOnWalletConstruction() throws Exception {
+        HavenoExecutable executable = mock(HavenoExecutable.class, CALLS_REAL_METHODS);
+        Config config = mock(Config.class);
+        setField(Config.class, config, "walletDir", walletDir);
+        setField(HavenoExecutable.class, executable, "config", config);
+        Method check = HavenoExecutable.class.getDeclaredMethod("checkForRunningWalletProcesses");
+        check.setAccessible(true);
+        try (var manager = mockStatic(MoneroWalletRpcManager.class);
+                var service = mockStatic(XmrWalletService.class, CALLS_REAL_METHODS)) {
+            service.when(XmrWalletService::getMoneroWalletRpcPath).thenReturn(new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME).getPath());
+            check.invoke(executable);
+            walletService(account(null));
+            manager.verify(() -> MoneroWalletRpcManager.checkForRunningProcesses(new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME), walletDir));
+            manager.verifyNoMoreInteractions();
+        }
+    }
+
+    @Test
+    public void testStartupProcessCheckKeepsUserThreadResponsiveAndGatesStartup() throws Exception {
+        Executor previousExecutor = UserThread.getExecutor();
+        ExecutorService userExecutor = Executors.newSingleThreadExecutor();
+        UserThread.setExecutor(userExecutor);
+        Method launch = HavenoExecutable.class.getDeclaredMethod("onApplicationLaunched");
+        launch.setAccessible(true);
+        Method shutdown = HavenoExecutable.class.getDeclaredMethod("beginGracefulShutDown", ResultHandler.class);
+        shutdown.setAccessible(true);
+        Method restart = HavenoExecutable.class.getDeclaredMethod("shutDownNoPersist", Runnable.class, boolean.class);
+        restart.setAccessible(true);
+        try {
+            for (String outcome : List.of("success", "check failure", "check error", "service failure")) {
+                for (String stop : List.of("none", "shutdown", "restart")) {
+                    CountDownLatch checking = new CountDownLatch(1);
+                    CountDownLatch resume = new CountDownLatch(1);
+                    AtomicReference<Thread> checkThread = new AtomicReference<>();
+                    AtomicInteger logins = new AtomicInteger();
+                    AtomicInteger reads = new AtomicInteger();
+                    AtomicReference<Throwable> reportedFailure = new AtomicReference<>();
+                    CompletableFuture<Thread> completed = new CompletableFuture<>();
+                    Throwable failure = outcome.equals("check error") ? new NoClassDefFoundError("injected " + outcome) : new IllegalStateException("injected " + outcome);
+                    HavenoExecutable executable = mock(HavenoExecutable.class,
+                            withSettings().useConstructor("", "", "", "").defaultAnswer(invocation -> {
+                                switch (invocation.getMethod().getName()) {
+                                    case "configUserThread", "setupGuice", "setupAvoidStandbyMode":
+                                        return null;
+                                    case "checkForRunningWalletProcesses":
+                                        checkThread.set(Thread.currentThread());
+                                        checking.countDown();
+                                        assertTrue(resume.await(10, TimeUnit.SECONDS));
+                                        if (outcome.startsWith("check")) throw failure;
+                                        return null;
+                                    case "loginAccount":
+                                        logins.incrementAndGet();
+                                        return CompletableFuture.completedFuture(true);
+                                    case "readAllPersisted":
+                                        reads.incrementAndGet();
+                                        if (outcome.equals("service failure")) throw failure;
+                                        ((Runnable) invocation.getArgument(0)).run();
+                                        return null;
+                                    case "startApplication":
+                                        completed.complete(Thread.currentThread());
+                                        return null;
+                                    case "onStartupFailed":
+                                        reportedFailure.set(invocation.getArgument(0));
+                                        completed.complete(Thread.currentThread());
+                                        return null;
+                                    default:
+                                        return CALLS_REAL_METHODS.answer(invocation);
+                                }
+                            }));
+                    Injector injector = mock(Injector.class);
+                    doReturn(mock(CoreAccountService.class)).when(injector).getInstance(CoreAccountService.class);
+                    setField(HavenoExecutable.class, executable, "injector", injector);
+                    try {
+                        CompletableFuture.runAsync(() -> {
+                            try (var setup = mockStatic(CommonSetup.class); var havenoSetup = mockStatic(HavenoSetup.class)) {
+                                assertDoesNotThrow(() -> launch.invoke(executable));
+                            }
+                        }, userExecutor).get(10, TimeUnit.SECONDS);
+                        assertTrue(checking.await(10, TimeUnit.SECONDS));
+                        Thread userThread = CompletableFuture.supplyAsync(Thread::currentThread, userExecutor).get(10, TimeUnit.SECONDS);
+                        assertFalse(userThread == checkThread.get());
+                        assertEquals(0, logins.get());
+                        assertEquals(0, reads.get());
+                        assertFalse(completed.isDone());
+
+                        CompletableFuture.runAsync(() -> {
+                            if (stop.equals("shutdown")) assertDoesNotThrow(() -> shutdown.invoke(executable, mock(ResultHandler.class)));
+                            if (stop.equals("restart")) assertDoesNotThrow(() -> restart.invoke(executable, null, true));
+                        }, userExecutor).get(10, TimeUnit.SECONDS);
+                        resume.countDown();
+                        checkThread.get().join(10000);
+                        assertFalse(checkThread.get().isAlive());
+                        userExecutor.submit(() -> {}).get(10, TimeUnit.SECONDS);
+
+                        if (stop.equals("none")) {
+                            assertSame(userThread, completed.get(10, TimeUnit.SECONDS));
+                            assertSame(outcome.equals("success") ? null : failure, reportedFailure.get());
+                        } else {
+                            assertFalse(completed.isDone());
+                            assertNull(reportedFailure.get());
+                        }
+                        int expectedLogins = stop.equals("none") && !outcome.startsWith("check") ? 1 : 0;
+                        assertEquals(expectedLogins, logins.get());
+                        assertEquals(expectedLogins, reads.get());
+                    } finally {
+                        resume.countDown();
+                        if (checkThread.get() != null) checkThread.get().join(10000);
+                    }
+                }
+            }
+        } finally {
+            UserThread.setExecutor(previousExecutor);
+            userExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testRpcStartupBlocksExistingProcessesRegardlessOfParent() {
+        File executable = new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME);
+        for (ProcessHandle parent : Arrays.asList(null, parentProcess(1, "/sbin/init"),
+                parentProcess(4242, "/usr/lib/systemd/systemd"), parentProcess(Long.MAX_VALUE, "/usr/lib/jvm/bin/java"), ProcessHandle.current())) {
+            ProcessHandle process = walletRpcProcess(executable, new File(walletDir, "../wallet"), parent);
+            doReturn(4243L).when(process).pid();
+            IllegalStateException error = assertThrows(IllegalStateException.class, () -> checkWalletRpcProcesses(executable, process));
+            assertTrue(error.getMessage().contains("monero-wallet-rpc process 4243"));
+        }
+    }
+
+    @Test
+    public void testRpcStartupBlocksUnverifiableWalletDirectories() {
+        File executable = new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME);
+        for (String[] args : Arrays.asList(null, new String[0], new String[] {"--wallet-dir"},
+                new String[] {"--wallet-dir", "relative/wallet"}, new String[] {"--wallet-dir=relative/wallet"}, new String[] {"--wallet-dir="})) {
+            ProcessHandle process = walletRpcProcess(executable, walletDir, null);
+            ProcessHandle.Info info = process.info();
+            doReturn(Optional.ofNullable(args)).when(info).arguments();
+            assertThrows(IllegalStateException.class, () -> checkWalletRpcProcesses(executable, process));
+        }
+    }
+
+    @Test
+    public void testRpcStartupRecognizesEqualsWalletDirectory() {
+        File executable = new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME);
+        for (File wallets : List.of(walletDir, new File(dir, "other wallets"))) {
+            ProcessHandle process = walletRpcProcess(executable, wallets, null);
+            ProcessHandle.Info info = process.info();
+            doReturn(Optional.of(new String[] {"--wallet-dir=" + wallets.getAbsolutePath()})).when(info).arguments();
+            if (wallets.equals(walletDir)) assertThrows(IllegalStateException.class, () -> checkWalletRpcProcesses(executable, process));
+            else assertDoesNotThrow(() -> checkWalletRpcProcesses(executable, process));
+        }
+    }
+
+    private ProcessHandle walletRpcProcess(File executable, File wallets, ProcessHandle parent) {
+        ProcessHandle process = mock(ProcessHandle.class);
+        ProcessHandle.Info info = mock(ProcessHandle.Info.class);
+        doReturn(info).when(process).info();
+        doReturn(Optional.of(executable.getAbsolutePath())).when(info).command();
+        doReturn(Optional.of(new String[] {"--wallet-dir", wallets.getAbsolutePath()})).when(info).arguments();
+        doReturn(Optional.ofNullable(parent)).when(process).parent();
+        doReturn(true).when(process).isAlive();
+        return process;
+    }
+
+    private ProcessHandle parentProcess(long pid, String command) {
+        ProcessHandle parent = mock(ProcessHandle.class);
+        ProcessHandle.Info info = mock(ProcessHandle.Info.class);
+        doReturn(info).when(parent).info();
+        doReturn(Optional.of(command)).when(info).command();
+        doReturn(pid).when(parent).pid();
+        doReturn(true).when(parent).isAlive();
+        return parent;
+    }
+
+    private void checkWalletRpcProcesses(File executable, ProcessHandle... processes) {
+        try (var handles = mockStatic(ProcessHandle.class)) {
+            handles.when(ProcessHandle::allProcesses).thenReturn(Stream.of(processes));
+            MoneroWalletRpcManager.checkForRunningProcesses(executable, walletDir);
+        } finally {
+            for (ProcessHandle process : processes) {
+                verify(process, never()).destroy();
+                verify(process, never()).destroyForcibly();
+            }
         }
     }
 

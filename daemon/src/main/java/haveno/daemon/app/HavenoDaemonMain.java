@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HavenoDaemonMain extends HavenoHeadlessAppMain {
 
     private GrpcServer grpcServer;
+    private volatile ConsoleInput loginReader;
 
     public static void main(String[] args) {
         var keepRunning = true;
@@ -138,6 +139,7 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
 
     @Override
     public void gracefulShutDown(ResultHandler resultHandler, boolean exit) {
+        if (loginReader != null) loginReader.cancel(); // a pending login must not read input meant for a restarted daemon
         if (grpcServer != null) { // null if shutting down early
             grpcServer.shutdown(); // stop accepting api calls first so clients polling during a restart cannot reach the old server
             if (!exit) grpcServer.awaitTermination(); // let a delete or restore reply out before tor goes down; on exit the stop call replies after the shutdown
@@ -165,9 +167,7 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
 
                 // Nonblocking, we need to stop if the login occurred through rpc.
                 ConsoleInput reader = new ConsoleInput(Integer.MAX_VALUE, Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
-                Thread t = new Thread(() -> {
-                    interactiveLogin(reader);
-                });
+                loginReader = reader;
 
                 // Handle asynchronous account opens.
                 // Will need to also close and reopen account.
@@ -186,19 +186,21 @@ public class HavenoDaemonMain extends HavenoHeadlessAppMain {
                 // start server after the listener is registered
                 grpcServer.start();
 
-                try {
-                    // Wait until interactive login or rpc. Check one more time if account is open to close race condition.
-                    if (!accountService.isAccountOpen()) {
-                        log.info("Interactive login required");
-                        t.start();
-                        t.join();
-                    }
-                } catch (InterruptedException e) {
-                    // expected
+                // Wait off the user thread until interactive login or rpc. Check one more time if account is open to close race condition.
+                if (accountService.isAccountOpen()) {
+                    accountService.removeListener(accountListener);
+                    inputResult.complete(true);
+                } else {
+                    log.info("Interactive login required");
+                    new Thread(() -> {
+                        try {
+                            interactiveLogin(reader);
+                        } finally {
+                            accountService.removeListener(accountListener);
+                            UserThread.execute(() -> inputResult.complete(accountService.isAccountOpen()));
+                        }
+                    }, "Interactive-login").start();
                 }
-
-                accountService.removeListener(accountListener);
-                inputResult.complete(accountService.isAccountOpen());
             }
         } catch (InterruptedException | ExecutionException e) {
             inputResult.completeExceptionally(e);
