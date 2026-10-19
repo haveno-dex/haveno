@@ -756,8 +756,7 @@ public class OverlayTest {
             assertEquals(List.of(dispute), view.items());
             disputes.remove(dispute);
 
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             reply(dispute);
             assertTrue(updates.isEmpty());
         }
@@ -765,8 +764,7 @@ public class OverlayTest {
         @Test
         void queuedRefreshDoesNotUndoAnExplicitFilterChangeOrRevisit() {
             Dispute dispute = addDispute("trade", false, agent);
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             reply(dispute);
             view.selectFilter("CLOSED");
             List.copyOf(updates).forEach(Runnable::run);
@@ -2500,8 +2498,7 @@ public class OverlayTest {
         @Test
         void queuedOpenTradeCountUsesCurrentList() {
             notificationCenter.onAllServicesAndViewsInitialized();
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             Trade removed = addTrade(true);
             Trade retained = addTrade(false);
             setPhase(removed, Trade.Phase.DEPOSITS_PUBLISHED);
@@ -2795,8 +2792,7 @@ public class OverlayTest {
         void dispatchesUnreadUpdatesThroughUserThread() {
             Trade trade = addTrade(true);
             notificationCenter.onAllServicesAndViewsInitialized();
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             trade.getChatMessages().add(message(trade, true));
             assertFalse(hasUnreadChat());
             assertFalse(updates.isEmpty());
@@ -3472,8 +3468,7 @@ public class OverlayTest {
             viewTrade(trade);
             assertTrue(notificationCenter.unreadPortfolioProperty().get());
             assertTrue(seenUpdates.isEmpty());
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             mainWindowFocused.set(true);
             keyPressedHandler.handle(mock(KeyEvent.class));
             mainWindowFocused.set(false);
@@ -3657,8 +3652,7 @@ public class OverlayTest {
             setPhase(trade, Trade.Phase.DEPOSITS_CONFIRMED);
             seenUpdates.put("NotificationCenter_DEPOSITS_PUBLISHED" + trade.getId(), true);
             notificationCenter.onAllServicesAndViewsInitialized();
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 seenUpdates.clear();
                 setPhase(trade, Trade.Phase.DEPOSITS_UNLOCKED);
@@ -3673,8 +3667,7 @@ public class OverlayTest {
         void queuedTradeUpdatesUseLatestStateAndIgnoreRemovedTrades() {
             notificationCenter.onAllServicesAndViewsInitialized();
             Trade trade = addTrade(false);
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 setPhase(trade, Trade.Phase.DEPOSITS_UNLOCKED);
                 setPhase(trade, Trade.Phase.DEPOSITS_FINALIZED);
@@ -3694,8 +3687,7 @@ public class OverlayTest {
         void startupSuppressionSurvivesQueuedCallbacksAndNextConfirmation() {
             Trade trade = addTrade(true);
             setPhase(trade, Trade.Phase.DEPOSITS_PUBLISHED);
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 notificationCenter.onAllServicesAndViewsInitialized();
                 drainUpdates(updates);
@@ -3746,8 +3738,7 @@ public class OverlayTest {
         void makerAcceptanceSurvivesDepositsConfirmingBeforeQueuedUpdatesRun() {
             notificationCenter.onAllServicesAndViewsInitialized();
             Trade trade = addTrade(true);
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 setPhase(trade, Trade.Phase.DEPOSITS_PUBLISHED);
                 setPhase(trade, Trade.Phase.DEPOSITS_CONFIRMED);
@@ -3760,8 +3751,7 @@ public class OverlayTest {
         @Test
         void newTradeStillNotifiesIfItAdvancesBeforeSubscriptionsAttach() {
             notificationCenter.onAllServicesAndViewsInitialized();
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 Trade trade = addTrade(true);
                 setPhase(trade, Trade.Phase.DEPOSITS_PUBLISHED);
@@ -3776,8 +3766,7 @@ public class OverlayTest {
         void startupRestoreDoesNotSuppressAMilestoneReachedBeforeItRuns() {
             Trade trade = addTrade(true);
             setPhase(trade, Trade.Phase.DEPOSITS_CONFIRMED);
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 notificationCenter.onAllServicesAndViewsInitialized();
                 // the trade state advances before its queued phase update and the restore refresh run
@@ -3796,8 +3785,7 @@ public class OverlayTest {
             Trade trade = addTrade(true);
             setPhase(trade, Trade.Phase.PAYMENT_SENT);
             setPayout(trade, Trade.PayoutState.PAYOUT_PUBLISHED);
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 notificationCenter.onAllServicesAndViewsInitialized();
                 // the phase advances before its property update, but the payout was already published
@@ -3819,8 +3807,7 @@ public class OverlayTest {
         void startupRestoreDoesNotSuppressAPayoutPublishedBeforeItRuns() {
             Trade trade = addTrade(true);
             setPhase(trade, Trade.Phase.PAYMENT_SENT);
-            List<Runnable> updates = new ArrayList<>();
-            UserThread.setExecutor(updates::add);
+            List<Runnable> updates = captureUpdates();
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 notificationCenter.onAllServicesAndViewsInitialized();
                 // the payout advances before its queued property update and the restore refresh run
@@ -3918,6 +3905,17 @@ public class OverlayTest {
         private boolean hasUnreadChat() {
             return notificationCenter.unreadTradeChatProperty().get();
         }
+    }
+
+    // capture dispatches from the test thread only; timer threads keep running theirs directly
+    private static List<Runnable> captureUpdates() {
+        Thread testThread = Thread.currentThread();
+        List<Runnable> updates = new ArrayList<>();
+        UserThread.setExecutor(update -> {
+            if (Thread.currentThread() == testThread) updates.add(update);
+            else update.run();
+        });
+        return updates;
     }
 
     private static class A extends Overlay<A> {
