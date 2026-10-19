@@ -65,6 +65,7 @@ import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -1270,9 +1271,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         extraInfoTextArea.setPromptText(Res.get("payment.shared.extraInfo.prompt.offer"));
         extraInfoTextArea.getStyleClass().add("text-area");
         extraInfoTextArea.setWrapText(true);
-        extraInfoTextArea.setPrefHeight(75);
-        extraInfoTextArea.setMinHeight(75);
-        extraInfoTextArea.setMaxHeight(75);
+        GUIUtil.adjustHeightAutomatically(extraInfoTextArea, 300d, false);
+        extraInfoTextArea.minHeightProperty().bind(Bindings.max(75d, extraInfoTextArea.prefHeightProperty())); // grow with text; page scrolls instead of shrinking box on short windows
         extraInfoTextArea.setFocusTraversable(false);
         GridPane.setRowIndex(extraInfoTextArea, gridRow);
         GridPane.setColumnSpan(extraInfoTextArea, GridPane.REMAINING);
