@@ -125,6 +125,7 @@ public class GrpcServer {
         coreAccountService.addListener(new AccountServiceListener() {
             @Override public void onAccountDeleted(Runnable onShutdown) { shutdown(); }
             @Override public void onAccountRestored(Runnable onShutdown) { shutdown(); }
+            @Override public void onWalletRestored(Runnable onShutdown) { shutdown(); }
         });
         try {
             server.start();

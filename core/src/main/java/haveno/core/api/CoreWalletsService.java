@@ -47,6 +47,7 @@ import haveno.core.api.model.BalancesInfo;
 import haveno.core.api.model.BtcBalanceInfo;
 import haveno.core.api.model.XmrBalanceInfo;
 import haveno.core.app.AppStartupState;
+import haveno.core.offer.OpenOfferManager;
 import haveno.core.user.Preferences;
 import haveno.core.util.FormattingUtils;
 import static haveno.core.util.ParsingUtils.parseToCoin;
@@ -59,8 +60,14 @@ import static haveno.core.xmr.wallet.Restrictions.getMinNonDustOutput;
 import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
 import static java.lang.String.format;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -80,6 +87,10 @@ import org.bouncycastle.crypto.params.KeyParameter;
 @Slf4j
 class CoreWalletsService {
 
+    private static final long MAX_RESTORE_HEIGHT = (1L << 53) - 1; // matches the TypeScript client's safe integer limit
+
+    private record WalletImport(String seed, Long restoreHeight, LocalDate restoreDate) {}
+
     private final AppStartupState appStartupState;
     private final CoreAccountService accountService;
     private final CoreContext coreContext;
@@ -88,6 +99,7 @@ class CoreWalletsService {
     private final WalletsSetup walletsSetup;
     private final BtcWalletService btcWalletService;
     private final XmrWalletService xmrWalletService;
+    private final OpenOfferManager openOfferManager;
     private final CoinFormatter btcFormatter;
 
     @Nullable
@@ -105,6 +117,7 @@ class CoreWalletsService {
                               WalletsSetup walletsSetup,
                               BtcWalletService btcWalletService,
                               XmrWalletService xmrWalletService,
+                              OpenOfferManager openOfferManager,
                               @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                               Preferences preferences) {
         this.appStartupState = appStartupState;
@@ -115,6 +128,7 @@ class CoreWalletsService {
         this.walletsSetup = walletsSetup;
         this.btcWalletService = btcWalletService;
         this.xmrWalletService = xmrWalletService;
+        this.openOfferManager = openOfferManager;
         this.btcFormatter = btcFormatter;
     }
 
@@ -141,6 +155,59 @@ class CoreWalletsService {
             default:
                 throw new IllegalStateException("Unsupported currency code: " + currencyCode.trim().toUpperCase());
         }
+    }
+
+    void createAccountFromSeed(String password, String seed, Long restoreHeight, String restoreDate) {
+        if (accountService.accountExists()) throw new IllegalStateException("Cannot create account if account already exists");
+        WalletImport walletImport = parseWalletImport(seed, restoreHeight, restoreDate);
+        accountService.createAccount(password, () -> xmrWalletService.createMainWalletFromSeed(walletImport.seed(), walletImport.restoreHeight(), walletImport.restoreDate()));
+    }
+
+    /** Validate a required seed with its optional restore height or date. */
+    private WalletImport parseWalletImport(String seed, Long restoreHeight, String restoreDate) {
+        seed = seed == null ? "" : seed.trim().replaceAll("\\s+", " ");
+        restoreDate = restoreDate == null ? "" : restoreDate.trim();
+        if (seed.isEmpty()) throw new IllegalArgumentException("Wallet seed is required");
+        if (restoreHeight != null && (restoreHeight < 0 || restoreHeight > MAX_RESTORE_HEIGHT)) throw new IllegalArgumentException("Restore height must be between 0 and " + MAX_RESTORE_HEIGHT);
+        LocalDate date = null;
+        if (!restoreDate.isEmpty()) {
+            if (restoreHeight != null) throw new IllegalArgumentException("Specify either a restore height or a restore date");
+            if (!restoreDate.matches("\\d{4}-\\d{2}-\\d{2}")) throw new IllegalArgumentException("Restore date must be a valid YYYY-MM-DD date");
+            try {
+                date = LocalDate.parse(restoreDate);
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Restore date must be a valid YYYY-MM-DD date");
+            }
+            if (date.isAfter(LocalDate.now(ZoneOffset.UTC))) throw new IllegalArgumentException("Restore date cannot be in the future (UTC)");
+        }
+        if (!xmrWalletService.isSeedValid(seed)) throw new IllegalArgumentException("Invalid wallet seed");
+        return new WalletImport(seed, restoreHeight, date);
+    }
+
+    void restoreXmrWalletFromSeed(String seed, Long restoreHeight, String restoreDate) {
+        accountService.checkAccountOpen();
+        verifyWalletsAreAvailable();
+        verifyEncryptedWalletIsUnlocked();
+        WalletImport walletImport = parseWalletImport(seed, restoreHeight, restoreDate);
+        if (!Boolean.TRUE.equals(xmrWalletService.getXmrConnectionService().isConnected())) throw new IllegalStateException("Cannot restore wallet because there is no connection to Monero daemon"); // before offers are removed, which cannot be undone
+
+        // wait off the user thread until published offers have been removed before replacing the wallet,
+        // allowing the manager's propagation delay of 200 ms per offer on top of the removals themselves
+        long timeoutMs = TimeUnit.MINUTES.toMillis(2) + 200L * openOfferManager.getOpenOffers().size();
+        CountDownLatch removed = new CountDownLatch(1);
+        AtomicReference<String> removalError = new AtomicReference<>();
+        openOfferManager.removeAllOpenOffers(removed::countDown, error -> {
+            removalError.set(error);
+            removed.countDown();
+        });
+        try {
+            if (!removed.await(timeoutMs, TimeUnit.MILLISECONDS)) throw new IllegalStateException("Timed out removing open offers before restoring wallet");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted removing open offers before restoring wallet", e);
+        }
+        if (removalError.get() != null) throw new IllegalStateException(removalError.get());
+        xmrWalletService.restoreWalletFromSeed(walletImport.seed(), walletImport.restoreHeight(), walletImport.restoreDate());
     }
 
     String getXmrSeed() {

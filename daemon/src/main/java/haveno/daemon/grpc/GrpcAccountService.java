@@ -34,17 +34,21 @@ import static haveno.proto.grpc.AccountGrpc.getAccountExistsMethod;
 import static haveno.proto.grpc.AccountGrpc.getBackupAccountMethod;
 import static haveno.proto.grpc.AccountGrpc.getChangePasswordMethod;
 import static haveno.proto.grpc.AccountGrpc.getCloseAccountMethod;
+import static haveno.proto.grpc.AccountGrpc.getCreateAccountFromSeedMethod;
 import static haveno.proto.grpc.AccountGrpc.getCreateAccountMethod;
 import static haveno.proto.grpc.AccountGrpc.getDeleteAccountMethod;
 import static haveno.proto.grpc.AccountGrpc.getIsAccountOpenMethod;
 import static haveno.proto.grpc.AccountGrpc.getOpenAccountMethod;
 import static haveno.proto.grpc.AccountGrpc.getRestoreAccountMethod;
+import static haveno.proto.grpc.AccountGrpc.getRestoreXmrWalletFromSeedMethod;
 import haveno.proto.grpc.BackupAccountReply;
 import haveno.proto.grpc.BackupAccountRequest;
 import haveno.proto.grpc.ChangePasswordReply;
 import haveno.proto.grpc.ChangePasswordRequest;
 import haveno.proto.grpc.CloseAccountReply;
 import haveno.proto.grpc.CloseAccountRequest;
+import haveno.proto.grpc.CreateAccountFromSeedReply;
+import haveno.proto.grpc.CreateAccountFromSeedRequest;
 import haveno.proto.grpc.CreateAccountReply;
 import haveno.proto.grpc.CreateAccountRequest;
 import haveno.proto.grpc.DeleteAccountReply;
@@ -57,6 +61,8 @@ import haveno.proto.grpc.OpenAccountReply;
 import haveno.proto.grpc.OpenAccountRequest;
 import haveno.proto.grpc.RestoreAccountReply;
 import haveno.proto.grpc.RestoreAccountRequest;
+import haveno.proto.grpc.RestoreXmrWalletFromSeedReply;
+import haveno.proto.grpc.RestoreXmrWalletFromSeedRequest;
 import io.grpc.ServerInterceptor;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
@@ -113,6 +119,18 @@ public class GrpcAccountService extends AccountImplBase {
             coreApi.createAccount(req.getPassword());
             var reply = CreateAccountReply.newBuilder()
                     .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void createAccountFromSeed(CreateAccountFromSeedRequest req, StreamObserver<CreateAccountFromSeedReply> responseObserver) {
+        try {
+            coreApi.createAccountFromSeed(req.getPassword(), req.getSeed(), req.hasRestoreHeight() ? req.getRestoreHeight() : null, req.getRestoreDate());
+            var reply = CreateAccountFromSeedReply.newBuilder().build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         } catch (Throwable cause) {
@@ -257,6 +275,18 @@ public class GrpcAccountService extends AccountImplBase {
         }
     }
 
+    @Override
+    public void restoreXmrWalletFromSeed(RestoreXmrWalletFromSeedRequest req, StreamObserver<RestoreXmrWalletFromSeedReply> responseObserver) {
+        try {
+            coreApi.restoreXmrWalletFromSeed(req.getSeed(), req.hasRestoreHeight() ? req.getRestoreHeight() : null, req.getRestoreDate(), null);
+            var reply = RestoreXmrWalletFromSeedReply.newBuilder().build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Throwable cause) {
+            exceptionHandler.handleAccountException(log, cause, responseObserver);
+        }
+    }
+
     final ServerInterceptor[] interceptors() {
         Optional<ServerInterceptor> rateMeteringInterceptor = rateMeteringInterceptor();
         return rateMeteringInterceptor.map(serverInterceptor ->
@@ -272,10 +302,12 @@ public class GrpcAccountService extends AccountImplBase {
                             put(getChangePasswordMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getCloseAccountMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getCreateAccountMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
+                            put(getCreateAccountFromSeedMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getDeleteAccountMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getIsAccountOpenMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getOpenAccountMethod().getFullMethodName(), new GrpcCallRateMeter(10, SECONDS));
                             put(getRestoreAccountMethod().getFullMethodName(), new GrpcCallRateMeter(5, SECONDS));
+                            put(getRestoreXmrWalletFromSeedMethod().getFullMethodName(), new GrpcCallRateMeter(5, SECONDS));
                         }}
                 )));
     }

@@ -108,6 +108,17 @@ public class PreferencesTest {
     }
 
     @Test
+    public void testExplicitNativeWalletOptionAppliesBeforePreferencesAreRead() {
+        assertFalse(preferences.isUseNativeXmrWallet());
+        preferences.setUseNativeXmrWallet(true);
+        assertTrue(preferences.isUseNativeXmrWallet());
+        Preferences pinned = new Preferences(persistenceManager, new Config("--useNativeXmrWallet=true"), null, null);
+        assertTrue(pinned.isUseNativeXmrWallet());
+        pinned.setUseNativeXmrWallet(false);
+        assertTrue(pinned.isUseNativeXmrWallet());
+    }
+
+    @Test
     public void testConcurrentFallbackDoesNotOverwriteSavedNetworkSettings() throws Exception {
         PreferencesPayload payload = spy(new PreferencesPayload());
         payload.setMoneroNodesOptionOrdinal(MoneroNodesOption.PUBLIC.ordinal());
