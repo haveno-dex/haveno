@@ -93,6 +93,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -1335,6 +1336,81 @@ public class OpenOfferManagerTest {
             assertEquals(OpenOffer.State.CANCELED, openOffer.getState());
         } finally {
             HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testEditPublishDoesNotRestoreRemovedOffer() throws Exception {
+        assertEditPublishRejectsCanceledOffer(true);
+    }
+
+    @Test
+    public void testEditPublishDoesNotReplaceCanceledOffer() throws Exception {
+        assertEditPublishRejectsCanceledOffer(false);
+    }
+
+    private void assertEditPublishRejectsCanceledOffer(boolean finishCancellation) throws Exception {
+        keyRing.generateKeys(null);
+        User user = mock(User.class);
+        NodeAddress arbitratorAddress = new NodeAddress("arbitrator:9999");
+        Arbitrator arbitrator = new Arbitrator(arbitratorAddress, keyRing.getPubKeyRing(), List.of("en"), 0, new byte[0], "", null, null, null);
+        when(user.getAcceptedArbitratorByAddress(arbitratorAddress)).thenReturn(arbitrator);
+        XmrConnectionService xmrConnectionService = mock(XmrConnectionService.class);
+        XmrKeyImagePoller keyImagePoller = mock(XmrKeyImagePoller.class);
+        when(xmrConnectionService.getKeyImagePoller()).thenReturn(keyImagePoller);
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        when(walletService.getWalletLock()).thenReturn(new Object());
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        TradeManager originalTradeManager = HavenoUtils.tradeManager;
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class)) {
+            HavenoUtils.tradeManager = null;
+            userThread.when(() -> UserThread.runAfter(any(Runnable.class), anyLong(), any(TimeUnit.class))).thenReturn(mock(Timer.class));
+            threadUtils.when(() -> ThreadUtils.execute(any(Runnable.class), anyString())).thenAnswer(invocation -> {
+                invocation.<Runnable>getArgument(0).run();
+                return null;
+            });
+            threadUtils.when(() -> ThreadUtils.submitToPool(any(Runnable.class))).thenAnswer(invocation -> {
+                if (finishCancellation) invocation.<Runnable>getArgument(0).run();
+                return null;
+            });
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), mock(OfferBookService.class), xmrConnectionService, walletService, user);
+            OpenOffer openOffer = new OpenOffer(make(btcUsdOffer.but(with(OfferMaker.pubKeyRing, keyRing.getPubKeyRing()))));
+            OfferPayload payload = openOffer.getOffer().getOfferPayload();
+            payload.setReserveTxKeyImages(List.of("reserve"));
+            payload.setArbitratorSigner(arbitratorAddress);
+            payload.setArbitratorSignature(HavenoUtils.signOffer(payload, keyRing));
+            openOffer.setState(OpenOffer.State.DEACTIVATED);
+            manager.getObservableList().add(openOffer);
+            Offer editedOffer = spy(new Offer(payload));
+            AtomicBoolean cancelBeforeReplacement = new AtomicBoolean(true);
+            doAnswer(invocation -> {
+                // cancel after the edit has looked up the original, before it locks and copies its funds
+                if (cancelBeforeReplacement.compareAndSet(true, false)) {
+                    manager.removeOpenOffer(openOffer, null, message -> { throw new AssertionError(message); });
+                }
+                return invocation.callRealMethod();
+            }).when(editedOffer).getOfferPayload();
+            ResultHandler success = mock(ResultHandler.class);
+            ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+
+            manager.editOpenOfferPublish(editedOffer, 0, OpenOffer.State.DEACTIVATED, success, failure);
+
+            verify(success, never()).handleResult();
+            verify(failure).handleErrorMessage("The offer with ID " + openOffer.getId() + " was canceled, closed, or replaced while editing.");
+            assertEquals(OpenOffer.State.CANCELED, openOffer.getState());
+            if (finishCancellation) {
+                assertTrue(manager.getOpenOffers().isEmpty());
+                verify(walletService).thawOutputs(List.of("reserve"));
+            } else {
+                assertEquals(1, manager.getOpenOffers().size());
+                assertSame(openOffer, manager.getOpenOffers().get(0));
+                verify(walletService, never()).thawOutputs(any());
+            }
+            verify(keyImagePoller, never()).addKeyImages(any(), anyString());
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+            HavenoUtils.tradeManager = originalTradeManager;
         }
     }
 
