@@ -932,29 +932,40 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 synchronized (processOffersLock) {
                     synchronized (openOffers.getList()) {
 
-                        // add edited open offer
-                        editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
-                        if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
-                            if (hasConflictingClone(editedOpenOffer)) {
-                                editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
-                            } else {
-                                editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
-                            }
+                        // reject stale edits before copying funds that may have been released
+                        if (getOpenOffer(openOffer.getId()).orElse(null) != openOffer ||
+                                openOffer.isCanceled() || openOffer.getState() == OpenOffer.State.CLOSED) {
+                            editedOpenOffer = null;
                         } else {
-                            if (originalState == OpenOffer.State.AVAILABLE && hasConflictingClone(editedOpenOffer)) {
-                                editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                            // add edited open offer
+                            editedOpenOffer = new OpenOffer(editedOffer, triggerPrice, openOffer);
+                            if (originalState == OpenOffer.State.DEACTIVATED && openOffer.isDeactivatedByTrigger()) {
+                                if (hasConflictingClone(editedOpenOffer)) {
+                                    editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                                } else {
+                                    editedOpenOffer.setState(OpenOffer.State.AVAILABLE);
+                                }
                             } else {
-                                editedOpenOffer.setState(originalState);
+                                if (originalState == OpenOffer.State.AVAILABLE && hasConflictingClone(editedOpenOffer)) {
+                                    editedOpenOffer.setState(OpenOffer.State.DEACTIVATED);
+                                } else {
+                                    editedOpenOffer.setState(originalState);
+                                }
                             }
-                        }
-                        applyTriggerState(editedOpenOffer); // apply trigger state before adding so it's not immediately removed
+                            applyTriggerState(editedOpenOffer); // apply trigger state before adding so it's not immediately removed
 
-                        // remove original open offer before adding the edited offer, which the list rejects as a duplicate if equal
-                        openOffer.getOffer().setState(Offer.State.REMOVED);
-                        openOffer.setState(OpenOffer.State.CANCELED);
-                        doRemoveOpenOffer(openOffer);
-                        doAddOpenOffer(editedOpenOffer);
+                            // remove original open offer before adding the edited offer, which the list rejects as a duplicate if equal
+                            openOffer.getOffer().setState(Offer.State.REMOVED);
+                            openOffer.setState(OpenOffer.State.CANCELED);
+                            doRemoveOpenOffer(openOffer);
+                            doAddOpenOffer(editedOpenOffer);
+                        }
                     }
+                }
+
+                if (editedOpenOffer == null) {
+                    errorMessageHandler.handleErrorMessage("The offer with ID " + openOffer.getId() + " was canceled, closed, or replaced while editing.");
+                    return;
                 }
 
                 // check for valid arbitrator signature after editing
