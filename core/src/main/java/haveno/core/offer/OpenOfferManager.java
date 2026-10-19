@@ -948,12 +948,12 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             }
                         }
                         applyTriggerState(editedOpenOffer); // apply trigger state before adding so it's not immediately removed
-                        doAddOpenOffer(editedOpenOffer);
 
-                        // remove original open offer
+                        // remove original open offer before adding the edited offer, which the list rejects as a duplicate if equal
                         openOffer.getOffer().setState(Offer.State.REMOVED);
                         openOffer.setState(OpenOffer.State.CANCELED);
                         doRemoveOpenOffer(openOffer);
+                        doAddOpenOffer(editedOpenOffer);
                     }
                 }
 

@@ -20,6 +20,7 @@ package haveno.core.offer;
 import com.natpryce.makeiteasy.Instantiator;
 import com.natpryce.makeiteasy.Maker;
 import com.natpryce.makeiteasy.Property;
+import haveno.common.crypto.PubKeyRing;
 
 import static com.natpryce.makeiteasy.MakeItEasy.a;
 
@@ -34,12 +35,13 @@ public class OfferMaker {
     public static final Property<Offer, Boolean> useMarketBasedPrice = new Property<>();
     public static final Property<Offer, Double> marketPriceMargin = new Property<>();
     public static final Property<Offer, String> id = new Property<>();
+    public static final Property<Offer, PubKeyRing> pubKeyRing = new Property<>();
 
     public static final Instantiator<Offer> Offer = lookup -> new Offer(
             new OfferPayload(lookup.valueOf(id, "1234"),
                     0L,
                     null,
-                    null,
+                    lookup.valueOf(pubKeyRing, (PubKeyRing) null),
                     lookup.valueOf(direction, OfferDirection.BUY),
                     lookup.valueOf(price, 100000L),
                     lookup.valueOf(marketPriceMargin, 0.0),
