@@ -17,16 +17,19 @@
 
 package haveno.core.xmr.setup;
 
+import haveno.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroError;
 import monero.wallet.MoneroWalletRpc;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Manages monero-wallet-rpc processes bound to ports.
@@ -135,6 +138,64 @@ public class MoneroWalletRpcManager {
      */
     public void onStartUp() {
         isShutDownStarted = false;
+    }
+
+    /**
+     * Prevent startup while an existing process may still be using the wallet paths.
+     */
+    public static void checkForRunningProcesses(File executable, File walletDir) {
+        try (Stream<ProcessHandle> processes = ProcessHandle.allProcesses()) {
+            executable = executable.getCanonicalFile();
+            walletDir = walletDir.getCanonicalFile();
+            for (ProcessHandle process : processes.toList()) {
+                ProcessHandle.Info info = getInfo(process);
+                String command = info == null ? null : getCommand(info);
+                if (command == null || !new File(command).getName().equals(executable.getName())
+                        || !new File(command).getCanonicalFile().equals(executable) || !process.isAlive()) continue;
+
+                // skip processes known to use another wallet directory; arguments are unavailable on some platforms
+                File processWalletDir = getWalletDir(info);
+                if (processWalletDir != null && !processWalletDir.equals(walletDir)) continue;
+
+                throw new IllegalStateException("Cannot start Haveno while monero-wallet-rpc process " + process.pid()
+                        + " may still be using its wallet files. Close other Haveno instances and wait for them to exit, then restart Haveno. If none is running, stop the process in your task manager first");
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not resolve monero-wallet-rpc paths before wallet startup", e);
+        }
+    }
+
+    /** Get the process info, or null when the platform cannot describe the process, like a process mid exec on macos. */
+    private static ProcessHandle.Info getInfo(ProcessHandle process) {
+        try {
+            return process.info();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** Get the executable path of the process, or null when it is unavailable. */
+    private static String getCommand(ProcessHandle.Info info) {
+        String command = info.command().orElse(null);
+        // linux appends this suffix when a running executable has been replaced
+        if (command != null && Utilities.isLinux() && command.endsWith(" (deleted)")) {
+            command = command.substring(0, command.length() - " (deleted)".length());
+        }
+        return command;
+    }
+
+    /** Get the canonical wallet directory from the process arguments, or null when it cannot be determined. */
+    private static File getWalletDir(ProcessHandle.Info info) throws IOException {
+        String[] args = info.arguments().orElse(new String[0]);
+        for (int i = 0; i < args.length; i++) {
+            String path;
+            if (args[i].equals("--wallet-dir") && i + 1 < args.length) path = args[i + 1];
+            else if (args[i].startsWith("--wallet-dir=")) path = args[i].substring("--wallet-dir=".length());
+            else continue;
+            File walletDir = new File(path);
+            return walletDir.isAbsolute() ? walletDir.getCanonicalFile() : null;
+        }
+        return null;
     }
 
     /**

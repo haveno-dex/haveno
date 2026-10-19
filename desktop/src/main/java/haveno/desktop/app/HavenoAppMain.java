@@ -17,6 +17,7 @@
 
 package haveno.desktop.app;
 
+import com.google.inject.ProvisionException;
 import haveno.common.UserThread;
 import haveno.common.app.AppModule;
 import haveno.common.app.DevEnv;
@@ -115,6 +116,14 @@ public class HavenoAppMain extends HavenoExecutable {
     @Override
     public void handleUncaughtException(Throwable throwable, boolean doShutDown) {
         application.handleUncaughtException(throwable, doShutDown);
+    }
+
+    @Override
+    protected void onStartupFailed(Throwable e) {
+        Throwable cause = e instanceof ProvisionException && e.getCause() != null ? e.getCause() : e; // guice wraps constructor failures
+        log.error("Error starting application", cause);
+        UserThread.execute(() -> application.showStartupFailure(cause,
+                () -> new Thread(() -> shutDownNoPersist(null, false), "Startup-failure-shutdown").start()));
     }
 
 

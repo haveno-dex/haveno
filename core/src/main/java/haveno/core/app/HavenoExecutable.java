@@ -62,6 +62,7 @@ import haveno.core.setup.CoreSetup;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
+import haveno.core.xmr.setup.MoneroWalletRpcManager;
 import haveno.core.xmr.setup.WalletsSetup;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
@@ -71,6 +72,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 import java.io.Console;
+import java.io.File;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,6 +112,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     private Thread keepRunningThread;
     private final Object keepRunningLock = new Object();
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
+    private final CompletableFuture<Void> loginCompleted = new CompletableFuture<>();
     private Runnable shutdownCompletedHandler;
 
     public HavenoExecutable(String fullName, String scriptName, String appName, String version) {
@@ -195,9 +198,40 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             @Override public void onWalletRestored(Runnable onShutdown) { restart(onShutdown); }
         });
 
+        // check for existing wallet processes off the user thread before login can start services or validate a seed
+        new Thread(() -> {
+            try {
+                checkForRunningWalletProcesses();
+            } catch (Throwable e) {
+                UserThread.execute(() -> loginAfterWalletProcessCheck(e));
+                return;
+            }
+            UserThread.execute(() -> loginAfterWalletProcessCheck(null));
+        }, "Wallet-process-check").start();
+    }
+
+    protected void checkForRunningWalletProcesses() {
+        MoneroWalletRpcManager.checkForRunningProcesses(new File(XmrWalletService.getMoneroWalletRpcPath()), config.walletDir);
+    }
+
+    private void loginAfterWalletProcessCheck(@Nullable Throwable failure) {
+        if (isShutDownStarted || keepRunningResult.get() == EXIT_RESTART) return;
+        if (failure != null) {
+            onStartupFailed(failure);
+            return;
+        }
+
         // Attempt to login, subclasses should implement interactive login and or rpc login.
-        CompletableFuture<Boolean> loginFuture = loginAccount();
+        CompletableFuture<Boolean> loginFuture;
+        try {
+            loginFuture = loginAccount();
+        } catch (RuntimeException e) {
+            loginCompleted.complete(null);
+            onStartupFailed(e); // e.g. the api port is in use
+            return;
+        }
         loginFuture.whenComplete((result, throwable) -> {
+            loginCompleted.complete(null);
             if (isShutDownStarted || keepRunningResult.get() == EXIT_RESTART) return;
             if (throwable != null) {
                 log.error("Error logging in to account", throwable);
@@ -213,8 +247,16 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                 }
             } catch (InterruptedException | ExecutionException e) {
                 log.error("An error occurred: {}\n", e.getMessage(), e);
+            } catch (RuntimeException e) {
+                onStartupFailed(e); // the future would swallow it
             }
         });
+    }
+
+    // startup failed, so shut down without persisting; subclasses may show the failure first
+    protected void onStartupFailed(Throwable e) {
+        log.error("Error starting application", e);
+        shutDownNoPersist(null, false);
     }
 
     // a restore or delete during login requests a restart, so the application must not start against the changed data dir
@@ -559,6 +601,11 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected int keepRunning() {
         Thread thread = new Thread(() -> {
             ConsoleInput reader = new ConsoleInput(Integer.MAX_VALUE, Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+            try {
+                loginCompleted.get(); // an interactive login reads the console until then
+            } catch (InterruptedException | ExecutionException e) {
+                return;
+            }
             while (true) {
                 Console console = System.console();
                 try {
