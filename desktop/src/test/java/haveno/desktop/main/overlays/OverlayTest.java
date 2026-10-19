@@ -34,6 +34,7 @@ import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.app.Version;
 import haveno.common.util.Utilities;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
@@ -48,6 +49,7 @@ import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.support.SupportSession;
+import haveno.core.support.SupportManager;
 import haveno.core.support.SupportType;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeSession;
@@ -141,6 +143,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableRow;
@@ -159,6 +163,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.input.TouchEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
@@ -2156,6 +2161,197 @@ public class OverlayTest {
         protected void animateHide(Runnable onFinishedHandler) {
             if (deferHide) finishHide = () -> super.animateHide(onFinishedHandler);
             else super.animateHide(onFinishedHandler);
+        }
+    }
+
+    @Nested
+    class ChatDeliveryState {
+        private final ObservableList<ChatMessage> messages = FXCollections.observableArrayList();
+        private final SupportManager manager = mock(SupportManager.class);
+        private final SupportSession session = mock(SupportSession.class);
+        private Executor originalExecutor;
+        private MockedStatic<Application> application;
+        private MockedStatic<GUIUtil> gui;
+        private MockedStatic<UserThread> scheduler;
+        private MockedConstruction<Tooltip> tooltips;
+        private ChatView view;
+        private ListCell<ChatMessage> cell;
+        private Runnable timeout;
+
+        @BeforeEach
+        void setUp() throws ReflectiveOperationException {
+            Res.setup();
+            // initialize the message version for protobuf round trips
+            Version.setBaseCryptoNetworkId(Version.getBaseCurrencyNetwork());
+            originalExecutor = UserThread.getExecutor();
+            UserThread.setExecutor(Runnable::run);
+            // exercise the real cell and its listeners without starting the JavaFX toolkit
+            application = mockStatic(Application.class);
+            application.when(Application::getUserAgentStylesheet).thenReturn(Application.STYLESHEET_MODENA);
+            gui = mockStatic(GUIUtil.class);
+            tooltips = mockConstruction(Tooltip.class);
+            scheduler = mockStatic(UserThread.class, CALLS_REAL_METHODS);
+            scheduler.when(() -> UserThread.runAfter(any(Runnable.class), eq(60L), eq(TimeUnit.SECONDS)))
+                    .thenAnswer(invocation -> {
+                        timeout = invocation.getArgument(0);
+                        return mock(Timer.class);
+                    });
+            when(session.isClient()).thenReturn(true);
+            when(session.getTradeId()).thenReturn("trade-id");
+            when(session.getObservableChatMessageList()).thenReturn(messages);
+            when(manager.getSupportType()).thenReturn(SupportType.TRADE);
+            when(manager.getMyAddress()).thenReturn(new NodeAddress("sender:9999"));
+            when(manager.sendChatMessage(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            doAnswer(invocation -> messages.add(invocation.getArgument(0)))
+                    .when(manager).addAndPersistChatMessage(any());
+            view = new ChatView(manager, "Peer");
+            view.initialize();
+            display();
+        }
+
+        @AfterEach
+        void tearDown() {
+            messages.forEach(message -> message.setAcknowledged(true));
+            if (view != null) view.deactivate();
+            if (scheduler != null) scheduler.close();
+            if (tooltips != null) tooltips.close();
+            if (gui != null) gui.close();
+            if (application != null) application.close();
+            UserThread.setExecutor(originalExecutor);
+        }
+
+        @Test
+        void lateMailboxAndAcknowledgementReplaceTimeout() throws ReflectiveOperationException {
+            ChatMessage message = send();
+            assertStatus(Res.get("support.sendingMessage"), false);
+            timeout.run();
+            assertStatus(Res.get("support.error", Res.get("support.errorTimeout")), true);
+            assertNull(message.ackErrorProperty().get());
+            message.setStoredInMailbox(true);
+            assertStatus(Res.get("support.savedInMailbox"), false);
+            message.setAcknowledged(true);
+            assertStatus(Res.get("support.acknowledged"), false);
+        }
+
+        @Test
+        void lateReceiverRejectionOutranksMailboxStorage() throws ReflectiveOperationException {
+            ChatMessage message = send();
+            timeout.run();
+            message.setAckError(TraderChatManager.TRADE_COMPLETED_ERROR);
+            message.setStoredInMailbox(true);
+            assertStatus(Res.get("support.errorTradeCompleted"), true);
+        }
+
+        @Test
+        void lateTransportFailureReplacesTimeout() throws ReflectiveOperationException {
+            ChatMessage message = send();
+            timeout.run();
+            message.setSendMessageError("transport failed");
+            assertStatus(Res.get("support.sendMessageError", "transport failed"), true);
+        }
+
+        @Test
+        void mailboxStorageBeforeTimerPreventsTimeout() throws ReflectiveOperationException {
+            ChatMessage message = send();
+            message.setStoredInMailbox(true);
+            timeout.run();
+            assertFalse(message.ackTimedOutProperty().get());
+            assertStatus(Res.get("support.savedInMailbox"), false);
+        }
+
+        @Test
+        void reopeningAnActiveSendKeepsItsStatus() throws ReflectiveOperationException {
+            ChatMessage message = send();
+            message.setArrived(true);
+            display();
+            show(message);
+            assertStatus(Res.get("support.transient"), false);
+            timeout.run();
+            assertStatus(Res.get("support.error", Res.get("support.errorTimeout")), true);
+        }
+
+        @Test
+        void restoredUnresolvedMessagesRemainUnconfirmed() throws ReflectiveOperationException {
+            for (boolean arrived : List.of(false, true)) {
+                ChatMessage message = send();
+                message.setArrived(arrived);
+                timeout.run();
+                ChatMessage restored = restore(message);
+                assertFalse(restored.ackTimedOutProperty().get());
+                assertEquals(arrived, restored.arrivedProperty().get());
+                show(restored);
+                assertStatus(Res.get("support.deliveryUnconfirmed"), false);
+                restored.setAcknowledged(true);
+                assertStatus(Res.get("support.acknowledged"), false);
+            }
+        }
+
+        @Test
+        void restoredMailboxAndReceiverErrorKeepTheirStatus() throws ReflectiveOperationException {
+            ChatMessage message = send();
+            timeout.run();
+            message.setStoredInMailbox(true);
+            show(restore(message));
+            assertStatus(Res.get("support.savedInMailbox"), false);
+            message.setAckError(TraderChatManager.TRADE_COMPLETED_ERROR);
+            show(restore(message));
+            assertStatus(Res.get("support.errorTradeCompleted"), true);
+        }
+
+        @Test
+        void incomingAndSystemMessagesDoNotGainUnconfirmedStatus() throws ReflectiveOperationException {
+            ChatMessage outgoing = restore(send());
+            show(outgoing);
+            assertStatus(Res.get("support.deliveryUnconfirmed"), false);
+            ChatMessage incoming = new ChatMessage(SupportType.TRADE, "trade-id", 0, false,
+                    "incoming", new NodeAddress("peer:9999"));
+            show(incoming);
+            assertFalse(statusRow().isVisible());
+            outgoing.setSystemMessage(true);
+            show(outgoing);
+            assertFalse(statusRow().isVisible());
+        }
+
+        private ChatMessage send() throws ReflectiveOperationException {
+            var method = ChatView.class.getDeclaredMethod("onSendMessage", String.class);
+            method.setAccessible(true);
+            method.invoke(view, "message");
+            ChatMessage message = messages.get(messages.size() - 1);
+            show(message);
+            return message;
+        }
+
+        private void display() throws ReflectiveOperationException {
+            if (cell != null) show(null);
+            view.display(session, new SimpleDoubleProperty(600));
+            var field = ChatView.class.getDeclaredField("messageListView");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            ListView<ChatMessage> list = (ListView<ChatMessage>) field.get(view);
+            cell = list.getCellFactory().call(list);
+        }
+
+        private void show(ChatMessage message) throws ReflectiveOperationException {
+            var method = cell.getClass().getDeclaredMethod("updateItem", ChatMessage.class, boolean.class);
+            method.setAccessible(true);
+            method.invoke(cell, message, message == null);
+        }
+
+        private ChatMessage restore(ChatMessage message) {
+            return ChatMessage.fromPayloadProto(message.toProtoNetworkEnvelope().getChatMessage());
+        }
+
+        private HBox statusRow() throws ReflectiveOperationException {
+            var field = cell.getClass().getDeclaredField("statusHBox");
+            field.setAccessible(true);
+            return (HBox) field.get(cell);
+        }
+
+        private void assertStatus(String text, boolean error) throws ReflectiveOperationException {
+            HBox row = statusRow();
+            assertTrue(row.isVisible());
+            assertEquals(text, ((Label) row.getChildren().get(1)).getText());
+            row.getChildren().forEach(node -> assertEquals(error, node.getStyleClass().contains("error-text")));
         }
     }
 
