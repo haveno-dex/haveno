@@ -1066,6 +1066,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         return prefPayload.isDepositAddressesExpanded();
     }
 
+    // an explicit option also applies before the preferences are read, which needs an open account
+    public boolean isUseNativeXmrWallet() {
+        return config.useNativeXmrWalletOptionSetExplicitly ? config.useNativeXmrWallet : prefPayload.isUseNativeXmrWallet();
+    }
+
     public double getSecurityDepositAsPercent(PaymentAccount paymentAccount) {
         double value = PaymentAccountUtil.isCryptoCurrencyAccount(paymentAccount) ?
                 prefPayload.getSecurityDepositAsPercentForCrypto() : prefPayload.getSecurityDepositAsPercent();
@@ -1119,6 +1124,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         void setTacAccepted(boolean tacAccepted);
 
         void setUseNativeXmrWallet(boolean useNativeXmrWallet);
+
+        boolean isUseNativeXmrWallet();
 
         void setUseAnimations(boolean useAnimations);
 

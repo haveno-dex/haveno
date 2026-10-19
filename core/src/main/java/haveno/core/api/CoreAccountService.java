@@ -34,7 +34,6 @@ import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDate;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
@@ -80,20 +79,9 @@ public class CoreAccountService {
     private final Map<PasswordChangeTarget, BiConsumer<String, String>> passwordChangeHandlers = new EnumMap<>(PasswordChangeTarget.class);
     private boolean persistedDataRead;
     private volatile boolean isShutDownStarted;
-    private CompletableFuture<Void> passwordChangeCompletion = CompletableFuture.completedFuture(null);
+    private CompletableFuture<Void> accountOperationCompletion = CompletableFuture.completedFuture(null);
     private List<AccountServiceListener> listeners = new ArrayList<AccountServiceListener>();
     private List<String> passwordChangeRetainedBackups = List.of();
-
-    // seed and restore height or date to import when the main wallet is first created, held in memory only
-    @Getter
-    @Nullable
-    private String walletImportSeed;
-    @Getter
-    @Nullable
-    private Long walletImportRestoreHeight;
-    @Getter
-    @Nullable
-    private LocalDate walletImportRestoreDate;
 
     private final ReentrantLock accountLock = new ReentrantLock(); // account operations must not interleave, e.g. an open or restore during a delete
     private volatile boolean restartPending; // set by delete and restore, after which this instance serves no further account operations
@@ -146,20 +134,27 @@ public class CoreAccountService {
         }
     }
 
-    /** Set the seed and restore height or date to import when the main wallet is first created. */
-    public void setWalletImportDetails(@Nullable String seed, @Nullable Long restoreHeight, @Nullable LocalDate restoreDate) {
-        this.walletImportSeed = seed;
-        this.walletImportRestoreHeight = restoreHeight;
-        this.walletImportRestoreDate = restoreDate;
+    public void createAccount(String password) {
+        createAccount(password, null);
     }
 
-    public void createAccount(String password) {
+    /** Create the account, first creating its main wallet when given, so a failed wallet creation leaves no account. */
+    public void createAccount(String password, @Nullable Runnable createWallet) {
         lockAccount();
         try {
             if (accountExists()) throw new IllegalStateException("Cannot create account if account already exists");
             if ("".equals(password)) password = null;
+            this.password = password; // wallets are encrypted with the account password
+            try {
+                synchronized (listeners) {
+                    for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountCreating();
+                }
+                if (createWallet != null) createWallet.run();
+            } catch (Throwable e) {
+                this.password = null;
+                throw e;
+            }
             keyRing.generateKeys(password);
-            this.password = password;
             synchronized (listeners) {
                 for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountCreated();
             }
@@ -202,7 +197,7 @@ public class CoreAccountService {
                 }
                 handlers = new ArrayList<>(passwordChangeHandlers.values());
                 completion = new CompletableFuture<>();
-                passwordChangeCompletion = completion;
+                accountOperationCompletion = completion;
             }
             if ("".equals(oldPassword)) oldPassword = null; // normalize to null
             if ("".equals(newPassword)) newPassword = null;
@@ -262,7 +257,7 @@ public class CoreAccountService {
             return passwordChangeRetainedBackups;
         } finally {
             accountLock.unlock();
-            // shutdown may proceed after success or failure, once all password-change work has finished
+            // shutdown may proceed after success or failure, once all account work has finished
             if (completion != null) completion.complete(null);
         }
     }
@@ -290,7 +285,7 @@ public class CoreAccountService {
 
     public synchronized CompletableFuture<Void> onShutDownStarted() {
         isShutDownStarted = true;
-        return passwordChangeCompletion;
+        return accountOperationCompletion;
     }
 
     public void verifyPassword(String password) throws IncorrectPasswordException {
@@ -393,6 +388,29 @@ public class CoreAccountService {
                 accountLock.unlock();
             }
         }, "BackupAccount").start();
+    }
+
+    public void withWalletRestore(Runnable restore, Runnable onShutdown) {
+        lockAccount();
+        CompletableFuture<Void> completion = null;
+        try {
+            checkAccountOpen();
+            synchronized (this) {
+                if (isShutDownStarted || !persistedDataRead) {
+                    throw new IllegalStateException("Wait until account services finish initializing and are not shutting down");
+                }
+                completion = new CompletableFuture<>();
+                accountOperationCompletion = completion;
+            }
+            restore.run();
+            restartPending = true;
+            synchronized (listeners) {
+                for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onWalletRestored(onShutdown);
+            }
+        } finally {
+            accountLock.unlock();
+            if (completion != null) completion.complete(null);
+        }
     }
 
     public void restoreAccount(InputStream inputStream, int bufferSize, Runnable onShutdown) throws Exception {

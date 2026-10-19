@@ -55,6 +55,10 @@ public class SharedPresentation {
                 } else {
                     new RestoreSeedWindow(openOfferManager.getObservableList().size(), restoreHeight == null && restoreDate == null)
                             .onAction(() -> {
+                                if (!Boolean.TRUE.equals(xmrWalletService.getXmrConnectionService().isConnected())) { // before removing offers, which cannot be undone
+                                    new Popup().warning(Res.get("seed.restore.noConnection")).show();
+                                    return;
+                                }
                                 if (openOfferManager.getObservableList().isEmpty()) {
                                     doRestoreSeedWords(xmrWalletService, seedWords, restoreHeight, restoreDate);
                                 } else {

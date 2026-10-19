@@ -17,6 +17,7 @@
 
 package haveno.core.crypto;
 
+import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import com.google.inject.Injector;
 import haveno.common.UserThread;
@@ -26,10 +27,13 @@ import haveno.common.crypto.IncorrectPasswordException;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
+import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.setup.CommonSetup;
 import haveno.core.api.AccountServiceListener;
 import haveno.core.api.CoreAccountService;
+import haveno.core.api.CoreApi;
+import haveno.core.app.AppStartupState;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.app.HavenoExecutable;
 import haveno.core.offer.OpenOfferManager;
@@ -47,6 +51,7 @@ import haveno.core.xmr.wallet.XmrWalletBase;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.core.xmr.wallet.WalletPasswordChange;
 import haveno.core.xmr.wallet.WalletPasswordRecovery;
+import haveno.core.xmr.wallet.WalletsManager;
 import monero.common.MoneroError;
 import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroNetworkType;
@@ -75,6 +80,8 @@ import java.nio.file.StandardCopyOption;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -172,6 +179,633 @@ public class EncryptionTest {
         account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS, (oldPassword, newPassword) -> {});
         account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS, (oldPassword, newPassword) -> {});
         account.onPersistedDataRead();
+    }
+
+    @Test
+    public void testSeedRestoreValidatesBeforeRemovingOffers() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        OpenOfferManager offers = mock(OpenOfferManager.class);
+        CoreApi api = seedRestoreApi(account, wallet, offers);
+        for (String seed : Arrays.asList(null, "", " \n ", "invalid seed")) {
+            assertThrows(IllegalArgumentException.class, () -> api.restoreXmrWalletFromSeed(seed, 0L, null, null));
+        }
+        for (long height : new long[] {-1, 1L << 53, Long.MAX_VALUE}) {
+            assertTrue(assertThrows(IllegalArgumentException.class,
+                    () -> api.restoreXmrWalletFromSeed("seed", height, null, null)).getMessage().startsWith("Restore height"));
+        }
+        for (String date : Arrays.asList("2023-02-29", "2020-02-30", "2020-13-01", "2020-1-01", "2020-01-01T00:00:00Z",
+                "+2020-01-01", "10000-01-01", LocalDate.now(ZoneOffset.UTC).plusDays(1).toString())) {
+            assertTrue(assertThrows(IllegalArgumentException.class,
+                    () -> api.restoreXmrWalletFromSeed("seed", null, date, null)).getMessage().startsWith("Restore date"));
+        }
+        for (long height : new long[] {0, 12345}) {
+            assertEquals("Specify either a restore height or a restore date", assertThrows(IllegalArgumentException.class,
+                    () -> api.restoreXmrWalletFromSeed("seed", height, "2020-01-01", null)).getMessage());
+        }
+        verify(offers, never()).removeAllOpenOffers(any(), any());
+        verify(wallet, never()).restoreWalletFromSeed(any(), any(), any());
+        assertTrue(account.isAccountOpen());
+    }
+
+    @Test
+    public void testCreateAccountFromSeedValidatesAndCreatesWalletBeforeKeys() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "seed-import").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        CoreApi api = seedRestoreApi(account, wallet, mock(OpenOfferManager.class));
+        for (String seed : Arrays.asList(null, "", " \n ")) {
+            assertEquals("Wallet seed is required", assertThrows(IllegalArgumentException.class,
+                    () -> api.createAccountFromSeed("password", seed, null, null)).getMessage());
+        }
+        assertEquals("Invalid wallet seed", assertThrows(IllegalArgumentException.class,
+                () -> api.createAccountFromSeed("password", "invalid seed", null, null)).getMessage());
+        assertEquals("Wallet seed is required", assertThrows(IllegalArgumentException.class,
+                () -> api.createAccountFromSeed("password", " ", 100L, null)).getMessage());
+        assertEquals("Specify either a restore height or a restore date", assertThrows(IllegalArgumentException.class,
+                () -> api.createAccountFromSeed("password", "seed", 100L, "2020-01-01")).getMessage());
+        verify(wallet, never()).createMainWalletFromSeed(any(), any(), any());
+        assertFalse(account.accountExists());
+
+        // the wallet is created with the account password before the keys exist
+        doReturn(true).when(wallet).isSeedValid("seed words");
+        doAnswer(invocation -> {
+            assertFalse(account.accountExists());
+            assertEquals("password", account.getPassword());
+            return null;
+        }).when(wallet).createMainWalletFromSeed("seed words", null, LocalDate.of(2020, 2, 29));
+        api.createAccountFromSeed("password", " seed\n words ", null, " 2020-02-29 ");
+        verify(wallet).createMainWalletFromSeed("seed words", null, LocalDate.of(2020, 2, 29));
+        assertTrue(account.isAccountOpen());
+
+        // an existing account is rejected before the seed is validated
+        clearInvocations(wallet);
+        assertEquals("Cannot create account if account already exists", assertThrows(IllegalStateException.class,
+                () -> api.createAccountFromSeed("password", "other seed words", null, null)).getMessage());
+        verify(wallet, never()).isSeedValid(any());
+        assertEquals("password", account.getPassword());
+    }
+
+    @Test
+    public void testFailedWalletCreationLeavesNoAccount() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "failed-import").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        doReturn(true).when(wallet).isSeedValid("seed");
+        doThrow(new IllegalStateException("wallet creation failed")).when(wallet).createMainWalletFromSeed("seed", 0L, null);
+        CoreApi api = seedRestoreApi(account, wallet, mock(OpenOfferManager.class));
+        assertEquals("wallet creation failed", assertThrows(IllegalStateException.class,
+                () -> api.createAccountFromSeed("password", "seed", 0L, null)).getMessage());
+        assertFalse(account.accountExists());
+        assertNull(account.getPassword());
+        api.createAccount("password");
+        assertTrue(account.isAccountOpen());
+    }
+
+    @Test
+    public void testAccountCreatedListenerFailurePreservesPassword() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "created-listener-failure").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        doThrow(new IllegalStateException("listener failed")).when(listener).onAccountCreated();
+        account.addListener(listener);
+        assertEquals("listener failed", assertThrows(IllegalStateException.class, () -> account.createAccount("password")).getMessage());
+        assertTrue(account.isAccountOpen());
+        assertEquals("password", account.getPassword());
+    }
+
+    @Test
+    public void testCreateAccountRetainsWalletOrphanedByInterruptedImport() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "orphan-import").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        XmrWalletService service = walletService(account);
+        Files.write(walletDir.toPath().resolve("haveno_XMR.keys"), new byte[] {1}); // created from a seed with another password
+        account.createAccount(null);
+        assertTrue(account.isAccountOpen());
+        assertFalse(service.walletExists("haveno_XMR"));
+        File[] replaced = new File(walletDir, "backup").listFiles(file -> file.getName().startsWith("replaced-"));
+        assertArrayEquals(new byte[] {1}, Files.readAllBytes(new File(replaced[0], "haveno_XMR.keys").toPath()));
+    }
+
+    @Test
+    public void testFailedWalletBackupFlushPreservesOrphanAndLeavesNoAccount() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "failed-retention").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        XmrWalletService service = walletService(account);
+        Path keys = Files.write(walletDir.toPath().resolve("haveno_XMR.keys"), new byte[] {1});
+        Path cache = Files.write(walletDir.toPath().resolve("haveno_XMR"), new byte[] {2});
+        try (var files = mockStatic(FileUtil.class, CALLS_REAL_METHODS)) {
+            files.when(() -> FileUtil.syncDirectory(walletDir.toPath().resolve("backup")))
+                    .thenThrow(new IOException("injected backup flush failure"));
+            assertTrue(assertThrows(IllegalStateException.class, () -> account.createAccount("password"))
+                    .getMessage().startsWith("Could not flush wallet backup directory"));
+        }
+        assertFalse(account.accountExists());
+        assertNull(account.getPassword());
+        assertTrue(service.walletExists("haveno_XMR"));
+        assertArrayEquals(new byte[] {1}, Files.readAllBytes(keys));
+        assertArrayEquals(new byte[] {2}, Files.readAllBytes(cache));
+    }
+
+    @Test
+    public void testFailedOrphanRemovalFlushLeavesNoAccount() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "failed-orphan-removal").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        XmrWalletService service = walletService(account);
+        Path keys = Files.write(walletDir.toPath().resolve("haveno_XMR.keys"), new byte[] {1});
+        Files.write(walletDir.toPath().resolve("haveno_XMR"), new byte[] {2});
+        try (var files = mockStatic(FileUtil.class, CALLS_REAL_METHODS)) {
+            files.when(() -> FileUtil.syncDirectory(walletDir.toPath())).thenAnswer(invocation -> {
+                if (!Files.exists(keys)) throw new IOException("injected removal flush failure");
+                return invocation.callRealMethod();
+            });
+            assertThrows(IllegalStateException.class, () -> account.createAccount("password"));
+        }
+        assertFalse(account.accountExists());
+        assertNull(account.getPassword());
+        assertFalse(service.walletExists("haveno_XMR"));
+        File[] replaced = new File(walletDir, "backup").listFiles(file -> file.getName().startsWith("replaced-"));
+        assertEquals(1, replaced.length);
+        assertArrayEquals(new byte[] {1}, Files.readAllBytes(new File(replaced[0], "haveno_XMR.keys").toPath()));
+        assertArrayEquals(new byte[] {2}, Files.readAllBytes(new File(replaced[0], "haveno_XMR").toPath()));
+    }
+
+    @Test
+    public void testCreateAccountFromSeedCreatesNativeWalletOffline() throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "native-import").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        XmrWalletService service = creatingWalletService(account);
+        MoneroNetworkType network = XmrWalletService.getMoneroNetworkType();
+        MoneroWalletFull source = MoneroWalletFull.createWallet(new MoneroWalletConfig().setNetworkType(network));
+        String seed = source.getSeed();
+        String address = source.getPrimaryAddress();
+        source.close(false);
+        Path path = walletDir.toPath().resolve("haveno_XMR");
+        Files.write(path.resolveSibling("haveno_XMR.keys"), new byte[] {1}); // left by a creation interrupted before the keys were written
+        seedRestoreApi(account, service, mock(OpenOfferManager.class)).createAccountFromSeed("password", seed, 12345L, null);
+        assertTrue(account.isAccountOpen());
+        MoneroWalletFull created = MoneroWalletFull.openWallet(path.toString(), "password", network);
+        try {
+            assertEquals(seed, created.getSeed());
+            assertEquals(address, created.getPrimaryAddress());
+            assertEquals(12345L, created.getRestoreHeight());
+            assertEquals("12345", created.getAttribute("haveno.restoreHeight"));
+        } finally {
+            created.close(false);
+        }
+        File[] replaced = new File(walletDir, "backup").listFiles(file -> file.getName().startsWith("replaced-"));
+        assertEquals(1, replaced.length);
+        assertArrayEquals(new byte[] {1}, Files.readAllBytes(new File(replaced[0], "haveno_XMR.keys").toPath()));
+    }
+
+    @Test
+    public void testRpcSeedImportRecoversCreationDateAfterRestart() throws Exception {
+        Path binary = Path.of("src/main/resources/bin", XmrWalletService.MONERO_WALLET_RPC_NAME).toAbsolutePath();
+        Assumptions.assumeTrue(Files.isExecutable(binary));
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "rpc-import").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        XmrWalletService service = walletService(account);
+        MoneroWalletFull source = MoneroWalletFull.createWallet(new MoneroWalletConfig().setNetworkType(XmrWalletService.getMoneroNetworkType()));
+        String seed = source.getSeed();
+        String address = source.getPrimaryAddress();
+        source.close(false);
+        LocalDate date = LocalDate.of(2020, 2, 29);
+        long height = XmrWalletService.estimateHeightForDate(date);
+        Method estimate = XmrWalletService.class.getDeclaredMethod("estimateHeightTimestamp", long.class);
+        estimate.setAccessible(true);
+
+        try (var paths = mockStatic(XmrWalletService.class, CALLS_REAL_METHODS)) {
+            paths.when(XmrWalletService::getMoneroWalletRpcPath).thenReturn(binary.toString());
+            seedRestoreApi(account, service, mock(OpenOfferManager.class)).createAccountFromSeed("password", seed, null, date.toString());
+
+            // no wallet initialization or user-data persistence before recreating the account and services
+            CoreAccountService reopened = new CoreAccountService(null, storage, new KeyRing(storage));
+            reopened.openAccount("password");
+            String[] fallbackAttributes = {"", "invalid", "-1"};
+            for (int reopen = 0; reopen <= fallbackAttributes.length + 2; reopen++) {
+                XmrConnectionService connections = mock(XmrConnectionService.class);
+                doReturn(new MoneroRpcConnection("http://127.0.0.1:1")).when(connections).getConnection();
+                doReturn(true).when(connections).isConnectionLocalHost();
+                XmrWalletService restarted = spy(walletService(reopened, connections, walletDir));
+                User user = mock(User.class);
+                setField(XmrWalletService.class, restarted, "user", user);
+                boolean dateSaved = reopen == fallbackAttributes.length + 2;
+                if (dateSaved) doReturn((long) estimate.invoke(null, height)).when(user).getWalletCreationDate();
+
+                // a failed metadata RPC must not prevent opening, and a saved date needs no metadata RPC
+                // the first handle reads the metadata, since Windows reopens the wallet after backing it up
+                List<MoneroRpcConnection> metadataConnections = new ArrayList<>();
+                if (reopen > fallbackAttributes.length) {
+                    doAnswer(invocation -> {
+                        MoneroWalletRpc rpc = (MoneroWalletRpc) invocation.callRealMethod();
+                        MoneroRpcConnection connection = spy(rpc.getRpcConnection());
+                        doThrow(new MoneroError("metadata unavailable")).when(connection).sendJsonRequest(eq("get_attribute"), any());
+                        setField(MoneroWalletRpc.class, rpc, "rpc", connection);
+                        metadataConnections.add(connection);
+                        return rpc;
+                    }).when(restarted).openWallet(anyString(), any(), anyBoolean(), anyBoolean());
+                }
+                try {
+                    MoneroWallet wallet = openMainWallet(restarted);
+                    assertTrue(wallet instanceof MoneroWalletRpc);
+                    assertEquals(address, wallet.getPrimaryAddress());
+                    if (reopen == 0) verify(user).setWalletCreationDate((long) estimate.invoke(null, height));
+                    else verify(user, never()).setWalletCreationDate(anyLong()); // absent or malformed attributes preserve the legacy fallback
+                    if (dateSaved) for (MoneroRpcConnection connection : metadataConnections) verify(connection, never()).sendJsonRequest(eq("get_attribute"), any());
+                    else if (reopen > fallbackAttributes.length) verify(metadataConnections.get(0)).sendJsonRequest(eq("get_attribute"), any());
+                    if (reopen < fallbackAttributes.length) wallet.setAttribute("haveno.restoreHeight", fallbackAttributes[reopen]);
+                } finally {
+                    closeMainWallet(restarted);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testFailedImportMetadataClosesWalletAndLeavesNoAccount() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "failed-import-metadata").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        XmrWalletService service = creatingWalletService(account);
+        MoneroWalletFull wallet = mockWallet();
+        doThrow(new IllegalStateException("metadata failed")).when(wallet).setAttribute("haveno.restoreHeight", "12345");
+        try (var utils = mockStatic(MoneroUtils.class, CALLS_REAL_METHODS);
+             var wallets = mockStatic(MoneroWalletFull.class)) {
+            utils.when(MoneroUtils::isNativeLibraryLoaded).thenReturn(true);
+            wallets.when(() -> MoneroWalletFull.createWallet(any(MoneroWalletConfig.class))).thenReturn(wallet);
+            assertEquals("metadata failed", assertThrows(IllegalStateException.class,
+                    () -> account.createAccount("password", () -> service.createMainWalletFromSeed("seed", 12345L, null))).getMessage());
+            verify(wallet).close(false);
+            assertFalse(account.accountExists());
+            assertNull(account.getPassword());
+        }
+    }
+
+    @Test
+    public void testSeedRestoreForwardsOptionalDate() throws Exception {
+        for (String restoreDate : Arrays.asList(null, "", "  ", "0000-01-01", " 2020-02-29 ", LocalDate.now(ZoneOffset.UTC).toString())) {
+            CoreAccountService account = account(null);
+            XmrWalletService wallet = mock(XmrWalletService.class);
+            doReturn(true).when(wallet).isSeedValid("seed");
+            OpenOfferManager offers = mock(OpenOfferManager.class);
+            doAnswer(invocation -> {
+                invocation.<Runnable>getArgument(0).run();
+                return null;
+            }).when(offers).removeAllOpenOffers(any(), any());
+            seedRestoreApi(account, wallet, offers).restoreXmrWalletFromSeed("seed", null, restoreDate, null);
+            LocalDate expectedDate = restoreDate == null || restoreDate.trim().isEmpty() ? null : LocalDate.parse(restoreDate.trim());
+            verify(wallet).restoreWalletFromSeed("seed", null, expectedDate);
+        }
+    }
+
+    @Test
+    public void testSeedRestoreAcceptsMaximumClientHeight() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        doReturn(true).when(wallet).isSeedValid("seed");
+        OpenOfferManager offers = mock(OpenOfferManager.class);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(0).run();
+            return null;
+        }).when(offers).removeAllOpenOffers(any(), any());
+        long height = (1L << 53) - 1;
+        seedRestoreApi(account, wallet, offers).restoreXmrWalletFromSeed("seed", height, null, null);
+        verify(wallet).restoreWalletFromSeed("seed", height, null);
+        Method estimate = XmrWalletService.class.getDeclaredMethod("estimateHeightTimestamp", long.class);
+        estimate.setAccessible(true);
+        assertTrue((long) estimate.invoke(null, height) > 0);
+    }
+
+    @Test
+    public void testSeedRestoreRequiresUsableAccount() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        CoreApi api = seedRestoreApi(account, wallet, mock(OpenOfferManager.class));
+        account.closeAccount();
+        assertThrows(IllegalStateException.class, () -> api.restoreXmrWalletFromSeed("seed", 0L, null, null));
+        account.openAccount(null);
+        account.requirePasswordRecovery();
+        assertThrows(IllegalStateException.class, () -> api.restoreXmrWalletFromSeed("seed", 0L, null, null));
+        verify(wallet, never()).isSeedValid(any());
+    }
+
+    @Test
+    public void testSeedRestoreStopsOnOfferRemovalFailure() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        doReturn(true).when(wallet).isSeedValid("seed");
+        OpenOfferManager offers = mock(OpenOfferManager.class);
+        doAnswer(invocation -> {
+            invocation.<ErrorMessageHandler>getArgument(1).handleErrorMessage("removal failed");
+            return null;
+        }).when(offers).removeAllOpenOffers(any(), any());
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        account.addListener(listener);
+        CoreApi api = seedRestoreApi(account, wallet, offers);
+        assertEquals("removal failed", assertThrows(IllegalStateException.class,
+                () -> api.restoreXmrWalletFromSeed("seed", 0L, null, null)).getMessage());
+        verify(wallet, never()).restoreWalletFromSeed(any(), any(), any());
+        verify(listener, never()).onWalletRestored(any());
+        account.closeAccount();
+    }
+
+    @Test
+    public void testSeedRestoreRequiresDaemonConnectionBeforeRemovingOffers() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        doReturn(true).when(wallet).isSeedValid("seed");
+        OpenOfferManager offers = mock(OpenOfferManager.class);
+        CoreApi api = seedRestoreApi(account, wallet, offers);
+        XmrConnectionService connections = wallet.getXmrConnectionService();
+        for (Boolean connected : Arrays.asList(null, false)) {
+            doReturn(connected).when(connections).isConnected();
+            assertTrue(assertThrows(IllegalStateException.class,
+                    () -> api.restoreXmrWalletFromSeed("seed", 0L, null, null)).getMessage().contains("no connection"));
+        }
+        verify(offers, never()).removeAllOpenOffers(any(), any());
+        verify(wallet, never()).restoreWalletFromSeed(any(), any(), any());
+        assertTrue(account.isAccountOpen());
+    }
+
+    @Test
+    public void testSeedRestoreWaitsForOfferRemovalAndRestartsOnlyAfterSuccess() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        doReturn(true).when(wallet).isSeedValid("seed words");
+        OpenOfferManager offers = mock(OpenOfferManager.class);
+        CompletableFuture<Runnable> removal = new CompletableFuture<>();
+        doAnswer(invocation -> {
+            removal.complete(invocation.getArgument(0));
+            return null;
+        }).when(offers).removeAllOpenOffers(any(), any());
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        account.addListener(listener);
+        CoreApi api = seedRestoreApi(account, wallet, offers);
+        CompletableFuture<Void> restore = CompletableFuture.runAsync(() -> api.restoreXmrWalletFromSeed("  seed\n words  ", 12345L, null, null));
+        try {
+            Runnable removed = removal.get(10, TimeUnit.SECONDS);
+            verify(wallet, never()).restoreWalletFromSeed(any(), any(), any());
+            verify(listener, never()).onWalletRestored(any());
+            removed.run();
+            restore.get(10, TimeUnit.SECONDS);
+            verify(wallet).restoreWalletFromSeed("seed words", 12345L, null);
+            verify(listener).onWalletRestored(null);
+            verify(listener, never()).onAccountRestored(any());
+            assertThrows(IllegalStateException.class, account::closeAccount);
+            assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
+        } finally {
+            removal.get(10, TimeUnit.SECONDS).run();
+            restore.get(10, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    public void testFailedSeedRestoreDoesNotRestartOrLockAccount() throws Exception {
+        CoreAccountService account = account(null);
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        doReturn(true).when(wallet).isSeedValid("seed");
+        doThrow(new IllegalStateException("wallet creation failed")).when(wallet).restoreWalletFromSeed("seed", 0L, null);
+        OpenOfferManager offers = mock(OpenOfferManager.class);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(0).run();
+            return null;
+        }).when(offers).removeAllOpenOffers(any(), any());
+        AccountServiceListener listener = mock(AccountServiceListener.class);
+        account.addListener(listener);
+        CoreApi api = seedRestoreApi(account, wallet, offers);
+        assertEquals("wallet creation failed", assertThrows(IllegalStateException.class,
+                () -> api.restoreXmrWalletFromSeed("seed", 0L, null, null)).getMessage());
+        verify(listener, never()).onWalletRestored(any());
+        assertTrue(account.isAccountOpen());
+        account.closeAccount();
+    }
+
+    @Test
+    public void testShutdownWaitsForSeedRestoreAndPreventsFurtherRestores() throws Exception {
+        CoreAccountService account = account(null);
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch proceed = new CountDownLatch(1);
+        CompletableFuture<Void> restore = CompletableFuture.runAsync(() -> account.withWalletRestore(() -> {
+            started.countDown();
+            assertDoesNotThrow(() -> assertTrue(proceed.await(10, TimeUnit.SECONDS)));
+            throw new IllegalStateException("restore failed");
+        }, null));
+        try {
+            assertTrue(started.await(10, TimeUnit.SECONDS));
+            CompletableFuture<Void> shutdown = account.onShutDownStarted();
+            assertFalse(shutdown.isDone());
+            proceed.countDown();
+            assertThrows(ExecutionException.class, () -> restore.get(10, TimeUnit.SECONDS));
+            shutdown.get(10, TimeUnit.SECONDS);
+            assertThrows(IllegalStateException.class, () -> account.withWalletRestore(() -> {}, null));
+        } finally {
+            proceed.countDown();
+        }
+    }
+
+    @Test
+    public void testSeedRestoreReplacesNativeWalletAndPreservesOldWalletBackup() throws Exception {
+        restoreNativeWalletAndCheckBackup("");
+    }
+
+    @Test
+    public void testSeedRestoreFromDateReplacesNativeWalletAndPreservesOldWalletBackup() throws Exception {
+        restoreNativeWalletAndCheckBackup("2020-02-29");
+    }
+
+    @Test
+    public void testSeedRestoreFromPreGenesisDateScansFromGenesis() throws Exception {
+        restoreNativeWalletAndCheckBackup("2010-01-01");
+    }
+
+    @Test
+    public void testSeedRestoreRecoversAfterInterruptedWalletMoves() throws Exception {
+        for (int move = 1; move <= 6; move++) restoreWithInterruptedMove(move, true);
+    }
+
+    @Test
+    public void testSeedRestoreRecoversAfterWalletMoveIoFailures() throws Exception {
+        for (int move = 1; move <= 6; move++) restoreWithInterruptedMove(move, false);
+    }
+
+    private void restoreWithInterruptedMove(int interruptedMove, boolean abrupt) throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        File wallets = Files.createDirectory(walletDir.toPath().resolve((abrupt ? "crash-" : "io-") + interruptedMove)).toFile();
+        CoreAccountService account = account(null);
+        XmrWalletService service = creatingWalletService(account, wallets);
+        MoneroNetworkType network = XmrWalletService.getMoneroNetworkType();
+        MoneroWalletFull source = MoneroWalletFull.createWallet(new MoneroWalletConfig().setNetworkType(network));
+        String seed = source.getSeed();
+        String restoredAddress = source.getPrimaryAddress();
+        source.close(false);
+        Path main = wallets.toPath().resolve("haveno_XMR");
+        Path staged = wallets.toPath().resolve("haveno_XMR_restore");
+        MoneroWalletFull original = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(main.toString()).setPassword("password").setNetworkType(network));
+        String originalAddress = original.getPrimaryAddress();
+        original.setAttribute("backup-marker", "original cache state");
+        setField(XmrWalletBase.class, service, "wallet", original);
+        Files.writeString(main.resolveSibling("haveno_XMR.address.txt"), originalAddress);
+        AtomicInteger moves = new AtomicInteger();
+        AtomicReference<Path> movedFile = new AtomicReference<>();
+        Error interruption = new Error("injected interruption");
+        try (var files = mockStatic(FileUtil.class, CALLS_REAL_METHODS);
+             var pollers = mockConstruction(TaskLooper.class)) {
+            files.when(() -> FileUtil.atomicReplace(any(File.class), any(File.class))).thenAnswer(invocation -> {
+                if (moves.get() == 0) {
+                    // exercise the address-file move even on mainnet, where it is normally absent
+                    Path address = staged.resolveSibling("haveno_XMR_restore.address.txt");
+                    Files.writeString(address, restoredAddress);
+                    FileUtil.syncFileAndDirectory(address);
+                }
+                invocation.callRealMethod();
+                movedFile.set(invocation.<File>getArgument(1).toPath());
+                moves.incrementAndGet();
+                return null;
+            });
+            files.when(() -> FileUtil.syncFileAndDirectory(any(Path.class))).thenAnswer(invocation -> {
+                invocation.callRealMethod();
+                if (invocation.getArgument(0).equals(movedFile.get()) && moves.get() == interruptedMove) {
+                    if (abrupt) throw interruption;
+                    throw new IOException("injected move flush failure");
+                }
+                return null;
+            });
+            if (abrupt) assertSame(interruption, assertThrows(Error.class, () -> service.restoreWalletFromSeed(seed, 12345L, null)));
+            else assertThrows(RuntimeException.class, () -> service.restoreWalletFromSeed(seed, 12345L, null));
+            assertEquals(interruptedMove, moves.get());
+        } finally {
+            closeMainWallet(service);
+        }
+
+        File[] backups = new File(wallets, "backup").listFiles(file -> file.getName().startsWith("replaced-"));
+        assertEquals(1, backups.length);
+        Path backup = backups[0].toPath();
+        Path oldKeys = interruptedMove < 3 ? main.resolveSibling("haveno_XMR.keys") : backup.resolve("haveno_XMR.keys");
+        // an interruption during retention can split the keys and cache, but both must remain recoverable
+        MoneroWalletFull retained = MoneroWalletFull.openWalletData("password", network,
+                Files.readAllBytes(oldKeys), Files.readAllBytes(backup.resolve("haveno_XMR")), null);
+        try {
+            assertEquals(originalAddress, retained.getPrimaryAddress());
+            assertEquals("original cache state", retained.getAttribute("backup-marker"));
+        } finally {
+            retained.close(false);
+        }
+
+        XmrWalletService restarted = creatingWalletService(account, wallets);
+        doReturn(true).when(restarted.getXmrConnectionService()).isConnectionLocalHost();
+        try {
+            MoneroWallet wallet = openMainWallet(restarted);
+            assertEquals(interruptedMove < 3 ? originalAddress : restoredAddress, wallet.getPrimaryAddress());
+            if (interruptedMove >= 3) assertEquals(12345L, ((MoneroWalletFull) wallet).getRestoreHeight());
+        } finally {
+            closeMainWallet(restarted);
+        }
+        assertTrue(Files.exists(main));
+        assertTrue(Files.exists(main.resolveSibling("haveno_XMR.keys")));
+        assertEquals(interruptedMove < 3, Files.exists(staged.resolveSibling("haveno_XMR_restore.keys")));
+    }
+
+    private MoneroWallet openMainWallet(XmrWalletService service) throws Exception {
+        Method open = XmrWalletService.class.getDeclaredMethod("openOrCreateMainWallet");
+        open.setAccessible(true);
+        return (MoneroWallet) open.invoke(service);
+    }
+
+    private void closeMainWallet(XmrWalletService service) throws Exception {
+        Method close = XmrWalletService.class.getDeclaredMethod("closeMainWallet", boolean.class);
+        close.setAccessible(true);
+        assertEquals(true, close.invoke(service, true));
+    }
+
+    private void restoreNativeWalletAndCheckBackup(String restoreDate) throws Exception {
+        MoneroUtils.tryLoadNativeLibrary();
+        Assumptions.assumeTrue(MoneroUtils.isNativeLibraryLoaded());
+        CoreAccountService account = account(null);
+        XmrWalletService service = creatingWalletService(account);
+        MoneroNetworkType network = XmrWalletService.getMoneroNetworkType();
+        MoneroWalletFull source = MoneroWalletFull.createWallet(new MoneroWalletConfig().setNetworkType(network));
+        String seed = source.getSeed();
+        String restoredAddress = source.getPrimaryAddress();
+        source.close(false);
+        Path path = walletDir.toPath().resolve("haveno_XMR");
+        MoneroWalletFull original = MoneroWalletFull.createWallet(new MoneroWalletConfig()
+                .setPath(path.toString()).setPassword("password").setNetworkType(network));
+        String originalAddress = original.getPrimaryAddress();
+        original.save();
+
+        // read keys with the wallet closed because Windows locks the file
+        original.close(false);
+        byte[] keys = Files.readAllBytes(path.resolveSibling("haveno_XMR.keys"));
+        original = MoneroWalletFull.openWallet(path.toString(), "password", network);
+        setField(XmrWalletBase.class, service, "wallet", original);
+        OpenOfferManager offers = mock(OpenOfferManager.class);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(0).run();
+            return null;
+        }).when(offers).removeAllOpenOffers(any(), any());
+        CoreApi api = seedRestoreApi(account, service, offers);
+        try {
+            assertThrows(IllegalArgumentException.class, () -> api.restoreXmrWalletFromSeed("invalid seed", 0L, null, null));
+            assertFalse(original.isClosed());
+            verify(offers, never()).removeAllOpenOffers(any(), any());
+            original.close(false);
+            assertArrayEquals(keys, Files.readAllBytes(path.resolveSibling("haveno_XMR.keys")));
+            original = MoneroWalletFull.openWallet(path.toString(), "password", network);
+            setField(XmrWalletBase.class, service, "wallet", original);
+
+            Long restoreHeight = restoreDate.isEmpty() ? 12345L : null;
+            long expectedHeight = restoreDate.isEmpty() ? 12345L : XmrWalletService.estimateHeightForDate(LocalDate.parse(restoreDate));
+            api.restoreXmrWalletFromSeed(seed, restoreHeight, restoreDate, null);
+            assertTrue(original.isClosed());
+            MoneroWalletFull restored = MoneroWalletFull.openWallet(path.toString(), "password", network);
+            try {
+                assertEquals(seed, restored.getSeed());
+                assertEquals(restoredAddress, restored.getPrimaryAddress());
+                assertEquals(expectedHeight, restored.getRestoreHeight());
+            } finally {
+                restored.close(false);
+            }
+            File[] replaced = new File(walletDir, "backup").listFiles(file -> file.getName().startsWith("replaced-"));
+            assertEquals(1, replaced.length);
+            MoneroWalletFull backup = MoneroWalletFull.openWalletData("password", network,
+                    Files.readAllBytes(new File(replaced[0], "haveno_XMR.keys").toPath()),
+                    Files.readAllBytes(new File(replaced[0], "haveno_XMR").toPath()), null);
+            try {
+                assertEquals(originalAddress, backup.getPrimaryAddress());
+            } finally {
+                backup.close(false);
+            }
+        } finally {
+            original.close(false);
+        }
+    }
+
+    private CoreApi seedRestoreApi(CoreAccountService account, XmrWalletService wallet, OpenOfferManager offers) throws Exception {
+        Class<?> type = Class.forName("haveno.core.api.CoreWalletsService");
+        Object service = mock(type, CALLS_REAL_METHODS);
+        AppStartupState startup = mock(AppStartupState.class);
+        doReturn(true).when(startup).isWalletAndNetworkReady();
+        WalletsManager wallets = mock(WalletsManager.class);
+        doReturn(true).when(wallets).areWalletsAvailable();
+        setField(type, service, "accountService", account);
+        setField(type, service, "appStartupState", startup);
+        setField(type, service, "walletsManager", wallets);
+        setField(type, service, "xmrWalletService", wallet);
+        setField(type, service, "openOfferManager", offers);
+        if (wallet.getXmrConnectionService() == null) { // a mocked wallet service reports a connected daemon
+            XmrConnectionService connections = mock(XmrConnectionService.class);
+            doReturn(true).when(connections).isConnected();
+            doReturn(connections).when(wallet).getXmrConnectionService();
+        }
+        CoreApi api = mock(CoreApi.class, CALLS_REAL_METHODS);
+        setField(CoreApi.class, api, "coreAccountService", account);
+        setField(CoreApi.class, api, "walletsService", service);
+        return api;
     }
 
     @Test
@@ -829,11 +1463,17 @@ public class EncryptionTest {
                 CoreAccountService.class, XmrConnectionService.class, WalletsSetup.class, XmrAddressEntryList.class, File.class, int.class);
         constructor.setAccessible(true);
         HavenoUtils.tradeManager = mock(TradeManager.class);
+        XmrAddressEntryList addresses = mock(XmrAddressEntryList.class);
+        doReturn(ImmutableList.of()).when(addresses).getAddressEntriesAsListImmutable();
         return constructor.newInstance(mock(User.class), mock(Preferences.class), account, connections,
-                mock(WalletsSetup.class), mock(XmrAddressEntryList.class), walletDir, 0);
+                mock(WalletsSetup.class), addresses, walletDir, 0);
     }
 
     private XmrWalletService creatingWalletService(CoreAccountService account) throws Exception {
+        return creatingWalletService(account, walletDir);
+    }
+
+    private XmrWalletService creatingWalletService(CoreAccountService account, File walletDir) throws Exception {
         XmrConnectionService connections = mock(XmrConnectionService.class);
         doReturn(true).when(connections).isConnected();
         doReturn(new MoneroRpcConnection("http://127.0.0.1:18081")).when(connections).getConnection();

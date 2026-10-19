@@ -132,6 +132,7 @@ public class XmrWalletService extends XmrWalletBase {
     private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
     private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
+    private static final String RESTORE_HEIGHT_ATTRIBUTE = "haveno.restoreHeight";
     private static final String KEYS_FILE_POSTFIX = ".keys";
     private static final String ADDRESS_FILE_POSTFIX = ".address.txt";
     private static final int NUM_WALLET_BACKUPS = 3;
@@ -219,7 +220,6 @@ public class XmrWalletService extends XmrWalletBase {
     private volatile List<MoneroTxWallet> cachedTxs; // replaced rather than mutated so readers can iterate without the wallet lock
     private boolean isInitializingWallet;
     private final ReadOnlyBooleanWrapper passwordRecoveryRequired = new ReadOnlyBooleanWrapper();
-    private Long walletRestoreHeight; // tracked in-process because wallet rpc cannot report it
 
     private static final Object WALLET_HEIGHT_MONITOR_LOCK = new Object();
     private static final long WALLET_HEIGHT_MONITOR_PERIOD_SEC = 1200; // request connection change if wallet height is not updated within this period
@@ -254,6 +254,12 @@ public class XmrWalletService extends XmrWalletBase {
 
         accountService.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS, this::changeWalletPasswords);
         accountService.addListener(new AccountServiceListener() {
+            @Override
+            public void onAccountCreating() {
+                awaitPendingWalletClose(getWalletPath(MONERO_WALLET_NAME)); // a failed save of an interrupted creation may still hold the files
+                if (walletExists(MONERO_WALLET_NAME)) retainWallet(MONERO_WALLET_NAME); // left by a creation from seed interrupted before its account keys
+            }
+
             @Override
             public void onPasswordChanged(String oldPassword, String newPassword) {
                 synchronized (walletLock) {
@@ -431,31 +437,6 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
-    private MoneroWallet createWalletFromSeed(String walletName, Integer walletRpcPort, boolean applyProxyUri, boolean trustDaemon, String seed, long restoreHeight) {
-        walletLifecycleLock.readLock().lock();
-        try {
-            log.info("{}.createWalletFromSeed({}, {})", getClass().getSimpleName(), walletName, restoreHeight);
-            if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
-            if (!isSeedValid(seed)) throw new IllegalArgumentException("Invalid wallet seed");
-            MoneroWalletConfig config = getWalletConfig(walletName).setSeed(seed).setRestoreHeight(restoreHeight);
-            PasswordChange change = passwordChange;
-            if (change != null) config.setPassword(change.newPassword());
-            MoneroWallet created = isNativeLibraryApplied() ? createWalletFull(config, applyProxyUri) : createWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
-            if (change != null) {
-                try {
-                    backupWalletForPasswordChange(created, walletName, config.getPassword(), change.backupDir(), trustDaemon, false);
-                    change.remaining().remove(walletName);
-                } catch (Throwable e) {
-                    forceCloseWallet(created, created.getPath());
-                    throw e;
-                }
-            }
-            return created;
-        } finally {
-            walletLifecycleLock.readLock().unlock();
-        }
-    }
-
     // mainnet genesis timestamp and v2 fork height, to translate between block heights and dates
     // (1-minute target blocks before the v2 fork, 2-minute after)
     private static final long GENESIS_TIMESTAMP = 1397818193;
@@ -515,7 +496,7 @@ public class XmrWalletService extends XmrWalletBase {
                     .setPassword("")
                     .setSeed(seed));
             return true;
-        } catch (MoneroError e) {
+        } catch (Exception e) { // the native library reports an invalid seed with a plain exception
             log.info("Seed failed validation: {}", e.getMessage());
             return false;
         } finally {
@@ -551,6 +532,40 @@ public class XmrWalletService extends XmrWalletBase {
         return isNativeLibraryApplied() ? openWalletFull(config, applyProxyUri) : openWalletRpc(config, walletRpcPort, applyProxyUri, trustDaemon);
     }
 
+    // Create the main wallet from a seed offline, before the account keys exist, so no account is left without its wallet.
+    // Files left by an interrupted creation were set aside when the account started being created.
+    public void createMainWalletFromSeed(String seed, Long restoreHeight, LocalDate restoreDate) {
+        synchronized (walletLock) {
+            if (isShutDownStarted) throw new IllegalStateException("Cannot create wallet because shutting down");
+            if (restoreHeight == null && restoreDate != null) restoreHeight = estimateHeightForDate(restoreDate);
+            long height = restoreHeight == null ? 0 : restoreHeight;
+            log.info("{}.createMainWalletFromSeed(restoreHeight={})", getClass().getSimpleName(), height);
+            MoneroWalletConfig config = getWalletConfig(MONERO_WALLET_NAME).setSeed(seed).setRestoreHeight(height);
+            MoneroWallet created = createWalletOffline(config);
+            try {
+                created.setAttribute(RESTORE_HEIGHT_ATTRIBUTE, Long.toString(height)); // durable even before account data can be persisted
+            } catch (Throwable e) {
+                forceCloseWallet(created, config.getPath());
+                throw e;
+            }
+            closeWallet(created, true);
+            syncWalletFiles(MONERO_WALLET_NAME); // durable before the account keys are written
+        }
+    }
+
+    // Create a wallet without a daemon connection, like seed validation does.
+    private MoneroWallet createWalletOffline(MoneroWalletConfig config) {
+        if (isNativeLibraryApplied()) return MoneroWalletFull.createWallet(config);
+        MoneroWalletRpc walletRpc = startWalletRpcInstance(null, null);
+        try {
+            walletRpc.createWallet(config);
+            return walletRpc;
+        } catch (RuntimeException e) {
+            forceCloseWallet(walletRpc, config.getPath());
+            throw e;
+        }
+    }
+
     // Restore the main wallet from the given seed, scanning from restoreHeight or else restoreDate. The restored wallet
     // is fully created and saved before the current one is backed up and replaced, so failure leaves the current wallet intact.
     public void restoreWalletFromSeed(String seed, Long restoreHeight, LocalDate restoreDate) {
@@ -569,8 +584,9 @@ public class XmrWalletService extends XmrWalletBase {
             MoneroWalletConfig config = getWalletConfig(restoreName).setPassword(getWalletPassword()).setSeed(seed).setRestoreHeight(height);
             MoneroWallet restored = isNativeLibraryApplied() ? createWalletFull(config, isProxyApplied()) : createWalletRpc(config, null, isProxyApplied(), xmrConnectionService.isTrustedDaemon());
             closeWallet(restored, true);
+            syncWalletFiles(restoreName); // durable before the current wallet is replaced
 
-            // replace the current wallet with the restored wallet, keeping a backup
+            // replace the current wallet with the restored wallet, keeping the current wallet's files
             if (!closeMainWallet(true)) {
 
                 // reopen the wallet with a fresh handle since its state is unknown after a failed close
@@ -581,10 +597,7 @@ public class XmrWalletService extends XmrWalletBase {
             long previousWalletCreationDate = user.getWalletCreationDate();
             user.setWalletCreationDate(estimateHeightTimestamp(height)); // before replacing files, so a replacement completed on startup keeps it
             try {
-                if (walletExists(MONERO_WALLET_NAME)) {
-                    if (!backupWallet(MONERO_WALLET_NAME)) throw new IllegalStateException("Cannot restore wallet because backing up the current wallet failed");
-                    deleteWallet(MONERO_WALLET_NAME);
-                }
+                if (walletExists(MONERO_WALLET_NAME)) retainWallet(MONERO_WALLET_NAME);
                 moveWallet(restoreName, MONERO_WALLET_NAME);
             } catch (RuntimeException e) {
 
@@ -608,7 +621,7 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
-    // Complete a restore from seed interrupted after the current wallet was deleted but before the restored wallet was moved.
+    // Complete a restore from seed interrupted after the current wallet was moved aside but before the restored wallet was moved.
     private void completeInterruptedRestore() {
         String restoreName = MONERO_WALLET_NAME + "_restore";
         if (!walletExists(MONERO_WALLET_NAME) && walletExists(restoreName)) {
@@ -617,13 +630,52 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
+    // Move a replaced wallet's files to a timestamped backup directory, outside the rolling backups which later opens rotate out.
+    private void retainWallet(String walletName) {
+        File dir = new File(walletDir, "backup/replaced-" + System.currentTimeMillis());
+        if (!dir.mkdirs()) throw new RuntimeException("Failed to create wallet backup directory " + Utilities.redactSensitiveInfo(dir.toString()));
+        FileUtil.setOwnerOnlyPermissions(dir.toPath());
+        try {
+            // make the backup directory durable before moving the wallet's files
+            FileUtil.syncDirectory(dir.toPath());
+            FileUtil.syncDirectory(dir.getParentFile().toPath());
+            FileUtil.syncDirectory(walletDir.toPath());
+            moveWallet(walletDir, walletName, dir, walletName);
+            FileUtil.syncDirectory(walletDir.toPath()); // commit the removal before new account keys can be written
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not flush wallet backup directory " + Utilities.redactSensitiveInfo(dir.toString()), e);
+        }
+        log.warn("Retained previous wallet {} in {}", walletName, Utilities.redactSensitiveInfo(dir.toString()));
+    }
+
     // Move a wallet's files to another name within the wallet directory, moving the keys file last since it determines which wallet exists.
     private void moveWallet(String fromName, String toName) {
+        moveWallet(walletDir, fromName, walletDir, toName);
+    }
+
+    private void moveWallet(File fromDir, String fromName, File toDir, String toName) {
         for (String postfix : new String[] {"", ADDRESS_FILE_POSTFIX, KEYS_FILE_POSTFIX}) {
-            File from = new File(walletDir, fromName + postfix);
+            File from = new File(fromDir, fromName + postfix);
             if (!from.exists()) continue; // address file is absent on mainnet
-            File to = new File(walletDir, toName + postfix);
-            if (!from.renameTo(to)) throw new RuntimeException("Failed to move wallet file " + Utilities.redactSensitiveInfo(from.toString()) + " to " + Utilities.redactSensitiveInfo(to.toString()));
+            File to = new File(toDir, toName + postfix);
+            try {
+                FileUtil.atomicReplace(from, to); // a file left behind by an interrupted move is replaced
+                FileUtil.syncFileAndDirectory(to.toPath()); // commit the rename like writeAtomically, which also flushes its metadata on Windows
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to move wallet file " + Utilities.redactSensitiveInfo(from.toString()) + " to " + Utilities.redactSensitiveInfo(to.toString()), e);
+            }
+        }
+    }
+
+    // Flush a closed wallet's files, since wallet2 saves without a durability barrier.
+    private void syncWalletFiles(String walletName) {
+        try {
+            for (String postfix : new String[] {"", ADDRESS_FILE_POSTFIX, KEYS_FILE_POSTFIX}) {
+                File file = new File(walletDir, walletName + postfix);
+                if (file.exists()) FileUtil.syncFileAndDirectory(file.toPath());
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not flush wallet files for " + walletName, e);
         }
     }
 
@@ -2437,28 +2489,27 @@ public class XmrWalletService extends XmrWalletBase {
                 completeInterruptedRestore(); // else a new wallet would be created
                 if (walletExists(MONERO_WALLET_NAME)) {
                     wallet = openWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon());
+
+                    // a wallet created from seed before the user data was read has no creation date yet
+                    if (user.getWalletCreationDate() == 0) {
+                        try {
+                            String stored = wallet.getAttribute(RESTORE_HEIGHT_ATTRIBUTE);
+                            if (stored != null) {
+                                long height = Long.parseLong(stored);
+                                if (height >= 0) user.setWalletCreationDate(estimateHeightTimestamp(height));
+                            }
+                        } catch (Exception e) {
+                            log.warn("Could not read wallet restore height: {}", e.getMessage());
+                        }
+                    }
                 } else {
                     if (!Boolean.TRUE.equals(xmrConnectionService.isConnected())) throw new RuntimeException("Cannot create main wallet because there is no connection to Monero daemon");
-                    String importSeed = accountService.getWalletImportSeed();
-                    if (importSeed == null) {
-                        wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon());
+                    wallet = createWallet(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon());
 
-                        // set wallet creation date to yesterday to guarantee complete restore
-                        LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
-                        long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
-                        user.setWalletCreationDate(date);
-                    } else {
-
-                        // import wallet from seed with the user's restore height, estimated offline from a restore date
-                        Long importHeight = accountService.getWalletImportRestoreHeight();
-                        LocalDate importDate = accountService.getWalletImportRestoreDate();
-                        if (importHeight == null && importDate != null) importHeight = estimateHeightForDate(importDate);
-                        long restoreHeight = importHeight == null ? 0 : importHeight;
-                        walletRestoreHeight = restoreHeight;
-                        wallet = createWalletFromSeed(MONERO_WALLET_NAME, rpcBindPort, isProxyApplied, xmrConnectionService.isTrustedDaemon(), importSeed, restoreHeight);
-                        user.setWalletCreationDate(estimateHeightTimestamp(restoreHeight));
-                        accountService.setWalletImportDetails(null, null, null);
-                    }
+                    // set wallet creation date to yesterday to guarantee complete restore
+                    LocalDateTime localDateTime = LocalDate.now().atStartOfDay().minusDays(1);
+                    long date = localDateTime.toEpochSecond(ZoneOffset.UTC);
+                    user.setWalletCreationDate(date);
                 }
 
                 // set state from wallet, reporting the restore height while syncing towards it
@@ -2620,7 +2671,7 @@ public class XmrWalletService extends XmrWalletBase {
     // height syncing begins from: the restore height when it is ahead of the wallet height
     @Override
     protected long getSyncFromHeight() {
-        Long restoreHeight = walletRestoreHeight; // mixed long/Long ternary would unbox and NPE when null
+        Long restoreHeight = null;
         if (wallet instanceof MoneroWalletFull) restoreHeight = ((MoneroWalletFull) wallet).getRestoreHeight();
         if (restoreHeight == null && user.getWalletCreationDate() > 0) {
 

@@ -192,6 +192,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         accountService.addListener(new AccountServiceListener() {
             @Override public void onAccountDeleted(Runnable onShutdown) { shutDownNoPersist(onShutdown, true); }
             @Override public void onAccountRestored(Runnable onShutdown) { shutDownNoPersist(onShutdown, true); }
+            @Override public void onWalletRestored(Runnable onShutdown) { restart(onShutdown); }
         });
 
         // Attempt to login, subclasses should implement interactive login and or rpc login.
@@ -233,16 +234,21 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     protected void shutDownNoPersist(Runnable onShutdown, boolean restart) {
         this.isReadOnly = true;
         if (restart) {
-            shutdownCompletedHandler = onShutdown;
-            synchronized (keepRunningLock) {
-                keepRunningResult.set(EXIT_RESTART);
-                if (keepRunningThread != null) keepRunningThread.interrupt(); // else keepRunning() returns the pending restart
-            }
+            restart(onShutdown);
         } else {
             gracefulShutDown(() -> {
                 log.info("Shutdown without persisting");
                 if (onShutdown != null) onShutdown.run();
             });
+        }
+    }
+
+    private void restart(Runnable onShutdown) {
+        if (isShutDownStarted) return; // an exit already in progress takes precedence over restarting
+        shutdownCompletedHandler = onShutdown;
+        synchronized (keepRunningLock) {
+            keepRunningResult.set(EXIT_RESTART);
+            if (keepRunningThread != null) keepRunningThread.interrupt(); // else keepRunning() returns the pending restart
         }
     }
 
@@ -351,7 +357,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     @Override
     public void gracefulShutDown(ResultHandler onShutdown, boolean systemExit) {
         if (systemExit) CommonSetup.startShutdownWatchdog();
-        CompletableFuture<Void> passwordChange = accountService == null ? CompletableFuture.completedFuture(null)
+        CompletableFuture<Void> accountOperation = accountService == null ? CompletableFuture.completedFuture(null)
                 : accountService.onShutDownStarted();
         log.info("Starting graceful shut down of {}", getClass().getSimpleName());
 
@@ -375,13 +381,13 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             return;
         }
 
-        if (passwordChange.isDone()) {
+        if (accountOperation.isDone()) {
             shutDownServices();
         } else {
-            // keep wallets running until the change finishes, without blocking the user thread
-            log.info("Waiting for password change before shutting down services");
-            passwordChange.thenRunAsync(this::shutDownServices).exceptionally(error -> {
-                log.error("Failed to shut down services after password change", error);
+            // keep wallets running until the account operation finishes, without blocking the user thread
+            log.info("Waiting for account operation before shutting down services");
+            accountOperation.thenRunAsync(this::shutDownServices).exceptionally(error -> {
+                log.error("Failed to shut down services after account operation", error);
                 return null;
             });
         }

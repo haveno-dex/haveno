@@ -31,6 +31,7 @@ import haveno.core.user.CookieKey;
 import haveno.core.user.Preferences;
 import haveno.core.user.StartupSettings;
 import haveno.core.xmr.nodes.XmrNodes;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.common.view.guice.InjectorViewFactory;
 import haveno.desktop.setup.DesktopPersistedDataHost;
@@ -251,13 +252,18 @@ public class HavenoAppMain extends HavenoExecutable {
                 // create the account off the JavaFX thread (generating the keys is slow)
                 result -> new Thread(() -> {
                     try {
-                        if (result.getWalletSeed() != null) accountService.setWalletImportDetails(result.getWalletSeed(), result.getWalletRestoreHeight(), result.getWalletRestoreDate());
-                        accountService.createAccount(result.getPassword());
+                        XmrWalletService xmrWalletService = injector.getInstance(XmrWalletService.class); // listens for the account to retain an orphaned wallet
+                        accountService.createAccount(result.getPassword(), result.getWalletSeed() == null ? null
+                                : () -> xmrWalletService.createMainWalletFromSeed(result.getWalletSeed(), result.getWalletRestoreHeight(), result.getWalletRestoreDate()));
                         startupWizardResult = result;
                         UserThread.execute(() -> loginResult.complete(accountService.isAccountOpen()));
                     } catch (Throwable t) {
                         log.error("Error creating account", t);
-                        UserThread.execute(() -> loginResult.completeExceptionally(t));
+                        UserThread.execute(() -> {
+                            if (application.isShutDownRequested() || isShutDownStarted) return;
+                            application.showLoginFailure(t, () -> new Thread(
+                                    () -> loginResult.completeExceptionally(t), "Account-creation-failure-shutdown").start());
+                        });
                     }
                 }, "CreateAccount").start(),
 

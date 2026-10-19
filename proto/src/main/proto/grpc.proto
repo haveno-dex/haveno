@@ -84,6 +84,8 @@ service Account {
     }
     rpc CreateAccount (CreateAccountRequest) returns (CreateAccountReply) {
     }
+    rpc CreateAccountFromSeed (CreateAccountFromSeedRequest) returns (CreateAccountFromSeedReply) {
+    }
     rpc OpenAccount (OpenAccountRequest) returns (OpenAccountReply) {
     }
     rpc IsAppInitialized (IsAppInitializedRequest) returns (IsAppInitializedReply) {
@@ -97,6 +99,8 @@ service Account {
     rpc BackupAccount (BackupAccountRequest) returns (stream BackupAccountReply) {
     }
     rpc RestoreAccount (RestoreAccountRequest) returns (RestoreAccountReply) {
+    }
+    rpc RestoreXmrWalletFromSeed (RestoreXmrWalletFromSeedRequest) returns (RestoreXmrWalletFromSeedReply) {
     }
 }
 
@@ -119,6 +123,17 @@ message CreateAccountRequest {
 }
 
 message CreateAccountReply {
+}
+
+// Create the account with its main wallet restored from seed. Omit height and date to scan from genesis.
+message CreateAccountFromSeedRequest {
+    string password = 1;
+    string seed = 2;
+    optional uint64 restore_height = 3; // exclusive with restore_date
+    string restore_date = 4; // YYYY-MM-DD
+}
+
+message CreateAccountFromSeedReply {
 }
 
 message OpenAccountRequest {
@@ -171,6 +186,17 @@ message RestoreAccountRequest {
 }
 
 message RestoreAccountReply {
+}
+
+// Replace the main wallet from seed, cancel open offers, and restart. The old wallet is backed up for existing trades.
+// Omit height and date to scan from genesis.
+message RestoreXmrWalletFromSeedRequest {
+    string seed = 1;
+    optional uint64 restore_height = 2; // exclusive with restore_date
+    string restore_date = 3; // YYYY-MM-DD
+}
+
+message RestoreXmrWalletFromSeedReply {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

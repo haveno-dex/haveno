@@ -175,6 +175,10 @@ public class CoreApi {
         coreAccountService.createAccount(password);
     }
 
+    public void createAccountFromSeed(String password, String seed, Long restoreHeight, String restoreDate) {
+        walletsService.createAccountFromSeed(password, seed, restoreHeight, restoreDate);
+    }
+
     public void openAccount(String password) throws IncorrectPasswordException {
         coreAccountService.openAccount(password);
     }
@@ -197,6 +201,10 @@ public class CoreApi {
 
     public void backupAccount(int bufferSize, Consumer<InputStream> consume, Consumer<Exception> error) {
         coreAccountService.backupAccount(bufferSize, consume, error);
+    }
+
+    public void restoreXmrWalletFromSeed(String seed, Long restoreHeight, String restoreDate, Runnable onShutdown) {
+        coreAccountService.withWalletRestore(() -> walletsService.restoreXmrWalletFromSeed(seed, restoreHeight, restoreDate), onShutdown);
     }
 
     public void restoreAccount(InputStream zipStream, int bufferSize, Runnable onShutdown) throws Exception {
