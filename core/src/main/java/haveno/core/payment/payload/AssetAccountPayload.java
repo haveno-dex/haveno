@@ -67,8 +67,18 @@ public abstract class AssetAccountPayload extends PaymentAccountPayload {
     }
 
     @Override
+    public String getPaymentDetails(String currencyCode) {
+        return Res.getWithCol("payment.crypto.address.dyn", currencyCode) + " " + address;
+    }
+
+    @Override
     public String getPaymentDetailsForTradePopup() {
         return getPaymentDetails();
+    }
+
+    @Override
+    public String getPaymentDetailsForTradePopup(String currencyCode) {
+        return getPaymentDetails(currencyCode);
     }
 
     @Override

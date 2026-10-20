@@ -73,7 +73,7 @@ public class BuyerStep3View extends TradeStepView {
         PaymentAccountPayload account = model.dataModel.getSellersPaymentAccountPayload();
         if (account != null)
             gridPane.add(createAccountSummary(Res.getWithCol("portfolio.pending.tradeView.paymentDetails"),
-                    account.getPaymentDetailsForTradePopup()), 0, ++gridRow, 2, 1);
+                    account.getPaymentDetailsForTradePopup(getCurrencyCode(trade))), 0, ++gridRow, 2, 1);
     }
 
     @Override
