@@ -18,13 +18,11 @@ import haveno.core.payment.RevolutAccount;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
-import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.desktop.main.offer.MutableOfferDataModel.PaymentAmountConflict;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
-import javafx.collections.FXCollections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,13 +65,11 @@ public class CreateOfferDataModelTest {
         preferences = mock(Preferences.class);
         offerUtil = mock(OfferUtil.class);
         user = mock(User.class);
-        var tradeStats = mock(TradeStatisticsManager.class);
 
         when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
         when(preferences.isUsePercentageBasedPrice()).thenReturn(true);
         when(preferences.getSecurityDepositAsPercent(null)).thenReturn(0.01);
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
-        when(tradeStats.getObservableTradeStatisticsList()).thenReturn(FXCollections.observableArrayList());
 
         model = new CreateOfferDataModel(createOfferService,
                 openOfferManager,
@@ -85,7 +81,6 @@ public class CreateOfferDataModelTest {
                 priceFeedService,
                 null,
                 null,
-                tradeStats,
                 null);
     }
 

@@ -34,7 +34,6 @@ import haveno.core.payment.validation.XmrValidator;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
-import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.coin.CoinFormatter;
@@ -54,7 +53,6 @@ import java.math.BigInteger;
 import java.time.Instant;
 import java.util.UUID;
 
-import static haveno.desktop.maker.PreferenceMakers.empty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -69,6 +67,7 @@ import static org.mockito.Mockito.when;
 public class CreateOfferViewModelTest {
 
     private CreateOfferViewModel model;
+    private SecurityDepositValidator securityDepositValidator;
     private final CoinFormatter coinFormatter = new ImmutableCoinFormatter(
             Config.baseCurrencyNetworkParameters().getMonetaryFormat());
 
@@ -90,11 +89,10 @@ public class CreateOfferViewModelTest {
         User user = mock(User.class);
         PaymentAccount paymentAccount = mock(PaymentAccount.class);
         Preferences preferences = mock(Preferences.class);
-        SecurityDepositValidator securityDepositValidator = mock(SecurityDepositValidator.class);
+        securityDepositValidator = mock(SecurityDepositValidator.class);
         AccountAgeWitnessService accountAgeWitnessService = mock(AccountAgeWitnessService.class);
         CreateOfferService createOfferService = mock(CreateOfferService.class);
         OfferUtil offerUtil = mock(OfferUtil.class);
-        var tradeStats = mock(TradeStatisticsManager.class);
 
         when(xmrWalletService.getOrCreateAddressEntry(anyString(), any())).thenReturn(addressEntry);
         when(xmrWalletService.getBalanceForSubaddress(any(Integer.class))).thenReturn(BigInteger.valueOf(10000000L));
@@ -110,22 +108,21 @@ public class CreateOfferViewModelTest {
         when(securityDepositValidator.validate(any())).thenReturn(new InputValidator.ValidationResult(false));
         when(accountAgeWitnessService.getMyTradeLimit(any(), any(), any(), anyBoolean())).thenReturn(100000000L);
         when(preferences.getUserCountry()).thenReturn(new Country("ES", "Spain", null));
+        when(preferences.isUsePercentageBasedPrice()).thenReturn(true);
         when(preferences.getMaxPriceDistanceInPercent()).thenReturn(1.0);
         when(offerUtil.getMaxTradeLimitForRelease(any(), anyString(), any(), anyBoolean())).thenReturn(HavenoUtils.xmrToAtomicUnits(10));
         when(createOfferService.getRandomOfferId()).thenReturn(UUID.randomUUID().toString());
-        when(tradeStats.getObservableTradeStatisticsList()).thenReturn(FXCollections.observableArrayList());
 
         CreateOfferDataModel dataModel = new CreateOfferDataModel(createOfferService,
             openOfferManager,
             offerUtil,
             xmrWalletService,
-            empty,
+            preferences,
             user,
             null,
             priceFeedService,
             accountAgeWitnessService,
             coinFormatter,
-            tradeStats,
             null);
         dataModel.initWithData(OfferDirection.BUY, new CryptoCurrency("XMR", "monero"), true);
         dataModel.activate();
@@ -310,6 +307,31 @@ public class CreateOfferViewModelTest {
 
         model.amount.set("1");
         assertFalse(model.isMinSecurityDeposit.get());
+    }
+
+    @Test
+    public void testSecurityDepositPreservedOnPaymentAccountChange() {
+        when(securityDepositValidator.validate(any())).thenReturn(new InputValidator.ValidationResult(true));
+        PaymentAccount originalAccount = model.getPaymentAccount();
+        PaymentAccount otherAccount = mock(PaymentAccount.class);
+        when(otherAccount.getPaymentMethod()).thenReturn(PaymentMethod.ZELLE);
+
+        model.amount.set("1");
+        assertEquals("15.00", model.securityDeposit.get());
+        assertEquals("0.15 XMR", model.getSecurityDepositWithCode());
+
+        model.onPaymentAccountSelected(otherAccount);
+        assertEquals(otherAccount, model.getPaymentAccount());
+        assertEquals("15.00", model.securityDeposit.get());
+        assertEquals("0.15 XMR", model.getSecurityDepositWithCode());
+
+        model.securityDeposit.set("25");
+        assertEquals("0.25 XMR", model.getSecurityDepositWithCode());
+
+        model.onPaymentAccountSelected(originalAccount);
+        assertEquals(originalAccount, model.getPaymentAccount());
+        assertEquals("25.00", model.securityDeposit.get());
+        assertEquals("0.25 XMR", model.getSecurityDepositWithCode());
     }
 
     @Test

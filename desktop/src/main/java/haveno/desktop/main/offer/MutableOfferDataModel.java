@@ -23,7 +23,6 @@ import com.google.inject.name.Named;
 
 import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
-import haveno.common.util.MathUtils;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
@@ -40,8 +39,6 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.handlers.TransactionResultHandler;
-import haveno.core.trade.statistics.TradeStatistics3;
-import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
@@ -55,16 +52,12 @@ import haveno.desktop.Navigation;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
-import java.util.Comparator;
 import static java.util.Comparator.comparing;
-import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -128,7 +121,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     @Getter
     private boolean marketPriceAvailable;
     protected boolean allowAmountUpdate = true;
-    private final TradeStatisticsManager tradeStatisticsManager;
 
     private final Predicate<ObjectProperty<BigInteger>> isNonZeroAmount = (c) -> c.get() != null && c.get().compareTo(BigInteger.ZERO) != 0;
     private final Predicate<ObjectProperty<Price>> isNonZeroPrice = (p) -> p.get() != null && !p.get().isZero();
@@ -154,7 +146,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                                  PriceFeedService priceFeedService,
                                  AccountAgeWitnessService accountAgeWitnessService,
                                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
-                                 TradeStatisticsManager tradeStatisticsManager,
                                  Navigation navigation) {
         super(xmrWalletService, openOfferManager, offerUtil);
 
@@ -168,7 +159,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.btcFormatter = btcFormatter;
         this.navigation = navigation;
-        this.tradeStatisticsManager = tradeStatisticsManager;
 
         offerId = OfferUtil.getRandomOfferId();
         shortOfferId = Utilities.getShortId(offerId);
@@ -176,7 +166,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         reserveExactAmount = preferences.getSplitOfferOutput();
 
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
-        securityDepositPct.set(Restrictions.getMinSecurityDepositPct());
+        securityDepositPct.set(Restrictions.getDefaultSecurityDepositPct());
 
         paymentAccountsChangeListener = change -> fillPaymentAccounts();
     }
@@ -257,7 +247,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         calculateVolume();
         calculateTotalToPay();
         updateBalances();
-        setSuggestedSecurityDeposit(getPaymentAccount());
 
         return true;
     }
@@ -351,53 +340,9 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
             this.paymentAccount = paymentAccount;
 
             setTradeCurrencyFromPaymentAccount(paymentAccount);
-            setSuggestedSecurityDeposit(getPaymentAccount());
 
             if (amount.get() != null && this.allowAmountUpdate)
                 this.amount.set(amount.get().min(getMaxTradeLimit()));
-        }
-    }
-
-    private void setSuggestedSecurityDeposit(PaymentAccount paymentAccount) {
-        var minSecurityDeposit = Restrictions.getMinSecurityDepositPct();
-        try {
-            if (getTradeCurrency() == null) {
-                setSecurityDepositPct(minSecurityDeposit);
-                return;
-            }
-            // Get average historic prices over for the prior trade period equaling the lock time
-            var blocksRange = Restrictions.getLockTime(paymentAccount.getPaymentMethod().isBlockchain());
-            var startDate = new Date(System.currentTimeMillis() - blocksRange * 10L * 60000);
-            List<TradeStatistics3> sortedRangeData;
-            synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
-                sortedRangeData = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
-                        .filter(e -> e.getCurrency().equals(getTradeCurrency().getCode()))
-                        .filter(e -> e.getDate().compareTo(startDate) >= 0)
-                        .sorted(Comparator.comparing(TradeStatistics3::getDate))
-                        .collect(Collectors.toList());
-            }
-            var movingAverage = new MathUtils.MovingAverage(10, 0.2);
-            double[] extremes = {Double.MAX_VALUE, Double.MIN_VALUE};
-            sortedRangeData.forEach(e -> {
-                var price = e.getTradePrice().getValue();
-                movingAverage.next(price).ifPresent(val -> {
-                    if (val < extremes[0]) extremes[0] = val;
-                    if (val > extremes[1]) extremes[1] = val;
-                });
-            });
-            var min = extremes[0];
-            var max = extremes[1];
-            if (min == 0d || max == 0d) {
-                setSecurityDepositPct(minSecurityDeposit);
-                return;
-            }
-            // Suggested deposit is double the trade range over the previous lock time period, bounded by min/max deposit
-            var suggestedSecurityDeposit =
-                    Math.min(2 * (max - min) / max, Restrictions.getMaxSecurityDepositPct());
-            securityDepositPct.set(Math.max(suggestedSecurityDeposit, minSecurityDeposit));
-        } catch (Throwable t) {
-            log.error(t.toString());
-            securityDepositPct.set(minSecurityDeposit);
         }
     }
 
