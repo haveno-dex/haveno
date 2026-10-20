@@ -32,7 +32,6 @@ import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.proto.persistable.CorePersistenceProtoResolver;
 import haveno.core.provider.price.PriceFeedService;
-import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
@@ -68,7 +67,6 @@ class CloneOfferDataModel extends MutableOfferDataModel {
                         AccountAgeWitnessService accountAgeWitnessService,
                         @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter xmrFormatter,
                         CorePersistenceProtoResolver corePersistenceProtoResolver,
-                        TradeStatisticsManager tradeStatisticsManager,
                         Navigation navigation) {
 
         super(createOfferService,
@@ -81,7 +79,6 @@ class CloneOfferDataModel extends MutableOfferDataModel {
                 priceFeedService,
                 accountAgeWitnessService,
                 xmrFormatter,
-                tradeStatisticsManager,
                 navigation);
         this.corePersistenceProtoResolver = corePersistenceProtoResolver;
     }
