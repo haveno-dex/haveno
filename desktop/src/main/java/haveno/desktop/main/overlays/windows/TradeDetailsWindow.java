@@ -239,7 +239,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
             buyersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), buyerPaymentAccountPayload, contract.getBuyerPubKeyRing());
             sellersAccountAge = getAccountWitnessDescription(accountAgeWitnessService, offer.getPaymentMethod(), sellerPaymentAccountPayload, contract.getSellerPubKeyRing());
             if (buyerPaymentAccountPayload != null) {
-                String paymentDetails = buyerPaymentAccountPayload.getPaymentDetails();
+                String paymentDetails = buyerPaymentAccountPayload.getPaymentDetails(offer.getCounterCurrencyCode());
                 String postFix = " / " + buyersAccountAge;
                 addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelTextField(gridPane, ++rowIndex,
@@ -247,7 +247,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
                         paymentDetails + postFix).second.setTooltip(new Tooltip(paymentDetails + postFix));
             }
             if (sellerPaymentAccountPayload != null) {
-                String paymentDetails = sellerPaymentAccountPayload.getPaymentDetails();
+                String paymentDetails = sellerPaymentAccountPayload.getPaymentDetails(offer.getCounterCurrencyCode());
                 String postFix = " / " + sellersAccountAge;
                 addSeparator(gridPane, ++rowIndex);
                 addConfirmationLabelTextField(gridPane, ++rowIndex,

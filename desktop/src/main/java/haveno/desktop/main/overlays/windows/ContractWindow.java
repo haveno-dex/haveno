@@ -203,14 +203,14 @@ public class ContractWindow extends Overlay<ContractWindow> {
                 ++rowIndex,
                 Res.get("shared.paymentDetails", Res.get("shared.buyer")),
                 dispute.getBuyerPaymentAccountPayload() != null
-                        ? dispute.getBuyerPaymentAccountPayload().getPaymentDetails()
+                        ? dispute.getBuyerPaymentAccountPayload().getPaymentDetails(currencyCode)
                         : "NA");
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane,
                 ++rowIndex,
                 Res.get("shared.paymentDetails", Res.get("shared.seller")),
                 dispute.getSellerPaymentAccountPayload() != null
-                        ? dispute.getSellerPaymentAccountPayload().getPaymentDetails()
+                        ? dispute.getSellerPaymentAccountPayload().getPaymentDetails(currencyCode)
                         : "NA");
 
         String title = "";

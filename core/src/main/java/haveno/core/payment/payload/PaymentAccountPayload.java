@@ -130,6 +130,15 @@ public abstract class PaymentAccountPayload implements NetworkPayload, UsedForTr
 
     public abstract String getPaymentDetailsForTradePopup();
 
+    // details labeled with the trade currency, where the payload type can use it
+    public String getPaymentDetails(String currencyCode) {
+        return getPaymentDetails();
+    }
+
+    public String getPaymentDetailsForTradePopup(String currencyCode) {
+        return getPaymentDetailsForTradePopup();
+    }
+
     public byte[] getHash() {
         return Hash.getRipemd160hash(this.toProtoMessage().toByteArray()); // TODO: adopt serializeForHash() from Bisq?
     }
