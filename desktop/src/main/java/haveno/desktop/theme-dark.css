@@ -708,6 +708,19 @@
     -fx-fill: derive(-bs-rd-green-dark, 40%);
 }
 
+/* keep the pending status readable against the dark sheet */
+.tx-status {
+    -fx-text-fill: #e3a23a;
+}
+
+.tx-status .progress-indicator {
+    -fx-progress-color: #e3a23a;
+}
+
+.tx-note-add:hover {
+    -fx-background-color: rgba(91, 141, 239, 0.10);
+}
+
 /* soften the white QR background against the dark theme */
 .qr-code-pane {
     -fx-opacity: 0.9;

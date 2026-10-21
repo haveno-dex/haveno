@@ -19,6 +19,7 @@ package haveno.desktop.main.overlays;
 
 import haveno.common.ClockWatcher;
 import haveno.desktop.main.overlays.windows.PaymentConfirmationWindow;
+import haveno.desktop.main.overlays.windows.TxDetailsWindow;
 import haveno.desktop.main.overlays.windows.PaymentInstructionsWindow;
 import haveno.desktop.main.overlays.windows.TradePeriodWindow;
 import haveno.core.payment.payload.AssetAccountPayload;
@@ -48,6 +49,7 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
+import haveno.core.provider.price.PriceFeedService;
 import haveno.core.support.SupportSession;
 import haveno.core.support.SupportManager;
 import haveno.core.support.SupportType;
@@ -78,6 +80,7 @@ import haveno.desktop.common.view.CachingViewLoader;
 import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewPath;
 import haveno.desktop.main.MainView;
+import haveno.desktop.main.funds.transactions.TransactionsListItem;
 import haveno.desktop.main.settings.network.NetworkSettingsView;
 import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.main.overlays.notifications.Notification;
@@ -146,6 +149,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
@@ -172,6 +176,7 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import monero.common.MoneroRpcConnection;
+import monero.wallet.model.MoneroTxWallet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -220,6 +225,520 @@ public class OverlayTest {
     @Test
     public void typeUnsafeCreation() {
         assertThrows(RuntimeException.class, () -> new B());
+    }
+
+    @Nested
+    class TransactionMemos {
+        private final XmrWalletService wallet = mock(XmrWalletService.class);
+        private final Runnable refresh = mock(Runnable.class);
+        private final List<Runnable> background = new ArrayList<>();
+        private Executor originalExecutor;
+        private MockedStatic<Application> application;
+        private MockedStatic<GUIUtil> gui;
+        private MockedStatic<ThreadUtils> tasks;
+        private MockedConstruction<Tooltip> tooltips;
+        private MockedConstruction<haveno.desktop.main.overlays.popups.Popup> popups;
+        private TxDetailsWindow window;
+        private TextArea memo;
+        private TextArea displayedMemo;
+        private Label edit;
+        private Button add;
+        private Button save;
+        private Button cancel;
+        private int closes;
+        private boolean deferHide;
+
+        @BeforeEach
+        void setUp() {
+            Res.setup();
+            originalExecutor = UserThread.getExecutor();
+            UserThread.setExecutor(Runnable::run);
+            application = mockStatic(Application.class);
+            application.when(Application::getUserAgentStylesheet).thenReturn(Application.STYLESHEET_MODENA);
+            gui = mockStatic(GUIUtil.class);
+            tooltips = mockConstruction(Tooltip.class);
+            popups = mockConstruction(haveno.desktop.main.overlays.popups.Popup.class, withSettings().defaultAnswer(RETURNS_SELF));
+            tasks = mockStatic(ThreadUtils.class);
+            tasks.when(() -> ThreadUtils.submitToPool(any(Runnable.class))).thenAnswer(invocation -> {
+                background.add(invocation.getArgument(0));
+                return CompletableFuture.completedFuture(null);
+            });
+            window = new TxDetailsWindow(wallet, mock(Preferences.class), mock(PriceFeedService.class)) {
+                @Override
+                protected HBox txStatusRow(String txId, XmrWalletService service) {
+                    return new HBox();
+                }
+
+                @Override
+                @SuppressWarnings("unchecked")
+                protected void onShow() {
+                    isDisplayed = true;
+                    Scene scene = mock(Scene.class);
+                    setupKeyHandler(scene);
+                    ArgumentCaptor<EventHandler<KeyEvent>> handler = ArgumentCaptor.forClass(EventHandler.class);
+                    verify(scene).setOnKeyPressed(handler.capture());
+                    gridPane.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+                        if (event.getCode() == KeyCode.ESCAPE) handler.getValue().handle(event);
+                    });
+                }
+
+                @Override
+                protected void animateHide() {
+                    closes++;
+                    if (!deferHide) onHidden();
+                }
+            };
+        }
+
+        @AfterEach
+        void tearDown() {
+            tasks.close();
+            popups.close();
+            tooltips.close();
+            gui.close();
+            application.close();
+            UserThread.setExecutor(originalExecutor);
+        }
+
+        @Test
+        void addEditAndClearMemoRefreshOnlyAfterSaving() {
+            show("tx", null);
+            assertFalse(shown(save));
+            assertFalse(shown(displayedMemo));
+            assertFalse(displayedMemo.isEditable());
+            assertTrue(shown(add));
+            VBox sheet = (VBox) ((Overlay<?>) window).gridPane.lookup(".confirm-send-sheet");
+            assertEquals(add.getParent(), sheet.getChildren().getLast());
+            int saves = 0;
+            List<String> drafts = List.of("\n \t added \t \n", "\u2003edited\n  with unicode: café\n\nlast\u2003", " \n \t ");
+            List<String> notes = List.of("added", "edited\n  with unicode: café\n\nlast", "");
+            for (String note : notes) {
+                beginEdit();
+                assertTrue(shown(save));
+                assertFalse(shown(displayedMemo));
+                assertFalse(shown(edit));
+                assertFalse(shown(add));
+                memo.setText(drafts.get(saves));
+                save.fire();
+                assertTrue(memo.isDisabled());
+                assertTrue(cancel.isDisabled());
+                verify(refresh, times(saves)).run();
+                background.remove(0).run();
+                verify(wallet).setTxNote("tx", note);
+                verify(refresh, times(++saves)).run();
+                assertFalse(memo.isDisabled());
+                assertFalse(shown(save));
+                assertEquals(!note.isEmpty(), shown(displayedMemo));
+                assertEquals(note.isEmpty(), shown(add));
+                assertEquals(note, displayedMemo.getText());
+                assertEquals(add.getParent(), sheet.getChildren().getLast());
+            }
+        }
+
+        @Test
+        void savedMemoDisplayTrimsWhitespaceWithoutChangingStoredNoteOrDraft() {
+            List<String> notes = List.of(" \n\t\u2003", "\u2003hello there\n\nhow's it going\n  \u2003");
+            List<String> displayed = List.of("", "hello there\n\nhow's it going");
+            for (int i = 0; i < notes.size(); i++) {
+                show("tx", notes.get(i));
+                assertEquals(displayed.get(i), displayedMemo.getText());
+                assertEquals(displayed.get(i).isEmpty(), shown(add));
+                assertEquals(!displayed.get(i).isEmpty(), shown(displayedMemo));
+                beginEdit();
+                assertEquals(notes.get(i), memo.getText());
+                cancel.fire();
+                assertEquals(displayed.get(i), displayedMemo.getText());
+                assertEquals(displayed.get(i).isEmpty(), shown(add));
+                ((Overlay<?>) window).actionButton.fire();
+                assertEquals(i + 1, closes);
+            }
+            assertTrue(background.isEmpty());
+            verify(wallet, never()).setTxNote(anyString(), anyString());
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void unchangedPaddedMemoDoesNotWrite() {
+            for (String note : List.of(" \n\t\u2003", "\u2003hello\nthere \n")) {
+                show("tx", note);
+                beginEdit();
+                assertEquals(note, memo.getText());
+
+                save.fire();
+
+                assertFalse(shown(save));
+                assertEquals(note.strip(), displayedMemo.getText());
+            }
+            assertTrue(background.isEmpty());
+            verify(wallet, never()).setTxNote(anyString(), anyString());
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void editedPaddedMemoCanBeTrimmedOrCleared() {
+            for (String note : List.of(" \n\t\u2003", "\u2003hello\nthere \n")) {
+                show("tx", note);
+                beginEdit();
+                memo.setText(note.strip());
+
+                save.fire();
+                assertEquals(1, background.size());
+                background.remove(0).run();
+
+                verify(wallet).setTxNote("tx", note.strip());
+                assertFalse(shown(save));
+                assertEquals(note.strip(), displayedMemo.getText());
+            }
+            verify(refresh, times(2)).run();
+        }
+
+        @Test
+        void openingAStaleRowUsesTheLatestCachedMemo() {
+            for (String note : List.of("saved memo", "")) {
+                when(wallet.getTx("tx")).thenReturn(new MoneroTxWallet().setNote(note));
+                show("tx", "old memo");
+                assertEquals(note, displayedMemo.getText());
+                beginEdit();
+                assertEquals(note, memo.getText());
+
+                save.fire();
+
+                assertFalse(shown(save));
+            }
+            assertTrue(background.isEmpty());
+            verify(wallet, never()).setTxNote(anyString(), anyString());
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void savedNoteOnlyEditsUsingPencil() {
+            show("tx", "saved note");
+            for (MouseButton button : List.of(MouseButton.SECONDARY, MouseButton.PRIMARY)) {
+                for (int clicks = 1; clicks <= 3; clicks++) {
+                    displayedMemo.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, button, clicks,
+                            false, false, false, false, false, false, false, false, false, true, null));
+                    assertFalse(shown(save));
+                    assertTrue(shown(displayedMemo));
+                }
+            }
+            edit.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
+                    false, false, false, false, false, false, false, false, false, true, null));
+            assertTrue(shown(save));
+            assertEquals("saved note", memo.getText());
+            assertTrue(background.isEmpty());
+            verify(wallet, never()).setTxNote(anyString(), anyString());
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void cancelAndEscapeDiscardDraftWithoutSaving() {
+            show("tx", "saved note");
+            for (boolean escape : List.of(false, true)) {
+                beginEdit();
+                memo.setText("discard this");
+                if (escape) key(KeyCode.ESCAPE, false);
+                else {
+                    press(cancel);
+                    cancel.fire();
+                }
+                assertEquals("saved note", displayedMemo.getText());
+                assertFalse(shown(save));
+                assertTrue(shown(edit));
+                assertEquals(0, closes);
+            }
+            beginEdit();
+            assertEquals("saved note", memo.getText());
+            assertTrue(background.isEmpty());
+            verify(wallet, never()).setTxNote(anyString(), anyString());
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void enterLeavesEditorOpenWithoutSaving() {
+            show("tx", "saved note");
+            beginEdit();
+            memo.setText("first\nsecond");
+            memo.end();
+            key(KeyCode.ENTER, false);
+            assertTrue(shown(save));
+            assertTrue(background.isEmpty());
+            assertEquals(0, closes);
+            verify(wallet, never()).setTxNote(anyString(), anyString());
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void clickingOutsideSavesAndUnchangedSaveDoesNotWrite() {
+            show("tx", "saved note");
+            beginEdit();
+            memo.setText("\n  saved note \t");
+            save.fire();
+            assertFalse(shown(save));
+            assertTrue(background.isEmpty());
+            beginEdit();
+            memo.setText("  updated\n");
+            press(memo);
+            assertTrue(background.isEmpty());
+            press(((Overlay<?>) window).gridPane);
+            assertEquals(1, background.size());
+            background.remove(0).run();
+            assertEquals("updated", displayedMemo.getText());
+            verify(wallet).setTxNote("tx", "updated");
+        }
+
+        @Test
+        void hidingAndReopeningDiscardsTheDraftWithoutSaving() {
+            show("tx", "saved note");
+            beginEdit();
+            memo.setText("discard this");
+            ((Overlay<?>) window).onHidden();
+            show("tx", "saved note");
+            assertEquals("saved note", displayedMemo.getText());
+            assertFalse(shown(save));
+            assertTrue(background.isEmpty());
+            verify(wallet, never()).setTxNote(anyString(), anyString());
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void failedSaveRetainsInputAndDoneWaitsForSuccessfulRetry() {
+            show("tx", "old");
+            beginEdit();
+            memo.setText("  new\n");
+            doThrow(new IllegalStateException("disk full")).doNothing().when(wallet).setTxNote("tx", "new");
+            Button done = ((Overlay<?>) window).actionButton;
+            press(done);
+            assertTrue(background.isEmpty());
+            done.fire();
+            assertEquals(0, closes);
+            assertTrue(done.isDisabled());
+            assertEquals(Res.get("txDetailsWindow.note.saving"), done.getText());
+            assertTrue(shown(save));
+            background.remove(0).run();
+            assertFalse(done.isDisabled());
+            assertEquals(Res.get("funds.withdrawal.sent.done"), done.getText());
+            assertEquals("  new\n", memo.getText());
+            assertTrue(shown(save));
+            assertFalse(save.isDisabled());
+            assertFalse(cancel.isDisabled());
+            assertEquals("old", displayedMemo.getText());
+            Label error = (Label) ((Overlay<?>) window).gridPane.lookup(".error-text");
+            assertTrue(error.isVisible());
+            assertEquals(0, closes);
+            verifyNoInteractions(refresh);
+            done.fire();
+            background.remove(0).run();
+            assertFalse(error.isVisible());
+            assertFalse(shown(save));
+            assertEquals("new", displayedMemo.getText());
+            assertEquals(1, closes);
+            verify(refresh).run();
+            assertTrue(popups.constructed().isEmpty());
+        }
+
+        @Test
+        void failedSaveCanBeCancelledWithoutRetrying() {
+            show("tx", "old");
+            beginEdit();
+            memo.setText("new");
+            doThrow(new IllegalStateException("disk full")).when(wallet).setTxNote("tx", "new");
+            save.fire();
+            ((Overlay<?>) window).actionButton.fire();
+            assertEquals(0, closes);
+            key(KeyCode.ESCAPE, false);
+            assertEquals(0, closes);
+            ((Overlay<?>) window).doClose();
+            assertEquals(0, closes);
+            assertEquals(1, background.size());
+            background.remove(0).run();
+            assertEquals("new", memo.getText());
+            assertTrue(shown(save));
+            assertFalse(save.isDisabled());
+            assertTrue(((Overlay<?>) window).gridPane.lookup(".error-text").isVisible());
+            assertTrue(popups.constructed().isEmpty());
+
+            cancel.fire();
+
+            assertEquals("old", displayedMemo.getText());
+            assertFalse(shown(save));
+            ((Overlay<?>) window).actionButton.fire();
+            assertEquals(1, closes);
+            assertTrue(background.isEmpty());
+            verify(wallet).setTxNote("tx", "new");
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void pendingSaveDoesNotChangeOrCloseAReusedWindow() {
+            show("first", "old");
+            beginEdit();
+            memo.setText("edited");
+            ((Overlay<?>) window).actionButton.fire();
+            show("second", "second memo");
+            background.remove(0).run();
+            verify(wallet).setTxNote("first", "edited");
+            assertEquals("second memo", displayedMemo.getText());
+            assertFalse(shown(save));
+            assertEquals(0, closes);
+        }
+
+        @Test
+        void pendingSaveCannotBeDismissedOrSubmittedAgain() {
+            for (String dismissal : List.of("done", "escape", "close")) {
+                show(dismissal, "old");
+                beginEdit();
+                memo.setText("edited");
+                Button done = ((Overlay<?>) window).actionButton;
+                save.fire();
+                assertTrue(done.isDisabled());
+                assertEquals(Res.get("txDetailsWindow.note.saving"), done.getText());
+                assertTrue(save.isDisabled());
+                save.fire();
+                int previousCloses = closes;
+
+                if (dismissal.equals("done")) done.fire();
+                else if (dismissal.equals("escape")) key(KeyCode.ESCAPE, false);
+                else ((Overlay<?>) window).doClose();
+
+                assertEquals(previousCloses, closes);
+                assertTrue(((Overlay<?>) window).isDisplayed);
+                assertEquals(1, background.size());
+                background.remove(0).run();
+                verify(wallet).setTxNote(dismissal, "edited");
+                assertEquals(previousCloses, closes);
+                assertFalse(done.isDisabled());
+                assertEquals(Res.get("funds.withdrawal.sent.done"), done.getText());
+                done.fire();
+                assertEquals(previousCloses + 1, closes);
+            }
+            verify(refresh, times(3)).run();
+            assertTrue(popups.constructed().isEmpty());
+        }
+
+        @Test
+        void saveCompletionDuringHideDoesNotCloseAgainOrLoseFailure() {
+            deferHide = true;
+            for (boolean fail : List.of(false, true)) {
+                String txId = fail ? "failure" : "success";
+                show(txId, "old");
+                beginEdit();
+                memo.setText("edited");
+                if (fail) doThrow(new IllegalStateException("disk full")).when(wallet).setTxNote(txId, "edited");
+                ((Overlay<?>) window).actionButton.fire();
+                window.hide();
+                int previousCloses = closes;
+
+                background.remove(0).run();
+
+                assertEquals(previousCloses, closes);
+                ((Overlay<?>) window).onHidden();
+            }
+            assertEquals(1, popups.constructed().size());
+            verify(popups.constructed().getFirst()).warning(Res.get("funds.tx.memo.saveFailedForTx", "failure"));
+            verify(popups.constructed().getFirst()).show();
+            verify(refresh).run();
+        }
+
+        @Test
+        void saveFailureAfterReopeningLeavesTheNewDraftAlone() {
+            show("first", "old");
+            beginEdit();
+            memo.setText("edited");
+            doThrow(new IllegalStateException("disk full")).when(wallet).setTxNote("first", "edited");
+            save.fire();
+            window.hide();
+            show("second", "second memo");
+            beginEdit();
+            memo.setText("second draft");
+
+            background.remove(0).run();
+
+            assertEquals("second draft", memo.getText());
+            assertEquals("second memo", displayedMemo.getText());
+            assertTrue(shown(save));
+            assertFalse(save.isDisabled());
+            assertFalse(((Overlay<?>) window).gridPane.lookup(".error-text").isVisible());
+            assertEquals(1, closes);
+            assertEquals(1, popups.constructed().size());
+            verify(popups.constructed().getFirst()).warning(Res.get("funds.tx.memo.saveFailedForTx", "first"));
+            verify(popups.constructed().getFirst()).show();
+            verifyNoInteractions(refresh);
+        }
+
+        @Test
+        void reopeningTheSameTransactionWaitsForThePendingSave() {
+            for (boolean fail : List.of(false, true)) {
+                String txId = fail ? "failure" : "success";
+                show(txId, "old");
+                beginEdit();
+                memo.setText("edited");
+                if (fail) doThrow(new IllegalStateException("disk full")).when(wallet).setTxNote(txId, "edited");
+                ((Overlay<?>) window).actionButton.fire();
+                window.hide();
+                show(txId, "old");
+                assertTrue(edit.isDisabled());
+                assertTrue(save.isDisabled());
+                assertTrue(((Overlay<?>) window).actionButton.isDisabled());
+                int previousCloses = closes;
+
+                background.remove(0).run();
+
+                verify(wallet).setTxNote(txId, "edited");
+                assertEquals(fail ? "old" : "edited", displayedMemo.getText());
+                assertFalse(edit.isDisabled());
+                assertEquals(previousCloses, closes);
+                assertFalse(shown(save));
+                assertTrue(background.isEmpty());
+                beginEdit();
+                assertEquals(fail ? "old" : "edited", memo.getText());
+            }
+            verify(refresh).run();
+            assertEquals(1, popups.constructed().size());
+            verify(popups.constructed().getFirst()).warning(Res.get("funds.tx.memo.saveFailedForTx", "failure"));
+            verify(popups.constructed().getFirst()).show();
+        }
+
+        private void beginEdit() {
+            if (shown(add)) add.fire();
+            else edit.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, " ", " ", KeyCode.SPACE, false, false, false, false));
+        }
+
+        private void key(KeyCode code, boolean shift) {
+            memo.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, shift, false, false, false));
+        }
+
+        private void press(Node node) {
+            node.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
+                    false, false, false, false, true, false, false, false, false, true, null));
+        }
+
+        private boolean shown(Node node) {
+            while (node != null) {
+                if (!node.isVisible()) return false;
+                node = node.getParent();
+            }
+            return true;
+        }
+
+        private void show(String hash, String note) {
+            TransactionsListItem item = mock(TransactionsListItem.class);
+            when(item.getTx()).thenReturn(new MoneroTxWallet().setHash(hash).setNote(note).setIncomingTransfers(List.of()));
+            window.show(item, refresh);
+            GridPane pane = ((Overlay<?>) window).gridPane;
+            memo = pane.lookupAll(".text-area").stream().map(node -> (TextArea) node)
+                    .filter(TextArea::isEditable).findFirst().orElseThrow();
+            displayedMemo = pane.lookupAll(".text-area").stream().map(node -> (TextArea) node)
+                    .filter(area -> !area.isEditable() && area.getStyleClass().contains("confirm-send-row-value"))
+                    .findFirst().orElseThrow();
+            edit = pane.lookupAll(".confirm-send-copy").stream().map(node -> (Label) node)
+                    .filter(label -> Res.get("shared.edit").equals(label.getAccessibleText())).findFirst().orElseThrow();
+            assertEquals(1, ((Pane) edit.getParent()).getChildren().stream()
+                    .filter(node -> node.getStyleClass().contains("confirm-send-copy")).count());
+            add = (Button) pane.lookup(".tx-note-add");
+            save = (Button) pane.lookup(".tx-note-save");
+            cancel = pane.lookupAll(".button").stream().map(node -> (Button) node)
+                    .filter(button -> Res.get("shared.cancel").equals(button.getText())).findFirst().orElseThrow();
+        }
     }
 
     @Nested

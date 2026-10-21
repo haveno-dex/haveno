@@ -34,6 +34,7 @@ import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.GlyphsDude;
 import haveno.desktop.util.Layout;
 import javafx.beans.binding.Bindings;
+import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -57,7 +58,7 @@ import java.math.BigInteger;
 public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T> {
 
     private TxConfidenceIndicator confidenceIndicator;
-    private Tooltip confidenceTooltip;
+    private Label confidenceLabel;
     private MoneroWalletListener walletListener;
     private XmrWalletService xmrWalletService;
     private String confidenceTxId;
@@ -253,19 +254,20 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         return icon;
     }
 
-    // tx id with confirmation progress, block explorer and copy shortcuts; updates until fully confirmed or hidden
-    protected VBox txIdGroup(String txId, XmrWalletService xmrWalletService, Preferences preferences) {
+    // status updates until fully confirmed or hidden
+    protected HBox txStatusRow(String txId, XmrWalletService xmrWalletService) {
         this.xmrWalletService = xmrWalletService;
         this.confidenceTxId = txId;
+        confidenceIndicator = new TxConfidenceIndicator(0);
+        confidenceIndicator.setMinSize(15, 15);
+        confidenceIndicator.setMaxSize(15, 15);
+        confidenceLabel = new Label(Res.get("confidence.unknown"), confidenceIndicator);
+        confidenceLabel.getStyleClass().add("tx-status");
+        startConfidenceUpdates();
+        return detailRow(Res.get("txDetailsWindow.status"), confidenceLabel);
+    }
 
-        confidenceIndicator = new TxConfidenceIndicator();
-        confidenceIndicator.setFocusTraversable(false);
-        confidenceIndicator.setMaxSize(20, 20);
-        confidenceIndicator.setId("funds-confidence");
-        confidenceIndicator.setProgress(0);
-        confidenceTooltip = new Tooltip("-");
-        confidenceIndicator.setTooltip(confidenceTooltip);
-
+    protected VBox txIdGroup(String txId, Preferences preferences) {
         Label explorerIcon = new Label();
         explorerIcon.setGraphic(GlyphsDude.createIcon(FontAwesomeIcon.EXTERNAL_LINK, "1.0em"));
         explorerIcon.getStyleClass().add("confirm-send-copy");
@@ -274,9 +276,8 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         explorerIcon.setOnMouseClicked(e -> openBlockExplorer(txId, preferences));
         Accessibility.asButton(explorerIcon, Res.get("txIdTextField.blockExplorerIcon.tooltip"));
 
-        startConfidenceUpdates();
         return sheetGroup(Res.get("funds.withdrawal.sent.txId"), selectableLabel(txId, "confirm-send-address"),
-                confidenceIndicator, explorerIcon, copyIcon(txId));
+                explorerIcon, copyIcon(txId));
     }
 
     private static void openBlockExplorer(String txId, Preferences preferences) {
@@ -308,8 +309,8 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         MoneroTx tx = null;
         try {
             tx = useCache ? xmrWalletService.getXmrConnectionService().getTxWithCache(confidenceTxId) : xmrWalletService.getXmrConnectionService().getTx(confidenceTxId);
-            if (tx.getNumConfirmations() == null) { // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
-                tx.setNumConfirmations(tx.isConfirmed() ? xmrWalletService.getXmrConnectionService().getLastInfo().getHeight() - tx.getHeight() : 0L);
+            if (tx != null && tx.getNumConfirmations() == null) { // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
+                tx.setNumConfirmations(Boolean.TRUE.equals(tx.isConfirmed()) ? xmrWalletService.getXmrConnectionService().getLastInfo().getHeight() - tx.getHeight() : 0L);
             }
         } catch (Exception e) {
             // tx may not be visible to the connected node yet
@@ -317,8 +318,23 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         MoneroTx finalTx = tx;
         UserThread.execute(() -> {
             if (walletListener != listener) return; // superseded by rebuilt content or hidden
-            GUIUtil.updateConfidence(finalTx, confidenceTooltip, confidenceIndicator);
-            if (confidenceIndicator.getProgress() >= 1.0) stopConfidenceUpdates();
+            updateStatus(finalTx);
         });
+    }
+
+    private void updateStatus(MoneroTx tx) {
+        boolean failed = tx != null && Boolean.TRUE.equals(tx.isFailed());
+        boolean known = tx != null && tx.getNumConfirmations() != null && Boolean.TRUE.equals(tx.isRelayed());
+        long confirmations = known && Boolean.TRUE.equals(tx.isConfirmed()) ? Math.max(0, tx.getNumConfirmations()) : 0;
+        boolean confirmed = !failed && known && confirmations >= XmrWalletService.NUM_BLOCKS_UNLOCK;
+        confidenceLabel.setText(failed ? Res.get("confidence.invalid")
+                : !known ? Res.get("confidence.unknown")
+                : confirmed ? Res.get("txDetailsWindow.status.confirmed")
+                : Res.get("txDetailsWindow.status.confirmations", confirmations, XmrWalletService.NUM_BLOCKS_UNLOCK));
+        confidenceLabel.pseudoClassStateChanged(PseudoClass.getPseudoClass("confirmed"), confirmed);
+        confidenceLabel.pseudoClassStateChanged(PseudoClass.getPseudoClass("failed"), failed);
+        confidenceIndicator.setProgress((double) confirmations / XmrWalletService.NUM_BLOCKS_UNLOCK);
+        confidenceLabel.setGraphic(confirmed ? GlyphsDude.createIcon(MaterialDesignIcon.CHECK_CIRCLE, "1.1em") : confidenceIndicator);
+        if (confirmed) stopConfidenceUpdates();
     }
 }

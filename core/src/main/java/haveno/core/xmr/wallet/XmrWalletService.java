@@ -1783,6 +1783,31 @@ public class XmrWalletService extends XmrWalletBase {
         return txs.isEmpty() ? null : txs.get(0);
     }
 
+    public void setTxNote(String txId, String note) {
+        synchronized (walletLock) {
+            if (wallet == null) throw new IllegalStateException("Cannot set transaction note because the wallet is not open");
+            String previousNote = wallet.getTxNote(txId);
+            try {
+                wallet.setTxNote(txId, note);
+                saveWallet();
+            } catch (Exception e) {
+                try {
+                    wallet.setTxNote(txId, previousNote);
+                    saveWallet(); // the failed save may have stored the new note before its response was lost
+                } catch (Exception rollbackError) {
+                    if (e != rollbackError) e.addSuppressed(rollbackError);
+                }
+                throw e;
+            }
+            if (cachedTxs != null) {
+                String cachedNote = note.isEmpty() ? null : note;
+                cachedTxs = cachedTxs.stream()
+                        .map(tx -> txId.equals(tx.getHash()) ? tx.copy().setBlock(tx.getBlock()).setNote(cachedNote) : tx)
+                        .collect(Collectors.toList());
+            }
+        }
+    }
+
     public BigInteger getBalance() {
         return cachedBalance;
     }
