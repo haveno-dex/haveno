@@ -62,6 +62,7 @@ import java.util.Comparator;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
@@ -150,6 +151,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     private final PrivateNotificationManager privateNotificationManager;
     private SortedList<ClosedTradesListItem> sortedList;
     private FilteredList<ClosedTradesListItem> filteredList;
+    private final ListChangeListener<ClosedTradesListItem> numItemsListener = c -> updateNumItems();
     private ChangeListener<Number> widthListener;
     private final TraderChatManager traderChatManager;
     private final TradeManager tradeManager;
@@ -305,7 +307,8 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         filterBox.setPromptText(Res.get("shared.filter"));
         filterBox.activate();
 
-        numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
+        updateNumItems();
+        sortedList.addListener(numItemsListener);
         exportButton.setOnAction(event -> {
             Function<ClosedTradesListItem, String[]> headerConverter = item -> {
                 String[] columns = new String[ColumnNames.values().length];
@@ -351,12 +354,17 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     protected void deactivate() {
         if (chatPopupStage != null) chatPopupStage.hide();
         sortedList.comparatorProperty().unbind();
+        sortedList.removeListener(numItemsListener);
         removeTradeColumn.visibleProperty().unbind();
         exportButton.setOnAction(null);
         summaryButton.setOnAction(null);
 
         filterBox.deactivate();
         root.widthProperty().removeListener(widthListener);
+    }
+
+    private void updateNumItems() {
+        numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
     }
 
     private static <T extends Comparable<T>> Comparator<ClosedTradesListItem> nullsFirstComparing(Function<ClosedTradesListItem, T> keyExtractor) {
