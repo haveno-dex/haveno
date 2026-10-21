@@ -1965,6 +1965,30 @@ public class GUIUtil {
         });
     }
 
+    public static void fitRows(TextArea textArea, int rows) {
+        fitRows(textArea, rows, rows);
+    }
+
+    // size a text area to its wrapped lines, between minRows and maxRows; the skin sizes its rows with the font it has before css applies
+    public static void fitRows(TextArea textArea, int minRows, int maxRows) {
+        textArea.setMinHeight(Region.USE_PREF_SIZE); // the skin's minimum reserves a row at the pre css font plus a horizontal bar
+        textArea.prefHeightProperty().bind(Bindings.createDoubleBinding(() -> {
+            Region content = (Region) textArea.lookup(".content");
+            Text line = content == null ? null : (Text) content.lookup(".text");
+            if (line == null) return Region.USE_COMPUTED_SIZE;
+            Text probe = new Text("X");
+            probe.setFont(line.getFont());
+            probe.setBoundsType(line.getBoundsType());
+            double lineHeight = probe.getLayoutBounds().getHeight();
+            probe.setText(textArea.getText());
+            probe.setWrappingWidth(textArea.isWrapText() ? Math.max(0, textArea.getWidth() - textArea.snappedLeftInset() - textArea.snappedRightInset()
+                    - content.snappedLeftInset() - content.snappedRightInset()) : 0); // the width without a scrollbar, which only shows past maxRows
+            int rows = Math.max(minRows, Math.min(maxRows, (int) Math.round(probe.getLayoutBounds().getHeight() / lineHeight)));
+            return rows * lineHeight + textArea.snappedTopInset() + textArea.snappedBottomInset()
+                    + content.snappedTopInset() + content.snappedBottomInset();
+        }, textArea.fontProperty(), textArea.insetsProperty(), textArea.skinProperty(), textArea.textProperty(), textArea.widthProperty()));
+    }
+
     public static Label getLockLabel() {
         MaterialDesignIconView lockIcon = new MaterialDesignIconView(MaterialDesignIcon.LOCK, "16px");
         lockIcon.setFill(Color.WHITE);

@@ -2455,7 +2455,7 @@ textfield */
 .send-address-field {
     -fx-font-family: "IBM Plex Mono";
     -fx-font-size: 0.923em;
-    -fx-padding: 7 34 7 14;
+    -fx-padding: 8 34 8 14; /* one line matches the amount field's height, with room for the check */
 }
 
 .send-valid-check {
