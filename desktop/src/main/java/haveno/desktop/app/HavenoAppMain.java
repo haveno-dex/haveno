@@ -120,6 +120,7 @@ public class HavenoAppMain extends HavenoExecutable {
 
     @Override
     protected void onStartupFailed(Throwable e) {
+        isStartupFailed = true;
         Throwable cause = e instanceof ProvisionException && e.getCause() != null ? e.getCause() : e; // guice wraps constructor failures
         log.error("Error starting application", cause);
         UserThread.execute(() -> application.showStartupFailure(cause,
@@ -211,6 +212,7 @@ public class HavenoAppMain extends HavenoExecutable {
                         Throwable cause = failure instanceof CompletionException
                                 ? failure.getCause() : failure;
                         log.error("Error opening account", cause);
+                        isStartupFailed = true;
                         // completing exceptionally starts shutdown, which can wait for services
                         application.showLoginFailure(cause, () -> new Thread(
                                 () -> loginResult.completeExceptionally(cause), "Account-login-failure-shutdown").start());
@@ -270,6 +272,7 @@ public class HavenoAppMain extends HavenoExecutable {
                         log.error("Error creating account", t);
                         UserThread.execute(() -> {
                             if (application.isShutDownRequested() || isShutDownStarted) return;
+                            isStartupFailed = true;
                             application.showLoginFailure(t, () -> new Thread(
                                     () -> loginResult.completeExceptionally(t), "Account-creation-failure-shutdown").start());
                         });
