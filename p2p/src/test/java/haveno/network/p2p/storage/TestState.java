@@ -203,9 +203,9 @@ public class TestState {
             verify(appendOnlyDataStoreListener, never()).onAdded(persistableNetworkPayload);
 
         if (expectedBroadcast)
-            verify(mockBroadcaster).broadcast(any(AddPersistableNetworkPayloadMessage.class), nullable(NodeAddress.class));
+            verify(mockBroadcaster).broadcast(any(AddPersistableNetworkPayloadMessage.class), nullable(NodeAddress.class), isNull());
         else
-            verify(mockBroadcaster, never()).broadcast(any(BroadcastMessage.class), nullable(NodeAddress.class));
+            verify(mockBroadcaster, never()).broadcast(any(BroadcastMessage.class), nullable(NodeAddress.class), any());
     }
 
     void assertProtectedStorageAdd(SavedTestState beforeState,

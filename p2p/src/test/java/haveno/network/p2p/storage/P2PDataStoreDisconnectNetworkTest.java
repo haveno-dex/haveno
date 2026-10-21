@@ -17,6 +17,7 @@
 
 package haveno.network.p2p.storage;
 
+import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
 import haveno.common.proto.network.NetworkProtoResolver;
@@ -45,6 +46,7 @@ import java.net.Socket;
 import java.security.KeyPair;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -94,6 +96,7 @@ public class P2PDataStoreDisconnectNetworkTest {
 
         assertTrue(disconnectLatch.await(30, TimeUnit.SECONDS));
         assertInstanceOf(InboundConnection.class, closedConnection.get());
+        assertTrue(closedConnection.get().isPeerReadyForBroadcast());
         assertEquals(Optional.of(getTestNodeAddress()), closedConnection.get().getPeersNodeAddressOptional());
         assertFalse(closeConnectionReason.get().isIntended);
         assertEquals(ownersCreationTimeStamp, ownersEntry.getCreationTimeStamp());
@@ -125,6 +128,29 @@ public class P2PDataStoreDisconnectNetworkTest {
             assertFalse(closeConnectionReason.get().isIntended);
             assertEquals(ownersCreationTimeStamp, ownersEntry.getCreationTimeStamp());
             assertTrue(peersEntry.getCreationTimeStamp() < peersCreationTimeStamp);
+        }
+    }
+
+    @Test
+    public void outboundPeerNeedsOurAddressBeforeReceivingBroadcasts() throws Exception {
+        setConnectionConfig();
+        networkNode = new LocalhostNetworkNode(0, getUpdatedDataRequestResolver(), null, 12);
+        try (ServerSocket peersServerSocket = new ServerSocket(0)) {
+            peersServerSocket.setSoTimeout(30_000);
+            NodeAddress peer = new NodeAddress("localhost", peersServerSocket.getLocalPort());
+            SettableFuture<Connection> send = networkNode.sendMessage(peer, new Ping(1, 0));
+            try (Socket socket = peersServerSocket.accept()) {
+                socket.setSoTimeout(30_000);
+                Connection connection = send.get(30, TimeUnit.SECONDS);
+                assertInstanceOf(OutboundConnection.class, connection);
+                assertFalse(connection.isPeerReadyForBroadcast());
+                assertTrue(protobuf.NetworkEnvelope.parseDelimitedFrom(socket.getInputStream()).hasPing());
+
+                networkNode.sendMessage(connection, new GetUpdatedDataRequest(getTestNodeAddress(), 1, Set.of()))
+                        .get(30, TimeUnit.SECONDS);
+                assertTrue(connection.isPeerReadyForBroadcast());
+                assertTrue(protobuf.NetworkEnvelope.parseDelimitedFrom(socket.getInputStream()).hasGetUpdatedDataRequest());
+            }
         }
     }
 

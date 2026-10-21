@@ -17,6 +17,8 @@
 
 package haveno.core.trade;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Provider;
 import com.google.protobuf.UnknownFieldSet;
 import haveno.common.UserThread;
@@ -27,6 +29,7 @@ import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.file.FileUtil;
 import haveno.common.persistence.EncryptedAppendLog;
 import haveno.common.persistence.PersistenceManager;
+import haveno.common.proto.network.NetworkEnvelope;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferPayload;
@@ -34,10 +37,26 @@ import haveno.core.offer.OpenOffer;
 import haveno.core.payment.ZelleAccount;
 import haveno.core.proto.persistable.CorePersistenceProtoResolver;
 import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.trade.statistics.TradeStatistics3;
+import haveno.core.trade.statistics.TradeStatistics3StorageService;
+import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.user.Preferences;
 import haveno.core.xmr.wallet.BtcWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.peers.BroadcastHandler;
+import haveno.network.p2p.peers.Broadcaster;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.peers.getdata.RequestDataManager;
+import haveno.network.p2p.peers.peerexchange.PeerExchangeManager;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -45,7 +64,11 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -67,6 +90,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -1931,6 +1955,186 @@ public class ClosedTradesStoreTest {
         assertNull(trade.getTaker().getUnsignedPayoutTxHex());
         assertEquals(false, clear.invoke(trade));
         assertTrue(trade.walletExists());
+    }
+
+    @Test
+    public void testLegacyTradeStatisticsCanRecoverAfterRestart() {
+        TradeStatisticsManager previousManager = HavenoUtils.tradeStatisticsManager;
+        try (var userThread = mockStatic(UserThread.class)) {
+            P2PService p2p = mock(P2PService.class);
+            TradeStatistics3StorageService storage = mock(TradeStatistics3StorageService.class);
+            Map<P2PDataStorage.ByteArray, PersistableNetworkPayload> statistics = new HashMap<>();
+            when(storage.getMapOfAllData()).thenReturn(statistics);
+            TradeStatisticsManager manager = new TradeStatisticsManager(p2p, null, storage,
+                    mock(AppendOnlyDataStoreService.class), dir, false);
+            Trade trade = statisticsTrade();
+            TradeStatistics3 payload = TradeStatistics3.fromV2(trade, null, false);
+            statistics.put(new P2PDataStorage.ByteArray(payload.getHash()), payload);
+
+            manager.maybePublishTradeStatistics(trade, null, false);
+            verifyNoInteractions(p2p);
+            assertEquals(0, trade.getTradeStatisticsPublishTime());
+
+            // An unrelated save must not turn a local legacy statistic into a confirmed broadcast.
+            ClosedTradesStore store = newStore(mock(XmrWalletService.class));
+            store.appendUpsert(trade);
+            Trade restored = spy((Trade) store.load().get(0));
+            doReturn(true).when(restored).shouldPublishTradeStatistics();
+            statistics.clear();
+            long earliest = System.currentTimeMillis();
+            manager.maybePublishTradeStatistics(restored, null, false);
+            long scheduledTime = restored.getTradeStatisticsPublishTime();
+            assertTrue(scheduledTime >= earliest);
+            assertTrue(scheduledTime < System.currentTimeMillis() + TimeUnit.HOURS.toMillis(24));
+            manager.maybePublishTradeStatistics(restored, null, false);
+            assertEquals(scheduledTime, restored.getTradeStatisticsPublishTime());
+            verify(restored).requestPersistence();
+            store.appendUpsert(restored);
+            assertEquals(scheduledTime, ((Trade) store.load().get(0)).getTradeStatisticsPublishTime());
+        } finally {
+            HavenoUtils.tradeStatisticsManager = previousManager;
+        }
+    }
+
+    @Test
+    public void testPersistedTradeStatisticsScheduleRetriesUntilConfirmed() {
+        TradeStatisticsManager previousManager = HavenoUtils.tradeStatisticsManager;
+        try (var userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                invocation.getArgument(0, Runnable.class).run();
+                return null;
+            });
+            P2PService p2p = mock(P2PService.class);
+            when(p2p.isNetworkReady()).thenReturn(true);
+            TradeStatistics3StorageService storage = mock(TradeStatistics3StorageService.class);
+            when(storage.getMapOfAllData()).thenReturn(Map.of());
+            TradeStatisticsManager manager = new TradeStatisticsManager(p2p, null, storage,
+                    mock(AppendOnlyDataStoreService.class), dir, false);
+            ClosedTradesStore store = newStore(mock(XmrWalletService.class));
+            Trade trade = statisticsTrade();
+            trade.setTradeStatisticsPublishTime(1); // an overdue schedule must publish immediately after restart
+            store.appendUpsert(trade);
+            Trade restored = spy((Trade) store.load().get(0));
+            doReturn(true).when(restored).shouldPublishTradeStatistics();
+            doAnswer(invocation -> { store.appendUpsert(restored); return null; }).when(restored).requestPersistence();
+
+            manager.maybePublishTradeStatistics(restored, null, false);
+            manager.maybePublishTradeStatistics(restored, null, false);
+            ArgumentCaptor<BroadcastHandler.Listener> listeners = ArgumentCaptor.forClass(BroadcastHandler.Listener.class);
+            verify(p2p).addPersistableNetworkPayload(any(TradeStatistics3.class), eq(true), listeners.capture());
+            assertEquals(1, restored.getTradeStatisticsPublishTime());
+            assertFalse(restored.isTradeStatisticsPublished());
+            ArgumentCaptor<Runnable> retry = ArgumentCaptor.forClass(Runnable.class);
+            userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(60L), eq(TimeUnit.MINUTES)));
+
+            // A silent broadcast, such as losing all peers, must still be retried.
+            retry.getValue().run();
+            verify(p2p, times(2)).addPersistableNetworkPayload(any(TradeStatistics3.class), eq(true), listeners.capture());
+            listeners.getValue().onNotSufficientlyBroadcast(0, 1);
+            assertFalse(restored.isTradeStatisticsPublished());
+            listeners.getValue().onSufficientlyBroadcast(List.of());
+            listeners.getValue().onSufficientlyBroadcast(List.of());
+            verify(restored).requestPersistence();
+            assertTrue(((Trade) store.load().get(0)).isTradeStatisticsPublished());
+            userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(60L), eq(TimeUnit.MINUTES)), times(2));
+            retry.getValue().run();
+            verify(p2p, times(2)).addPersistableNetworkPayload(any(TradeStatistics3.class), eq(true), any(BroadcastHandler.Listener.class));
+
+            Trade confirmed = spy((Trade) store.load().get(0));
+            doReturn(true).when(confirmed).shouldPublishTradeStatistics();
+            manager.maybePublishTradeStatistics(confirmed, null, false);
+            verify(p2p, times(2)).addPersistableNetworkPayload(any(TradeStatistics3.class), eq(true), any(BroadcastHandler.Listener.class));
+            userThread.verify(() -> UserThread.runAfter(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS)), never());
+        } finally {
+            HavenoUtils.tradeStatisticsManager = previousManager;
+        }
+    }
+
+    @Test
+    public void testTradeStatisticsRetryUntilPeerKnowsOurAddress() {
+        TradeStatisticsManager previousManager = HavenoUtils.tradeStatisticsManager;
+        Broadcaster broadcaster = null;
+        try (var userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                invocation.getArgument(0, Runnable.class).run();
+                return null;
+            });
+            userThread.when(() -> UserThread.runAfterRandomDelay(any(Runnable.class), anyLong(), anyLong(), any(TimeUnit.class)))
+                    .thenAnswer(invocation -> {
+                        invocation.getArgument(0, Runnable.class).run();
+                        return null;
+                    });
+            NetworkNode network = mock(NetworkNode.class);
+            PeerManager peers = mock(PeerManager.class);
+            NodeAddress local = new NodeAddress("local:9999");
+            NodeAddress seed = new NodeAddress("seed:9999");
+            when(network.getNodeAddress()).thenReturn(local);
+            Connection connection = mock(Connection.class);
+            when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(seed));
+            when(connection.testCapability(any())).thenReturn(true);
+            when(network.getConfirmedConnections()).thenReturn(Set.of(connection));
+            SettableFuture<Connection> send = SettableFuture.create();
+            when(network.sendMessage(eq(connection), any(NetworkEnvelope.class), any(ListeningExecutorService.class))).thenReturn(send);
+            broadcaster = new Broadcaster(network, peers, 12);
+            Broadcaster sender = broadcaster;
+            P2PDataStorage dataStorage = mock(P2PDataStorage.class);
+            when(dataStorage.addPersistableNetworkPayload(any(), eq(local), eq(true), eq(true), any()))
+                    .thenAnswer(invocation -> {
+                        sender.broadcast(new AddPersistableNetworkPayloadMessage(invocation.getArgument(0)), local, invocation.getArgument(4));
+                        return true;
+                    });
+            RequestDataManager requests = mock(RequestDataManager.class);
+            when(requests.getNodeAddressOfPreliminaryDataRequest()).thenReturn(Optional.of(seed));
+            P2PService p2p = new P2PService(network, peers, dataStorage, requests,
+                    mock(PeerExchangeManager.class), null, broadcaster, null, null, null, null);
+            TradeStatistics3StorageService storage = mock(TradeStatistics3StorageService.class);
+            when(storage.getMapOfAllData()).thenReturn(Map.of());
+            TradeStatisticsManager manager = new TradeStatisticsManager(p2p, null, storage,
+                    mock(AppendOnlyDataStoreService.class), dir, false);
+            Trade trade = statisticsTrade();
+            trade.setTradeStatisticsPublishTime(1);
+
+            // preliminary data alone must not allow publication before hidden service publication
+            p2p.onPreliminaryDataReceived();
+            manager.maybePublishTradeStatistics(trade, null, false);
+            verifyNoInteractions(dataStorage);
+            ArgumentCaptor<Runnable> retry = ArgumentCaptor.forClass(Runnable.class);
+            userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(60L), eq(TimeUnit.MINUTES)));
+            assertFalse(trade.isTradeStatisticsPublished());
+
+            // network readiness starts the address handshake; its pending connection must not confirm a broadcast
+            p2p.onHiddenServicePublished();
+            verify(requests).requestUpdateData();
+            assertTrue(p2p.isNetworkReady());
+            retry.getValue().run();
+            broadcaster.flush();
+            verify(network, never()).sendMessage(any(Connection.class), any(NetworkEnvelope.class), any(ListeningExecutorService.class));
+            assertFalse(trade.isTradeStatisticsPublished());
+
+            when(connection.isPeerReadyForBroadcast()).thenReturn(true);
+            userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(60L), eq(TimeUnit.MINUTES)), times(2));
+            retry.getValue().run();
+            broadcaster.flush();
+            assertFalse(trade.isTradeStatisticsPublished());
+            send.set(connection);
+            assertTrue(trade.isTradeStatisticsPublished());
+            verify(trade).requestPersistence();
+            userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(60L), eq(TimeUnit.MINUTES)), times(3));
+            retry.getValue().run();
+            verify(network).sendMessage(eq(connection), any(NetworkEnvelope.class), any(ListeningExecutorService.class));
+        } finally {
+            if (broadcaster != null) broadcaster.shutDown(() -> {});
+            HavenoUtils.tradeStatisticsManager = previousManager;
+        }
+    }
+
+    private Trade statisticsTrade() {
+        Trade trade = spy(handoffTrade());
+        trade.setAmount(BigInteger.valueOf(1_000_000_000_000L));
+        trade.setTakeOfferDate(1_700_000_000_000L);
+        trade.getArbitrator().setNodeAddress(new NodeAddress("arbitrator:9999"));
+        doReturn(true).when(trade).shouldPublishTradeStatistics();
+        return trade;
     }
 
     private Trade handoffTrade() {

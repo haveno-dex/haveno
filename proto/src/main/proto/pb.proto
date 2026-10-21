@@ -1720,6 +1720,8 @@ message Trade {
     string challenge = 29;
     int64 payout_height = 30;
     int64 completed_revision = 31;
+    int64 trade_statistics_publish_time = 32;
+    bool trade_statistics_published = 33;
 }
 
 message BuyerAsMakerTrade {

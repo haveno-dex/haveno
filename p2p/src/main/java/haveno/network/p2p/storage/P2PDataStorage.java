@@ -599,7 +599,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
             if (e instanceof ProcessOncePersistableNetworkPayload) {
                 if (bootstrapped) {
                     // re-request after reconnect: apply missed items and notify listeners
-                    if (addPersistableNetworkPayload(e, sender, false, false, false)) numAdded.incrementAndGet();
+                    if (addPersistableNetworkPayload(e, sender, false, false, false, null)) numAdded.incrementAndGet();
                 } else {
                     // startup: apply new items via optimized path, paging through truncated responses until complete.
                     // The first response is the bulk load applied quietly; later deltas notify listeners so gaps
@@ -608,7 +608,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                 }
             } else {
                 // We don't broadcast here as we are only connected to the seed node and would be pointless
-                if (addPersistableNetworkPayload(e, sender, false, false, false)) numAdded.incrementAndGet();
+                if (addPersistableNetworkPayload(e, sender, false, false, false, null)) numAdded.incrementAndGet();
             }
         });
         log.info("Processing {} persistableNetworkPayloads took {} ms.",
@@ -681,7 +681,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                     refreshTTL((RefreshOfferMessage) networkEnvelope, peersNodeAddress);
                 } else if (networkEnvelope instanceof AddPersistableNetworkPayloadMessage) {
                     addPersistableNetworkPayload(((AddPersistableNetworkPayloadMessage) networkEnvelope).getPersistableNetworkPayload(),
-                            peersNodeAddress, true, false, true);
+                            peersNodeAddress, true, false, true, null);
                 }
             });
         }
@@ -758,15 +758,27 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
                                                 @Nullable NodeAddress sender,
                                                 boolean allowBroadcast,
                                                 boolean allowReBroadcast) {
+        return addPersistableNetworkPayload(payload, sender, allowBroadcast, allowReBroadcast, null);
+    }
+
+    /**
+     * Same as above, with a listener notified whether enough peers received the broadcast.
+     */
+    public boolean addPersistableNetworkPayload(PersistableNetworkPayload payload,
+                                                @Nullable NodeAddress sender,
+                                                boolean allowBroadcast,
+                                                boolean allowReBroadcast,
+                                                @Nullable BroadcastHandler.Listener listener) {
         return addPersistableNetworkPayload(
-                payload, sender, allowBroadcast, allowReBroadcast, false);
+                payload, sender, allowBroadcast, allowReBroadcast, false, listener);
     }
 
     private boolean addPersistableNetworkPayload(PersistableNetworkPayload payload,
                                                  @Nullable NodeAddress sender,
                                                  boolean allowBroadcast,
                                                  boolean reBroadcast,
-                                                 boolean checkDate) {
+                                                 boolean checkDate,
+                                                 @Nullable BroadcastHandler.Listener listener) {
         log.debug("addPersistableNetworkPayload payload={}", payload);
 
         // Payload hash size does not match expectation for that type of message.
@@ -804,7 +816,7 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         // Broadcast if requested. reBroadcast also re-sends payloads already in our store (how republishing
         // own data heals gaps); the receive path uses reBroadcast=false, so duplicates never re-broadcast.
         if (allowBroadcast && (wasAdded || reBroadcast))
-            broadcaster.broadcast(new AddPersistableNetworkPayloadMessage(payload), sender);
+            broadcaster.broadcast(new AddPersistableNetworkPayloadMessage(payload), sender, listener);
 
         return true;
     }

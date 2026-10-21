@@ -32,9 +32,13 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -82,6 +86,8 @@ public class BroadcastHandler implements PeerManager.Listener {
     private final AtomicBoolean timeoutTriggered = new AtomicBoolean();
     private final AtomicInteger numOfCompletedBroadcasts = new AtomicInteger();
     private final AtomicInteger numOfFailedBroadcasts = new AtomicInteger();
+    // Successful sends per request, as a peer's bundle excludes requests it originated or lacks the capability for.
+    private final Map<Broadcaster.BroadcastRequest, Integer> numOfCompletedBroadcastsByRequest = Collections.synchronizedMap(new IdentityHashMap<>());
     private final AtomicInteger numPeersForBroadcast = new AtomicInteger();
     @Nullable
     private Timer timeoutTimer;
@@ -111,7 +117,12 @@ public class BroadcastHandler implements PeerManager.Listener {
             return;
         }
 
-        List<Connection> confirmedConnections = new ArrayList<>(networkNode.getConfirmedConnections());
+        // one connection per peer, which can hold an inbound and an outbound connection at once but counts as one recipient
+        Set<NodeAddress> peers = new HashSet<>();
+        List<Connection> confirmedConnections = networkNode.getConfirmedConnections().stream()
+                .filter(Connection::isPeerReadyForBroadcast)
+                .filter(connection -> connection.getPeersNodeAddressOptional().map(peers::add).orElse(true))
+                .collect(Collectors.toCollection(ArrayList::new));
         Collections.shuffle(confirmedConnections);
 
         int delay;
@@ -237,7 +248,7 @@ public class BroadcastHandler implements PeerManager.Listener {
                     numOfFailedBroadcasts);
 
             try {
-                maybeNotifyListeners(broadcastRequests);
+                maybeNotifyListeners(broadcastRequests, false);
             } finally {
                 cleanup();
             }
@@ -267,6 +278,11 @@ public class BroadcastHandler implements PeerManager.Listener {
         Futures.addCallback(future, new FutureCallback<>() {
             @Override
             public void onSuccess(Connection connection) {
+                // a connection stopped before the write completes the send without transmitting anything
+                if (connection.isStopped()) {
+                    onFailure(new IOException("Connection to " + connection.getPeersNodeAddressOptional() + " stopped before sending"));
+                    return;
+                }
                 numOfCompletedBroadcasts.incrementAndGet();
 
                 if (stopped.get()) {
@@ -274,7 +290,7 @@ public class BroadcastHandler implements PeerManager.Listener {
                 }
 
                 try {
-                    maybeNotifyListeners(broadcastRequestsForConnection);
+                    maybeNotifyListeners(broadcastRequestsForConnection, true);
                 } finally {
                     checkForCompletion();
                 }
@@ -290,7 +306,7 @@ public class BroadcastHandler implements PeerManager.Listener {
                 numOfFailedBroadcasts.incrementAndGet();
 
                 try {
-                    maybeNotifyListeners(broadcastRequestsForConnection);
+                    maybeNotifyListeners(broadcastRequestsForConnection, false);
                 } finally {
                     checkForCompletion();
                 }
@@ -309,14 +325,17 @@ public class BroadcastHandler implements PeerManager.Listener {
         }
     }
 
-    private void maybeNotifyListeners(List<Broadcaster.BroadcastRequest> broadcastRequests) {
+    // A request is sufficiently broadcast once enough successful sends carried it; the shared count also covers peers
+    // whose bundle excluded a request, so it only decides insufficiency, which a failure or the timeout reports.
+    private void maybeNotifyListeners(List<Broadcaster.BroadcastRequest> broadcastRequests, boolean succeeded) {
         int numOfCompletedBroadcastsTarget = Math.max(1, Math.min(numPeersForBroadcast.get(), 3));
         // We use equal checks to avoid duplicated listener calls as it would be the
         // case with >= checks.
-        if (numOfCompletedBroadcasts.get() == numOfCompletedBroadcastsTarget) {
+        if (succeeded) {
             // We have heard back from 3 peers (or all peers if numPeers is lower) so we
             // consider the message was sufficiently broadcast.
             broadcastRequests.stream()
+                    .filter(broadcastRequest -> numOfCompletedBroadcastsByRequest.merge(broadcastRequest, 1, Integer::sum) == numOfCompletedBroadcastsTarget)
                     .map(Broadcaster.BroadcastRequest::getListener)
                     .filter(Objects::nonNull)
                     .forEach(listener -> listener.onSufficientlyBroadcast(broadcastRequests));

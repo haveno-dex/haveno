@@ -32,6 +32,8 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.util.JsonUtil;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.peers.BroadcastHandler;
+import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import java.io.File;
@@ -47,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -77,7 +81,10 @@ public class TradeStatisticsManager {
     private boolean earlyTradeStatisticsCapped;
     private final AtomicBoolean flushPendingScheduled = new AtomicBoolean();
     private volatile boolean shutDownRequested;
-    public static final int PUBLISH_STATS_RANDOM_DELAY_HOURS = 24;
+    // Trades whose statistics are scheduled or awaiting broadcast confirmation, so repeated calls do not publish twice.
+    private final Set<String> scheduledTradeIds = ConcurrentHashMap.newKeySet();
+    private static final int PUBLISH_STATS_RANDOM_DELAY_HOURS = 24;
+    private static final int PUBLISH_STATS_RETRY_MIN = 60;
     private static final int DUMP_STATISTICS_DELAY_SEC = 60;
     private static final int ADD_STATISTICS_DELAY_SEC = 1;
     // Legacy publishing bugs duplicated early trades; stats before these dates are deduplicated.
@@ -341,6 +348,7 @@ public class TradeStatisticsManager {
                 log.debug("Trade: {} should not publish trade statistics", trade.getShortId());
                 return;
             }
+            if (trade.isTradeStatisticsPublished()) return;
 
             TradeStatistics3 tradeStatistics3V0 = null;
             try {
@@ -369,7 +377,8 @@ public class TradeStatisticsManager {
             boolean hasTradeStatistics3V0 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V0.getHash()));
             boolean hasTradeStatistics3V1 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V1.getHash()));
             boolean hasTradeStatistics3V2 = hashes.contains(new P2PDataStorage.ByteArray(tradeStatistics3V2.getHash()));
-            if (hasTradeStatistics3V0 || hasTradeStatistics3V1 || hasTradeStatistics3V2) {
+            // Legacy trades skip publishing while matching statistics are stored, without persisting a broadcast confirmation.
+            if (trade.getTradeStatisticsPublishTime() == 0 && (hasTradeStatistics3V0 || hasTradeStatistics3V1 || hasTradeStatistics3V2)) {
                 log.debug("Trade: {}. We have already a tradeStatistics matching the hash of tradeStatistics3.",
                         trade.getShortId());
                 return;
@@ -380,14 +389,52 @@ public class TradeStatisticsManager {
                 return;
             }
 
-            // publish after random delay within 12 hours
-            log.info("Scheduling to publish trade statistics at random time for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
-            TradeStatistics3 tradeStatistics3V2Final = tradeStatistics3V2;
-            UserThread.runAfterRandomDelay(() -> {
-                p2PService.addPersistableNetworkPayload(tradeStatistics3V2Final, true);
-            }, 0, PUBLISH_STATS_RANDOM_DELAY_HOURS / 2 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
+            schedulePublishTradeStatistics(trade, tradeStatistics3V2);
         });
         log.info("maybeRepublishTradeStatistics took {} ms. Number of tradeStatistics: {}. Number of own trades: {}",
                 System.currentTimeMillis() - ts, hashes.size(), trades.size());
+    }
+
+    // Publishes at a persisted random time within 24 hours, so a restart resumes the schedule instead of rerolling the delay.
+    private void schedulePublishTradeStatistics(Trade trade, TradeStatistics3 tradeStatistics) {
+        if (!scheduledTradeIds.add(trade.getId())) return;
+        if (trade.getTradeStatisticsPublishTime() == 0) {
+            trade.setTradeStatisticsPublishTime(System.currentTimeMillis() + ThreadLocalRandom.current().nextLong(TimeUnit.HOURS.toMillis(PUBLISH_STATS_RANDOM_DELAY_HOURS)));
+            trade.requestPersistence();
+        }
+        long delayMs = Math.max(0, trade.getTradeStatisticsPublishTime() - System.currentTimeMillis());
+        log.info("Scheduling to publish trade statistics in {} minutes for {} {}", TimeUnit.MILLISECONDS.toMinutes(delayMs), trade.getClass().getSimpleName(), trade.getShortId());
+        Runnable publish = () -> publishTradeStatistics(trade, tradeStatistics);
+        if (delayMs == 0) UserThread.execute(publish); // a zero delay JavaFX timer does not fire
+        else UserThread.runAfter(publish, delayMs, TimeUnit.MILLISECONDS);
+    }
+
+    // Marks the trade published only once enough peers confirmed the broadcast, otherwise retries so the statistics are not stranded locally.
+    private void publishTradeStatistics(Trade trade, TradeStatistics3 tradeStatistics) {
+        if (shutDownRequested) return;
+        if (trade.isTradeStatisticsPublished()) {
+            scheduledTradeIds.remove(trade.getId());
+            return;
+        }
+        AtomicBoolean confirmed = new AtomicBoolean();
+        // wait for network initialization; the broadcast handler also checks each peer knows our address
+        if (p2PService.isNetworkReady()) p2PService.addPersistableNetworkPayload(tradeStatistics, true, new BroadcastHandler.Listener() {
+            @Override
+            public void onSufficientlyBroadcast(List<Broadcaster.BroadcastRequest> broadcastRequests) {
+                if (!confirmed.compareAndSet(false, true)) return;
+                scheduledTradeIds.remove(trade.getId());
+                trade.setTradeStatisticsPublished(true);
+                trade.requestPersistence();
+            }
+
+            @Override
+            public void onNotSufficientlyBroadcast(int numOfCompletedBroadcasts, int numOfFailedBroadcast) {
+                log.warn("Trade statistics for {} {} reached {} peers with {} failures, retrying within {} minutes", trade.getClass().getSimpleName(), trade.getShortId(), numOfCompletedBroadcasts, numOfFailedBroadcast, PUBLISH_STATS_RETRY_MIN);
+            }
+        });
+        // The handler stays silent when all connections are lost or no peer accepts the payload, so retry on a timer unless confirmed.
+        UserThread.runAfter(() -> {
+            if (!confirmed.get()) publishTradeStatistics(trade, tradeStatistics);
+        }, PUBLISH_STATS_RETRY_MIN, TimeUnit.MINUTES);
     }
 }

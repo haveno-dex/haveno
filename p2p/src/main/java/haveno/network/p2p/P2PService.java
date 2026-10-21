@@ -39,6 +39,7 @@ import haveno.network.p2p.network.ConnectionListener;
 import haveno.network.p2p.network.MessageListener;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.network.SetupListener;
+import haveno.network.p2p.peers.BroadcastHandler;
 import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.getdata.RequestDataManager;
@@ -528,6 +529,11 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         return p2PDataStorage.addPersistableNetworkPayload(payload, networkNode.getNodeAddress(), allowBroadcast, reBroadcast);
     }
 
+    // the listener learns whether enough peers received the broadcast, so the caller can retry an unconfirmed publish
+    public boolean addPersistableNetworkPayload(PersistableNetworkPayload payload, boolean reBroadcast, @Nullable BroadcastHandler.Listener listener) {
+        return p2PDataStorage.addPersistableNetworkPayload(payload, networkNode.getNodeAddress(), true, reBroadcast, listener);
+    }
+
     public boolean addProtectedStorageEntry(ProtectedStoragePayload protectedStoragePayload) {
         if (isBootstrapped()) {
             try {
@@ -612,6 +618,11 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
 
     public boolean isBootstrapped() {
         return isBootstrapped;
+    }
+
+    // true once the hidden service is published and preliminary data has arrived
+    public boolean isNetworkReady() {
+        return networkReadyBinding.get();
     }
 
     // Re-requests P2P data from seed nodes so missing append-only data (e.g. signed witnesses) can be filled
