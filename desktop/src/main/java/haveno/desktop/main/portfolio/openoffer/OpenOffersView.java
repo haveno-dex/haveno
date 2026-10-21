@@ -1031,7 +1031,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
                                 button.setVisible(triggerPriceSet);
 
                                 if (model.dataModel.isTriggered(item.getOpenOffer())) {
-                                    button.getGraphic().getStyleClass().add("warning");
+                                    if (!button.getGraphic().getStyleClass().contains("warning")) button.getGraphic().getStyleClass().add("warning");
                                     button.setTooltip(new Tooltip(Res.get("openOffer.triggered")));
                                 } else {
                                     button.getGraphic().getStyleClass().remove("warning");
