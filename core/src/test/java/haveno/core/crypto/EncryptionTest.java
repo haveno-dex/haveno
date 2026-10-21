@@ -1925,6 +1925,22 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testStartupFailureExitsWithFailureStatus() throws Exception {
+        Method startupFailed = HavenoExecutable.class.getDeclaredMethod("onStartupFailed", Throwable.class);
+        startupFailed.setAccessible(true);
+        Method shutDownNoPersist = HavenoExecutable.class.getDeclaredMethod("shutDownNoPersist", Runnable.class, boolean.class);
+        shutDownNoPersist.setAccessible(true);
+        for (boolean failed : List.of(false, true)) {
+            HavenoExecutable executable = mock(HavenoExecutable.class, withSettings().useConstructor("", "", "", "").defaultAnswer(CALLS_REAL_METHODS));
+            try (var setup = mockStatic(CommonSetup.class)) {
+                if (failed) startupFailed.invoke(executable, new IllegalStateException("injected"));
+                else shutDownNoPersist.invoke(executable, null, false);
+                setup.verify(() -> CommonSetup.exitAfter(failed ? HavenoExecutable.EXIT_FAILURE : HavenoExecutable.EXIT_SUCCESS, 100, TimeUnit.MILLISECONDS));
+            }
+        }
+    }
+
+    @Test
     public void testRpcStartupBlocksExistingProcessesRegardlessOfParent() {
         File executable = new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME);
         for (ProcessHandle parent : Arrays.asList(null, parentProcess(1, "/sbin/init"),

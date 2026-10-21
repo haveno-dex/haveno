@@ -113,6 +113,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
     private final Object keepRunningLock = new Object();
     private AtomicInteger keepRunningResult = new AtomicInteger(EXIT_SUCCESS);
     private final CompletableFuture<Void> loginCompleted = new CompletableFuture<>();
+    protected volatile boolean isStartupFailed;
     private Runnable shutdownCompletedHandler;
 
     public HavenoExecutable(String fullName, String scriptName, String appName, String version) {
@@ -235,6 +236,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             if (isShutDownStarted || keepRunningResult.get() == EXIT_RESTART) return;
             if (throwable != null) {
                 log.error("Error logging in to account", throwable);
+                isStartupFailed = true;
                 shutDownNoPersist(null, false);
                 return;
             }
@@ -255,6 +257,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
     // startup failed, so shut down without persisting; subclasses may show the failure first
     protected void onStartupFailed(Throwable e) {
+        isStartupFailed = true;
         log.error("Error starting application", e);
         shutDownNoPersist(null, false);
     }
@@ -419,7 +422,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         // repeated requests join the shutdown in progress and get notified on completion
         if (!beginGracefulShutDown(resultHandler)) {
-            if (exitCompletedShutdown) CommonSetup.exitAfter(EXIT_SUCCESS, 100, TimeUnit.MILLISECONDS);
+            if (exitCompletedShutdown) CommonSetup.exitAfter(exitStatus(EXIT_SUCCESS), 100, TimeUnit.MILLISECONDS);
             return;
         }
 
@@ -554,7 +557,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         try {
             notifyGracefulShutDownComplete();
         } finally {
-            CommonSetup.exitAfter(status, delay, timeUnit);
+            CommonSetup.exitAfter(exitStatus(status), delay, timeUnit);
         }
     }
 
@@ -565,13 +568,18 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                 log.info("Graceful shutdown flushed persistence. Exiting now.");
                 notifyGracefulShutDownComplete();
                 if (isSystemExitRequested())
-                    CommonSetup.exitAfter(exitCode, 100, TimeUnit.MILLISECONDS);
+                    CommonSetup.exitAfter(exitStatus(exitCode), 100, TimeUnit.MILLISECONDS);
             });
         } else {
             notifyGracefulShutDownComplete();
             if (isSystemExitRequested())
-                CommonSetup.exitAfter(exitCode, 100, TimeUnit.MILLISECONDS);
+                CommonSetup.exitAfter(exitStatus(exitCode), 100, TimeUnit.MILLISECONDS);
         }
+    }
+
+    // a refused or failed startup exits with a failure status even after a clean shutdown, so a supervisor can retry it
+    private int exitStatus(int status) {
+        return isStartupFailed ? EXIT_FAILURE : status;
     }
 
     // read after notifying completion so exit requests which joined the shutdown are honored
