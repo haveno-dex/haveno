@@ -28,7 +28,6 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
 import haveno.core.network.MessageState;
-import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.HavenoUtils;
@@ -333,12 +332,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
     }
 
     public String getSecurityDeposit() {
-        Offer offer = dataModel.getOffer();
         Trade trade = dataModel.getTrade();
-        if (offer != null && trade != null && trade.getAmount() != null) {
-            BigInteger securityDeposit = dataModel.isBuyer() ?
-                    offer.getMaxBuyerSecurityDeposit()
-                    : offer.getMaxSellerSecurityDeposit();
+        if (trade != null && trade.getOffer() != null && trade.getAmount() != null) {
+            BigInteger securityDeposit = trade.getSecurityDepositBeforeMiningFee();
 
             String percentage = GUIUtil.getPercentageOfTradeAmount(securityDeposit, trade.getAmount());
             return HavenoUtils.formatXmr(securityDeposit, true) + percentage;
