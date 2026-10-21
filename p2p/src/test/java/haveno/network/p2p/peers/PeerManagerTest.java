@@ -98,6 +98,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class PeerManagerTest {
@@ -154,6 +155,88 @@ public class PeerManagerTest {
             assertTrue(sends.isEmpty());
         } finally {
             broadcaster.shutDown(() -> { });
+        }
+    }
+
+    @Test
+    public void testTargetedDataRequestsAreDeduplicatedAndReleased() {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            NodeAddress arbitrator = new NodeAddress("arbitrator:9999");
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            fixture.manager.requestUpdateDataFrom(fixture.networkNode.getNodeAddress());
+            assertEquals(1, fixture.requests.size());
+            assertTrue(fixture.requests.get(0) instanceof PreliminaryGetDataRequest);
+            fixture.respond(0, true);
+            assertEquals(1, fixture.requests.size());
+            verifyNoInteractions(fixture.listener);
+
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            assertEquals(2, fixture.requests.size());
+            fixture.fail(1);
+            assertFalse(fixture.isRetryPending());
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            assertEquals(3, fixture.requests.size());
+            fixture.manager.shutDown();
+            fixture.respond(2, false);
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            assertEquals(3, fixture.requests.size());
+            verifyNoInteractions(fixture.listener);
+        }
+    }
+
+    @Test
+    public void testTargetedDataRequestsDoNotSuppressSyncRecovery() {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            fixture.start();
+            fixture.manager.requestUpdateDataFrom(new NodeAddress("arbitrator:9999"));
+            fixture.fail(0);
+            fixture.fail(1);
+            assertTrue(fixture.isRetryPending());
+            fixture.respond(2, false);
+            assertTrue(fixture.isRetryPending());
+            verify(fixture.listener, never()).onDataReceived();
+            verify(fixture.listener, never()).onUpdatedDataReceived();
+        }
+    }
+
+    @Test
+    public void testTargetedDataRequestReplacesStaleHandler() throws ReflectiveOperationException {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            NodeAddress arbitrator = new NodeAddress("arbitrator:9999");
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            MessageListener handler = fixture.messageListeners.get(fixture.messageListeners.size() - 1);
+            Field creationTs = handler.getClass().getDeclaredField("creationTs");
+            creationTs.setAccessible(true);
+            creationTs.setLong(handler, System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
+
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            assertEquals(2, fixture.requests.size());
+            assertFalse(fixture.messageListeners.contains(handler));
+            fixture.respond(0, false);
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            assertEquals(2, fixture.requests.size());
+            verifyNoInteractions(fixture.listener);
+        }
+    }
+
+    @Test
+    public void testTargetedDataRequestDoesNotSurviveDisconnect() {
+        try (DataRequestFixture fixture = new DataRequestFixture()) {
+            NodeAddress arbitrator = new NodeAddress("arbitrator:9999");
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            Connection connection = mock(Connection.class);
+            when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(arbitrator));
+            fixture.manager.onDisconnect(CloseConnectionReason.RESET, connection);
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            assertEquals(2, fixture.requests.size());
+            fixture.respond(0, false);
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            assertEquals(2, fixture.requests.size());
+            fixture.respond(1, false);
+            fixture.manager.requestUpdateDataFrom(arbitrator);
+            assertEquals(3, fixture.requests.size());
+            verifyNoInteractions(fixture.listener);
         }
     }
 

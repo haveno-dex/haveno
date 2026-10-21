@@ -125,6 +125,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     // Non-seed peers already tried in the current sync cycle; exhausting all candidates ends the
     // cycle instead of looping over unreachable peers without pause (peers are not purged while offline).
     private final Set<NodeAddress> attemptedNonSeedNodes = new HashSet<>();
+    // Requests to peers outside the sync cycle, kept apart so they never count as pending sync work.
+    private final Map<NodeAddress, RequestDataHandler> targetedHandlerMap = new ConcurrentHashMap<>();
     // A failed redundant request is not exhaustion if the current sync cycle completed and no truncated chain is unfinished.
     private volatile int syncCycle = 0;
     private volatile int completedSyncCycle = -1;
@@ -203,6 +205,37 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         } else {
             checkNotNull(listener).onNoSeedNodeAvailable();
         }
+    }
+
+    // Requests data missing from our store from one peer outside the seed node sync cycle, e.g. a seed pulling payloads
+    // held only by an arbitrator. A truncated response is not repeated since later requests exclude what was received.
+    public void requestUpdateDataFrom(NodeAddress nodeAddress) {
+        if (stopped || handlerMap.containsKey(nodeAddress) || nodeAddress.equals(networkNode.getNodeAddress())) return;
+        RequestDataHandler existingHandler = targetedHandlerMap.get(nodeAddress);
+        if (existingHandler != null) {
+            if (!existingHandler.isStale()) return;
+            log.warn("We found a stale targeted data request to peer {}. We stop it and request again.", nodeAddress.getFullAddress());
+            existingHandler.cancel();
+            targetedHandlerMap.remove(nodeAddress, existingHandler);
+        }
+        RequestDataHandler requestDataHandler = new RequestDataHandler(networkNode, dataStorage, peerManager,
+                new RequestDataHandler.Listener() {
+                    @Override
+                    public void onComplete(boolean wasTruncated, int numNewItems) {
+                        targetedHandlerMap.remove(nodeAddress);
+                        if (numNewItems > 0) log.info("Received {} data items missing from our store from {}", numNewItems, nodeAddress.getFullAddress());
+                    }
+
+                    @Override
+                    public void onFault(String errorMessage, @Nullable Connection connection) {
+                        targetedHandlerMap.remove(nodeAddress);
+                        log.debug("Requesting data from {} failed: {}", nodeAddress.getFullAddress(), errorMessage);
+                    }
+                });
+        targetedHandlerMap.put(nodeAddress, requestDataHandler);
+        // a preliminary request advertises our capabilities, which a fresh connection needs before the peer transmits
+        // capability requiring payloads such as trade statistics
+        requestDataHandler.requestData(nodeAddress, true);
     }
 
     public void requestUpdateData() {
@@ -356,6 +389,9 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
 
     private void requestData(NodeAddress nodeAddress, List<NodeAddress> remainingNodeAddresses) {
         if (!stopped) {
+            // the sync cycle takes precedence over a targeted request to the same peer, which the periodic pull repeats later
+            RequestDataHandler targetedHandler = targetedHandlerMap.remove(nodeAddress);
+            if (targetedHandler != null) targetedHandler.cancel();
             if (!handlerMap.containsKey(nodeAddress)) {
                 boolean preliminaryRequest = isPreliminaryDataRequest;
                 int requestSyncCycle = syncCycle;
@@ -643,6 +679,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
         Optional<NodeAddress> peersNodeAddressOptional = connection.getPeersNodeAddressOptional();
         if (peersNodeAddressOptional.isPresent()) {
             NodeAddress nodeAddress = peersNodeAddressOptional.get();
+            RequestDataHandler targetedHandler = targetedHandlerMap.remove(nodeAddress);
+            if (targetedHandler != null) targetedHandler.cancel();
             if (handlerMap.containsKey(nodeAddress)) {
                 handlerMap.get(nodeAddress).cancel();
                 handlerMap.remove(nodeAddress);
@@ -657,6 +695,8 @@ public class RequestDataManager implements MessageListener, ConnectionListener, 
     private void closeAllHandlers() {
         handlerMap.values().forEach(RequestDataHandler::cancel);
         handlerMap.clear();
+        targetedHandlerMap.values().forEach(RequestDataHandler::cancel);
+        targetedHandlerMap.clear();
         getDataRequestHandlers.values().forEach(GetDataRequestHandler::stop);
         getDataRequestHandlers.clear();
     }

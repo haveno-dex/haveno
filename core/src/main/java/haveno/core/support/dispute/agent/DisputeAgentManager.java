@@ -189,9 +189,15 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     }
 
     public void updateMap() {
-        Map<NodeAddress, T> map = disputeAgentService.getDisputeAgents();
+        Map<NodeAddress, T> verified = getVerifiedDisputeAgents();
         observableMap.clear();
-        Map<NodeAddress, T> filtered = map.values().stream()
+        observableMap.putAll(verified);
+        observableMap.values().forEach(this::addAcceptedDisputeAgentToUser);
+    }
+
+    // Registered dispute agents with a listed registration key and a valid signature, leaving the user's accepted list untouched.
+    public Map<NodeAddress, T> getVerifiedDisputeAgents() {
+        return disputeAgentService.getDisputeAgents().values().stream()
                 .filter(e -> {
                     String pubKeyAsHex = Utils.HEX.encode(e.getRegistrationPubKey());
                     boolean isInPublicKeyInList = isPublicKeyInList(pubKeyAsHex);
@@ -214,9 +220,6 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
                     return isInPublicKeyInList && isSigValid;
                 })
                 .collect(Collectors.toMap(DisputeAgent::getNodeAddress, Function.identity()));
-
-        observableMap.putAll(filtered);
-        observableMap.values().forEach(this::addAcceptedDisputeAgentToUser);
     }
 
 

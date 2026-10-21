@@ -19,12 +19,14 @@ package haveno.core.app.misc;
 
 import com.google.inject.Inject;
 import haveno.common.ClockWatcher;
+import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
@@ -34,6 +36,7 @@ import haveno.network.p2p.network.ConnectionListener;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.storage.P2PDataStorage;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +51,10 @@ public class AppSetupWithP2P extends AppSetup {
     private final PeerManager peerManager;
     private final ClockWatcher clockWatcher;
     protected final TradeStatisticsManager tradeStatisticsManager;
+    private final ArbitratorManager arbitratorManager;
     protected ArrayList<PersistedDataHost> persistedDataHosts;
+    // Seeds only sync from each other, so they pull payloads which never reached them, e.g. trade statistics only an arbitrator holds.
+    private static final long ARBITRATOR_DATA_REQUEST_INTERVAL_HOURS = 6;
     protected BooleanProperty p2pNetWorkReady;
 
     @Inject
@@ -60,6 +66,7 @@ public class AppSetupWithP2P extends AppSetup {
                            AccountAgeWitnessService accountAgeWitnessService,
                            SignedWitnessService signedWitnessService,
                            FilterManager filterManager,
+                           ArbitratorManager arbitratorManager,
                            Config config) {
         super(config);
         this.p2PService = p2PService;
@@ -70,6 +77,7 @@ public class AppSetupWithP2P extends AppSetup {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.signedWitnessService = signedWitnessService;
         this.filterManager = filterManager;
+        this.arbitratorManager = arbitratorManager;
         this.persistedDataHosts = new ArrayList<>();
     }
 
@@ -188,5 +196,10 @@ public class AppSetupWithP2P extends AppSetup {
         signedWitnessService.onAllServicesInitialized();
 
         filterManager.onAllServicesInitialized();
+
+        // updateMap would also record accepted arbitrators in the user store, which seeds never load
+        Runnable requestArbitratorData = () -> arbitratorManager.getVerifiedDisputeAgents().keySet().forEach(p2PService::requestData);
+        UserThread.runAfter(requestArbitratorData, 60);
+        UserThread.runPeriodically(requestArbitratorData, ARBITRATOR_DATA_REQUEST_INTERVAL_HOURS, TimeUnit.HOURS);
     }
 }
