@@ -42,6 +42,7 @@ import haveno.desktop.util.GUIUtil;
 import java.math.BigInteger;
 import java.util.Comparator;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
@@ -86,6 +87,7 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
     private final TradeDetailsWindow tradeDetailsWindow;
     private SortedList<FailedTradesListItem> sortedList;
     private FilteredList<FailedTradesListItem> filteredList;
+    private final ListChangeListener<FailedTradesListItem> numItemsListener = c -> updateNumItems();
     private EventHandler<KeyEvent> keyEventEventHandler;
     private Scene scene;
     private XmrWalletService xmrWalletService;
@@ -235,7 +237,8 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
             return row;
         });
 
-        numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
+        updateNumItems();
+        sortedList.addListener(numItemsListener);
         exportButton.setOnAction(event -> {
             ObservableList<TableColumn<FailedTradesListItem, ?>> tableColumns = tableView.getColumns();
             int reportColumns = tableColumns.size() - 1;    // CSV report excludes the last column (an icon)
@@ -291,9 +294,14 @@ public class FailedTradesView extends ActivatableViewAndModel<VBox, FailedTrades
         }
 
         sortedList.comparatorProperty().unbind();
+        sortedList.removeListener(numItemsListener);
         exportButton.setOnAction(null);
 
         filterBox.deactivate();
+    }
+
+    private void updateNumItems() {
+        numItems.setText(Res.get("shared.numItemsLabel", sortedList.size()));
     }
 
 
