@@ -637,7 +637,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         return useMarketBasedPrice;
     }
 
-    ReadOnlyDoubleProperty getSecurityDepositPct() {
+    public ReadOnlyDoubleProperty getSecurityDepositPct() {
         return securityDepositPct;
     }
 
@@ -650,14 +650,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     protected BigInteger getBoundedSecurityDeposit(BigInteger value) {
         return Restrictions.getMinSecurityDeposit().max(value);
-    }
-
-    protected double getSecurityAsPercent(Offer offer) {
-        BigInteger offerSellerSecurityDeposit = getBoundedSecurityDeposit(offer.getMaxSellerSecurityDeposit());
-        double offerSellerSecurityDepositAsPercent = CoinUtil.getAsPercentPerXmr(offerSellerSecurityDeposit,
-                offer.getAmount());
-        return Math.min(offerSellerSecurityDepositAsPercent,
-                Restrictions.getMaxSecurityDepositPct());
     }
 
     ReadOnlyObjectProperty<BigInteger> totalToPayAsProperty() {
