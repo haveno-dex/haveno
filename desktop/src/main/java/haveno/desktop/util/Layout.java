@@ -26,7 +26,7 @@ public class Layout {
     public static final double CHAT_WINDOW_HEIGHT = 640;
     public static final double CHAT_WINDOW_MIN_WIDTH = 500;
     public static final double CHAT_WINDOW_MIN_HEIGHT = 400;
-    public static final double MAX_POPUP_HEIGHT = 850;
+    public static final double MAX_POPUP_HEIGHT = 900;
     public static final double FIRST_ROW_DISTANCE = 20d;
     public static final double COMPACT_FIRST_ROW_DISTANCE = 10d;
     public static final double TWICE_FIRST_ROW_DISTANCE = 20d * 2;

@@ -2550,6 +2550,63 @@ textfield */
     -fx-text-fill: -bs-text-color;
 }
 
+/* Transaction notes and confirmation status in the detail sheet. */
+.tx-note-add {
+    -fx-background-color: transparent;
+    -fx-background-insets: -1 0 0 0; /* cover the divider so the hover tint's top edge is even */
+    -fx-background-radius: 0 0 9 9;
+    -fx-text-fill: -bs-color-primary;
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-graphic-text-gap: 8;
+    -fx-padding: 13 18;
+    -fx-cursor: hand;
+}
+
+.tx-note-add .glyph-icon {
+    -fx-fill: -bs-color-primary;
+}
+.tx-note-add:hover {
+    -fx-background-color: rgba(35, 92, 188, 0.07);
+}
+.tx-note-save {
+    -fx-padding: 5 14;
+}
+
+/* keep the scrollbar background from covering the editor's rounded outline */
+.tx-note-editor .scroll-bar,
+.tx-note-editor .scroll-bar .track,
+.tx-note-editor .scroll-bar .track-background {
+    -fx-background-color: transparent;
+}
+
+.tx-note-editor .scroll-bar .track {
+    -fx-border-color: transparent;
+}
+
+.tx-status {
+    -fx-background-color: rgba(194, 124, 14, 0.12);
+    -fx-background-radius: 999;
+    -fx-padding: 2 10 2 7;
+    -fx-graphic-text-gap: 6;
+    -fx-font-size: 0.923em;
+    -fx-text-fill: #c27c0e;
+}
+
+.tx-status .progress-indicator {
+    -fx-progress-color: #c27c0e;
+}
+.tx-status:confirmed {
+    -fx-background-color: rgba(62, 163, 74, 0.12);
+    -fx-text-fill: -bs-rd-green-dark;
+}
+.tx-status:confirmed .glyph-icon {
+    -fx-fill: -bs-rd-green-dark;
+}
+.tx-status:failed {
+    -fx-background-color: rgba(204, 51, 51, 0.12);
+    -fx-text-fill: -bs-rd-error-red;
+}
+
 /* Withdraw success — green check badge over the same detail sheet. */
 .tx-sent-icon {
     -fx-background-color: linear-gradient(to bottom right, rgba(62, 163, 74, 0.20), rgba(62, 163, 74, 0.07));

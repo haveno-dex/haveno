@@ -322,7 +322,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
     }
 
     private void openTxDetailPopup(TransactionsListItem item) {
-        txDetailsWindow.show(item);
+        txDetailsWindow.show(item, this::updateList);
     }
 
 
@@ -531,9 +531,13 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
                                 super.updateItem(item, empty);
 
                                 if (item != null && !empty) {
-                                    setGraphic(new AutoTooltipLabel(item.getMemo()));
+                                    String memo = item.getMemo();
+                                    String firstLine = memo == null ? "" : memo.split("\\R", 2)[0];
+                                    setText(firstLine + (memo != null && firstLine.length() < memo.length() ? "…" : ""));
+                                    setTooltip(memo == null || memo.isEmpty() ? null : new Tooltip(memo));
                                 } else {
-                                    setGraphic(null);
+                                    setText(null);
+                                    setTooltip(null);
                                 }
                             }
                         };
