@@ -2628,9 +2628,10 @@ textfield */
 }
 
 .offer-table-top .jfx-button {
-    -fx-pref-width: 300px;
-    -fx-min-height: 35px;
-    -fx-padding: 5 25 5 25;
+    -fx-pref-width: 260px;
+    -fx-min-height: 30px;
+    -fx-max-height: 30px;
+    -fx-padding: 0 25 0 25;
 }
 
 /*******************************************************************************
