@@ -1237,6 +1237,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
     }
 
     private void setSecurityDepositToModel() {
+        // the locked field shows a fixed XMR amount, so keep the percent unless the offer takes no deposit
+        if (isMinSecurityDeposit.get() && !dataModel.buyerAsTakerWithoutDeposit.get()) return;
         if (securityDeposit.get() != null && !securityDeposit.get().isEmpty() && !isMinSecurityDeposit.get()) {
             dataModel.setSecurityDepositPct(ParsingUtils.parsePercentStringToDouble(securityDeposit.get()));
         } else {
