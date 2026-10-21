@@ -634,6 +634,11 @@ public class P2PService implements SetupListener, MessageListener, ConnectionLis
         }
     }
 
+    // Requests data missing from our store from the given peer, e.g. a seed pulling payloads held only by an arbitrator.
+    public void requestData(NodeAddress nodeAddress) {
+        if (isBootstrapped()) requestDataManager.requestUpdateDataFrom(nodeAddress);
+    }
+
     public NetworkNode getNetworkNode() {
         return networkNode;
     }
