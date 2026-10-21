@@ -200,28 +200,39 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         });
 
         // check for existing wallet processes off the user thread before login can start services or validate a seed
-        new Thread(() -> {
-            try {
-                checkForRunningWalletProcesses();
-            } catch (Throwable e) {
-                UserThread.execute(() -> loginAfterWalletProcessCheck(e));
-                return;
-            }
-            UserThread.execute(() -> loginAfterWalletProcessCheck(null));
-        }, "Wallet-process-check").start();
+        checkForRunningWalletProcessesAsync(this::login);
     }
 
     protected void checkForRunningWalletProcesses() {
         MoneroWalletRpcManager.checkForRunningProcesses(new File(XmrWalletService.getMoneroWalletRpcPath()), config.walletDir);
     }
 
-    private void loginAfterWalletProcessCheck(@Nullable Throwable failure) {
-        if (isShutDownStarted || keepRunningResult.get() == EXIT_RESTART) return;
-        if (failure != null) {
-            onStartupFailed(failure);
-            return;
-        }
+    // check off the user thread, then continue on it unless the check failed or a shutdown or restart intervened
+    private void checkForRunningWalletProcessesAsync(Runnable onPassed) {
+        new Thread(() -> {
+            Throwable failure = null;
+            try {
+                checkForRunningWalletProcesses();
+            } catch (Throwable e) {
+                failure = e;
+            }
+            Throwable checkFailure = failure;
+            UserThread.execute(() -> {
+                if (isShutDownStarted || keepRunningResult.get() == EXIT_RESTART) return;
+                if (checkFailure != null) {
+                    onStartupFailed(checkFailure);
+                    return;
+                }
+                try {
+                    onPassed.run();
+                } catch (RuntimeException e) {
+                    onStartupFailed(e); // e.g. a service failed to construct
+                }
+            });
+        }, "Wallet-process-check").start();
+    }
 
+    private void login() {
         // Attempt to login, subclasses should implement interactive login and or rpc login.
         CompletableFuture<Boolean> loginFuture;
         try {
@@ -242,7 +253,8 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
             }
             try {
                 if (!isReadOnly && loginFuture.get()) {
-                    readAllPersisted(this::startApplicationUnlessRestarting);
+                    // another instance may have started during a long login, so check again before reading data and starting services
+                    checkForRunningWalletProcessesAsync(() -> readAllPersisted(this::startApplicationUnlessRestarting));
                 } else {
                     log.warn("Running application in readonly mode");
                     startApplicationUnlessRestarting();

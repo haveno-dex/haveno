@@ -1837,11 +1837,12 @@ public class EncryptionTest {
         Method restart = HavenoExecutable.class.getDeclaredMethod("shutDownNoPersist", Runnable.class, boolean.class);
         restart.setAccessible(true);
         try {
-            for (String outcome : List.of("success", "check failure", "check error", "service failure")) {
+            for (String outcome : List.of("success", "check failure", "check error", "recheck failure", "service failure")) {
                 for (String stop : List.of("none", "shutdown", "restart")) {
                     CountDownLatch checking = new CountDownLatch(1);
                     CountDownLatch resume = new CountDownLatch(1);
                     AtomicReference<Thread> checkThread = new AtomicReference<>();
+                    AtomicInteger checks = new AtomicInteger();
                     AtomicInteger logins = new AtomicInteger();
                     AtomicInteger reads = new AtomicInteger();
                     AtomicReference<Throwable> reportedFailure = new AtomicReference<>();
@@ -1853,6 +1854,10 @@ public class EncryptionTest {
                                     case "configUserThread", "setupGuice", "setupAvoidStandbyMode":
                                         return null;
                                     case "checkForRunningWalletProcesses":
+                                        if (checks.incrementAndGet() > 1) { // repeated after login
+                                            if (outcome.equals("recheck failure")) throw failure;
+                                            return null;
+                                        }
                                         checkThread.set(Thread.currentThread());
                                         checking.countDown();
                                         assertTrue(resume.await(10, TimeUnit.SECONDS));
@@ -1911,7 +1916,8 @@ public class EncryptionTest {
                         }
                         int expectedLogins = stop.equals("none") && !outcome.startsWith("check") ? 1 : 0;
                         assertEquals(expectedLogins, logins.get());
-                        assertEquals(expectedLogins, reads.get());
+                        assertEquals(expectedLogins == 1 ? 2 : 1, checks.get());
+                        assertEquals(expectedLogins == 1 && !outcome.equals("recheck failure") ? 1 : 0, reads.get());
                     } finally {
                         resume.countDown();
                         if (checkThread.get() != null) checkThread.get().join(10000);
