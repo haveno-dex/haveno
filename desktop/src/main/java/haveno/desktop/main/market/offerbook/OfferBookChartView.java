@@ -177,7 +177,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         HBox bottomHBox = new HBox();
         bottomHBox.setSpacing(10);
         bottomHBox.setAlignment(Pos.CENTER);
-        VBox.setMargin(bottomHBox, new Insets(-5, 0, 0, 0));
+        VBox.setMargin(bottomHBox, new Insets(5, 0, 0, 0));
         VBox.setVgrow(bottomHBox, Priority.ALWAYS); // fill remaining height so the cards end at the view's bottom padding
         HBox.setHgrow(tupleBuy.second, Priority.ALWAYS);
         HBox.setHgrow(tupleSell.second, Priority.ALWAYS);
