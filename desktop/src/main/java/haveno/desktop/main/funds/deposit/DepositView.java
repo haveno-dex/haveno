@@ -398,15 +398,18 @@ public class DepositView extends ActivatableView<VBox, Void> {
 
     @Override
     protected void deactivate() {
+        // follow the same hops as activate so a quick deactivate cannot run before it
         ThreadUtils.execute(() -> {
-            filterBox.deactivate();
-            tableView.getSelectionModel().selectedItemProperty().removeListener(tableViewSelectionListener);
-            sortedList.comparatorProperty().unbind();
-            observableList.forEach(DepositListItem::cleanup);
-            xmrWalletService.removeBalanceListener(balanceListener);
-            xmrWalletService.removeWalletListener(walletListener);
-            marketPricePresentation.balancePriceProperty().removeListener(priceChangeListener);
-            amountTextFieldSubscription.unsubscribe();
+            UserThread.execute(() -> {
+                filterBox.deactivate();
+                tableView.getSelectionModel().selectedItemProperty().removeListener(tableViewSelectionListener);
+                sortedList.comparatorProperty().unbind();
+                observableList.forEach(DepositListItem::cleanup);
+                xmrWalletService.removeBalanceListener(balanceListener);
+                xmrWalletService.removeWalletListener(walletListener);
+                marketPricePresentation.balancePriceProperty().removeListener(priceChangeListener);
+                amountTextFieldSubscription.unsubscribe();
+            });
         }, THREAD_ID);
     }
 
