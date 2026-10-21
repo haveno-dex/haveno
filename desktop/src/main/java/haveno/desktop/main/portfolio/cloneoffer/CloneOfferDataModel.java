@@ -160,7 +160,7 @@ class CloneOfferDataModel extends MutableOfferDataModel {
         }
         setPrivateOffer(offer.isPrivateOffer());
         setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
-        setSecurityDepositPct(getSecurityAsPercent(offer));
+        setSecurityDepositPct(offer.getSellerSecurityDepositPct());
         setExtraInfo(offer.getOfferExtraInfo());
     }
 
