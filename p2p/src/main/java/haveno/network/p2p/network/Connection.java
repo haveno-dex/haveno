@@ -179,6 +179,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private Optional<NodeAddress> peersNodeAddressOptional = Optional.empty();
     @Getter
     private volatile boolean stopped;
+    private volatile boolean sentNodeAddress;
 
     @Getter
     private final ObjectProperty<NodeAddress> peersNodeAddressProperty = new SimpleObjectProperty<>();
@@ -392,6 +393,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
             if (!stopped) {
                 protoOutputStream.writeEnvelope(networkEnvelope, proto);
+                if (networkEnvelope instanceof SendersNodeAddressMessage) sentNodeAddress = true;
                 ThreadUtils.execute(() -> messageListeners.forEach(e -> e.onMessageSent(networkEnvelope, this)), THREAD_ID);
                 ThreadUtils.execute(() -> connectionStatistics.addSendMsgMetrics(System.currentTimeMillis() - ts, networkEnvelopeSize), THREAD_ID);
             }
@@ -663,6 +665,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
     public boolean hasPeersNodeAddress() {
         return peersNodeAddressOptional.isPresent();
+    }
+
+    // Inbound peers dialed our address; outbound peers learn it from an earlier write on the same connection.
+    public boolean isPeerReadyForBroadcast() {
+        return this instanceof InboundConnection || sentNodeAddress;
     }
 
     public long getLastReadTimestamp() {

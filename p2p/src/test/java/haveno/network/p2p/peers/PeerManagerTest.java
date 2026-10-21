@@ -119,6 +119,7 @@ public class PeerManagerTest {
         AtomicReference<ListeningExecutorService> executor = new AtomicReference<>();
         when(networkNode.getConfirmedConnections()).thenReturn(Set.of(connection));
         when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.empty());
+        when(connection.isPeerReadyForBroadcast()).thenReturn(true);
         when(connection.testCapability(any())).thenReturn(true);
         when(networkNode.sendMessage(eq(connection), eq(earlierMessage), any(ListeningExecutorService.class)))
                 .thenReturn(earlierSend);
