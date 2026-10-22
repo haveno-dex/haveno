@@ -686,6 +686,7 @@ public abstract class TradeStepView extends VBox {
         currency.getStyleClass().add("trade-amount-currency");
         Button copyAmount = new Button();
         GUIUtil.configureCopyIcon(copyAmount, () -> number);
+        Accessibility.setName(copyAmount, Res.get("shared.copyToClipboard") + ": " + volume);
         copyAmount.getStyleClass().add("trade-copy-button");
         copyAmount.getGraphic().getStyleClass().add("trade-copy-icon");
         HBox value = new HBox(8, amount, currency, copyAmount);
@@ -693,10 +694,17 @@ public abstract class TradeStepView extends VBox {
         VBox metric = new VBox(6, label, value);
         Label xmrAmount = new Label(model.getTradeVolume());
         xmrAmount.setWrapText(true);
+        Button copyXmrAmount = new Button();
+        GUIUtil.configureCopyIcon(copyXmrAmount, () -> HavenoUtils.formatXmr(trade.getAmount()));
+        Accessibility.setName(copyXmrAmount, Res.get("shared.copyToClipboard") + ": " + xmrAmount.getText());
+        copyXmrAmount.getStyleClass().add("trade-copy-button");
+        copyXmrAmount.getGraphic().getStyleClass().add("trade-copy-icon");
+        HBox xmrValue = new HBox(8, xmrAmount, copyXmrAmount);
+        xmrValue.setAlignment(Pos.CENTER_RIGHT);
         Label rate = new Label(Res.get("portfolio.pending.tradeView.atPrice", model.getTradePrice()));
         rate.getStyleClass().add("trade-secondary");
         rate.setWrapText(true);
-        VBox exchange = new VBox(4, xmrAmount, rate);
+        VBox exchange = new VBox(4, xmrValue, rate);
         exchange.setAlignment(Pos.BOTTOM_RIGHT);
         exchange.setMinWidth(0);
         Region spacer = new Region();
@@ -790,6 +798,7 @@ public abstract class TradeStepView extends VBox {
         addInfoBlock();
         confirmationPane = new TradeConfirmationPane();
         gridPane.add(confirmationPane, 0, ++gridRow, 2, 1);
+        gridPane.add(createAmountPanel(Res.get("portfolio.pending.step1.paymentAmount")), 0, ++gridRow, 2, 1);
         updateStepCaption(Res.get("portfolio.pending.tradeView.confirming"));
         updateDepositSummary();
     }
