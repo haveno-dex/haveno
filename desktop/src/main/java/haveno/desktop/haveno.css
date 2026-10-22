@@ -2586,7 +2586,7 @@ textfield */
 .tx-status {
     -fx-background-color: rgba(194, 124, 14, 0.12);
     -fx-background-radius: 999;
-    -fx-padding: 2 10 2 7;
+    -fx-padding: 1.5 10 2.5 7;
     -fx-graphic-text-gap: 6;
     -fx-font-size: 0.923em;
     -fx-text-fill: #c27c0e;
@@ -2605,6 +2605,9 @@ textfield */
 .tx-status:failed {
     -fx-background-color: rgba(204, 51, 51, 0.12);
     -fx-text-fill: -bs-rd-error-red;
+}
+.tx-status:failed .glyph-icon {
+    -fx-fill: -bs-rd-error-red;
 }
 
 /* Withdraw success — green check badge over the same detail sheet. */
