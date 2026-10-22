@@ -18,8 +18,10 @@
 package haveno.asset.coins;
 
 import haveno.asset.Coin;
+import haveno.asset.CryptoAccountDisclaimer;
 import haveno.asset.RippleAddressValidator;
 
+@CryptoAccountDisclaimer("account.crypto.popup.xrp.msg")
 public class Ripple extends Coin {
 
     public Ripple() {
