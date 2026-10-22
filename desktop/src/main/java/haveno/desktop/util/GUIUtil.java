@@ -1021,6 +1021,10 @@ public class GUIUtil {
         double y = Math.round(rootSceneWindow.getY() + rootScene.getY() + (rootScene.getHeight() - height) / 2);
         stage.setX(Math.max(screenBounds.getMinX(), Math.min(x, screenBounds.getMaxX() - width)));
         stage.setY(Math.max(screenBounds.getMinY(), Math.min(y, screenBounds.getMaxY() - height)));
+        // hiding a fullscreen window deadlocks JavaFX on macOS while rendering, so leave fullscreen first
+        stage.addEventHandler(WindowEvent.WINDOW_HIDING, e -> {
+            if (stage.isFullScreen()) stage.setFullScreen(false);
+        });
         // let the chat render before revealing the native window
         stage.setOpacity(0);
         stage.show();
