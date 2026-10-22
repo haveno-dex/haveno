@@ -226,8 +226,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
             }
         };
         createOfferButton.setGraphicTextGap(10);
-        createOfferButton.setPrefWidth(340); // overhangs the actions + trader columns (300) for emphasis
-        createOfferButton.setStyle("-fx-padding: 7 25 7 25;");
+        createOfferButton.setPrefWidth(340); // overhangs the actions (225) and trader (60) columns for emphasis
+        createOfferButton.setStyle("-fx-padding: 8 25 8 25;"); // matches the filter row inputs (35px)
         disabledCreateOfferButtonTooltip = new Label("");
         disabledCreateOfferButtonTooltip.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         disabledCreateOfferButtonTooltip.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -688,7 +688,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     public void setDirection(OfferDirection direction) {
         model.initWithDirection(direction);
-        createOfferButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(Res.getBaseCurrencyCode(), 26, 1));
+        createOfferButton.setGraphic(GUIUtil.getMoneroMark());
         createOfferButton.setContentDisplay(ContentDisplay.RIGHT);
         createOfferButton.setId(direction == OfferDirection.SELL ? "sell-button-big" : "buy-button-big");
         avatarColumn.setTitle(direction == OfferDirection.SELL ? Res.get("shared.buyerUpperCase") : Res.get("shared.sellerUpperCase"));
@@ -1382,7 +1382,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     private void updateCreateOfferButton() {
         createOfferButton.setText(Res.get("offerbook.createNewOffer",
-                model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy").toUpperCase() : Res.get("shared.sell").toUpperCase(),
+                model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy") : Res.get("shared.sell"),
                 getTradeCurrencyCode()));
     }
 
