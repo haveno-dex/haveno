@@ -1890,10 +1890,6 @@ public class GUIUtil {
         return (int) Math.ceil(CURRENCY_ICON_MARGIN * scale);
     }
 
-    public static StackPane getCurrencyIconWithBorder(String currencyCode) {
-        return getCurrencyIconWithBorder(currencyCode, 25, 1);
-    }
-
     public static StackPane getCurrencyIconWithBorder(String currencyCode, double size, double borderWidth) {
         if (currencyCode == null) return null;
 
@@ -1917,6 +1913,13 @@ public class GUIUtil {
         StackPane.setAlignment(icon, Pos.CENTER);
 
         return circleWrapper;
+    }
+
+    // single color Monero mark for colored buttons
+    public static Region getMoneroMark() {
+        Region mark = new Region();
+        mark.getStyleClass().add("monero-mark");
+        return mark;
     }
 
     private static String getImageId(String currencyCode) {

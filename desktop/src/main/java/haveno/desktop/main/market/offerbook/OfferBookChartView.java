@@ -258,13 +258,13 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
                     sellHeaderLabel.setText(Res.get("market.offerBook.sellOffersHeaderLabel", viewBaseCurrencyCode));
                     sellButton.updateText(Res.get("shared.sellCurrency", viewBaseCurrencyCode));
-                    sellButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(viewBaseCurrencyCode));
+                    sellButton.setGraphic(GUIUtil.getMoneroMark());
                     sellButton.setOnAction(e -> model.goToOfferView(OfferDirection.BUY));
                     sellButton.setId("sell-button-big");
 
                     buyHeaderLabel.setText(Res.get("market.offerBook.buyOffersHeaderLabel", viewBaseCurrencyCode));
                     buyButton.updateText(Res.get( "shared.buyCurrency", viewBaseCurrencyCode));
-                    buyButton.setGraphic(GUIUtil.getCurrencyIconWithBorder(viewBaseCurrencyCode));
+                    buyButton.setGraphic(GUIUtil.getMoneroMark());
                     buyButton.setOnAction(e -> model.goToOfferView(OfferDirection.SELL));
                     buyButton.setId("buy-button-big");
 
