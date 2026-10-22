@@ -258,7 +258,7 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
     protected HBox txStatusRow(String txId, XmrWalletService xmrWalletService) {
         this.xmrWalletService = xmrWalletService;
         this.confidenceTxId = txId;
-        confidenceIndicator = new TxConfidenceIndicator(0);
+        confidenceIndicator = new TxConfidenceIndicator(-1);
         confidenceIndicator.setMinSize(15, 15);
         confidenceIndicator.setMaxSize(15, 15);
         confidenceLabel = new Label(Res.get("confidence.unknown"), confidenceIndicator);
@@ -333,8 +333,9 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
                 : Res.get("txDetailsWindow.status.confirmations", confirmations, XmrWalletService.NUM_BLOCKS_UNLOCK));
         confidenceLabel.pseudoClassStateChanged(PseudoClass.getPseudoClass("confirmed"), confirmed);
         confidenceLabel.pseudoClassStateChanged(PseudoClass.getPseudoClass("failed"), failed);
-        confidenceIndicator.setProgress((double) confirmations / XmrWalletService.NUM_BLOCKS_UNLOCK);
-        confidenceLabel.setGraphic(confirmed ? GlyphsDude.createIcon(MaterialDesignIcon.CHECK_CIRCLE, "1.1em") : confidenceIndicator);
+        confidenceIndicator.setProgress(confirmations == 0 ? -1 : (double) confirmations / XmrWalletService.NUM_BLOCKS_UNLOCK);
+        confidenceLabel.setGraphic(confirmed ? GlyphsDude.createIcon(MaterialDesignIcon.CHECK_CIRCLE, "1.1em")
+                : failed ? GlyphsDude.createIcon(MaterialDesignIcon.CLOSE_CIRCLE, "1.1em") : confidenceIndicator);
         if (confirmed) stopConfidenceUpdates();
     }
 }
