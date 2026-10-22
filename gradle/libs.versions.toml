@@ -65,6 +65,7 @@ fontawesomefx-fontawesome = { module = "de.jensd:fontawesomefx-fontawesome", ver
 fontawesomefx-materialdesignfont = { module = "de.jensd:fontawesomefx-materialdesignfont", version.ref = "fontawesomefx-materialdesignfont" }
 grpc-auth = { module = "io.grpc:grpc-auth", version.ref = "grpc" }
 grpc-core = { module = "io.grpc:grpc-core", version.ref = "grpc" }
+grpc-inprocess = { module = "io.grpc:grpc-inprocess", version.ref = "grpc" }
 grpc-netty-shaded = { module = "io.grpc:grpc-netty-shaded", version.ref = "grpc" }
 grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
 grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
