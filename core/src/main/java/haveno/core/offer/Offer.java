@@ -481,7 +481,8 @@ public class Offer implements NetworkPayload, PersistablePayload {
     }
 
     public String getPaymentMethodNameWithCountryCode() {
-        String method = this.getPaymentMethod().getShortName();
+        // resolve from the stored id so retired payment methods keep their name in history
+        String method = PaymentMethod.getDummyPaymentMethod(offerPayload.getPaymentMethodId()).getShortName();
         String methodCountryCode = this.getCountryCode();
         if (methodCountryCode != null) {
             String countrySuffix = " (" + methodCountryCode + ")";
