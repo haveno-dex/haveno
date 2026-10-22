@@ -52,6 +52,7 @@
                 <TableColumn fx:id="tradeFeeColumn" visible="false" minWidth="110"/>
                 <TableColumn fx:id="buyerSecurityDepositColumn" visible="false" minWidth="75"/>
                 <TableColumn fx:id="sellerSecurityDepositColumn" visible="false" minWidth="75"/>
+                <TableColumn fx:id="paymentMethodColumn" minWidth="110" maxWidth="200"/>
                 <TableColumn fx:id="directionColumn" minWidth="70"/>
                 <TableColumn fx:id="stateColumn" minWidth="80"/>
                 <TableColumn fx:id="chatColumn" minWidth="40" maxWidth="40" sortable="false"/>

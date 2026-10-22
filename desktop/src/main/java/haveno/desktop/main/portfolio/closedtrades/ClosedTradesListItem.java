@@ -124,6 +124,10 @@ public class ClosedTradesListItem implements FilterableListItem {
         return CurrencyUtil.getCurrencyPair(tradable.getOffer().getCounterCurrencyCode());
     }
 
+    public String getPaymentMethod() {
+        return tradable.getOffer().getPaymentMethodNameWithCountryCode();
+    }
+
     public String getState() {
         return closedTradableFormatter.getStateAsString(tradable);
     }
@@ -165,6 +169,9 @@ public class ClosedTradesListItem implements FilterableListItem {
             return true;
         }
         if (StringUtils.containsIgnoreCase(getSellerSecurityDepositAsString(), filterString)) {
+            return true;
+        }
+        if (StringUtils.containsIgnoreCase(getPaymentMethod(), filterString)) {
             return true;
         }
         if (StringUtils.containsIgnoreCase(getState(), filterString)) {
