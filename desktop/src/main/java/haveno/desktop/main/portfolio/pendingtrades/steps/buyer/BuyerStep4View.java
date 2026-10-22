@@ -24,6 +24,7 @@ import haveno.core.locale.Res;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.desktop.components.AutoTooltipButton;
+import haveno.desktop.components.TextFieldWithCopyIcon;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.overlays.notifications.Notification;
 import haveno.desktop.main.overlays.windows.TradeFeedbackWindow;
@@ -42,6 +43,7 @@ import javafx.scene.layout.Priority;
 import java.util.concurrent.TimeUnit;
 
 import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextField;
+import static haveno.desktop.util.FormBuilder.addCompactTopLabelTextFieldWithCopyIcon;
 
 public class BuyerStep4View extends TradeStepView {
 
@@ -93,11 +95,18 @@ public class BuyerStep4View extends TradeStepView {
         gridPane.add(completedTradeLabel, 0, gridRow, 2, 1);
         if (trade.isPaymentReceived()) {
             TradeFormPane summary = new TradeFormPane();
-            addCompactTopLabelTextField(summary, 0, getXmrTradeAmountLabel(), model.getTradeVolume());
-            addCompactTopLabelTextField(summary, 1, getTraditionalTradeAmountLabel(), model.getFiatVolume());
+            TextFieldWithCopyIcon xmrAmount = addCompactTopLabelTextFieldWithCopyIcon(summary, 0, getXmrTradeAmountLabel(), model.getTradeVolume()).second;
+            xmrAmount.setCopyWithoutCurrencyPostFix(true);
+            xmrAmount.setCopyAccessibleText(Res.get("shared.copyToClipboard") + ": " + model.getTradeVolume());
+            TextFieldWithCopyIcon paymentAmount = addCompactTopLabelTextFieldWithCopyIcon(summary, 1, getTraditionalTradeAmountLabel(), model.getFiatVolume()).second;
+            paymentAmount.setCopyWithoutCurrencyPostFix(true);
+            paymentAmount.setCopyAccessibleText(Res.get("shared.copyToClipboard") + ": " + model.getFiatVolume());
             addCompactTopLabelTextField(summary, 2, Res.get("portfolio.pending.step5_buyer.refunded"), model.getSecurityDeposit());
             addCompactTopLabelTextField(summary, 3, Res.get("portfolio.pending.step5_buyer.tradeFee"), model.getTradeFee());
             summary.finish(false);
+            // amounts fit on one line, so undo the wrapping text area finish() gives copy fields
+            xmrAmount.setWrapText(false);
+            paymentAmount.setWrapText(false);
             summary.getStyleClass().add("trade-completed-summary");
             gridPane.add(summary, 0, ++gridRow, 2, 1);
         }

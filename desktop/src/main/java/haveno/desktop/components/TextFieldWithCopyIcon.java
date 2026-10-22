@@ -19,6 +19,7 @@ package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
 
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.Layout;
 import javafx.beans.property.SimpleStringProperty;
@@ -138,6 +139,10 @@ public class TextFieldWithCopyIcon extends AnchorPane {
 
     public void setTooltip(Tooltip toolTip) {
         textField.setTooltip(toolTip);
+    }
+
+    public void setCopyAccessibleText(String text) {
+        Accessibility.setName(copyLabel, text);
     }
 
     public void setCopyWithoutCurrencyPostFix(boolean copyWithoutCurrencyPostFix) {
