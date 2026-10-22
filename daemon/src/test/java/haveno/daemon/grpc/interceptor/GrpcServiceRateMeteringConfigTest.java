@@ -27,8 +27,8 @@ import io.grpc.ServerCall;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
-import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.inprocess.InProcessChannelBuilder;
+import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.MetadataUtils;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ArrayList;
@@ -178,7 +177,8 @@ public class GrpcServiceRateMeteringConfigTest {
     @Test
     public void authenticationAndThrottleStatusesReachGrpcClients() throws Exception {
         AtomicInteger admitted = new AtomicInteger();
-        Server server = NettyServerBuilder.forAddress(new InetSocketAddress("127.0.0.1", 0))
+        String serverName = InProcessServerBuilder.generateName();
+        Server server = InProcessServerBuilder.forName(serverName)
                 .intercept(new PasswordAuthInterceptor("test-secret", new GrpcCallRateMeter(2, MINUTES)))
                 .addService(new GetVersionGrpc.GetVersionImplBase() {
                     @Override
@@ -188,25 +188,30 @@ public class GrpcServiceRateMeteringConfigTest {
                         response.onCompleted();
                     }
                 }).build().start();
-        var channel = NettyChannelBuilder.forAddress("127.0.0.1", server.getPort()).usePlaintext().build();
+        var channel = InProcessChannelBuilder.forName(serverName).build();
         try {
             Metadata headers = new Metadata();
             headers.put(Metadata.Key.of("password", Metadata.ASCII_STRING_MARSHALLER), "test-secret");
-            var authenticated = GetVersionGrpc.newBlockingStub(channel).withDeadlineAfter(5, SECONDS)
+            var authenticated = GetVersionGrpc.newBlockingStub(channel)
                     .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers));
-            assertEquals("test", authenticated.getVersion(GetVersionRequest.getDefaultInstance()).getVersion());
-            var unauthenticated = GetVersionGrpc.newBlockingStub(channel).withDeadlineAfter(5, SECONDS);
+            var unauthenticated = GetVersionGrpc.newBlockingStub(channel);
+            assertEquals("test", getVersion(authenticated).getVersion());
             for (int i = 0; i < 2; i++) {
                 assertEquals(Status.Code.UNAUTHENTICATED, assertThrows(StatusRuntimeException.class,
-                        () -> unauthenticated.getVersion(GetVersionRequest.getDefaultInstance())).getStatus().getCode());
+                        () -> getVersion(unauthenticated)).getStatus().getCode());
             }
             assertEquals(Status.Code.RESOURCE_EXHAUSTED, assertThrows(StatusRuntimeException.class,
-                    () -> authenticated.getVersion(GetVersionRequest.getDefaultInstance())).getStatus().getCode());
+                    () -> getVersion(authenticated)).getStatus().getCode());
             assertEquals(1, admitted.get());
         } finally {
             channel.shutdownNow().awaitTermination(5, SECONDS);
             server.shutdownNow().awaitTermination(5, SECONDS);
         }
+    }
+
+    // a stub deadline is a fixed instant shared by every call, so set it per call
+    private static GetVersionReply getVersion(GetVersionGrpc.GetVersionBlockingStub stub) {
+        return stub.withDeadlineAfter(30, SECONDS).getVersion(GetVersionRequest.getDefaultInstance());
     }
 
     private void authenticate(PasswordAuthInterceptor interceptor, String password, AtomicInteger admitted) {

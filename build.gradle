@@ -1040,6 +1040,10 @@ configure(project(':daemon')) {
         }
         testAnnotationProcessor libs.lombok
         testCompileOnly libs.lombok
+        testImplementation(libs.grpc.inprocess) {
+            exclude(module: 'animal-sniffer-annotations')
+            exclude(module: 'guava')
+        }
         testImplementation libs.junit.jupiter.api
         testImplementation libs.junit.jupiter.params
         testRuntimeOnly(libs.junit.jupiter.engine)
