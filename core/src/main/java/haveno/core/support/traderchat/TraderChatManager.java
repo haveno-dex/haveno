@@ -112,7 +112,7 @@ public class TraderChatManager extends SupportManager {
 
     @Override
     public List<ChatMessage> getAllChatMessages(String tradeId) {
-        return Optional.of(tradeManager.getTrade(tradeId)).map(Trade::getChatMessages)
+        return Optional.ofNullable(tradeManager.getTrade(tradeId)).map(Trade::getChatMessages)
                 .orElse(FXCollections.emptyObservableList());
     }
 
