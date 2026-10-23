@@ -82,7 +82,7 @@ import org.bitcoinj.core.Utils;
 
 @Slf4j
 public class AccountAgeWitnessService {
-    private static final Date RELEASE = Utilities.getUTCDate(2017, GregorianCalendar.NOVEMBER, 11);
+    public static final Date RELEASE = Utilities.getUTCDate(2017, GregorianCalendar.NOVEMBER, 11);
 
     public enum AccountAge {
         UNVERIFIED,
