@@ -83,8 +83,13 @@ public class EncryptionService {
 
     public DecryptedMessageWithPubKey decryptAndVerify(SealedAndSigned sealedAndSigned) throws
             CryptoException, ProtobufferException {
+        return decryptAndVerify(sealedAndSigned, keyRing.getEncryptionKeyPair().getPrivate());
+    }
+
+    public DecryptedMessageWithPubKey decryptAndVerify(SealedAndSigned sealedAndSigned, PrivateKey privateKey) throws
+            CryptoException, ProtobufferException {
         DecryptedDataTuple decryptedDataTuple = decryptHybridWithSignature(sealedAndSigned,
-                keyRing.getEncryptionKeyPair().getPrivate());
+                privateKey);
         return new DecryptedMessageWithPubKey(decryptedDataTuple.getNetworkEnvelope(),
                 decryptedDataTuple.getSigPublicKey());
     }

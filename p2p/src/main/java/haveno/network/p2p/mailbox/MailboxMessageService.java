@@ -54,6 +54,7 @@ import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.SealedAndSigned;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.ProtobufferException;
+import haveno.common.proto.ProtobufferRuntimeException;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.persistable.PersistedDataHost;
 import haveno.common.util.Tuple2;
@@ -80,6 +81,7 @@ import haveno.network.utils.CapabilityUtils;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 
+import java.security.KeyPair;
 import java.security.PublicKey;
 import java.time.Clock;
 import java.util.ArrayDeque;
@@ -503,17 +505,23 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
             // We had persisted a past failed decryption attempt on that message so we don't try again and return early
             return new MailboxItem(protectedMailboxStorageEntry, null);
         }
+        // Keep entries for retry while keys are locked, e.g. during backup, and capture the key before decryption
+        KeyPair encryptionKeyPair = keyRing.getEncryptionKeyPair();
+        if (encryptionKeyPair == null) return new MailboxItem(protectedMailboxStorageEntry, null);
         try {
-            DecryptedMessageWithPubKey decryptedMessageWithPubKey = encryptionService.decryptAndVerify(sealedAndSigned);
+            DecryptedMessageWithPubKey decryptedMessageWithPubKey = encryptionService.decryptAndVerify(sealedAndSigned, encryptionKeyPair.getPrivate());
             checkArgument(decryptedMessageWithPubKey.getNetworkEnvelope() instanceof MailboxMessage);
             return new MailboxItem(protectedMailboxStorageEntry, decryptedMessageWithPubKey);
         } catch (CryptoException ignore) {
             // Expected if message was not intended for us
             // We persist those entries so at the next startup we do not need to try to decrypt it anymore
             ignoredMailboxService.ignore(uid, protectedMailboxStorageEntry.getCreationTimeStamp());
-        } catch (ProtobufferException e) {
-            log.error(e.toString());
-            e.getStackTrace();
+        } catch (ProtobufferException | ProtobufferRuntimeException e) {
+            // Keep unknown message types retryable after an upgrade
+            log.warn("Could not decode mailbox entry {}", uid, e);
+        } catch (RuntimeException e) {
+            log.warn("Ignoring malformed mailbox entry {}", uid, e);
+            ignoredMailboxService.ignore(uid, protectedMailboxStorageEntry.getCreationTimeStamp());
         }
         return new MailboxItem(protectedMailboxStorageEntry, null);
     }
@@ -571,7 +579,13 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
         NodeAddress sender = mailboxMessage.getSenderNodeAddress();
         log.info("Received a {} mailbox message with uid {} and senderAddress {}",
                 mailboxMessage.getClass().getSimpleName(), uid, sender);
-        decryptedMailboxListeners.forEach(e -> e.onMailboxMessageAdded(decryptedMessageWithPubKey, sender));
+        decryptedMailboxListeners.forEach(e -> {
+            try {
+                e.onMailboxMessageAdded(decryptedMessageWithPubKey, sender);
+            } catch (RuntimeException t) {
+                log.error("Failed to process mailbox message with uid {}", uid, t); // one failing message must not block the rest
+            }
+        });
 
         if (allServicesInitialized && isBootstrapped) {
             // After we notified our listeners we remove the data immediately from the network.
