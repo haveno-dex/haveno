@@ -20,6 +20,7 @@ package haveno.desktop.main.overlays;
 import haveno.common.ClockWatcher;
 import haveno.desktop.main.overlays.windows.PaymentConfirmationWindow;
 import haveno.desktop.main.overlays.windows.TxDetailsWindow;
+import haveno.desktop.main.overlays.windows.TxHeroWindow;
 import haveno.desktop.main.overlays.windows.PaymentInstructionsWindow;
 import haveno.desktop.main.overlays.windows.TradePeriodWindow;
 import haveno.core.payment.payload.AssetAccountPayload;
@@ -176,7 +177,9 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import monero.common.MoneroRpcConnection;
+import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTxWallet;
+import monero.wallet.model.MoneroWalletListener;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -227,6 +230,53 @@ public class OverlayTest {
         assertThrows(RuntimeException.class, () -> new B());
     }
 
+    @Test
+    void transactionStatusSurvivesUnavailableDaemonAndAcceptsLaterUpdates() throws ReflectiveOperationException {
+        class StatusWindow extends TxHeroWindow<StatusWindow> {
+            @Override
+            protected void addContent() {
+            }
+
+            Label seed(MoneroTx tx) {
+                return (Label) txStatusRow(tx, null).getChildren().getLast();
+            }
+        }
+
+        Res.setup();
+        Executor originalExecutor = UserThread.getExecutor();
+        UserThread.setExecutor(Runnable::run);
+        try (MockedStatic<Application> application = mockStatic(Application.class)) {
+            application.when(Application::getUserAgentStylesheet).thenReturn(Application.STYLESHEET_MODENA);
+            StatusWindow window = new StatusWindow();
+            MoneroTx tx = new MoneroTxWallet().setHash("tx").setIsRelayed(true)
+                    .setIsConfirmed(true).setNumConfirmations(4L);
+            Label status = window.seed(tx);
+            assertEquals(Res.get("txDetailsWindow.status.confirmations", 4L, 10), status.getText());
+
+            XmrWalletService wallet = mock(XmrWalletService.class);
+            XmrConnectionService connection = mock(XmrConnectionService.class);
+            when(wallet.getXmrConnectionService()).thenReturn(connection);
+            var service = TxHeroWindow.class.getDeclaredField("xmrWalletService");
+            service.setAccessible(true);
+            service.set(window, wallet);
+            var refresh = TxHeroWindow.class.getDeclaredMethod("updateConfidence", boolean.class, MoneroWalletListener.class);
+            refresh.setAccessible(true);
+
+            refresh.invoke(window, true, null);
+            assertEquals(Res.get("txDetailsWindow.status.confirmations", 4L, 10), status.getText());
+
+            when(connection.getTx("tx")).thenThrow(new IllegalStateException("disconnected"));
+            refresh.invoke(window, false, null);
+            assertEquals(Res.get("txDetailsWindow.status.confirmations", 4L, 10), status.getText());
+
+            when(connection.getTxWithCache("tx")).thenReturn(tx.copy().setNumConfirmations(10L));
+            refresh.invoke(window, true, null);
+            assertEquals(Res.get("txDetailsWindow.status.confirmed"), status.getText());
+        } finally {
+            UserThread.setExecutor(originalExecutor);
+        }
+    }
+
     @Nested
     class TransactionMemos {
         private final XmrWalletService wallet = mock(XmrWalletService.class);
@@ -265,7 +315,7 @@ public class OverlayTest {
             });
             window = new TxDetailsWindow(wallet, mock(Preferences.class), mock(PriceFeedService.class)) {
                 @Override
-                protected HBox txStatusRow(String txId, XmrWalletService service) {
+                protected HBox txStatusRow(MoneroTx tx, XmrWalletService service) {
                     return new HBox();
                 }
 
