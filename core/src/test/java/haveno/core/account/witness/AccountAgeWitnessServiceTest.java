@@ -28,7 +28,11 @@ import haveno.core.account.sign.SignedWitness;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.CountryUtil;
+import haveno.core.offer.Offer;
+import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OfferRestrictions;
 import haveno.core.offer.OfferPayload;
+import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.ChargeBackRisk;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
@@ -47,6 +51,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigInteger;
 import java.io.File;
 import java.io.IOException;
 import java.security.KeyPair;
@@ -57,6 +62,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static haveno.core.payment.payload.PaymentMethod.getPaymentMethod;
@@ -111,6 +117,39 @@ public class AccountAgeWitnessServiceTest {
         dir.delete();
         dir.mkdir();
         return dir;
+    }
+
+    @Test
+    public void backdatedUnsignedWitnessDoesNotBypassTradeLimits() {
+        KeyRing keyRing = mock(KeyRing.class);
+        when(keyRing.getPubKeyRing()).thenReturn(new PubKeyRing(Sig.generateKeyPair().getPublic(),
+                haveno.common.crypto.Encryption.generateKeyPair().getPublic()));
+        SignedWitnessService signatures = mock(SignedWitnessService.class);
+        AccountAgeWitnessService witnessService = new AccountAgeWitnessService(keyRing, null, null, signatures,
+                mock(ChargeBackRisk.class), null, mock(AppendOnlyDataStoreService.class), Clock.systemUTC(), mock(FilterManager.class));
+        PaymentAccountPayload payload = mock(PaymentAccountPayload.class);
+        when(payload.getAgeWitnessInputData()).thenReturn(new byte[]{1});
+        when(payload.getSalt()).thenReturn(new byte[]{2});
+        AccountAgeWitness witness = new AccountAgeWitness(witnessService.getMyWitness(payload).getHash(),
+                Utilities.getUTCDate(2018, Calendar.JANUARY, 1).getTime());
+        witnessService.addToMap(witness);
+        PaymentAccount account = mock(PaymentAccount.class);
+        when(account.getPaymentAccountPayload()).thenReturn(payload);
+        when(account.getPaymentMethod()).thenReturn(PaymentMethod.SEPA);
+        assertFalse(witnessService.myHasTradeLimitException(account));
+        assertEquals(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact(),
+                witnessService.getMyTradeLimit(account, "EUR", OfferDirection.BUY, false));
+
+        Offer offer = mock(Offer.class);
+        when(offer.getAccountAgeWitnessHashAsHex()).thenReturn(Optional.of(Utilities.encodeToHex(witness.getHash())));
+        when(offer.getCounterCurrencyCode()).thenReturn("EUR");
+        when(offer.getPaymentMethod()).thenReturn(PaymentMethod.SEPA);
+        when(offer.getDirection()).thenReturn(OfferDirection.BUY);
+        BigInteger amount = OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.add(BigInteger.ONE);
+        assertFalse(witnessService.verifyPeersTradeAmount(offer, amount, error -> {}));
+        when(signatures.isSignedByArbitrator(witness)).thenReturn(true);
+        assertTrue(witnessService.verifyPeersTradeAmount(offer, amount, error -> {}));
+        assertTrue(witnessService.myHasTradeLimitException(account));
     }
 
     @Disabled
