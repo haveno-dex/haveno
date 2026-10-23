@@ -17,7 +17,26 @@
 
 package haveno.core.offer;
 
+import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
+import haveno.common.crypto.Sig;
+import haveno.common.taskrunner.TaskRunner;
+import haveno.core.offer.availability.OfferAvailabilityModel;
+import haveno.core.offer.availability.OfferAvailabilityProtocol;
+import haveno.core.offer.messages.OfferAvailabilityResponse;
+import haveno.network.p2p.DecryptedDirectMessageListener;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import java.lang.reflect.Field;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.placeoffer.tasks.ValidateOffer;
 import haveno.core.payment.PaymentAccount;
@@ -39,6 +58,58 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 public class OfferTest {
+
+    @Test
+    public void availabilityReplyCanArriveWhenListenerIsRegistered() {
+        Offer offer = mock(Offer.class);
+        PubKeyRing maker = mock(PubKeyRing.class);
+        when(maker.getSignaturePubKey()).thenReturn(Sig.generateKeyPair().getPublic());
+        when(offer.getPubKeyRing()).thenReturn(maker);
+        when(offer.getId()).thenReturn("offer");
+        NodeAddress address = new NodeAddress("maker:9999");
+        when(offer.getMakerNodeAddress()).thenReturn(address);
+        P2PService p2p = mock(P2PService.class);
+        OfferAvailabilityModel model = new OfferAvailabilityModel(offer, null, null, p2p,
+                null, null, null, false, null, null, null);
+        OfferAvailabilityResponse response = new OfferAvailabilityResponse("offer", AvailabilityResult.OFFER_TAKEN, null);
+        doAnswer(invocation -> {
+            DecryptedDirectMessageListener listener = invocation.getArgument(0);
+            listener.onDirectMessage(new DecryptedMessageWithPubKey(response, maker.getSignaturePubKey()), address);
+            return null;
+        }).when(p2p).addDecryptedDirectMessageListener(any());
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedConstruction<TaskRunner> runners = mockConstruction(TaskRunner.class)) {
+            new OfferAvailabilityProtocol(model, () -> {}, error -> {}).sendOfferAvailabilityRequest();
+            assertEquals(response, model.getMessage());
+        }
+    }
+
+    @Test
+    public void availabilityRepliesMustComeFromExpectedMaker() throws Exception {
+        OfferAvailabilityModel model = mock(OfferAvailabilityModel.class);
+        Offer offer = mock(Offer.class);
+        PubKeyRing maker = mock(PubKeyRing.class);
+        when(maker.getSignaturePubKey()).thenReturn(Sig.generateKeyPair().getPublic());
+        when(offer.getPubKeyRing()).thenReturn(maker);
+        when(offer.getId()).thenReturn("offer");
+        when(model.getOffer()).thenReturn(offer);
+        NodeAddress address = new NodeAddress("maker:9999");
+        when(model.getPeerNodeAddress()).thenReturn(address);
+        OfferAvailabilityProtocol protocol = new OfferAvailabilityProtocol(model, () -> {}, error -> {});
+        Field field = OfferAvailabilityProtocol.class.getDeclaredField("decryptedDirectMessageListener");
+        field.setAccessible(true);
+        DecryptedDirectMessageListener listener = (DecryptedDirectMessageListener) field.get(protocol);
+        OfferAvailabilityResponse response = new OfferAvailabilityResponse("offer", AvailabilityResult.OFFER_TAKEN, null);
+        listener.onDirectMessage(new DecryptedMessageWithPubKey(response, Sig.generateKeyPair().getPublic()), address);
+        listener.onDirectMessage(new DecryptedMessageWithPubKey(response, maker.getSignaturePubKey()), new NodeAddress("attacker:9999"));
+        verify(model, never()).setMessage(any());
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedConstruction<TaskRunner> runners = mockConstruction(TaskRunner.class)) {
+            listener.onDirectMessage(new DecryptedMessageWithPubKey(response, maker.getSignaturePubKey()), address);
+            verify(model).setMessage(response);
+            assertEquals(1, runners.constructed().size());
+        }
+    }
 
     @Test
     public void statisticsPricesCannotActivateOrDeactivateOffers() {
