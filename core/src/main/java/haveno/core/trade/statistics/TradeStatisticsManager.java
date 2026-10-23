@@ -402,11 +402,12 @@ public class TradeStatisticsManager {
             trade.setTradeStatisticsPublishTime(System.currentTimeMillis() + ThreadLocalRandom.current().nextLong(TimeUnit.HOURS.toMillis(PUBLISH_STATS_RANDOM_DELAY_HOURS)));
             trade.requestPersistence();
         }
-        long delayMs = Math.max(0, trade.getTradeStatisticsPublishTime() - System.currentTimeMillis());
+        long delayMs = trade.getTradeStatisticsPublishTime() - System.currentTimeMillis();
+        // an overdue time, e.g. after a restart, gets a short random delay to reduce the chance of sharing a broadcast bundle
+        // keep the delay positive because a zero delay JavaFX timer does not fire
+        if (delayMs <= 0) delayMs = 1 + ThreadLocalRandom.current().nextLong(TimeUnit.MINUTES.toMillis(PUBLISH_STATS_RETRY_MIN));
         log.info("Scheduling to publish trade statistics in {} minutes for {} {}", TimeUnit.MILLISECONDS.toMinutes(delayMs), trade.getClass().getSimpleName(), trade.getShortId());
-        Runnable publish = () -> publishTradeStatistics(trade, tradeStatistics);
-        if (delayMs == 0) UserThread.execute(publish); // a zero delay JavaFX timer does not fire
-        else UserThread.runAfter(publish, delayMs, TimeUnit.MILLISECONDS);
+        UserThread.runAfter(() -> publishTradeStatistics(trade, tradeStatistics), delayMs, TimeUnit.MILLISECONDS);
     }
 
     // Marks the trade published only once enough peers confirmed the broadcast, otherwise retries so the statistics are not stranded locally.

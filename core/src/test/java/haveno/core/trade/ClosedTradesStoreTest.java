@@ -2012,7 +2012,7 @@ public class ClosedTradesStoreTest {
                     mock(AppendOnlyDataStoreService.class), dir, false);
             ClosedTradesStore store = newStore(mock(XmrWalletService.class));
             Trade trade = statisticsTrade();
-            trade.setTradeStatisticsPublishTime(1); // an overdue schedule must publish immediately after restart
+            trade.setTradeStatisticsPublishTime(1); // an overdue schedule publishes after a short random delay
             store.appendUpsert(trade);
             Trade restored = spy((Trade) store.load().get(0));
             doReturn(true).when(restored).shouldPublishTradeStatistics();
@@ -2020,6 +2020,11 @@ public class ClosedTradesStoreTest {
 
             manager.maybePublishTradeStatistics(restored, null, false);
             manager.maybePublishTradeStatistics(restored, null, false);
+            ArgumentCaptor<Runnable> publish = ArgumentCaptor.forClass(Runnable.class);
+            ArgumentCaptor<Long> delay = ArgumentCaptor.forClass(Long.class);
+            userThread.verify(() -> UserThread.runAfter(publish.capture(), delay.capture(), eq(TimeUnit.MILLISECONDS)));
+            assertTrue(delay.getValue() >= 1 && delay.getValue() <= TimeUnit.MINUTES.toMillis(60));
+            publish.getValue().run();
             ArgumentCaptor<BroadcastHandler.Listener> listeners = ArgumentCaptor.forClass(BroadcastHandler.Listener.class);
             verify(p2p).addPersistableNetworkPayload(any(TradeStatistics3.class), eq(true), listeners.capture());
             assertEquals(1, restored.getTradeStatisticsPublishTime());
@@ -2044,7 +2049,7 @@ public class ClosedTradesStoreTest {
             doReturn(true).when(confirmed).shouldPublishTradeStatistics();
             manager.maybePublishTradeStatistics(confirmed, null, false);
             verify(p2p, times(2)).addPersistableNetworkPayload(any(TradeStatistics3.class), eq(true), any(BroadcastHandler.Listener.class));
-            userThread.verify(() -> UserThread.runAfter(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS)), never());
+            userThread.verify(() -> UserThread.runAfter(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS)), times(1));
         } finally {
             HavenoUtils.tradeStatisticsManager = previousManager;
         }
@@ -2097,6 +2102,9 @@ public class ClosedTradesStoreTest {
             // preliminary data alone must not allow publication before hidden service publication
             p2p.onPreliminaryDataReceived();
             manager.maybePublishTradeStatistics(trade, null, false);
+            ArgumentCaptor<Runnable> publish = ArgumentCaptor.forClass(Runnable.class);
+            userThread.verify(() -> UserThread.runAfter(publish.capture(), anyLong(), eq(TimeUnit.MILLISECONDS)));
+            publish.getValue().run();
             verifyNoInteractions(dataStorage);
             ArgumentCaptor<Runnable> retry = ArgumentCaptor.forClass(Runnable.class);
             userThread.verify(() -> UserThread.runAfter(retry.capture(), eq(60L), eq(TimeUnit.MINUTES)));
