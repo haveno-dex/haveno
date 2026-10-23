@@ -52,7 +52,6 @@ import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -122,10 +121,10 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private ChangeListener<OfferListItem> sellTableRowSelectionListener, buyTableRowSelectionListener;
     private ListChangeListener<OfferBookListItem> changeListener;
     private ListChangeListener<CurrencyListItem> currencyListItemsListener;
-    private final double dataLimitFactor = 3;
     private final double initialOfferTableViewHeight = 83; // decrease as MainView's content-pane's top anchor increases
     private ChangeListener<Number> priceFeedUpdateCounterListener;
     private Timer priceRefreshTimer;
+    private double chartMarketPrice;
 
     // Fixed axis scale used while the chart has no data, so the scales don't jump (see updateChartAxisRanging).
     private static final double EMPTY_AXIS_UPPER_BOUND = 4;
@@ -415,6 +414,9 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     private synchronized void updateChartData() {
+        chartMarketPrice = model.getMarketPriceAsDouble()
+                .filter(price -> Double.isFinite(price) && price > 0)
+                .orElse(0d);
 
         // update volume headers
         Volume volumeSell = model.getTotalVolume(OfferDirection.SELL);
@@ -434,8 +436,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         seriesBuy.getData().clear();
         areaChart.getData().clear();
 
-        seriesSell.getData().addAll(filterOutliersSell(model.getSellData()));
-        seriesBuy.getData().addAll(filterOutliersBuy(model.getBuyData()));
+        seriesSell.getData().addAll(filterOutliers(model.getSellData(), OfferDirection.SELL, chartMarketPrice));
+        seriesBuy.getData().addAll(filterOutliers(model.getBuyData(), OfferDirection.BUY, chartMarketPrice));
 
         areaChart.getData().addAll(List.of(seriesBuy, seriesSell));
 
@@ -519,9 +521,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         if (seriesBuy.getData().isEmpty() && seriesSell.getData().isEmpty()) return;
         if (xAxis.getWidth() <= 0) return;
 
-        Optional<Double> marketPriceOpt = model.getMarketPriceAsDouble();
-        if (marketPriceOpt.isEmpty()) return;
-        double marketPrice = marketPriceOpt.get();
+        double marketPrice = chartMarketPrice;
         if (marketPrice <= 0) return;
 
         double lower = xAxis.getLowerBound();
@@ -627,73 +627,46 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         return (percent > 0 ? "+" : "") + format.format(percent) + "%";
     }
 
-    List<XYChart.Data<Number, Number>> filterOutliersBuy(List<XYChart.Data<Number, Number>> buy) {
-        List<Double> mnmx = minMaxFilterLeft(buy);
-        if (mnmx.get(0) == Double.MAX_VALUE ||
-                mnmx.get(1) == Double.MIN_VALUE) { // no filtering
-            return buy;
-        }
-        // apply filtering
-        return filterLeft(buy, mnmx.get(1));
-    }
+    // Filter the far tail with a Tukey fence and a 3x cap on the best price, but keep offers within 30% of the
+    // market price, or of the best price without one. The Tukey margin is at least 10% of the outer quartile.
+    private static final double OUTLIER_IQR_FACTOR = 1.5;
+    private static final double OUTLIER_MIN_FENCE_RATIO = 0.1;
+    private static final double OUTLIER_MAX_PRICE_RATIO = 3;
+    private static final double OUTLIER_NEAR_PRICE_RATIO = 0.3;
+    // Use at least two offers per quartile before trimming statistical outliers.
+    private static final int OUTLIER_MIN_OFFERS = 8;
 
-    List<XYChart.Data<Number, Number>> filterOutliersSell(List<XYChart.Data<Number, Number>> sell) {
-        List<Double> mnmx = minMaxFilterRight(sell);
-        if (mnmx.get(0) == Double.MAX_VALUE ||
-                mnmx.get(1) == Double.MIN_VALUE) { // no filtering
-            return sell;
-        }
-        // apply filtering
-        return filterRight(sell, mnmx.get(0));
-    }
-
-    private List<Double> minMaxFilterLeft(List<XYChart.Data<Number, Number>> data) {
+    static List<XYChart.Data<Number, Number>> filterOutliers(List<XYChart.Data<Number, Number>> data, OfferDirection direction, double marketPrice) {
         synchronized (data) {
-            double maxValue = data.stream()
-                    .mapToDouble(o -> o.getXValue().doubleValue())
-                    .max()
-                    .orElse(Double.MIN_VALUE);
-            // Hide offers less than a div-factor of dataLimitFactor lower than the highest offer.
-            double minValue = data.stream()
-                    .mapToDouble(o -> o.getXValue().doubleValue())
-                    .filter(o -> o > maxValue / dataLimitFactor)
-                    .min()
-                    .orElse(Double.MAX_VALUE);
-            return List.of(minValue, maxValue);
-        }
-    }
-
-    private List<Double> minMaxFilterRight(List<XYChart.Data<Number, Number>> data) {
-        synchronized (data) {
-            double minValue = data.stream()
-                    .mapToDouble(o -> o.getXValue().doubleValue())
-                    .min()
-                    .orElse(Double.MAX_VALUE);
-
-            // Hide offers a dataLimitFactor factor higher than the lowest offer
-            double maxValue = data.stream()
-                    .mapToDouble(o -> o.getXValue().doubleValue())
-                    .filter(o -> o < minValue * dataLimitFactor)
-                    .max()
-                    .orElse(Double.MIN_VALUE);
-            return List.of(minValue, maxValue);
-        }
-    }
-
-    private List<XYChart.Data<Number, Number>> filterLeft(List<XYChart.Data<Number, Number>> data, double maxValue) {
-        synchronized (data) {
+            double[] prices = data.stream().mapToDouble(o -> o.getXValue().doubleValue()).sorted().toArray();
+            if (prices.length == 0) return data;
+            double q1 = quantile(prices, 0.25);
+            double q3 = quantile(prices, 0.75);
+            boolean farSideHigh = direction == OfferDirection.SELL;
+            double margin = Math.max((q3 - q1) * OUTLIER_IQR_FACTOR, (farSideHigh ? q3 : q1) * OUTLIER_MIN_FENCE_RATIO);
+            double fence = farSideHigh ? q3 + margin : q1 - margin;
+            boolean hasMarketPrice = Double.isFinite(marketPrice) && marketPrice > 0;
+            double bestPrice = farSideHigh ? prices[0] : prices[prices.length - 1];
+            double outerLimit = farSideHigh ? bestPrice * OUTLIER_MAX_PRICE_RATIO : bestPrice / OUTLIER_MAX_PRICE_RATIO;
+            double nearFence = (hasMarketPrice ? marketPrice : bestPrice) * (farSideHigh ? 1 + OUTLIER_NEAR_PRICE_RATIO : 1 - OUTLIER_NEAR_PRICE_RATIO);
+            // Offer prices round to eight decimal places; allow half a unit plus floating-point error.
+            double nearTolerance = 0.5e-8 + 2 * Math.ulp(nearFence);
             return data.stream()
-                    .filter(o -> o.getXValue().doubleValue() > maxValue / dataLimitFactor)
+                    .filter(o -> {
+                        double price = o.getXValue().doubleValue();
+                        if (farSideHigh ? price <= nearFence + nearTolerance : price >= nearFence - nearTolerance) return true;
+                        if (prices.length >= OUTLIER_MIN_OFFERS && (farSideHigh ? price > fence : price < fence)) return false;
+                        return farSideHigh ? price < outerLimit : price > outerLimit;
+                    })
                     .collect(Collectors.toList());
         }
     }
 
-    private List<XYChart.Data<Number, Number>> filterRight(List<XYChart.Data<Number, Number>> data, double minValue) {
-        synchronized (data) {
-            return data.stream()
-                    .filter(o -> o.getXValue().doubleValue() < minValue * dataLimitFactor)
-                    .collect(Collectors.toList());
-        }
+    private static double quantile(double[] sorted, double p) {
+        double position = p * (sorted.length - 1);
+        int index = (int) position;
+        if (index + 1 >= sorted.length) return sorted[index];
+        return sorted[index] + (position - index) * (sorted[index + 1] - sorted[index]);
     }
 
     private Tuple4<TableView<OfferListItem>, VBox, Button, Label> getOfferTable(OfferDirection direction) {
