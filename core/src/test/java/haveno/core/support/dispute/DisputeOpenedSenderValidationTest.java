@@ -35,11 +35,14 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -165,6 +168,38 @@ public class DisputeOpenedSenderValidationTest {
             listener.getValue().onDirectMessage(authenticated, valid.getSenderNodeAddress());
         }
         assertTrue(chat.acknowledgedProperty().get());
+    }
+
+    @Test
+    public void traderChatRejectsForgedRolesAndResetsDisplayState() {
+        P2PService p2p = mock(P2PService.class);
+        when(p2p.getMailboxMessageService()).thenReturn(mock(MailboxMessageService.class));
+        TradeManager trades = mock(TradeManager.class);
+        when(trades.getTrade(TRADE_ID)).thenReturn(trade);
+        when(trade.isArbitrator()).thenReturn(false);
+        TradePeer counterparty = peer(sellerPubKeyRing);
+        NodeAddress address = new NodeAddress("peer:9999");
+        counterparty.setNodeAddress(address);
+        when(trade.getTaker()).thenReturn(counterparty);
+        when(trade.getTradePeer()).thenReturn(counterparty);
+        List<ChatMessage> accepted = new ArrayList<>();
+        TraderChatManager manager = new TraderChatManager(p2p, null, null, null, trades, null) {
+            @Override
+            protected void handle(ChatMessage chat) {
+                accepted.add(chat);
+            }
+        };
+        TradePeer arbitrator = trade.getArbitrator();
+        for (int variant = 0; variant < 4; variant++) {
+            ChatMessage chat = new ChatMessage(SupportType.TRADE, TRADE_ID, 0, variant != 1, "hello", address);
+            chat.setSystemMessage(variant == 0);
+            chat.setWasDisplayed(true);
+            DecryptedMessageWithPubKey envelope = new DecryptedMessageWithPubKey(chat, sellerPubKeyRing.getSignaturePubKey());
+            when(trade.getVerifiedTradePeer(envelope)).thenReturn(variant == 2 ? arbitrator : counterparty);
+            manager.onSupportMessage(envelope, chat);
+            assertEquals(variant == 3 ? 1 : 0, accepted.size());
+            if (variant == 3) assertFalse(chat.isWasDisplayed());
+        }
     }
 
     private AckMessage chatAck(String tradeId, ChatMessage chat, boolean success) {

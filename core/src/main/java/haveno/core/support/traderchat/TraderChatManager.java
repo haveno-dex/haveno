@@ -30,6 +30,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.TradePeer;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.BootstrapListener;
@@ -176,19 +177,29 @@ public class TraderChatManager extends SupportManager {
                         message.getClass().getSimpleName(), message.getTradeId(), message.getUid());
                 super.onSupportMessage(decryptedMessageWithPubKey, message);
                 if (message instanceof ChatMessage) {
+                    ChatMessage chatMessage = (ChatMessage) message;
                     Trade trade = tradeManager.getTrade(message.getTradeId());
-                    if (trade != null && trade.isArbitrator()) {
+                    if (trade == null) return;
+                    if (trade.isArbitrator()) {
                         log.warn("Discarding trader chat message for arbitrator. TradeId = {}, uid = {}", message.getTradeId(), message.getUid());
                         mailboxMessageService.removeMailboxMsg(message);
                         return;
                     }
-                    if (trade != null && trade.isCompleted()) {
+                    TradePeer sender = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
+                    if (sender != trade.getTradePeer() || chatMessage.isSystemMessage()
+                            || chatMessage.isSenderIsTrader() != (sender == trade.getTaker())) {
+                        log.warn("Discarding trader chat message with invalid sender role. TradeId = {}, uid = {}", message.getTradeId(), message.getUid());
+                        mailboxMessageService.removeMailboxMsg(message);
+                        return;
+                    }
+                    if (trade.isCompleted()) {
                         log.info("Rejecting trader chat message for completed trade. TradeId = {}, uid = {}", message.getTradeId(), message.getUid());
                         mailboxMessageService.removeMailboxMsg(message);
                         sendAckMessage(message, trade.getVerifiedTradePeer(decryptedMessageWithPubKey).getPubKeyRing(), false, TRADE_COMPLETED_ERROR);
                         return;
                     }
-                    handle((ChatMessage) message);
+                    chatMessage.setWasDisplayed(false);
+                    handle(chatMessage);
                 } else {
                     log.warn("Unsupported message at dispatchMessage. message={}", message);
                 }
