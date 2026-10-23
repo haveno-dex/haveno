@@ -2586,7 +2586,7 @@ textfield */
 .tx-status {
     -fx-background-color: rgba(194, 124, 14, 0.12);
     -fx-background-radius: 999;
-    -fx-padding: 1.5 10 2.5 7;
+    -fx-padding: 1 10 3 7;
     -fx-graphic-text-gap: 6;
     -fx-font-size: 0.923em;
     -fx-text-fill: #c27c0e;

@@ -101,7 +101,7 @@ public class TxDetailsWindow extends TxHeroWindow<TxDetailsWindow> {
         }
 
         List<Node> groups = new ArrayList<>();
-        groups.add(txStatusRow(tx.getHash(), xmrWalletService));
+        groups.add(txStatusRow(tx, xmrWalletService));
         groups.add(detailRow(Res.get("shared.dateTime"), selectableValue(item.getDateString())));
         groups.add(sheetGroup(Res.get(isOutgoing ? "txDetailsWindow.sentTo" : "txDetailsWindow.receivedWith"),
                 selectableLabel(item.getAddressString(), "confirm-send-address"), copyIcon(item.getAddressString())));

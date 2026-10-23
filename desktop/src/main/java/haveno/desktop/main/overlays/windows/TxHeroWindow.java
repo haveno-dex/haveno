@@ -256,6 +256,15 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
 
     // status updates until fully confirmed or hidden
     protected HBox txStatusRow(String txId, XmrWalletService xmrWalletService) {
+        return txStatusRow(txId, null, xmrWalletService);
+    }
+
+    // the wallet's copy of the tx seeds the status so the first frame does not show it as unknown
+    protected HBox txStatusRow(MoneroTx tx, XmrWalletService xmrWalletService) {
+        return txStatusRow(tx.getHash(), tx, xmrWalletService);
+    }
+
+    private HBox txStatusRow(String txId, MoneroTx tx, XmrWalletService xmrWalletService) {
         this.xmrWalletService = xmrWalletService;
         this.confidenceTxId = txId;
         confidenceIndicator = new TxConfidenceIndicator(-1);
@@ -263,7 +272,7 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         confidenceIndicator.setMaxSize(15, 15);
         confidenceLabel = new Label(Res.get("confidence.unknown"), confidenceIndicator);
         confidenceLabel.getStyleClass().add("tx-status");
-        startConfidenceUpdates();
+        if (tx == null || !updateStatus(tx)) startConfidenceUpdates();
         return detailRow(Res.get("txDetailsWindow.status"), confidenceLabel);
     }
 
@@ -306,23 +315,24 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
     }
 
     private void updateConfidence(boolean useCache, MoneroWalletListener listener) {
-        MoneroTx tx = null;
+        MoneroTx tx;
         try {
             tx = useCache ? xmrWalletService.getXmrConnectionService().getTxWithCache(confidenceTxId) : xmrWalletService.getXmrConnectionService().getTx(confidenceTxId);
-            if (tx != null && tx.getNumConfirmations() == null) { // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
+            if (tx == null) return;
+            if (tx.getNumConfirmations() == null) { // TODO: don't set if tx.getNumConfirmations() works reliably on non-local testnet
                 tx.setNumConfirmations(Boolean.TRUE.equals(tx.isConfirmed()) ? xmrWalletService.getXmrConnectionService().getLastInfo().getHeight() - tx.getHeight() : 0L);
             }
         } catch (Exception e) {
-            // tx may not be visible to the connected node yet
+            // keep the last known status if the tx cannot be fetched
+            return;
         }
-        MoneroTx finalTx = tx;
         UserThread.execute(() -> {
             if (walletListener != listener) return; // superseded by rebuilt content or hidden
-            updateStatus(finalTx);
+            updateStatus(tx);
         });
     }
 
-    private void updateStatus(MoneroTx tx) {
+    private boolean updateStatus(MoneroTx tx) {
         boolean failed = tx != null && Boolean.TRUE.equals(tx.isFailed());
         boolean known = tx != null && tx.getNumConfirmations() != null && Boolean.TRUE.equals(tx.isRelayed());
         long confirmations = known && Boolean.TRUE.equals(tx.isConfirmed()) ? Math.max(0, tx.getNumConfirmations()) : 0;
@@ -337,5 +347,6 @@ public abstract class TxHeroWindow<T extends TxHeroWindow<T>> extends Overlay<T>
         confidenceLabel.setGraphic(confirmed ? GlyphsDude.createIcon(MaterialDesignIcon.CHECK_CIRCLE, "1.1em")
                 : failed ? GlyphsDude.createIcon(MaterialDesignIcon.CLOSE_CIRCLE, "1.1em") : confidenceIndicator);
         if (confirmed) stopConfidenceUpdates();
+        return confirmed;
     }
 }
