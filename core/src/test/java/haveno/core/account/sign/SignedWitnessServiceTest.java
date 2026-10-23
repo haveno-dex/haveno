@@ -20,7 +20,9 @@ package haveno.core.account.sign;
 
 import com.google.common.base.Charsets;
 import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitness;
@@ -33,9 +35,11 @@ import org.bitcoinj.core.ECKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -50,6 +54,7 @@ import static haveno.core.account.sign.SignedWitness.VerificationMethod.ARBITRAT
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.TRADE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
@@ -249,6 +254,64 @@ public class SignedWitnessServiceTest {
         signedWitnessService.addToMap(new SignedWitness(TRADE, account1DataHash, Sig.sign(unchainedSigner.getPrivate(), account1DataHash),
                 Sig.getPublicKeyBytes(unchainedSigner.getPublic()), witnessOwner1PubKey, getTodayMinusNDays(SIGN_AGE_1 + 100), tradeAmount1));
         assertEquals(List.of(date1), signedWitnessService.getVerifiedWitnessDateList(aew1));
+    }
+
+    @Test
+    public void testBranchingWitnessGraphsDoNotStallChainEvaluation() throws Exception {
+        KeyPair[] keys = new KeyPair[33];
+        for (int i = 0; i < keys.length; i++) keys[i] = Sig.generateKeyPair();
+        when(keyRing.getPubKeyRing()).thenReturn(new PubKeyRing(keys[0].getPublic(), Encryption.generateKeyPair().getPublic()));
+        // two valid trader signed witnesses per level, each level a signing period older, with no arbitrator root
+        for (int level = 0; level < keys.length - 1; level++) {
+            for (int branch = 0; branch < 2; branch++) {
+                byte[] hash = level == 0 ? account3DataHash : org.bitcoinj.core.Utils.sha256hash160(new byte[]{(byte) level, (byte) branch});
+                signedWitnessService.addToMap(new SignedWitness(TRADE, hash, Sig.sign(keys[level + 1].getPrivate(), hash),
+                        Sig.getPublicKeyBytes(keys[level + 1].getPublic()), Sig.getPublicKeyBytes(keys[level].getPublic()),
+                        getTodayMinusNDays((level + 1) * (SignedWitnessService.SIGNER_AGE_DAYS + 1)), tradeAmount1));
+            }
+        }
+        Method gaps = SignedWitnessService.class.getDeclaredMethod("getOwnSignerChainGaps");
+        gaps.setAccessible(true);
+        assertTimeoutPreemptively(Duration.ofSeconds(20), () -> {
+            assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew3));
+            assertTrue(signedWitnessService.getVerifiedWitnessDateList(aew3).isEmpty());
+            assertEquals(2, ((Set<?>) gaps.invoke(signedWitnessService)).size());
+        });
+    }
+
+    @Test
+    public void testForgedLeavesShareFailedSignerWalks() throws Exception {
+        // many forged leaves over one account, each signed by a key owning as many unchained witnesses
+        KeyPair attacker = Sig.generateKeyPair();
+        byte[] attackerPubKey = Sig.getPublicKeyBytes(attacker.getPublic());
+        for (int i = 0; i < 800; i++) {
+            signedWitnessService.addToMap(new SignedWitness(TRADE, account3DataHash, Sig.sign(attacker.getPrivate(), account3DataHash),
+                    attackerPubKey, witnessOwner3PubKey, getTodayMinusNDays(1), tradeAmount3));
+            byte[] hash = org.bitcoinj.core.Utils.sha256hash160(new byte[]{(byte) i, (byte) (i >> 8)});
+            signedWitnessService.addToMap(new SignedWitness(TRADE, hash, Sig.sign(attacker.getPrivate(), hash),
+                    attackerPubKey, attackerPubKey, getTodayMinusNDays(SignedWitnessService.SIGNER_AGE_DAYS + 2), tradeAmount3));
+        }
+        assertTimeoutPreemptively(Duration.ofSeconds(20), () -> {
+            assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew3));
+            assertTrue(signedWitnessService.getVerifiedWitnessDateList(aew3).isEmpty());
+        });
+    }
+
+    @Test
+    public void testGetSignerChainSkipsSignersNewerWitnesses() throws Exception {
+        // peer1 is signed by an arbitrator and then signs 60 own accounts, each a signing period newer than the last
+        SignedWitness root = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey,
+                getTodayMinusNDays(61 * (SignedWitnessService.SIGNER_AGE_DAYS + 1)), tradeAmount1);
+        signedWitnessService.addToMap(root);
+        for (int i = 1; i <= 60; i++) {
+            byte[] hash = org.bitcoinj.core.Utils.sha256hash160(new byte[]{(byte) i});
+            signedWitnessService.addToMap(new SignedWitness(TRADE, hash, Sig.sign(peer1KeyPair.getPrivate(), hash), witnessOwner1PubKey,
+                    witnessOwner1PubKey, getTodayMinusNDays(i * (SignedWitnessService.SIGNER_AGE_DAYS + 1)), tradeAmount1));
+        }
+        SignedWitness leaf = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey, witnessOwner2PubKey, getTodayMinusNDays(2), tradeAmount2);
+        signedWitnessService.addToMap(leaf);
+        long time = new Date().getTime() + TimeUnit.DAYS.toMillis(SignedWitnessService.SIGNER_AGE_DAYS);
+        assertEquals(Set.of(leaf, root), signedWitnessService.getSignerChain(witnessOwner2PubKey, time));
     }
 
     @Test
