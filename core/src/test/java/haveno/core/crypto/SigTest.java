@@ -138,6 +138,7 @@ public class SigTest {
         alert.setMetadataSignature(signingKey.signMessage(alert.getMetadataSignaturePayload()));
         protobuf.Alert reordered = alert.toProtoMessage().getAlert().toBuilder().clearExtraData()
                 .putExtraData("a", "first").putExtraData("metadataSignature", alert.getMetadataSignature())
+                .putExtraData("creationTimeStamp", Long.toString(alert.getCreationTimeStamp()))
                 .putExtraData("z", "last").build();
         assertAlertAccepted(signingKey, Alert.fromProto(reordered), true);
     }

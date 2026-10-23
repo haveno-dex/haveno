@@ -47,6 +47,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class Alert implements ProtectedStoragePayload, ExpirablePayload {
     public static final long TTL = TimeUnit.DAYS.toMillis(90);
     private static final String METADATA_SIGNATURE = "metadataSignature";
+    private static final String CREATION_TIMESTAMP = "creationTimeStamp";
 
     private final String message;
     private final boolean isUpdateInfo;
@@ -169,6 +170,24 @@ public final class Alert implements ProtectedStoragePayload, ExpirablePayload {
         Map<String, String> metadata = new TreeMap<>();
         if (extraDataMap != null) metadata.putAll(extraDataMap);
         metadata.put(METADATA_SIGNATURE, signature);
+        ExtraDataMapValidator.validate(metadata);
+        extraDataMap = metadata;
+    }
+
+    public long getCreationTimeStamp() {
+        // Legacy alerts have no authenticated date and sort before dated alerts.
+        if (extraDataMap == null || !extraDataMap.containsKey(CREATION_TIMESTAMP)) return 0;
+        try {
+            return Math.max(0, Long.parseLong(extraDataMap.get(CREATION_TIMESTAMP)));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    public void setCreationTimeStamp(long creationTimeStamp) {
+        Map<String, String> metadata = new TreeMap<>();
+        if (extraDataMap != null) metadata.putAll(extraDataMap);
+        metadata.put(CREATION_TIMESTAMP, Long.toString(creationTimeStamp));
         ExtraDataMapValidator.validate(metadata);
         extraDataMap = metadata;
     }

@@ -19,6 +19,10 @@ package haveno.core.alert;
 
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.crypto.KeyRing;
+import haveno.common.crypto.Sig;
+import haveno.core.user.User;
+import haveno.network.p2p.DecryptedDirectMessageListener;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.mailbox.MailboxMessageService;
@@ -26,10 +30,17 @@ import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
 import haveno.network.p2p.peers.keepalive.messages.Pong;
+import haveno.network.p2p.storage.HashMapChangedListener;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -53,6 +64,87 @@ public class PrivateNotificationManagerTest {
     private final NodeAddress address = new NodeAddress("peer.onion:9999");
     private final SettableFuture<Connection> sendFuture = SettableFuture.create();
     private final AtomicReference<String> result = new AtomicReference<>();
+
+    @Test
+    public void alertOrderingUsesSignedDateAndMalformedSignaturesAreIgnored() {
+        P2PService p2p = mock(P2PService.class);
+        ECKey key = new ECKey();
+        AlertManager alerts = new AlertManager(p2p, null, mock(User.class), false, false) {
+            @Override
+            protected List<String> getPubKeyList() {
+                return List.of(Utils.HEX.encode(key.getPubKey()));
+            }
+        };
+        ArgumentCaptor<HashMapChangedListener> listener = ArgumentCaptor.forClass(HashMapChangedListener.class);
+        verify(p2p).addHashSetChangedListener(listener.capture());
+        Alert current = signedAlert(key, "current", 2000);
+        listener.getValue().onAdded(List.of(alertEntry(current, 2000)));
+        Alert old = signedAlert(key, "old", 1000);
+        listener.getValue().onAdded(List.of(alertEntry(old, 9000)));
+        assertEquals(current, alerts.alertMessageProperty().get());
+
+        Alert malformed = signedAlert(key, "malformed", 3000);
+        byte[] signature = new byte[65];
+        signature[0] = 31;
+        malformed.setMetadataSignature(Base64.getEncoder().encodeToString(signature));
+        Alert newest = signedAlert(key, "newest", 4000);
+        listener.getValue().onAdded(List.of(alertEntry(malformed, 9000), alertEntry(newest, 1)));
+        assertEquals(newest, alerts.alertMessageProperty().get());
+        listener.getValue().onRemoved(List.of(alertEntry(newest, 1)));
+        assertEquals(current, alerts.alertMessageProperty().get());
+
+        Alert tampered = signedAlert(key, "tampered", 1000);
+        tampered.setCreationTimeStamp(10000);
+        listener.getValue().onAdded(List.of(alertEntry(tampered, 10000)));
+        assertEquals(current, alerts.alertMessageProperty().get());
+        Alert legacy = signedAlert(key, "legacy", 0);
+        listener.getValue().onAdded(List.of(alertEntry(legacy, 20000)));
+        assertEquals(current, alerts.alertMessageProperty().get());
+    }
+
+    @Test
+    public void malformedPrivateNotificationSignaturesAreIgnored() {
+        P2PService p2p = mock(P2PService.class);
+        ECKey key = new ECKey();
+        PrivateNotificationManager notifications = new PrivateNotificationManager(p2p, networkNode,
+                mock(MailboxMessageService.class), mock(KeyRing.class), false, false) {
+            @Override
+            protected List<String> getPubKeyList() {
+                return List.of(Utils.HEX.encode(key.getPubKey()));
+            }
+        };
+        ArgumentCaptor<DecryptedDirectMessageListener> listener = ArgumentCaptor.forClass(DecryptedDirectMessageListener.class);
+        verify(p2p).addDecryptedDirectMessageListener(listener.capture());
+        byte[] signature = new byte[65];
+        signature[0] = 31;
+        System.arraycopy(Utils.bigIntegerToBytes(ECKey.CURVE.getN(), 32), 0, signature, 1, 32);
+        signature[64] = 1;
+        PrivateNotificationPayload malformed = new PrivateNotificationPayload("malformed");
+        malformed.setSigAndPubKey(Base64.getEncoder().encodeToString(signature), Sig.generateKeyPair().getPublic());
+        listener.getValue().onDirectMessage(new DecryptedMessageWithPubKey(new PrivateNotificationMessage(malformed, address, "1"),
+                Sig.generateKeyPair().getPublic()), address);
+        assertNull(notifications.privateNotificationProperty().get());
+        PrivateNotificationPayload valid = new PrivateNotificationPayload("valid");
+        valid.setSigAndPubKey(key.signMessage(Utils.HEX.encode("valid".getBytes(StandardCharsets.UTF_8))), Sig.generateKeyPair().getPublic());
+        listener.getValue().onDirectMessage(new DecryptedMessageWithPubKey(new PrivateNotificationMessage(valid, address, "2"),
+                Sig.generateKeyPair().getPublic()), address);
+        assertEquals(valid, notifications.privateNotificationProperty().get());
+    }
+
+    private Alert signedAlert(ECKey key, String message, long date) {
+        Alert alert = new Alert(message, false, false, "1.0.0");
+        alert.setSigAndPubKey("legacy-signature", Sig.generateKeyPair().getPublic());
+        if (date != 0) alert.setCreationTimeStamp(date);
+        alert.setMetadataSignature(key.signMessage(alert.getMetadataSignaturePayload()));
+        return Alert.fromProto(alert.toProtoMessage().getAlert());
+    }
+
+    private ProtectedStorageEntry alertEntry(Alert alert, long date) {
+        ProtectedStorageEntry entry = mock(ProtectedStorageEntry.class);
+        when(entry.getProtectedStoragePayload()).thenReturn(alert);
+        when(entry.getCreationTimeStamp()).thenReturn(date);
+        return entry;
+    }
 
     @Test
     public void testPingListensBeforeSendingAndMatchesNonce() {
