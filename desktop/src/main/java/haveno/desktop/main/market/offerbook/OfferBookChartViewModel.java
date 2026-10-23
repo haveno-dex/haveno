@@ -279,9 +279,10 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         return selectedTradeCurrencyProperty.get().getCode();
     }
 
+    // Only a recent feed price is trusted, matching the offer book's price deviation column.
     public Optional<Double> getMarketPriceAsDouble() {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(getCurrencyCode());
-        if (marketPrice == null || !marketPrice.isPriceAvailable()) return Optional.empty();
+        if (marketPrice == null || !marketPrice.isRecentExternalPriceAvailable()) return Optional.empty();
         return Optional.of(marketPrice.getPrice());
     }
 
