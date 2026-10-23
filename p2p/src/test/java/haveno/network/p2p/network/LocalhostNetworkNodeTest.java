@@ -20,6 +20,8 @@ package haveno.network.p2p.network;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.Timer;
+import haveno.common.config.Config;
+import haveno.network.utils.LeakyBucket;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.network.p2p.NodeAddress;
@@ -39,8 +41,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -73,6 +78,36 @@ import static org.mockito.Mockito.when;
 
 public class LocalhostNetworkNodeTest {
     private static final Logger log = LoggerFactory.getLogger(LocalhostNetworkNodeTest.class);
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void inventoryRequestsHaveGlobalAndConnectionBurstLimits() throws Exception {
+        Map<Field, Object> previous = new HashMap<>();
+        for (String name : new String[]{"config", "envelopeLimitsGlobalOverrides", "envelopeLimitsGlobalDefaultManager", "envelopeLimitsGlobalUnknownPeers"}) {
+            Field field = Connection.class.getDeclaredField(name);
+            field.setAccessible(true);
+            previous.put(field, field.get(null));
+            field.set(null, name.equals("config") ? mock(Config.class) : null);
+        }
+        try {
+            Connection connection = mock(Connection.class);
+            Method initialize = Connection.class.getDeclaredMethod("initThrottlers");
+            initialize.setAccessible(true);
+            initialize.invoke(connection);
+            for (String name : new String[]{"envelopeLimitsGlobalOverrides", "envelopeLimitsConnectionOverrides"}) {
+                Field field = Connection.class.getDeclaredField(name);
+                field.setAccessible(true);
+                Map<String, LeakyBucket> limits = (Map<String, LeakyBucket>) field.get(connection);
+                LeakyBucket bucket = limits.get("GetInventoryRequest");
+                assertNotNull(bucket);
+                int accepted = 0;
+                for (int i = 0; i < 10000; i++) if (!bucket.isSpamming(1)) accepted++;
+                assertEquals(name.contains("Global") ? 10 : 2, accepted);
+            }
+        } finally {
+            for (Map.Entry<Field, Object> entry : previous.entrySet()) entry.getKey().set(null, entry.getValue());
+        }
+    }
 
     @Test
     public void testShutdownCompletesOnceAfterTimeoutAndLateConnectionClose() {

@@ -42,6 +42,7 @@ import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -51,6 +52,8 @@ public class GetInventoryRequestHandler implements MessageListener {
     private final P2PDataStorage p2PDataStorage;
     private final FilterManager filterManager;
     private final int maxConnections;
+    private Map<InventoryItem, String> dataInventory;
+    private long dataInventoryUpdatedAt;
 
     @Inject
     public GetInventoryRequestHandler(NetworkNode networkNode,
@@ -71,19 +74,7 @@ public class GetInventoryRequestHandler implements MessageListener {
     public void onMessage(NetworkEnvelope networkEnvelope, Connection connection) {
         if (networkEnvelope instanceof GetInventoryRequest) {
             // Data
-            GetInventoryRequest getInventoryRequest = (GetInventoryRequest) networkEnvelope;
-            Map<InventoryItem, Integer> dataObjects = new HashMap<>();
-            p2PDataStorage.getMapForDataResponse(getInventoryRequest.getVersion()).values().stream()
-                    .map(e -> e.getClass().getSimpleName())
-                    .forEach(className -> addClassNameToMap(dataObjects, className));
-            p2PDataStorage.getMap().values().stream()
-                    .map(ProtectedStorageEntry::getProtectedStoragePayload)
-                    .map(e -> e.getClass().getSimpleName())
-                    .forEach(className -> addClassNameToMap(dataObjects, className));
-            Map<InventoryItem, String> inventory = new HashMap<>();
-            dataObjects.forEach((key, value) -> inventory.put(key, String.valueOf(value)));
-
-
+            Map<InventoryItem, String> inventory = new HashMap<>(getDataInventory());
 
             // network
             inventory.put(InventoryItem.maxConnections, String.valueOf(maxConnections));
@@ -117,6 +108,26 @@ public class GetInventoryRequestHandler implements MessageListener {
 
     public void shutDown() {
         networkNode.removeMessageListener(this);
+    }
+
+    private synchronized Map<InventoryItem, String> getDataInventory() {
+        long now = System.nanoTime();
+        if (dataInventory == null || now - dataInventoryUpdatedAt >= TimeUnit.SECONDS.toNanos(30)) {
+            Map<InventoryItem, Integer> dataObjects = new HashMap<>();
+            // Inventory counts all stored data, independently of the requester's version.
+            p2PDataStorage.getMapForDataResponse(null).values().stream()
+                    .map(e -> e.getClass().getSimpleName())
+                    .forEach(className -> addClassNameToMap(dataObjects, className));
+            p2PDataStorage.getMap().values().stream()
+                    .map(ProtectedStorageEntry::getProtectedStoragePayload)
+                    .map(e -> e.getClass().getSimpleName())
+                    .forEach(className -> addClassNameToMap(dataObjects, className));
+            Map<InventoryItem, String> inventory = new HashMap<>();
+            dataObjects.forEach((key, value) -> inventory.put(key, String.valueOf(value)));
+            dataInventory = inventory;
+            dataInventoryUpdatedAt = now;
+        }
+        return dataInventory;
     }
 
     private void addClassNameToMap(Map<InventoryItem, Integer> dataObjects, String className) {
