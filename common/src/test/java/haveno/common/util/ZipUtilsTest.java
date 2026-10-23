@@ -10,6 +10,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import static java.nio.file.Files.createTempDirectory;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +29,17 @@ public class ZipUtilsTest {
         assertFalse(new File(dir, "net/tor/torrc").exists());
         assertTrue(new File(dir, "net/tor/hiddenservice/private_key").exists());
         assertFalse(new File(dir, "net/tor/hiddenservice/api").exists());
+    }
+
+    @Test
+    public void unzipToDirSkipsNamesTheFilesystemRejects() throws Exception {
+        File dir = createTempDirectory("ZipUtilsTest").toFile();
+        byte[] zip = zip("net/bad\u0000name", "net/keys/key");
+
+        ZipUtils.unzipToDir(dir, new ByteArrayInputStream(zip), 1024, null);
+
+        assertTrue(new File(dir, "net/keys/key").exists());
+        assertArrayEquals(new String[] {"keys"}, new File(dir, "net").list());
     }
 
     @Test

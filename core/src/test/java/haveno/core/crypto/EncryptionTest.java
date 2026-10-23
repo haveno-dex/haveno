@@ -74,6 +74,8 @@ import org.mockito.stubbing.Answer;
 import org.bitcoinj.crypto.KeyCrypterScrypt;
 import org.bouncycastle.crypto.params.KeyParameter;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -92,6 +94,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -110,6 +113,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -185,6 +191,72 @@ public class EncryptionTest {
         account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.CONNECTIONS, (oldPassword, newPassword) -> {});
         account.addPasswordChangeHandler(CoreAccountService.PasswordChangeTarget.WALLETS, (oldPassword, newPassword) -> {});
         account.onPersistedDataRead();
+    }
+
+    @Test
+    public void testRestorePreservesInstallationFilesAndRestoresAccountData() throws Exception {
+        Path restoreDir = Files.createDirectory(dir.toPath().resolve("restore"));
+        Path customConfig = Files.writeString(restoreDir.resolve("custom.conf"), "");
+        Path torrc = Files.writeString(restoreDir.resolve("custom-torrc"), "# trusted");
+        Config config = new Config("--appDataDir=" + restoreDir, "--configFile=" + customConfig, "--torrcFile=" + torrc);
+        CoreAccountService account = new CoreAccountService(config, mock(KeyStorage.class), mock(KeyRing.class));
+        Path binary = Files.writeString(restoreDir.resolve("monero-wallet-rpc"), "trusted binary");
+        Files.createLink(restoreDir.resolve("binary-alias"), binary);
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
+            for (String name : List.of("monero-wallet-rpc", "MONERO-WALLET-RPC.EXE", "monerod/child", "MONEROD.EXE",
+                    "./haveno.properties", "xmr_mainnet/../haveno.properties/child", "custom.conf", "custom-torrc",
+                    "binary-alias", "monero-wallet-rpc.exe.", "haveno.properties..", " haveno.properties", "custom.conf.", "custom.conf ", "xmr_mainnet/tor./torrc",
+                    "haveno.propertie\u017f", "have\u200cno.properties", "cu\u017ftom.conf", "xmr_mainnet/keys/key", "xmr_mainnet/wallet/haveno_XMR.keys", "xmr_mainnet/wallet/xmr_trade_caf\u00e9_1.keys", "xmr_mainnet/db/UserPayload",
+                    "xmr_mainnet/tor/torrc", "xmr_mainnet/tor/hiddenservice/private_key")) {
+                zip.putNextEntry(new ZipEntry(name));
+                zip.write("restored".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
+        }
+        try (var utilities = mockStatic(Utilities.class, CALLS_REAL_METHODS)) {
+            utilities.when(Utilities::isWindows).thenReturn(true);
+            account.restoreAccount(new ByteArrayInputStream(bytes.toByteArray()), 1024, () -> {});
+        }
+        assertEquals("trusted binary", Files.readString(binary));
+        assertEquals("", Files.readString(customConfig));
+        assertEquals("# trusted", Files.readString(torrc));
+        // listed rather than probed by name, since Windows rejects or aliases some of the excluded names
+        assertEquals(Set.of("binary-alias", "custom-torrc", "custom.conf", "monero-wallet-rpc", "xmr_mainnet"), fileNames(restoreDir));
+        assertEquals(Set.of("db", "keys", "tor", "wallet"), fileNames(restoreDir.resolve("xmr_mainnet")));
+        assertEquals(Set.of("hiddenservice"), fileNames(restoreDir.resolve("xmr_mainnet/tor")));
+        for (String name : List.of("xmr_mainnet/keys/key", "xmr_mainnet/wallet/haveno_XMR.keys", "xmr_mainnet/wallet/xmr_trade_caf\u00e9_1.keys", "xmr_mainnet/db/UserPayload", "xmr_mainnet/tor/hiddenservice/private_key")) {
+            assertEquals("restored", Files.readString(restoreDir.resolve(name)));
+        }
+    }
+
+    private static Set<String> fileNames(Path dir) throws IOException {
+        try (Stream<Path> files = Files.list(dir)) {
+            return files.map(path -> path.getFileName().toString()).collect(Collectors.toSet());
+        }
+    }
+
+    @Test
+    public void testRestorePreservesInstallationFilesAtRenamedLogDestinations() throws Exception {
+        Path restoreDir = Files.createDirectory(dir.toPath().resolve("restore"));
+        Path networkDir = Files.createDirectory(restoreDir.resolve("xmr_mainnet"));
+        Path customConfig = Files.writeString(restoreDir.resolve("haveno.backup.log"), "# trusted config");
+        Path torrc = Files.writeString(networkDir.resolve("haveno.backup.log"), "# trusted torrc");
+        Config config = new Config("--appDataDir=" + restoreDir, "--configFile=" + customConfig, "--torrcFile=" + torrc);
+        CoreAccountService account = new CoreAccountService(config, mock(KeyStorage.class), mock(KeyRing.class));
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
+            for (String name : List.of("haveno.log", "xmr_mainnet/haveno.log", "logs/haveno.log", "xmr_mainnet/keys/key")) {
+                zip.putNextEntry(new ZipEntry(name));
+                zip.write("restored".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
+        }
+        account.restoreAccount(new ByteArrayInputStream(bytes.toByteArray()), 1024, () -> {});
+        assertEquals("# trusted config", Files.readString(customConfig));
+        assertEquals("# trusted torrc", Files.readString(torrc));
+        assertEquals("restored", Files.readString(restoreDir.resolve("logs/haveno.backup.log")));
+        assertEquals("restored", Files.readString(networkDir.resolve("keys/key")));
     }
 
     @Test
