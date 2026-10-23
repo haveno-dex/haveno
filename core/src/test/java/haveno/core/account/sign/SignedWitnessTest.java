@@ -3,6 +3,7 @@ package haveno.core.account.sign;
 import com.google.common.base.Charsets;
 import haveno.common.crypto.Sig;
 import haveno.common.util.Utilities;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static haveno.core.account.sign.SignedWitness.VerificationMethod.ARBITRATOR;
@@ -18,6 +20,7 @@ import static haveno.core.account.sign.SignedWitness.VerificationMethod.TRADE;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SignedWitnessTest {
@@ -39,6 +42,28 @@ public class SignedWitnessTest {
     public void testProtoRoundTrip() {
         SignedWitness signedWitness = new SignedWitness(ARBITRATOR, witnessHash, witnessHashSignature, arbitrator1Key.getPubKey(), witnessOwner1PubKey, Instant.now().getEpochSecond(), 100);
         assertEquals(signedWitness, SignedWitness.fromProto(signedWitness.toProtoMessage().getSignedWitness()));
+    }
+
+    @Test
+    public void fromProtoRejectsUnknownVerificationMethods() {
+        protobuf.SignedWitness proto = signedWitnessWithDate(Instant.now().toEpochMilli()).toProtoMessage().getSignedWitness();
+        assertEquals(TRADE, SignedWitness.fromProto(proto).getVerificationMethod());
+        assertThrows(InvalidPersistableNetworkPayloadException.class, () -> SignedWitness.fromProto(proto.toBuilder().clearVerificationMethod().build()));
+        assertThrows(InvalidPersistableNetworkPayloadException.class, () -> SignedWitness.fromProto(proto.toBuilder().setVerificationMethodValue(99).build()));
+    }
+
+    @Test
+    public void storeFromProtoPreservesKnownWitnessesBesideUnknownMethods() {
+        protobuf.SignedWitness witness = signedWitnessWithDate(Instant.now().toEpochMilli()).toProtoSignedWitness();
+        protobuf.SignedWitnessStore proto = protobuf.SignedWitnessStore.newBuilder()
+                .addItems(witness.toBuilder().setVerificationMethodValue(99))
+                .addItems(witness)
+                .addItems(witness.toBuilder().clearVerificationMethod())
+                .build();
+        SignedWitnessStore store = SignedWitnessStore.fromProto(proto);
+        protobuf.SignedWitnessStore restored = ((protobuf.PersistableEnvelope) store.toProtoMessage()).getSignedWitnessStore();
+        assertEquals(List.of(witness), restored.getItemsList());
+        assertEquals(store.toProtoMessage(), SignedWitnessStore.fromProto(restored).toProtoMessage());
     }
 
     @Test

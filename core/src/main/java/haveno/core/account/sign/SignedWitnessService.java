@@ -41,7 +41,6 @@ import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.SignatureException;
 import java.time.Clock;
-import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -542,7 +541,7 @@ public class SignedWitnessService {
                 verifySignatureWithECKeyResultCache.put(hash, false);
                 return false;
             }
-        } catch (SignatureException e) {
+        } catch (SignatureException | RuntimeException e) {
             log.warn("verifySignature signedWitness failed. signedWitness={}", signedWitness);
             log.warn("Caused by ", e);
             verifySignatureWithECKeyResultCache.put(hash, false);
@@ -561,7 +560,7 @@ public class SignedWitnessService {
             if (!isValid) log.warn("verifySignature signedWitness failed. signedWitness={}", signedWitness);
             verifySignatureWithDSAKeyResultCache.put(hash, isValid);
             return isValid;
-        } catch (CryptoException e) {
+        } catch (CryptoException | RuntimeException e) {
             log.warn("verifySignature signedWitness failed. signedWitness={}", signedWitness);
             log.warn("Caused by ", e);
             verifySignatureWithDSAKeyResultCache.put(hash, false);
@@ -709,10 +708,9 @@ public class SignedWitnessService {
     }
 
     private boolean verifyDate(SignedWitness signedWitness, long childSignedWitnessDateMillis) {
-        long childSignedWitnessDateMinusChargebackPeriodMillis = Instant.ofEpochMilli(
-                childSignedWitnessDateMillis).minus(SIGNER_AGE, ChronoUnit.MILLIS).toEpochMilli();
-        long signedWitnessDateMillis = signedWitness.getDate();
-        return signedWitnessDateMillis <= childSignedWitnessDateMinusChargebackPeriodMillis;
+        // no representable parent date can satisfy the signing age if the cutoff underflows
+        return childSignedWitnessDateMillis >= Long.MIN_VALUE + SIGNER_AGE
+                && signedWitness.getDate() <= childSignedWitnessDateMillis - SIGNER_AGE;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -721,6 +719,12 @@ public class SignedWitnessService {
 
     @VisibleForTesting
     public void addToMap(SignedWitness signedWitness) {
+        // peers can store witnesses with empty fields, which cannot be indexed and must not abort indexing the rest
+        if (signedWitness.getAccountAgeWitnessHash().length == 0 || signedWitness.getSignerPubKey().length == 0
+                || signedWitness.getWitnessOwnerPubKey().length == 0) {
+            log.warn("Ignoring signed witness with empty fields. signedWitness={}", signedWitness);
+            return;
+        }
         signedWitnessMap.putIfAbsent(signedWitness.getHashAsByteArray(), signedWitness);
 
         P2PDataStorage.ByteArray accountAgeWitnessHash = new P2PDataStorage.ByteArray(signedWitness.getAccountAgeWitnessHash());

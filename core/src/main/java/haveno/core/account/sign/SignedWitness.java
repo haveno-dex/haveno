@@ -28,6 +28,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
 import haveno.network.p2p.storage.payload.DateTolerantPayload;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.payload.ProcessOncePersistableNetworkPayload;
 import lombok.Value;
@@ -118,8 +119,11 @@ public class SignedWitness implements ProcessOncePersistableNetworkPayload, Pers
     }
 
     public static SignedWitness fromProto(protobuf.SignedWitness proto) {
+        // an unknown verification method cannot be serialized again, which would break the store and every data response holding it
+        VerificationMethod verificationMethod = VerificationMethod.fromProto(proto.getVerificationMethod());
+        if (verificationMethod == null) throw new InvalidPersistableNetworkPayloadException("SignedWitness has no known verification method");
         return new SignedWitness(
-                SignedWitness.VerificationMethod.fromProto(proto.getVerificationMethod()),
+                verificationMethod,
                 proto.getAccountAgeWitnessHash().toByteArray(),
                 proto.getSignature().toByteArray(),
                 proto.getSignerPubKey().toByteArray(),
