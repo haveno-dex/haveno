@@ -68,6 +68,11 @@ public class OfferAvailabilityProtocol {
                 Validator.nonEmptyStringOf(offerMessage.offerId);
                 if (networkEnvelope instanceof OfferAvailabilityResponse
                         && model.getOffer().getId().equals(offerMessage.offerId)) {
+                    if (!model.getOffer().getPubKeyRing().getSignaturePubKey().equals(decryptedMessageWithPubKey.getSignaturePubKey())
+                            || !model.getPeerNodeAddress().equals(peersNodeAddress)) {
+                        log.warn("Ignoring OfferAvailabilityResponse from unexpected peer for offer {}", offerMessage.offerId);
+                        return;
+                    }
                     handleOfferAvailabilityResponse((OfferAvailabilityResponse) networkEnvelope, peersNodeAddress);
                 }
             }
@@ -88,8 +93,8 @@ public class OfferAvailabilityProtocol {
         // reset
         model.getOffer().setState(Offer.State.UNKNOWN);
 
-        model.getP2PService().addDecryptedDirectMessageListener(decryptedDirectMessageListener);
         model.setPeerNodeAddress(model.getOffer().getMakerNodeAddress());
+        model.getP2PService().addDecryptedDirectMessageListener(decryptedDirectMessageListener);
 
         taskRunner = new TaskRunner<>(model,
                 () -> handleTaskRunnerSuccess("TaskRunner at sendOfferAvailabilityRequest completed", null),
