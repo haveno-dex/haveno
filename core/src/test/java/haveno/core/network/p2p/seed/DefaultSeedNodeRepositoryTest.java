@@ -19,6 +19,18 @@ package haveno.core.network.p2p.seed;
 
 import haveno.common.config.Config;
 import haveno.network.p2p.NodeAddress;
+import haveno.core.filter.FilterManager;
+import haveno.core.network.p2p.inventory.GetInventoryRequestHandler;
+import haveno.core.network.p2p.inventory.messages.GetInventoryRequest;
+import haveno.network.p2p.network.Connection;
+import haveno.network.p2p.network.NetworkNode;
+import haveno.network.p2p.peers.PeerManager;
+import haveno.network.p2p.storage.P2PDataStorage;
+import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import org.junit.jupiter.api.Test;
 
 import static java.lang.String.format;
@@ -27,6 +39,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DefaultSeedNodeRepositoryTest {
+
+    @Test
+    public void inventoryRequestsShareBoundedStorageSnapshot() throws Exception {
+        P2PDataStorage storage = mock(P2PDataStorage.class);
+        GetInventoryRequestHandler handler = new GetInventoryRequestHandler(mock(NetworkNode.class),
+                mock(PeerManager.class), storage, mock(FilterManager.class), 12);
+        Connection connection = mock(Connection.class);
+        for (int i = 0; i < 100; i++) handler.onMessage(new GetInventoryRequest("1.0." + i), connection);
+        verify(storage).getMapForDataResponse(null);
+        verify(storage).getMap();
+        Field updatedAt = GetInventoryRequestHandler.class.getDeclaredField("dataInventoryUpdatedAt");
+        updatedAt.setAccessible(true);
+        updatedAt.setLong(handler, System.nanoTime() - TimeUnit.SECONDS.toNanos(31));
+        handler.onMessage(new GetInventoryRequest("1.0.0"), connection);
+        verify(storage, times(2)).getMapForDataResponse(null);
+        verify(storage, times(2)).getMap();
+    }
 
     @Test
     public void getSeedNodes() {
