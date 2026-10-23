@@ -4,9 +4,11 @@ import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.Version;
+import haveno.common.crypto.Encryption;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.crypto.PubKeyRing;
+import haveno.common.crypto.Sig;
 import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
@@ -15,6 +17,7 @@ import haveno.core.api.CoreContext;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrKeyImagePoller;
+import haveno.core.filter.Filter;
 import haveno.core.filter.FilterManager;
 import haveno.core.offer.messages.SignOfferRequest;
 import haveno.core.offer.messages.SignOfferResponse;
@@ -48,11 +51,15 @@ import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.peers.PeerManager;
 import haveno.network.p2p.peers.Broadcaster;
+import haveno.network.p2p.storage.HashMapChangedListener;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import monero.daemon.model.MoneroTx;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
@@ -60,10 +67,16 @@ import org.mockito.MockedStatic;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -88,6 +101,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -104,6 +118,7 @@ public class OpenOfferManagerTest {
     private PersistenceManager<SignedOfferList> signedOfferPersistenceManager;
     private CoreContext coreContext;
     private KeyRing keyRing;
+    private FilterManager filterManager;
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -113,12 +128,204 @@ public class OpenOfferManagerTest {
         persistenceManager = new PersistenceManager<>(storageDir, null, corruptedStorageFileHandler, keyRing);
         signedOfferPersistenceManager = new PersistenceManager<>(storageDir, null, corruptedStorageFileHandler, keyRing);
         coreContext = new CoreContext();
+        filterManager = mock(FilterManager.class);
+        when(filterManager.filterProperty()).thenReturn(new SimpleObjectProperty<>());
     }
 
     @AfterEach
     public void tearDown() {
         persistenceManager.shutdown();
         signedOfferPersistenceManager.shutdown();
+    }
+
+    @Test
+    public void testOfferBookRejectsUnsignedConflictsAndRecoversAfterArbitratorArrival(@TempDir Path storageDir) throws Exception {
+        Version.setBaseCryptoNetworkId(1);
+        P2PService p2p = mock(P2PService.class);
+        XmrConnectionService connections = mock(XmrConnectionService.class);
+        when(connections.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
+        ArbitratorManager arbitrators = mock(ArbitratorManager.class);
+        Map<P2PDataStorage.ByteArray, ProtectedStorageEntry> data = new LinkedHashMap<>();
+        when(p2p.getDataMap()).thenReturn(data);
+        KeyPair signing = Sig.generateKeyPair();
+        PubKeyRing arbKeys = new PubKeyRing(signing.getPublic(), Encryption.generateKeyPair().getPublic());
+        PubKeyRing makerKeys = new PubKeyRing(Sig.generateKeyPair().getPublic(), arbKeys.getEncryptionPubKey());
+        PubKeyRing attackerKeys = new PubKeyRing(Sig.generateKeyPair().getPublic(), arbKeys.getEncryptionPubKey());
+        Arbitrator arbitrator = new Arbitrator(new NodeAddress("arbitrator:9999"), arbKeys, List.of("en"), 0,
+                new byte[0], "", null, null, null);
+        OfferPayload victim = bookOffer("victim", makerKeys, arbitrator, signing.getPrivate(), 1);
+        OfferPayload forgedId = bookOffer("victim", attackerKeys, arbitrator, null, 2);
+        OfferPayload forgedImages = bookOffer("attacker", attackerKeys, arbitrator, null, 2);
+        ArrayDeque<Runnable> queuedTasks = new ArrayDeque<>();
+        boolean[] deferTasks = {false};
+        try (MockedStatic<ThreadUtils> threads = mockStatic(ThreadUtils.class);
+             MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            threads.when(() -> ThreadUtils.execute(any(Runnable.class), anyString())).thenAnswer(invocation -> {
+                Runnable task = invocation.getArgument(0);
+                if (deferTasks[0]) queuedTasks.add(task);
+                else task.run();
+                return null;
+            });
+            OfferBookService book = new OfferBookService(p2p, null, filterManager, connections,
+                    arbitrators, mock(User.class), storageDir.toFile(), false);
+            ArgumentCaptor<HashMapChangedListener> listener = ArgumentCaptor.forClass(HashMapChangedListener.class);
+            verify(p2p).addHashSetChangedListener(listener.capture());
+            for (OfferPayload payload : List.of(forgedId, forgedImages, victim)) {
+                ProtectedStorageEntry entry = bookEntry(payload);
+                data.put(new P2PDataStorage.ByteArray(payload.getHash()), entry);
+                listener.getValue().onAdded(List.of(entry));
+            }
+            assertTrue(book.getOffers().isEmpty());
+            deferTasks[0] = true;
+            listener.getValue().onRemoved(List.of(bookEntry(forgedId)));
+            when(arbitrators.getVerifiedDisputeAgents()).thenReturn(Map.of(arbitrator.getNodeAddress(), arbitrator));
+            ProtectedStorageEntry arbEntry = mock(ProtectedStorageEntry.class);
+            when(arbEntry.getProtectedStoragePayload()).thenReturn(arbitrator);
+            listener.getValue().onAdded(List.of(arbEntry));
+            deferTasks[0] = false;
+            while (!queuedTasks.isEmpty()) queuedTasks.removeFirst().run();
+            assertEquals(List.of(victim), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+            listener.getValue().onRemoved(List.of(bookEntry(forgedId)));
+            assertTrue(book.hasOffer("victim"));
+            data.remove(new P2PDataStorage.ByteArray(victim.getHash()));
+            listener.getValue().onRemoved(List.of(bookEntry(victim)));
+            assertTrue(book.getOffers().isEmpty());
+            listener.getValue().onAdded(List.of(bookEntry(victim)));
+            assertTrue(book.hasOffer("victim"));
+            assertFalse(book.hasOffer("attacker"));
+
+            OfferPayload signedIdCollision = bookOffer("victim", attackerKeys, arbitrator, signing.getPrivate(), 3);
+            listener.getValue().onAdded(List.of(bookEntry(signedIdCollision)));
+            assertEquals(makerKeys, book.getOffers().get(0).getPubKeyRing());
+            listener.getValue().onRemoved(List.of(bookEntry(victim)));
+            assertEquals(List.of(signedIdCollision), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+            listener.getValue().onRemoved(List.of(bookEntry(signedIdCollision)));
+            listener.getValue().onAdded(List.of(bookEntry(victim)));
+            OfferPayload replacement = bookOffer("victim", makerKeys, arbitrator, signing.getPrivate(), 4);
+            listener.getValue().onAdded(List.of(bookEntry(replacement)));
+            listener.getValue().onRemoved(List.of(bookEntry(victim)));
+            assertEquals(List.of(replacement), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+
+            clearInvocations(arbitrators);
+            listener.getValue().onRemoved(Collections.nCopies(32, bookEntry(forgedId)));
+            verify(arbitrators).getVerifiedDisputeAgents();
+            assertEquals(List.of(replacement), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+
+            OfferPayload superseding = bookOffer("superseding", makerKeys, arbitrator, signing.getPrivate(), 5);
+            listener.getValue().onAdded(List.of(bookEntry(superseding)));
+            assertEquals(List.of(superseding), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+            forgedId.setArbitratorSigner(new NodeAddress("unknown-arbitrator:9999"));
+            forgedId.setArbitratorSignature(new byte[]{1});
+            listener.getValue().onAdded(List.of(bookEntry(forgedId)));
+            listener.getValue().onRemoved(List.of(bookEntry(superseding)));
+            assertEquals(List.of(replacement), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+
+            listener.getValue().onAdded(List.of(bookEntry(superseding)));
+            when(arbitrators.getVerifiedDisputeAgents()).thenReturn(Map.of());
+            listener.getValue().onRemoved(List.of(arbEntry));
+            listener.getValue().onRemoved(List.of(bookEntry(superseding)));
+            assertTrue(book.getOffers().isEmpty());
+            data.clear();
+            data.put(new P2PDataStorage.ByteArray(replacement.getHash()), bookEntry(replacement));
+            when(arbitrators.getVerifiedDisputeAgents()).thenReturn(Map.of(arbitrator.getNodeAddress(), arbitrator));
+            listener.getValue().onAdded(List.of(arbEntry));
+            assertEquals(List.of(replacement), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+        }
+    }
+
+    @Test
+    public void testArbitratorArrivalAdmitsWaitingOffersWithoutReplacingAdmittedRevisions(@TempDir Path storageDir) throws Exception {
+        checkArbitratorAvailabilityAdmitsWaitingOffers(false, storageDir);
+    }
+
+    @Test
+    public void testArbitratorUnbanAdmitsWaitingOffersWithoutReplacingAdmittedRevisions(@TempDir Path storageDir) throws Exception {
+        checkArbitratorAvailabilityAdmitsWaitingOffers(true, storageDir);
+    }
+
+    private void checkArbitratorAvailabilityAdmitsWaitingOffers(boolean filterChanged, Path storageDir) throws Exception {
+        Version.setBaseCryptoNetworkId(1);
+        P2PService p2p = mock(P2PService.class);
+        XmrConnectionService connections = mock(XmrConnectionService.class);
+        when(connections.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
+        ArbitratorManager arbitrators = mock(ArbitratorManager.class);
+        Map<P2PDataStorage.ByteArray, ProtectedStorageEntry> data = new LinkedHashMap<>();
+        when(p2p.getDataMap()).thenReturn(data);
+        KeyPair signing = Sig.generateKeyPair();
+        KeyPair lateSigning = Sig.generateKeyPair();
+        PubKeyRing makerKeys = new PubKeyRing(Sig.generateKeyPair().getPublic(), Encryption.generateKeyPair().getPublic());
+        Arbitrator arbitrator = new Arbitrator(new NodeAddress("arbitrator:9999"), new PubKeyRing(signing.getPublic(), makerKeys.getEncryptionPubKey()),
+                List.of("en"), 0, new byte[0], "", null, null, null);
+        Arbitrator lateArbitrator = new Arbitrator(new NodeAddress("late-arbitrator:9999"), new PubKeyRing(lateSigning.getPublic(), makerKeys.getEncryptionPubKey()),
+                List.of("en"), 0, new byte[0], "", null, null, null);
+        when(arbitrators.getVerifiedDisputeAgents()).thenReturn(Map.of(arbitrator.getNodeAddress(), arbitrator));
+        OfferPayload original = bookOffer("offer", makerKeys, arbitrator, signing.getPrivate(), 1);
+        // edits keep the offer date, so revisions are told apart by content only
+        OfferPayload edited = OfferPayload.fromProto(original.toProtoMessage().getOfferPayload().toBuilder().setPrice(original.getPrice() + 1).build());
+        edited.setArbitratorSignature(HavenoUtils.sign(signing.getPrivate(), edited.getSignatureHash()));
+        OfferPayload waiting = bookOffer("waiting", makerKeys, lateArbitrator, null, 2);
+        waiting.setReserveTxKeyImages(List.of("other-key-image"));
+        waiting.setArbitratorSignature(HavenoUtils.sign(lateSigning.getPrivate(), waiting.getSignatureHash()));
+        try (MockedStatic<ThreadUtils> threads = mockStatic(ThreadUtils.class);
+             MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            threads.when(() -> ThreadUtils.execute(any(Runnable.class), anyString())).thenAnswer(invocation -> {
+                ((Runnable) invocation.getArgument(0)).run();
+                return null;
+            });
+            OfferBookService book = new OfferBookService(p2p, null, filterManager, connections,
+                    arbitrators, mock(User.class), storageDir.toFile(), false);
+            ArgumentCaptor<HashMapChangedListener> listener = ArgumentCaptor.forClass(HashMapChangedListener.class);
+            verify(p2p).addHashSetChangedListener(listener.capture());
+
+            // a peer which missed the removal of the original revision stores both revisions, the edited one first
+            for (OfferPayload payload : List.of(edited, original, waiting)) data.put(new P2PDataStorage.ByteArray(payload.getHash()), bookEntry(payload));
+            listener.getValue().onAdded(List.of(bookEntry(original)));
+            listener.getValue().onAdded(List.of(bookEntry(edited)));
+            listener.getValue().onAdded(List.of(bookEntry(waiting)));
+            assertEquals(List.of(edited), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+
+            when(arbitrators.getVerifiedDisputeAgents()).thenReturn(Map.of(arbitrator.getNodeAddress(), arbitrator, lateArbitrator.getNodeAddress(), lateArbitrator));
+            ProtectedStorageEntry lateEntry = mock(ProtectedStorageEntry.class);
+            when(lateEntry.getProtectedStoragePayload()).thenReturn(lateArbitrator);
+            if (filterChanged) filterManager.filterProperty().set(mock(Filter.class));
+            else listener.getValue().onAdded(List.of(lateEntry));
+            assertEquals(List.of(edited, waiting), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+            listener.getValue().onRemoved(List.of(bookEntry(original)));
+            assertEquals(List.of(edited, waiting), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+
+            // both revisions wait for their arbitrator and the rescan admits the stale one, which hides the edit until removed
+            when(arbitrators.getVerifiedDisputeAgents()).thenReturn(Map.of());
+            listener.getValue().onRemoved(List.of(bookEntry(edited), bookEntry(waiting)));
+            data.clear();
+            for (OfferPayload payload : List.of(original, edited)) data.put(new P2PDataStorage.ByteArray(payload.getHash()), bookEntry(payload));
+            listener.getValue().onAdded(List.of(bookEntry(original)));
+            listener.getValue().onAdded(List.of(bookEntry(edited)));
+            assertTrue(book.getOffers().isEmpty());
+            when(arbitrators.getVerifiedDisputeAgents()).thenReturn(Map.of(arbitrator.getNodeAddress(), arbitrator));
+            ProtectedStorageEntry arbEntry = mock(ProtectedStorageEntry.class);
+            when(arbEntry.getProtectedStoragePayload()).thenReturn(arbitrator);
+            listener.getValue().onAdded(List.of(arbEntry));
+            assertEquals(List.of(original), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+            data.remove(new P2PDataStorage.ByteArray(original.getHash()));
+            listener.getValue().onRemoved(List.of(bookEntry(original)));
+            assertEquals(List.of(edited), book.getOffers().stream().map(Offer::getOfferPayload).toList());
+        }
+    }
+
+    private OfferPayload bookOffer(String id, PubKeyRing owner, Arbitrator arbitrator, PrivateKey signer, long date) {
+        OfferPayload template = make(btcUsdOffer.but(with(OfferMaker.id, id), with(OfferMaker.pubKeyRing, owner))).getOfferPayload();
+        OfferPayload payload = OfferPayload.fromProto(template.toProtoMessage().getOfferPayload().toBuilder()
+                .setOwnerNodeAddress(new NodeAddress("a".repeat(56) + ".onion:9999").toProtoMessage()).setDate(date).build());
+        payload.setArbitratorSigner(arbitrator.getNodeAddress());
+        payload.setReserveTxKeyImages(List.of("reserved-key-image"));
+        if (signer != null) payload.setArbitratorSignature(HavenoUtils.sign(signer, payload.getSignatureHash()));
+        return payload;
+    }
+
+    private ProtectedStorageEntry bookEntry(OfferPayload payload) {
+        ProtectedStorageEntry entry = mock(ProtectedStorageEntry.class);
+        when(entry.getProtectedStoragePayload()).thenReturn(payload);
+        return entry;
     }
 
     @Test
@@ -245,8 +452,8 @@ public class OpenOfferManagerTest {
         P2PService p2PService = mock(P2PService.class);
         XmrConnectionService connectionService = mock(XmrConnectionService.class);
         when(connectionService.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
-        OfferBookService service = new OfferBookService(p2PService, null, mock(FilterManager.class), connectionService,
-                storageDir.toFile(), false);
+        OfferBookService service = new OfferBookService(p2PService, null, filterManager, connectionService,
+                mock(ArbitratorManager.class), mock(User.class), storageDir.toFile(), false);
         Offer offer = make(btcUsdOffer);
         ResultHandler success = mock(ResultHandler.class);
         ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
@@ -1145,12 +1352,52 @@ public class OpenOfferManagerTest {
         }
     }
 
+    @Test
+    public void testSigningBindsPayloadKeyImagesToVerifiedReserveClaim() throws Exception {
+        keyRing.generateKeys(null);
+        try (SigningRequestContext context = new SigningRequestContext()) {
+            SignOfferRequest request = context.request("offer", context.makerKeys);
+            for (List<String> images : Arrays.asList(List.of("victim-key-image"), List.<String>of(), null)) {
+                when(request.getOfferPayload().getReserveTxKeyImages()).thenReturn(images);
+                context.receive(request);
+                context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            }
+            verify(context.walletService, never()).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+            verify(request.getOfferPayload(), never()).setArbitratorSignature(any());
+            verify(context.p2p, times(3)).sendEncryptedDirectMessage(eq(context.maker), eq(context.makerKeys),
+                    argThat(envelope -> envelope instanceof AckMessage && !((AckMessage) envelope).isSuccess()), any());
+
+            List<String> reordered = new ArrayList<>(request.getReserveTxKeyImages());
+            Collections.reverse(reordered);
+            when(request.getOfferPayload().getReserveTxKeyImages()).thenReturn(reordered);
+            Offer existing = mock(Offer.class);
+            when(existing.getId()).thenReturn(request.getOfferId());
+            PubKeyRing otherMaker = context.keys();
+            when(existing.getPubKeyRing()).thenReturn(otherMaker);
+            when(context.offerBook.getOffers()).thenReturn(List.of(existing));
+            context.receive(request);
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            verify(context.walletService, never()).verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any());
+            verify(request.getOfferPayload(), never()).setArbitratorSignature(any());
+
+            when(existing.getPubKeyRing()).thenReturn(context.makerKeys);
+            when(context.walletService.verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), eq(request.getReserveTxKeyImages())))
+                    .thenReturn(new MoneroTx().setFee(BigInteger.ONE));
+            context.receive(request);
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            ArgumentCaptor<byte[]> signature = ArgumentCaptor.forClass(byte[].class);
+            verify(request.getOfferPayload()).setArbitratorSignature(signature.capture());
+            assertTrue(HavenoUtils.isSignatureValid(keyRing.getPubKeyRing(), request.getOfferPayload().getSignatureHash(), signature.getValue()));
+        }
+    }
+
     private class SigningRequestContext implements AutoCloseable {
         private final NodeAddress maker = new NodeAddress("maker.onion", 9999);
         private final NodeAddress arbitrator = new NodeAddress("arbitrator.onion", 9999);
         private final PubKeyRing makerKeys = keys();
         private final P2PService p2p = mock(P2PService.class);
         private final XmrWalletService walletService = mock(XmrWalletService.class);
+        private final OfferBookService offerBook = mock(OfferBookService.class);
         private final OpenOfferManager originalManager = HavenoUtils.openOfferManager;
         private final OpenOfferManager manager;
         private final ThreadPoolExecutor executor;
@@ -1167,7 +1414,7 @@ public class OpenOfferManagerTest {
             XmrConnectionService connectionService = mock(XmrConnectionService.class);
             when(connectionService.getKeyImagePoller()).thenReturn(mock(XmrKeyImagePoller.class));
             manager = new OpenOfferManager(coreContext, keyRing, user, p2p, connectionService, null, walletService,
-                    null, mock(OfferBookService.class), mock(ClosedTradableManager.class), null, null, null,
+                    null, offerBook, mock(ClosedTradableManager.class), null, null, null,
                     null, null, mock(FilterManager.class), mock(Broadcaster.class), persistenceManager,
                     signedOfferPersistenceManager, null);
             var field = OpenOfferManager.class.getDeclaredField("signOfferRequestExecutor");
@@ -1199,8 +1446,10 @@ public class OpenOfferManagerTest {
             when(payload.getSellerSecurityDepositPct()).thenReturn(Restrictions.getMinSecurityDepositPct());
             when(payload.getMaxBuyerSecurityDeposit()).thenReturn(BigInteger.valueOf(150000000000L));
             when(payload.getSignatureHash()).thenReturn(new byte[]{1, 2, 3});
+            List<String> keyImages = List.of("3".repeat(64), "4".repeat(64));
+            when(payload.getReserveTxKeyImages()).thenReturn(keyImages);
             return new SignOfferRequest(id, maker, keys, "account", payload, id, "1", 1,
-                    "1".repeat(64), "0102", "2".repeat(64), List.of("3".repeat(64)), "payout");
+                    "1".repeat(64), "0102", "2".repeat(64), keyImages, "payout");
         }
 
         private void receive(SignOfferRequest request) {
