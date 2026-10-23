@@ -19,6 +19,7 @@ package haveno.common.util;
 import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.function.Predicate;
 
@@ -109,7 +110,13 @@ public class ZipUtils {
             int count;
             Path dirPath = dir.toPath().toAbsolutePath().normalize(); // absolute so a relative dir like "." still prefixes its entries
             while ((entry = zipStream.getNextEntry()) != null) {
-                Path path = dirPath.resolve(entry.getName().replace('\\', '/')).normalize(); // zips created on Windows use '\' separators
+                Path path;
+                try {
+                    path = dirPath.resolve(entry.getName().replace('\\', '/')).normalize(); // zips created on Windows use '\' separators
+                } catch (InvalidPathException e) {
+                    log.warn("Skipping zip entry whose name this filesystem rejects: {}", entry.getName());
+                    continue;
+                }
                 if (!path.startsWith(dirPath)) throw new IOException("Zip entry is outside of the target dir: " + entry.getName());
                 String entryName = dirPath.relativize(path).toString().replace(File.separatorChar, '/'); // normalized so skipEntry cannot be bypassed
                 if (skipEntry != null && skipEntry.test(entryName)) continue;
@@ -125,6 +132,9 @@ public class ZipUtils {
                     // Don't overwrite the current logs
                     if ("haveno.log".equals(file.getName())) {
                         file = new File(file.getParent() + "/" + "haveno.backup.log");
+                        // Apply exclusions to the actual destination after renaming the log.
+                        String destinationName = dirPath.relativize(file.toPath()).toString().replace(File.separatorChar, '/');
+                        if (skipEntry != null && skipEntry.test(destinationName)) continue;
                         log.info("Unzipped logfile to backup path: " + file.getAbsolutePath());
                     }
 

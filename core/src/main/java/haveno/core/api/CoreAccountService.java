@@ -27,6 +27,7 @@ import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.file.FileUtil;
 import haveno.common.persistence.PersistenceManager;
+import haveno.common.util.Utilities;
 import haveno.common.util.ZipUtils;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.network.TorMode;
@@ -36,10 +37,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -418,7 +422,11 @@ public class CoreAccountService {
         try {
             if (accountExists()) throw new IllegalStateException("Cannot restore account if there is an existing account");
             File dataDir = new File(config.appDataDir.getPath());
-            ZipUtils.unzipToDir(dataDir, inputStream, bufferSize, CoreAccountService::isTorRuntimeEntry);
+            ZipUtils.unzipToDir(dataDir, inputStream, bufferSize, entryName -> {
+                boolean skip = isNonAccountEntry(entryName);
+                if (skip) log.info("Skipping installation file during account restore: {}", entryName);
+                return skip;
+            });
             restartPending = true;
             synchronized (listeners) {
                 for (AccountServiceListener listener : new ArrayList<>(listeners)) listener.onAccountRestored(onShutdown);
@@ -431,6 +439,34 @@ public class CoreAccountService {
     // tor runtime files of any network, which a tor started before login may be using, and the api hidden service keys which identify this installation
     private static boolean isTorRuntimeEntry(String entryName) {
         return entryName.matches("(?i)[^/]+/tor/(?!hiddenservice/).*") || entryName.matches("(?i)[^/]+/tor/hiddenservice/" + TorMode.API_HIDDEN_SERVICE_NAME + "/.*"); // case-insensitive for case-insensitive filesystems
+    }
+
+    private boolean isNonAccountEntry(String entryName) {
+        // filesystems fold or ignore characters outside printable ASCII in ways lowercasing cannot predict, so names
+        // beside the installation files at the data dir root must be ASCII
+        if (!entryName.split("/", 2)[0].chars().allMatch(c -> c >= ' ' && c < 0x7f)) return true;
+        // Windows aliases path components with leading spaces or trailing dots and spaces
+        if (Utilities.isWindows() && Arrays.stream(entryName.split("/"))
+                .anyMatch(name -> name.startsWith(" ") || name.endsWith(" ") || name.endsWith("."))) return true;
+        if (isTorRuntimeEntry(entryName)) return true;
+
+        // preserve custom installation configuration as well as the default configuration
+        File restoredFile = new File(config.appDataDir, entryName);
+        String restoredPath = restoredFile.toPath().toAbsolutePath().normalize().toString().toLowerCase(Locale.ROOT);
+        for (File file : Arrays.asList(config.configFile, config.torrcFile,
+                new File(config.appDataDir, "haveno.properties"), new File(config.appDataDir, "monero-wallet-rpc"),
+                new File(config.appDataDir, "monero-wallet-rpc.exe"), new File(config.appDataDir, "monerod"), new File(config.appDataDir, "monerod.exe"))) {
+            if (file == null) continue;
+            String runtimePath = file.toPath().toAbsolutePath().normalize().toString().toLowerCase(Locale.ROOT);
+            if (restoredPath.equals(runtimePath) || restoredPath.startsWith(runtimePath + File.separator)) return true;
+            try {
+                // existing files can also be reached through short names or filesystem links
+                if (restoredFile.exists() && file.exists() && Files.isSameFile(restoredFile.toPath(), file.toPath())) return true;
+            } catch (IOException e) {
+                throw new UncheckedIOException("Cannot resolve account restore entry " + entryName, e);
+            }
+        }
+        return false;
     }
 
     public void deleteAccount(Runnable onShutdown) {
