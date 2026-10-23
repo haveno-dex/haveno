@@ -49,11 +49,15 @@ import haveno.core.api.XmrKeyImageListener;
 import haveno.core.filter.FilterManager;
 import haveno.core.locale.Res;
 import haveno.core.provider.price.PriceFeedService;
+import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.user.User;
 import haveno.core.util.JsonUtil;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.NetworkNotReadyException;
+import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
@@ -93,6 +97,9 @@ public class OfferBookService {
     private final FilterManager filterManager;
     private final JsonFileManager jsonFileManager;
     private final XmrConnectionService xmrConnectionService;
+    private final ArbitratorManager arbitratorManager;
+    private final User user;
+    private Map<NodeAddress, Arbitrator> verifiedArbitrators = Map.of();
     private final List<Offer> validOffers = new ArrayList<Offer>();
     private final List<Offer> invalidOffers = new ArrayList<Offer>();
     private final Map<String, Timer> invalidOfferTimers = new HashMap<>();
@@ -114,69 +121,74 @@ public class OfferBookService {
                             PriceFeedService priceFeedService,
                             FilterManager filterManager,
                             XmrConnectionService xmrConnectionService,
+                            ArbitratorManager arbitratorManager,
+                            User user,
                             @Named(Config.STORAGE_DIR) File storageDir,
                             @Named(Config.DUMP_STATISTICS) boolean dumpStatistics) {
         this.p2PService = p2PService;
         this.priceFeedService = priceFeedService;
         this.filterManager = filterManager;
         this.xmrConnectionService = xmrConnectionService;
+        this.arbitratorManager = arbitratorManager;
+        this.user = user;
         jsonFileManager = new JsonFileManager(storageDir);
 
         // listen for offers
         p2PService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
             public void onAdded(Collection<ProtectedStorageEntry> protectedStorageEntries) {
+                if (protectedStorageEntries.stream().noneMatch(entry -> entry.getProtectedStoragePayload() instanceof OfferPayload
+                        || entry.getProtectedStoragePayload() instanceof Arbitrator)) return;
                 ThreadUtils.execute(() -> {
-                    protectedStorageEntries.forEach(protectedStorageEntry -> {
-                        if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
-                            OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
-                            Offer offer = new Offer(offerPayload);
-                            offer.setPriceFeedService(priceFeedService);
-                            synchronized (validOffers) {
-                                try {
-                                    validateOfferPayload(offerPayload);
-                                    boolean removedSuperseded = removeSupersededOffers(offerPayload);
-                                    removeInvalidOffer(offerPayload.getId());
-                                    replaceValidOffer(offer);
-                                    announceOfferAdded(offer);
-                                    if (removedSuperseded) refreshInvalidOffers(); // removed offers can unblock invalid offers
-                                } catch (IllegalArgumentException e) {
-                                    log.warn("Ignoring illegal offer {}: {}", offerPayload.getId(), e.getMessage());
-                                } catch (Exception e) {
-                                    replaceInvalidOffer(offer); // offer can become valid later
-
-                                    // wait to log invalid offer in case it becomes valid shortly after
-                                    ThreadUtils.runAfter(() -> {
-                                        if (hasInvalidOffer(offerPayload.getId())) {
-                                            log.warn("Invalid offer added, offerId={}: {}", offerPayload.getId(), e.getMessage());
-                                        }
-                                    }, DELAY_LOG_INVALID_OFFER_SEC);
-                                }
-                            }
-                        }
-                    });
+                    Map<NodeAddress, Arbitrator> arbitrators = arbitratorManager.getVerifiedDisputeAgents();
+                    boolean newArbitrator = arbitrators.entrySet().stream()
+                            .anyMatch(entry -> !entry.getValue().equals(verifiedArbitrators.get(entry.getKey())));
+                    verifiedArbitrators = arbitrators;
+                    protectedStorageEntries.forEach(entry -> addStoredOffer(entry, arbitrators, false));
+                    // retry stored offers when their signing arbitrator arrives, even after the invalid-offer timeout
+                    if (newArbitrator) p2PService.getDataMap().values().forEach(entry -> addStoredOffer(entry, arbitrators, true));
                 }, OfferBookService.class.getSimpleName());
             }
 
             @Override
             public void onRemoved(Collection<ProtectedStorageEntry> protectedStorageEntries) {
+                if (protectedStorageEntries.stream().noneMatch(entry -> entry.getProtectedStoragePayload() instanceof OfferPayload)) return;
                 ThreadUtils.execute(() -> {
+                    Map<NodeAddress, Arbitrator> arbitrators = arbitratorManager.getVerifiedDisputeAgents();
+                    // forget removed registrations while leaving queued arrivals to trigger a rescan
+                    verifiedArbitrators = new HashMap<>(verifiedArbitrators);
+                    verifiedArbitrators.entrySet().retainAll(arbitrators.entrySet());
                     protectedStorageEntries.forEach(protectedStorageEntry -> {
                         if (protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload) {
                             OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
                             Offer offer = new Offer(offerPayload);
                             offer.setPriceFeedService(priceFeedService);
                             synchronized (validOffers) {
-                                removeValidOffer(offerPayload.getId());
-                                removeInvalidOffer(offerPayload.getId());
-                                announceOfferRemoved(offer);
-                                refreshInvalidOffers();
+                                if (validOffers.removeIf(existing -> existing.getOfferPayload().equals(offerPayload))) {
+                                    announceOfferRemoved(offer);
+                                    // a stale revision can hide the current one until it is removed
+                                    p2PService.getDataMap().values().stream()
+                                            .filter(entry -> entry.getProtectedStoragePayload() instanceof OfferPayload
+                                                    && ((OfferPayload) entry.getProtectedStoragePayload()).getId().equals(offerPayload.getId()))
+                                            .forEach(entry -> addStoredOffer(entry, arbitrators, true));
+                                }
+                                synchronized (invalidOffers) {
+                                    if (invalidOffers.stream().anyMatch(existing -> existing.getOfferPayload().equals(offerPayload))) removeInvalidOffer(offerPayload.getId());
+                                }
+                                refreshInvalidOffers(arbitrators);
                             }
                         }
                     });
                 }, OfferBookService.class.getSimpleName());
             }
         });
+
+        // retry stored offers when their signing arbitrator is unbanned
+        filterManager.filterProperty().addListener((observable, oldValue, newValue) -> ThreadUtils.execute(() -> {
+            Map<NodeAddress, Arbitrator> arbitrators = arbitratorManager.getVerifiedDisputeAgents();
+            verifiedArbitrators = arbitrators;
+            p2PService.getDataMap().values().forEach(entry -> addStoredOffer(entry, arbitrators, true));
+        }, OfferBookService.class.getSimpleName()));
 
         if (dumpStatistics) {
             p2PService.addP2PServiceListener(new BootstrapListener() {
@@ -334,6 +346,36 @@ public class OfferBookService {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    // a rescan leaves admitted offer ids alone, since stored revisions of an offer carry no order
+    private void addStoredOffer(ProtectedStorageEntry protectedStorageEntry, Map<NodeAddress, Arbitrator> arbitrators, boolean rescan) {
+        if (!(protectedStorageEntry.getProtectedStoragePayload() instanceof OfferPayload)) return;
+        OfferPayload offerPayload = (OfferPayload) protectedStorageEntry.getProtectedStoragePayload();
+        Offer offer = new Offer(offerPayload);
+        offer.setPriceFeedService(priceFeedService);
+        synchronized (validOffers) {
+            try {
+                if (rescan && hasValidOffer(offerPayload.getId())) return;
+                if (!validateOfferPayload(offerPayload, arbitrators)) return;
+                boolean removedSuperseded = removeSupersededOffers(offerPayload);
+                removeInvalidOffer(offerPayload.getId());
+                replaceValidOffer(offer);
+                announceOfferAdded(offer);
+                if (removedSuperseded) refreshInvalidOffers(arbitrators); // removed offers can unblock invalid offers
+            } catch (IllegalArgumentException e) {
+                log.warn("Ignoring illegal offer {}: {}", offerPayload.getId(), e.getMessage());
+            } catch (Exception e) {
+                replaceInvalidOffer(offer); // offer can become valid later
+
+                // wait to log invalid offer in case it becomes valid shortly after
+                ThreadUtils.runAfter(() -> {
+                    if (hasInvalidOffer(offerPayload.getId())) {
+                        log.warn("Invalid offer added, offerId={}: {}", offerPayload.getId(), e.getMessage());
+                    }
+                }, DELAY_LOG_INVALID_OFFER_SEC);
+            }
+        }
+    }
+
     private void announceOfferAdded(Offer offer) {
         xmrConnectionService.getKeyImagePoller().addKeyImages(offer.getOfferPayload().getReserveTxKeyImages(), OfferBookService.class.getSimpleName());
         updateReservedFundsSpentStatus(offer);
@@ -379,11 +421,11 @@ public class OfferBookService {
         }
     }
 
-    private void refreshInvalidOffers() {
+    private void refreshInvalidOffers(Map<NodeAddress, Arbitrator> arbitrators) {
         synchronized (invalidOffers) {
             for (Offer invalidOffer : new ArrayList<Offer>(invalidOffers)) {
                 try {
-                    validateOfferPayload(invalidOffer.getOfferPayload());
+                    if (!validateOfferPayload(invalidOffer.getOfferPayload(), arbitrators)) continue;
                     removeSupersededOffers(invalidOffer.getOfferPayload());
                     removeInvalidOffer(invalidOffer.getId());
                     replaceValidOffer(invalidOffer);
@@ -431,7 +473,21 @@ public class OfferBookService {
         }
     }
 
-    private void validateOfferPayload(OfferPayload offerPayload) {
+    private boolean validateOfferPayload(OfferPayload offerPayload, Map<NodeAddress, Arbitrator> arbitrators) {
+
+        // only arbitrator-verified offers may claim an id or reserve key images in the book
+        if (offerPayload.getArbitratorSigner() == null || offerPayload.getArbitratorSignature() == null) {
+            throw new IllegalArgumentException("Offer has no arbitrator signature");
+        }
+        Arbitrator arbitrator = arbitrators.get(offerPayload.getArbitratorSigner());
+        if (arbitrator == null) {
+            Arbitrator registered = user.getRegisteredArbitrator();
+            if (registered != null && registered.getNodeAddress().equals(offerPayload.getArbitratorSigner())) arbitrator = registered;
+        }
+        if (arbitrator == null) return false; // retried from P2P storage when the arbitrator arrives
+        if (!HavenoUtils.isArbitratorSignatureValid(offerPayload, arbitrator)) {
+            throw new IllegalArgumentException("Offer arbitrator signature is invalid");
+        }
 
         // validate offer is not banned
         if (filterManager.isOfferIdBanned(offerPayload.getId())) {
@@ -465,6 +521,9 @@ public class OfferBookService {
             int numOffersWithSharedKeyImages = 0;
             for (Offer validOffer : validOffers) {
                 OfferPayload validPayload = validOffer.getOfferPayload();
+                if (validPayload.getId().equals(offerPayload.getId()) && !validPayload.getPubKeyRing().equals(offerPayload.getPubKeyRing())) {
+                    throw new IllegalStateException("Offer id is already owned by another maker");
+                }
 
                 // validate that no offer has overlapping but different key images, unless superseded
                 if (hasConflictingKeyImages(offerPayload, validPayload) && !supersedes(offerPayload, validPayload)) {
@@ -483,6 +542,7 @@ public class OfferBookService {
             // validate max offers with same key images
             if (numOffersWithSharedKeyImages > Restrictions.getMaxOffersWithSharedFunds()) throw new RuntimeException("More than " + Restrictions.getMaxOffersWithSharedFunds() + " offers exist with same key images as new offerId=" + offerPayload.getId());
         }
+        return true;
     }
 
     // remove valid offers superseded by the given offer payload, returning true if any removed

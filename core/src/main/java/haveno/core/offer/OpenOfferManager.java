@@ -2104,6 +2104,22 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
+            // bind the key images in the signed payload to the reserve transaction claim
+            if (request.getOfferPayload().getReserveTxKeyImages() == null || request.getReserveTxKeyImages() == null
+                    || !new HashSet<>(request.getOfferPayload().getReserveTxKeyImages()).equals(new HashSet<>(request.getReserveTxKeyImages()))) {
+                errorMessage = "Offer key images do not match the reserve transaction claim for offer " + request.offerId;
+                log.warn(errorMessage);
+                return;
+            }
+
+            // do not sign a claim to another maker's published offer id
+            if (offerBookService.getOffers().stream().anyMatch(existing -> existing.getId().equals(offer.getId())
+                    && !existing.getPubKeyRing().equals(offer.getPubKeyRing()))) {
+                errorMessage = "Offer id is already owned by another maker: " + request.offerId;
+                log.warn(errorMessage);
+                return;
+            }
+
             // verify maker's reserve tx (double spend, trade fee, trade amount, mining fee)
             double makerFeePct = HavenoUtils.getMakerFeePct(request.getOfferPayload().getCounterCurrencyCode(), hasBuyerAsTakerWithoutDeposit);
             BigInteger maxTradeFee = HavenoUtils.multiply(offer.getAmount(), makerFeePct);

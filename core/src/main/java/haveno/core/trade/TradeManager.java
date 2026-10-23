@@ -353,7 +353,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
             if (arbitrator == null || !thisAddress.equals(arbitrator.getNodeAddress())) return false;
             Optional<Offer> offer = offerBookService.getOffers().stream().filter(e -> tradeId.equals(e.getId())).findFirst();
             if (offer.isEmpty() || !offer.get().getOwnerNodeAddress().equals(request.getMakerNodeAddress())) return false;
-            // book admission alone does not verify the arbitrator signature
+            // recheck the signing arbitrator before admitting the trade request
             if (offer.get().getOfferPayload().getArbitratorSignature() == null) return false;
             NodeAddress signerAddress = offer.get().getOfferPayload().getArbitratorSigner();
             Arbitrator signer = thisAddress.equals(signerAddress) ? arbitrator : user.getAcceptedArbitratorByAddress(signerAddress);
