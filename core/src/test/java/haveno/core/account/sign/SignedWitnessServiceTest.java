@@ -40,6 +40,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Base64;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -130,6 +131,65 @@ public class SignedWitnessServiceTest {
         tradeAmount1 = 1000;
         tradeAmount2 = 1001;
         tradeAmount3 = 1001;
+    }
+
+    @Test
+    public void testReencodedArbitratorSignaturesCannotCreateSignerRoots() {
+        SignedWitness original = new SignedWitness(ARBITRATOR, account1DataHash, signature1,
+                signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+        signedWitnessService.addToMap(original);
+        assertTrue(signedWitnessService.verifySignature(original));
+        byte[] headerChanged = Base64.getDecoder().decode(signature1);
+        headerChanged[0] -= 4;
+        byte[] highS = Base64.getDecoder().decode(signature1);
+        BigInteger s = new BigInteger(1, Arrays.copyOfRange(highS, 33, 65));
+        byte[] alternateS = org.bitcoinj.core.Utils.bigIntegerToBytes(ECKey.CURVE.getN().subtract(s), 32);
+        System.arraycopy(alternateS, 0, highS, 33, 32);
+        highS[0] = (byte) (27 + ((highS[0] - 27) ^ 1));
+        for (byte[] signature : List.of(Base64.getEncoder().encode(headerChanged), Base64.getEncoder().encode(highS),
+                new String(signature1, Charsets.UTF_8).replace("=", "").getBytes(Charsets.UTF_8))) {
+            SignedWitness forged = new SignedWitness(ARBITRATOR, account1DataHash, signature,
+                    signer1PubKey, witnessOwner2PubKey, date1, tradeAmount1);
+            assertFalse(signedWitnessService.verifySignature(forged));
+            signedWitnessService.addToMap(forged);
+        }
+        SignedWitness sameHash = new SignedWitness(ARBITRATOR, account1DataHash, signature1,
+                signer1PubKey, witnessOwner2PubKey, date1, tradeAmount1);
+        signedWitnessService.addToMap(sameHash);
+        SignedWitness child = new SignedWitness(TRADE, account3DataHash, signature3,
+                signer3PubKey, witnessOwner3PubKey, date3, tradeAmount3);
+        signedWitnessService.addToMap(child);
+        assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew3));
+        assertTrue(signedWitnessService.isSignedAccountAgeWitness(aew1));
+    }
+
+    @Test
+    public void testReencodedPeerSignaturesCannotCreateSigners() throws Exception {
+        signedWitnessService.addToMap(new SignedWitness(ARBITRATOR, account1DataHash, signature1,
+                signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1));
+        // DER requires a leading zero byte when the high bit of r is set, which a lenient decoder also accepts dropped
+        byte[] canonical;
+        do {
+            canonical = Sig.sign(peer1KeyPair.getPrivate(), account2DataHash);
+        } while (canonical[4] != 0);
+        byte[] reencoded = new byte[canonical.length - 1];
+        System.arraycopy(canonical, 0, reencoded, 0, 4);
+        System.arraycopy(canonical, 5, reencoded, 4, canonical.length - 5);
+        reencoded[1]--;
+        reencoded[3]--;
+        KeyPair attacker = Sig.generateKeyPair();
+        byte[] attackerPubKey = Sig.getPublicKeyBytes(attacker.getPublic());
+        SignedWitness original = new SignedWitness(TRADE, account2DataHash, canonical, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2);
+        SignedWitness replay = new SignedWitness(TRADE, account2DataHash, reencoded, signer2PubKey, attackerPubKey, date2, tradeAmount2);
+        assertFalse(Arrays.equals(original.getHash(), replay.getHash()));
+        assertTrue(signedWitnessService.verifySignature(original));
+        assertFalse(signedWitnessService.verifySignature(replay));
+        signedWitnessService.addToMap(original);
+        signedWitnessService.addToMap(replay);
+        signedWitnessService.addToMap(new SignedWitness(TRADE, account3DataHash, Sig.sign(attacker.getPrivate(), account3DataHash),
+                attackerPubKey, witnessOwner3PubKey, date3, tradeAmount3));
+        assertTrue(signedWitnessService.isSignedAccountAgeWitness(aew2));
+        assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew3));
     }
 
     @Test

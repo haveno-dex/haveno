@@ -37,6 +37,7 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.SignatureException;
@@ -44,6 +45,7 @@ import java.time.Clock;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -59,6 +61,10 @@ import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Utils;
+import org.bouncycastle.asn1.ASN1Encoding;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
 
 @Slf4j
 public class SignedWitnessService {
@@ -529,6 +535,16 @@ public class SignedWitnessService {
             String message = Utilities.encodeToHex(signedWitness.getAccountAgeWitnessHash());
             String signatureBase64 = new String(signedWitness.getSignature(), Charsets.UTF_8);
             ECKey key = ECKey.fromPublicOnly(signedWitness.getSignerPubKey());
+            // canonical encoding limits replays, but legacy signatures still leave the owner and date unbound
+            // full replay protection requires a coordinated signing-format migration
+            byte[] signature = Base64.getDecoder().decode(signatureBase64);
+            if (signature.length != 65
+                    || !Arrays.equals(Base64.getEncoder().encode(signature), signedWitness.getSignature())
+                    || signature[0] < 27 || signature[0] > 34
+                    || (((signature[0] - 27) & 4) != 0) != key.isCompressed()
+                    || new BigInteger(1, Arrays.copyOfRange(signature, 33, 65)).compareTo(ECKey.HALF_CURVE_ORDER) > 0) {
+                throw new SignatureException("Non-canonical arbitrator witness signature");
+            }
             String pubKeyHex = Utilities.encodeToHex(key.getPubKey());
             if (arbitratorManager.isPublicKeyInList(pubKeyHex)) {
                 key.verifyMessage(message, signatureBase64);
@@ -554,11 +570,18 @@ public class SignedWitnessService {
         }
         try {
             PublicKey signaturePubKey = Sig.getPublicKeyFromBytes(signedWitness.getSignerPubKey());
-            boolean isValid = Sig.verify(signaturePubKey, signedWitness.getAccountAgeWitnessHash(), signedWitness.getSignature());
+            // a re-encoded signature changes the witness hash, so only the canonical DER encoding of positive r and s
+            // may verify, since the lenient DSA decoder also accepts them without the sign byte or with padding
+            byte[] signature = signedWitness.getSignature();
+            ASN1Sequence sequence = ASN1Sequence.getInstance(ASN1Primitive.fromByteArray(signature));
+            boolean isValid = sequence.size() == 2 && Arrays.equals(signature, sequence.getEncoded(ASN1Encoding.DER))
+                    && ASN1Integer.getInstance(sequence.getObjectAt(0)).getValue().signum() > 0
+                    && ASN1Integer.getInstance(sequence.getObjectAt(1)).getValue().signum() > 0
+                    && Sig.verify(signaturePubKey, signedWitness.getAccountAgeWitnessHash(), signature);
             if (!isValid) log.warn("verifySignature signedWitness failed. signedWitness={}", signedWitness);
             verifySignatureWithDSAKeyResultCache.put(hash, isValid);
             return isValid;
-        } catch (CryptoException | RuntimeException e) {
+        } catch (CryptoException | IOException | RuntimeException e) {
             log.warn("verifySignature signedWitness failed. signedWitness={}", signedWitness);
             log.warn("Caused by ", e);
             verifySignatureWithDSAKeyResultCache.put(hash, false);
@@ -723,7 +746,7 @@ public class SignedWitnessService {
             log.warn("Ignoring signed witness with empty fields. signedWitness={}", signedWitness);
             return;
         }
-        signedWitnessMap.putIfAbsent(signedWitness.getHashAsByteArray(), signedWitness);
+        if (signedWitnessMap.putIfAbsent(signedWitness.getHashAsByteArray(), signedWitness) != null) return;
 
         P2PDataStorage.ByteArray accountAgeWitnessHash = new P2PDataStorage.ByteArray(signedWitness.getAccountAgeWitnessHash());
         signedWitnessSetByAccountAgeWitnessHash.putIfAbsent(accountAgeWitnessHash, new HashSet<>());
