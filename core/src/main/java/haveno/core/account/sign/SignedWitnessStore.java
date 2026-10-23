@@ -19,10 +19,12 @@ package haveno.core.account.sign;
 
 
 import com.google.protobuf.Message;
+import haveno.network.p2p.storage.payload.InvalidPersistableNetworkPayloadException;
 import haveno.network.p2p.storage.persistence.PersistableNetworkPayloadStore;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 
@@ -62,7 +64,18 @@ public class SignedWitnessStore extends PersistableNetworkPayloadStore<SignedWit
 
     public static SignedWitnessStore fromProto(protobuf.SignedWitnessStore proto) {
         List<SignedWitness> list = proto.getItemsList().stream()
-                .map(SignedWitness::fromProto).collect(Collectors.toList());
+                .map(SignedWitnessStore::getSignedWitnessOrNull)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         return new SignedWitnessStore(list);
+    }
+
+    private static SignedWitness getSignedWitnessOrNull(protobuf.SignedWitness proto) {
+        try {
+            return SignedWitness.fromProto(proto);
+        } catch (InvalidPersistableNetworkPayloadException e) {
+            log.warn("Ignoring invalid SignedWitness from SignedWitnessStore. {}", e.getMessage());
+            return null;
+        }
     }
 }

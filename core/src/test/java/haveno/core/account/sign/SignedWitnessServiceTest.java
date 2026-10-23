@@ -39,6 +39,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -129,6 +130,55 @@ public class SignedWitnessServiceTest {
         tradeAmount1 = 1000;
         tradeAmount2 = 1001;
         tradeAmount3 = 1001;
+    }
+
+    @Test
+    public void testMalformedArbitratorWitnessesDoNotBreakAccountEvaluation() {
+        byte[] malformedSignature = new byte[65];
+        malformedSignature[0] = 31;
+        for (SignedWitness witness : List.of(
+                new SignedWitness(ARBITRATOR, account1DataHash, signature1, new byte[0], witnessOwner1PubKey, date1, tradeAmount1),
+                new SignedWitness(ARBITRATOR, account1DataHash, Base64.getEncoder().encode(malformedSignature),
+                        signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1),
+                new SignedWitness(TRADE, account1DataHash, signature1, new byte[0], witnessOwner1PubKey, date1, tradeAmount1),
+                new SignedWitness(ARBITRATOR, new byte[0], signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1),
+                new SignedWitness(TRADE, account1DataHash, signature1, signer1PubKey, new byte[0], date1, tradeAmount1))) {
+            signedWitnessService.addToMap(witness);
+            assertFalse(signedWitnessService.isSignedByArbitrator(aew1));
+            assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew1));
+            assertFalse(signedWitnessService.verifySignature(witness));
+        }
+        SignedWitness valid = new SignedWitness(ARBITRATOR, account2DataHash,
+                arbitrator1Key.signMessage(Utilities.encodeToHex(account2DataHash)).getBytes(Charsets.UTF_8),
+                signer1PubKey, witnessOwner2PubKey, date2, tradeAmount2);
+        signedWitnessService.addToMap(valid);
+        assertTrue(signedWitnessService.isSignedByArbitrator(aew2));
+    }
+
+    @Test
+    public void testEmptySignerKeyDoesNotBreakChainEvaluation() {
+        signedWitnessService.addToMap(new SignedWitness(TRADE, account1DataHash, signature1, new byte[0], signer2PubKey, date1, tradeAmount1));
+        signedWitnessService.addToMap(new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1));
+        signedWitnessService.addToMap(new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2));
+        assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew2));
+    }
+
+    @Test
+    public void testExtremeWitnessDatesDoNotBreakChainEvaluation() {
+        signedWitnessService.addToMap(new SignedWitness(TRADE, account2DataHash, signature2,
+                signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2));
+        long signerAge = TimeUnit.DAYS.toMillis(SignedWitnessService.SIGNER_AGE_DAYS);
+        for (long date : new long[]{Long.MIN_VALUE, Long.MIN_VALUE + signerAge - 1,
+                Long.MIN_VALUE + signerAge, Long.MAX_VALUE}) {
+            SignedWitness witness = new SignedWitness(TRADE, account3DataHash, signature3,
+                    signer3PubKey, witnessOwner3PubKey, date, tradeAmount3);
+            signedWitnessService.addToMap(witness);
+            assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew3));
+            signedWitnessService.removeSignedWitness(witness);
+        }
+        signedWitnessService.addToMap(new SignedWitness(ARBITRATOR, account1DataHash, signature1,
+                signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1));
+        assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew2));
     }
 
     @Test
