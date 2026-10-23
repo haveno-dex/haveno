@@ -191,7 +191,7 @@ public class PrivateNotificationManager implements MessageListener {
             try {
                 ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(privateNotificationMessageAsHex, privateNotification.getSignatureAsBase64());
                 return true;
-            } catch (SignatureException e) {
+            } catch (SignatureException | RuntimeException e) {
                 // ignore
             }
         }

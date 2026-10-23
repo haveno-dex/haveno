@@ -52,7 +52,7 @@ public class AlertManager {
     private final ObjectProperty<Alert> alertMessageProperty = new SimpleObjectProperty<>();
     private final boolean useDevPrivilegeKeys;
 
-    // Track verified alerts by creation time so the newest wins and removal falls back to the next newest.
+    // Track verified alerts by signed creation time so the newest wins and removal falls back to the next newest.
     private final Map<Alert, Long> addedAlerts = new HashMap<>();
     private long alertMessageCreationTimeStamp = Long.MIN_VALUE;
 
@@ -127,7 +127,7 @@ public class AlertManager {
         if (protectedStoragePayload instanceof Alert) {
             Alert alert = (Alert) protectedStoragePayload;
             if (!verifySignature(alert)) return;
-            long creationTimeStamp = protectedStorageEntry.getCreationTimeStamp();
+            long creationTimeStamp = alert.getCreationTimeStamp();
             addedAlerts.merge(alert, creationTimeStamp, Math::max);
             if (creationTimeStamp > alertMessageCreationTimeStamp) setAlertMessage(alert, creationTimeStamp);
         }
@@ -196,6 +196,7 @@ public class AlertManager {
         String alertMessageAsHex = Utils.HEX.encode(alert.getMessage().getBytes(Charsets.UTF_8));
         String signatureAsBase64 = alertSigningKey.signMessage(alertMessageAsHex);
         alert.setSigAndPubKey(signatureAsBase64, keyRing.getSignatureKeyPair().getPublic());
+        alert.setCreationTimeStamp(System.currentTimeMillis());
         alert.setMetadataSignature(alertSigningKey.signMessage(alert.getMetadataSignaturePayload()));
     }
 
@@ -207,7 +208,7 @@ public class AlertManager {
             try {
                 ECKey.fromPublicOnly(HEX.decode(pubKeyAsHex)).verifyMessage(signaturePayload, signature);
                 return true;
-            } catch (SignatureException | IllegalArgumentException e) {
+            } catch (SignatureException | RuntimeException e) {
                 // ignore
             }
         }
