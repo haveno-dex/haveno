@@ -110,6 +110,7 @@ import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.proto.grpc.NotificationMessage;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -217,6 +218,17 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 public class OverlayTest {
+
+    @Test
+    public void popupLinksOnlyAcceptWebSchemes() throws Exception {
+        Res.setup();
+        A overlay = new A();
+        overlay.information("[HYPERLINK:file:///tmp/test] [HYPERLINK:smb://host/share] "
+                + "[HYPERLINK:javascript:alert(1)] [HYPERLINK:https://example.org] [HYPERLINK:http://example.org]");
+        Field field = Overlay.class.getDeclaredField("messageHyperlinks");
+        field.setAccessible(true);
+        assertEquals(List.of("https://example.org", "http://example.org"), field.get(overlay));
+    }
 
     @Test
     public void typeSafeCreation() {
