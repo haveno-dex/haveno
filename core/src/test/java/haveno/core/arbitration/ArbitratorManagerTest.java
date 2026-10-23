@@ -19,6 +19,10 @@ package haveno.core.arbitration;
 
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.crypto.Encryption;
+import haveno.common.crypto.PubKeyRing;
+import haveno.common.crypto.Sig;
+import haveno.core.filter.Filter;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
@@ -27,20 +31,31 @@ import haveno.core.user.User;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.P2PServiceListener;
+import haveno.network.p2p.storage.P2PDataStorage;
+import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import javafx.beans.property.SimpleObjectProperty;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.Utils;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -53,6 +68,64 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ArbitratorManagerTest {
+
+    @Test
+    public void testVerifiesAgentsBeforeResolvingAddressCollisions() {
+        P2PService p2PService = mock(P2PService.class);
+        FilterManager filterManager = mock(FilterManager.class);
+        ArbitratorService service = new ArbitratorService(p2PService, filterManager);
+        ECKey registrationKey = new ECKey();
+        PubKeyRing ring = new PubKeyRing(Sig.generateKeyPair().getPublic(), Encryption.generateKeyPair().getPublic());
+        NodeAddress address = new NodeAddress("arbitrator:9999");
+        String signature = registrationKey.signMessage(Utils.HEX.encode(ring.getSignaturePubKey().getEncoded()));
+        Arbitrator valid = new Arbitrator(address, ring, List.of("en"), 1,
+                registrationKey.getPubKey(), signature, null, null, null);
+        Arbitrator unlisted = new Arbitrator(address, ring, List.of("en"), 2,
+                new byte[0], signature, null, null, null);
+        byte[] invalidSignature = new byte[65];
+        invalidSignature[0] = 31;
+        Arbitrator malformed = new Arbitrator(address, ring, List.of("en"), 3,
+                registrationKey.getPubKey(), Base64.getEncoder().encodeToString(invalidSignature), null, null, null);
+        ProtectedStorageEntry validEntry = mock(ProtectedStorageEntry.class);
+        ProtectedStorageEntry unlistedEntry = mock(ProtectedStorageEntry.class);
+        ProtectedStorageEntry malformedEntry = mock(ProtectedStorageEntry.class);
+        when(validEntry.getProtectedStoragePayload()).thenReturn(valid);
+        when(unlistedEntry.getProtectedStoragePayload()).thenReturn(unlisted);
+        when(malformedEntry.getProtectedStoragePayload()).thenReturn(malformed);
+        when(p2PService.getDataMap()).thenReturn(Map.of(
+                new P2PDataStorage.ByteArray(new byte[]{1}), validEntry,
+                new P2PDataStorage.ByteArray(new byte[]{2}), unlistedEntry,
+                new P2PDataStorage.ByteArray(new byte[]{3}), malformedEntry));
+        AtomicBoolean listed = new AtomicBoolean(true);
+        AtomicInteger signatureChecks = new AtomicInteger();
+        ArbitratorManager manager = new ArbitratorManager(null, service, mock(User.class), filterManager) {
+            @Override
+            public boolean isPublicKeyInList(String pubKey) {
+                return listed.get() && pubKey.equals(Utils.HEX.encode(registrationKey.getPubKey()));
+            }
+
+            @Override
+            protected boolean verifySignature(PublicKey storageSignaturePubKey, byte[] registrationPubKey, String signature) {
+                signatureChecks.incrementAndGet();
+                return super.verifySignature(storageSignaturePubKey, registrationPubKey, signature);
+            }
+        };
+
+        assertEquals(Set.of(valid, unlisted, malformed), service.getDisputeAgentSet());
+        assertEquals(Map.of(address, valid), manager.getVerifiedDisputeAgents());
+        manager.updateMap();
+        assertEquals(Map.of(address, valid), manager.getObservableMap());
+        assertEquals(2, signatureChecks.get());
+        listed.set(false);
+        assertTrue(manager.getVerifiedDisputeAgents().isEmpty());
+        listed.set(true);
+        assertEquals(Map.of(address, valid), manager.getVerifiedDisputeAgents());
+        assertEquals(2, signatureChecks.get());
+        Filter filter = mock(Filter.class);
+        when(filter.getArbitrators()).thenReturn(List.of(address.getFullAddress()));
+        when(filterManager.getFilter()).thenReturn(filter);
+        assertTrue(manager.getVerifiedDisputeAgents().isEmpty());
+    }
 
     @Test
     public void testRepublishesAfterSlowHiddenServiceStartup() {

@@ -21,11 +21,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentService;
-import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,9 +47,5 @@ public class ArbitratorService extends DisputeAgentService<Arbitrator> {
     @Override
     protected List<String> getDisputeAgentsFromFilter() {
         return filterManager.getFilter() != null ? filterManager.getFilter().getArbitrators() : new ArrayList<>();
-    }
-
-    public Map<NodeAddress, Arbitrator> getArbitrators() {
-        return super.getDisputeAgents();
     }
 }
