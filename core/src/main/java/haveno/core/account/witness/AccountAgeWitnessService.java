@@ -83,7 +83,6 @@ import org.bitcoinj.core.Utils;
 @Slf4j
 public class AccountAgeWitnessService {
     private static final Date RELEASE = Utilities.getUTCDate(2017, GregorianCalendar.NOVEMBER, 11);
-    private static final long SAFE_ACCOUNT_AGE_DATE = Utilities.getUTCDate(2019, GregorianCalendar.MARCH, 1).getTime();
 
     public enum AccountAge {
         UNVERIFIED,
@@ -466,19 +465,13 @@ public class AccountAgeWitnessService {
     // Trade limit exceptions
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private boolean isImmature(AccountAgeWitness accountAgeWitness) {
-        return accountAgeWitness.getDate() > SAFE_ACCOUNT_AGE_DATE;
-    }
-
     public boolean myHasTradeLimitException(PaymentAccount myPaymentAccount) {
         return hasTradeLimitException(getMyWitness(myPaymentAccount.getPaymentAccountPayload()));
     }
 
-    // There are no trade limits on accounts that
-    // - are mature
-    // - were signed by an arbitrator
+    // Accounts signed by an arbitrator are exempt from the signing-age trade limits.
     private boolean hasTradeLimitException(AccountAgeWitness accountAgeWitness) {
-        return !isImmature(accountAgeWitness) || signedWitnessService.isSignedByArbitrator(accountAgeWitness);
+        return signedWitnessService.isSignedByArbitrator(accountAgeWitness);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

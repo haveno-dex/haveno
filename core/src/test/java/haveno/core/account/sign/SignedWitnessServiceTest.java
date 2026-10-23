@@ -182,6 +182,16 @@ public class SignedWitnessServiceTest {
     }
 
     @Test
+    public void testWitnessDatesComeFromChainedWitnessesOnly() throws Exception {
+        signedWitnessService.addToMap(new SignedWitness(ARBITRATOR, account1DataHash, signature1,
+                signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1));
+        KeyPair unchainedSigner = Sig.generateKeyPair();
+        signedWitnessService.addToMap(new SignedWitness(TRADE, account1DataHash, Sig.sign(unchainedSigner.getPrivate(), account1DataHash),
+                Sig.getPublicKeyBytes(unchainedSigner.getPublic()), witnessOwner1PubKey, getTodayMinusNDays(SIGN_AGE_1 + 100), tradeAmount1));
+        assertEquals(List.of(date1), signedWitnessService.getVerifiedWitnessDateList(aew1));
+    }
+
+    @Test
     public void testIsValidAccountAgeWitnessOk() {
         SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
         SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2);

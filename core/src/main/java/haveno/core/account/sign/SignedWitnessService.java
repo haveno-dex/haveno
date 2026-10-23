@@ -242,14 +242,12 @@ public class SignedWitnessService {
     /**
      * List of dates as long when accountAgeWitness was signed
      *
-     * Witnesses that were added but are no longer considered signed won't be shown
+     * Only witnesses that chain to an arbitrator are listed, so an unchained signer cannot set the sign age
      */
     public List<Long> getVerifiedWitnessDateList(AccountAgeWitness accountAgeWitness) {
-        if (!isSignedAccountAgeWitness(accountAgeWitness)) {
-            return new ArrayList<>();
-        }
+        long time = new Date().getTime() + SIGNER_AGE;
         return getSignedWitnessSet(accountAgeWitness).stream()
-                .filter(this::verifySignature)
+                .filter(signedWitness -> isValidSignerWitnessInternal(signedWitness, time, new Stack<>(), null))
                 .map(SignedWitness::getDate)
                 .sorted()
                 .collect(Collectors.toList());
