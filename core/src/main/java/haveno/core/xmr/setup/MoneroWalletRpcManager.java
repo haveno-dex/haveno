@@ -25,7 +25,17 @@ import monero.wallet.MoneroWalletRpc;
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryPermission;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +48,7 @@ import java.util.stream.Stream;
 public class MoneroWalletRpcManager {
 
     private static final String RPC_BIND_PORT_ARGUMENT = "--rpc-bind-port";
+    private static final String RPC_USERNAME = "haveno_user";
     private static int NUM_ALLOWED_ATTEMPTS = 3; // allow this many attempts to bind to an assigned port
     private Integer startPort;
     private volatile boolean isShutDownStarted;
@@ -60,13 +71,55 @@ public class MoneroWalletRpcManager {
     }
 
     /**
-     * Start a new instance of monero-wallet-rpc.
+     * Start a new instance of monero-wallet-rpc with private ephemeral credentials.
      *
      * @param cmd command line parameters to start monero-wallet-rpc
      * @return a client connected to the monero-wallet-rpc instance
      */
     public MoneroWalletRpc startInstance(List<String> cmd) {
         if (isShutDownStarted) throw new MoneroError("Cannot start monero-wallet-rpc instance because shutdown is started");
+
+        // pass credentials through an owner-only startup file, never through process arguments
+        Path rpcConfig = null;
+        try {
+            rpcConfig = Files.createTempFile("haveno-wallet-rpc-", ".conf");
+            if (Files.getFileStore(rpcConfig).supportsFileAttributeView("posix")) {
+                Files.setPosixFilePermissions(rpcConfig, PosixFilePermissions.fromString("rw-------"));
+            } else {
+                AclFileAttributeView acl = Files.getFileAttributeView(rpcConfig, AclFileAttributeView.class);
+                if (acl == null) throw new IOException("Cannot restrict wallet RPC credential file permissions");
+                acl.setAcl(List.of(AclEntry.newBuilder().setType(AclEntryType.ALLOW)
+                        .setPrincipal(Files.getOwner(rpcConfig)).setPermissions(EnumSet.allOf(AclEntryPermission.class)).build()));
+            }
+            byte[] secret = new byte[32];
+            new SecureRandom().nextBytes(secret);
+            String password = Utilities.encodeToHex(secret);
+            Files.writeString(rpcConfig, "rpc-login=" + RPC_USERNAME + ":" + password + "\n", StandardCharsets.UTF_8);
+            cmd = new ArrayList<>(cmd);
+            cmd.add("--config-file");
+            cmd.add(rpcConfig.toString());
+            MoneroWalletRpc walletRpc = startInstanceInternal(cmd);
+            try {
+                walletRpc.getRpcConnection().setCredentials(RPC_USERNAME, password);
+                return walletRpc;
+            } catch (RuntimeException e) {
+                stopInstance(walletRpc, null, true);
+                throw e;
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not configure wallet RPC authentication", e);
+        } finally {
+            if (rpcConfig != null) {
+                try {
+                    Files.deleteIfExists(rpcConfig);
+                } catch (IOException e) {
+                    log.warn("Could not delete wallet RPC credential file {}", rpcConfig, e);
+                }
+            }
+        }
+    }
+
+    private MoneroWalletRpc startInstanceInternal(List<String> cmd) {
         try {
 
             // register given port

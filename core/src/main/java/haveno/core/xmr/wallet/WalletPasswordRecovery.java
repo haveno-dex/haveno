@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroNetworkType;
 import monero.wallet.MoneroWallet;
@@ -224,7 +223,7 @@ public final class WalletPasswordRecovery implements AutoCloseable {
             Path recoveryDir = Files.createDirectories(walletDir.resolve(".password-recovery"));
             scratch = Files.createTempDirectory(recoveryDir, "rpc-");
             List<String> command = new ArrayList<>(List.of(binary.toAbsolutePath().toString(), "--offline", "--rpc-bind-ip", "127.0.0.1",
-                    "--rpc-login", "recovery:" + UUID.randomUUID(), "--wallet-dir", scratch.toString()));
+                    "--wallet-dir", scratch.toString()));
             if (network != MoneroNetworkType.MAINNET) command.add(network == MoneroNetworkType.TESTNET ? "--testnet" : "--stagenet");
             rpcSession = new RecoveryRpc(command);
         }

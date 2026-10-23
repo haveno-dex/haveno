@@ -129,8 +129,6 @@ public class XmrWalletService extends XmrWalletBase {
     public static final int MONERO_LOG_LEVEL = -1; // monero library log level, -1 to disable
     private static final MoneroNetworkType MONERO_NETWORK_TYPE = getMoneroNetworkType();
     private static final MoneroWalletRpcManager MONERO_WALLET_RPC_MANAGER = new MoneroWalletRpcManager();
-    private static final String MONERO_WALLET_RPC_USERNAME = "haveno_user";
-    private static final String MONERO_WALLET_RPC_DEFAULT_PASSWORD = "password"; // only used if account password is null
     private static final String MONERO_WALLET_NAME = "haveno_XMR";
     private static final String RESTORE_HEIGHT_ATTRIBUTE = "haveno.restoreHeight";
     private static final String KEYS_FILE_POSTFIX = ".keys";
@@ -2251,8 +2249,7 @@ public class XmrWalletService extends XmrWalletBase {
         // build command to start monero-wallet-rpc
         List<String> cmd = new ArrayList<>(Arrays.asList( // modifiable list
                 getMoneroWalletRpcPath(),
-                "--rpc-login",
-                MONERO_WALLET_RPC_USERNAME + ":" + MONERO_WALLET_RPC_DEFAULT_PASSWORD,
+                "--rpc-bind-ip", "127.0.0.1",
                 "--wallet-dir", walletDir.getAbsolutePath()));
 
         // omit --mainnet flag since it does not exist

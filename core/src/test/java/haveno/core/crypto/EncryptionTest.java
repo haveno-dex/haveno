@@ -82,6 +82,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.StandardCopyOption;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -257,6 +258,85 @@ public class EncryptionTest {
         assertEquals("# trusted torrc", Files.readString(torrc));
         assertEquals("restored", Files.readString(restoreDir.resolve("logs/haveno.backup.log")));
         assertEquals("restored", Files.readString(networkDir.resolve("keys/key")));
+    }
+
+    @Test
+    public void testWalletRpcStartupUsesPrivateEphemeralCredentials() throws Exception {
+        Path binary = Files.createFile(dir.toPath().resolve(XmrWalletService.MONERO_WALLET_RPC_NAME));
+        Field binaries = XmrWalletService.class.getDeclaredField("moneroBinsDir");
+        binaries.setAccessible(true);
+        Object previous = binaries.get(null);
+        binaries.set(null, dir.toString());
+        XmrWalletService service = walletService(account(null));
+        Method start = XmrWalletService.class.getDeclaredMethod("startWalletRpcInstance", Integer.class, MoneroRpcConnection.class);
+        start.setAccessible(true);
+        List<Path> configs = new ArrayList<>();
+        List<String> passwords = new ArrayList<>();
+        boolean[] failStartup = {false};
+        Field managerField = XmrWalletService.class.getDeclaredField("MONERO_WALLET_RPC_MANAGER");
+        managerField.setAccessible(true);
+        MoneroWalletRpcManager manager = (MoneroWalletRpcManager) managerField.get(null);
+        manager.onStartUp();
+        try (var wallets = mockConstruction(MoneroWalletRpc.class, (rpc, context) -> {
+            @SuppressWarnings("unchecked")
+            List<String> command = (List<String>) context.arguments().get(0);
+            assertEquals(binary.toString(), command.get(0));
+            assertFalse(command.contains("--rpc-login"));
+            assertEquals("127.0.0.1", command.get(command.indexOf("--rpc-bind-ip") + 1));
+            Path config = Path.of(command.get(command.indexOf("--config-file") + 1));
+            configs.add(config);
+            if (failStartup[0]) throw new MoneroError("startup failed");
+            if (Files.getFileStore(config).supportsFileAttributeView("posix")) {
+                assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(config));
+            }
+            String password = Files.readString(config).strip().split(":", 2)[1];
+            passwords.add(password);
+            assertEquals(64, password.length());
+            assertFalse(command.stream().anyMatch(arg -> arg.contains(password)));
+            doReturn(new MoneroRpcConnection("http://127.0.0.1:" + command.get(command.indexOf("--rpc-bind-port") + 1)))
+                    .when(rpc).getRpcConnection();
+        })) {
+            for (int i = 0; i < 2; i++) {
+                MoneroWalletRpc rpc = (MoneroWalletRpc) start.invoke(service, null, null);
+                assertEquals(passwords.get(i), rpc.getRpcConnection().getPassword());
+                assertFalse(Files.exists(configs.get(i)));
+                manager.stopInstance(rpc, null, true);
+            }
+            assertFalse(passwords.get(0).equals(passwords.get(1)));
+            failStartup[0] = true;
+            assertThrows(InvocationTargetException.class, () -> start.invoke(service, 19191, null));
+            assertEquals(3, configs.size());
+            assertFalse(Files.exists(configs.get(2)));
+        } finally {
+            binaries.set(null, previous);
+        }
+    }
+
+    @Test
+    public void testBundledWalletRpcRejectsPublicPassword() throws Exception {
+        Path binary = Path.of("src/main/resources/bin", XmrWalletService.MONERO_WALLET_RPC_NAME).toAbsolutePath();
+        Assumptions.assumeTrue(Files.isExecutable(binary));
+        Field binaries = XmrWalletService.class.getDeclaredField("moneroBinsDir");
+        binaries.setAccessible(true);
+        Object previous = binaries.get(null);
+        binaries.set(null, binary.getParent().toString());
+        MoneroWalletRpc rpc = null;
+        Field managerField = XmrWalletService.class.getDeclaredField("MONERO_WALLET_RPC_MANAGER");
+        managerField.setAccessible(true);
+        MoneroWalletRpcManager manager = (MoneroWalletRpcManager) managerField.get(null);
+        manager.onStartUp();
+        try {
+            XmrWalletService service = walletService(account(null));
+            Method start = XmrWalletService.class.getDeclaredMethod("startWalletRpcInstance", Integer.class, MoneroRpcConnection.class);
+            start.setAccessible(true);
+            rpc = (MoneroWalletRpc) start.invoke(service, null, null);
+            assertTrue(rpc.getVersion().getNumber() > 0);
+            MoneroWalletRpc unauthorized = new MoneroWalletRpc(rpc.getRpcConnection().getUri(), "haveno_user", "password");
+            assertThrows(MoneroError.class, unauthorized::getVersion);
+        } finally {
+            if (rpc != null) manager.stopInstance(rpc, null, true);
+            binaries.set(null, previous);
+        }
     }
 
     @Test
@@ -2096,7 +2176,7 @@ public class EncryptionTest {
         XmrWalletService service = walletService(account(null));
         MoneroWalletRpcManager manager = new MoneroWalletRpcManager();
         MoneroWalletRpc rpc = manager.startInstance(List.of(binary.toString(), "--offline", "--rpc-bind-ip", "127.0.0.1",
-                "--rpc-login", "test:test", "--wallet-dir", walletDir.getAbsolutePath()));
+                "--wallet-dir", walletDir.getAbsolutePath()));
         List<MoneroWalletFull> peers = new ArrayList<>();
         try {
             rpc.createWallet(new MoneroWalletConfig().setPath("trade").setPassword("password"));
@@ -3095,6 +3175,7 @@ public class EncryptionTest {
         try (var managers = mockConstruction(MoneroWalletRpcManager.class, (manager, context) -> {
             doAnswer(invocation -> {
                 List<String> command = invocation.getArgument(0);
+                assertFalse(command.contains("--rpc-login"));
                 scratch.set(Path.of(command.get(command.indexOf("--wallet-dir") + 1)));
                 if (starts.incrementAndGet() == 1) return first;
                 verify(manager).stopInstance(first, null, true);
