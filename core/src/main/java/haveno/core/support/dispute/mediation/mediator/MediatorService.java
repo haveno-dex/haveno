@@ -21,11 +21,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.core.filter.FilterManager;
 import haveno.core.support.dispute.agent.DisputeAgentService;
-import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -53,9 +51,5 @@ public class MediatorService extends DisputeAgentService<Mediator> {
     @Override
     protected List<String> getDisputeAgentsFromFilter() {
         return filterManager.getFilter() != null ? filterManager.getFilter().getMediators() : new ArrayList<>();
-    }
-
-    public Map<NodeAddress, Mediator> getMediators() {
-        return super.getDisputeAgents();
     }
 }

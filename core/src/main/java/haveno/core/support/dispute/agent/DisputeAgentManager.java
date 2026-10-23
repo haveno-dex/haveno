@@ -17,6 +17,8 @@
 
 package haveno.core.support.dispute.agent;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
@@ -30,6 +32,7 @@ import haveno.network.p2p.BootstrapListener;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.HashMapChangedListener;
+import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
@@ -77,6 +80,7 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     protected List<T> persistedAcceptedDisputeAgents;
     protected Timer republishTimer, retryRepublishTimer;
     private BootstrapListener bootstrapListener;
+    private final Cache<P2PDataStorage.ByteArray, Boolean> registrationSignatureCache = CacheBuilder.newBuilder().maximumSize(1000).build();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -197,29 +201,35 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
 
     // Registered dispute agents with a listed registration key and a valid signature, leaving the user's accepted list untouched.
     public Map<NodeAddress, T> getVerifiedDisputeAgents() {
-        return disputeAgentService.getDisputeAgents().values().stream()
+        return disputeAgentService.getDisputeAgentSet().stream()
                 .filter(e -> {
                     String pubKeyAsHex = Utils.HEX.encode(e.getRegistrationPubKey());
                     boolean isInPublicKeyInList = isPublicKeyInList(pubKeyAsHex);
                     if (!isInPublicKeyInList) {
                         if (DevEnv.DEV_PRIVILEGE_PUB_KEY.equals(pubKeyAsHex))
-                            log.info("We got the DEV_PRIVILEGE_PUB_KEY in our list of publicKeys. RegistrationPubKey={}, nodeAddress={}",
+                            log.debug("We got the DEV_PRIVILEGE_PUB_KEY in our list of publicKeys. RegistrationPubKey={}, nodeAddress={}",
                                     Utilities.bytesAsHexString(e.getRegistrationPubKey()),
                                     e.getNodeAddress().getFullAddress());
                         else
-                            log.warn("We got an disputeAgent which is not in our list of publicKeys. RegistrationPubKey={}, nodeAddress={}",
+                            log.debug("We got an disputeAgent which is not in our list of publicKeys. RegistrationPubKey={}, nodeAddress={}",
                                     Utilities.bytesAsHexString(e.getRegistrationPubKey()),
                                     e.getNodeAddress().getFullAddress());
+                        return false;
                     }
-                    final boolean isSigValid = verifySignature(e.getPubKeyRing().getSignaturePubKey(),
-                            e.getRegistrationPubKey(),
-                            e.getRegistrationSignature());
-                    if (!isSigValid)
-                        log.warn("Sig check for disputeAgent failed. DisputeAgent={}", e.toString());
+                    // Cache only the signature result; registration trust and address bans are checked on every lookup.
+                    P2PDataStorage.ByteArray hash = P2PDataStorage.get32ByteHashAsByteArray(e);
+                    Boolean isSigValid = registrationSignatureCache.getIfPresent(hash);
+                    if (isSigValid == null) {
+                        isSigValid = verifySignature(e.getPubKeyRing().getSignaturePubKey(),
+                                e.getRegistrationPubKey(), e.getRegistrationSignature());
+                        registrationSignatureCache.put(hash, isSigValid);
+                        if (!isSigValid) log.warn("Sig check for disputeAgent failed. DisputeAgent={}", e.toString());
+                    }
 
-                    return isInPublicKeyInList && isSigValid;
+                    return isSigValid;
                 })
-                .collect(Collectors.toMap(DisputeAgent::getNodeAddress, Function.identity()));
+                .collect(Collectors.toMap(DisputeAgent::getNodeAddress, Function.identity(),
+                        (a, b) -> a.getRegistrationDate() >= b.getRegistrationDate() ? a : b));
     }
 
 
@@ -326,7 +336,7 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
             ECKey key = ECKey.fromPublicOnly(registrationPubKey);
             key.verifyMessage(keyToSignAsHex, signature);
             return true;
-        } catch (SignatureException e) {
+        } catch (SignatureException | RuntimeException e) {
             log.warn("verifySignature failed");
             return false;
         }
