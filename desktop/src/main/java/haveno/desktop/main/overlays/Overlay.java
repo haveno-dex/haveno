@@ -1276,7 +1276,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             for (int i = 0; i < messageHyperlinks.size(); i++) {
                 Label label = new Label(String.format("[%d]", i + 1));
                 Hyperlink link = new Hyperlink(messageHyperlinks.get(i));
-                link.setOnAction(event -> GUIUtil.openWebPageNoPopup(link.getText()));
+                link.setOnAction(event -> GUIUtil.openWebPage(link.getText(), false));
                 footerBox.getChildren().addAll(new HBox(label, link));
             }
         }
@@ -1430,7 +1430,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     // referenced in order from within the message via [1], [2] etc.
     // e.g. [HYPERLINK:https://haveno.exchange/wiki]
     private void preProcessMessage(String message) {
-        Pattern pattern = Pattern.compile("\\[HYPERLINK:(.*?)\\]");
+        Pattern pattern = Pattern.compile("\\[HYPERLINK:(https?://[^\\s\\]]+)\\]");
         Matcher matcher = pattern.matcher(message);
         String work = message;
         while (matcher.find()) {  // extract hyperlinks & store in array
