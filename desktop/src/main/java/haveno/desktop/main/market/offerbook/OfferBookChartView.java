@@ -671,7 +671,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
     private Tuple4<TableView<OfferListItem>, VBox, Button, Label> getOfferTable(OfferDirection direction) {
         TableView<OfferListItem> tableView = new TableView<>();
-        GUIUtil.applyTableStyle(tableView);
+        GUIUtil.applyTableStyle(tableView, false);
+        GUIUtil.applyRoundedBottomArc(tableView); // the card's title bar above keeps the header corners square
         tableView.setMinHeight(initialOfferTableViewHeight);
         tableView.setPrefHeight(initialOfferTableViewHeight);
         tableView.setMinWidth(480);
