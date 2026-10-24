@@ -1571,13 +1571,23 @@ public class GUIUtil {
     }
 
     public static void applyRoundedArc(Region region) {
+        applyRoundedArc(region, 0);
+    }
+
+    // rounds only the bottom corners by extending the clip above the region's top edge
+    public static void applyRoundedBottomArc(Region region) {
+        applyRoundedArc(region, Layout.ROUNDED_ARC);
+    }
+
+    private static void applyRoundedArc(Region region, double topOverhang) {
         Rectangle clip = new Rectangle();
         clip.setArcWidth(Layout.ROUNDED_ARC);
         clip.setArcHeight(Layout.ROUNDED_ARC);
+        clip.setY(-topOverhang);
         region.setClip(clip);
         region.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
             clip.setWidth(newVal.getWidth());
-            clip.setHeight(newVal.getHeight());
+            clip.setHeight(newVal.getHeight() + topOverhang);
         });
     }
 
