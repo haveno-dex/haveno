@@ -2910,7 +2910,7 @@ textfield */
 
 .jfx-tab-pane .headers-region .tab-selected-line {
     -fx-background-color: -fx-accent;
-    -fx-pref-height: 1;
+    -fx-pref-height: 1.5;
 }
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
