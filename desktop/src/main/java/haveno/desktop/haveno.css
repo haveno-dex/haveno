@@ -1296,8 +1296,8 @@ tree-table-view:focused {
 .nav-secondary-button {
     -fx-cursor: hand;
     -fx-background-color: transparent;
-    -fx-padding: 8 2 8 2;
-    -fx-border-insets: 0 12 1 12;
+    -fx-padding: 8 0 8 0;
+    -fx-border-insets: 0 14 1 14; /* doubles as the side padding so the underline spans only the icon and text */
     -fx-border-color: transparent;
     -fx-border-width: 0 0 1px 0;
 }
@@ -2908,9 +2908,9 @@ textfield */
     -fx-translate-x: 15;
 }
 
+/* the skin scales its selected line to the full tab width, so the selected label underlines its own text instead */
 .jfx-tab-pane .headers-region .tab-selected-line {
-    -fx-background-color: -fx-accent;
-    -fx-pref-height: 1;
+    visibility: hidden;
 }
 
 .jfx-tab-pane .headers-region .tab .tab-container .tab-label {
@@ -2936,8 +2936,14 @@ textfield */
     -fx-effect: none;
 }
 
+/* the border insets replace the side padding and the bottom padding yields 1px to the underline,
+   so the selected label keeps the shared size while the line spans only its text */
 .jfx-tab-pane .headers-region .tab:selected .tab-container .tab-label {
     -fx-text-fill: -fx-accent;
+    -fx-padding: 8 0 7 0;
+    -fx-border-color: transparent transparent -fx-accent transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-insets: 0 14 0 14;
 }
 
 .jfx-tab-pane .headers-region > .tab > .jfx-rippler {
@@ -2955,6 +2961,11 @@ textfield */
 
 .jfx-tab-pane .headers-region .tab:closable .tab-container .tab-label {
     -fx-padding: 8 5 8 14;
+}
+
+.jfx-tab-pane .headers-region .tab:closable:selected .tab-container .tab-label {
+    -fx-padding: 8 0 7 0;
+    -fx-border-insets: 0 5 0 14;
 }
 
 #form-header-text {
