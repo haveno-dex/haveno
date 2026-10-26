@@ -414,6 +414,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     @Setter
     private long takeOfferDate;
+    @Getter
+    private long paymentSentDate; // local time payment was first marked sent, 0 if unknown
+    @Getter
+    private long paymentReceivedDate; // local time payment was first marked received, 0 if unknown
 
     // Initialization
     private static final int TOTAL_INIT_STEPS = 24; // total estimated steps
@@ -2486,6 +2490,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             String message = "We got a state change to a previous phase for " + getClass().getSimpleName() + " " + getShortId() + "\n" +
                     "Old state is: " + this.state + ". New state is: " + state;
             log.warn(message);
+        }
+
+        // record when payment is first marked sent or received, excluding persisted state applied over the initial state
+        if (this.state != State.PREPARATION && state.getPhase().ordinal() > this.state.getPhase().ordinal()) {
+            if (state.getPhase() == Phase.PAYMENT_SENT && paymentSentDate == 0) paymentSentDate = System.currentTimeMillis();
+            if (state.getPhase() == Phase.PAYMENT_RECEIVED && paymentReceivedDate == 0) paymentReceivedDate = System.currentTimeMillis();
         }
 
         this.state = state;
@@ -4602,6 +4612,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         protobuf.Trade.Builder builder = protobuf.Trade.newBuilder()
                 .setOffer(offer.toProtoMessage())
                 .setTakeOfferDate(takeOfferDate)
+                .setPaymentSentDate(paymentSentDate)
+                .setPaymentReceivedDate(paymentReceivedDate)
                 .setProcessModel(processModel.toProtoMessage())
                 .setAmount(amount)
                 .setPrice(price)
@@ -4641,6 +4653,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     public static Trade fromProto(Trade trade, protobuf.Trade proto, CoreProtoResolver coreProtoResolver) {
         trade.setTakeOfferDate(proto.getTakeOfferDate());
+        trade.paymentSentDate = proto.getPaymentSentDate();
+        trade.paymentReceivedDate = proto.getPaymentReceivedDate();
         trade.setState(State.fromProto(proto.getState()));
         trade.setPayoutState(PayoutState.fromProto(proto.getPayoutState()));
         trade.setDisputeState(DisputeState.fromProto(proto.getDisputeState()));
