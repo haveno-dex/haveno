@@ -714,7 +714,7 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                         DisputeResult storedResult = dispute.getDisputeResultProperty().get();
                         if (trade.isArbitrator() && storedResult != null && storedResult.getChatMessage() != null && sender.getPubKeyRing().equals(dispute.getTraderPubKeyRing())) {
                             processedDisputeOpenedMessageUids.add(message.getUid()); // a redelivery acks without resending again
-                            if (message.getOpenerUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex());
+                            if (message.getOpenerUpdatedMultisigHex() != null) sender.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex(), true);
                             closeDisputeTicket(storedResult, dispute, storedResult.getChatMessage().getMessage(), () -> {},
                                     (errMessage, err) -> log.warn("Failed to resend DisputeClosedMessage for trade {}: {}", trade.getId(), errMessage));
                         }
@@ -751,13 +751,13 @@ public abstract class DisputeManager<T extends DisputeList<Dispute>> extends Sup
                     // arbitrator verifies signature of payment sent message if given
                     if (trade.isArbitrator() && message.getPaymentSentMessage() != null) {
                         HavenoUtils.verifyPaymentSentMessage(trade, message.getPaymentSentMessage());
-                        trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
+                        trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex(), true);
                         trade.setStateIfValidTransitionTo(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG);
                     }
 
                     // update opener's multisig hex
                     TradePeer opener = sender == trade.getArbitrator() ? trade.getTradePeer() : sender;
-                    if (message.getOpenerUpdatedMultisigHex() != null) opener.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex());
+                    if (message.getOpenerUpdatedMultisigHex() != null) opener.setUpdatedMultisigHex(message.getOpenerUpdatedMultisigHex(), true);
 
                     // TODO: peer needs to import multisig hex at some point
                     // TODO: DisputeOpenedMessage should include arbitrator's updated multisig hex too

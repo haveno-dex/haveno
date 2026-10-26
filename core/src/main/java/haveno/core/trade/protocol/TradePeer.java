@@ -171,6 +171,12 @@ public final class TradePeer implements PersistablePayload {
     public TradePeer() {
     }
 
+    // clearStalePayoutTx drops a payout tx created for this peer from a previous export, which a changed export cannot sign
+    public void setUpdatedMultisigHex(@Nullable String updatedMultisigHex, boolean clearStalePayoutTx) {
+        if (clearStalePayoutTx && updatedMultisigHex != null && !updatedMultisigHex.equals(this.updatedMultisigHex)) unsignedPayoutTxHex = null;
+        this.updatedMultisigHex = updatedMultisigHex;
+    }
+
     public void applyTransient(TradeManager tradeManager) {
         this.tradeManager = tradeManager;
 

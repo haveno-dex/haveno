@@ -693,7 +693,7 @@ public class HavenoUtils {
         return t != null && t.getMessage() != null && t.getMessage().contains("Failed to parse");
     }
 
-    private static boolean isStaleData(Throwable t) {
+    public static boolean isStaleData(Throwable t) {
         return t != null && t.getMessage() != null && t.getMessage().contains("stale data");
     }
 
