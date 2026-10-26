@@ -60,11 +60,15 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.messages.SupportMessage;
 import haveno.core.trade.ClosedTradableManager;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.SellerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.Trade.DisputeState;
+import haveno.core.trade.protocol.TradePeer;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.xmr.wallet.TradeWalletService;
 import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
@@ -78,6 +82,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -89,6 +94,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeList> {
 
     private Map<String, Integer> reprocessDisputeClosedMessageCounts = new HashMap<>();
+    private Map<String, Set<String>> disputeClosedMessageNackUids = new ConcurrentHashMap<>();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -505,11 +511,30 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
                             if (HavenoUtils.isIllegal(e)) {
                                 trade.setPayoutTxHex(null); // clear signed payout tx hex
                                 clearPendingDisputeClosedMessage(trade, disputeClosedMessage); // message is processed
-                                trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
-                                String warningMsg = "Error processing dispute closed message: " +  e.getMessage() + "\n\nOpen another dispute to try again (ctrl+o).";
-                                trade.prependErrorMessage(warningMsg);
-                                sendAckMessage(chatMessage, dispute.getAgentPubKeyRing(), false, e.getMessage());
-                                HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
+
+                                // nack with fresh multisig data when the payout tx was built from a stale export, so the arbitrator rebuilds and resends it
+                                String updatedMultisigHex = null;
+                                if (HavenoUtils.isStaleData(e) && !trade.isPayoutPublished()) {
+                                    try {
+                                        trade.exportMultisigHex();
+                                        if (trade instanceof SellerTrade) {
+                                            trade.getProcessModel().setPaymentSentPayoutTxStale(true); // exporting multisig hex will invalidate previously unsigned payout txs
+                                            trade.getSelf().setUnsignedPayoutTxHex(null);
+                                        }
+                                        updatedMultisigHex = trade.getSelf().getUpdatedMultisigHex();
+                                    } catch (Exception e2) {
+                                        log.warn("Failed to export multisig hex to nack DisputeClosedMessage for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e2.getMessage());
+                                    }
+                                }
+                                if (updatedMultisigHex == null) {
+                                    trade.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                                    String warningMsg = "Error processing dispute closed message: " +  e.getMessage() + "\n\nOpen another dispute to try again (ctrl+o).";
+                                    trade.prependErrorMessage(warningMsg);
+                                    HavenoUtils.havenoSetup.getTopErrorMsg().set(warningMsg);
+                                } else {
+                                    log.warn("Nacking DisputeClosedMessage with fresh multisig hex so the arbitrator rebuilds the payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId()); // stay open and quiet, the rebuilt ruling is reprocessed
+                                }
+                                sendAckMessage(chatMessage.getSenderNodeAddress(), chatMessage, dispute.getAgentPubKeyRing(), false, e.getMessage(), updatedMultisigHex);
                                 requestPersistence(trade);
                                 throw e;
                             }
@@ -597,6 +622,38 @@ public final class ArbitrationManager extends DisputeManager<ArbitrationDisputeL
         trade.advanceDisputeState(Trade.DisputeState.DISPUTE_OPENED);
         requestPersistence(trade);
         return dispute;
+    }
+
+    // rebuild the dispute payout tx from the trader's fresh multisig export and resend the ruling
+    @Override
+    protected void onDisputeClosedMessageNack(Trade trade, Dispute dispute, TradePeer sender, AckMessage ackMessage) {
+        if (ackMessage.getUpdatedMultisigHex() == null || !sender.getPubKeyRing().equals(dispute.getTraderPubKeyRing())) return;
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
+
+                // ignore nacks for an old ruling, a re-opened dispute, or a published payout
+                DisputeResult disputeResult = dispute.getDisputeResultProperty().get();
+                if (trade.isPayoutPublished() || !dispute.isClosed() || disputeResult == null || disputeResult.getChatMessage() == null
+                        || !disputeResult.getChatMessage().getUid().equals(ackMessage.getSourceUid())) return;
+
+                // count each nack once per ruling, so redelivery cannot restore old data or exhaust the retries
+                Set<String> nackUids = disputeClosedMessageNackUids.computeIfAbsent(ackMessage.getSourceUid(), uid -> new HashSet<>());
+                if (nackUids.size() > TradeProtocol.MAX_ATTEMPTS || !nackUids.add(ackMessage.getUid())) return;
+
+                // retain one final export at the retry limit, then stop accepting nacks until a new ruling
+                sender.setUpdatedMultisigHex(ackMessage.getUpdatedMultisigHex(), true);
+                requestPersistence(trade);
+
+                // resend the current ruling within the retry limit
+                if (nackUids.size() > TradeProtocol.MAX_ATTEMPTS) {
+                    log.warn("Not resending DisputeClosedMessage for trade {} after {} nacks with updated multisig hex", trade.getId(), nackUids.size() - 1);
+                    return;
+                }
+                log.info("Arbitrator resending DisputeClosedMessage for trade {} after nack with updated multisig hex", trade.getId());
+                closeDisputeTicket(disputeResult, dispute, disputeResult.getChatMessage().getMessage(), () -> {},
+                        (errMessage, err) -> log.warn("Failed to resend DisputeClosedMessage for trade {}: {}", trade.getId(), errMessage));
+            }
+        }, trade.getId());
     }
 
     public void maybeReprocessDisputeClosedMessage(Trade trade, boolean reprocessOnError) {

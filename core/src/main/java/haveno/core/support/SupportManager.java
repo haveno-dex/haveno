@@ -267,6 +267,13 @@ public abstract class SupportManager {
                                         log.warn("DisputeOpenedMessage was nacked. We close the dispute now. tradeId={}, nack sender={}", trade.getId(), ackMessage.getSenderNodeAddress());
                                         dispute.setIsClosed();
                                         trade.advanceDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+                                    } else if (trade.isArbitrator()) {
+                                        TradePeer sender = trade.getVerifiedTradePeer(decryptedMessageWithPubKey);
+                                        if (sender == null) {
+                                            log.warn("Received AckMessage from unknown peer {} for {} with tradeId={}, uid={}", ackMessage.getSenderNodeAddress(), ackMessage.getSourceMsgClassName(), ackMessage.getSourceId(), ackMessage.getSourceUid());
+                                            return;
+                                        }
+                                        onDisputeClosedMessageNack(trade, dispute, sender, ackMessage);
                                     }
                                 }
                             }
@@ -293,6 +300,10 @@ public abstract class SupportManager {
     }
 
     protected abstract AckMessageSourceType getAckMessageSourceType();
+
+    // called on the arbitrator when a trader nacks the chat message of a DisputeClosedMessage
+    protected void onDisputeClosedMessageNack(Trade trade, Dispute dispute, TradePeer sender, AckMessage ackMessage) {
+    }
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -350,6 +361,11 @@ public abstract class SupportManager {
 
     protected void sendAckMessage(NodeAddress peersNodeAddress, SupportMessage supportMessage, PubKeyRing peersPubKeyRing,
                                   boolean result, @Nullable String errorMessage) {
+        sendAckMessage(peersNodeAddress, supportMessage, peersPubKeyRing, result, errorMessage, null);
+    }
+
+    protected void sendAckMessage(NodeAddress peersNodeAddress, SupportMessage supportMessage, PubKeyRing peersPubKeyRing,
+                                  boolean result, @Nullable String errorMessage, @Nullable String updatedMultisigHex) {
         String tradeId = supportMessage.getTradeId();
         String uid = supportMessage.getUid();
         AckMessage ackMessage = new AckMessage(p2PService.getNetworkNode().getNodeAddress(),
@@ -358,7 +374,8 @@ public abstract class SupportManager {
                 uid,
                 tradeId,
                 result,
-                errorMessage);
+                errorMessage,
+                updatedMultisigHex);
         log.info("Send AckMessage for {} to peer {}. tradeId={}, uid={}",
                 ackMessage.getSourceMsgClassName(), peersNodeAddress, tradeId, uid);
         mailboxMessageService.sendEncryptedMailboxMessage(

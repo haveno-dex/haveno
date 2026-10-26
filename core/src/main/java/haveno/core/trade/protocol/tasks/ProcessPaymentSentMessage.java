@@ -47,7 +47,7 @@ public class ProcessPaymentSentMessage extends TradeTask {
             trade.requestPersistence();
 
             // update state from message
-            trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+            trade.getBuyer().setUpdatedMultisigHex(message.getUpdatedMultisigHex(), true);
             trade.getSeller().setAccountAgeWitness(message.getSellerAccountAgeWitness());
             String counterCurrencyTxId = message.getCounterCurrencyTxId();
             if (counterCurrencyTxId != null && counterCurrencyTxId.length() < 100) trade.setCounterCurrencyTxId(counterCurrencyTxId);

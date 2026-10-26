@@ -1,5 +1,6 @@
 package haveno.core.support.dispute;
 
+import haveno.common.ThreadUtils;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
@@ -8,12 +9,21 @@ import haveno.common.file.FileUtil;
 import haveno.common.util.Utilities;
 import haveno.core.api.CoreDisputesService;
 import haveno.core.support.SupportType;
+import haveno.core.support.dispute.arbitration.ArbitrationDisputeListService;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.TradePeer;
+import haveno.core.trade.protocol.TradeProtocol;
+import haveno.network.p2p.AckMessage;
+import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.mailbox.MailboxMessageService;
+import javafx.beans.property.SimpleObjectProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,15 +31,24 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DisputeClosedMessageBindingTest {
@@ -151,6 +170,184 @@ public class DisputeClosedMessageBindingTest {
         DisputeResult result = customAward(0, true, DisputeResult.Winner.BUYER, 1300);
         assertEquals(BigInteger.valueOf(1300), result.getBuyerPayoutAmountBeforeCost());
         assertEquals(BigInteger.valueOf(700), result.getSellerPayoutAmountBeforeCost());
+    }
+
+    @Test
+    public void changedHexClearsStalePayoutTx() {
+        TradePeer peer = new TradePeer();
+        peer.setUpdatedMultisigHex("export1");
+        peer.setUnsignedPayoutTxHex("payout");
+        peer.setUpdatedMultisigHex("export2", true);
+        assertEquals("export2", peer.getUpdatedMultisigHex());
+        assertNull(peer.getUnsignedPayoutTxHex());
+    }
+
+    @Test
+    public void sameHexKeepsPayoutTx() {
+        TradePeer peer = new TradePeer();
+        peer.setUpdatedMultisigHex("export1");
+        peer.setUnsignedPayoutTxHex("payout");
+        peer.setUpdatedMultisigHex("export1", true);
+        assertEquals("payout", peer.getUnsignedPayoutTxHex());
+    }
+
+    @Test
+    public void hexAfterClearedExportClearsStalePayoutTx() {
+        TradePeer peer = new TradePeer();
+        peer.setUnsignedPayoutTxHex("payout");
+        peer.setUpdatedMultisigHex("export1", true);
+        assertNull(peer.getUnsignedPayoutTxHex());
+    }
+
+    @Test
+    public void nullHexOrPlainSetterKeepsPayoutTx() {
+        TradePeer peer = new TradePeer();
+        peer.setUpdatedMultisigHex("export1");
+        peer.setUnsignedPayoutTxHex("payout");
+        peer.setUpdatedMultisigHex(null, true);
+        assertNull(peer.getUpdatedMultisigHex());
+        assertEquals("payout", peer.getUnsignedPayoutTxHex());
+        peer.setUpdatedMultisigHex("export2");
+        assertEquals("payout", peer.getUnsignedPayoutTxHex());
+    }
+
+    @Test
+    public void disputePayoutNackReplacesExportBeforeResending() throws Exception {
+        try (NackFixture fixture = new NackFixture()) {
+            fixture.handle(fixture.nack("fresh-export"));
+            assertEquals("fresh-export", fixture.peer.getUpdatedMultisigHex());
+            assertNull(fixture.peer.getUnsignedPayoutTxHex());
+            fixture.assertResends(1);
+            verify(fixture.trade).requestPersistence();
+        }
+    }
+
+    @Test
+    public void duplicateDisputePayoutNacksDoNotUseRetriesOrRestoreOldExport() throws Exception {
+        try (NackFixture fixture = new NackFixture()) {
+            AckMessage first = fixture.nack("first-export");
+            fixture.handle(first);
+            for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) fixture.handle(first);
+            fixture.handle(fixture.nack("latest-export"));
+            fixture.peer.setUnsignedPayoutTxHex("rebuilt-payout");
+            fixture.handle(first);
+            assertEquals("latest-export", fixture.peer.getUpdatedMultisigHex());
+            assertEquals("rebuilt-payout", fixture.peer.getUnsignedPayoutTxHex());
+            fixture.assertResends(2);
+        }
+    }
+
+    @Test
+    public void nackForPriorRulingDoesNotReplaceCurrentExport() throws Exception {
+        try (NackFixture fixture = new NackFixture()) {
+            AckMessage oldNack = fixture.nack("old-export");
+            fixture.newRuling();
+            fixture.handle(oldNack);
+            assertEquals("initial-export", fixture.peer.getUpdatedMultisigHex());
+            assertEquals("initial-payout", fixture.peer.getUnsignedPayoutTxHex());
+            fixture.assertResends(0);
+        }
+    }
+
+    @Test
+    public void reopenedOrPublishedDisputeIgnoresPayoutNack() throws Exception {
+        try (NackFixture fixture = new NackFixture()) {
+            when(fixture.dispute.isClosed()).thenReturn(false);
+            fixture.handle(fixture.nack("reopened-export"));
+            assertEquals("initial-export", fixture.peer.getUpdatedMultisigHex());
+            when(fixture.dispute.isClosed()).thenReturn(true);
+            when(fixture.trade.isPayoutPublished()).thenReturn(true);
+            fixture.handle(fixture.nack("published-export"));
+            assertEquals("initial-export", fixture.peer.getUpdatedMultisigHex());
+            fixture.assertResends(0);
+        }
+    }
+
+    @Test
+    public void disputePayoutNackRequiresOwnersMultisigExport() throws Exception {
+        try (NackFixture fixture = new NackFixture()) {
+            fixture.handle(fixture.nack(null));
+            when(fixture.dispute.getTraderPubKeyRing()).thenReturn(null);
+            fixture.handle(fixture.nack("another-traders-export"));
+            assertEquals("initial-export", fixture.peer.getUpdatedMultisigHex());
+            fixture.assertResends(0);
+        }
+    }
+
+    @Test
+    public void newRulingHasItsOwnBoundedNackRetries() throws Exception {
+        try (NackFixture fixture = new NackFixture()) {
+            for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS * 3; i++) fixture.handle(fixture.nack("export-" + i));
+            fixture.assertResends(TradeProtocol.MAX_ATTEMPTS);
+            assertEquals("export-" + TradeProtocol.MAX_ATTEMPTS, fixture.peer.getUpdatedMultisigHex());
+            assertNull(fixture.peer.getUnsignedPayoutTxHex());
+            var field = ArbitrationManager.class.getDeclaredField("disputeClosedMessageNackUids");
+            field.setAccessible(true);
+            Map<?, ?> nackUids = (Map<?, ?>) field.get(fixture.manager);
+            Set<?> rulingNackUids = (Set<?>) nackUids.get(fixture.result.get().getChatMessage().getUid());
+            assertEquals(TradeProtocol.MAX_ATTEMPTS + 1, rulingNackUids.size());
+            fixture.newRuling();
+            fixture.handle(fixture.nack("new-ruling-export"));
+            fixture.assertResends(TradeProtocol.MAX_ATTEMPTS + 1);
+        }
+    }
+
+    private class NackFixture implements AutoCloseable {
+        private final String tradeId = "dispute-nack";
+        private final Trade trade = mock(Trade.class);
+        private final Dispute dispute = mock(Dispute.class);
+        private final TradePeer peer = new TradePeer();
+        private final SimpleObjectProperty<DisputeResult> result = new SimpleObjectProperty<>();
+        private final ArbitrationManager previousManager = HavenoUtils.arbitrationManager;
+        private final ArbitrationManager manager;
+
+        private NackFixture() {
+            P2PService p2p = mock(P2PService.class);
+            when(p2p.getMailboxMessageService()).thenReturn(mock(MailboxMessageService.class));
+            manager = spy(new ArbitrationManager(p2p, null, null, null, null, null, null, null, null,
+                    mock(ArbitrationDisputeListService.class), null, null));
+            doNothing().when(manager).closeDisputeTicket(any(), any(), any(), any(), any());
+            when(trade.getId()).thenReturn(tradeId);
+            when(trade.getLock()).thenReturn(new Object());
+            peer.setPubKeyRing(arbitratorKeyRing.getPubKeyRing());
+            peer.setUpdatedMultisigHex("initial-export");
+            peer.setUnsignedPayoutTxHex("initial-payout");
+            when(dispute.getTraderPubKeyRing()).thenReturn(peer.getPubKeyRing());
+            when(dispute.getDisputeResultProperty()).thenReturn(result);
+            when(dispute.isClosed()).thenReturn(true);
+            newRuling();
+        }
+
+        private void newRuling() {
+            DisputeResult ruling = new DisputeResult(tradeId, 1);
+            ruling.setChatMessage(new ChatMessage(SupportType.ARBITRATION, tradeId, 1, false, "summary",
+                    new NodeAddress("127.0.0.1", 9998)));
+            result.set(ruling);
+        }
+
+        private AckMessage nack(String export) {
+            return new AckMessage(new NodeAddress("127.0.0.1", 9999), AckMessageSourceType.ARBITRATION_MESSAGE,
+                    ChatMessage.class.getSimpleName(), result.get().getChatMessage().getUid(), tradeId,
+                    false, "stale data", export);
+        }
+
+        private void handle(AckMessage nack) throws Exception {
+            var handler = ArbitrationManager.class.getDeclaredMethod("onDisputeClosedMessageNack",
+                    Trade.class, Dispute.class, TradePeer.class, AckMessage.class);
+            handler.setAccessible(true);
+            handler.invoke(manager, trade, dispute, peer, nack);
+            ThreadUtils.execute(() -> {}, tradeId).get(5, TimeUnit.SECONDS);
+        }
+
+        private void assertResends(int count) {
+            verify(manager, times(count)).closeDisputeTicket(any(), any(), any(), any(), any());
+        }
+
+        @Override
+        public void close() {
+            ThreadUtils.shutDown(tradeId, 5000L);
+            HavenoUtils.arbitrationManager = previousManager;
+        }
     }
 
     private DisputeResult customAward(long walletBalance, boolean published, DisputeResult.Winner winner, long winnerAmount) {

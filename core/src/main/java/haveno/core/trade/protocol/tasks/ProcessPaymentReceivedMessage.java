@@ -87,12 +87,12 @@ public class ProcessPaymentReceivedMessage extends TradeTask {
             }
 
             // set state
-            if (!trade.isPayoutPublished()) trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex());
+            if (!trade.isPayoutPublished()) trade.getSeller().setUpdatedMultisigHex(message.getUpdatedMultisigHex(), true);
             trade.getBuyer().setAccountAgeWitness(message.getBuyerAccountAgeWitness());
             if (trade.isArbitrator() && trade.getBuyer().getPaymentSentMessage() == null) {
                 checkNotNull(message.getPaymentSentMessage(), "PaymentSentMessage is null for arbitrator");
                 trade.getBuyer().setPaymentSentMessage(message.getPaymentSentMessage());
-                trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex());
+                trade.getBuyer().setUpdatedMultisigHex(message.getPaymentSentMessage().getUpdatedMultisigHex(), true);
             }
             trade.requestPersistence();
 
