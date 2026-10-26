@@ -1722,6 +1722,8 @@ message Trade {
     int64 completed_revision = 31;
     int64 trade_statistics_publish_time = 32;
     bool trade_statistics_published = 33;
+    int64 payment_sent_date = 34;
+    int64 payment_received_date = 35;
 }
 
 message BuyerAsMakerTrade {

@@ -70,6 +70,8 @@ import javafx.stage.Window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
+
 public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(TradeDetailsWindow.class);
 
@@ -164,6 +166,11 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         // second group
         rows = 5;
 
+        if (trade.getPaymentSentDate() != 0)
+            rows++;
+        if (trade.getPaymentReceivedDate() != 0)
+            rows++;
+
         if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
             rows++;
 
@@ -202,6 +209,16 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.tradeDate"),
                 DisplayUtils.formatDateTime(trade.getDate()));
+        if (trade.getPaymentSentDate() != 0) {
+            addSeparator(gridPane, ++rowIndex);
+            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.paymentSentDate"),
+                    DisplayUtils.formatDateTime(new Date(trade.getPaymentSentDate())));
+        }
+        if (trade.getPaymentReceivedDate() != 0) {
+            addSeparator(gridPane, ++rowIndex);
+            addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("tradeDetailsWindow.paymentReceivedDate"),
+                    DisplayUtils.formatDateTime(new Date(trade.getPaymentReceivedDate())));
+        }
         String securityDeposit = Res.getWithColAndCap("shared.buyer") +
                 " " +
                 HavenoUtils.formatXmr(trade.getBuyerSecurityDepositBeforeMiningFee(), true) +
