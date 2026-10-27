@@ -1427,7 +1427,15 @@ public class XmrWalletService extends XmrWalletBase {
     private XmrAddressEntry getNewAddressEntryAux(String offerId, XmrAddressEntry.Context context) {
         synchronized (walletLock) {
             synchronized (addressEntryLock) {
-                MoneroSubaddress subaddress = wallet.createSubaddress(0);
+                MoneroWallet sourceWallet = wallet;
+                if (sourceWallet == null) throw new WalletUnavailableException("Main wallet is not available");
+                MoneroSubaddress subaddress;
+                try {
+                    subaddress = sourceWallet.createSubaddress(0);
+                } catch (Exception e) {
+                    if (wallet != sourceWallet) throw new WalletUnavailableException("Main wallet changed while creating an address", e);
+                    throw e;
+                }
                 XmrAddressEntry entry = new XmrAddressEntry(subaddress.getIndex(), subaddress.getAddress(), context, offerId, null);
                 log.info("Add new XmrAddressEntry {}", entry);
                 xmrAddressEntryList.addAddressEntry(entry);

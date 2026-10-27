@@ -19,7 +19,7 @@ package haveno.core.xmr.exceptions;
 
 /**
  * Thrown when a wallet cannot be created or opened due to a local environment
- * problem, e.g. the monero-wallet-rpc process fails to start. Distinct from
+ * problem, or is temporarily closed during recovery. Distinct from
  * IllegalStateException so it is not mistaken for an illegal request or message.
  */
 public class WalletUnavailableException extends RuntimeException {

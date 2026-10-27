@@ -62,6 +62,9 @@ public class OfferAvailabilityModel implements Model {
     @Getter
     @Setter
     private InitTradeRequest tradeRequest;
+    @Getter
+    @Setter
+    private String payoutAddress;
     @Nullable
     @Setter
     @Getter
