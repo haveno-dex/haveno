@@ -1853,7 +1853,8 @@ tree-table-view:focused {
  * Icons                                                                       *
  *                                                                             *
  ******************************************************************************/
-.icon, .icon:hover {
+.icon, .icon:hover,
+.peer-info-icon, .peer-info-icon * {
     -fx-cursor: hand;
 }
 
@@ -1879,6 +1880,9 @@ tree-table-view:focused {
     -fx-stroke-width: 1.35;
     -fx-stroke-line-cap: round;
     -fx-stroke-line-join: round;
+}
+.chat-icon-button, .chat-icon-button * {
+    -fx-cursor: hand;
 }
 .chat-badge:hover .chat-icon,
 .chat-icon-button:hover .chat-icon,

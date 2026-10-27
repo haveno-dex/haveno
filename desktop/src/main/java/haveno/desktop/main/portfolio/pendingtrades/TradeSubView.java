@@ -32,6 +32,7 @@ import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -224,5 +225,9 @@ public abstract class TradeSubView extends VBox {
 
     void setStepChangedCallback(Runnable stepChangedCallback) {
         this.stepChangedCallback = stepChangedCallback;
+    }
+
+    boolean focusConfirmationButton(ScrollPane scrollPane) {
+        return tradeStepView != null && tradeStepView.focusConfirmationButton(scrollPane);
     }
 }

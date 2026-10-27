@@ -1305,6 +1305,42 @@ public class GUIUtil {
                 MaterialDesignIcon.APPROVAL : MaterialDesignIcon.ALERT_CIRCLE_OUTLINE;
     }
 
+    // scrolls the least needed to show the node, repeating after each layout pulse until the content
+    // stops resizing since newly set content and its auto sized text areas take a few pulses to settle
+    public static void scrollIntoView(ScrollPane scrollPane, Node node) {
+        Scene scene = scrollPane.getScene();
+        if (scene == null) return;
+        int[] pulses = {6};
+        double[] last = {Double.NaN, Double.NaN};
+        Runnable[] scroll = new Runnable[1];
+        scroll[0] = () -> {
+            Node content = scrollPane.getContent();
+            if (content == null || node.getScene() != scene) {
+                scene.removePostLayoutPulseListener(scroll[0]);
+                return;
+            }
+            Bounds bounds = content.sceneToLocal(node.localToScene(node.getBoundsInLocal()));
+            double contentHeight = content.getLayoutBounds().getHeight();
+            boolean settled = bounds.getMaxY() == last[0] && contentHeight == last[1];
+            last[0] = bounds.getMaxY();
+            last[1] = contentHeight;
+            if (settled || --pulses[0] == 0) scene.removePostLayoutPulseListener(scroll[0]);
+            else Platform.requestNextPulse();
+            double viewportHeight = scrollPane.getViewportBounds().getHeight();
+            double scrollable = contentHeight - viewportHeight;
+            double range = scrollPane.getVmax() - scrollPane.getVmin();
+            if (scrollable <= 0 || range <= 0) return;
+            double offset = (scrollPane.getVvalue() - scrollPane.getVmin()) / range * scrollable;
+            // the bottom edge wins when the node is taller than the viewport
+            if (bounds.getMaxY() > offset + viewportHeight) offset = bounds.getMaxY() - viewportHeight;
+            else if (bounds.getMinY() < offset) offset = Math.max(bounds.getMinY(), bounds.getMaxY() - viewportHeight);
+            else return;
+            scrollPane.setVvalue(scrollPane.getVmin() + Math.max(0, Math.min(1, offset / scrollable)) * range);
+        };
+        scene.addPostLayoutPulseListener(scroll[0]);
+        Platform.requestNextPulse();
+    }
+
     public static ScrollPane createScrollPane() {
         ScrollPane scrollPane = new ScrollPane();
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);

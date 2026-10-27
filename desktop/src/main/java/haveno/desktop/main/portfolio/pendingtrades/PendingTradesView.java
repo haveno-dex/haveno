@@ -506,6 +506,12 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         });
     }
 
+    // jumps to the trade's confirmation button, or to the top of its details when the step has none
+    private void focusTradeAction(PendingTradesListItem item) {
+        if (selectedSubView == null || !Objects.equals(item, model.dataModel.selectedItemProperty.get())) return;
+        if (!selectedSubView.focusConfirmationButton(scrollView)) scrollView.setVvalue(scrollView.getVmin());
+    }
+
     private void removeSelectedSubView() {
         if (selectedSubView != null) {
             selectedSubView.deactivate();
@@ -1115,6 +1121,16 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                             status == PendingTradesListItem.TradeStatus.CONFIRM_RECEIPT_OVERDUE;
                     label.getStyleClass().add(problem ? "trade-status-problem" : overdue ? "trade-status-overdue" :
                             status.isAttention() ? "trade-status-attention" : "trade-status-waiting");
+                    if (status.isAttention()) {
+                        label.getStyleClass().add("trade-status-action");
+                        label.setOnMouseClicked(event -> {
+                            if (event.getButton() != MouseButton.PRIMARY) return;
+                            PendingTradesListItem item = getTableRow().getItem();
+                            // the row's selection publishes its details on the next tick and refreshes the step view on the one after
+                            UserThread.execute(() -> UserThread.execute(() -> focusTradeAction(item)));
+                            event.consume();
+                        });
+                    }
                     Circle dot = new Circle(3);
                     dot.fillProperty().bind(label.textFillProperty());
                     label.setGraphic(dot);
