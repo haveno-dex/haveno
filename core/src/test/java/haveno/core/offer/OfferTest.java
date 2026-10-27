@@ -17,45 +17,73 @@
 
 package haveno.core.offer;
 
+import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.account.witness.AccountAgeWitnessService;
+import haveno.core.locale.Res;
 import haveno.core.offer.availability.OfferAvailabilityModel;
 import haveno.core.offer.availability.OfferAvailabilityProtocol;
+import haveno.core.offer.messages.OfferAvailabilityRequest;
 import haveno.core.offer.messages.OfferAvailabilityResponse;
-import haveno.network.p2p.DecryptedDirectMessageListener;
-import haveno.network.p2p.DecryptedMessageWithPubKey;
-import haveno.network.p2p.NodeAddress;
-import haveno.network.p2p.P2PService;
-import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
-import java.lang.reflect.Field;
-import static org.mockito.Mockito.mockConstruction;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.any;
-import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.placeoffer.tasks.ValidateOffer;
 import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.User;
+import haveno.core.xmr.exceptions.WalletUnavailableException;
+import haveno.core.xmr.model.XmrAddressEntry;
+import haveno.core.xmr.wallet.XmrWalletBase;
+import haveno.core.xmr.wallet.XmrWalletService;
+import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.P2PService;
+import haveno.network.p2p.SendDirectMessageListener;
+import haveno.network.p2p.DecryptedDirectMessageListener;
+import haveno.network.p2p.DecryptedMessageWithPubKey;
+import haveno.network.p2p.network.NetworkNode;
+import monero.wallet.MoneroWallet;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 
+import java.lang.reflect.Field;
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class OfferTest {
 
@@ -69,7 +97,10 @@ public class OfferTest {
         NodeAddress address = new NodeAddress("maker:9999");
         when(offer.getMakerNodeAddress()).thenReturn(address);
         P2PService p2p = mock(P2PService.class);
-        OfferAvailabilityModel model = new OfferAvailabilityModel(offer, null, null, p2p,
+        XmrWalletService wallet = mock(XmrWalletService.class);
+        when(wallet.getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT))
+                .thenReturn(new XmrAddressEntry(1, "payout-address", XmrAddressEntry.Context.TRADE_PAYOUT, "offer", null));
+        OfferAvailabilityModel model = new OfferAvailabilityModel(offer, null, wallet, p2p,
                 null, null, null, false, null, null, null);
         OfferAvailabilityResponse response = new OfferAvailabilityResponse("offer", AvailabilityResult.OFFER_TAKEN, null);
         doAnswer(invocation -> {
@@ -80,6 +111,9 @@ public class OfferTest {
         try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
              MockedConstruction<TaskRunner> runners = mockConstruction(TaskRunner.class)) {
             new OfferAvailabilityProtocol(model, () -> {}, error -> {}).sendOfferAvailabilityRequest();
+            ArgumentCaptor<Runnable> dispatch = ArgumentCaptor.forClass(Runnable.class);
+            userThread.verify(() -> UserThread.execute(dispatch.capture()));
+            dispatch.getValue().run();
             assertEquals(response, model.getMessage());
         }
     }
@@ -100,14 +134,226 @@ public class OfferTest {
         field.setAccessible(true);
         DecryptedDirectMessageListener listener = (DecryptedDirectMessageListener) field.get(protocol);
         OfferAvailabilityResponse response = new OfferAvailabilityResponse("offer", AvailabilityResult.OFFER_TAKEN, null);
-        listener.onDirectMessage(new DecryptedMessageWithPubKey(response, Sig.generateKeyPair().getPublic()), address);
-        listener.onDirectMessage(new DecryptedMessageWithPubKey(response, maker.getSignaturePubKey()), new NodeAddress("attacker:9999"));
-        verify(model, never()).setMessage(any());
         try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
              MockedConstruction<TaskRunner> runners = mockConstruction(TaskRunner.class)) {
+            listener.onDirectMessage(new DecryptedMessageWithPubKey(response, Sig.generateKeyPair().getPublic()), address);
+            listener.onDirectMessage(new DecryptedMessageWithPubKey(response, maker.getSignaturePubKey()), new NodeAddress("attacker:9999"));
+            userThread.verifyNoInteractions();
             listener.onDirectMessage(new DecryptedMessageWithPubKey(response, maker.getSignaturePubKey()), address);
+            ArgumentCaptor<Runnable> dispatch = ArgumentCaptor.forClass(Runnable.class);
+            userThread.verify(() -> UserThread.execute(dispatch.capture()));
+            dispatch.getValue().run();
             verify(model).setMessage(response);
             assertEquals(1, runners.constructed().size());
+        }
+    }
+
+    @Test
+    public void availabilityRecoversWalletBeforeStartingPeerTimeout() {
+        AvailabilityFixture fixture = new AvailabilityFixture();
+        when(fixture.wallet.getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT))
+                .thenThrow(new IllegalStateException("Connection refused"))
+                .thenThrow(new WalletUnavailableException("Main wallet is not available"))
+                .thenReturn(fixture.address);
+        try (MockedStatic<UserThread> ignored = fixture.mockTimers()) {
+            fixture.protocol.sendOfferAvailabilityRequest();
+
+            assertEquals("payout-address", fixture.model.getTradeRequest().getPayoutAddress());
+            verify(fixture.wallet, times(3)).getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT);
+            verifyNoMoreInteractions(fixture.wallet);
+            ArgumentCaptor<SendDirectMessageListener> sent = ArgumentCaptor.forClass(SendDirectMessageListener.class);
+            verify(fixture.p2p).sendEncryptedDirectMessage(any(), any(), any(OfferAvailabilityRequest.class), sent.capture());
+            assertEquals(2, fixture.timeouts.size());
+            fixture.timeouts.get(210L).run(); // a queued preparation timeout must not cancel the peer phase
+            verifyNoInteractions(fixture.failure);
+            fixture.timeouts.get(90L).run();
+            verify(fixture.failure).handleErrorMessage("Timeout reached: Peer has not responded.");
+            assertEquals(Offer.State.MAKER_OFFLINE, fixture.offer.getState());
+            sent.getValue().onArrived();
+            sent.getValue().onFault("late network failure");
+            verifyNoInteractions(fixture.success);
+            verifyNoMoreInteractions(fixture.failure);
+        }
+    }
+
+    @Test
+    public void availabilityDoesNotSendAfterCanceledOrTimedOutWalletPreparation() throws Exception {
+        for (boolean timeout : new boolean[]{false, true}) {
+            AvailabilityFixture fixture = new AvailabilityFixture();
+            CountDownLatch entered = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            when(fixture.wallet.getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT)).thenAnswer(invocation -> {
+                entered.countDown();
+                assertTrue(release.await(10, TimeUnit.SECONDS));
+                return fixture.address;
+            });
+            CompletableFuture<Void> preparing = CompletableFuture.runAsync(() -> {
+                try (MockedStatic<UserThread> ignored = fixture.mockTimers()) {
+                    fixture.protocol.sendOfferAvailabilityRequest();
+                }
+            });
+            try {
+                assertTrue(entered.await(10, TimeUnit.SECONDS));
+                if (timeout) fixture.timeouts.get(210L).run();
+                else fixture.protocol.cancel();
+            } finally {
+                release.countDown();
+                preparing.get(10, TimeUnit.SECONDS);
+            }
+            assertEquals(Offer.State.UNKNOWN, fixture.offer.getState());
+            assertNull(fixture.model.getTradeRequest());
+            assertEquals(1, fixture.timeouts.size());
+            verify(fixture.p2p, never()).sendEncryptedDirectMessage(any(), any(), any(), any());
+            if (timeout) verify(fixture.failure).handleErrorMessage(Res.get("takeOffer.walletNotReady"));
+            else verifyNoInteractions(fixture.failure);
+        }
+    }
+
+    @Test
+    public void availabilityReportsPermanentWalletErrorWithoutRetrying() {
+        AvailabilityFixture fixture = new AvailabilityFixture();
+        when(fixture.wallet.getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT))
+                .thenThrow(new IllegalArgumentException("Invalid address entry"));
+        try (MockedStatic<UserThread> ignored = fixture.mockTimers()) {
+            fixture.protocol.sendOfferAvailabilityRequest();
+            fixture.timeouts.get(210L).run();
+            verify(fixture.wallet).getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT);
+            verify(fixture.failure).handleErrorMessage("Invalid address entry");
+            verifyNoMoreInteractions(fixture.failure);
+            verify(fixture.p2p, never()).sendEncryptedDirectMessage(any(), any(), any(), any());
+            assertEquals(Offer.State.UNKNOWN, fixture.offer.getState());
+        }
+    }
+
+    @Test
+    public void availabilityCanBeCanceledBeforePreparationStarts() {
+        AvailabilityFixture fixture = new AvailabilityFixture();
+        fixture.protocol.cancel();
+        fixture.protocol.sendOfferAvailabilityRequest();
+        verifyNoInteractions(fixture.wallet, fixture.success, fixture.failure);
+        verify(fixture.p2p, never()).sendEncryptedDirectMessage(any(), any(), any(), any());
+    }
+
+    @Test
+    public void availabilityQueuesResponsesAndIgnoresThemAfterCancellation() {
+        for (boolean cancel : new boolean[]{false, true}) {
+            AvailabilityFixture fixture = new AvailabilityFixture();
+            when(fixture.wallet.getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT)).thenReturn(fixture.address);
+            try (MockedStatic<UserThread> userThread = fixture.mockTimers()) {
+                fixture.protocol.sendOfferAvailabilityRequest();
+                Runnable peerTimeout = fixture.timeouts.get(90L);
+                ArgumentCaptor<DecryptedDirectMessageListener> listener = ArgumentCaptor.forClass(DecryptedDirectMessageListener.class);
+                verify(fixture.p2p).addDecryptedDirectMessageListener(listener.capture());
+                ArgumentCaptor<Runnable> dispatch = ArgumentCaptor.forClass(Runnable.class);
+                userThread.when(() -> UserThread.execute(dispatch.capture())).thenAnswer(invocation -> null);
+                DecryptedMessageWithPubKey decrypted = new DecryptedMessageWithPubKey(
+                        new OfferAvailabilityResponse("offer", AvailabilityResult.AVAILABLE, new byte[]{1}), fixture.maker.getSignaturePubKey());
+
+                listener.getValue().onDirectMessage(decrypted, new NodeAddress("maker:9999"));
+                assertNull(fixture.model.getMessage());
+                verifyNoInteractions(fixture.success);
+                if (cancel) fixture.protocol.cancel();
+                dispatch.getValue().run();
+                peerTimeout.run();
+
+                assertEquals(cancel ? Offer.State.UNKNOWN : Offer.State.AVAILABLE, fixture.offer.getState());
+                if (cancel) verifyNoInteractions(fixture.success);
+                else verify(fixture.success).handleResult();
+                verifyNoInteractions(fixture.failure);
+                fixture.protocol.cancel();
+            }
+        }
+    }
+
+    @Test
+    public void availabilityReportsWalletErrorWithoutMessage() {
+        AvailabilityFixture fixture = new AvailabilityFixture();
+        when(fixture.wallet.getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT))
+                .thenThrow(new NullPointerException());
+        try (MockedStatic<UserThread> ignored = fixture.mockTimers()) {
+            fixture.protocol.sendOfferAvailabilityRequest();
+            verify(fixture.failure).handleErrorMessage("java.lang.NullPointerException");
+            assertEquals("An error occurred.\nError message:\njava.lang.NullPointerException", fixture.offer.getErrorMessage());
+            verify(fixture.p2p, never()).sendEncryptedDirectMessage(any(), any(), any(), any());
+        }
+    }
+
+    @Test
+    public void addressCreationRecognizesUnavailableOrReplacedWallet() throws Exception {
+        XmrWalletService service = mock(XmrWalletService.class, CALLS_REAL_METHODS);
+        setWalletField(XmrWalletBase.class, service, "walletLock", new Object());
+        setWalletField(XmrWalletService.class, service, "addressEntryLock", new Object());
+        assertThrows(WalletUnavailableException.class, service::getNewAddressEntry);
+
+        MoneroWallet wallet = mock(MoneroWallet.class);
+        IllegalStateException reset = new IllegalStateException("Connection reset");
+        setWalletField(XmrWalletBase.class, service, "wallet", wallet);
+        when(wallet.createSubaddress(0)).thenAnswer(invocation -> {
+            setWalletField(XmrWalletBase.class, service, "wallet", null);
+            throw reset;
+        });
+        assertSame(reset, assertThrows(WalletUnavailableException.class, service::getNewAddressEntry).getCause());
+
+        doThrow(reset).when(wallet).createSubaddress(0);
+        setWalletField(XmrWalletBase.class, service, "wallet", wallet);
+        assertSame(reset, assertThrows(IllegalStateException.class, service::getNewAddressEntry));
+    }
+
+    private static void setWalletField(Class<?> type, Object target, String name, Object value) throws Exception {
+        Field field = type.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
+
+    private static class AvailabilityFixture {
+        final XmrWalletService wallet = mock(XmrWalletService.class);
+        final P2PService p2p = mock(P2PService.class);
+        final ResultHandler success = mock(ResultHandler.class);
+        final ErrorMessageHandler failure = mock(ErrorMessageHandler.class);
+        final Map<Long, Runnable> timeouts = new ConcurrentHashMap<>();
+        final XmrAddressEntry address = new XmrAddressEntry(1, "payout-address", XmrAddressEntry.Context.TRADE_PAYOUT, "offer", null);
+        final PubKeyRing maker = mock(PubKeyRing.class);
+        final Offer offer;
+        final OfferAvailabilityModel model;
+        final OfferAvailabilityProtocol protocol;
+
+        AvailabilityFixture() {
+            Res.setBaseCurrencyCode("XMR");
+            Res.setBaseCurrencyName("Monero");
+            OfferPayload payload = mock(OfferPayload.class);
+            when(payload.getId()).thenReturn("offer");
+            when(payload.getBaseCurrencyCode()).thenReturn("XMR");
+            when(payload.getCounterCurrencyCode()).thenReturn("BTC");
+            when(payload.getPrice()).thenReturn(100_000_000L);
+            when(payload.getOwnerNodeAddress()).thenReturn(new NodeAddress("maker:9999"));
+            when(maker.getSignaturePubKey()).thenReturn(Sig.generateKeyPair().getPublic());
+            when(payload.getPubKeyRing()).thenReturn(maker);
+            offer = new Offer(payload);
+            KeyRing keys = mock(KeyRing.class);
+            when(keys.getSignatureKeyPair()).thenReturn(Sig.generateKeyPair());
+            when(keys.getPubKeyRing()).thenReturn(mock(PubKeyRing.class));
+            when(p2p.getKeyRing()).thenReturn(keys);
+            NetworkNode networkNode = mock(NetworkNode.class);
+            when(networkNode.getNodeAddress()).thenReturn(new NodeAddress("taker:9999"));
+            when(p2p.getNetworkNode()).thenReturn(networkNode);
+            User user = mock(User.class);
+            PaymentAccount account = mock(PaymentAccount.class);
+            PaymentAccountPayload payment = mock(PaymentAccountPayload.class);
+            when(payment.getPaymentMethodId()).thenReturn("BLOCK_CHAINS");
+            when(account.getPaymentAccountPayload()).thenReturn(payment);
+            when(user.getPaymentAccount("taker")).thenReturn(account);
+            model = new OfferAvailabilityModel(offer, keys.getPubKeyRing(), wallet, p2p, user,
+                    null, null, false, "taker", BigInteger.ONE, null);
+            protocol = new OfferAvailabilityProtocol(model, success, failure);
+        }
+
+        MockedStatic<UserThread> mockTimers() {
+            MockedStatic<UserThread> timers = mockStatic(UserThread.class);
+            timers.when(() -> UserThread.runAfter(any(Runnable.class), anyLong())).thenAnswer(invocation -> {
+                timeouts.put(invocation.getArgument(1), invocation.getArgument(0));
+                return mock(Timer.class);
+            });
+            return timers;
         }
     }
 

@@ -28,8 +28,6 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.TradeProtocolVersion;
 import haveno.core.user.User;
-import haveno.core.xmr.model.XmrAddressEntry;
-import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
@@ -47,17 +45,17 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
     @Override
     protected void run() {
         try {
+            if (taskHandler.isCanceled()) return;
             runInterceptHook();
 
             // collect fields
             Offer offer = model.getOffer();
             User user = model.getUser();
             P2PService p2PService = model.getP2PService();
-            XmrWalletService walletService = model.getXmrWalletService();
             String makerPaymentAccountId = offer.getOfferPayload().getMakerPaymentAccountId();
             String takerPaymentAccountId = model.getPaymentAccountId();
             String paymentMethodId = user.getPaymentAccount(takerPaymentAccountId).getPaymentAccountPayload().getPaymentMethodId();
-            String payoutAddress = walletService.getOrCreateAddressEntry(offer.getId(), XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            String payoutAddress = model.getPayoutAddress();
 
             // taker signs offer using offer id as nonce to avoid challenge protocol
             byte[] sig = HavenoUtils.sign(model.getP2PService().getKeyRing(), offer.getId());
@@ -106,6 +104,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     new SendDirectMessageListener() {
                         @Override
                         public void onArrived() {
+                            if (taskHandler.isCanceled()) return;
                             log.info("{} arrived at peer: offerId={}; uid={}",
                                     message.getClass().getSimpleName(), message.getOfferId(), message.getUid());
                             complete();
@@ -113,6 +112,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
 
                         @Override
                         public void onFault(String errorMessage) {
+                            if (taskHandler.isCanceled()) return;
                             log.error("Sending {} failed: uid={}; peer={}; error={}",
                                     message.getClass().getSimpleName(), message.getUid(),
                                     model.getPeerNodeAddress(), errorMessage);
@@ -121,6 +121,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     }
             );
         } catch (Throwable t) {
+            if (taskHandler.isCanceled()) return;
             model.getOffer().setErrorMessage("An error occurred.\n" +
                     "Error message:\n"
                     + t.getMessage());

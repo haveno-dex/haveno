@@ -149,7 +149,7 @@ public class OfferBook {
             try {
                 offer.cancelAvailabilityRequest();
             } catch (Exception e) {
-                log.warn("Failed to cancel availability request for offer {}. That should never happen.", offer.getId(), e); // TODO: we once saw null taskRunner in OfferAvailabilityProtocol.cancel() a few times in a row
+                log.warn("Failed to cancel availability request for offer {}. That should never happen.", offer.getId(), e);
             }
 
             P2PDataStorage.ByteArray hashOfPayload = new P2PDataStorage.ByteArray(offer.getOfferPayload().getHash());

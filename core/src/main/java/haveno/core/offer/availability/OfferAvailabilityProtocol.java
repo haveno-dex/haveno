@@ -24,12 +24,16 @@ import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.availability.tasks.ProcessOfferAvailabilityResponse;
 import haveno.core.offer.availability.tasks.SendOfferAvailabilityRequest;
 import haveno.core.offer.messages.OfferAvailabilityResponse;
 import haveno.core.offer.messages.OfferMessage;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.util.Validator;
+import haveno.core.xmr.exceptions.WalletUnavailableException;
+import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.DecryptedDirectMessageListener;
@@ -38,10 +42,12 @@ import haveno.network.p2p.SendDirectMessageListener;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class OfferAvailabilityProtocol {
     private static final long TIMEOUT = 90;
+    private static final long WALLET_PREPARATION_TIMEOUT = 210; // allow the three-minute wallet sync timeout plus recovery
 
     private final OfferAvailabilityModel model;
     private final ResultHandler resultHandler;
@@ -50,6 +56,8 @@ public class OfferAvailabilityProtocol {
 
     private TaskRunner<OfferAvailabilityModel> taskRunner;
     private Timer timeoutTimer;
+    private long timeoutGeneration;
+    private volatile boolean canceled;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -73,7 +81,8 @@ public class OfferAvailabilityProtocol {
                         log.warn("Ignoring OfferAvailabilityResponse from unexpected peer for offer {}", offerMessage.offerId);
                         return;
                     }
-                    handleOfferAvailabilityResponse((OfferAvailabilityResponse) networkEnvelope, peersNodeAddress);
+                    // leave the P2P listener lock before taking the protocol lock
+                    UserThread.execute(() -> handleOfferAvailabilityResponse((OfferAvailabilityResponse) networkEnvelope, peersNodeAddress));
                 }
             }
         };
@@ -90,23 +99,61 @@ public class OfferAvailabilityProtocol {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void sendOfferAvailabilityRequest() {
-        // reset
-        model.getOffer().setState(Offer.State.UNKNOWN);
+        synchronized (this) {
+            if (canceled) return;
+            model.getOffer().setState(Offer.State.UNKNOWN);
+            startTimeout(WALLET_PREPARATION_TIMEOUT, true);
+        }
 
-        model.setPeerNodeAddress(model.getOffer().getMakerNodeAddress());
-        model.getP2PService().addDecryptedDirectMessageListener(decryptedDirectMessageListener);
+        try {
+            String payoutAddress = preparePayoutAddress();
+            synchronized (this) {
+                if (canceled) return;
+                model.setPayoutAddress(payoutAddress);
+                model.setPeerNodeAddress(model.getOffer().getMakerNodeAddress());
+                model.getP2PService().addDecryptedDirectMessageListener(decryptedDirectMessageListener);
 
-        taskRunner = new TaskRunner<>(model,
-                () -> handleTaskRunnerSuccess("TaskRunner at sendOfferAvailabilityRequest completed", null),
-                errorMessage -> handleTaskRunnerFault(errorMessage, null)
-        );
-        taskRunner.addTasks(SendOfferAvailabilityRequest.class);
-        startTimeout();
-        taskRunner.run();
+                taskRunner = new TaskRunner<>(model,
+                        () -> handleTaskRunnerSuccess("TaskRunner at sendOfferAvailabilityRequest completed", null),
+                        errorMessage -> handleTaskRunnerFault(errorMessage, null)
+                );
+                taskRunner.addTasks(SendOfferAvailabilityRequest.class);
+                stopTimeout();
+                startTimeout();
+                taskRunner.run();
+            }
+        } catch (Exception e) {
+            synchronized (this) {
+                if (canceled) return;
+                log.warn("Error preparing offer {} for availability check", model.getOffer().getId(), e);
+                String errorMessage = e.getMessage() == null ? e.toString() : e.getMessage();
+                model.getOffer().setErrorMessage("An error occurred.\nError message:\n" + errorMessage);
+                handleTaskRunnerFault(errorMessage, null);
+            }
+        }
     }
 
-    public void cancel() {
-        taskRunner.cancel();
+    private String preparePayoutAddress() {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WALLET_PREPARATION_TIMEOUT);
+        Exception lastError = null;
+        while (!canceled && System.nanoTime() < deadline) {
+            try {
+                return model.getXmrWalletService().getOrCreateAddressEntry(model.getOffer().getId(),
+                        XmrAddressEntry.Context.TRADE_PAYOUT).getAddressString();
+            } catch (Exception e) {
+                if (!(e instanceof WalletUnavailableException) && !HavenoUtils.isUnresponsive(e)) throw e;
+                if (lastError == null) log.warn("Waiting for main wallet before checking offer {}: {}", model.getOffer().getId(), e.getMessage());
+                lastError = e;
+            }
+            if (!canceled) HavenoUtils.waitFor(1000); // let existing wallet recovery finish without holding wallet locks
+        }
+        if (canceled) return null;
+        throw new WalletUnavailableException(Res.get("takeOffer.walletNotReady"), lastError);
+    }
+
+    public synchronized void cancel() {
+        canceled = true;
+        if (taskRunner != null) taskRunner.cancel();
         cleanup();
     }
 
@@ -115,7 +162,8 @@ public class OfferAvailabilityProtocol {
     // Incoming message handling
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void handleOfferAvailabilityResponse(OfferAvailabilityResponse message, NodeAddress peersNodeAddress) {
+    private synchronized void handleOfferAvailabilityResponse(OfferAvailabilityResponse message, NodeAddress peersNodeAddress) {
+        if (canceled) return;
         log.info("Received OfferAvailabilityResponse from {} with offerId {} and uid {}",
                 peersNodeAddress, message.getOfferId(), message.getUid());
 
@@ -123,6 +171,7 @@ public class OfferAvailabilityProtocol {
         startTimeout();
         model.setMessage(message);
 
+        if (taskRunner != null) taskRunner.cancel(); // ignore late callbacks from the superseded send runner
         taskRunner = new TaskRunner<>(model,
                 () -> {
                     handleTaskRunnerSuccess("TaskRunner at handle OfferAvailabilityResponse completed", message);
@@ -136,18 +185,28 @@ public class OfferAvailabilityProtocol {
     }
 
     private void startTimeout() {
+        startTimeout(TIMEOUT, false);
+    }
+
+    private void startTimeout(long timeout, boolean preparingWallet) {
         if (timeoutTimer == null) {
+            long generation = ++timeoutGeneration;
             timeoutTimer = UserThread.runAfter(() -> {
-                log.debug("Timeout reached at " + this);
-                model.getOffer().setState(Offer.State.MAKER_OFFLINE);
-                errorMessageHandler.handleErrorMessage("Timeout reached: Peer has not responded.");
-            }, TIMEOUT);
+                synchronized (this) {
+                    if (canceled || generation != timeoutGeneration) return;
+                    log.debug("Timeout reached at " + this);
+                    cancel();
+                    if (!preparingWallet) model.getOffer().setState(Offer.State.MAKER_OFFLINE);
+                    errorMessageHandler.handleErrorMessage(preparingWallet ? Res.get("takeOffer.walletNotReady") : "Timeout reached: Peer has not responded.");
+                }
+            }, timeout);
         } else {
             log.warn("timeoutTimer already created. That must not happen.");
         }
     }
 
     private void stopTimeout() {
+        timeoutGeneration++;
         if (timeoutTimer != null) {
             timeoutTimer.stop();
             timeoutTimer = null;
@@ -161,10 +220,11 @@ public class OfferAvailabilityProtocol {
             sendAckMessage(message, true, null);
     }
 
-    private void handleTaskRunnerFault(String errorMessage, @Nullable OfferAvailabilityResponse message) {
+    private synchronized void handleTaskRunnerFault(String errorMessage, @Nullable OfferAvailabilityResponse message) {
+        if (canceled) return;
         log.error(errorMessage);
 
-        stopTimeout();
+        cancel();
         errorMessageHandler.handleErrorMessage(errorMessage);
 
         if (message != null)

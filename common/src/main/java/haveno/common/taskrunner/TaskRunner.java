@@ -35,7 +35,7 @@ public class TaskRunner<T extends Model> {
     private final ResultHandler resultHandler;
     private final ErrorMessageHandler errorMessageHandler;
     private boolean failed = false;
-    private boolean isCanceled;
+    private volatile boolean isCanceled;
 
     private Class<? extends Task<T>> currentTask;
 
