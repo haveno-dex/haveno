@@ -41,6 +41,14 @@
 .table-view .table-row-cell .table-cell .label.trade-status-problem {
     -fx-text-fill: ladder(-bs-background-color, derive(-bs-rd-error-red, 25%) 49%, -bs-rd-error-red 50%);
 }
+/* a status that is the user's turn jumps to its action in the trade details */
+.table-view .table-row-cell .table-cell .label.trade-status-action,
+.table-view .table-row-cell .table-cell .label.trade-status-action * {
+    -fx-cursor: hand;
+}
+.table-view .table-row-cell .table-cell .label.trade-status-action:hover {
+    -fx-underline: true;
+}
 .table-view.pending-trades-table .table-row-cell:filled:selected .table-cell.first-column {
     -fx-background-color: -bs-hero-primary, -fx-selection-bar;
     -fx-background-insets: 0, 0 0 0 3;

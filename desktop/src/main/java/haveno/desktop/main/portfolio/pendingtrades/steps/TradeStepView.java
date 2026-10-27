@@ -52,6 +52,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Hyperlink;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.Region;
@@ -111,6 +112,7 @@ public abstract class TradeStepView extends VBox {
     private VBox deadlinePeriod;
     private HBox maximumPeriodRow;
     private final VBox actionPane;
+    private Button confirmationButton;
     private VBox deadlinePane;
     private VBox sidebar;
     private VBox helpPane;
@@ -757,6 +759,7 @@ public abstract class TradeStepView extends VBox {
     protected Tuple4<Button, BusyAnimation, Label, HBox> addConfirmationButton(GridPane pane, int row, String title) {
         Tuple4<Button, BusyAnimation, Label, HBox> action = addButtonBusyAnimationLabel(pane, row, 0, title, 4);
         Button button = action.first;
+        confirmationButton = button;
         BusyAnimation busy = action.second;
         action.fourth.getChildren().remove(busy);
         setButtonBusyContent(button, busy).setText(Res.get("portfolio.pending.tradeView.confirmingAction"));
@@ -767,6 +770,14 @@ public abstract class TradeStepView extends VBox {
 
         initStatusLabel(action.third);
         return action;
+    }
+
+    // brings the step's confirmation button into view and focuses it; false when the step has none
+    public boolean focusConfirmationButton(ScrollPane scrollPane) {
+        if (confirmationButton == null) return false;
+        GUIUtil.scrollIntoView(scrollPane, actionPane);
+        confirmationButton.requestFocus();
+        return true;
     }
 
     protected void initStatusLabel(Label label) {

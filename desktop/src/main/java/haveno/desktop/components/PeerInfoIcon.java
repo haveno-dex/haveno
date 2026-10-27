@@ -180,6 +180,7 @@ public class PeerInfoIcon extends Group {
                 null;
 
         Accessibility.asButton(this, null); // tag-aware name already set by refreshTag
+        getStyleClass().add("peer-info-icon");
         setOnMouseClicked(e -> {
             if (e.getButton().equals(MouseButton.PRIMARY)) {
                 new PeerInfoWithTagEditor(privateNotificationManager, trade, offer, preferences, useDevPrivilegeKeys)
