@@ -929,6 +929,15 @@ public class XmrWalletService extends XmrWalletBase {
      * Freeze reserved outputs and thaw unreserved outputs.
      */
     public void fixReservedOutputs() {
+        fixReservedOutputs(null);
+    }
+
+    /**
+     * Freeze reserved outputs and thaw unreserved outputs.
+     *
+     * @param expectedKeyImages key images whose thawing is expected and logged at info instead of warn (optional)
+     */
+    public void fixReservedOutputs(Collection<String> expectedKeyImages) {
         synchronized (walletLock) {
 
             // collect reserved outputs including split outputs awaiting reserve txs
@@ -938,7 +947,7 @@ public class XmrWalletService extends XmrWalletBase {
             for (OpenOffer openOffer : openOffers) reservedKeyImages.addAll(openOfferManager.getSplitOutputKeyImages(openOffer));
 
             freezeReservedOutputs(reservedKeyImages);
-            thawUnreservedOutputs(reservedKeyImages);
+            thawUnreservedOutputs(reservedKeyImages, expectedKeyImages);
         }
     }
 
@@ -982,7 +991,7 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
-    private void thawUnreservedOutputs(Set<String> reservedKeyImages) {
+    private void thawUnreservedOutputs(Set<String> reservedKeyImages, Collection<String> expectedKeyImages) {
         synchronized (walletLock) {
 
             // ensure wallet is open
@@ -999,10 +1008,16 @@ public class XmrWalletService extends XmrWalletBase {
                     .map(output -> output.getKeyImage().getHex())
                     .collect(Collectors.toSet());
             unreservedFrozenKeyImages.removeAll(reservedKeyImages);
-            if (!unreservedFrozenKeyImages.isEmpty()) {
-                log.warn("Thawing frozen outputs which are not reserved for offer or trade: " + unreservedFrozenKeyImages);
-                thawOutputs(unreservedFrozenKeyImages);
-            }
+            if (unreservedFrozenKeyImages.isEmpty()) return;
+
+            // log expected releases at info and anything else at warn
+            Set<String> expectedThaws = expectedKeyImages == null ? new HashSet<String>() : new HashSet<String>(expectedKeyImages);
+            expectedThaws.retainAll(unreservedFrozenKeyImages);
+            Set<String> unexpectedThaws = new HashSet<String>(unreservedFrozenKeyImages);
+            unexpectedThaws.removeAll(expectedThaws);
+            if (!expectedThaws.isEmpty()) log.info("Thawing frozen outputs which are expected to be unreserved: " + expectedThaws);
+            if (!unexpectedThaws.isEmpty()) log.warn("Thawing frozen outputs which are not reserved for offer or trade: " + unexpectedThaws);
+            thawOutputs(unreservedFrozenKeyImages);
         }
     }
 

@@ -91,7 +91,7 @@ public class MaybeSendSignContractRequest extends TradeTask {
                     Optional<OpenOffer> openOffer = processModel.getOpenOfferManager().getOpenOffer(trade.getId());
                     if (openOffer.isPresent()) {
                         reserveExactAmount = openOffer.get().isReserveExactAmount();
-                        if (reserveExactAmount) subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).get().getSubaddressIndex();
+                        subaddressIndex = model.getXmrWalletService().getAddressEntry(trade.getId(), XmrAddressEntry.Context.OFFER_FUNDING).map(XmrAddressEntry::getSubaddressIndex).orElse(null); // prefer the offer's funding subaddress like the reserve tx
                     } else {
                         throw new RuntimeException("Cannot request contract signature because open offer has been removed for " + trade.getClass().getSimpleName() + " " + trade.getShortId());
                     }
