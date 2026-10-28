@@ -158,9 +158,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                     for (OpenOffer clone : model.getOpenOfferManager().getOpenOfferGroup(model.getOpenOffer().getGroupId())) {
                         XmrAddressEntry cloneFundingEntry = model.getXmrWalletService().getAddressEntry(clone.getId(), XmrAddressEntry.Context.OFFER_FUNDING).orElse(null);
                         if (cloneFundingEntry != null && !inputSubaddressIndices.contains(cloneFundingEntry.getSubaddressIndex())) {
-                            if (inputSubaddressIndices.contains(cloneFundingEntry.getSubaddressIndex())) {
-                                model.getXmrWalletService().swapAddressEntryToAvailable(offer.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
-                            }
+                            model.getXmrWalletService().swapAddressEntryToAvailable(clone.getId(), XmrAddressEntry.Context.OFFER_FUNDING);
                         }
                     }
                 }
