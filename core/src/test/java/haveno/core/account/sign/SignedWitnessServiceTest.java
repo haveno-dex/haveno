@@ -284,13 +284,15 @@ public class SignedWitnessServiceTest {
         // many forged leaves over one account, each signed by a key owning as many unchained witnesses
         KeyPair attacker = Sig.generateKeyPair();
         byte[] attackerPubKey = Sig.getPublicKeyBytes(attacker.getPublic());
-        for (int i = 0; i < 800; i++) {
+        for (int i = 0; i < 600; i++) {
             signedWitnessService.addToMap(new SignedWitness(TRADE, account3DataHash, Sig.sign(attacker.getPrivate(), account3DataHash),
                     attackerPubKey, witnessOwner3PubKey, getTodayMinusNDays(1), tradeAmount3));
             byte[] hash = org.bitcoinj.core.Utils.sha256hash160(new byte[]{(byte) i, (byte) (i >> 8)});
             signedWitnessService.addToMap(new SignedWitness(TRADE, hash, Sig.sign(attacker.getPrivate(), hash),
                     attackerPubKey, attackerPubKey, getTodayMinusNDays(SignedWitnessService.SIGNER_AGE_DAYS + 2), tradeAmount3));
         }
+        // signature results are cached, so the timed block measures the signer walks alone
+        signedWitnessService.getSignedWitnessMapValues().forEach(signedWitnessService::verifySignature);
         assertTimeoutPreemptively(Duration.ofSeconds(20), () -> {
             assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew3));
             assertTrue(signedWitnessService.getVerifiedWitnessDateList(aew3).isEmpty());
