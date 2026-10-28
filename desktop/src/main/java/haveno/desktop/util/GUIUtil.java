@@ -1425,6 +1425,43 @@ public class GUIUtil {
         });
     }
 
+    private static final String SCROLL_FORWARDING = "haveno.scrollForwarding";
+
+    // A trackpad scroll gesture, inertia included, stays aimed at the node first under the pointer; when a view
+    // rebuilds that node (e.g. a reused cell's graphic), forward the stranded gesture to its nearest attached ancestor.
+    public static void keepScrollGesturesAttached() {
+        Window.getWindows().forEach(GUIUtil::installWindowScrollForwarding);
+        Window.getWindows().addListener((ListChangeListener<Window>) change -> {
+            while (change.next()) change.getAddedSubList().forEach(GUIUtil::installWindowScrollForwarding);
+        });
+    }
+
+    private static void installWindowScrollForwarding(Window window) {
+        if (window.getProperties().put(SCROLL_FORWARDING, Boolean.TRUE) != null) return;
+        window.sceneProperty().addListener((obs, oldScene, scene) -> installSceneScrollForwarding(scene));
+        installSceneScrollForwarding(window.getScene());
+    }
+
+    private static void installSceneScrollForwarding(Scene scene) {
+        if (scene == null || scene.getProperties().put(SCROLL_FORWARDING, Boolean.TRUE) != null) return;
+        AtomicReference<Runnable> release = new AtomicReference<>(() -> {});
+        scene.addEventFilter(ScrollEvent.SCROLL_STARTED, event -> {
+            release.getAndSet(() -> {}).run();
+            if (!(event.getTarget() instanceof Node target)) return;
+            List<Node> ancestors = new ArrayList<>();
+            for (Node node = target.getParent(); node != null; node = node.getParent()) ancestors.add(node);
+            EventHandler<ScrollEvent> forward = e -> {
+                if (target.getScene() != null) return;
+                ancestors.stream().filter(node -> node.getScene() != null).findFirst().ifPresent(node -> {
+                    e.consume();
+                    node.fireEvent(e.copyFor(node, node));
+                });
+            };
+            target.addEventFilter(ScrollEvent.ANY, forward);
+            release.set(() -> target.removeEventFilter(ScrollEvent.ANY, forward)); // also holds the target, which the scene references weakly
+        });
+    }
+
     // A popup window covers its drop shadow, so a press on the shadow reaches the menu's own scene
     // instead of auto-hiding it; dismiss any context menu on presses outside its card.
     public static void dismissContextMenusOnShadowPress() {
