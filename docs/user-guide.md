@@ -26,6 +26,10 @@ Account backups include heap dumps left in the application data directory, inclu
 
 Remove the setting or set it to `false`, then restart Haveno to stop enabling dumps. This option leaves any manually configured JVM heap-dump flags unchanged when disabled.
 
+## Startup Blocked by a Running Wallet Process
+
+Haveno refuses to start while a `monero-wallet-rpc` process from its own installation may still be using its wallet files, for example one left behind by a crash or a forced shutdown. The startup error names the process ID. Close other Haveno instances and wait for them to exit, then start Haveno again. If none is running, stop that process in your task manager first.
+
 ## Running a Local Monero Node
 
 For the best experience using Haveno, it is highly recommended to run your own local Monero node to improve security and responsiveness.
